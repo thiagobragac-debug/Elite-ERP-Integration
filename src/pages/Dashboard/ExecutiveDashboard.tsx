@@ -20,7 +20,9 @@ import {
   Monitor,
   Sparkles,
   X,
-  Search
+  Search,
+  Settings,
+  PieChart as PieChartIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -33,7 +35,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import './ExecutiveDashboard.css';
 
 export const ExecutiveDashboard: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, tenant } = useTenant();
   const [kpiData, setKpiData] = useState<any[]>([
     { id: 'gmd', label: 'Evolução de GMD', value: '---', icon: Activity, color: '#10b981', progress: 0 },
     { id: 'caixa', label: 'Fluxo de Caixa', value: '---', icon: DollarSign, color: '#f59e0b', progress: 0 },
@@ -51,7 +53,7 @@ export const ExecutiveDashboard: React.FC = () => {
   useEffect(() => {
     if (!activeFarm) return;
     fetchExecutiveStats();
-  }, [activeFarm]);
+  }, [activeFarm, tenant]);
 
   useEffect(() => {
     if (isTVMode) {
@@ -65,6 +67,8 @@ export const ExecutiveDashboard: React.FC = () => {
   const fetchExecutiveStats = async () => {
     setLoading(true);
     try {
+      console.log('[Dashboard] Buscando estatísticas para tenant:', tenant?.id);
+      
       const { count: animalCount } = await supabase
         .from('animais')
         .select('*', { count: 'exact', head: true })
@@ -240,8 +244,34 @@ export const ExecutiveDashboard: React.FC = () => {
           sparkline: [
             { value: 85, label: '92%' }, { value: 88, label: '93%' }, { value: 90, label: '93.5%' }, { value: 92, label: '94%' }, { value: 93, label: '94.1%' }, { value: 94, label: '94.2%' }, { value: 94, label: '94.2%' }, { value: 94, label: 'Hoje: 94.2%' }
           ]
-        }
+        },
+        { id: 'conversao_alim', label: 'Conversão Alimentar', value: '6.2:1', icon: Activity, color: '#10b981', progress: 85, trend: 'up', change: '-2.1%', periodLabel: 'Nutrição', sparkline: [{value: 80}, {value: 82}, {value: 85}] },
+        { id: 'produtividade_ha', label: 'Produtividade (@/ha)', value: '18.4 @', icon: TrendingUp, color: '#16a34a', progress: 75, trend: 'up', change: '+5.2%', periodLabel: 'Performance', sparkline: [{value: 60}, {value: 70}, {value: 75}] },
+        { id: 'ciclo_engorda', label: 'Ciclo de Engorda', value: '94 dias', icon: Clock, color: '#3b82f6', progress: 90, trend: 'up', change: '-4d', periodLabel: 'Pecuária', sparkline: [{value: 95}, {value: 92}, {value: 90}] },
+        { id: 'saving_compras', label: 'Saving de Compras', value: '12.4%', icon: DollarSign, color: '#10b981', progress: 88, trend: 'up', change: '+1.5%', periodLabel: 'Suprimentos', sparkline: [{value: 70}, {value: 80}, {value: 88}] },
+        { id: 'lead_time', label: 'Lead Time Médio', value: '4.2 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up', change: '-0.5d', periodLabel: 'Suprimentos', sparkline: [{value: 90}, {value: 88}, {value: 85}] },
+        { id: 'acuracidade_est', label: 'Acuracidade Estoque', value: '98.8%', icon: Settings, color: '#10b981', progress: 98, trend: 'up', change: '+0.5%', periodLabel: 'Estoque', sparkline: [{value: 95}, {value: 97}, {value: 98}] },
+        { id: 'ruptura_est', label: 'Índice de Ruptura', value: '1.2%', icon: AlertCircle, color: '#ef4444', progress: 95, trend: 'up', change: '-0.8%', periodLabel: 'Estoque', sparkline: [{value: 20}, {value: 15}, {value: 10}] },
+        { id: 'manutencao_hora', label: 'Custo Manutenção/h', value: 'R$ 42,10', icon: Settings, color: '#3b82f6', progress: 78, trend: 'up', change: '-2.5%', periodLabel: 'Frota', sparkline: [{value: 85}, {value: 80}, {value: 78}] },
+        { id: 'disponibilidade_frota', label: 'Disp. de Frota', value: '92.4%', icon: Monitor, color: '#10b981', progress: 92, trend: 'up', change: '+2.1%', periodLabel: 'Frota', sparkline: [{value: 85}, {value: 90}, {value: 92}] },
+        { id: 'margem_contribuicao', label: 'Margem Contrib.', value: 'R$ 1.2k', icon: TrendingUp, color: '#8b5cf6', progress: 84, trend: 'up', change: '+8.4%', periodLabel: 'Financeiro', sparkline: [{value: 60}, {value: 75}, {value: 84}] },
+        { id: 'break_even', label: 'Break-even (@)', value: 'R$ 172,40', icon: Target, color: '#16a34a', progress: 92, trend: 'up', change: '-1.2%', periodLabel: 'Financeiro', sparkline: [{value: 95}, {value: 93}, {value: 92}] },
+        { id: 'ticket_venda', label: 'Ticket Médio Venda', value: 'R$ 4.2k', icon: DollarSign, color: '#f59e0b', progress: 82, trend: 'up', change: '+2.5%', periodLabel: 'Vendas', sparkline: [{value: 70}, {value: 78}, {value: 82}] },
+        { id: 'roi_pastagem', label: 'ROI Pastagens', value: '2.4x', icon: Zap, color: '#db2777', progress: 75, trend: 'up', change: '+0.4', periodLabel: 'Financeiro', sparkline: [{value: 60}, {value: 68}, {value: 75}] },
+        { id: 'score_corporal', label: 'Score Cond. Corporal', value: '3.4', icon: Activity, color: '#10b981', progress: 85, trend: 'up', change: '+0.1', periodLabel: 'Pecuária', sparkline: [{value: 80}, {value: 82}, {value: 85}] },
+        { id: 'ociosidade_maq', label: 'Ociosidade Máq.', value: '14.2%', icon: AlertCircle, color: '#ef4444', progress: 85, trend: 'up', change: '-2.1%', periodLabel: 'Frota', sparkline: [{value: 25}, {value: 20}, {value: 15}] }
       ];
+      
+      // Filtragem dinâmica baseada no Canvas Studio
+      const selectedIds = tenant?.settings?.selected_metrics || ['gmd', 'lotacao', 'caixa', 'estoque'];
+      console.log('[Dashboard] Métricas selecionadas:', selectedIds);
+      
+      // Ordenar e filtrar allStats baseado na ordem de selectedIds
+      const filteredStats = selectedIds
+        .map((id: string) => allStats.find(s => s.id === id))
+        .filter(Boolean);
+
+      setKpiData(filteredStats);
 
       const { data: pesagens } = await supabase
         .from('pesagens')
@@ -342,9 +372,9 @@ export const ExecutiveDashboard: React.FC = () => {
           Array(4).fill(0).map((_, i) => (
             <KPISkeleton key={i} />
           ))
-        ) : kpiData.slice(0, 4).map((kpi, idx) => (
+        ) : kpiData.map((kpi, idx) => (
           <EliteStatCard 
-            key={idx}
+            key={kpi.id || idx}
             label={kpi.label}
             value={kpi.value}
             icon={kpi.icon}
@@ -352,6 +382,7 @@ export const ExecutiveDashboard: React.FC = () => {
             change={kpi.change}
             trend={kpi.trend}
             progress={kpi.progress}
+            sparkline={kpi.sparkline}
           />
         ))}
       </div>
