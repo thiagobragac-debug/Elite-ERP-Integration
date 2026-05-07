@@ -67,6 +67,20 @@ export const ExecutiveDashboard: React.FC = () => {
   }, [isTVMode]);
 
   useEffect(() => {
+    let interval: any;
+    if (isTVMode) {
+      interval = setInterval(() => {
+        setActiveChartMetric(prev => {
+          if (prev === 'gmd') return 'peso';
+          if (prev === 'peso') return 'arroba';
+          return 'gmd';
+        });
+      }, 15000); // 15 seconds per metric
+    }
+    return () => clearInterval(interval);
+  }, [isTVMode]);
+
+  useEffect(() => {
     calculateDynamicTarget();
   }, [activeChartMetric, tenant?.settings?.metric_targets]);
 
@@ -485,6 +499,15 @@ export const ExecutiveDashboard: React.FC = () => {
                   fill="url(#chartGradient)" 
                 />
                 
+                {/* Heat Zone (Danger Zone) below target */}
+                <rect 
+                  x="0" 
+                  y={getTargetY()} 
+                  width="800" 
+                  height={300 - getTargetY()} 
+                  fill="rgba(239, 68, 68, 0.04)" 
+                />
+
                 <line 
                   x1="0" 
                   y1={getTargetY()} 
@@ -541,8 +564,17 @@ export const ExecutiveDashboard: React.FC = () => {
           <div className="insight-cards-stack">
             <div className="insight-card-mini clickable" onClick={() => navigate('/pecuaria/pesagem')}>
               <div className="i-header">
-                <TrendingUp size={12} className="text-success" />
-                <span>Projeção de Abate</span>
+                <div className="h-left">
+                  <TrendingUp size={12} className="text-success" />
+                  <span>Projeção de Abate</span>
+                </div>
+                <button 
+                  className="ai-quick-btn"
+                  onClick={(e) => { e.stopPropagation(); setCopilotInput('Como otimizar a projeção de abate para OUT/2026?'); setIsCopilotOpen(true); }}
+                >
+                  <Sparkles size={10} />
+                  <span>AJUDA IA</span>
+                </button>
               </div>
               <div className="i-value">OUT/2026</div>
               <div className="i-footer">Baseado no GMD atual</div>
@@ -550,8 +582,17 @@ export const ExecutiveDashboard: React.FC = () => {
 
             <div className="insight-card-mini warning clickable" onClick={() => navigate('/pecuaria/lote')}>
               <div className="i-header">
-                <AlertCircle size={12} className="text-warning" />
-                <span>Desvio de Meta</span>
+                <div className="h-left">
+                  <AlertCircle size={12} className="text-warning" />
+                  <span>Desvio de Meta</span>
+                </div>
+                <button 
+                  className="ai-quick-btn danger"
+                  onClick={(e) => { e.stopPropagation(); setCopilotInput('O que está causando o desvio de -12.4% no GMD?'); setIsCopilotOpen(true); }}
+                >
+                  <Sparkles size={10} />
+                  <span>DIAGNÓSTICO</span>
+                </button>
               </div>
               <div className="i-value">-12.4%</div>
               <div className="i-footer">Pasto 04 (Oeste)</div>
@@ -559,8 +600,17 @@ export const ExecutiveDashboard: React.FC = () => {
 
             <div className="insight-card-mini success clickable" onClick={() => navigate('/pecuaria/sanidade')}>
               <div className="i-header">
-                <Sparkles size={12} className="text-brand" />
-                <span>Score Corporal</span>
+                <div className="h-left">
+                  <Sparkles size={12} className="text-brand" />
+                  <span>Score Corporal</span>
+                </div>
+                <button 
+                  className="ai-quick-btn"
+                  onClick={(e) => { e.stopPropagation(); setCopilotInput('Plano nutricional para elevar score corporal para 4.0'); setIsCopilotOpen(true); }}
+                >
+                  <Sparkles size={10} />
+                  <span>PLANO</span>
+                </button>
               </div>
               <div className="i-value">3.82 <small>avg</small></div>
               <div className="i-footer">Evolução positiva</div>
@@ -955,6 +1005,25 @@ export const ExecutiveDashboard: React.FC = () => {
         .t-date { font-size: 11px; font-weight: 700; color: #94a3b8; }
         .t-desc { font-size: 13px; font-weight: 600; color: #334155; margin: 0; }
         .timeline-item.muted .t-type { color: #94a3b8; }
+        .ai-quick-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          background: #f1f5f9;
+          color: #475569;
+          border: none;
+          padding: 4px 8px;
+          border-radius: 8px;
+          font-size: 9px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+        .ai-quick-btn:hover { background: #0f172a; color: white; transform: translateY(-1px); }
+        .ai-quick-btn.danger { background: #fef2f2; color: #ef4444; }
+        .ai-quick-btn.danger:hover { background: #ef4444; color: white; }
+        .i-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px; }
+        .i-header .h-left { display: flex; align-items: center; gap: 8px; }
       `}</style>
     </div>
   );
