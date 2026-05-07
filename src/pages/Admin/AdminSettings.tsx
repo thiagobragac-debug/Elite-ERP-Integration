@@ -11,6 +11,7 @@ import {
   Activity,
   DollarSign,
   Monitor,
+  LayoutGrid,
   Lock,
   Plus,
   Check,
@@ -72,10 +73,11 @@ const AVAILABLE_METRICS: Metric[] = [
 
 export const AdminSettings: React.FC = () => {
   const location = useLocation();
-  const { tenant, refreshData } = useTenant();
+  const { tenant, refreshData, userProfile, refreshProfile } = useTenant();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<SettingTab>('system');
   const [isSaving, setIsSaving] = useState(false);
+  const [saveScope, setSaveScope] = useState<'global' | 'personal'>('global');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['gmd', 'lotacao', 'caixa']);
   const [metricTargets, setMetricTargets] = useState<any>({
@@ -88,11 +90,9 @@ export const AdminSettings: React.FC = () => {
     if (location.pathname === '/admin/bi') setActiveTab('bi');
     if (location.pathname === '/admin/canvas') setActiveTab('canvas');
     
-    // Load from tenant settings (Supabase)
     if (tenant?.settings?.selected_metrics) {
       setSelectedMetrics(tenant.settings.selected_metrics);
     } else {
-      // Fallback to localStorage
       const saved = localStorage.getItem('elite_selected_metrics');
       if (saved) {
         try {
@@ -111,10 +111,8 @@ export const AdminSettings: React.FC = () => {
     setIsSaving(true);
     setSaveSuccess(false);
     
-    // 1. Persist to localStorage (compatibility)
     localStorage.setItem('elite_selected_metrics', JSON.stringify(selectedMetrics));
 
-    // 2. Persist to Supabase
     if (tenant?.id) {
       const updatedSettings = {
         ...tenant.settings,
@@ -129,7 +127,6 @@ export const AdminSettings: React.FC = () => {
         .eq('id', tenant.id);
 
       if (!error) {
-        // 3. Log Audit
         await logAudit({
           tenant_id: tenant.id,
           user_id: user?.id,
@@ -151,6 +148,44 @@ export const AdminSettings: React.FC = () => {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     }, 1000);
+  };
+
+  const handleSaveTarget = async (metric: string, config: any) => {
+    setIsSaving(true);
+    try {
+      const settingsKey = saveScope === 'global' ? 'tenant' : 'profile';
+      const targetData = saveScope === 'global' ? tenant?.settings : userProfile?.settings;
+      
+      const newSettings = {
+        ...(targetData || {}),
+        metric_targets: {
+          ...(targetData?.metric_targets || {}),
+          [metric]: config
+        }
+      };
+
+      const table = saveScope === 'global' ? 'tenants' : 'profiles';
+      const id = saveScope === 'global' ? tenant?.id : userProfile?.id;
+
+      if (!id) throw new Error("ID de referência não encontrado");
+
+      const { error } = await supabase
+        .from(table)
+        .update({ settings: newSettings })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      if (saveScope === 'global') await refreshData();
+      else await refreshProfile();
+      
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      console.error('Erro ao salvar meta:', err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const toggleMetric = (id: string) => {
@@ -293,6 +328,27 @@ export const AdminSettings: React.FC = () => {
                     <Target size={18} />
                     <h3>Motor de Metas de Performance (Híbrido)</h3>
                   </div>
+                  
+                  <div className="scope-toggle-container">
+                    <span className="scope-label">SALVAR ALTERAÇÕES EM:</span>
+                    <div className="scope-switcher">
+                      <button 
+                        className={`scope-btn ${saveScope === 'global' ? 'active' : ''}`}
+                        onClick={() => setSaveScope('global')}
+                      >
+                        <LayoutGrid size={14} />
+                        FAZENDA (GLOBAL)
+                      </button>
+                      <button 
+                        className={`scope-btn ${saveScope === 'personal' ? 'active' : ''}`}
+                        onClick={() => setSaveScope('personal')}
+                      >
+                        <Monitor size={14} />
+                        MEU PERFIL (PESSOAL)
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="targets-config-list">
                     {['gmd', 'lotacao', 'caixa'].map((mId) => {
                       const metric = AVAILABLE_METRICS.find(m => m.id === mId);
@@ -356,35 +412,6 @@ export const AdminSettings: React.FC = () => {
                         </div>
                       );
                     })}
-                  </div>
-                </section>
-
-                <section className="settings-panel">
-                  <div className="panel-header">
-                    <DollarSign size={18} />
-                    <h3>Economia & Custos</h3>
-                  </div>
-                  <div className="field-group">
-                    <div className="elite-field">
-                      <label>Custo Oportunidade (% a.a.)</label>
-                      <input type="number" defaultValue="11.50" />
-                    </div>
-                  </div>
-                </section>
-
-                <section className="settings-panel">
-                  <div className="panel-header">
-                    <Zap size={18} />
-                    <h3>Notificações de Inteligência</h3>
-                  </div>
-                  <div className="switch-list">
-                    <div className="premium-switch">
-                      <div className="info">
-                        <span className="t">Alerta de Desempenho</span>
-                        <span className="d">Notificar quando abaixo da meta.</span>
-                      </div>
-                      <div className="toggle-box active"></div>
-                    </div>
                   </div>
                 </section>
               </div>
@@ -820,6 +847,30 @@ export const AdminSettings: React.FC = () => {
         }
 
         .preview-footer { margin-top: 16px; font-size: 12px; color: #64748b; font-weight: 500; text-align: center; }
+
+        .scope-toggle-container { margin-bottom: 24px; }
+        .scope-label { display: block; font-size: 10px; font-weight: 900; color: #94a3b8; margin-bottom: 12px; letter-spacing: 0.05em; }
+        .scope-switcher { display: flex; gap: 8px; }
+        .scope-btn { 
+          flex: 1; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          gap: 10px; 
+          padding: 12px; 
+          border-radius: 14px; 
+          border: 2px solid #f1f5f9; 
+          background: #f8fafc; 
+          font-size: 11px; 
+          font-weight: 800; 
+          color: #64748b; 
+          cursor: pointer; 
+          transition: all 0.2s; 
+        }
+        .scope-btn:hover { border-color: #cbd5e1; color: #1e293b; }
+        .scope-btn.active { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
+        .scope-btn svg { opacity: 0.6; }
+        .scope-btn.active svg { opacity: 1; }
 
         .settings-panel.full-width { grid-column: 1 / -1; }
         .targets-config-list { display: flex; flex-direction: column; gap: 12px; }

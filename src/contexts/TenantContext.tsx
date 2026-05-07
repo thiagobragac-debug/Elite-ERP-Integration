@@ -30,6 +30,8 @@ interface TenantContextType {
   loading: boolean;
   refreshData: () => Promise<void>;
   tenant: any;
+  userProfile: any;
+  refreshProfile: () => Promise<void>;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -41,6 +43,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
   const [activeFarm, setActiveFarm] = useState<Farm | null>(null);
   const [tenant, setTenant] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -50,6 +53,17 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     // 1. Fetch Tenant (Account)
     const impersonateId = localStorage.getItem('saas_impersonate_tenant_id');
     
+    // 0. Fetch User Profile
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    
+    if (profileData) {
+      setUserProfile(profileData);
+    }
+
     let tenantQuery = supabase.from('tenants').select('*');
     if (impersonateId) {
       tenantQuery = tenantQuery.eq('id', impersonateId);
@@ -117,7 +131,12 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setActiveFarm,
       loading,
       refreshData: fetchData,
-      tenant
+      tenant,
+      userProfile,
+      refreshProfile: async () => {
+        const { data } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
+        if (data) setUserProfile(data);
+      }
     }}>
       {children}
     </TenantContext.Provider>

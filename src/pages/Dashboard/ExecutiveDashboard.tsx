@@ -35,7 +35,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import './ExecutiveDashboard.css';
 
 export const ExecutiveDashboard: React.FC = () => {
-  const { activeFarm, tenant } = useTenant();
+  const { activeFarm, tenant, userProfile } = useTenant();
   const [kpiData, setKpiData] = useState<any[]>([
     { id: 'gmd', label: 'Evolução de GMD', value: '---', icon: Activity, color: '#10b981', progress: 0 },
     { id: 'caixa', label: 'Fluxo de Caixa', value: '---', icon: DollarSign, color: '#f59e0b', progress: 0 },
@@ -46,11 +46,31 @@ export const ExecutiveDashboard: React.FC = () => {
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [isTVMode, setIsTVMode] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [copilotInput, setCopilotInput] = useState('');
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [chartData, setChartData] = useState<any[]>([]);
   const [activeChartMetric, setActiveChartMetric] = useState<'gmd' | 'peso' | 'arroba'>('gmd');
   const [targetValue, setTargetValue] = useState<number>(1.2);
+  const [chatHistory, setChatHistory] = useState<any[]>([
+    { type: 'system', text: 'Olá! Sou o Elite Copilot. Como posso ajudar na sua gestão hoje?' }
+  ]);
   const navigate = useNavigate();
+
+  const handleCopilotSend = () => {
+    if (!copilotInput.trim()) return;
+    
+    const newUserMsg = { type: 'user', text: copilotInput };
+    setChatHistory(prev => [...prev, newUserMsg]);
+    setCopilotInput('');
+    
+    // Simulate AI response
+    setTimeout(() => {
+      setChatHistory(prev => [...prev, { 
+        type: 'system', 
+        text: `Analisando os dados de ${activeChartMetric.toUpperCase()}... Processando insights preditivos para a Fazenda ${activeFarm?.name}.` 
+      }]);
+    }, 1000);
+  };
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -82,10 +102,14 @@ export const ExecutiveDashboard: React.FC = () => {
 
   useEffect(() => {
     calculateDynamicTarget();
-  }, [activeChartMetric, tenant?.settings?.metric_targets]);
+  }, [activeChartMetric, tenant?.settings?.metric_targets, userProfile?.settings?.metric_targets]);
 
   const calculateDynamicTarget = () => {
-    const config = tenant?.settings?.metric_targets?.[activeChartMetric] || { mode: 'auto', manualValue: 1.2 };
+    // Prioritize Personal Profile Settings over Global Tenant Settings
+    const personalConfig = userProfile?.settings?.metric_targets?.[activeChartMetric];
+    const globalConfig = tenant?.settings?.metric_targets?.[activeChartMetric];
+    
+    const config = personalConfig || globalConfig || { mode: 'auto', manualValue: 1.2 };
     
     if (config.mode === 'manual') {
       setTargetValue(config.manualValue);
@@ -357,30 +381,6 @@ export const ExecutiveDashboard: React.FC = () => {
     }
   };
 
-  const [copilotInput, setCopilotInput] = useState('');
-  const [chatHistory, setChatHistory] = useState<any[]>([
-    { type: 'system', text: 'Olá Thiago! Sou seu assistente de IA. Como posso ajudar com sua fazenda hoje?' }
-  ]);
-
-  const handleCopilotSend = () => {
-    if (!copilotInput.trim()) return;
-    
-    const newUserMsg = { type: 'user', text: copilotInput };
-    setChatHistory(prev => [...prev, newUserMsg]);
-    
-    // Simple response simulation
-    setTimeout(() => {
-      let response = "Interessante! Estou analisando os dados para você...";
-      if (copilotInput.toLowerCase().includes('gmd')) {
-        response = "O GMD médio atual é de 0.842kg. O pasto 'Piquete 04' está liderando com 0.950kg.";
-      } else if (copilotInput.toLowerCase().includes('financeiro') || copilotInput.toLowerCase().includes('caixa')) {
-        response = "Seu fluxo de caixa está positivo em R$ 124k, com uma projeção de EBITDA de 24.8% para o ano.";
-      }
-      setChatHistory(prev => [...prev, { type: 'system', text: response }]);
-    }, 1000);
-    
-    setCopilotInput('');
-  };
 
   return (
     <div className={`executive-page animate-slide-up ${isTVMode ? 'tv-mode' : ''}`}>
