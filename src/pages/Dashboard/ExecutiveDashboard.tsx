@@ -727,7 +727,9 @@ export const ExecutiveDashboard: React.FC = () => {
                 <Sparkles size={18} />
                 <span>ELITE COPILOT AI</span>
               </div>
-              <button onClick={() => setIsCopilotOpen(false)}><X size={18} /></button>
+              <button className="close-copilot-btn" onClick={() => setIsCopilotOpen(false)}>
+                <X size={18} />
+              </button>
             </div>
             <div className="copilot-chat">
               {chatHistory.map((msg, i) => (
@@ -855,9 +857,9 @@ export const ExecutiveDashboard: React.FC = () => {
           position: fixed;
           bottom: 40px;
           right: 40px;
-          background: #0f172a;
+          background: hsl(var(--bg-sidebar));
           color: white;
-          border: none;
+          border: 1px solid hsl(var(--border-strong));
           padding: 16px 32px;
           border-radius: 40px;
           display: flex;
@@ -888,10 +890,10 @@ export const ExecutiveDashboard: React.FC = () => {
         .recent-activity-panel {
           position: sticky;
           top: 32px;
-          background: white;
+          background: hsl(var(--bg-card));
           padding: 28px;
           border-radius: 24px;
-          border: 1px solid #f1f5f9;
+          border: 1px solid hsl(var(--border));
           box-shadow: 0 4px 20px rgba(0,0,0,0.02);
           max-height: calc(100vh - 64px);
           display: flex;
@@ -911,14 +913,14 @@ export const ExecutiveDashboard: React.FC = () => {
           bottom: 120px;
           right: 40px;
           width: 380px;
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 28px;
           box-shadow: 0 40px 80px rgba(0,0,0,0.2);
           z-index: 1002;
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          border: 1px solid #f1f5f9;
+          border: 1px solid hsl(var(--border));
         }
 
         .copilot-header {
@@ -940,14 +942,15 @@ export const ExecutiveDashboard: React.FC = () => {
           min-height: 350px; 
           max-height: 450px;
           overflow-y: auto;
+          background: hsl(var(--bg-card));
         }
-        .msg.system { background: #f8fafc; padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; color: #334155; align-self: flex-start; max-width: 85%; }
+        .msg.system { background: hsl(var(--bg-main)); padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; color: hsl(var(--text-main)); align-self: flex-start; max-width: 85%; border: 1px solid hsl(var(--border)); }
         .msg.user { background: #0f172a; color: white; padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; align-self: flex-end; max-width: 85%; }
-        .msg.suggestion { border: 1px solid #e2e8f0; padding: 10px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; color: #16a34a; cursor: pointer; transition: all 0.2s; }
-        .msg.suggestion:hover { background: #f0fdf4; border-color: #16a34a; }
+        .msg.suggestion { border: 1px solid hsl(var(--border)); padding: 10px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; color: #16a34a; cursor: pointer; transition: all 0.2s; background: hsl(var(--bg-main) / 0.3); }
+        .msg.suggestion:hover { background: hsl(var(--brand) / 0.1); border-color: #16a34a; }
 
-        .copilot-input { padding: 20px; border-top: 1px solid #f1f5f9; display: flex; gap: 12px; }
-        .copilot-input input { flex: 1; border: none; background: #f1f5f9; padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; outline: none; }
+        .copilot-input { padding: 20px; border-top: 1px solid hsl(var(--border)); display: flex; gap: 12px; background: hsl(var(--bg-card)); }
+        .copilot-input input { flex: 1; border: 1px solid hsl(var(--border)); background: hsl(var(--bg-main)); padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; outline: none; color: hsl(var(--text-main)); }
         .send-btn { background: #16a34a; color: white; border: none; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
         .elite-modal-overlay {
@@ -967,7 +970,7 @@ export const ExecutiveDashboard: React.FC = () => {
         }
 
         .elite-history-modal {
-          background: white !important;
+          background: hsl(var(--bg-card)) !important;
           width: 90% !important;
           max-width: 650px !important;
           border-radius: 32px !important;
@@ -996,14 +999,14 @@ export const ExecutiveDashboard: React.FC = () => {
         .modal-body-scroll { padding: 16px; overflow-y: auto; flex: 1; }
         .history-timeline { display: flex; flex-direction: column; gap: 16px; }
         .timeline-item { display: flex; gap: 20px; position: relative; }
-        .timeline-item::after { content: ''; position: absolute; left: 18px; top: 36px; bottom: -12px; width: 2px; background: #f1f5f9; }
+        .timeline-item::after { content: ''; position: absolute; left: 18px; top: 36px; bottom: -12px; width: 2px; background: hsl(var(--border)); }
         .timeline-item:last-child::after { display: none; }
-        .t-icon { width: 36px; height: 36px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; color: #64748b; z-index: 2; flex-shrink: 0; }
+        .t-icon { width: 36px; height: 36px; border-radius: 12px; background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); display: flex; align-items: center; justify-content: center; color: hsl(var(--text-muted)); z-index: 2; flex-shrink: 0; }
         .t-content { flex: 1; }
         .t-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
         .t-type { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #16a34a; letter-spacing: 0.05em; }
         .t-date { font-size: 11px; font-weight: 700; color: #94a3b8; }
-        .t-desc { font-size: 13px; font-weight: 600; color: #334155; margin: 0; }
+        .t-desc { font-size: 13px; font-weight: 600; color: hsl(var(--text-main)); margin: 0; }
         .timeline-item.muted .t-type { color: #94a3b8; }
         .ai-quick-btn {
           display: flex;

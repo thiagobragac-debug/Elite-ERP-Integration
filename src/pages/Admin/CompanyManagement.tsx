@@ -73,9 +73,17 @@ export const CompanyManagement: React.FC = () => {
         tipo: formData.type,
         email: formData.email,
         telefone: formData.phone,
-        endereco: formData.address,
-        nome: formData.name, // mantendo compatibilidade com unidades
-        documento: formData.document // mantendo compatibilidade com unidades
+        cep: formData.cep,
+        tipo_logradouro: formData.tipo_logradouro,
+        logradouro: formData.logradouro,
+        numero: formData.numero,
+        complemento: formData.complemento,
+        bairro: formData.bairro,
+        cidade: formData.cidade,
+        estado: formData.estado,
+        pais: formData.pais,
+        nome: formData.name,
+        documento: formData.document
       };
 
       if (editingItem) {

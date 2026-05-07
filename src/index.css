@@ -1211,25 +1211,42 @@ select {
 }
 
 .icon-btn-secondary {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 18px;
-  background: white;
+  border-radius: 12px;
+  background: hsl(var(--bg-main));
   border: 1px solid hsl(var(--border));
-  color: #64748b;
+  color: hsl(var(--text-muted));
   box-shadow: var(--shadow-sm);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
 
 .icon-btn-secondary:hover {
   border-color: hsl(var(--brand));
   color: hsl(var(--brand));
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  background: radial-gradient(circle at top right, hsl(var(--brand) / 0.05), white);
+  background: hsl(var(--bg-card));
+}
+
+/* Contextual Overrides for Dark Headers */
+.elite-modal-header .icon-btn-secondary,
+.modal-header-premium .close-m-btn,
+.copilot-header .close-copilot-btn {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  color: white !important;
+}
+
+.elite-modal-header .icon-btn-secondary:hover,
+.modal-header-premium .close-m-btn:hover,
+.copilot-header .close-copilot-btn:hover {
+  background: rgba(255, 255, 255, 0.2) !important;
+  transform: rotate(90deg) scale(1.1);
 }
 
 /* Premium Modal System */
@@ -2041,8 +2058,6 @@ input:focus, textarea:focus, select:focus {
 }
 
 /* Elite Button System Extensions */
-.icon-btn-secondary { background: rgba(255,255,255,0.1); border: none; color: white; width: 36px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-.icon-btn-secondary:hover { background: rgba(255,255,255,0.2); transform: rotate(90deg); }
 
 .glass-btn { padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; display: flex; align-items: center; gap: 8px; justify-content: center; }
 .glass-btn.secondary { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
