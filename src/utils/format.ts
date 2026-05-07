@@ -29,3 +29,21 @@ export const formatPercent = (value: number | string | undefined | null, decimal
   
   return `${Number(value).toFixed(decimals)}%`;
 };
+
+export const maskCPFCNPJ = (value: string) => {
+  const clean = value.replace(/\D/g, '');
+  
+  if (clean.length <= 11) {
+    return clean
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d)/, '$1.$2')
+      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+  
+  return clean
+    .substring(0, 14)
+    .replace(/^(\d{2})(\d)/, '$1.$2')
+    .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d)/, '.$1/$2')
+    .replace(/(\d{4})(\d)/, '$1-$2');
+};

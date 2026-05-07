@@ -90,9 +90,17 @@ export const SupplierManagement: React.FC = () => {
       nome: formData.nome,
       cnpj_cpf: formData.cnpj,
       contato: formData.contato,
-      telefone: formData.telefone,
       email: formData.email,
       categoria: formData.categoria,
+      cep: formData.cep,
+      tipo_logradouro: formData.tipo_logradouro,
+      logradouro: formData.logradouro,
+      numero: formData.numero,
+      complemento: formData.complemento,
+      bairro: formData.bairro,
+      cidade: formData.cidade,
+      estado: formData.estado,
+      pais: formData.pais,
       status: formData.status
     };
 
@@ -337,8 +345,8 @@ export const SupplierManagement: React.FC = () => {
                         <span>{sup.telefone || 'Sem telefone'}</span>
                       </div>
                       <div className="meta-item">
-                        <Mail size={14} className="meta-icon" />
-                        <span>{sup.email || 'N/A'}</span>
+                        <MapPin size={14} className="meta-icon" />
+                        <span>{sup.cidade ? `${sup.cidade}/${sup.estado}` : 'Sem endereço'}</span>
                       </div>
                     </div>
                   </div>

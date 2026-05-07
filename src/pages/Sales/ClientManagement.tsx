@@ -107,7 +107,15 @@ export const ClientManagement: React.FC = () => {
       tipo: formData.type,
       email: formData.email,
       telefone: formData.phone,
-      localizacao: formData.location,
+      cep: formData.cep,
+      tipo_logradouro: formData.tipo_logradouro,
+      logradouro: formData.logradouro,
+      numero: formData.numero,
+      complemento: formData.complemento,
+      bairro: formData.bairro,
+      cidade: formData.cidade,
+      estado: formData.estado,
+      pais: formData.pais,
       limite_credito: formData.creditLimit,
       status: formData.status
     };
@@ -152,7 +160,7 @@ export const ClientManagement: React.FC = () => {
       accessor: (item: any) => (
         <div className="table-cell-meta">
           <MapPin size={14} />
-          <span>{item.localizacao || 'N/A'}</span>
+          <span>{item.cidade ? `${item.cidade}/${item.estado}` : 'N/A'}</span>
         </div>
       )
     },
@@ -336,7 +344,7 @@ export const ClientManagement: React.FC = () => {
                       </div>
                       <div className="meta-item">
                         <MapPin size={14} className="meta-icon" />
-                        <span>{client.localizacao || 'Brasil'}</span>
+                        <span>{client.cidade ? `${client.cidade}/${client.estado}` : 'N/A'}</span>
                       </div>
                       <div className="meta-item">
                         <Phone size={14} className="meta-icon" />
