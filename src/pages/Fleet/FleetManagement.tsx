@@ -27,6 +27,8 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const FleetManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -277,7 +279,7 @@ export const FleetManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Truck} color="" />)
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
@@ -381,35 +383,42 @@ export const FleetManagement: React.FC = () => {
       </AnimatePresence>
 
       <div className="management-content">
-        <ModernTable 
-          data={machines.filter(m => {
-            const matchesSearch = (m.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || m.placa?.toLowerCase().includes(searchTerm.toLowerCase()) || m.modelo?.toLowerCase().includes(searchTerm.toLowerCase()));
-            const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
-            
-            // Advanced Filters
-            const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
-            const matchesMarca = filterValues.marca === 'all' || m.marca === filterValues.marca;
-
-            return matchesSearch && matchesCategory && matchesStatus && matchesMarca;
-          })}
-          columns={columns}
-          loading={loading}
-          hideHeader={true}
-          searchPlaceholder="Filtrar base de ativos..."
-          actions={(item) => (
-            <div className="modern-actions">
-              <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Logs">
-                <History size={18} />
-              </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+        {machines.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhum ativo cadastrado"
+            description="A frota desta unidade ainda não possui ativos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
+            actionLabel="Novo Ativo"
+            onAction={handleOpenCreate}
+            icon={Truck}
+          />
+        ) : (
+          <ModernTable 
+            data={machines.filter(m => {
+              const matchesSearch = (m.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || m.placa?.toLowerCase().includes(searchTerm.toLowerCase()) || m.modelo?.toLowerCase().includes(searchTerm.toLowerCase()));
+              const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
+              const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
+              const matchesMarca = filterValues.marca === 'all' || m.marca === filterValues.marca;
+              return matchesSearch && matchesCategory && matchesStatus && matchesMarca;
+            })}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            searchPlaceholder="Filtrar base de ativos..."
+            actions={(item) => (
+              <div className="modern-actions">
+                <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Logs">
+                  <History size={18} />
+                </button>
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                  <Edit3 size={18} />
+                </button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <MachineForm 

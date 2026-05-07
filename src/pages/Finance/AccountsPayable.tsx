@@ -25,6 +25,8 @@ import { TransactionForm } from '../../components/Forms/TransactionForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import './AccountsPayable.css';
 
 export const AccountsPayable: React.FC = () => {
@@ -215,7 +217,7 @@ export const AccountsPayable: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={CreditCard} color="" />)
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
@@ -328,34 +330,44 @@ export const AccountsPayable: React.FC = () => {
       </AnimatePresence>
 
       <div className="management-content">
-        <ModernTable 
-          data={bills.filter(b => {
-            const matchesSearch = (b.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'TODAS' || b.status === activeTab;
-            return matchesSearch && matchesTab;
-          })}
-          columns={columns}
-          loading={loading}
-          hideHeader={true}
-          actions={(item) => (
-            <div className="modern-actions">
-              {item.status === 'PENDENTE' && (
-                <button className="action-dot success" onClick={() => handleMarkAsPaid(item.id)} title="Liquidar">
-                  <Check size={18} />
+        {bills.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhuma conta a pagar"
+            description="Não há obrigações financeiras registradas para esta unidade. Registre uma nova conta para iniciar o controle de pagamentos."
+            actionLabel="Nova Conta"
+            onAction={handleOpenCreate}
+            icon={CreditCard}
+          />
+        ) : (
+          <ModernTable 
+            data={bills.filter(b => {
+              const matchesSearch = (b.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesTab = activeTab === 'TODAS' || b.status === activeTab;
+              return matchesSearch && matchesTab;
+            })}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            actions={(item) => (
+              <div className="modern-actions">
+                {item.status === 'PENDENTE' && (
+                  <button className="action-dot success" onClick={() => handleMarkAsPaid(item.id)} title="Liquidar">
+                    <Check size={18} />
+                  </button>
+                )}
+                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossiê">
+                  <FileText size={18} />
                 </button>
-              )}
-              <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossiê">
-                <FileText size={18} />
-              </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                  <Edit3 size={18} />
+                </button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <TransactionForm 

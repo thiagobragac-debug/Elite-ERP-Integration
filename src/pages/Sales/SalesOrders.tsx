@@ -29,6 +29,8 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const SalesOrders: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -260,7 +262,7 @@ export const SalesOrders: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Package} color="" />)
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
@@ -369,35 +371,42 @@ export const SalesOrders: React.FC = () => {
       </AnimatePresence>
 
       <div className="management-content">
-        <ModernTable 
-          data={orders.filter(o => {
-            const matchesSearch = (o.numero_pedido || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'OPEN' ? o.status !== 'delivered' : o.status === 'delivered';
-            
-            // Advanced Filters
-            const matchesStatus = filterValues.status === 'all' || o.status === filterValues.status;
-            const matchesDate = (!filterValues.dateStart || new Date(o.created_at) >= new Date(filterValues.dateStart)) &&
-                               (!filterValues.dateEnd || new Date(o.created_at) <= new Date(filterValues.dateEnd));
-
-            return matchesSearch && matchesTab && matchesStatus && matchesDate;
-          })}
-          columns={columns}
-          loading={loading}
-          hideHeader={true}
-          actions={(item) => (
-            <div className="modern-actions">
-              <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Dossiê">
-                <History size={18} />
-              </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+        {orders.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhum pedido de venda"
+            description="Nenhuma ordem comercial registrada para esta unidade. Inicie criando um novo pedido de venda."
+            actionLabel="Novo Pedido"
+            onAction={handleOpenCreate}
+            icon={FileText}
+          />
+        ) : (
+          <ModernTable 
+            data={orders.filter(o => {
+              const matchesSearch = (o.numero_pedido || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesTab = activeTab === 'OPEN' ? o.status !== 'delivered' : o.status === 'delivered';
+              const matchesStatus = filterValues.status === 'all' || o.status === filterValues.status;
+              const matchesDate = (!filterValues.dateStart || new Date(o.created_at) >= new Date(filterValues.dateStart)) &&
+                                 (!filterValues.dateEnd || new Date(o.created_at) <= new Date(filterValues.dateEnd));
+              return matchesSearch && matchesTab && matchesStatus && matchesDate;
+            })}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            actions={(item) => (
+              <div className="modern-actions">
+                <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Dossiê">
+                  <History size={18} />
+                </button>
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                  <Edit3 size={18} />
+                </button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <SalesOrderForm 
