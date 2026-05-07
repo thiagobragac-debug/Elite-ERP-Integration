@@ -78,6 +78,11 @@ export const AdminSettings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['gmd', 'lotacao', 'caixa']);
+  const [metricTargets, setMetricTargets] = useState<any>({
+    gmd: { mode: 'auto', manualValue: 1.2, autoFormula: 'Média + 15%' },
+    lotacao: { mode: 'manual', manualValue: 1.5, autoFormula: 'Capacidade Nominal' },
+    caixa: { mode: 'auto', manualValue: 100000, autoFormula: 'Projeção Mensal' }
+  });
 
   useEffect(() => {
     if (location.pathname === '/admin/bi') setActiveTab('bi');
@@ -97,6 +102,9 @@ export const AdminSettings: React.FC = () => {
         }
       }
     }
+    if (tenant?.settings?.metric_targets) {
+      setMetricTargets(tenant.settings.metric_targets);
+    }
   }, [location.pathname, tenant]);
 
   const handleSave = async () => {
@@ -111,6 +119,7 @@ export const AdminSettings: React.FC = () => {
       const updatedSettings = {
         ...tenant.settings,
         selected_metrics: selectedMetrics,
+        metric_targets: metricTargets,
         updated_at: new Date().toISOString()
       };
 
@@ -279,20 +288,74 @@ export const AdminSettings: React.FC = () => {
               className="settings-view"
             >
               <div className="settings-grid-layout">
-                <section className="settings-panel">
+                <section className="settings-panel full-width">
                   <div className="panel-header">
-                    <Activity size={18} />
-                    <h3>Metas de Performance</h3>
+                    <Target size={18} />
+                    <h3>Motor de Metas de Performance (Híbrido)</h3>
                   </div>
-                  <div className="field-group">
-                    <div className="elite-field">
-                      <label>Meta de GMD (kg/dia)</label>
-                      <input type="number" defaultValue="0.850" />
-                    </div>
-                    <div className="elite-field">
-                      <label>Lotação Referência (UA/ha)</label>
-                      <input type="number" defaultValue="1.50" />
-                    </div>
+                  <div className="targets-config-list">
+                    {['gmd', 'lotacao', 'caixa'].map((mId) => {
+                      const metric = AVAILABLE_METRICS.find(m => m.id === mId);
+                      const target = metricTargets[mId] || { mode: 'auto', manualValue: 0 };
+                      
+                      return (
+                        <div key={mId} className="target-config-row">
+                          <div className="m-info">
+                            <div className="m-icon-box" style={{ color: metric?.color }}>
+                              {metric && <metric.icon size={16} />}
+                            </div>
+                            <div className="m-text">
+                              <span className="n">{metric?.name}</span>
+                              <span className="c">{metric?.cat}</span>
+                            </div>
+                          </div>
+
+                          <div className="mode-selector">
+                            <button 
+                              className={`mode-btn ${target.mode === 'auto' ? 'active' : ''}`}
+                              onClick={() => setMetricTargets({
+                                ...metricTargets,
+                                [mId]: { ...target, mode: 'auto' }
+                              })}
+                            >
+                              <Zap size={12} />
+                              <span>IA AUTOMÁTICA</span>
+                            </button>
+                            <button 
+                              className={`mode-btn ${target.mode === 'manual' ? 'active' : ''}`}
+                              onClick={() => setMetricTargets({
+                                ...metricTargets,
+                                [mId]: { ...target, mode: 'manual' }
+                              })}
+                            >
+                              <Monitor size={12} />
+                              <span>MANUAL</span>
+                            </button>
+                          </div>
+
+                          <div className="value-input-area">
+                            {target.mode === 'manual' ? (
+                              <div className="manual-input">
+                                <label>Valor da Meta</label>
+                                <input 
+                                  type="number" 
+                                  value={target.manualValue}
+                                  onChange={(e) => setMetricTargets({
+                                    ...metricTargets,
+                                    [mId]: { ...target, manualValue: parseFloat(e.target.value) }
+                                  })}
+                                />
+                              </div>
+                            ) : (
+                              <div className="auto-info">
+                                <span className="label">Cálculo Baseado em:</span>
+                                <span className="formula">{target.autoFormula || 'Histórico de 6 Meses'}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </section>
 
@@ -757,6 +820,54 @@ export const AdminSettings: React.FC = () => {
         }
 
         .preview-footer { margin-top: 16px; font-size: 12px; color: #64748b; font-weight: 500; text-align: center; }
+
+        .settings-panel.full-width { grid-column: 1 / -1; }
+        .targets-config-list { display: flex; flex-direction: column; gap: 12px; }
+        .target-config-row { 
+          display: grid; 
+          grid-template-columns: 240px 280px 1fr; 
+          gap: 24px; 
+          align-items: center; 
+          padding: 20px; 
+          background: #f8fafc; 
+          border-radius: 20px; 
+          border: 1px solid #f1f5f9; 
+          transition: 0.2s;
+        }
+        .target-config-row:hover { border-color: #cbd5e1; background: white; }
+        
+        .m-info { display: flex; align-items: center; gap: 12px; }
+        .m-icon-box { width: 36px; height: 36px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .m-text .n { display: block; font-size: 13px; font-weight: 800; color: #1e293b; }
+        .m-text .c { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+
+        .mode-selector { display: flex; background: #e2e8f0; padding: 4px; border-radius: 12px; gap: 4px; }
+        .mode-btn { 
+          flex: 1; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          gap: 8px; 
+          padding: 8px 12px; 
+          border-radius: 8px; 
+          border: none; 
+          font-size: 10px; 
+          font-weight: 900; 
+          cursor: pointer; 
+          transition: all 0.2s;
+          background: transparent;
+          color: #64748b;
+        }
+        .mode-btn.active { background: white; color: #0f172a; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+
+        .value-input-area { padding-left: 24px; border-left: 2px solid #e2e8f0; }
+        .manual-input label { display: block; font-size: 10px; font-weight: 900; color: #94a3b8; margin-bottom: 4px; }
+        .manual-input input { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 14px; width: 120px; outline: none; }
+        .manual-input input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1); }
+
+        .auto-info { display: flex; flex-direction: column; }
+        .auto-info .label { font-size: 10px; font-weight: 900; color: #94a3b8; }
+        .auto-info .formula { font-size: 13px; font-weight: 800; color: #16a34a; }
       `}</style>
     </div>
   );

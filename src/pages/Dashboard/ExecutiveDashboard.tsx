@@ -49,6 +49,7 @@ export const ExecutiveDashboard: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [chartData, setChartData] = useState<any[]>([]);
   const [activeChartMetric, setActiveChartMetric] = useState<'gmd' | 'peso' | 'arroba'>('gmd');
+  const [targetValue, setTargetValue] = useState<number>(1.2);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,6 +65,32 @@ export const ExecutiveDashboard: React.FC = () => {
     }
     return () => document.body.classList.remove('tv-mode-active');
   }, [isTVMode]);
+
+  useEffect(() => {
+    calculateDynamicTarget();
+  }, [activeChartMetric, tenant?.settings?.metric_targets]);
+
+  const calculateDynamicTarget = () => {
+    const config = tenant?.settings?.metric_targets?.[activeChartMetric] || { mode: 'auto', manualValue: 1.2 };
+    
+    if (config.mode === 'manual') {
+      setTargetValue(config.manualValue);
+    } else {
+      // IA Logic: Average + 15%
+      // In a real scenario, this would come from a complex aggregation
+      // For now, let's base it on the active metric defaults
+      const baseValues = { gmd: 0.85, peso: 450, arroba: 18 };
+      const base = baseValues[activeChartMetric] || 1;
+      setTargetValue(base * 1.15);
+    }
+  };
+
+  const getTargetY = () => {
+    // Basic mapping for SVG height (300px)
+    if (activeChartMetric === 'gmd') return 300 - (targetValue * 200); // 1kg ~ 100px from bottom
+    if (activeChartMetric === 'peso') return 300 - (targetValue * 0.4); // 500kg ~ 100px from bottom
+    return 300 - (targetValue * 10); // 20@ ~ 100px from bottom
+  };
 
   const fetchExecutiveStats = async () => {
     setLoading(true);
@@ -458,8 +485,17 @@ export const ExecutiveDashboard: React.FC = () => {
                   fill="url(#chartGradient)" 
                 />
                 
-                <line x1="0" y1="120" x2="800" y2="80" stroke="#3b82f6" strokeWidth="2" strokeDasharray="8,8" opacity="0.6" />
-                <text x="750" y="75" fill="#3b82f6" fontSize="10" fontWeight="900">META</text>
+                <line 
+                  x1="0" 
+                  y1={getTargetY()} 
+                  x2="800" 
+                  y2={getTargetY()} 
+                  stroke="#3b82f6" 
+                  strokeWidth="2" 
+                  strokeDasharray="8,8" 
+                  opacity="0.6" 
+                />
+                <text x="750" y={getTargetY() - 10} fill="#3b82f6" fontSize="10" fontWeight="900">META: {targetValue.toFixed(2)}{activeChartMetric === 'gmd' ? 'kg' : activeChartMetric === 'peso' ? 'kg' : '@'}</text>
                 
                 <motion.path 
                   animate={{ 
