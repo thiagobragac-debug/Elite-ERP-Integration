@@ -54,7 +54,48 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+}
+
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: hsl(var(--bg-main) / 0.8);
+  border: 1px solid hsl(var(--border));
+  border-radius: 100px;
+  color: hsl(var(--text-muted));
+  font-size: 0.75rem;
+  margin-right: 8px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.sync-status:hover {
+  background: hsl(var(--bg-card));
+  border-color: hsl(var(--brand) / 0.5);
+  color: hsl(var(--brand));
+}
+
+.status-dot-pulse {
+  width: 6px;
+  height: 6px;
+  background: hsl(var(--brand));
+  border-radius: 50%;
+  position: relative;
+}
+
+.status-dot-pulse::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: hsl(var(--brand));
+  border-radius: 50%;
+  animation: status-pulse 2s infinite;
 }
 
 .action-btn {

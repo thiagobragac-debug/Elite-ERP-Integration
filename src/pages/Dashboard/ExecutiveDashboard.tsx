@@ -28,6 +28,8 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { EliteMainChart } from '../../components/Charts/EliteMainChart';
+import { KPISkeleton, TableSkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import './ExecutiveDashboard.css';
 
 export const ExecutiveDashboard: React.FC = () => {
@@ -338,9 +340,9 @@ export const ExecutiveDashboard: React.FC = () => {
       <div className="next-gen-kpi-grid">
         {loading ? (
           Array(4).fill(0).map((_, i) => (
-            <EliteStatCard key={i} loading={true} label="" value="" icon={LayoutGrid} color="" />
+            <KPISkeleton key={i} />
           ))
-        ) : kpiData.map((kpi, idx) => (
+        ) : kpiData.slice(0, 4).map((kpi, idx) => (
           <EliteStatCard 
             key={idx}
             label={kpi.label}
@@ -377,7 +379,11 @@ export const ExecutiveDashboard: React.FC = () => {
             <Clock size={18} color="#64748b" />
           </div>
           <div className="activity-list">
-            {recentActivities.length > 0 ? recentActivities.map((act, i) => (
+            {loading ? (
+              <div style={{ padding: '20px' }}>
+                <TableSkeleton />
+              </div>
+            ) : recentActivities.length > 0 ? recentActivities.map((act, i) => (
               <div key={i} className="activity-item">
                 <div className="activity-icon" style={{ background: i % 2 === 0 ? 'hsl(var(--brand) / 0.1)' : '#fef2f2' }}>
                   {i % 2 === 0 ? <Beef size={20} color="hsl(var(--brand))" /> : <Activity size={20} color="#ef4444" />}
@@ -389,9 +395,11 @@ export const ExecutiveDashboard: React.FC = () => {
                 </div>
               </div>
             )) : (
-              <div style={{ textAlign: 'center', padding: '2rem' }}>
-                <p style={{ color: '#94a3b8', fontWeight: 600 }}>Nenhuma atividade registrada.</p>
-              </div>
+              <EmptyState 
+                title="Sem atividades recentes" 
+                description="Não há novos registros de manejo para esta unidade nas últimas 24 horas."
+                icon={Clock}
+              />
             )}
           </div>
           <button 
