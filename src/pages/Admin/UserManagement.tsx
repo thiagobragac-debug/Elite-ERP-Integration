@@ -20,7 +20,8 @@ import {
   History,
   Monitor,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -117,16 +118,30 @@ export const UserManagement: React.FC = () => {
     if (!activeFarm) return;
 
     if (activeTab === 'users') {
-      const { data, error } = await supabase
+      const { data: usersData, error: usersError } = await supabase
         .from('profiles_view')
-        .select('*')
+        .select('*, perfis_usuario(nome)')
         .eq('tenant_id', activeFarm.tenantId);
       
-      if (!error && data) {
-        setUsersList(data.map(u => ({
+      const { data: profilesData } = await supabase
+        .from('perfis_usuario')
+        .select('*')
+        .eq('tenant_id', activeFarm.tenantId);
+
+      if (!usersError) {
+        const processedProfiles = (profilesData || []).map(p => ({
+          ...p,
+          userCount: (usersData || []).filter(u => u.perfil_id === p.id).length
+        }));
+      
+        setUsersList((usersData || []).map(u => ({
           ...u,
-          profile: u.profile_name || u.base_role
+          name: u.full_name,
+          profile: u.perfis_usuario?.nome,
+          farm: u.unidade_nome,
+          memberSince: u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '---'
         })));
+        setProfilesList(processedProfiles);
       } else {
         setUsersList([]);
       }
@@ -382,7 +397,7 @@ export const UserManagement: React.FC = () => {
           />
         </div>
 
-        {activeTab === 'users' && (
+        {(activeTab === 'users' || activeTab === 'profiles') && (
           <div className="view-mode-toggle">
             <button 
               className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
@@ -449,45 +464,107 @@ export const UserManagement: React.FC = () => {
                   <motion.div 
                     key={user.id} 
                     layout
-                    className="user-card-premium"
+                    className={`user-card-premium ${user.status === 'active' ? 'active' : ''}`}
                   >
-                    <div className="card-top">
+                    <div className="card-left-section">
                       <div className="card-avatar">
                         {user.name?.charAt(0) || 'U'}
-                        <div className={`status-indicator ${user.status === 'active' ? 'online' : 'offline'}`} />
                       </div>
-                      <div className="card-actions">
-                        <button onClick={() => handleOpenEditUser(user)}><Edit2 size={14} /></button>
-                        <button onClick={() => handleViewUserLogs(user)}><History size={14} /></button>
+                      <div className="card-bottom-actions">
+                        <button className="action-icon-btn" onClick={() => handleOpenEditUser(user)} title="Editar"><Edit2 size={16} /></button>
+                        <button className="action-icon-btn" onClick={() => handleViewUserLogs(user)} title="Logs"><History size={16} /></button>
                       </div>
                     </div>
-                    <div className="card-body">
-                      <h3>{user.name}</h3>
-                      <span className="card-role">{user.profile || 'Usuário'}</span>
-                      <p className="card-email">{user.email}</p>
+
+                    <div className="card-main-content">
+                      <div className="card-header-info">
+                        <h3>{user.name}</h3>
+                        <span className="card-role-badge">{user.profile || 'Usuário'}</span>
+                      </div>
+
+                      <div className="card-meta-grid">
+                        <div className="meta-item">
+                          <Mail size={14} className="meta-icon" />
+                          <span>{user.email}</span>
+                        </div>
+                        <div className="meta-item">
+                          <Monitor size={14} className="meta-icon" />
+                          <span>{user.farm || 'Unidade Geral'}</span>
+                        </div>
+                        <div className="meta-item">
+                          <Calendar size={14} className="meta-icon" />
+                          <span>Desde {user.memberSince}</span>
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
             </motion.div>
           )
         ) : activeTab === 'profiles' ? (
-          <ModernTable 
-            data={profilesList.filter(p => (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()))}
-            columns={profileColumns}
-            loading={loading}
-            hideHeader={true}
-            searchPlaceholder="Buscar perfil..."
-            actions={(item) => (
-              <div className="modern-actions">
-                <button className="action-dot edit" onClick={() => handleOpenEditProfile(item)} title="Editar">
-                  <Edit2 size={18} />
-                </button>
-                <button className="action-dot delete" onClick={() => handleDeleteProfile(item.id)} title="Excluir">
-                  <XCircle size={18} />
-                </button>
-              </div>
-            )}
-          />
+          viewMode === 'list' ? (
+            <ModernTable 
+              data={profilesList.filter(p => (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()))}
+              columns={profileColumns}
+              loading={loading}
+              hideHeader={true}
+              searchPlaceholder="Buscar perfil..."
+              actions={(item) => (
+                <div className="modern-actions">
+                  <button className="action-dot edit" onClick={() => handleOpenEditProfile(item)} title="Editar">
+                    <Edit2 size={18} />
+                  </button>
+                  <button className="action-dot delete" onClick={() => handleDeleteProfile(item.id)} title="Excluir">
+                    <XCircle size={18} />
+                  </button>
+                </div>
+              )}
+            />
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="user-cards-grid"
+            >
+              {profilesList
+                .filter(p => (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()))
+                .map(profile => (
+                  <motion.div 
+                    key={profile.id} 
+                    layout
+                    className="user-card-premium active"
+                  >
+                    <div className="card-left-section">
+                      <div className="card-avatar profile-icon" style={{ background: '#16a34a' }}>
+                        <Shield size={32} />
+                      </div>
+                      <div className="card-bottom-actions">
+                        <button className="action-icon-btn" onClick={() => handleOpenEditProfile(profile)} title="Editar"><Edit2 size={16} /></button>
+                        <button className="action-icon-btn delete" onClick={() => handleDeleteProfile(profile.id)} title="Excluir"><XCircle size={16} /></button>
+                      </div>
+                    </div>
+
+                    <div className="card-main-content">
+                      <div className="card-header-info">
+                        <h3>{profile.nome}</h3>
+                        <span className="card-role-badge">Perfil de Acesso</span>
+                      </div>
+
+                      <div className="card-meta-grid">
+                        <div className="meta-item">
+                          <Users size={14} className="meta-icon" />
+                          <span>{profile.userCount} usuários ativos</span>
+                        </div>
+                        <div className="meta-item">
+                          <FileText size={14} className="meta-icon" />
+                          <span style={{ fontSize: '11px', lineHeight: '1.2' }}>{profile.descricao || 'Sem descrição.'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+            </motion.div>
+          )
         ) : (
           <div className="security-settings-grid">
             <section className="security-panel">
@@ -735,157 +812,213 @@ export const UserManagement: React.FC = () => {
 
         .user-cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 24px;
-          padding: 4px;
+          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+          gap: 20px;
+          padding: 8px;
         }
 
         .user-card-premium {
-          background: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(12px);
-          border-radius: 32px;
-          border: 1px solid rgba(241, 245, 249, 0.7);
-          padding: 28px;
-          position: relative;
-          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.01);
+          background: white;
+          border-radius: 24px;
+          border: 1px solid #e2e8f0;
+          display: flex;
           overflow: hidden;
+          padding: 0;
+          height: 180px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+          position: relative;
         }
 
         .user-card-premium::before {
           content: '';
           position: absolute;
-          top: 0;
           left: 0;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(135deg, rgba(22, 163, 74, 0.03) 0%, transparent 50%);
-          pointer-events: none;
+          top: 0;
+          bottom: 0;
+          width: 6px;
+          background: #cbd5e1;
+          transition: 0.3s;
+        }
+
+        .user-card-premium.active::before {
+          background: #16a34a;
+          box-shadow: 4px 0 15px rgba(22, 163, 74, 0.3);
         }
 
         .user-card-premium:hover {
-          transform: translateY(-12px) scale(1.02);
-          box-shadow: 0 30px 60px rgba(0,0,0,0.08);
-          border-color: rgba(22, 163, 74, 0.2);
-          background: white;
+          transform: translateX(8px);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+          border-color: #16a34a33;
+        }
+
+        .card-left-section {
+          width: 130px;
+          background: #f8fafc;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border-right: 1px solid #f1f5f9;
         }
 
         .card-avatar {
-          width: 72px;
-          height: 72px;
+          width: 70px;
+          height: 70px;
           background: #0f172a;
           color: white;
-          border-radius: 24px;
+          border-radius: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 28px;
           font-weight: 900;
-          position: relative;
-          box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+          margin-bottom: 12px;
+          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
         }
 
-        .status-indicator {
-          position: absolute;
-          bottom: -4px;
-          right: -4px;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          border: 4px solid white;
-          z-index: 2;
-        }
-
-        .card-actions {
+        .card-main-content {
+          flex: 1;
+          padding: 20px;
           display: flex;
-          gap: 10px;
+          flex-direction: column;
+          justify-content: space-between;
         }
 
-        .card-actions button {
-          width: 38px;
-          height: 38px;
-          border-radius: 14px;
-          border: 1px solid rgba(226, 232, 240, 0.5);
-          background: rgba(255, 255, 255, 0.8);
-          color: #475569;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.3s;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-        }
-
-        .card-actions button:hover {
-          background: #16a34a;
-          color: white;
-          transform: translateY(-4px) rotate(8deg);
-          box-shadow: 0 10px 20px rgba(22, 163, 74, 0.2);
-          border-color: #16a34a;
-        }
-
-        .card-body {
-          margin-top: 12px;
-        }
-
-        .card-body h3 {
-          font-size: 20px;
+        .card-header-info h3 {
+          font-size: 19px;
           font-weight: 900;
           color: #0f172a;
-          margin-bottom: 6px;
+          margin-bottom: 4px;
           letter-spacing: -0.02em;
         }
 
-        .card-role {
+        .card-role-badge {
           display: inline-block;
           font-size: 10px;
           font-weight: 800;
           color: #16a34a;
           background: #f0fdf4;
-          padding: 4px 12px;
+          padding: 4px 10px;
           border-radius: 8px;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
-          margin-bottom: 12px;
+          letter-spacing: 0.05em;
         }
 
-        .card-email {
-          font-size: 13px;
+        .card-meta-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
           color: #64748b;
-          font-weight: 500;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .meta-icon {
+          color: #16a34a;
+        }
+
+        .card-bottom-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 15px;
+        }
+
+        .action-icon-btn {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: 1px solid #f1f5f9;
+          background: white;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .action-icon-btn:hover {
+          background: #0f172a;
+          color: white;
+          transform: scale(1.1);
+        }
+
+        .action-icon-btn.delete:hover {
+          background: #ef4444;
+          border-color: #ef4444;
+        }
+
+        .i-date { background: #f5f3ff; color: #7c3aed; }
+        .i-phone { background: #ecfdf5; color: #059669; }
+        .i-email { background: #eff6ff; color: #2563eb; }
+
+        .activity-bar-container {
+          background: rgba(255, 255, 255, 0.5);
+          padding: 16px;
+          border-radius: 24px;
+          border: 1px solid #f1f5f9;
+        }
+
+        .activity-progress {
+          height: 100%;
+          background: linear-gradient(90deg, #16a34a, #22c55e);
+          box-shadow: 0 0 15px rgba(22, 163, 74, 0.4);
         }
 
         .card-footer {
-          margin-top: 24px;
-          padding-top: 16px;
-          border-top: 1px solid #f8fafc;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+          margin-top: 12px;
+          background: #f8fafc;
+          padding: 16px 24px;
+          margin-left: -32px;
+          margin-right: -32px;
+          margin-bottom: -32px;
+          border-top: 1px solid #f1f5f9;
         }
 
         .farm-tag {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
           color: #94a3b8;
           font-size: 12px;
-          font-weight: 600;
+          font-weight: 700;
         }
 
         .status-pill {
-          padding: 4px 10px;
-          border-radius: 8px;
+          padding: 6px 14px;
+          border-radius: 12px;
           font-size: 10px;
-          font-weight: 800;
+          font-weight: 900;
           background: #f1f5f9;
           color: #64748b;
           text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
         .status-pill.active {
           background: #f0fdf4;
           color: #16a34a;
+          box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
+        }
+
+        .card-avatar.profile-icon {
+          background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+          box-shadow: 0 15px 35px rgba(22, 163, 74, 0.3);
+        }
+
+        .btn-delete:hover {
+          background: #ef4444 !important;
+          color: white !important;
+          border-color: #ef4444 !important;
+          box-shadow: 0 15px 30px rgba(239, 68, 68, 0.3) !important;
         }
       `}</style>
     </div>
