@@ -24,6 +24,8 @@ import { TransactionForm } from '../../components/Forms/TransactionForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import './AccountsReceivable.css';
 
 export const AccountsReceivable: React.FC = () => {
@@ -211,7 +213,7 @@ export const AccountsReceivable: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={HandCoins} color="" />)
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
@@ -270,34 +272,48 @@ export const AccountsReceivable: React.FC = () => {
       </div>
 
       <div className="management-content">
-        <ModernTable 
-          data={invoices.filter(i => {
-            const matchesSearch = (i.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (i.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'TODAS' || i.status === activeTab;
-            return matchesSearch && matchesTab;
-          })}
-          columns={columns}
-          loading={loading}
-          hideHeader={true}
-          actions={(item) => (
-            <div className="modern-actions">
-              {item.status === 'PENDENTE' && (
-                <button className="action-dot success" onClick={() => handleMarkAsReceived(item.id)} title="Baixar">
-                  <Check size={18} />
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+             <KPISkeleton />
+          </div>
+        ) : invoices.length === 0 ? (
+          <EmptyState 
+            title="Nenhum recebível cadastrado" 
+            description="Você ainda não registrou nenhuma conta a receber para esta unidade. Comece adicionando uma nova venda ou fatura."
+            actionLabel="Adicionar Receita"
+            onAction={handleOpenCreate}
+            icon={HandCoins}
+          />
+        ) : (
+          <ModernTable 
+            data={invoices.filter(i => {
+              const matchesSearch = (i.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (i.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesTab = activeTab === 'TODAS' || i.status === activeTab;
+              return matchesSearch && matchesTab;
+            })}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            actions={(item) => (
+              <div className="modern-actions">
+                {item.status === 'PENDENTE' && (
+                  <button className="action-dot success" onClick={() => handleMarkAsReceived(item.id)} title="Baixar">
+                    <Check size={18} />
+                  </button>
+                )}
+                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossiê">
+                  <FileText size={18} />
                 </button>
-              )}
-              <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossiê">
-                <FileText size={18} />
-              </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                  <Edit3 size={18} />
+                </button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <TransactionForm 

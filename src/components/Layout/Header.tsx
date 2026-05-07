@@ -1,4 +1,4 @@
-import { Search, Bell, HelpCircle, LogOut, Sun, Moon, Github } from 'lucide-react';
+import { Search, Bell, HelpCircle, LogOut, Sun, Moon, GitBranch } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import './Header.css';
@@ -16,7 +16,7 @@ export const Header: React.FC = () => {
 
       <div className="header-actions">
         <div className="sync-status" title="GitHub Sincronizado (Elite v5.0 Cloud)">
-          <Github size={18} />
+          <GitBranch size={18} />
           <div className="status-dot-pulse"></div>
         </div>
 

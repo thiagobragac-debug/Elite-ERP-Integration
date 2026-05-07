@@ -19,6 +19,7 @@ import { HealthManagement } from './pages/Pecuaria/HealthManagement';
 import { NutritionManagement } from './pages/Pecuaria/NutritionManagement';
 import { ReproductionManagement } from './pages/Pecuaria/ReproductionManagement';
 import { ConfinementManagement } from './pages/Pecuaria/ConfinementManagement';
+import { AnimalDetail } from './pages/Pecuaria/AnimalDetail';
 import { InventoryManagement } from './pages/Inventory/InventoryManagement';
 import { MovementManagement } from './pages/Inventory/MovementManagement';
 import { AuditManagement } from './pages/Inventory/AuditManagement';
@@ -109,6 +110,7 @@ function AppContent() {
               
               {/* Pecuária */}
               <Route path="/pecuaria/animal" element={<AnimalManagement />} />
+              <Route path="/pecuaria/animal/:id" element={<AnimalDetail />} />
               <Route path="/pecuaria/lote" element={<LotManagement />} />
               <Route path="/pecuaria/pasto" element={<PastureManagement />} />
               <Route path="/pecuaria/pesagem" element={<WeightManagement />} />

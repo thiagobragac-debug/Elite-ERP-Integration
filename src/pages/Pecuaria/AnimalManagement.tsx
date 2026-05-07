@@ -382,7 +382,10 @@ export const AnimalManagement: React.FC = () => {
           searchPlaceholder="Filtrar por brinco, raça ou lote..."
           actions={(item) => (
             <div className="modern-actions">
-              <button className="action-dot info" title="Manejos">
+              <button className="action-dot info" onClick={() => navigate(`/pecuaria/animal/${item.id}`)} title="Detalhes & Histórico">
+                <Eye size={18} />
+              </button>
+              <button className="action-dot success" title="Manejos">
                 <Activity size={18} />
               </button>
               <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
