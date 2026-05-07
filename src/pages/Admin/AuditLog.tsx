@@ -46,6 +46,7 @@ interface LogEntry {
   timestamp: string;
   user_name: string;
   description: string;
+  sublabel?: string;
 }
 
 const TABLES = ['animais', 'pesagens', 'lotes', 'contas_pagar', 'contas_receber', 'maquinas', 'sanidade'];
@@ -66,25 +67,71 @@ export const AuditLog: React.FC = () => {
   const buildAuditLogs = async () => {
     setLoading(true);
     const allLogs: LogEntry[] = [];
+
+    const TABLE_CONFIG: Record<string, { fields: string; label: (row: any) => string; sublabel?: (row: any) => string }> = {
+      animais: {
+        fields: 'id, created_at, brinco, raca, sexo',
+        label: r => `Animal cadastrado: Brinco #${r.brinco || '—'}`,
+        sublabel: r => [r.raca, r.sexo === 'M' ? 'Macho' : r.sexo === 'F' ? 'Fêmea' : null].filter(Boolean).join(' · '),
+      },
+      pesagens: {
+        fields: 'id, created_at, peso, animais(brinco)',
+        label: r => `Pesagem registrada: ${r.peso ? r.peso + ' kg' : '—'}`,
+        sublabel: r => r.animais?.brinco ? `Brinco #${r.animais.brinco}` : undefined,
+      },
+      lotes: {
+        fields: 'id, created_at, nome, capacidade',
+        label: r => `Lote criado: "${r.nome || '—'}"`,
+        sublabel: r => r.capacidade ? `Cap. ${r.capacidade} animais` : undefined,
+      },
+      contas_pagar: {
+        fields: 'id, created_at, descricao, valor_total, data_vencimento',
+        label: r => `Conta a Pagar: ${r.descricao || '—'}`,
+        sublabel: r => [
+          r.valor_total ? Number(r.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : null,
+          r.data_vencimento ? 'Venc. ' + new Date(r.data_vencimento).toLocaleDateString('pt-BR') : null,
+        ].filter(Boolean).join(' · '),
+      },
+      contas_receber: {
+        fields: 'id, created_at, descricao, valor_total, data_vencimento',
+        label: r => `Conta a Receber: ${r.descricao || '—'}`,
+        sublabel: r => [
+          r.valor_total ? Number(r.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : null,
+          r.data_vencimento ? 'Venc. ' + new Date(r.data_vencimento).toLocaleDateString('pt-BR') : null,
+        ].filter(Boolean).join(' · '),
+      },
+      maquinas: {
+        fields: 'id, created_at, nome, marca, modelo, placa',
+        label: r => `Ativo cadastrado: ${r.nome || '—'}`,
+        sublabel: r => [r.marca, r.modelo, r.placa ? 'Placa ' + r.placa : null].filter(Boolean).join(' · '),
+      },
+      sanidade: {
+        fields: 'id, created_at, titulo, tipo, produto',
+        label: r => `Manejo Sanitário: ${r.titulo || '—'}`,
+        sublabel: r => [
+          r.tipo ?? null,
+          r.produto ? 'Produto: ' + r.produto : null,
+        ].filter(Boolean).join(' · '),
+      },
+    };
+
     try {
       await Promise.all(TABLES.map(async (table) => {
-        const { data } = await supabase
-          .from(table)
-          .select('id, created_at')
-          .eq('fazenda_id', activeFarm!.id)
-          .order('created_at', { ascending: false })
-          .limit(10);
+        const cfg = TABLE_CONFIG[table];
+        let query = supabase.from(table).select(cfg?.fields ?? 'id, created_at').eq('fazenda_id', activeFarm!.id).order('created_at', { ascending: false }).limit(10);
+        const { data } = await query;
 
-        (data || []).forEach(row =>
+        (data || []).forEach(row => {
           allLogs.push({
             id: row.id,
             table_name: table,
             action: 'INSERT',
             timestamp: row.created_at,
             user_name: 'Administrador',
-            description: `Registro adicionado em ${MODULE_LABELS[table] || table}`,
-          })
-        );
+            description: cfg ? cfg.label(row) : `Registro adicionado em ${MODULE_LABELS[table] || table}`,
+            sublabel: cfg?.sublabel ? cfg.sublabel(row) : undefined,
+          });
+        });
       }));
 
       allLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -339,8 +386,16 @@ export const AuditLog: React.FC = () => {
                         })}
                       </span>
                     </div>
-                    {/* Linha 2: descrição */}
-                    <p className="audit-desc">{log.description}</p>
+                    {/* Linha 2: descrição e sublabel */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <p className="audit-desc">{log.description}</p>
+                      {log.sublabel && (
+                        <>
+                          <span className="audit-dot">·</span>
+                          <span className="audit-sublabel">{log.sublabel}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -401,9 +456,15 @@ export const AuditLog: React.FC = () => {
 
         .audit-desc {
           font-size: 0.78rem; font-weight: 500;
-          color: hsl(var(--text-muted));
+          color: hsl(var(--text-main));
           margin: 0; white-space: nowrap;
           overflow: hidden; text-overflow: ellipsis;
+        }
+
+        .audit-sublabel {
+          font-size: 0.72rem; font-weight: 500;
+          color: hsl(var(--text-muted));
+          white-space: nowrap;
         }
 
         @keyframes spin { to { transform: rotate(360deg); } }
