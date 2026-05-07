@@ -317,28 +317,20 @@ export const AuditLog: React.FC = () => {
 
                   {/* Conteúdo */}
                   <div className="audit-entry-body">
-                    <div className="audit-entry-header">
-                      {/* módulo */}
+                    {/* Linha 1: módulo · pill · timestamp */}
+                    <div className="audit-entry-row">
                       <span className="audit-module-name">
                         {MODULE_LABELS[log.table_name] || log.table_name}
                       </span>
-
-                      {/* pill de ação */}
                       <span className="audit-action-pill" style={{ background: ac.color + '18', color: ac.color }}>
                         <ActionIcon size={10} />
                         {ac.label}
                       </span>
-
-                      {/* separador */}
-                      <div className="elite-separator" />
-
-                      {/* user */}
+                      <span className="audit-dot">·</span>
                       <span className="audit-user-tag">
                         <User size={10} />
                         {log.user_name}
                       </span>
-
-                      {/* timestamp */}
                       <span className="audit-timestamp">
                         <Clock size={10} />
                         {new Date(log.timestamp).toLocaleString('pt-BR', {
@@ -347,7 +339,7 @@ export const AuditLog: React.FC = () => {
                         })}
                       </span>
                     </div>
-
+                    {/* Linha 2: descrição */}
                     <p className="audit-desc">{log.description}</p>
                   </div>
                 </motion.div>
@@ -358,67 +350,62 @@ export const AuditLog: React.FC = () => {
       </div>
 
       <style>{`
-        /* ── Entrada de timeline ── */
         .audit-entry {
-          display: flex;
-          align-items: flex-start;
-          gap: 14px;
-          padding: 13px 16px;
-          border-radius: 14px;
-          transition: background 0.18s;
-          cursor: default;
+          display: flex; align-items: center; gap: 12px;
+          padding: 10px 14px; border-radius: 12px;
+          transition: background 0.15s; cursor: default;
         }
         .audit-entry:hover { background: hsl(var(--bg-main)); }
 
         .audit-entry-icon {
-          width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+          width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center;
         }
 
-        .audit-entry-body { flex: 1; }
+        .audit-entry-body { flex: 1; min-width: 0; }
 
-        .audit-entry-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          flex-wrap: wrap;
-          margin-bottom: 4px;
+        .audit-entry-row {
+          display: flex; align-items: center; gap: 6px;
+          margin-bottom: 2px; overflow: hidden;
         }
 
         .audit-module-name {
-          font-size: 0.72rem; font-weight: 800;
+          font-size: 0.7rem; font-weight: 800;
           text-transform: uppercase; letter-spacing: 0.05em;
-          color: hsl(var(--text-main));
+          color: hsl(var(--text-main)); white-space: nowrap;
         }
 
         .audit-action-pill {
-          display: flex; align-items: center; gap: 4px;
-          font-size: 0.62rem; font-weight: 900;
+          display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+          font-size: 0.6rem; font-weight: 900;
           text-transform: uppercase; letter-spacing: 0.06em;
-          padding: 2px 8px; border-radius: 20px;
+          padding: 2px 7px; border-radius: 20px;
+        }
+
+        .audit-dot {
+          color: hsl(var(--text-muted)); font-size: 0.7rem; flex-shrink: 0;
         }
 
         .audit-user-tag {
-          display: flex; align-items: center; gap: 4px;
-          font-size: 0.68rem; font-weight: 700;
+          display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+          font-size: 0.67rem; font-weight: 700;
           color: hsl(var(--brand));
         }
 
         .audit-timestamp {
-          margin-left: auto;
-          display: flex; align-items: center; gap: 4px;
-          font-size: 0.68rem; font-weight: 600;
-          color: hsl(var(--text-muted));
-          white-space: nowrap;
+          margin-left: auto; flex-shrink: 0;
+          display: flex; align-items: center; gap: 3px;
+          font-size: 0.67rem; font-weight: 600;
+          color: hsl(var(--text-muted)); white-space: nowrap;
         }
 
         .audit-desc {
-          font-size: 0.82rem; font-weight: 600;
+          font-size: 0.78rem; font-weight: 500;
           color: hsl(var(--text-muted));
-          margin: 0;
+          margin: 0; white-space: nowrap;
+          overflow: hidden; text-overflow: ellipsis;
         }
 
-        /* spinner */
         @keyframes spin { to { transform: rotate(360deg); } }
         .spin { animation: spin 0.8s linear infinite; }
       `}</style>
