@@ -1,0 +1,120 @@
+.bank-accounts-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.stat-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: hsl(var(--text-muted));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: hsl(var(--text-main));
+}
+
+.management-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Table Cells */
+.table-cell-title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.table-cell-title .main-text {
+  font-weight: 700;
+  color: hsl(var(--text-main));
+}
+
+.table-cell-title .sub-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: hsl(var(--brand));
+}
+
+.table-cell-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: hsl(var(--text-muted));
+  font-size: 0.85rem;
+}
+
+.balance-cell {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.balance-cell.positive { color: hsl(var(--brand-dark)); }
+.balance-cell.negative { color: #ef4444; }
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #10b981;
+  background: hsl(161 64% 95%);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.action-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.action-icon-btn.info { color: hsl(var(--brand)); background: hsl(var(--brand) / 0.1); }
+.action-icon-btn.edit { color: hsl(var(--text-muted)); background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); }
+.action-icon-btn.delete { color: #ef4444; background: #fee2e2; }
+
+.action-icon-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}

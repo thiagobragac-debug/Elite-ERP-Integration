@@ -1,0 +1,296 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  BarChart2, 
+  Plus, 
+  Search, 
+  Filter,
+  TrendingDown, 
+  TrendingUp,
+  CheckCircle2, 
+  ChevronRight, 
+  MoreVertical,
+  Building2,
+  DollarSign,
+  Calendar,
+  FileText,
+  ArrowRight,
+  Trash2,
+  Edit3,
+  History,
+  Target,
+  Zap
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { supabase } from '../../lib/supabase';
+import { useTenant } from '../../contexts/TenantContext';
+import { QuotationForm } from '../../components/Forms/QuotationForm';
+import { HistoryModal } from '../../components/Modals/HistoryModal';
+import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { ModernTable } from '../../components/DataTable/ModernTable';
+
+export const QuotationMap: React.FC = () => {
+  const { activeFarm } = useTenant();
+  const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [quotations, setQuotations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'OPEN' | 'CLOSED'>('OPEN');
+  const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [historyItems, setHistoryItems] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [stats, setStats] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!activeFarm) return;
+    fetchQuotations();
+  }, [activeFarm]);
+
+  const fetchQuotations = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from('mapas_cotacao')
+      .select('*')
+      .eq('fazenda_id', activeFarm.id)
+      .order('created_at', { ascending: false });
+    
+    if (data) {
+      setQuotations(data);
+      const abertas = data.filter(q => q.status === 'analyzing').length;
+      
+      setStats([
+        { label: 'Mapas em Análise', value: abertas, icon: BarChart2, color: '#10b981', progress: 100 },
+        { label: 'Saving Potencial', value: '14.5%', icon: TrendingDown, color: '#3b82f6', progress: 85, trend: 'down' },
+        { label: 'Fornecedores na Rede', value: '12', icon: Building2, color: '#f59e0b', progress: 100 },
+        { label: 'Acuracidade Orç.', value: '98%', icon: Target, color: '#166534', progress: 98 },
+      ]);
+    }
+    setLoading(false);
+  };
+
+  const handleOpenCreate = () => {
+    setSelectedQuotation(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (quot: any) => {
+    setSelectedQuotation(quot);
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (formData: any) => {
+    if (!activeFarm) return;
+    const payload = {
+      produto_id: formData.item_id,
+      quantidade: parseFloat(formData.quantity),
+      unidade: formData.unit,
+      dados_fornecedores: formData.suppliers,
+      status: selectedQuotation?.status || 'analyzing'
+    };
+
+    if (selectedQuotation) {
+      const { error } = await supabase.from('mapas_cotacao').update(payload).eq('id', selectedQuotation.id);
+      if (!error) { setIsModalOpen(false); fetchQuotations(); }
+    } else {
+      const { error } = await supabase.from('mapas_cotacao').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
+      if (!error) { setIsModalOpen(false); fetchQuotations(); }
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja excluir este mapa de cotação?')) return;
+    const { error } = await supabase.from('mapas_cotacao').delete().eq('id', id);
+    if (!error) fetchQuotations();
+  };
+
+  const handleViewDetails = (quot: any) => {
+    setIsHistoryModalOpen(true);
+    setHistoryLoading(true);
+    const suppliers = quot.suppliers || quot.dados_fornecedores || [];
+    setHistoryItems(suppliers.map((s: any, idx: number) => ({
+      id: idx.toString(),
+      date: quot.created_at || new Date().toISOString(),
+      title: s.name || s.fornecedor_nome || `Fornecedor ${idx+1}`,
+      subtitle: `Prazo: ${s.deliveryDays || s.prazo_entrega || 0} dias`,
+      value: Number(s.price || s.preco || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      status: (s.isWinner || s.vencedor) ? 'success' : 'info'
+    })));
+    setHistoryLoading(false);
+  };
+
+  const tableColumns = [
+    {
+      header: 'Item / Quantidade',
+      accessor: (item: any) => (
+        <div className="table-cell-title">
+          <span className="main-text">{item.produto_id || `Cotação #${item.id?.slice(0,5) || 'N/A'}`}</span>
+          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
+            {item.quantidade} {item.unidade}
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Vencedor Sugerido',
+      accessor: (item: any) => {
+        const suppliers = item.suppliers || item.dados_fornecedores || [];
+        const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
+        return winner ? (
+          <div className="table-cell-meta text-emerald-600 font-bold">
+            <CheckCircle2 size={14} />
+            <span>{winner.name || winner.fornecedor_nome}</span>
+          </div>
+        ) : (
+          <span className="sub-meta italic text-amber-600">Em análise</span>
+        );
+      }
+    },
+    {
+      header: 'Melhor Preço',
+      accessor: (item: any) => {
+        const suppliers = item.suppliers || item.dados_fornecedores || [];
+        const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
+        const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+        return (
+          <span className="main-text font-bold">
+            {minPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+        );
+      },
+      align: 'right' as const
+    },
+    {
+      header: 'Status',
+      accessor: (item: any) => (
+        <span className={`status-pill ${item.status === 'closed' ? 'active' : 'warning'}`}>
+          {item.status === 'closed' ? 'Encerrado' : 'Em Análise'}
+        </span>
+      ),
+      align: 'center' as const
+    }
+  ];
+
+  return (
+    <div className="quotation-page animate-slide-up">
+      <header className="page-header">
+        <div className="header-brand-group">
+          <div className="brand-badge">
+            <BarChart2 size={14} fill="currentColor" />
+            <span>ELITE PROCUREMENT v5.0</span>
+          </div>
+          <h1 className="page-title">Mapa de Cotação</h1>
+          <p className="page-subtitle">Análise comparativa de mercado, saving de suprimentos e tomada de decisão estratégica em tempo real.</p>
+        </div>
+        <div className="page-actions">
+          <button className="glass-btn secondary" onClick={() => navigate('/compras/mapa')}>
+            <TrendingUp size={18} />
+            ANÁLISE DE PREÇO
+          </button>
+          <button className="primary-btn" onClick={handleOpenCreate}>
+            <Plus size={18} />
+            NOVA COTAÇÃO
+          </button>
+        </div>
+      </header>
+
+      <div className="next-gen-kpi-grid">
+        {loading ? (
+          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={BarChart2} color="" />)
+        ) : stats.map((stat, idx) => (
+          <EliteStatCard 
+            key={idx}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            progress={stat.progress}
+            change="+5.4%"
+            trend={stat.trend}
+          />
+        ))}
+      </div>
+
+      <div className="elite-controls-row">
+        <div className="elite-tab-group">
+          <button 
+            className={`elite-tab-item ${activeTab === 'OPEN' ? 'active' : ''}`}
+            onClick={() => setActiveTab('OPEN')}
+          >
+            Mapas Ativos
+          </button>
+          <button 
+            className={`elite-tab-item ${activeTab === 'CLOSED' ? 'active' : ''}`}
+            onClick={() => setActiveTab('CLOSED')}
+          >
+            Encerrados
+          </button>
+        </div>
+
+        <div className="elite-search-wrapper">
+          <Search size={18} className="s-icon" />
+          <input 
+            type="text" 
+            className="elite-search-input"
+            placeholder="Buscar por item ou fornecedor..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="elite-filter-group">
+          <button className="icon-btn-secondary" title="Filtros Avançados">
+            <Filter size={20} />
+          </button>
+          <button className="icon-btn-secondary" title="Exportar Log">
+            <FileText size={20} />
+          </button>
+        </div>
+      </div>
+
+      <div className="management-content">
+        <ModernTable 
+          data={quotations.filter(q => {
+            const matchesSearch = (q.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesTab = activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed';
+            return matchesSearch && matchesTab;
+          })}
+          columns={tableColumns}
+          loading={loading}
+          hideHeader={true}
+          actions={(item) => (
+            <div className="modern-actions">
+              <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Comparativo">
+                <History size={18} />
+              </button>
+              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                <Edit3 size={18} />
+              </button>
+              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                <Trash2 size={18} />
+              </button>
+            </div>
+          )}
+        />
+      </div>
+
+      <QuotationForm 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSubmit={handleSubmit}
+        initialData={selectedQuotation}
+      />
+
+      <HistoryModal 
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        title="Quadro Comparativo"
+        subtitle="Análise detalhada de ofertas e condições comerciais"
+        items={historyItems}
+        loading={historyLoading}
+      />
+
+    </div>
+  );
+};

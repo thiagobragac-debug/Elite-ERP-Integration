@@ -1,0 +1,110 @@
+.saas-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--background);
+}
+
+.saas-header {
+  height: 70px;
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.saas-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.brand-text span:first-child {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.brand-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #0ea5e9;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.saas-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.saas-nav-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.saas-nav-link:hover {
+  color: var(--text-primary);
+  background-color: var(--hover-bg);
+}
+
+.saas-nav-link.active {
+  color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.saas-nav-link.return-link {
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+}
+
+.saas-nav-link.return-link:hover {
+  border-color: #94a3b8;
+  color: #1e293b;
+}
+
+.saas-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.saas-main-content {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.saas-page-container {
+  width: 100%;
+  max-width: 1440px;
+}

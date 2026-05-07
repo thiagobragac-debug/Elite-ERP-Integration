@@ -1,0 +1,22 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: hsl(var(--bg-main));
+}
+
+.main-content {
+  flex: 1;
+  margin-left: calc(var(--sidebar-width) + 2rem);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.page-container {
+  padding: 24px 24px;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  opacity: 0;
+  animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

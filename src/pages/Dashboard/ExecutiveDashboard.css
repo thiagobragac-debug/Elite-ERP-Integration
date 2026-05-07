@@ -1,0 +1,258 @@
+.executive-page {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  padding-bottom: 40px;
+}
+
+.header-brand-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.brand-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: hsl(var(--brand) / 0.1);
+  color: hsl(var(--brand));
+  padding: 6px 12px;
+  border-radius: 100px;
+  font-size: 0.7rem;
+  font-weight: 900;
+  width: fit-content;
+  border: 1px solid hsl(var(--brand) / 0.2);
+  letter-spacing: 0.1em;
+}
+
+.status-sync {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: hsl(var(--text-muted));
+  background: hsl(var(--bg-card));
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: 1px solid hsl(var(--border));
+}
+
+.sync-dot.active {
+  width: 8px;
+  height: 8px;
+  background: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #10b981;
+}
+
+/* Elite Dashboard Cards - EXACT Parity with Image */
+.next-gen-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.elite-kpi-card {
+  background: white;
+  border-radius: 32px;
+  border: 1px solid #f1f5f9;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  transition: all 0.4s ease;
+}
+
+.elite-kpi-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+.kpi-main-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.viz-circle-wrapper {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.viz-svg-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.ring-bg {
+  fill: none;
+  stroke: #f1f5f9;
+  stroke-width: 4;
+}
+
+.ring-fill {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s ease;
+}
+
+.icon-center {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kpi-text-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kpi-label-elite {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value-elite {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #1e293b;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.kpi-trend-elite {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.kpi-trend-elite.up { color: #10b981; }
+.kpi-trend-elite.down { color: #ef4444; }
+
+.kpi-divider {
+  height: 1px;
+  background: #f1f5f9;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.kpi-sparkline {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  height: 40px;
+  gap: 4px;
+}
+
+.spark-bar {
+  flex: 1;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.spark-bar:hover {
+  opacity: 0.8;
+}
+
+/* Multi-Dimensional Dashboard Content */
+.dashboard-grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 16px;
+}
+
+.analytics-canvas {
+  background: white;
+  border-radius: 32px;
+  padding: 16px;
+  border: 1px solid #f1f5f9;
+  box-shadow: var(--shadow-md);
+}
+
+.recent-activity-panel {
+  background: white;
+  border-radius: 32px;
+  padding: 16px;
+  border: 1px solid #f1f5f9;
+  box-shadow: var(--shadow-md);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.panel-header h3 {
+  font-size: 1.125rem;
+  font-weight: 900;
+  color: #1e293b;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.activity-item {
+  display: flex;
+  gap: 16px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.activity-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.activity-info h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.activity-info p {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.activity-time {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-top: 4px;
+  display: block;
+}

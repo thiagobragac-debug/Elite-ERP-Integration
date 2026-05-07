@@ -1,0 +1,33 @@
+.suppliers-page {
+  position: relative;
+  min-height: 100vh;
+}
+
+.no-farm-selected-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-xl);
+  margin-top: 2rem;
+}
+
+.glass-card {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border-radius: 2rem;
+  max-width: 400px;
+  width: 100%;
+}
+
+.suppliers-page .page-header {
+  margin-bottom: 2.5rem;
+}
+
+/* Estilos locais de abas removidos para usar o padrão global do Diamond Precision 5.0 */
+
