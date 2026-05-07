@@ -8,6 +8,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CompanyManagement } from './pages/Admin/CompanyManagement';
 import { UserManagement } from './pages/Admin/UserManagement';
 import { AdminSettings } from './pages/Admin/AdminSettings';
+import { ProfilePage } from './pages/Admin/ProfilePage';
 import { AuditLog } from './pages/Admin/AuditLog';
 import { SaaSAdminPanel } from './pages/Admin/SaaSAdminPanel';
 import { SaaSLayout } from './components/SaaSLayout/SaaSLayout';
@@ -104,6 +105,7 @@ function AppContent() {
               
               {/* Administrativo */}
               <Route path="/admin/usuarios" element={<UserManagement />} />
+              <Route path="/admin/perfil" element={<ProfilePage />} />
               <Route path="/admin/config" element={<CompanyManagement />} />
               <Route path="/admin/configuracoes" element={<AdminSettings />} />
               <Route path="/admin/bi" element={<AdminSettings />} />

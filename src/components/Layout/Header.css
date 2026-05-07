@@ -237,11 +237,21 @@
   border-radius: 10px;
   font-size: 0.8rem;
   font-weight: 700;
-  color: #ef4444;
+  color: hsl(var(--text-main));
   transition: all 0.2s ease;
 }
 
 .dropdown-item:hover {
-  background: #fef2f2;
+  background: hsl(var(--bg-main));
+  color: hsl(var(--brand));
   transform: translateX(4px);
+}
+
+.dropdown-item.logout {
+  color: #ef4444;
+}
+
+.dropdown-item.logout:hover {
+  background: #fef2f2;
+  color: #ef4444;
 }

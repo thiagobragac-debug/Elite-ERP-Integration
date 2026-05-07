@@ -19,20 +19,36 @@ interface UserFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  initialData?: any;
 }
 
-export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit }) => {
+export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm } = useTenant();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    profile_id: '',
-    status: 'active',
-    company_id: ''
   });
-
   const [profiles, setProfiles] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        email: initialData.email || '',
+        phone: initialData.phone || '',
+        profile_id: initialData.perfil_id || '',
+        status: initialData.status || 'active',
+        company_id: initialData.unidade_id || ''
+      });
+    } else {
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        profile_id: '',
+        status: 'active',
+        company_id: ''
+      });
+    }
+  }, [initialData, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -75,11 +91,11 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit })
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title="Convidar Novo Usuário"
-      subtitle="O usuário receberá um convite por e-mail para acessar o sistema."
-      icon={UserPlus}
+      title={initialData ? "Editar Usuário" : "Convidar Novo Usuário"}
+      subtitle={initialData ? "Atualize as permissões e dados de acesso deste usuário." : "O usuário receberá um convite por e-mail para acessar o sistema."}
+      icon={initialData ? User : UserPlus}
       loading={loading}
-      submitLabel="Enviar Convite"
+      submitLabel={initialData ? "Salvar Alterações" : "Enviar Convite"}
     >
       <div className="form-group full-width">
         <label><User size={14} /> Nome Completo</label>

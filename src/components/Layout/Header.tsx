@@ -1,12 +1,18 @@
-import { Search, Bell, HelpCircle, LogOut, Sun, Moon, GitBranch } from 'lucide-react';
+import { Search, Bell, HelpCircle, LogOut, Sun, Moon, GitBranch, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { NotificationCenter } from '../Notifications/NotificationCenter';
 import './Header.css';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenProfile: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenProfile }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
 
   return (
     <header className="header">
@@ -32,7 +38,11 @@ export const Header: React.FC = () => {
         </button>
         
         <div className="user-profile-wrapper">
-          <div className="user-profile">
+          <div 
+            className="user-profile" 
+            onClick={onOpenProfile}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="user-info">
               <span className="user-name">{user?.name || 'Usuário'}</span>
               <span className="user-role">Administrador</span>
@@ -56,7 +66,11 @@ export const Header: React.FC = () => {
           </div>
           
           <div className="user-dropdown">
-            <button className="dropdown-item" onClick={logout}>
+            <button className="dropdown-item" onClick={() => navigate('/admin/perfil')}>
+              <User size={16} />
+              <span>Meu Perfil</span>
+            </button>
+            <button className="dropdown-item logout" onClick={logout}>
               <LogOut size={16} />
               <span>Sair do Sistema</span>
             </button>

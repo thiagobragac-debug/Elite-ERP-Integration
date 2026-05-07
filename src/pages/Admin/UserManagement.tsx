@@ -17,7 +17,8 @@ import {
   Eye,
   XCircle,
   FileText,
-  History
+  History,
+  Monitor
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -27,27 +28,67 @@ import { UserForm } from '../../components/Forms/UserForm';
 import { ProfileForm } from '../../components/Forms/ProfileForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { useSearchParams } from 'react-router-dom';
 
 export const UserManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, userProfile, refreshProfile } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'profiles'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'profiles' | 'seguranca'>('users');
   const [usersList, setUsersList] = useState<any[]>([]);
   const [profilesList, setProfilesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [searchParams] = useSearchParams();
 
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [globalLogs, setGlobalLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'meu-perfil' || tabParam === 'users' || tabParam === 'profiles' || tabParam === 'seguranca') {
+      setActiveTab(tabParam as any);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     fetchData();
+    if (activeTab === 'seguranca') {
+      fetchSecurityLogs();
+    }
   }, [activeTab]);
+
+  const fetchSecurityLogs = async () => {
+    if (!activeFarm) return;
+    setLogsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('tenant_id', activeFarm.tenantId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (!error && data) {
+        setGlobalLogs(data.map(log => ({
+          id: log.id,
+          title: log.action,
+          date: log.created_at,
+          value: log.details || log.entity_name,
+          user: log.user_email
+        })));
+      }
+    } finally {
+      setLogsLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -110,9 +151,9 @@ export const UserManagement: React.FC = () => {
     if (!activeFarm) return;
 
     const payload = {
-      nome: data.name,
-      descricao: data.description,
-      permissoes: data.permissions,
+      nome: data.nome,
+      descricao: data.descricao,
+      permissoes: data.permissoes,
       tenant_id: activeFarm.tenantId
     };
 
@@ -124,13 +165,16 @@ export const UserManagement: React.FC = () => {
       
       if (!error) {
         setIsProfileModalOpen(false);
-        setSelectedProfile(null);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
         fetchData();
       }
     } else {
       const { error } = await supabase.from('perfis_usuario').insert([payload]);
       if (!error) {
         setIsProfileModalOpen(false);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
         fetchData();
       }
     }
@@ -259,6 +303,20 @@ export const UserManagement: React.FC = () => {
           {activeTab === 'users' ? <UserPlus size={18} /> : <Shield size={18} />}
           {activeTab === 'users' ? 'NOVO USUÁRIO' : 'NOVO PERFIL'}
         </button>
+
+        <AnimatePresence>
+          {saveSuccess && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="save-success-toast"
+            >
+              <CheckCircle2 size={16} />
+              <span>Alterações salvas com sucesso!</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       <div className="elite-controls-row">
@@ -274,6 +332,12 @@ export const UserManagement: React.FC = () => {
             onClick={() => setActiveTab('profiles')}
           >
             Perfis de Acesso
+          </button>
+          <button 
+            className={`elite-tab-item ${activeTab === 'seguranca' ? 'active' : ''}`}
+            onClick={() => setActiveTab('seguranca')}
+          >
+            Segurança
           </button>
         </div>
 
@@ -320,7 +384,7 @@ export const UserManagement: React.FC = () => {
               </div>
             )}
           />
-        ) : (
+        ) : activeTab === 'profiles' ? (
           <ModernTable 
             data={profilesList.filter(p => (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()))}
             columns={profileColumns}
@@ -338,6 +402,25 @@ export const UserManagement: React.FC = () => {
               </div>
             )}
           />
+        ) : (
+          <div className="security-log-container">
+             <ModernTable 
+                data={globalLogs}
+                columns={[
+                  { header: 'Evento', accessor: (i: any) => (
+                    <div className="elite-event-cell">
+                      <span className="event-title">{i.title}</span>
+                      <span className="event-user">{i.user}</span>
+                    </div>
+                  ) },
+                  { header: 'Data', accessor: (i: any) => i.date ? new Date(i.date).toLocaleString() : '---' },
+                  { header: 'Detalhes', accessor: 'value' }
+                ]}
+                loading={logsLoading}
+                hideHeader={true}
+                searchPlaceholder="Filtrar logs..."
+             />
+          </div>
         )}
       </div>
 
@@ -364,6 +447,43 @@ export const UserManagement: React.FC = () => {
         initialData={selectedProfile}
       />
 
+      <style>{`
+        .save-success-toast {
+          position: fixed;
+          top: 24px;
+          right: 24px;
+          background: #16a34a;
+          color: white;
+          padding: 12px 20px;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-weight: 800;
+          font-size: 13px;
+          box-shadow: 0 10px 30px rgba(22, 163, 74, 0.2);
+          z-index: 9999;
+        }
+
+        .elite-event-cell {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .event-title {
+          font-size: 14px;
+          font-weight: 800;
+          color: #1e293b;
+        }
+
+        .event-user {
+          font-size: 11px;
+          color: #16a34a;
+          font-weight: 700;
+          text-transform: lowercase;
+        }
+      `}</style>
     </div>
   );
 };

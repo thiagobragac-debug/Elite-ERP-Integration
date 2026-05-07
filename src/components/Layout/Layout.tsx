@@ -4,6 +4,7 @@ import { Header } from './Header';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { Maximize2, Minimize2 } from 'lucide-react';
+import { ProfileSidebar } from '../Navigation/ProfileSidebar';
 import './Layout.css';
 
 interface LayoutProps {
@@ -13,6 +14,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const [isKioskMode, setIsKioskMode] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Toggle Kiosk Mode with Alt+F
   useEffect(() => {
@@ -29,7 +31,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className={`layout ${isKioskMode ? 'kiosk-mode' : ''}`}>
       <Sidebar />
       <main className="main-content">
-        <Header />
+        <Header onOpenProfile={() => setIsProfileOpen(true)} />
+        
+        <ProfileSidebar 
+          isOpen={isProfileOpen} 
+          onClose={() => setIsProfileOpen(false)} 
+        />
         
         {isKioskMode && (
           <button 
