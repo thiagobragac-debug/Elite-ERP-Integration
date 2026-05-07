@@ -18,7 +18,9 @@ import {
   XCircle,
   FileText,
   History,
-  Monitor
+  Monitor,
+  LayoutGrid,
+  List as ListIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -50,6 +52,7 @@ export const UserManagement: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [globalLogs, setGlobalLogs] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   const [securitySettings, setSecuritySettings] = useState({
     min8Chars: true,
     specialChars: true,
@@ -379,6 +382,25 @@ export const UserManagement: React.FC = () => {
           />
         </div>
 
+        {activeTab === 'users' && (
+          <div className="view-mode-toggle">
+            <button 
+              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+              title="Visualização em Lista"
+            >
+              <ListIcon size={18} />
+            </button>
+            <button 
+              className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              title="Visualização em Cards"
+            >
+              <LayoutGrid size={18} />
+            </button>
+          </div>
+        )}
+
         <div className="elite-filter-group">
           <button className="icon-btn-secondary" title="Filtros Avançados">
             <Filter size={20} />
@@ -391,26 +413,63 @@ export const UserManagement: React.FC = () => {
 
       <div className="management-content">
         {activeTab === 'users' ? (
-          <ModernTable 
-            data={usersList.filter(u => 
-              (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-              (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-            )}
-            columns={userColumns}
-            loading={loading}
-            hideHeader={true}
-            searchPlaceholder="Buscar por nome, email..."
-            actions={(item) => (
-              <div className="modern-actions">
-                <button className="action-dot info" onClick={() => handleViewUserLogs(item)} title="Logs">
-                  <Eye size={18} />
-                </button>
-                <button className="action-dot edit" onClick={() => handleOpenEditUser(item)} title="Editar">
-                  <Edit2 size={18} />
-                </button>
-              </div>
-            )}
-          />
+          viewMode === 'list' ? (
+            <ModernTable 
+              data={usersList.filter(u => 
+                (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+              )}
+              columns={userColumns}
+              loading={loading}
+              hideHeader={true}
+              searchPlaceholder="Buscar por nome, email..."
+              actions={(item) => (
+                <div className="modern-actions">
+                  <button className="action-dot info" onClick={() => handleViewUserLogs(item)} title="Logs">
+                    <Eye size={18} />
+                  </button>
+                  <button className="action-dot edit" onClick={() => handleOpenEditUser(item)} title="Editar">
+                    <Edit2 size={18} />
+                  </button>
+                </div>
+              )}
+            />
+          ) : (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="user-cards-grid"
+            >
+              {usersList
+                .filter(u => 
+                  (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map(user => (
+                  <motion.div 
+                    key={user.id} 
+                    layout
+                    className="user-card-premium"
+                  >
+                    <div className="card-top">
+                      <div className="card-avatar">
+                        {user.name?.charAt(0) || 'U'}
+                        <div className={`status-indicator ${user.status === 'active' ? 'online' : 'offline'}`} />
+                      </div>
+                      <div className="card-actions">
+                        <button onClick={() => handleOpenEditUser(user)}><Edit2 size={14} /></button>
+                        <button onClick={() => handleViewUserLogs(user)}><History size={14} /></button>
+                      </div>
+                    </div>
+                    <div className="card-body">
+                      <h3>{user.name}</h3>
+                      <span className="card-role">{user.profile || 'Usuário'}</span>
+                      <p className="card-email">{user.email}</p>
+                    </div>
+                  </motion.div>
+                ))}
+            </motion.div>
+          )
         ) : activeTab === 'profiles' ? (
           <ModernTable 
             data={profilesList.filter(p => (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()))}
@@ -645,6 +704,172 @@ export const UserManagement: React.FC = () => {
         .toggle-box::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: 0.3s; }
         .toggle-box.active { background: #16a34a; }
         .toggle-box.active::after { left: 21px; }
+        .view-mode-toggle {
+          display: flex;
+          background: #f1f5f9;
+          padding: 4px;
+          border-radius: 12px;
+          gap: 4px;
+          margin: 0 16px;
+        }
+
+        .view-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .view-btn.active {
+          background: white;
+          color: #16a34a;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .user-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 24px;
+          padding: 4px;
+        }
+
+        .user-card-premium {
+          background: white;
+          border-radius: 28px;
+          border: 1px solid #f1f5f9;
+          padding: 24px;
+          position: relative;
+          transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+        }
+
+        .user-card-premium:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+          border-color: #16a34a33;
+        }
+
+        .card-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px;
+        }
+
+        .card-avatar {
+          width: 64px;
+          height: 64px;
+          background: #0f172a;
+          color: white;
+          border-radius: 22px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          font-weight: 800;
+          position: relative;
+        }
+
+        .status-indicator {
+          position: absolute;
+          bottom: -2px;
+          right: -2px;
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          border: 3px solid white;
+        }
+
+        .status-indicator.online { background: #16a34a; box-shadow: 0 0 10px #16a34a66; }
+        .status-indicator.offline { background: #94a3b8; }
+
+        .card-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .card-actions button {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          border: 1px solid #f1f5f9;
+          background: #f8fafc;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .card-actions button:hover {
+          background: #0f172a;
+          color: white;
+          transform: scale(1.1);
+        }
+
+        .card-body h3 {
+          font-size: 18px;
+          font-weight: 900;
+          color: #1e293b;
+          margin-bottom: 4px;
+        }
+
+        .card-role {
+          display: inline-block;
+          font-size: 11px;
+          font-weight: 800;
+          color: #16a34a;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 8px;
+        }
+
+        .card-email {
+          font-size: 13px;
+          color: #64748b;
+          font-weight: 500;
+        }
+
+        .card-footer {
+          margin-top: 24px;
+          padding-top: 16px;
+          border-top: 1px solid #f8fafc;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .farm-tag {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #94a3b8;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .status-pill {
+          padding: 4px 10px;
+          border-radius: 8px;
+          font-size: 10px;
+          font-weight: 800;
+          background: #f1f5f9;
+          color: #64748b;
+          text-transform: uppercase;
+        }
+
+        .status-pill.active {
+          background: #f0fdf4;
+          color: #16a34a;
+        }
       `}</style>
     </div>
   );
