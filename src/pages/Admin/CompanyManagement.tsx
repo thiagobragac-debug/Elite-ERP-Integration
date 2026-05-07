@@ -13,7 +13,9 @@ import {
   Globe,
   Eye,
   XCircle,
-  FileText
+  FileText,
+  LayoutGrid,
+  List as ListIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -37,6 +39,7 @@ export const CompanyManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
     fetchData();
@@ -256,6 +259,23 @@ export const CompanyManagement: React.FC = () => {
           />
         </div>
 
+        <div className="view-mode-toggle">
+          <button 
+            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+            title="Visualização em Lista"
+          >
+            <ListIcon size={18} />
+          </button>
+          <button 
+            className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+            onClick={() => setViewMode('grid')}
+            title="Visualização em Cards"
+          >
+            <LayoutGrid size={18} />
+          </button>
+        </div>
+
         <div className="elite-filter-group">
           <button className="icon-btn-secondary" title="Filtros Avançados">
             <Filter size={20} />
@@ -270,57 +290,325 @@ export const CompanyManagement: React.FC = () => {
         <AnimatePresence mode="wait">
           {activeTab === 'companies' ? (
             <motion.div 
-              key="companies-list"
+              key="companies-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <ModernTable 
-                data={filteredCompanies}
-                columns={companyColumns}
-                loading={loading}
-                hideHeader={true}
-                searchPlaceholder="Buscar por razão social ou CNPJ..."
-                actions={(item) => (
-                  <div className="modern-actions">
-                    <button className="action-dot info" onClick={() => handleViewLogs(item)} title="Histórico">
-                      <Eye size={18} />
-                    </button>
-                    <button className="action-dot edit" onClick={() => { setEditingItem(item); setIsCompanyModalOpen(true); }} title="Editar">
-                      <Edit3 size={18} />
-                    </button>
-                  </div>
-                )}
-              />
+              {viewMode === 'list' ? (
+                <ModernTable 
+                  data={filteredCompanies}
+                  columns={companyColumns}
+                  loading={loading}
+                  hideHeader={true}
+                  searchPlaceholder="Buscar por razão social ou CNPJ..."
+                  actions={(item) => (
+                    <div className="modern-actions">
+                      <button className="action-dot info" onClick={() => handleViewLogs(item)} title="Histórico">
+                        <Eye size={18} />
+                      </button>
+                      <button className="action-dot edit" onClick={() => { setEditingItem(item); setIsCompanyModalOpen(true); }} title="Editar">
+                        <Edit3 size={18} />
+                      </button>
+                    </div>
+                  )}
+                />
+              ) : (
+                <div className="user-cards-grid">
+                  {filteredCompanies.map(c => (
+                    <motion.div 
+                      key={c.id} 
+                      layout
+                      className={`user-card-premium ${c.tipo === 'matriz' ? 'info-badge' : ''}`}
+                    >
+                      <div className="card-left-section">
+                        <div className="card-avatar">
+                          <Building2 size={32} />
+                        </div>
+                        <div className="card-bottom-actions">
+                          <button className="action-icon-btn" onClick={() => handleViewLogs(c)} title="Logs"><Eye size={16} /></button>
+                          <button className="action-icon-btn" onClick={() => { setEditingItem(c); setIsCompanyModalOpen(true); }} title="Editar"><Edit3 size={16} /></button>
+                        </div>
+                      </div>
+
+                      <div className="card-main-content">
+                        <div className="card-header-info">
+                          <h3>{c.razao_social || c.nome}</h3>
+                          <span className="card-role-badge">{c.tipo || 'UNIDADE'}</span>
+                        </div>
+
+                        <div className="card-meta-grid">
+                          <div className="meta-item">
+                            <Globe size={14} className="meta-icon" />
+                            <span>CNPJ: {c.cnpj || c.documento || '---'}</span>
+                          </div>
+                          <div className="meta-item">
+                            <MapPin size={14} className="meta-icon" />
+                            <span>{c.cidade}/{c.estado}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           ) : (
             <motion.div 
-              key="farms-list"
+              key="farms-view"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <ModernTable 
-                data={filteredFarms}
-                columns={farmColumns}
-                loading={loading}
-                hideHeader={true}
-                searchPlaceholder="Buscar fazenda por nome..."
-                actions={(item) => (
-                  <div className="modern-actions">
-                    <button className="action-dot edit" onClick={() => { setEditingItem(item); setIsFarmModalOpen(true); }} title="Editar">
-                      <Edit3 size={18} />
-                    </button>
-                    <button className="action-dot delete" onClick={() => handleDelete('farm', item.id)} title="Excluir">
-                      <XCircle size={18} />
-                    </button>
-                  </div>
-                )}
-              />
+              {viewMode === 'list' ? (
+                <ModernTable 
+                  data={filteredFarms}
+                  columns={farmColumns}
+                  loading={loading}
+                  hideHeader={true}
+                  searchPlaceholder="Buscar fazenda por nome..."
+                  actions={(item) => (
+                    <div className="modern-actions">
+                      <button className="action-dot edit" onClick={() => { setEditingItem(item); setIsFarmModalOpen(true); }} title="Editar">
+                        <Edit3 size={18} />
+                      </button>
+                      <button className="action-dot delete" onClick={() => handleDelete('farm', item.id)} title="Excluir">
+                        <XCircle size={18} />
+                      </button>
+                    </div>
+                  )}
+                />
+              ) : (
+                <div className="user-cards-grid">
+                  {filteredFarms.map(f => (
+                    <motion.div 
+                      key={f.id} 
+                      layout
+                      className={`user-card-premium active`}
+                    >
+                      <div className="card-left-section">
+                        <div className="card-avatar">
+                          <Map size={32} />
+                        </div>
+                        <div className="card-bottom-actions">
+                          <button className="action-icon-btn" onClick={() => { setEditingItem(f); setIsFarmModalOpen(true); }} title="Editar"><Edit3 size={16} /></button>
+                          <button className="action-icon-btn delete" onClick={() => handleDelete('farm', f.id)} title="Excluir"><XCircle size={16} /></button>
+                        </div>
+                      </div>
+
+                      <div className="card-main-content">
+                        <div className="card-header-info">
+                          <h3>{f.nome}</h3>
+                          <span className="card-role-badge">FAZENDA</span>
+                        </div>
+
+                        <div className="card-meta-grid">
+                          <div className="meta-item">
+                            <Layout size={14} className="meta-icon" />
+                            <span>{f.area_total} ha</span>
+                          </div>
+                          <div className="meta-item">
+                            <Building2 size={14} className="meta-icon" />
+                            <span>{companies.find(c => c.id === f.unidade_id)?.razao_social || 'N/A'}</span>
+                          </div>
+                          <div className="meta-item">
+                            <MapPin size={14} className="meta-icon" />
+                            <span>{f.localizacao}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      <style>{`
+        .view-mode-toggle {
+          display: flex;
+          background: #f1f5f9;
+          padding: 4px;
+          border-radius: 12px;
+          gap: 4px;
+          margin: 0 16px;
+        }
+
+        .view-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .view-btn.active {
+          background: white;
+          color: #16a34a;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .user-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+          gap: 20px;
+          padding: 8px;
+        }
+
+        .user-card-premium {
+          background: white;
+          border-radius: 24px;
+          border: 1px solid #e2e8f0;
+          display: flex;
+          overflow: hidden;
+          padding: 0;
+          height: 180px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+          position: relative;
+          text-align: left;
+        }
+
+        .user-card-premium::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 6px;
+          background: #cbd5e1;
+          transition: 0.3s;
+        }
+
+        .user-card-premium.active::before {
+          background: #16a34a;
+          box-shadow: 4px 0 15px rgba(22, 163, 74, 0.3);
+        }
+
+        .user-card-premium.info-badge::before {
+          background: #3b82f6;
+          box-shadow: 4px 0 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .user-card-premium:hover {
+          transform: translateX(8px);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+          border-color: #16a34a33;
+        }
+
+        .card-left-section {
+          width: 130px;
+          background: #f8fafc;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border-right: 1px solid #f1f5f9;
+        }
+
+        .card-avatar {
+          width: 70px;
+          height: 70px;
+          background: #0f172a;
+          color: white;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+          font-weight: 900;
+          margin-bottom: 12px;
+          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+        }
+
+        .card-main-content {
+          flex: 1;
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        .card-header-info h3 {
+          font-size: 19px;
+          font-weight: 900;
+          color: #0f172a;
+          margin-bottom: 4px;
+          letter-spacing: -0.02em;
+        }
+
+        .card-role-badge {
+          display: inline-block;
+          font-size: 10px;
+          font-weight: 800;
+          color: #16a34a;
+          background: #f0fdf4;
+          padding: 4px 10px;
+          border-radius: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .card-meta-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .meta-icon {
+          color: #16a34a;
+        }
+
+        .card-bottom-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 15px;
+        }
+
+        .action-icon-btn {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: 1px solid #f1f5f9;
+          background: white;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .action-icon-btn:hover {
+          background: #0f172a;
+          color: white;
+          transform: scale(1.1);
+        }
+
+        .action-icon-btn.delete:hover {
+          background: #ef4444;
+          border-color: #ef4444;
+          color: white;
+        }
+      `}</style>
 
       <CompanyForm 
         isOpen={isCompanyModalOpen} 

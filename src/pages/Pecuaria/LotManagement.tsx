@@ -13,7 +13,10 @@ import {
   FileText,
   Edit3,
   Eye,
-  Calendar
+  Calendar,
+  LayoutGrid,
+  List as ListIcon,
+  TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -46,6 +49,7 @@ export const LotManagement: React.FC = () => {
     dateStart: '',
     dateEnd: ''
   });
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -296,6 +300,23 @@ export const LotManagement: React.FC = () => {
           />
         </div>
 
+        <div className="view-mode-toggle">
+          <button 
+            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+            title="Visualização em Lista"
+          >
+            <ListIcon size={18} />
+          </button>
+          <button 
+            className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+            onClick={() => setViewMode('grid')}
+            title="Visualização em Cards"
+          >
+            <LayoutGrid size={18} />
+          </button>
+        </div>
+
         <div className="elite-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
@@ -368,7 +389,7 @@ export const LotManagement: React.FC = () => {
             onAction={handleOpenCreate}
             icon={Layers}
           />
-        ) : (
+        ) : viewMode === 'list' ? (
           <ModernTable 
             data={lots.filter(l => {
               const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -390,8 +411,248 @@ export const LotManagement: React.FC = () => {
               </div>
             )}
           />
+        ) : (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="user-cards-grid"
+          >
+            {lots
+              .filter(l => {
+                const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesTab = activeTab === 'ATIVO' ? (l.status === 'ATIVO' || !l.status) : l.status === 'ARQUIVADO';
+                const matchesStatus = filterValues.status === 'all' || l.status === filterValues.status;
+                const matchesDate = (!filterValues.dateStart || new Date(l.created_at) >= new Date(filterValues.dateStart)) &&
+                                   (!filterValues.dateEnd || new Date(l.created_at) <= new Date(filterValues.dateEnd));
+                return matchesSearch && matchesTab && matchesStatus && matchesDate;
+              })
+              .map(l => (
+                <motion.div 
+                  key={l.id} 
+                  layout
+                  className={`user-card-premium ${l.status === 'ATIVO' || !l.status ? 'active' : 'warning-badge'}`}
+                >
+                  <div className="card-left-section">
+                    <div className="card-avatar">
+                      <Layers size={32} />
+                    </div>
+                    <div className="card-bottom-actions">
+                      <button className="action-icon-btn" onClick={() => handleViewDetails(l)} title="Detalhes"><Eye size={16} /></button>
+                      <button className="action-icon-btn" onClick={() => handleOpenEdit(l)} title="Editar"><Edit3 size={16} /></button>
+                      <button className="action-icon-btn delete" onClick={() => handleDelete(l.id)} title="Excluir"><Trash2 size={16} /></button>
+                    </div>
+                  </div>
+
+                  <div className="card-main-content">
+                    <div className="card-header-info">
+                      <h3>{l.nome}</h3>
+                      <span className="card-role-badge">{l.status || 'ATIVO'}</span>
+                    </div>
+
+                    <div className="card-meta-grid">
+                      <div className="meta-item">
+                        <Users size={14} className="meta-icon" />
+                        <span>{l.capacidade || 0} Animais</span>
+                      </div>
+                      <div className="meta-item">
+                        <TrendingUp size={14} className="meta-icon" />
+                        <span>GMD Alvo: {l.gmd_alvo || 0} kg</span>
+                      </div>
+                      <div className="meta-item">
+                        <Calendar size={14} className="meta-icon" />
+                        <span>Início: {l.data_inicio ? new Date(l.data_inicio).toLocaleDateString() : 'N/D'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+          </motion.div>
         )}
       </div>
+
+      <style>{`
+        .view-mode-toggle {
+          display: flex;
+          background: #f1f5f9;
+          padding: 4px;
+          border-radius: 12px;
+          gap: 4px;
+          margin: 0 16px;
+        }
+
+        .view-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .view-btn.active {
+          background: white;
+          color: #16a34a;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .user-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+          gap: 20px;
+          padding: 8px;
+        }
+
+        .user-card-premium {
+          background: white;
+          border-radius: 24px;
+          border: 1px solid #e2e8f0;
+          display: flex;
+          overflow: hidden;
+          padding: 0;
+          height: 180px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+          position: relative;
+          text-align: left;
+        }
+
+        .user-card-premium::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 6px;
+          background: #cbd5e1;
+          transition: 0.3s;
+        }
+
+        .user-card-premium.active::before {
+          background: #16a34a;
+          box-shadow: 4px 0 15px rgba(22, 163, 74, 0.3);
+        }
+
+        .user-card-premium.warning-badge::before {
+          background: #f59e0b;
+          box-shadow: 4px 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .user-card-premium:hover {
+          transform: translateX(8px);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+          border-color: #16a34a33;
+        }
+
+        .card-left-section {
+          width: 130px;
+          background: #f8fafc;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border-right: 1px solid #f1f5f9;
+        }
+
+        .card-avatar {
+          width: 70px;
+          height: 70px;
+          background: #0f172a;
+          color: white;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+          font-weight: 900;
+          margin-bottom: 12px;
+          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+        }
+
+        .card-main-content {
+          flex: 1;
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        .card-header-info h3 {
+          font-size: 19px;
+          font-weight: 900;
+          color: #0f172a;
+          margin-bottom: 4px;
+          letter-spacing: -0.02em;
+        }
+
+        .card-role-badge {
+          display: inline-block;
+          font-size: 10px;
+          font-weight: 800;
+          color: #16a34a;
+          background: #f0fdf4;
+          padding: 4px 10px;
+          border-radius: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .card-meta-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .meta-icon {
+          color: #16a34a;
+        }
+
+        .card-bottom-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 15px;
+        }
+
+        .action-icon-btn {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: 1px solid #f1f5f9;
+          background: white;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .action-icon-btn:hover {
+          background: #0f172a;
+          color: white;
+          transform: scale(1.1);
+        }
+
+        .action-icon-btn.delete:hover {
+          background: #ef4444;
+          border-color: #ef4444;
+          color: white;
+        }
+      `}</style>
 
       <LotForm 
         isOpen={isModalOpen} 
