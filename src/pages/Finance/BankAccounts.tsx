@@ -389,8 +389,8 @@ export const BankAccounts: React.FC = () => {
 
         .view-btn.active {
           background: hsl(var(--bg-card));
-          color: #16a34a;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+          color: hsl(var(--brand));
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         .user-cards-grid {
@@ -449,8 +449,8 @@ export const BankAccounts: React.FC = () => {
         .card-avatar {
           width: 70px;
           height: 70px;
-          background: #0f172a;
-          color: white;
+          background: hsl(var(--bg-main));
+          color: hsl(var(--text-main));
           border-radius: 20px;
           display: flex;
           align-items: center;
@@ -458,7 +458,8 @@ export const BankAccounts: React.FC = () => {
           font-size: 28px;
           font-weight: 900;
           margin-bottom: 12px;
-          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+          border: 1px solid hsl(var(--border));
         }
 
         .card-main-content {
@@ -481,7 +482,7 @@ export const BankAccounts: React.FC = () => {
           display: inline-block;
           font-size: 10px;
           font-weight: 800;
-          color: #16a34a;
+          color: hsl(var(--brand));
           background: hsl(var(--brand) / 0.1);
           padding: 4px 10px;
           border-radius: 8px;
@@ -506,7 +507,7 @@ export const BankAccounts: React.FC = () => {
         }
 
         .meta-icon {
-          color: #16a34a;
+          color: hsl(var(--brand));
         }
 
         .card-bottom-actions {
@@ -530,9 +531,10 @@ export const BankAccounts: React.FC = () => {
         }
 
         .action-icon-btn:hover {
-          background: #0f172a;
+          background: hsl(var(--brand));
           color: white;
           transform: scale(1.1);
+          border-color: hsl(var(--brand));
         }
 
         .action-icon-btn.delete:hover {
