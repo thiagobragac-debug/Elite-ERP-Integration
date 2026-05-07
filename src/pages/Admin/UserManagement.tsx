@@ -403,23 +403,78 @@ export const UserManagement: React.FC = () => {
             )}
           />
         ) : (
-          <div className="security-log-container">
-             <ModernTable 
-                data={globalLogs}
-                columns={[
-                  { header: 'Evento', accessor: (i: any) => (
-                    <div className="elite-event-cell">
-                      <span className="event-title">{i.title}</span>
-                      <span className="event-user">{i.user}</span>
-                    </div>
-                  ) },
-                  { header: 'Data', accessor: (i: any) => i.date ? new Date(i.date).toLocaleString() : '---' },
-                  { header: 'Detalhes', accessor: 'value' }
-                ]}
-                loading={logsLoading}
-                hideHeader={true}
-                searchPlaceholder="Filtrar logs..."
-             />
+          <div className="security-settings-grid">
+            <section className="security-panel">
+              <div className="panel-header">
+                <Lock size={20} className="text-brand" />
+                <div>
+                  <h3>Políticas de Senha</h3>
+                  <p>Defina o nível de complexidade exigido para os usuários.</p>
+                </div>
+              </div>
+              <div className="security-options">
+                <div className="option-row">
+                  <span>Mínimo de 8 caracteres</span>
+                  <div className="toggle-box active"></div>
+                </div>
+                <div className="option-row">
+                  <span>Exigir Caracteres Especiais (@#$)</span>
+                  <div className="toggle-box active"></div>
+                </div>
+                <div className="option-row">
+                  <span>Exigir Números e Letras</span>
+                  <div className="toggle-box active"></div>
+                </div>
+              </div>
+            </section>
+
+            <section className="security-panel">
+              <div className="panel-header">
+                <Monitor size={20} className="text-brand" />
+                <div>
+                  <h3>Controle de Sessão</h3>
+                  <p>Gerencie o tempo de atividade das conexões.</p>
+                </div>
+              </div>
+              <div className="security-options">
+                <div className="option-row">
+                  <span>Expiração por Inatividade (30 min)</span>
+                  <div className="toggle-box active"></div>
+                </div>
+                <div className="option-row">
+                  <span>Forçar Logout Semanal</span>
+                  <div className="toggle-box"></div>
+                </div>
+                <div className="option-row">
+                  <span>Permitir Acesso Multi-dispositivo</span>
+                  <div className="toggle-box active"></div>
+                </div>
+              </div>
+            </section>
+
+            <section className="security-panel">
+              <div className="panel-header">
+                <Shield size={20} className="text-brand" />
+                <div>
+                  <h3>System Guard</h3>
+                  <p>Proteção proativa contra acessos indevidos.</p>
+                </div>
+              </div>
+              <div className="security-options">
+                <div className="option-row">
+                  <span>Bloqueio após 3 tentativas falhas</span>
+                  <div className="toggle-box active"></div>
+                </div>
+                <div className="option-row">
+                  <span>Verificação de IP Geográfico</span>
+                  <div className="toggle-box active"></div>
+                </div>
+                <button className="elite-action-btn w-full mt-4">
+                  <Shield size={16} />
+                  ATIVAR MODO DE MANUTENÇÃO
+                </button>
+              </div>
+            </section>
           </div>
         )}
       </div>
@@ -448,6 +503,68 @@ export const UserManagement: React.FC = () => {
       />
 
       <style>{`
+        .security-settings-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 24px;
+        }
+
+        .security-panel {
+          background: white;
+          border-radius: 24px;
+          border: 1px solid #f1f5f9;
+          padding: 24px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+        }
+
+        .security-panel .panel-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 24px;
+          border-bottom: 1px solid #f1f5f9;
+          padding-bottom: 16px;
+        }
+
+        .security-panel h3 { font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 4px; }
+        .security-panel p { font-size: 11px; color: #64748b; font-weight: 600; }
+
+        .security-options {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .option-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 12px 16px;
+          background: #f8fafc;
+          border-radius: 12px;
+          font-size: 13px;
+          font-weight: 700;
+          color: #334155;
+        }
+
+        .elite-action-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 14px;
+          background: #fef2f2;
+          color: #ef4444;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 800;
+          border: 1px solid #fee2e2;
+          transition: 0.2s;
+        }
+
+        .elite-action-btn:hover { background: #fee2e2; transform: translateY(-2px); }
+
         .save-success-toast {
           position: fixed;
           top: 24px;
@@ -465,24 +582,10 @@ export const UserManagement: React.FC = () => {
           z-index: 9999;
         }
 
-        .elite-event-cell {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .event-title {
-          font-size: 14px;
-          font-weight: 800;
-          color: #1e293b;
-        }
-
-        .event-user {
-          font-size: 11px;
-          color: #16a34a;
-          font-weight: 700;
-          text-transform: lowercase;
-        }
+        .toggle-box { width: 40px; height: 22px; background: #e2e8f0; border-radius: 20px; position: relative; cursor: pointer; transition: 0.3s; }
+        .toggle-box::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: 0.3s; }
+        .toggle-box.active { background: #16a34a; }
+        .toggle-box.active::after { left: 21px; }
       `}</style>
     </div>
   );
