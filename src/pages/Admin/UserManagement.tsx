@@ -741,95 +741,112 @@ export const UserManagement: React.FC = () => {
         }
 
         .user-card-premium {
-          background: white;
-          border-radius: 28px;
-          border: 1px solid #f1f5f9;
-          padding: 24px;
+          background: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(12px);
+          border-radius: 32px;
+          border: 1px solid rgba(241, 245, 249, 0.7);
+          padding: 28px;
           position: relative;
-          transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+          transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.01);
+          overflow: hidden;
+        }
+
+        .user-card-premium::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(135deg, rgba(22, 163, 74, 0.03) 0%, transparent 50%);
+          pointer-events: none;
         }
 
         .user-card-premium:hover {
-          transform: translateY(-8px);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.06);
-          border-color: #16a34a33;
-        }
-
-        .card-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 20px;
+          transform: translateY(-12px) scale(1.02);
+          box-shadow: 0 30px 60px rgba(0,0,0,0.08);
+          border-color: rgba(22, 163, 74, 0.2);
+          background: white;
         }
 
         .card-avatar {
-          width: 64px;
-          height: 64px;
+          width: 72px;
+          height: 72px;
           background: #0f172a;
           color: white;
-          border-radius: 22px;
+          border-radius: 24px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 24px;
-          font-weight: 800;
+          font-size: 28px;
+          font-weight: 900;
           position: relative;
+          box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
         }
 
         .status-indicator {
           position: absolute;
-          bottom: -2px;
-          right: -2px;
-          width: 16px;
-          height: 16px;
+          bottom: -4px;
+          right: -4px;
+          width: 20px;
+          height: 20px;
           border-radius: 50%;
-          border: 3px solid white;
+          border: 4px solid white;
+          z-index: 2;
         }
-
-        .status-indicator.online { background: #16a34a; box-shadow: 0 0 10px #16a34a66; }
-        .status-indicator.offline { background: #94a3b8; }
 
         .card-actions {
           display: flex;
-          gap: 8px;
+          gap: 10px;
         }
 
         .card-actions button {
-          width: 32px;
-          height: 32px;
-          border-radius: 10px;
-          border: 1px solid #f1f5f9;
-          background: #f8fafc;
-          color: #64748b;
+          width: 38px;
+          height: 38px;
+          border-radius: 14px;
+          border: 1px solid rgba(226, 232, 240, 0.5);
+          background: rgba(255, 255, 255, 0.8);
+          color: #475569;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          transition: 0.2s;
+          transition: all 0.3s;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.03);
         }
 
         .card-actions button:hover {
-          background: #0f172a;
+          background: #16a34a;
           color: white;
-          transform: scale(1.1);
+          transform: translateY(-4px) rotate(8deg);
+          box-shadow: 0 10px 20px rgba(22, 163, 74, 0.2);
+          border-color: #16a34a;
+        }
+
+        .card-body {
+          margin-top: 12px;
         }
 
         .card-body h3 {
-          font-size: 18px;
+          font-size: 20px;
           font-weight: 900;
-          color: #1e293b;
-          margin-bottom: 4px;
+          color: #0f172a;
+          margin-bottom: 6px;
+          letter-spacing: -0.02em;
         }
 
         .card-role {
           display: inline-block;
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 800;
           color: #16a34a;
+          background: #f0fdf4;
+          padding: 4px 12px;
+          border-radius: 8px;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 8px;
+          letter-spacing: 0.08em;
+          margin-bottom: 12px;
         }
 
         .card-email {
