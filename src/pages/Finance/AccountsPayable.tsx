@@ -16,8 +16,14 @@ import {
   TrendingDown,
   Eye,
   Building2,
-  Calendar
+  Calendar,
+  RefreshCw,
+  ArrowRight,
+  History,
+  X,
+  ExternalLink
 } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
@@ -48,6 +54,20 @@ export const AccountsPayable: React.FC = () => {
     if (!activeFarm) return;
     fetchBills();
   }, [activeFarm]);
+
+  const [searchParams] = useSearchParams();
+
+  // Deep Linking: Abre o lançamento automaticamente se vier da auditoria
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id && bills.length > 0) {
+      const bill = bills.find(b => b.id === id);
+      if (bill) {
+        handleOpenEdit(bill);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, [searchParams, bills]);
 
   const fetchBills = async () => {
     setLoading(true);

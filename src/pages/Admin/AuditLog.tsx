@@ -3,12 +3,15 @@ import {
   Shield, Clock, Edit3, Trash2, User,
   Beef, Scale, CreditCard, DollarSign,
   Package, Truck, FileText, Activity,
-  CheckCircle2, RefreshCw, Search, Filter
+  CheckCircle2, RefreshCw, Search, Filter,
+  ArrowRight, History, X, ExternalLink, Eye
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { ModernTable } from '../../components/DataTable/ModernTable';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 
@@ -38,21 +41,43 @@ const ACTION_CONFIG: Record<string, { label: string; color: string; Icon: React.
   DELETE: { label: 'Excluído', color: '#ef4444', Icon: Trash2       },
 };
 
+const ENTITY_ROUTES: Record<string, string> = {
+  'animais': '/pecuaria/animal',
+  'pesagens': '/pecuaria/pesagem',
+  'lotes': '/pecuaria/lote',
+  'pastos': '/pecuaria/pasto',
+  'clientes': '/vendas/clientes',
+  'fornecedores': '/compras/fornecedores',
+  'contas_pagar': '/financeiro/pagar',
+  'contas_receber': '/financeiro/receber',
+  'maquinas': '/frota/maquina',
+  'sanidade': '/pecuaria/sanidade',
+  'pedidos_venda': '/vendas/pedido',
+  'pedidos_compra': '/compras/pedido',
+  'notas_saida': '/vendas/notas',
+  'notas_entrada': '/compras/nota',
+  'tenant_settings': '/admin/configuracoes'
+};
+
 /* ─── Tipos ─── */
 interface LogEntry {
   id: string;
   table_name: string;
-  action: 'INSERT' | 'UPDATE' | 'DELETE';
+  action: 'INSERT' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'EXPORT';
   timestamp: string;
   user_name: string;
   description: string;
   sublabel?: string;
+  old_data?: any;
+  new_data?: any;
+  entity_id?: string;
 }
 
 const TABLES = ['animais', 'pesagens', 'lotes', 'contas_pagar', 'contas_receber', 'maquinas', 'sanidade'];
 
 export const AuditLog: React.FC = () => {
   const { activeFarm } = useTenant();
+  const navigate = useNavigate();
   const [logs, setLogs]             = useState<LogEntry[]>([]);
   const [stats, setStats]           = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -60,6 +85,7 @@ export const AuditLog: React.FC = () => {
   const [activeModule, setActiveModule] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
 
   useEffect(() => { if (activeFarm) buildAuditLogs(); }, [activeFarm]);
 
@@ -87,7 +113,10 @@ export const AuditLog: React.FC = () => {
             timestamp: log.created_at,
             user_name: 'Usuário Elite',
             description: log.description || `${log.action} em ${log.entity}`,
-            sublabel: log.new_data ? JSON.stringify(log.new_data) : undefined
+            sublabel: log.new_data && log.action === 'UPDATE' ? 'Alteração técnica registrada' : undefined,
+            old_data: log.old_data,
+            new_data: log.new_data,
+            entity_id: log.entity_id
           });
         });
       } else {
@@ -114,7 +143,8 @@ export const AuditLog: React.FC = () => {
                 timestamp: row.created_at,
                 user_name: 'Administrador',
                 description: `Registro "${identifier}" cadastrado no módulo ${MODULE_LABELS[table] || table}`,
-                sublabel: table === 'animais' ? row.raca : undefined
+                sublabel: table === 'animais' ? row.raca : undefined,
+                entity_id: row.id
               });
             });
           }
@@ -340,12 +370,45 @@ export const AuditLog: React.FC = () => {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.012 }}
-                  className="audit-entry"
+                  className="audit-entry interactive"
+                  onPointerDown={(e) => {
+                    // Prevenir problemas de foco que podem bloquear cliques em alguns browsers
+                  }}
+                  onClick={() => {
+                    const route = ENTITY_ROUTES[log.table_name];
+                    console.log(`[Audit] Clicado: ${log.table_name}, ID: ${log.entity_id}, Rota: ${route}`);
+                    
+                    if (route) {
+                      let finalPath = route;
+                      
+                      if (log.entity_id) {
+                        // Salto de Precisão: Rota de Detalhe ou Deep Link via Query Param
+                        if (log.table_name === 'animais') {
+                          finalPath = `/pecuaria/animal/${log.entity_id}`;
+                        } else {
+                          // Adiciona o ID como query param para o módulo abrir o registro
+                          finalPath = `${route}?id=${log.entity_id}`;
+                        }
+                      }
+                      
+                      console.log(`[Audit] Navegando para: ${finalPath}`);
+                      navigate(finalPath);
+                    } else {
+                      console.warn(`[Audit] Nenhuma rota encontrada para a entidade: ${log.table_name}`);
+                    }
+                  }}
                 >
-                  {/* Ícone do módulo */}
+                  {/* Ícone do módulo / Gatilho de Dossiê */}
                   <div
                     className="audit-entry-icon"
                     style={{ background: ac.color + '12', border: `1.5px solid ${ac.color}30` }}
+                    onClick={(e) => {
+                      if (log.old_data || log.new_data) {
+                        e.stopPropagation();
+                        setSelectedLog(log);
+                      }
+                    }}
+                    title={(log.old_data || log.new_data) ? "Ver Dossiê Técnico" : "Módulo: " + (MODULE_LABELS[log.table_name] || log.table_name)}
                   >
                     <ModuleIcon size={15} style={{ color: ac.color }} />
                   </div>
@@ -383,7 +446,19 @@ export const AuditLog: React.FC = () => {
                           <span className="audit-sublabel">{log.sublabel}</span>
                         </>
                       )}
+                      {(log.old_data || log.new_data) && (
+                        <div className="audit-details-indicator">
+                          <History size={11} />
+                          <span>Dossiê</span>
+                        </div>
+                      )}
                     </div>
+                  </div>
+                  
+                  {/* Botão Explícito de Salto */}
+                  <div className="audit-jump-action">
+                    <ArrowRight size={14} />
+                    <span>ABRIR</span>
                   </div>
                 </motion.div>
               );
@@ -392,13 +467,93 @@ export const AuditLog: React.FC = () => {
         )}
       </div>
 
+      {/* ─── Modal de Dossiê Técnico ─── */}
+      <AnimatePresence>
+        {selectedLog && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="audit-modal-overlay"
+            onClick={() => setSelectedLog(null)}
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="audit-modal-content"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="audit-modal-header">
+                <div>
+                  <h3>Dossiê de Auditoria</h3>
+                  <p>{selectedLog.description}</p>
+                </div>
+                <button className="close-btn" onClick={() => setSelectedLog(null)}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="audit-modal-grid">
+                {selectedLog.old_data && (
+                  <div className="audit-data-section">
+                    <div className="section-label">Estado Anterior</div>
+                    <pre className="audit-json-viewer">
+                      {JSON.stringify(selectedLog.old_data, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                {selectedLog.new_data && (
+                  <div className="audit-data-section">
+                    <div className="section-label">Novo Estado</div>
+                    <pre className="audit-json-viewer success">
+                      {JSON.stringify(selectedLog.new_data, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+              
+              <div className="audit-modal-footer">
+                <div className="log-meta">
+                  <span>ID do Log: {selectedLog.id}</span>
+                  <span>•</span>
+                  <span>Tabela: {selectedLog.table_name}</span>
+                </div>
+                <button className="primary-btn" onClick={() => setSelectedLog(null)}>
+                  FECHAR
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <style>{`
         .audit-entry {
           display: flex; align-items: center; gap: 12px;
           padding: 10px 14px; border-radius: 12px;
-          transition: background 0.15s; cursor: default;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: default;
         }
-        .audit-entry:hover { background: hsl(var(--bg-main)); }
+        .audit-entry.interactive { cursor: pointer; }
+        .audit-entry.interactive:hover { 
+          background: hsl(var(--bg-main)); 
+          transform: translateX(4px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+        }
+
+        .audit-entry.interactive:hover .audit-jump-action {
+          opacity: 1; transform: translateX(0);
+        }
+
+        .audit-jump-action {
+          opacity: 0; transform: translateX(-10px);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          color: white; background: hsl(var(--brand));
+          padding: 4px 10px; border-radius: 8px;
+          display: flex; align-items: center; gap: 4px;
+          font-size: 0.65rem; font-weight: 800; letter-spacing: 0.05em;
+          flex-shrink: 0; margin-left: 12px;
+        }
 
         .audit-entry-icon {
           width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
@@ -441,6 +596,66 @@ export const AuditLog: React.FC = () => {
           font-size: 0.67rem; font-weight: 600;
           color: hsl(var(--text-muted)); white-space: nowrap;
         }
+
+        .audit-details-indicator {
+          display: flex; align-items: center; gap: 4px;
+          padding: 2px 8px; border-radius: 4px;
+          background: hsl(var(--brand) / 0.05);
+          color: hsl(var(--brand));
+          font-size: 0.65rem; font-weight: 800;
+          text-transform: uppercase; letter-spacing: 0.05em;
+          margin-left: auto;
+        }
+
+        /* ─── Modal Premium Styles ─── */
+        .audit-modal-overlay {
+          position: fixed; inset: 0; z-index: 999;
+          background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+          display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+
+        .audit-modal-content {
+          background: white; width: 100%; max-width: 800px;
+          border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+          overflow: hidden; display: flex; flex-direction: column;
+          max-height: 90vh;
+        }
+
+        .audit-modal-header {
+          padding: 24px; border-bottom: 1px solid #eee;
+          display: flex; justify-content: space-between; align-items: flex-start;
+        }
+
+        .audit-modal-header h3 { margin: 0; font-size: 1.25rem; font-weight: 800; color: #1e293b; }
+        .audit-modal-header p { margin: 4px 0 0; font-size: 0.9rem; color: #64748b; font-weight: 500; }
+
+        .audit-modal-grid {
+          padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+          overflow-y: auto; flex: 1;
+        }
+
+        @media (max-width: 640px) { .audit-modal-grid { grid-template-columns: 1fr; } }
+
+        .audit-data-section { display: flex; flex-direction: column; gap: 10px; }
+        .section-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; }
+
+        .audit-json-viewer {
+          padding: 16px; border-radius: 12px; background: #f8fafc;
+          font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+          color: #334155; margin: 0; border: 1px solid #e2e8f0;
+          overflow-x: auto; max-height: 400px;
+        }
+
+        .audit-json-viewer.success { background: #f0fdf4; border-color: #dcfce7; color: #166534; }
+
+        .audit-modal-footer {
+          padding: 16px 24px; background: #f8fafc; border-top: 1px solid #eee;
+          display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .log-meta { font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: flex; gap: 8px; }
+        .close-btn { background: #f1f5f9; border: none; padding: 8px; border-radius: 50%; cursor: pointer; color: #64748b; }
+        .close-btn:hover { background: #e2e8f0; color: #1e293b; }
 
         .audit-desc {
           font-size: 0.78rem; font-weight: 500;

@@ -23,7 +23,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { formatNumber } from '../../utils/format';
-import { logAudit } from '../../utils/audit';
+import { useSearchParams } from 'react-router-dom';
 
 export const AnimalManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -46,6 +46,20 @@ export const AnimalManagement: React.FC = () => {
     if (!activeFarm) return;
     fetchAnimals();
   }, [activeFarm]);
+
+  const [searchParams] = useSearchParams();
+
+  // Deep Linking: Abre o animal automaticamente se vier com ?id=
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id && animals.length > 0) {
+      const animal = animals.find(a => a.id === id);
+      if (animal) {
+        handleOpenEdit(animal);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, [searchParams, animals]);
 
   const fetchAnimals = async () => {
     setLoading(true);
@@ -158,52 +172,27 @@ export const AnimalManagement: React.FC = () => {
         .eq('id', selectedAnimal.id);
       
       if (!error) {
-        await logAudit({
-          tenant_id: activeFarm.tenantId,
-          action: 'UPDATE',
-          entity: 'animais',
-          entity_id: selectedAnimal.id,
-          description: `Animal atualizado: Brinco #${payload.brinco} (${payload.raca})`,
-          new_data: payload
-        });
         setIsModalOpen(false);
         fetchAnimals();
       }
     } else {
-      const { data, error } = await supabase.from('animais').insert([{
+      const { error } = await supabase.from('animais').insert([{
         ...payload,
         fazenda_id: activeFarm.id,
         tenant_id: activeFarm.tenantId
-      }]).select().single();
+      }]);
 
-      if (!error && data) {
-        await logAudit({
-          tenant_id: activeFarm.tenantId,
-          action: 'INSERT',
-          entity: 'animais',
-          entity_id: data.id,
-          description: `Novo animal cadastrado: Brinco #${payload.brinco} (${payload.raca})`,
-          new_data: data
-        });
+      if (!error) {
         setIsModalOpen(false);
         fetchAnimals();
       }
     }
   };
 
-  const handleDelete = async (id: string, brinco: string) => {
-    if (!confirm(`Tem certeza que deseja excluir o animal Brinco #${brinco}?`)) return;
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este animal?')) return;
     const { error } = await supabase.from('animais').delete().eq('id', id);
-    if (!error) {
-      await logAudit({
-        tenant_id: activeFarm!.tenantId,
-        action: 'DELETE',
-        entity: 'animais',
-        entity_id: id,
-        description: `Animal excluído: Brinco #${brinco}`
-      });
-      fetchAnimals();
-    }
+    if (!error) fetchAnimals();
   };
 
   const tableColumns = [
@@ -417,7 +406,7 @@ export const AnimalManagement: React.FC = () => {
               <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
                 <Edit3 size={18} />
               </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id, item.brinco)} title="Excluir">
+              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
                 <Trash2 size={18} />
               </button>
             </div>
