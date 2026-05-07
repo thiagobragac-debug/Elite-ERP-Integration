@@ -25,6 +25,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
+import { logAudit } from '../../utils/audit';
 
 export const ClientManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -91,17 +92,48 @@ export const ClientManagement: React.FC = () => {
 
     if (selectedClient) {
       const { error } = await supabase.from('clientes').update(payload).eq('id', selectedClient.id);
-      if (!error) { setIsModalOpen(false); fetchClients(); }
+      if (!error) { 
+        await logAudit({
+          tenant_id: activeFarm.tenantId,
+          action: 'UPDATE',
+          entity: 'clientes',
+          entity_id: selectedClient.id,
+          description: `Cliente atualizado: ${payload.nome}`,
+          new_data: payload
+        });
+        setIsModalOpen(false); 
+        fetchClients(); 
+      }
     } else {
-      const { error } = await supabase.from('clientes').insert([{ ...payload, tenant_id: activeFarm.tenantId }]);
-      if (!error) { setIsModalOpen(false); fetchClients(); }
+      const { data, error } = await supabase.from('clientes').insert([{ ...payload, tenant_id: activeFarm.tenantId }]).select().single();
+      if (!error && data) { 
+        await logAudit({
+          tenant_id: activeFarm.tenantId,
+          action: 'INSERT',
+          entity: 'clientes',
+          entity_id: data.id,
+          description: `Novo cliente cadastrado: ${payload.nome}`,
+          new_data: data
+        });
+        setIsModalOpen(false); 
+        fetchClients(); 
+      }
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este cliente?')) return;
+  const handleDelete = async (id: string, nome: string) => {
+    if (!confirm(`Deseja excluir o cliente ${nome}?`)) return;
     const { error } = await supabase.from('clientes').delete().eq('id', id);
-    if (!error) fetchClients();
+    if (!error) {
+      await logAudit({
+        tenant_id: activeFarm!.tenantId,
+        action: 'DELETE',
+        entity: 'clientes',
+        entity_id: id,
+        description: `Cliente excluído: ${nome}`
+      });
+      fetchClients();
+    }
   };
 
   const handleViewHistory = (client: any) => {
@@ -247,7 +279,7 @@ export const ClientManagement: React.FC = () => {
               <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
                 <Edit3 size={18} />
               </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+              <button className="action-dot delete" onClick={() => handleDelete(item.id, item.nome)} title="Excluir">
                 <Trash2 size={18} />
               </button>
             </div>

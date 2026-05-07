@@ -65,74 +65,61 @@ export const AuditLog: React.FC = () => {
 
   /* ─── Fetch ─── */
   const buildAuditLogs = async () => {
+    if (!activeFarm) return;
     setLoading(true);
     const allLogs: LogEntry[] = [];
 
-    const TABLE_CONFIG: Record<string, { fields: string; label: (row: any) => string; sublabel?: (row: any) => string }> = {
-      animais: {
-        fields: 'id, created_at, brinco, raca, sexo',
-        label: r => `Animal cadastrado: Brinco #${r.brinco || '—'}`,
-        sublabel: r => [r.raca, r.sexo === 'M' ? 'Macho' : r.sexo === 'F' ? 'Fêmea' : null].filter(Boolean).join(' · '),
-      },
-      pesagens: {
-        fields: 'id, created_at, peso, animais(brinco)',
-        label: r => `Pesagem registrada: ${r.peso ? r.peso + ' kg' : '—'}`,
-        sublabel: r => r.animais?.brinco ? `Brinco #${r.animais.brinco}` : undefined,
-      },
-      lotes: {
-        fields: 'id, created_at, nome, capacidade',
-        label: r => `Lote criado: "${r.nome || '—'}"`,
-        sublabel: r => r.capacidade ? `Cap. ${r.capacidade} animais` : undefined,
-      },
-      contas_pagar: {
-        fields: 'id, created_at, descricao, valor_total, data_vencimento',
-        label: r => `Conta a Pagar: ${r.descricao || '—'}`,
-        sublabel: r => [
-          r.valor_total ? Number(r.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : null,
-          r.data_vencimento ? 'Venc. ' + new Date(r.data_vencimento).toLocaleDateString('pt-BR') : null,
-        ].filter(Boolean).join(' · '),
-      },
-      contas_receber: {
-        fields: 'id, created_at, descricao, valor_total, data_vencimento',
-        label: r => `Conta a Receber: ${r.descricao || '—'}`,
-        sublabel: r => [
-          r.valor_total ? Number(r.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : null,
-          r.data_vencimento ? 'Venc. ' + new Date(r.data_vencimento).toLocaleDateString('pt-BR') : null,
-        ].filter(Boolean).join(' · '),
-      },
-      maquinas: {
-        fields: 'id, created_at, nome, marca, modelo, placa',
-        label: r => `Ativo cadastrado: ${r.nome || '—'}`,
-        sublabel: r => [r.marca, r.modelo, r.placa ? 'Placa ' + r.placa : null].filter(Boolean).join(' · '),
-      },
-      sanidade: {
-        fields: 'id, created_at, titulo, tipo, produto',
-        label: r => `Manejo Sanitário: ${r.titulo || '—'}`,
-        sublabel: r => [
-          r.tipo ?? null,
-          r.produto ? 'Produto: ' + r.produto : null,
-        ].filter(Boolean).join(' · '),
-      },
-    };
-
     try {
-      await Promise.all(TABLES.map(async (table) => {
-        const cfg = TABLE_CONFIG[table];
-        let query = supabase.from(table).select(cfg?.fields ?? 'id, created_at').eq('fazenda_id', activeFarm!.id).order('created_at', { ascending: false }).limit(10);
-        const { data } = await query;
+      // 1. Tentar buscar na tabela REAL de auditoria
+      const { data: realLogs, error: realError } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('tenant_id', activeFarm.tenantId)
+        .order('created_at', { ascending: false })
+        .limit(100);
 
-        (data || []).forEach(row => {
+      if (!realError && realLogs && realLogs.length > 0) {
+        realLogs.forEach(log => {
           allLogs.push({
-            id: row.id,
-            table_name: table,
-            action: 'INSERT',
-            timestamp: row.created_at,
-            user_name: 'Administrador',
-            description: cfg ? cfg.label(row) : `Registro adicionado em ${MODULE_LABELS[table] || table}`,
-            sublabel: cfg?.sublabel ? cfg.sublabel(row) : undefined,
+            id: log.id,
+            table_name: log.entity,
+            action: log.action as any,
+            timestamp: log.created_at,
+            user_name: 'Usuário Elite',
+            description: log.description || `${log.action} em ${log.entity}`,
+            sublabel: log.new_data ? JSON.stringify(log.new_data) : undefined
           });
         });
-      }));
+      } else {
+        // 2. FALLBACK: Simulação baseada nas tabelas de dados
+        const tables = ['animais', 'pesagens', 'lotes', 'contas_pagar', 'contas_receber', 'maquinas', 'sanidade'];
+        await Promise.all(tables.map(async (table) => {
+          const { data } = await supabase
+            .from(table)
+            .select('*')
+            .eq('fazenda_id', activeFarm.id)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+          if (data) {
+            data.forEach(row => {
+              let identifier = row.nome || row.brinco || row.descricao || row.id;
+              if (table === 'pesagens') identifier = `${row.peso}kg`;
+              if (table === 'contas_pagar' || table === 'contas_receber') identifier = `R$ ${row.valor_total || '—'}`;
+              
+              allLogs.push({
+                id: row.id,
+                table_name: table,
+                action: 'INSERT',
+                timestamp: row.created_at,
+                user_name: 'Administrador',
+                description: `Registro "${identifier}" cadastrado no módulo ${MODULE_LABELS[table] || table}`,
+                sublabel: table === 'animais' ? row.raca : undefined
+              });
+            });
+          }
+        }));
+      }
 
       allLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       const sorted = allLogs.slice(0, 80);
@@ -143,6 +130,7 @@ export const AuditLog: React.FC = () => {
       const inserts  = sorted.filter(l => l.action === 'INSERT').length;
       const updates  = sorted.filter(l => l.action === 'UPDATE').length;
       const deletes  = sorted.filter(l => l.action === 'DELETE').length;
+
 
       setStats([
         {

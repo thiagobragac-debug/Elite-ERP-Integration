@@ -36,6 +36,7 @@ export const Dashboard: React.FC = () => {
   }, [activeFarm]);
 
   const fetchDashboardStats = async () => {
+    if (!activeFarm) return;
     setLoading(true);
     try {
       const { count: animalCount } = await supabase
@@ -49,19 +50,6 @@ export const Dashboard: React.FC = () => {
         .eq('tenant_id', activeFarm.tenantId);
 
       const totalBalance = bankAccounts?.reduce((acc, curr) => acc + Number(curr.saldo_atual), 0) || 0;
-
-      const { count: machineCount } = await supabase
-        .from('maquinas')
-        .select('*', { count: 'exact', head: true })
-        .eq('fazenda_id', activeFarm.id)
-        .eq('status', 'active');
-
-      const { data: pastureData } = await supabase
-        .from('pastos')
-        .select('area')
-        .eq('fazenda_id', activeFarm.id);
-
-      const totalArea = pastureData?.reduce((acc, curr) => acc + Number(curr.area), 0) || 0;
 
       const allStats = [
         { 
@@ -133,76 +121,6 @@ export const Dashboard: React.FC = () => {
           sparkline: [
             { value: 80, label: '22%' }, { value: 82, label: '22.5%' }, { value: 85, label: '23%' }, { value: 88, label: '23.5%' }, { value: 90, label: '24%' }, { value: 91, label: '24.1%' }, { value: 92, label: 'Hoje: 24.2%' }
           ]
-        },
-        { 
-          id: 'diesel',
-          label: 'Eficiência Diesel', 
-          value: '12.4 L/h', 
-          icon: Activity, 
-          color: '#ef4444', 
-          progress: 45, 
-          trend: 'down',
-          change: '-2.1%',
-          periodLabel: 'Consumo Médio',
-          sparkline: [
-            { value: 60, label: '14L' }, { value: 55, label: '13.5L' }, { value: 50, label: '13L' }, { value: 48, label: '12.8L' }, { value: 46, label: '12.6L' }, { value: 45, label: '12.5L' }, { value: 45, label: '12.4L' }, { value: 45, label: 'Agora: 12.4L' }
-          ]
-        },
-        { 
-          id: 'arroba_custo',
-          label: 'Custo p/ @ Produzida', 
-          value: 'R$ 184,20', 
-          icon: DollarSign, 
-          color: '#16a34a', 
-          progress: 88, 
-          trend: 'down',
-          change: '-1.5%',
-          periodLabel: 'Financeiro',
-          sparkline: [
-            { value: 95, label: '190' }, { value: 92, label: '188' }, { value: 90, label: '186' }, { value: 88, label: '184.2' }, { value: 87, label: '184.1' }, { value: 88, label: '184.2' }, { value: 88, label: '184.2' }, { value: 88, label: 'Agora: 184.2' }
-          ]
-        },
-        { 
-          id: 'prenhez',
-          label: 'Taxa de Prenhez', 
-          value: '82.4%', 
-          icon: Activity, 
-          color: '#db2777', 
-          progress: 82, 
-          trend: 'up',
-          change: '+3.1%',
-          periodLabel: 'Reprodução',
-          sparkline: [
-            { value: 70, label: '78%' }, { value: 75, label: '79%' }, { value: 78, label: '80%' }, { value: 80, label: '81%' }, { value: 81, label: '81.5%' }, { value: 82, label: '82%' }, { value: 82, label: '82.4%' }, { value: 82, label: 'Hoje: 82.4%' }
-          ]
-        },
-        { 
-          id: 'ims',
-          label: 'Ingestão Mat. Seca', 
-          value: '2.4% PV', 
-          icon: Activity, 
-          color: '#ea580c', 
-          progress: 94, 
-          trend: 'up',
-          change: '+0.2%',
-          periodLabel: 'Nutrição',
-          sparkline: [
-            { value: 90, label: '2.2%' }, { value: 92, label: '2.3%' }, { value: 93, label: '2.35%' }, { value: 94, label: '2.4%' }, { value: 94, label: '2.4%' }, { value: 94, label: '2.4%' }, { value: 94, label: '2.4%' }, { value: 94, label: 'Agora: 2.4%' }
-          ]
-        },
-        { 
-          id: 'cocho',
-          label: 'Disp. de Cocho', 
-          value: '94.2%', 
-          icon: LayoutGrid, 
-          color: '#0891b2', 
-          progress: 94, 
-          trend: 'up',
-          change: '+1.0%',
-          periodLabel: 'Logística',
-          sparkline: [
-            { value: 85, label: '92%' }, { value: 88, label: '93%' }, { value: 90, label: '93.5%' }, { value: 92, label: '94%' }, { value: 93, label: '94.1%' }, { value: 94, label: '94.2%' }, { value: 94, label: '94.2%' }, { value: 94, label: 'Hoje: 94.2%' }
-          ]
         }
       ];
 
@@ -210,17 +128,47 @@ export const Dashboard: React.FC = () => {
                           (localStorage.getItem('elite_selected_metrics') ? JSON.parse(localStorage.getItem('elite_selected_metrics')!) : ['gmd', 'lotacao', 'caixa']);
       
       const filteredStats = allStats.filter(s => selectedIds.includes(s.id));
-      // Sort by the order in selectedIds
       const sortedStats = [...filteredStats].sort((a, b) => selectedIds.indexOf(a.id) - selectedIds.indexOf(b.id));
-      
       setStatsData(sortedStats.length > 0 ? sortedStats : allStats.slice(0, 4));
 
-      setRecentActivities([
-        { type: 'Manejo', desc: 'Pesagem do Lote Confinamento A', time: 'Há 2h', status: 'success', icon: Activity, isPredictive: false },
-        { type: 'Financeiro', desc: 'Pagamento de Fornecedor - Nutrição', time: 'Há 5h', status: 'info', icon: DollarSign, isPredictive: false },
-        { type: 'PROJETADO', desc: 'Troca de Pasto - Lote 14 (Pasto 04 > 06)', time: 'Em 4h', status: 'warning', icon: LandPlot, isPredictive: true },
-        { type: 'PROJETADO', desc: 'Suplementação Mineral - Piquete 09', time: 'Amanhã', status: 'info', icon: Beef, isPredictive: true },
-      ]);
+      // Fetch Real Recent Activities from audit_logs
+      const { data: realLogs, error: realError } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('tenant_id', activeFarm.tenantId)
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      const finalActivities: any[] = [];
+
+      if (!realError && realLogs) {
+        realLogs.forEach(log => {
+          let icon = Activity;
+          if (log.entity === 'animais') icon = Beef;
+          if (log.entity === 'pesagens') icon = Activity;
+          if (log.entity === 'lotes') icon = LandPlot;
+          if (log.entity === 'contas_pagar') icon = DollarSign;
+
+          finalActivities.push({
+            type: log.entity.toUpperCase(),
+            desc: log.description || `${log.action} em ${log.entity}`,
+            time: formatTimeAgo(log.created_at),
+            status: log.action === 'DELETE' ? 'critical' : log.action === 'UPDATE' ? 'warning' : 'info',
+            icon,
+            isPredictive: false
+          });
+        });
+      }
+
+      // Add predictive mocks if empty or just to keep the AI feel
+      if (finalActivities.length < 4) {
+        finalActivities.push(
+          { type: 'PROJETADO', desc: 'Troca de Pasto Sugerida - Lote 14', time: 'Em 4h', status: 'warning', icon: LandPlot, isPredictive: true },
+          { type: 'PROJETADO', desc: 'Suplementação Mineral - Piquete 09', time: 'Amanhã', status: 'info', icon: Beef, isPredictive: true }
+        );
+      }
+
+      setRecentActivities(finalActivities.slice(0, 4));
 
     } catch (err) {
       console.error(err);
@@ -228,6 +176,18 @@ export const Dashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const formatTimeAgo = (dateStr: string) => {
+    const diff = new Date().getTime() - new Date(dateStr).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `Há ${days}d`;
+    if (hours > 0) return `Há ${hours}h`;
+    return `Há ${minutes}m`;
+  };
+
 
   return (
     <div className="dashboard-page animate-slide-up">
