@@ -61,6 +61,29 @@ export const SaaSAdminPanel: React.FC = () => {
     else navigate(`/saas/${tabId}`);
   };
 
+  const tabConfig = {
+    overview: {
+      title: 'Central de Gestão Multi-Tenant',
+      subtitle: 'Monitoramento executivo de instâncias, faturamento global e governança de infraestrutura.',
+      icon: Server
+    },
+    tenants: {
+      title: 'Gestão de Clientes (Tenants)',
+      subtitle: 'Controle de instâncias ativas, provisionamento e acesso administrativo direto.',
+      icon: Globe
+    },
+    plans: {
+      title: 'Catálogo de Planos & Revenue',
+      subtitle: 'Configuração de ofertas comerciais, limites de uso e métricas de faturamento.',
+      icon: CreditCard
+    },
+    health: {
+      title: 'Saúde & Infraestrutura',
+      subtitle: 'Monitoramento em tempo real de nodes, banco de dados e performance global.',
+      icon: Activity
+    }
+  };
+
   const [tenantsList, setTenantsList] = useState([
     { id: 'T-001', name: 'Agropecuária Alvorada', plan: 'Enterprise', users: 45, storage: '450 GB', status: 'Ativo' },
     { id: 'T-002', name: 'Fazenda Rio Grande', plan: 'Pro', users: 12, storage: '120 GB', status: 'Ativo' },
@@ -157,25 +180,22 @@ export const SaaSAdminPanel: React.FC = () => {
   ];
 
   return (
-    <div className="admin-page">
+    <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: '#38bdf8' }}>
-            <Server size={14} fill="currentColor" />
-            <span>SAAS SUPER ADMIN v5.0</span>
+          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
+            {React.createElement(tabConfig[activeTab].icon, { size: 14, fill: "currentColor" })}
+            <span>SAAS INFRASTRUCTURE v5.0</span>
           </div>
           <h1 className="page-title">
-            {activeTab === 'overview' && 'Visão Global'}
-            {activeTab === 'tenants' && 'Gestão de Tenants'}
-            {activeTab === 'plans' && 'Planos & Faturamento'}
-            {activeTab === 'health' && 'Saúde do Sistema'}
+            {tabConfig[activeTab].title}
           </h1>
-          <p className="page-subtitle">Gestão executiva, monitoramento de instâncias e controle de inquilinos da plataforma.</p>
+          <p className="page-subtitle">{tabConfig[activeTab].subtitle}</p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsAuditDrawerOpen(true)}>
             <History size={18} />
-            LOGS DE AUDITORIA
+            AUDITORIA GLOBAL
           </button>
           <button 
             className="primary-btn" 
@@ -183,7 +203,7 @@ export const SaaSAdminPanel: React.FC = () => {
             style={{ display: (activeTab === 'overview' || activeTab === 'health') ? 'none' : 'flex' }}
           >
             <Plus size={18} />
-            {activeTab === 'plans' ? 'NOVO PLANO' : 'NOVO TENANT'}
+            {activeTab === 'plans' ? 'CRIAR PLANO' : 'NOVO TENANT'}
           </button>
         </div>
       </header>
@@ -282,27 +302,27 @@ export const SaaSAdminPanel: React.FC = () => {
                   <input 
                     className="elite-search-input"
                     type="text" 
-                    placeholder="Buscar inquilinos, CNPJ ou ID..." 
+                    placeholder="Filtrar por nome, CNPJ ou ID de instância..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
 
-                <div className="view-mode-toggle">
-                  <button 
-                    className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                    onClick={() => setViewMode('list')}
-                    title="Visualização em Lista"
-                  >
-                    <ListIcon size={18} />
-                  </button>
-                  <button 
-                    className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                    onClick={() => setViewMode('grid')}
-                    title="Visualização em Cards"
-                  >
-                    <LayoutGrid size={18} />
-                  </button>
+                <div className="elite-filter-group">
+                  <div className="view-toggle-elite">
+                    <button 
+                      className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                      onClick={() => setViewMode('list')}
+                    >
+                      <ListIcon size={18} />
+                    </button>
+                    <button 
+                      className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                      onClick={() => setViewMode('grid')}
+                    >
+                      <LayoutGrid size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -342,23 +362,23 @@ export const SaaSAdminPanel: React.FC = () => {
                         <motion.div 
                           key={t.id} 
                           layout
-                          className={`user-card-premium ${getPlanColor(t.plan)}`}
+                          className={`user-card-premium ${t.status === 'Bloqueado' ? 'stopped' : 'active'}`}
                         >
                           <div className="card-left-section">
-                            <div className="card-avatar">
+                            <div className="card-avatar" style={{ background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))' }}>
                               <Globe size={32} />
                             </div>
                             <div className="card-bottom-actions">
-                              <button className="action-icon-btn" onClick={() => handleImpersonate(t.id)} title="Personificar"><LogIn size={16} /></button>
-                              <button className="action-icon-btn" onClick={() => openEditTenant(t)} title="Editar"><Edit2 size={16} /></button>
-                              <button className="action-icon-btn" title="Dossiê"><Eye size={16} /></button>
+                              <button className="action-icon-btn" onClick={() => handleImpersonate(t.id)} title="Acessar Instância"><LogIn size={16} /></button>
+                              <button className="action-icon-btn" onClick={() => openEditTenant(t)} title="Configurar"><Edit2 size={16} /></button>
+                              <button className="action-icon-btn" title="Logs"><Eye size={16} /></button>
                             </div>
                           </div>
 
                           <div className="card-main-content">
                             <div className="card-header-info">
                               <h3>{t.name}</h3>
-                              <span className={`plan-badge ${t.plan.toLowerCase()}`} style={{ fontSize: '10px', padding: '4px 10px' }}>
+                              <span className={`plan-badge ${t.plan.toLowerCase()}`}>
                                 {t.plan}
                               </span>
                             </div>
@@ -366,15 +386,15 @@ export const SaaSAdminPanel: React.FC = () => {
                             <div className="card-meta-grid">
                               <div className="meta-item">
                                 <Users size={14} className="meta-icon" />
-                                <span>{t.users} Usuários Ativos</span>
+                                <span>{t.users} Assentos Ativos</span>
                               </div>
                               <div className="meta-item">
                                 <HardDrive size={14} className="meta-icon" />
-                                <span>{t.storage} Storage</span>
+                                <span>{t.storage} Alocados</span>
                               </div>
                               <div className="meta-item">
                                 <Shield size={14} className="meta-icon" />
-                                <span>ID: {t.id}</span>
+                                <span>{t.id}</span>
                               </div>
                             </div>
                           </div>
@@ -637,132 +657,39 @@ export const SaaSAdminPanel: React.FC = () => {
           gap: 24px;
         }
 
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        .next-gen-kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 20px;
         }
 
-        .saas-view {
+        .health-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 20px;
+        }
+
+        .health-panel {
+          background: hsl(var(--bg-card));
+          padding: 32px;
+          border-radius: 28px;
+          border: 1px solid hsl(var(--border));
+          box-shadow: var(--shadow-sm);
           display: flex;
           flex-direction: column;
           gap: 24px;
         }
 
-        /* KPI Grid specifically for SaaS */
-        .next-gen-kpi-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 16px;
-        }
-
-        /* Plans & Health Cards */
-        .plans-grid, .health-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-          gap: 20px;
-        }
-
-        .plan-card, .health-panel {
-          background: hsl(var(--bg-card));
-          padding: 28px;
-          border-radius: 28px;
-          border: 1px solid hsl(var(--border));
-          box-shadow: var(--shadow-sm);
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .plan-card:hover, .health-panel:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-md);
-          border-color: hsl(var(--brand) / 0.3);
-        }
-
-        .plan-header h3 { 
-          font-size: 18px; 
-          font-weight: 800; 
-          color: hsl(var(--text-main)); 
-          margin: 0;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .plan-price { 
-          font-size: 32px; 
-          font-weight: 900; 
-          color: hsl(var(--text-main)); 
-          letter-spacing: -0.04em;
-        }
-
-        .plan-price span { 
-          font-size: 14px; 
-          color: hsl(var(--text-muted)); 
-          font-weight: 600;
-          margin-left: 4px;
-        }
-
-        .plan-stats { 
-          display: flex; 
-          gap: 16px; 
-          padding: 16px; 
-          background: hsl(var(--bg-main)); 
-          border-radius: 16px; 
-          border: 1px solid hsl(var(--border) / 0.5);
-        }
-
-        .p-stat { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-        .p-stat span { font-size: 10px; font-weight: 800; color: hsl(var(--text-muted)); text-transform: uppercase; letter-spacing: 0.05em; }
-        .p-stat strong { font-size: 15px; font-weight: 800; color: hsl(var(--text-main)); }
-
-        .plan-features { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
-        .plan-features li { 
-          display: flex; 
-          align-items: center; 
-          gap: 10px; 
-          font-size: 13px; 
-          font-weight: 600; 
-          color: hsl(var(--text-main)); 
-        }
-        .plan-features li svg { color: hsl(var(--brand)); }
-
-        .edit-plan-btn {
-          margin-top: auto;
-          width: 100%;
-          padding: 14px;
-          background: hsl(var(--bg-main));
-          border: 1px solid hsl(var(--border));
-          border-radius: 14px;
-          font-weight: 800;
-          font-size: 12px;
-          color: hsl(var(--text-main));
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          transition: all 0.2s;
-        }
-
-        .edit-plan-btn:hover { 
-          background: white; 
-          border-color: hsl(var(--brand)); 
-          color: hsl(var(--brand));
-          box-shadow: 0 4px 12px hsl(var(--brand) / 0.1);
-        }
-
-        /* Health Panel Specifics */
-        .health-panel .panel-header {
+        .panel-header {
           display: flex;
           align-items: center;
           gap: 12px;
           color: hsl(var(--brand));
-          border-bottom: 1px solid hsl(var(--border) / 0.5);
           padding-bottom: 16px;
-          margin-bottom: 0;
+          border-bottom: 1px solid hsl(var(--border) / 0.5);
         }
 
-        .health-panel .panel-header h3 {
+        .panel-header h3 {
           font-size: 14px;
           font-weight: 800;
           color: hsl(var(--text-main));
@@ -770,34 +697,77 @@ export const SaaSAdminPanel: React.FC = () => {
           letter-spacing: 0.05em;
         }
 
-        .h-metrics { display: flex; flex-direction: column; gap: 16px; }
-        .h-metric span { font-size: 12px; font-weight: 700; color: hsl(var(--text-muted)); display: block; margin-bottom: 8px; }
+        .h-metrics { display: flex; flex-direction: column; gap: 20px; }
+        .h-metric span { font-size: 12px; font-weight: 700; color: hsl(var(--text-muted)); display: block; margin-bottom: 10px; }
         
-        .progress-bar { height: 6px; background: hsl(var(--border)); border-radius: 100px; overflow: hidden; margin-bottom: 6px; }
-        .progress-bar .fill { height: 100%; border-radius: 100px; transition: width 1s ease-in-out; }
-        .progress-bar .fill.good { background: #10b981; }
-        .progress-bar .fill.warning { background: #f59e0b; }
-        .progress-bar .fill.danger { background: #ef4444; }
+        .progress-bar { height: 8px; background: hsl(var(--bg-main)); border-radius: 100px; overflow: hidden; }
+        .progress-bar .fill { height: 100%; border-radius: 100px; transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .progress-bar .fill.good { background: hsl(161 64% 39%); box-shadow: 0 0 15px hsl(161 64% 39% / 0.4); }
+        .progress-bar .fill.warning { background: #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
         
-        .h-val { font-size: 11px; font-weight: 800; color: hsl(var(--text-main)); }
-
-        .node-list { display: flex; flex-direction: column; gap: 10px; }
+        .node-list { display: flex; flex-direction: column; gap: 12px; }
         .node-item { 
           display: flex; 
           align-items: center; 
-          gap: 14px; 
-          padding: 14px; 
-          background: hsl(var(--bg-main)); 
-          border-radius: 16px; 
-          border: 1px solid hsl(var(--border) / 0.5);
-          transition: all 0.2s;
+          gap: 16px; 
+          padding: 16px; 
+          background: hsl(var(--bg-main) / 0.5); 
+          border-radius: 20px; 
+          border: 1px solid hsl(var(--border));
+          transition: all 0.3s;
         }
-        .node-item:hover { border-color: hsl(var(--brand) / 0.3); background: white; transform: translateX(4px); }
+        .node-item:hover { border-color: hsl(var(--brand) / 0.4); background: hsl(var(--bg-card)); transform: translateX(6px); }
         
-        .node-status { width: 8px; height: 8px; border-radius: 50%; position: relative; }
-        .node-status.online { background: #10b981; }
-        .node-status.online::after {
-          content: ''; position: absolute; inset: -4px; border-radius: 50%; background: #10b981; opacity: 0.2;
+        .node-status { width: 10px; height: 10px; border-radius: 50%; }
+        .node-status.online { background: #10b981; box-shadow: 0 0 10px #10b981; }
+        .node-status.offline { background: #ef4444; opacity: 0.5; }
+
+        .n-info { flex: 1; display: flex; flex-direction: column; }
+        .n-name { font-size: 13px; font-weight: 800; color: hsl(var(--text-main)); }
+        .n-res { font-size: 11px; font-weight: 600; color: hsl(var(--text-muted)); }
+
+        .n-action { 
+          width: 32px; height: 32px; border-radius: 10px; border: 1px solid hsl(var(--border)); 
+          display: flex; align-items: center; justify-content: center; color: hsl(var(--text-muted));
+          transition: 0.2s;
+        }
+        .n-action:hover { color: hsl(var(--brand)); border-color: hsl(var(--brand)); background: hsl(var(--bg-card)); }
+
+        /* Audit Drawer Premium */
+        .drawer-overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.6); backdrop-filter: blur(8px); z-index: 10000; }
+        .audit-drawer { 
+          position: fixed; right: 0; top: 0; bottom: 0; width: 450px; 
+          background: hsl(var(--bg-card)); border-left: 1px solid hsl(var(--border)); 
+          z-index: 10001; box-shadow: -20px 0 60px rgba(0,0,0,0.3);
+          display: flex; flex-direction: column;
+        }
+
+        .drawer-header { padding: 32px; border-bottom: 1px solid hsl(var(--border)); display: flex; justify-content: space-between; align-items: center; }
+        .drawer-header .title-group { display: flex; align-items: center; gap: 16px; }
+        .drawer-header h3 { font-size: 18px; font-weight: 800; color: hsl(var(--text-main)); margin: 0; }
+        .drawer-header p { font-size: 12px; color: hsl(var(--text-muted)); margin: 2px 0 0; }
+
+        .drawer-content { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 12px; }
+        .audit-log-item { 
+          padding: 16px; border-radius: 16px; background: hsl(var(--bg-main) / 0.5); 
+          border: 1px solid hsl(var(--border)); display: flex; gap: 16px; align-items: flex-start;
+          transition: 0.2s;
+        }
+        .audit-log-item:hover { transform: translateX(-4px); border-color: hsl(var(--brand) / 0.3); background: hsl(var(--bg-card)); }
+
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
+        .status-dot.success { background: #10b981; }
+        .status-dot.warning { background: #f59e0b; }
+        .status-dot.danger { background: #ef4444; }
+
+        .log-info { flex: 1; }
+        .log-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+        .log-action { font-size: 11px; font-weight: 900; color: hsl(var(--brand)); letter-spacing: 0.05em; }
+        .log-time { font-size: 11px; color: hsl(var(--text-muted)); font-weight: 600; }
+        .log-desc { font-size: 13px; color: hsl(var(--text-main)); margin: 0; line-height: 1.4; }
+        .log-desc span { color: hsl(var(--brand)); font-weight: 700; }
+
+        .drawer-footer { padding: 32px; border-top: 1px solid hsl(var(--border)); }
           animation: pulse 2s infinite;
         }
         .node-status.offline { background: #ef4444; }

@@ -204,14 +204,14 @@ export const AdminSettings: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
+          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <Settings size={14} fill="currentColor" />
             <span>CENTRAL DE GOVERNANÇA v5.0</span>
           </div>
           <h1 className="page-title">Configurações do Ecossistema</h1>
           <p className="page-subtitle">Gestão estratégica de parâmetros, métricas e interface do ecossistema Elite.</p>
         </div>
-        <div className="action-group-premium">
+        <div className="page-actions">
           <AnimatePresence>
             {saveSuccess && (
               <motion.div 
@@ -221,13 +221,13 @@ export const AdminSettings: React.FC = () => {
                 className="save-toast-elite"
               >
                 <Check size={16} />
-                <span>Alterações aplicadas com sucesso!</span>
+                <span>Alterações Sincronizadas</span>
               </motion.div>
             )}
           </AnimatePresence>
           <button className={`primary-btn ${saveSuccess ? 'success' : ''}`} onClick={handleSave} disabled={isSaving}>
             {isSaving ? <RefreshCw size={18} className="animate-spin" /> : saveSuccess ? <Check size={18} /> : <Save size={18} />}
-            <span>{isSaving ? 'SALVANDO...' : saveSuccess ? 'CONFIGURAÇÕES SALVAS' : 'SALVAR ALTERAÇÕES'}</span>
+            <span>{isSaving ? 'SINCRONIZANDO...' : saveSuccess ? 'CONFIGURAÇÕES SALVAS' : 'SALVAR ALTERAÇÕES'}</span>
           </button>
         </div>
       </header>
@@ -592,11 +592,12 @@ export const AdminSettings: React.FC = () => {
           border: 1px solid hsl(var(--border));
           box-shadow: var(--shadow-sm);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          flex-direction: column;
         }
         .settings-panel:hover {
-          transform: translateY(-2px);
-          box-shadow: var(--shadow-md);
           border-color: hsl(var(--brand) / 0.3);
+          box-shadow: var(--shadow-md);
         }
 
         .panel-header {
@@ -724,7 +725,7 @@ export const AdminSettings: React.FC = () => {
           align-items: center;
           gap: 16px;
           padding: 16px;
-          background: hsl(var(--bg-main));
+          background: hsl(var(--bg-main) / 0.5);
           border-radius: 18px;
           border: 1px solid hsl(var(--border));
           cursor: pointer;
@@ -732,12 +733,12 @@ export const AdminSettings: React.FC = () => {
           text-align: left;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .metric-option-item:hover { transform: translateX(4px); border-color: hsl(var(--brand) / 0.5); background: hsl(var(--bg-card)); }
+        .metric-option-item:hover { transform: translateX(6px); border-color: hsl(var(--brand) / 0.5); background: hsl(var(--bg-card)); }
         .metric-option-item.active { border-color: hsl(var(--brand)); background: hsl(var(--brand) / 0.05); }
         .check { width: 22px; height: 22px; border: 2px solid hsl(var(--border)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: transparent; transition: all 0.2s; }
         .check.active { background: hsl(var(--brand)); border-color: hsl(var(--brand)); color: white; }
-        .txt .name { display: block; font-size: 14px; font-weight: 700; color: hsl(var(--text-main)); }
-        .txt .cat { font-size: 11px; font-weight: 800; color: hsl(var(--text-muted)); text-transform: uppercase; letter-spacing: 0.02em; }
+        .txt .name { display: block; font-size: 13px; font-weight: 800; color: hsl(var(--text-main)); }
+        .txt .cat { font-size: 10px; font-weight: 800; color: hsl(var(--text-muted)); text-transform: uppercase; letter-spacing: 0.05em; }
 
         .visual-canvas-preview {
           background: hsl(var(--bg-main));

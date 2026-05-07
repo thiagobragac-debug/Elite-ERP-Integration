@@ -26,7 +26,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 
 export const CompanyManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, tenant } = useTenant();
   const [activeTab, setActiveTab] = useState<'companies' | 'farms'>('companies');
   const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState<any[]>([]);
@@ -42,19 +42,24 @@ export const CompanyManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (tenant?.id) {
+      fetchData();
+    }
+  }, [tenant?.id]);
 
   const fetchData = async () => {
+    if (!tenant?.id) return;
     setLoading(true);
     try {
       const { data: unitsData } = await supabase
         .from('unidades')
-        .select('*');
+        .select('*')
+        .eq('tenant_id', tenant.id);
       
       const { data: farmsData } = await supabase
         .from('fazendas')
-        .select('*');
+        .select('*')
+        .eq('tenant_id', tenant.id);
 
       if (unitsData) setCompanies(unitsData);
       if (farmsData) setFarms(farmsData);
@@ -89,7 +94,7 @@ export const CompanyManagement: React.FC = () => {
       if (editingItem) {
         await supabase.from('unidades').update(payload).eq('id', editingItem.id);
       } else {
-        await supabase.from('unidades').insert([payload]);
+        await supabase.from('unidades').insert([{ ...payload, tenant_id: tenant.id }]);
       }
       fetchData();
       setIsCompanyModalOpen(false);
@@ -112,7 +117,7 @@ export const CompanyManagement: React.FC = () => {
       if (editingItem) {
         await supabase.from('fazendas').update(payload).eq('id', editingItem.id);
       } else {
-        await supabase.from('fazendas').insert([payload]);
+        await supabase.from('fazendas').insert([{ ...payload, tenant_id: tenant.id }]);
       }
       fetchData();
       setIsFarmModalOpen(false);
@@ -123,6 +128,17 @@ export const CompanyManagement: React.FC = () => {
   };
 
   const handleDelete = async (type: 'company' | 'farm', id: string) => {
+    if (type === 'company') {
+      const company = companies.find(c => c.id === id);
+      if (company?.tipo?.toUpperCase() === 'MATRIZ') {
+        const otherMatrizes = companies.filter(c => c.id !== id && c.tipo?.toUpperCase() === 'MATRIZ');
+        if (otherMatrizes.length === 0) {
+          alert('Segurança de Governança: Não é possível excluir a única Empresa Matriz do tenant. O sistema exige pelo menos uma matriz ativa para conformidade fiscal.');
+          return;
+        }
+      }
+    }
+
     if (!confirm(`Tem certeza que deseja excluir esta ${type === 'company' ? 'empresa' : 'fazenda'}?`)) return;
     try {
       await supabase.from(type === 'company' ? 'unidades' : 'fazendas').delete().eq('id', id);
@@ -143,6 +159,33 @@ export const CompanyManagement: React.FC = () => {
       ]);
       setHistoryLoading(false);
     }, 1000);
+  };
+
+  const syncWithTenant = async () => {
+    if (!tenant) return;
+    setLoading(true);
+    try {
+      const payload = {
+        nome: tenant.name,
+        razao_social: tenant.name,
+        documento: tenant.document,
+        cnpj: tenant.document,
+        tipo: 'matriz',
+        tenant_id: tenant.id,
+        ativo: true,
+        pais: 'Brasil'
+      };
+      
+      const { error } = await supabase.from('unidades').insert([payload]);
+      if (error) throw error;
+      
+      fetchData();
+    } catch (err) {
+      console.error('Erro ao sincronizar com tenant:', err);
+      alert('Falha ao sincronizar dados. Tente criar manualmente.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const companyColumns = [
@@ -220,24 +263,28 @@ export const CompanyManagement: React.FC = () => {
     (f.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
+  const hasMatriz = companies.some(c => c.tipo?.toUpperCase() === 'MATRIZ');
+
   return (
-    <div className="admin-page">
+    <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
+          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <Building2 size={14} fill="currentColor" />
             <span>ELITE ADMIN v5.0</span>
           </div>
-          <h1 className="page-title">Administração de Empresas & Fazendas</h1>
-          <p className="page-subtitle">Gerencie a estrutura organizacional de matrizes, filiais e unidades produtivas em tempo real.</p>
+          <h1 className="page-title">Gestão de Unidades & Matrizes</h1>
+          <p className="page-subtitle">Governança organizacional de instâncias produtivas, matrizes e filiais do ecossistema.</p>
         </div>
-        <button 
-          className="primary-btn" 
-          onClick={() => activeTab === 'companies' ? setIsCompanyModalOpen(true) : setIsFarmModalOpen(true)}
-        >
-          <Plus size={18} />
-          {activeTab === 'companies' ? 'NOVA EMPRESA' : 'NOVA FAZENDA'}
-        </button>
+        <div className="page-actions">
+          <button 
+            className="primary-btn" 
+            onClick={() => activeTab === 'companies' ? setIsCompanyModalOpen(true) : setIsFarmModalOpen(true)}
+          >
+            <Plus size={18} />
+            {activeTab === 'companies' ? 'ADICIONAR EMPRESA' : 'NOVA FAZENDA'}
+          </button>
+        </div>
       </header>
 
       <div className="elite-controls-row">
@@ -295,6 +342,30 @@ export const CompanyManagement: React.FC = () => {
       </div>
 
       <div className="management-content">
+        {activeTab === 'companies' && !hasMatriz && !loading && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="matriz-warning-banner"
+          >
+            <div className="warning-content">
+              <XCircle size={20} />
+              <div>
+                <strong>Atenção: Nenhuma Empresa Matriz Detectada</strong>
+                <p>O ecossistema requer pelo menos uma unidade configurada como MATRIZ para fins fiscais e de governança.</p>
+              </div>
+            </div>
+            <div className="warning-actions">
+              <button className="glass-btn secondary sm" onClick={syncWithTenant}>
+                SINCRONIZAR COM TENANT
+              </button>
+              <button className="glass-btn primary sm" onClick={() => setIsCompanyModalOpen(true)}>
+                CRIAR MATRIZ MANUAL
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         <AnimatePresence mode="wait">
           {activeTab === 'companies' ? (
             <motion.div 
@@ -435,6 +506,43 @@ export const CompanyManagement: React.FC = () => {
       </div>
 
       <style>{`
+        .matriz-warning-banner {
+          background: hsl(0 84% 60% / 0.1);
+          border: 1px solid hsl(0 84% 60% / 0.3);
+          border-radius: 20px;
+          padding: 20px 24px;
+          margin-bottom: 24px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .warning-content {
+          display: flex;
+          gap: 16px;
+          align-items: flex-start;
+          color: #ef4444;
+        }
+
+        .warning-content strong {
+          display: block;
+          font-size: 14px;
+          margin-bottom: 2px;
+        }
+
+        .warning-content p {
+          font-size: 12px;
+          opacity: 0.8;
+          margin: 0;
+          font-weight: 500;
+        }
+
+        .warning-actions {
+          display: flex;
+          gap: 12px;
+        }
+
         .view-mode-toggle {
           display: flex;
           background: hsl(var(--bg-main));
@@ -480,7 +588,7 @@ export const CompanyManagement: React.FC = () => {
           padding: 0;
           height: 180px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+          box-shadow: var(--shadow-sm);
           position: relative;
           text-align: left;
         }
@@ -492,23 +600,23 @@ export const CompanyManagement: React.FC = () => {
           top: 0;
           bottom: 0;
           width: 6px;
-          background: hsl(var(--border-strong));
+          background: hsl(var(--border));
           transition: 0.3s;
         }
 
         .user-card-premium.active::before {
-          background: #16a34a;
-          box-shadow: 4px 0 15px rgba(22, 163, 74, 0.3);
+          background: hsl(161 64% 39%);
+          box-shadow: 4px 0 15px hsl(161 64% 39% / 0.3);
         }
 
         .user-card-premium.info-badge::before {
-          background: #3b82f6;
-          box-shadow: 4px 0 15px rgba(59, 130, 246, 0.3);
+          background: hsl(var(--brand));
+          box-shadow: 4px 0 15px hsl(var(--brand) / 0.3);
         }
 
         .user-card-premium:hover {
-          transform: translateY(-8px);
-          box-shadow: var(--shadow-lg);
+          transform: translateY(-4px);
+          box-shadow: var(--shadow-md);
           border-color: hsl(var(--brand) / 0.3);
         }
 
@@ -523,10 +631,10 @@ export const CompanyManagement: React.FC = () => {
         }
 
         .card-avatar {
-          width: 70px;
-          height: 70px;
-          background: hsl(var(--bg-main));
-          color: hsl(var(--text-main));
+          width: 64px;
+          height: 64px;
+          background: hsl(var(--bg-card));
+          color: hsl(var(--brand));
           border-radius: 20px;
           display: flex;
           align-items: center;
@@ -534,49 +642,50 @@ export const CompanyManagement: React.FC = () => {
           font-size: 28px;
           font-weight: 900;
           margin-bottom: 12px;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+          box-shadow: var(--shadow-sm);
           border: 1px solid hsl(var(--border));
         }
 
         .card-main-content {
           flex: 1;
-          padding: 20px;
+          padding: 24px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
         }
 
         .card-header-info h3 {
-          font-size: 19px;
-          font-weight: 900;
+          font-size: 16px;
+          font-weight: 800;
           color: hsl(var(--text-main));
-          margin-bottom: 4px;
-          letter-spacing: -0.02em;
+          margin-bottom: 6px;
+          letter-spacing: -0.01em;
         }
 
         .card-role-badge {
           display: inline-block;
           font-size: 10px;
-          font-weight: 800;
+          font-weight: 900;
           color: hsl(var(--brand));
-          background: hsl(var(--brand) / 0.1);
-          padding: 4px 10px;
-          border-radius: 8px;
+          background: hsl(var(--brand) / 0.08);
+          padding: 4px 12px;
+          border-radius: 100px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
+          border: 1px solid hsl(var(--brand) / 0.2);
         }
 
         .card-meta-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 8px;
+          gap: 10px;
           margin-top: 12px;
         }
 
         .meta-item {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           color: hsl(var(--text-muted));
           font-size: 12px;
           font-weight: 600;
@@ -584,6 +693,7 @@ export const CompanyManagement: React.FC = () => {
 
         .meta-icon {
           color: hsl(var(--brand));
+          opacity: 0.8;
         }
 
         .card-bottom-actions {

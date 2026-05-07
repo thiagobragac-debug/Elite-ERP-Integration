@@ -323,39 +323,42 @@ export const UserManagement: React.FC = () => {
   ];
 
   return (
-    <div className="admin-page">
+    <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
+          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <Lock size={14} fill="currentColor" />
             <span>ELITE ACCESS v5.0</span>
           </div>
-          <h1 className="page-title">Controle de Usuários & Perfis</h1>
-          <p className="page-subtitle">Gerencie quem tem acesso ao sistema e quais permissões cada perfil possui em tempo real.</p>
+          <h1 className="page-title">Governança de Acesso & Segurança</h1>
+          <p className="page-subtitle">Gestão estratégica de identidades, perfis de permissão e políticas críticas de segurança.</p>
         </div>
-        {activeTab !== 'seguranca' && (
-          <button 
-            className="primary-btn" 
-            onClick={() => activeTab === 'users' ? setIsUserModalOpen(true) : setIsProfileModalOpen(true)}
-          >
-            {activeTab === 'users' ? <UserPlus size={18} /> : <Shield size={18} />}
-            {activeTab === 'users' ? 'NOVO USUÁRIO' : 'NOVO PERFIL'}
-          </button>
-        )}
-
-        <AnimatePresence>
-          {saveSuccess && (
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="save-success-toast"
+        <div className="page-actions">
+          {activeTab !== 'seguranca' && (
+            <button 
+              className="primary-btn" 
+              onClick={() => activeTab === 'users' ? setIsUserModalOpen(true) : setIsProfileModalOpen(true)}
             >
-              <CheckCircle2 size={16} />
-              <span>Alterações salvas com sucesso!</span>
-            </motion.div>
+              {activeTab === 'users' ? <UserPlus size={18} /> : <Shield size={18} />}
+              <span>{activeTab === 'users' ? 'ADICIONAR USUÁRIO' : 'CRIAR PERFIL'}</span>
+            </button>
           )}
-        </AnimatePresence>
+
+          <AnimatePresence>
+            {saveSuccess && (
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="save-toast-elite"
+                style={{ background: 'hsl(161 64% 39%)', color: 'white', border: 'none' }}
+              >
+                <CheckCircle2 size={16} />
+                <span>Políticas Sincronizadas</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </header>
 
       <div className="elite-controls-row">
@@ -706,23 +709,25 @@ export const UserManagement: React.FC = () => {
 
         .security-panel {
           background: hsl(var(--bg-card));
-          border-radius: 24px;
+          border-radius: 28px;
           border: 1px solid hsl(var(--border));
-          padding: 24px;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+          padding: 32px;
+          box-shadow: var(--shadow-sm);
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
         }
 
         .security-panel .panel-header {
           display: flex;
           align-items: center;
           gap: 16px;
-          margin-bottom: 24px;
-          border-bottom: 1px solid hsl(var(--border));
-          padding-bottom: 16px;
+          border-bottom: 1px solid hsl(var(--border) / 0.5);
+          padding-bottom: 20px;
         }
 
-        .security-panel h3 { font-size: 16px; font-weight: 800; color: hsl(var(--text-main)); margin-bottom: 4px; }
-        .security-panel p { font-size: 11px; color: hsl(var(--text-muted)); font-weight: 600; }
+        .security-panel h3 { font-size: 14px; font-weight: 800; color: hsl(var(--text-main)); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
+        .security-panel p { font-size: 11px; color: hsl(var(--text-muted)); font-weight: 600; margin-top: 2px; }
 
         .security-options {
           display: flex;
@@ -734,13 +739,16 @@ export const UserManagement: React.FC = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 12px 16px;
-          background: hsl(var(--bg-main));
-          border-radius: 12px;
+          padding: 16px 20px;
+          background: hsl(var(--bg-main) / 0.5);
+          border-radius: 16px;
+          border: 1px solid hsl(var(--border));
           font-size: 13px;
           font-weight: 700;
           color: hsl(var(--text-main));
+          transition: 0.2s;
         }
+        .option-row:hover { border-color: hsl(var(--brand) / 0.3); background: hsl(var(--bg-card)); }
 
         .elite-action-btn {
           width: 100%;
@@ -748,60 +756,9 @@ export const UserManagement: React.FC = () => {
           align-items: center;
           justify-content: center;
           gap: 10px;
-          padding: 14px;
-          background: #fef2f2;
-          color: #ef4444;
-          border-radius: 12px;
-          font-size: 12px;
-          font-weight: 800;
-          border: 1px solid #fee2e2;
-          transition: 0.2s;
-        }
-
-        .elite-action-btn:hover { background: #fee2e2; transform: translateY(-2px); }
-
-        .save-success-toast {
-          position: fixed;
-          top: 24px;
-          right: 24px;
-          background: #16a34a;
-          color: white;
-          padding: 12px 20px;
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-weight: 800;
-          font-size: 13px;
-          box-shadow: 0 10px 30px rgba(22, 163, 74, 0.2);
-          z-index: 9999;
-        }
-
-        .toggle-box { width: 40px; height: 22px; background: #e2e8f0; border-radius: 20px; position: relative; cursor: pointer; transition: 0.3s; }
-        .toggle-box::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: 0.3s; }
-        .toggle-box.active { background: #16a34a; }
-        .toggle-box.active::after { left: 21px; }
-        .view-mode-toggle {
-          display: flex;
+          padding: 16px;
           background: hsl(var(--bg-main));
-          padding: 4px;
-          border-radius: 12px;
-          gap: 4px;
-          margin: 0 16px;
-          border: 1px solid hsl(var(--border));
-        }
-
-        .view-btn {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          border: none;
-          background: transparent;
-          color: #64748b;
-          cursor: pointer;
+          color: #ef4444;
           transition: 0.2s;
         }
 

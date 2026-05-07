@@ -213,19 +213,19 @@ export const AuditLog: React.FC = () => {
       {/* ── Cabeçalho padrão ── */}
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
+          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <Shield size={14} fill="currentColor" />
             <span>ELITE AUDIT v5.0</span>
           </div>
-          <h1 className="page-title">Log de Auditoria</h1>
+          <h1 className="page-title">Rastreabilidade & Auditoria</h1>
           <p className="page-subtitle">
-            Rastreabilidade completa de todas as operações realizadas no sistema em tempo real.
+            Monitoramento técnico e operacional de todas as transações e alterações de dados em tempo real.
           </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={buildAuditLogs} disabled={loading}>
             <RefreshCw size={18} className={loading ? 'spin' : ''} />
-            ATUALIZAR
+            SINCRONIZAR LOGS
           </button>
         </div>
       </header>
@@ -609,53 +609,53 @@ export const AuditLog: React.FC = () => {
 
         /* ─── Modal Premium Styles ─── */
         .audit-modal-overlay {
-          position: fixed; inset: 0; z-index: 999;
-          background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+          position: fixed; inset: 0; z-index: 10000;
+          background: rgba(2, 6, 23, 0.6); backdrop-filter: blur(8px);
           display: flex; align-items: center; justify-content: center; padding: 20px;
         }
 
         .audit-modal-content {
-          background: white; width: 100%; max-width: 800px;
-          border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+          background: hsl(var(--bg-card)); width: 100%; max-width: 800px;
+          border-radius: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
           overflow: hidden; display: flex; flex-direction: column;
-          max-height: 90vh;
+          max-height: 90vh; border: 1px solid hsl(var(--border));
         }
 
         .audit-modal-header {
-          padding: 24px; border-bottom: 1px solid #eee;
+          padding: 32px; border-bottom: 1px solid hsl(var(--border));
           display: flex; justify-content: space-between; align-items: flex-start;
         }
 
-        .audit-modal-header h3 { margin: 0; font-size: 1.25rem; font-weight: 800; color: #1e293b; }
-        .audit-modal-header p { margin: 4px 0 0; font-size: 0.9rem; color: #64748b; font-weight: 500; }
+        .audit-modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: hsl(var(--text-main)); text-transform: uppercase; letter-spacing: 0.05em; }
+        .audit-modal-header p { margin: 6px 0 0; font-size: 0.85rem; color: hsl(var(--text-muted)); font-weight: 500; }
 
         .audit-modal-grid {
-          padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+          padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
           overflow-y: auto; flex: 1;
         }
 
         @media (max-width: 640px) { .audit-modal-grid { grid-template-columns: 1fr; } }
 
-        .audit-data-section { display: flex; flex-direction: column; gap: 10px; }
-        .section-label { font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #94a3b8; }
+        .audit-data-section { display: flex; flex-direction: column; gap: 12px; }
+        .section-label { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; color: hsl(var(--text-muted)); letter-spacing: 0.05em; }
 
         .audit-json-viewer {
-          padding: 16px; border-radius: 12px; background: #f8fafc;
+          padding: 20px; border-radius: 16px; background: hsl(var(--bg-main) / 0.5);
           font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-          color: #334155; margin: 0; border: 1px solid #e2e8f0;
-          overflow-x: auto; max-height: 400px;
+          color: hsl(var(--text-main)); margin: 0; border: 1px solid hsl(var(--border));
+          overflow-x: auto; max-height: 400px; line-height: 1.6;
         }
 
-        .audit-json-viewer.success { background: #f0fdf4; border-color: #dcfce7; color: #166534; }
+        .audit-json-viewer.success { border-color: hsl(161 64% 39% / 0.3); background: hsl(161 64% 39% / 0.05); color: hsl(161 64% 39%); }
 
         .audit-modal-footer {
-          padding: 16px 24px; background: #f8fafc; border-top: 1px solid #eee;
+          padding: 24px 32px; background: hsl(var(--bg-main) / 0.3); border-top: 1px solid hsl(var(--border));
           display: flex; justify-content: space-between; align-items: center;
         }
 
-        .log-meta { font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: flex; gap: 8px; }
-        .close-btn { background: #f1f5f9; border: none; padding: 8px; border-radius: 50%; cursor: pointer; color: #64748b; }
-        .close-btn:hover { background: #e2e8f0; color: #1e293b; }
+        .log-meta { font-size: 0.7rem; color: hsl(var(--text-muted)); font-weight: 700; display: flex; gap: 10px; text-transform: uppercase; }
+        .close-btn { background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); padding: 8px; border-radius: 12px; cursor: pointer; color: hsl(var(--text-muted)); transition: 0.2s; }
+        .close-btn:hover { color: hsl(var(--brand)); border-color: hsl(var(--brand)); }
 
         .audit-desc {
           font-size: 0.78rem; font-weight: 500;

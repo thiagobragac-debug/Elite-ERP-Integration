@@ -38,10 +38,10 @@ export const SaaSSidebar: React.FC = () => {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="logo-container">
-          <div className="logo-icon" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
-            <Database size={24} color="#38bdf8" />
+          <div className="logo-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand) / 0.7) 100%)', boxShadow: '0 0 20px hsl(var(--brand) / 0.3)' }}>
+            <Database size={24} color="white" />
           </div>
-          <span className="logo-text">Elite SaaS</span>
+          <span className="logo-text" style={{ color: 'hsl(var(--text-main))', fontWeight: 900, letterSpacing: '-0.02em' }}>Elite SaaS</span>
         </div>
       </div>
 
@@ -62,14 +62,39 @@ export const SaaSSidebar: React.FC = () => {
       </nav>
       
       <div className="sidebar-footer">
-        <div className="farm-selector-wrapper">
+        <div className="farm-selector-wrapper" style={{ padding: '0 12px' }}>
           <Link 
             to="/"
             className="tenant-badge"
-            style={{ textDecoration: 'none', display: 'flex', justifyContent: 'center', gap: '8px', color: '#94a3b8' }}
+            style={{ 
+              textDecoration: 'none', 
+              display: 'flex', 
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px', 
+              color: 'hsl(var(--text-muted))',
+              background: 'hsl(var(--bg-main) / 0.5)',
+              padding: '12px',
+              borderRadius: '14px',
+              border: '1px solid hsl(var(--border))',
+              fontSize: '12px',
+              fontWeight: 800,
+              transition: '0.2s',
+              width: '100%'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'hsl(var(--bg-card))';
+              e.currentTarget.style.color = 'hsl(var(--brand))';
+              e.currentTarget.style.borderColor = 'hsl(var(--brand) / 0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'hsl(var(--bg-main) / 0.5)';
+              e.currentTarget.style.color = 'hsl(var(--text-muted))';
+              e.currentTarget.style.borderColor = 'hsl(var(--border))';
+            }}
           >
             <ArrowLeft size={16} />
-            <span>Voltar ao App</span>
+            <span>SAIR DO ADMIN</span>
           </Link>
         </div>
       </div>
