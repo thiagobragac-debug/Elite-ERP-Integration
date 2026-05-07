@@ -48,6 +48,7 @@ export const ExecutiveDashboard: React.FC = () => {
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [chartData, setChartData] = useState<any[]>([]);
+  const [activeChartMetric, setActiveChartMetric] = useState<'gmd' | 'peso' | 'arroba'>('gmd');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -388,21 +389,150 @@ export const ExecutiveDashboard: React.FC = () => {
       </div>
 
       <div className="dashboard-grid-layout">
-        <section className="analytics-canvas">
+        <div className="analytics-canvas animate-slide-up" style={{ animationDelay: '0.2s' }}>
+      <div className="intelligence-layout">
+        <div className="intelligence-main">
           <div className="panel-header">
-            <h3>Performance do Rebanho</h3>
-            <div className="header-actions">
-              <button className="text-btn">Últimos 30 dias</button>
+            <div className="title-group">
+              <h3>Performance do Rebanho</h3>
+            </div>
+            <div className="chart-controls">
+              <button 
+                className={`chart-btn ${activeChartMetric === 'gmd' ? 'active' : ''}`}
+                onClick={() => setActiveChartMetric('gmd')}
+              >
+                GMD
+              </button>
+              <button 
+                className={`chart-btn ${activeChartMetric === 'peso' ? 'active' : ''}`}
+                onClick={() => setActiveChartMetric('peso')}
+              >
+                PESO
+              </button>
+              <button 
+                className={`chart-btn ${activeChartMetric === 'arroba' ? 'active' : ''}`}
+                onClick={() => setActiveChartMetric('arroba')}
+              >
+                @
+              </button>
+              <div className="chart-period">Últimos 30 dias</div>
             </div>
           </div>
-          <div className="chart-container-elite" style={{ padding: '0 24px 24px' }}>
-            <EliteMainChart 
-              data={chartData} 
-              color="#10b981"
-              height={400}
-            />
+          
+          <div className="chart-visual-wrapper">
+            <div className="chart-container-elite">
+              <div className="chart-y-axis">
+                <span>{activeChartMetric === 'gmd' ? '1.6' : activeChartMetric === 'peso' ? '550' : '20'}</span>
+                <span>{activeChartMetric === 'gmd' ? '1.2' : activeChartMetric === 'peso' ? '450' : '15'}</span>
+                <span>{activeChartMetric === 'gmd' ? '0.8' : activeChartMetric === 'peso' ? '350' : '10'}</span>
+                <span>{activeChartMetric === 'gmd' ? '0.4' : activeChartMetric === 'peso' ? '250' : '5'}</span>
+                <span>0</span>
+              </div>
+              <div className="chart-grid-lines">
+                {[...Array(5)].map((_, i) => <div key={i} className="grid-line" />)}
+              </div>
+              
+              <svg viewBox="0 0 800 300" className="performance-chart-svg" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} stopOpacity="0.3" />
+                    <stop offset="100%" stopColor={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} stopOpacity="0" />
+                  </linearGradient>
+                  <filter id="glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                    <feMerge>
+                      <feMergeNode in="coloredBlur"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                
+                <motion.path 
+                  animate={{ 
+                    d: activeChartMetric === 'gmd' 
+                      ? "M0,240 Q100,240 150,160 T300,220 T450,120 T600,150 T800,200 L800,300 L0,300 Z"
+                      : activeChartMetric === 'peso'
+                      ? "M0,280 Q100,260 150,220 T300,180 T450,140 T600,100 T800,60 L800,300 L0,300 Z"
+                      : "M0,250 Q100,230 150,210 T300,160 T450,180 T600,120 T800,140 L800,300 L0,300 Z"
+                  }}
+                  fill="url(#chartGradient)" 
+                />
+                
+                <line x1="0" y1="120" x2="800" y2="80" stroke="#3b82f6" strokeWidth="2" strokeDasharray="8,8" opacity="0.6" />
+                <text x="750" y="75" fill="#3b82f6" fontSize="10" fontWeight="900">META</text>
+                
+                <motion.path 
+                  animate={{ 
+                    d: activeChartMetric === 'gmd' 
+                      ? "M0,240 Q100,240 150,160 T300,220 T450,120 T600,150 T800,200"
+                      : activeChartMetric === 'peso'
+                      ? "M0,280 Q100,260 150,220 T300,180 T450,140 T600,100 T800,60"
+                      : "M0,250 Q100,230 150,210 T300,160 T450,180 T600,120 T800,140"
+                  }}
+                  fill="none" 
+                  stroke={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'}
+                  strokeWidth="4" 
+                  filter="url(#glow)"
+                />
+                
+                {[0, 150, 300, 450, 600, 800].map((x, i) => {
+                  const y = activeChartMetric === 'gmd' 
+                    ? [240, 160, 220, 120, 150, 200][i]
+                    : activeChartMetric === 'peso'
+                    ? [280, 220, 180, 140, 100, 60][i]
+                    : [250, 210, 160, 180, 120, 140][i];
+                  return (
+                    <g key={`${activeChartMetric}-${i}`} className="chart-point-group">
+                      <circle cx={x} cy={y} r="8" fill="white" stroke={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} strokeWidth="3" />
+                      <circle cx={x} cy={y} r="3" fill={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} />
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+            <div className="chart-x-axis">
+              <span>Sem 01</span><span>Sem 02</span><span>Sem 03</span><span>Sem 04</span><span>Sem 05</span><span>Sem 06</span><span>Sem 07</span>
+            </div>
           </div>
-        </section>
+        </div>
+
+        <div className="intelligence-sidebar">
+          <div className="sidebar-header">
+            <Zap size={14} className="text-brand" />
+            <span>ANÁLISE ESTRATÉGICA</span>
+          </div>
+          
+          <div className="insight-cards-stack">
+            <div className="insight-card-mini clickable" onClick={() => navigate('/pecuaria/pesagem')}>
+              <div className="i-header">
+                <TrendingUp size={12} className="text-success" />
+                <span>Projeção de Abate</span>
+              </div>
+              <div className="i-value">OUT/2026</div>
+              <div className="i-footer">Baseado no GMD atual</div>
+            </div>
+
+            <div className="insight-card-mini warning clickable" onClick={() => navigate('/pecuaria/lote')}>
+              <div className="i-header">
+                <AlertCircle size={12} className="text-warning" />
+                <span>Desvio de Meta</span>
+              </div>
+              <div className="i-value">-12.4%</div>
+              <div className="i-footer">Pasto 04 (Oeste)</div>
+            </div>
+
+            <div className="insight-card-mini success clickable" onClick={() => navigate('/pecuaria/sanidade')}>
+              <div className="i-header">
+                <Sparkles size={12} className="text-brand" />
+                <span>Score Corporal</span>
+              </div>
+              <div className="i-value">3.82 <small>avg</small></div>
+              <div className="i-footer">Evolução positiva</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
         <section className="recent-activity-panel">
           <div className="panel-header">
