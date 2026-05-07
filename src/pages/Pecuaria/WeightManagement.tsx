@@ -21,6 +21,8 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const WeightManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -187,9 +189,7 @@ export const WeightManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => (
-            <EliteStatCard key={i} loading={true} label="" value="" icon={Scale} color="" />
-          ))
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
@@ -302,37 +302,38 @@ export const WeightManagement: React.FC = () => {
       </AnimatePresence>
 
       <div className="management-content">
-        <ModernTable 
-          data={weighings.filter(w => {
-            const matchesSearch = w.animais?.brinco?.toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'RECENT' ? true : Number(w.peso) > 400; 
-            
-            // Advanced Filters
-            const matchesMinWeight = !filterValues.minWeight || Number(w.peso) >= Number(filterValues.minWeight);
-            const matchesMaxWeight = !filterValues.maxWeight || Number(w.peso) <= Number(filterValues.maxWeight);
-            const matchesDate = (!filterValues.dateStart || new Date(w.data_pesagem) >= new Date(filterValues.dateStart)) &&
-                               (!filterValues.dateEnd || new Date(w.data_pesagem) <= new Date(filterValues.dateEnd));
-
-            return matchesSearch && matchesTab && matchesMinWeight && matchesMaxWeight && matchesDate;
-          })}
-          columns={columns}
-          loading={loading}
-          hideHeader={true}
-          searchPlaceholder="Pesquisar por brinco..."
-          actions={(item) => (
-            <div className="modern-actions">
-              <button className="action-dot info" title="Histórico">
-                <History size={18} />
-              </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+        {weighings.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhuma pesagem registrada"
+            description="Ainda não há pesagens lançadas para esta unidade. Inicie o controle de GMD registrando a primeira pesagem do lote."
+            actionLabel="Nova Pesagem"
+            onAction={handleOpenCreate}
+            icon={Scale}
+          />
+        ) : (
+          <ModernTable 
+            data={weighings.filter(w => {
+              const matchesSearch = w.animais?.brinco?.toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesTab = activeTab === 'RECENT' ? true : Number(w.peso) > 400; 
+              const matchesMinWeight = !filterValues.minWeight || Number(w.peso) >= Number(filterValues.minWeight);
+              const matchesMaxWeight = !filterValues.maxWeight || Number(w.peso) <= Number(filterValues.maxWeight);
+              const matchesDate = (!filterValues.dateStart || new Date(w.data_pesagem) >= new Date(filterValues.dateStart)) &&
+                                 (!filterValues.dateEnd || new Date(w.data_pesagem) <= new Date(filterValues.dateEnd));
+              return matchesSearch && matchesTab && matchesMinWeight && matchesMaxWeight && matchesDate;
+            })}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            searchPlaceholder="Pesquisar por brinco..."
+            actions={(item) => (
+              <div className="modern-actions">
+                <button className="action-dot info" title="Histórico"><History size={18} /></button>
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar"><Edit3 size={18} /></button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir"><Trash2 size={18} /></button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <WeightForm 

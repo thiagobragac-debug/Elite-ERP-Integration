@@ -1,6 +1,7 @@
 import { Search, Bell, HelpCircle, LogOut, Sun, Moon, GitBranch } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { NotificationCenter } from '../Notifications/NotificationCenter';
 import './Header.css';
 
 export const Header: React.FC = () => {
@@ -24,10 +25,7 @@ export const Header: React.FC = () => {
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </button>
         
-        <button className="action-btn">
-          <Bell size={20} />
-          <span className="notification-badge"></span>
-        </button>
+        <NotificationCenter />
 
         <button className="action-btn" title="Ajuda & Suporte">
           <HelpCircle size={20} />

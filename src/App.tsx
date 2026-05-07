@@ -8,6 +8,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CompanyManagement } from './pages/Admin/CompanyManagement';
 import { UserManagement } from './pages/Admin/UserManagement';
 import { AdminSettings } from './pages/Admin/AdminSettings';
+import { AuditLog } from './pages/Admin/AuditLog';
 import { SaaSAdminPanel } from './pages/Admin/SaaSAdminPanel';
 import { SaaSLayout } from './components/SaaSLayout/SaaSLayout';
 import { SuperAdminGuard } from './components/Guards/SuperAdminGuard';
@@ -107,6 +108,7 @@ function AppContent() {
               <Route path="/admin/configuracoes" element={<AdminSettings />} />
               <Route path="/admin/bi" element={<AdminSettings />} />
               <Route path="/admin/canvas" element={<AdminSettings />} />
+              <Route path="/admin/auditoria" element={<AuditLog />} />
               
               {/* Pecuária */}
               <Route path="/pecuaria/animal" element={<AnimalManagement />} />

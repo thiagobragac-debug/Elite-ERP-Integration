@@ -24,6 +24,8 @@ import { PastureManejoForm } from '../../components/Forms/PastureManejoForm';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber, formatPercent } from '../../utils/format';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const PastureManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -247,9 +249,7 @@ export const PastureManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => (
-            <EliteStatCard key={i} loading={true} label="" value="" icon={Maximize} color="" />
-          ))
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
@@ -353,35 +353,36 @@ export const PastureManagement: React.FC = () => {
       </AnimatePresence>
 
       <div className="management-content">
-        <ModernTable 
-          data={pastures.filter(p => {
-            const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.tipo_capim || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
-            
-            // Advanced Filters
-            const matchesStatus = filterValues.status === 'all' || p.status === filterValues.status;
-            const matchesCapim = filterValues.tipo_capim === 'all' || p.tipo_capim === filterValues.tipo_capim;
-
-            return matchesSearch && matchesTab && matchesStatus && matchesCapim;
-          })}
-          columns={columns}
-          loading={loading}
-          hideHeader={true}
-          searchPlaceholder="Pesquisar na base de pastagens..."
-          actions={(item) => (
-            <div className="modern-actions">
-              <button className="action-dot info" onClick={() => handleViewAnimals(item)} title="Ver Animais">
-                <Activity size={18} />
-              </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+        {pastures.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhuma pastagem cadastrada"
+            description="Não há pastos registrados para esta fazenda. Mapeie as áreas de pastejo para começar o controle de rotação e lotação."
+            actionLabel="Novo Pasto"
+            onAction={handleOpenCreate}
+            icon={Trees}
+          />
+        ) : (
+          <ModernTable 
+            data={pastures.filter(p => {
+              const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.tipo_capim || '').toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
+              const matchesStatus = filterValues.status === 'all' || p.status === filterValues.status;
+              const matchesCapim = filterValues.tipo_capim === 'all' || p.tipo_capim === filterValues.tipo_capim;
+              return matchesSearch && matchesTab && matchesStatus && matchesCapim;
+            })}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            searchPlaceholder="Pesquisar na base de pastagens..."
+            actions={(item) => (
+              <div className="modern-actions">
+                <button className="action-dot info" onClick={() => handleViewAnimals(item)} title="Ver Animais"><Activity size={18} /></button>
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar"><Edit3 size={18} /></button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir"><Trash2 size={18} /></button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <PastureForm 

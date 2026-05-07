@@ -23,6 +23,8 @@ import { RelocateForm } from '../../components/Forms/RelocateForm';
 import { AnimalListModal } from '../../components/Modals/AnimalListModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import './LotManagement.css';
 
 export const LotManagement: React.FC = () => {
@@ -251,7 +253,7 @@ export const LotManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Layers} color="" />)
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
@@ -358,36 +360,37 @@ export const LotManagement: React.FC = () => {
       </AnimatePresence>
 
       <div className="management-content">
-        <ModernTable 
-          data={lots.filter(l => {
-            const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'ATIVO' ? (l.status === 'ATIVO' || !l.status) : l.status === 'ARQUIVADO';
-            
-            // Advanced Filters
-            const matchesStatus = filterValues.status === 'all' || l.status === filterValues.status;
-            const matchesDate = (!filterValues.dateStart || new Date(l.created_at) >= new Date(filterValues.dateStart)) &&
-                               (!filterValues.dateEnd || new Date(l.created_at) <= new Date(filterValues.dateEnd));
-
-            return matchesSearch && matchesTab && matchesStatus && matchesDate;
-          })}
-          columns={tableColumns}
-          loading={loading}
-          hideHeader={true}
-          searchPlaceholder="Filtrar base de lotes..."
-          actions={(item) => (
-            <div className="modern-actions">
-              <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Detalhes">
-                <Eye size={18} />
-              </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+        {lots.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhum lote cadastrado"
+            description="Nenhum lote operacional foi criado para esta fazenda. Organize o rebanho criando o primeiro lote de manejo."
+            actionLabel="Novo Lote"
+            onAction={handleOpenCreate}
+            icon={Layers}
+          />
+        ) : (
+          <ModernTable 
+            data={lots.filter(l => {
+              const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesTab = activeTab === 'ATIVO' ? (l.status === 'ATIVO' || !l.status) : l.status === 'ARQUIVADO';
+              const matchesStatus = filterValues.status === 'all' || l.status === filterValues.status;
+              const matchesDate = (!filterValues.dateStart || new Date(l.created_at) >= new Date(filterValues.dateStart)) &&
+                                 (!filterValues.dateEnd || new Date(l.created_at) <= new Date(filterValues.dateEnd));
+              return matchesSearch && matchesTab && matchesStatus && matchesDate;
+            })}
+            columns={tableColumns}
+            loading={loading}
+            hideHeader={true}
+            searchPlaceholder="Filtrar base de lotes..."
+            actions={(item) => (
+              <div className="modern-actions">
+                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Detalhes"><Eye size={18} /></button>
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar"><Edit3 size={18} /></button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir"><Trash2 size={18} /></button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <LotForm 

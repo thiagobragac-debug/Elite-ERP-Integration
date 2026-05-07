@@ -35,6 +35,7 @@ const menuItems: NavItem[] = [
       { title: 'Usuários', href: '/admin/usuarios' },
       { title: 'Unidades', href: '/admin/config' },
       { title: 'Configurações', href: '/admin/configuracoes' },
+      { title: 'Log de Auditoria', href: '/admin/auditoria' },
     ]
   },
   { 

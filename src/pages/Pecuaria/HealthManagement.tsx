@@ -25,6 +25,8 @@ import { HealthForm } from '../../components/Forms/HealthForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import './HealthManagement.css';
 
 export const HealthManagement: React.FC = () => {
@@ -158,7 +160,7 @@ export const HealthManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={HeartPulse} color="" />)
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
@@ -211,30 +213,34 @@ export const HealthManagement: React.FC = () => {
       </div>
 
       <div className="management-content">
-        <ModernTable 
-          data={events.filter(e => {
-            const matchesSearch = (e.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'MANEJOS' ? e.tipo !== 'PROTOCOLO' : e.tipo === 'PROTOCOLO';
-            return matchesSearch && matchesTab;
-          })}
-          columns={tableColumns}
-          loading={loading}
-          hideHeader={true}
-          searchPlaceholder="Filtrar por protocolo ou fármaco..."
-          actions={(item) => (
-            <div className="modern-actions">
-              <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Detalhes">
-                <History size={18} />
-              </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+        {events.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhum registro sanitário"
+            description="Nenhum manejo ou protocolo foi lançado para esta unidade. Inicie o controle sanitário registrando a primeira vacinação ou tratamento."
+            actionLabel="Novo Registro"
+            onAction={handleOpenCreate}
+            icon={HeartPulse}
+          />
+        ) : (
+          <ModernTable 
+            data={events.filter(e => {
+              const matchesSearch = (e.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesTab = activeTab === 'MANEJOS' ? e.tipo !== 'PROTOCOLO' : e.tipo === 'PROTOCOLO';
+              return matchesSearch && matchesTab;
+            })}
+            columns={tableColumns}
+            loading={loading}
+            hideHeader={true}
+            searchPlaceholder="Filtrar por protocolo ou fármaco..."
+            actions={(item) => (
+              <div className="modern-actions">
+                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Detalhes"><History size={18} /></button>
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar"><Edit3 size={18} /></button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir"><Trash2 size={18} /></button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <HealthForm 
