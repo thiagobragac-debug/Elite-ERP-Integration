@@ -22,7 +22,9 @@ import {
   Eye,
   Edit2,
   LogIn,
-  History
+  History,
+  LayoutGrid,
+  List as ListIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -43,6 +45,7 @@ export const SaaSAdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SaaSAdminTab>('overview');
   const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
     const path = location.pathname;
@@ -284,28 +287,102 @@ export const SaaSAdminPanel: React.FC = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
+
+                <div className="view-mode-toggle">
+                  <button 
+                    className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                    onClick={() => setViewMode('list')}
+                    title="Visualização em Lista"
+                  >
+                    <ListIcon size={18} />
+                  </button>
+                  <button 
+                    className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                    onClick={() => setViewMode('grid')}
+                    title="Visualização em Cards"
+                  >
+                    <LayoutGrid size={18} />
+                  </button>
+                </div>
               </div>
 
-              <ModernTable 
-                data={tenantsList.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase()))}
-                columns={tenantColumns}
-                loading={false}
-                hideHeader={true}
-                searchPlaceholder="Buscar inquilinos, CNPJ ou ID..."
-                actions={(item) => (
-                  <div className="modern-actions">
-                    <button className="action-dot success" onClick={() => handleImpersonate(item.id)} title="Acessar como Inquilino">
-                      <LogIn size={18} />
-                    </button>
-                    <button className="action-dot edit" onClick={() => openEditTenant(item)} title="Editar Tenant">
-                      <Edit2 size={18} />
-                    </button>
-                    <button className="action-dot info" title="Ver Detalhes">
-                      <Eye size={18} />
-                    </button>
-                  </div>
-                )}
-              />
+              {viewMode === 'list' ? (
+                <ModernTable 
+                  data={tenantsList.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase()))}
+                  columns={tenantColumns}
+                  loading={false}
+                  hideHeader={true}
+                  searchPlaceholder="Buscar inquilinos, CNPJ ou ID..."
+                  actions={(item) => (
+                    <div className="modern-actions">
+                      <button className="action-dot success" onClick={() => handleImpersonate(item.id)} title="Acessar como Inquilino">
+                        <LogIn size={18} />
+                      </button>
+                      <button className="action-dot edit" onClick={() => openEditTenant(item)} title="Editar Tenant">
+                        <Edit2 size={18} />
+                      </button>
+                      <button className="action-dot info" title="Ver Detalhes">
+                        <Eye size={18} />
+                      </button>
+                    </div>
+                  )}
+                />
+              ) : (
+                <div className="user-cards-grid">
+                  {tenantsList
+                    .filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map(t => {
+                      const getPlanColor = (plan: string) => {
+                        if (plan === 'Enterprise') return 'info-badge';
+                        if (plan === 'Pro') return 'active';
+                        return '';
+                      };
+
+                      return (
+                        <motion.div 
+                          key={t.id} 
+                          layout
+                          className={`user-card-premium ${getPlanColor(t.plan)}`}
+                        >
+                          <div className="card-left-section">
+                            <div className="card-avatar">
+                              <Globe size={32} />
+                            </div>
+                            <div className="card-bottom-actions">
+                              <button className="action-icon-btn" onClick={() => handleImpersonate(t.id)} title="Personificar"><LogIn size={16} /></button>
+                              <button className="action-icon-btn" onClick={() => openEditTenant(t)} title="Editar"><Edit2 size={16} /></button>
+                              <button className="action-icon-btn" title="Dossiê"><Eye size={16} /></button>
+                            </div>
+                          </div>
+
+                          <div className="card-main-content">
+                            <div className="card-header-info">
+                              <h3>{t.name}</h3>
+                              <span className={`plan-badge ${t.plan.toLowerCase()}`} style={{ fontSize: '10px', padding: '4px 10px' }}>
+                                {t.plan}
+                              </span>
+                            </div>
+
+                            <div className="card-meta-grid">
+                              <div className="meta-item">
+                                <Users size={14} className="meta-icon" />
+                                <span>{t.users} Usuários Ativos</span>
+                              </div>
+                              <div className="meta-item">
+                                <HardDrive size={14} className="meta-icon" />
+                                <span>{t.storage} Storage</span>
+                              </div>
+                              <div className="meta-item">
+                                <Shield size={14} className="meta-icon" />
+                                <span>ID: {t.id}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -317,26 +394,109 @@ export const SaaSAdminPanel: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               className="saas-view"
             >
-              <div className="plans-grid">
-                {plansList.map(plan => (
-                  <div key={plan.name} className="plan-card">
-                    <div className="plan-header">
-                      <h3>{plan.name}</h3>
-                      <div className="plan-price">{plan.price}<span>/mês</span></div>
-                    </div>
-                    <div className="plan-stats">
-                      <div className="p-stat"><span>Tenants</span><strong>{plan.users}</strong></div>
-                      <div className="p-stat"><span>MRR</span><strong>{plan.rev}</strong></div>
-                    </div>
-                    <ul className="plan-features">
-                      {plan.features.map((f, i) => (
-                        <li key={i}><CheckCircle size={16} />{f}</li>
-                      ))}
-                    </ul>
-                    <button className="edit-plan-btn" onClick={() => openEditPlan(plan)}>Editar Plano</button>
-                  </div>
-                ))}
+              <div className="elite-controls-row">
+                <div className="elite-search-wrapper">
+                  <Search size={18} className="s-icon" />
+                  <input 
+                    className="elite-search-input"
+                    type="text" 
+                    placeholder="Filtrar catálogo de planos..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                <div className="view-mode-toggle">
+                  <button 
+                    className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                    onClick={() => setViewMode('list')}
+                    title="Visualização em Lista"
+                  >
+                    <ListIcon size={18} />
+                  </button>
+                  <button 
+                    className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                    onClick={() => setViewMode('grid')}
+                    title="Visualização em Cards"
+                  >
+                    <LayoutGrid size={18} />
+                  </button>
+                </div>
               </div>
+
+              {viewMode === 'list' ? (
+                <ModernTable 
+                  data={plansList.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))}
+                  columns={[
+                    { header: 'Plano', accessor: (p: any) => <div className="table-cell-title"><span className="main-text">{p.name}</span></div> },
+                    { header: 'Preço', accessor: (p: any) => <div className="table-cell-meta"><DollarSign size={14} />{p.price}</div> },
+                    { header: 'Tenants', accessor: (p: any) => <div className="table-cell-meta"><Users size={14} />{p.users} Clientes</div> },
+                    { header: 'MRR', accessor: (p: any) => <span className="status-pill active">{p.rev}</span> }
+                  ]}
+                  loading={false}
+                  hideHeader={true}
+                  actions={(item) => (
+                    <div className="modern-actions">
+                      <button className="action-dot edit" onClick={() => openEditPlan(item)} title="Editar Plano">
+                        <Edit2 size={18} />
+                      </button>
+                    </div>
+                  )}
+                />
+              ) : (
+                <div className="user-cards-grid">
+                  {plansList
+                    .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map(plan => {
+                      const getPlanBadgeClass = (name: string) => {
+                        if (name === 'Enterprise') return 'info-badge';
+                        if (name === 'Pro') return 'active';
+                        return '';
+                      };
+
+                      return (
+                        <motion.div 
+                          key={plan.name} 
+                          layout
+                          className={`user-card-premium ${getPlanBadgeClass(plan.name)}`}
+                        >
+                          <div className="card-left-section" style={{ width: '110px' }}>
+                            <div className="card-avatar" style={{ background: '#f59e0b' }}>
+                              <CreditCard size={32} />
+                            </div>
+                            <div className="card-bottom-actions">
+                              <button className="action-icon-btn" onClick={() => openEditPlan(plan)} title="Editar"><Edit2 size={16} /></button>
+                            </div>
+                          </div>
+
+                          <div className="card-main-content">
+                            <div className="card-header-info">
+                              <h3>{plan.name}</h3>
+                              <span className="card-role-badge" style={{ color: '#f59e0b', background: '#fffbeb' }}>
+                                {plan.price}
+                              </span>
+                            </div>
+
+                            <div className="card-meta-grid">
+                              <div className="meta-item">
+                                <Users size={14} className="meta-icon" style={{ color: '#f59e0b' }} />
+                                <span>{plan.users} Clientes Ativos</span>
+                              </div>
+                              <div className="meta-item">
+                                <DollarSign size={14} className="meta-icon" style={{ color: '#f59e0b' }} />
+                                <span>MRR: {plan.rev}</span>
+                              </div>
+                              <div className="meta-item">
+                                <CheckCircle size={14} className="meta-icon" style={{ color: '#f59e0b' }} />
+                                <span>{plan.features.length} Recursos inclusos</span>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -725,6 +885,178 @@ export const SaaSAdminPanel: React.FC = () => {
         .log-desc span { color: hsl(var(--brand)); font-weight: 700; }
 
         .drawer-footer { padding: 32px; border-top: 1px solid hsl(var(--border)); }
+
+        .view-mode-toggle {
+          display: flex;
+          background: #f1f5f9;
+          padding: 4px;
+          border-radius: 12px;
+          gap: 4px;
+          margin: 0 16px;
+        }
+
+        .view-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .view-btn.active {
+          background: white;
+          color: #16a34a;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .user-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+          gap: 20px;
+          padding: 8px;
+        }
+
+        .user-card-premium {
+          background: white;
+          border-radius: 24px;
+          border: 1px solid #e2e8f0;
+          display: flex;
+          overflow: hidden;
+          padding: 0;
+          height: 180px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+          position: relative;
+          text-align: left;
+        }
+
+        .user-card-premium::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 6px;
+          background: #cbd5e1;
+          transition: 0.3s;
+        }
+
+        .user-card-premium.active::before {
+          background: #16a34a;
+          box-shadow: 4px 0 15px rgba(22, 163, 74, 0.3);
+        }
+
+        .user-card-premium.info-badge::before {
+          background: #3b82f6;
+          box-shadow: 4px 0 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .user-card-premium:hover {
+          transform: translateX(8px);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+          border-color: #16a34a33;
+        }
+
+        .card-left-section {
+          width: 130px;
+          background: #f8fafc;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border-right: 1px solid #f1f5f9;
+        }
+
+        .card-avatar {
+          width: 70px;
+          height: 70px;
+          background: #0f172a;
+          color: white;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 28px;
+          font-weight: 900;
+          margin-bottom: 12px;
+          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+        }
+
+        .card-main-content {
+          flex: 1;
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        .card-header-info {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 4px;
+        }
+
+        .card-header-info h3 {
+          font-size: 17px;
+          font-weight: 900;
+          color: #0f172a;
+          margin: 0;
+          letter-spacing: -0.02em;
+          flex: 1;
+        }
+
+        .card-meta-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: #64748b;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .meta-icon {
+          color: #3b82f6;
+        }
+
+        .card-bottom-actions {
+          display: flex;
+          gap: 8px;
+          margin-top: 15px;
+        }
+
+        .action-icon-btn {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: 1px solid #f1f5f9;
+          background: white;
+          color: #64748b;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .action-icon-btn:hover {
+          background: #0f172a;
+          color: white;
+          transform: scale(1.1);
+        }
       `}</style>
     </div>
   );
