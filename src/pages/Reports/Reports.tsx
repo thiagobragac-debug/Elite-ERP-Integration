@@ -218,16 +218,16 @@ export const Reports: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 10px;
-          background: #f0fdf4;
+          background: hsl(var(--brand) / 0.1);
           padding: 6px 12px;
           border-radius: 20px;
-          border: 1px solid #dcfce7;
+          border: 1px solid hsl(var(--brand) / 0.2);
           width: fit-content;
           margin-bottom: 12px;
         }
 
         .brand-badge-elite .b-icon {
-          color: #16a34a;
+          color: hsl(var(--brand));
           display: flex;
           align-items: center;
         }
@@ -235,7 +235,7 @@ export const Reports: React.FC = () => {
         .brand-badge-elite span {
           font-size: 11px;
           font-weight: 900;
-          color: #16a34a;
+          color: hsl(var(--brand));
           letter-spacing: 0.02em;
         }
 
@@ -244,20 +244,20 @@ export const Reports: React.FC = () => {
           align-items: center;
           gap: 10px;
           padding: 12px 24px;
-          background: white;
-          border: 1px solid #e2e8f0;
+          background: hsl(var(--bg-card));
+          border: 1px solid hsl(var(--border));
           border-radius: 14px;
           font-size: 12px;
           font-weight: 800;
-          color: #64748b;
+          color: hsl(var(--text-muted));
           cursor: pointer;
           transition: all 0.2s;
         }
 
         .glass-btn-config:hover {
-          background: #f8fafc;
-          border-color: #cbd5e1;
-          color: #0f172a;
+          background: hsl(var(--bg-main));
+          border-color: hsl(var(--brand) / 0.5);
+          color: hsl(var(--text-main));
         }
 
         .primary-btn-green {
@@ -321,7 +321,7 @@ export const Reports: React.FC = () => {
           width: 100%;
           font-size: 14px;
           font-weight: 600;
-          color: #0f172a;
+          color: hsl(var(--text-main));
           outline: none;
         }
 
@@ -332,9 +332,9 @@ export const Reports: React.FC = () => {
         }
 
         .report-card-v5 {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 28px;
-          border: 1px solid #f1f5f9;
+          border: 1px solid hsl(var(--border));
           padding: 28px;
           cursor: pointer;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -343,12 +343,12 @@ export const Reports: React.FC = () => {
           gap: 20px;
           position: relative;
           overflow: hidden;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+          box-shadow: var(--shadow-sm);
         }
 
         .report-card-v5:hover {
-          border-color: #16a34a;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+          border-color: hsl(var(--brand));
+          box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
 
         .card-top {
@@ -376,13 +376,13 @@ export const Reports: React.FC = () => {
         .card-mid h3 {
           font-size: 18px;
           font-weight: 800;
-          color: #0f172a;
+          color: hsl(var(--text-main));
           margin-bottom: 8px;
         }
 
         .card-mid p {
           font-size: 13px;
-          color: #64748b;
+          color: hsl(var(--text-muted));
           line-height: 1.5;
         }
 
@@ -407,7 +407,7 @@ export const Reports: React.FC = () => {
           gap: 6px;
           font-size: 11px;
           font-weight: 900;
-          color: #16a34a;
+          color: hsl(var(--brand));
           background: transparent;
           border: none;
           cursor: pointer;
@@ -463,8 +463,8 @@ export const Reports: React.FC = () => {
 
         .custom-bi-cta {
           margin-top: 40px;
-          background: white;
-          border: 1px solid #e2e8f0;
+          background: hsl(var(--bg-card));
+          border: 1px solid hsl(var(--border));
           border-radius: 32px;
           padding: 16px 40px;
           display: flex;
@@ -487,33 +487,33 @@ export const Reports: React.FC = () => {
         .cta-icon {
           width: 64px;
           height: 64px;
-          background: #f0fdf4;
-          color: #16a34a;
+          background: hsl(var(--brand) / 0.1);
+          color: hsl(var(--brand));
           border-radius: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
-        .cta-text h3 { font-size: 20px; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
-        .cta-text p { font-size: 14px; color: #64748b; font-weight: 500; }
+        .cta-text h3 { font-size: 20px; font-weight: 800; color: hsl(var(--text-main)); margin-bottom: 4px; }
+        .cta-text p { font-size: 14px; color: hsl(var(--text-muted)); font-weight: 500; }
 
         .cta-btn {
           padding: 14px 28px;
-          background: white;
-          border: 1px solid #e2e8f0;
+          background: hsl(var(--bg-card));
+          border: 1px solid hsl(var(--border));
           border-radius: 16px;
           font-size: 13px;
           font-weight: 800;
-          color: #0f172a;
+          color: hsl(var(--text-main));
           cursor: pointer;
           transition: all 0.2s;
         }
 
         .cta-btn:hover {
-          background: #16a34a;
+          background: hsl(var(--brand));
           color: white;
-          border-color: #16a34a;
+          border-color: hsl(var(--brand));
         }
       `}</style>
     </div>

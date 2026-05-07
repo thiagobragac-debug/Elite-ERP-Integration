@@ -229,7 +229,7 @@ export const FleetManagement: React.FC = () => {
       header: 'Categoria',
       accessor: (item: any) => (
         <div className="table-cell-meta">
-          <Layout size={14} />
+          <LayoutGrid size={14} />
           <span>{item.categoria}</span>
         </div>
       )
@@ -413,7 +413,11 @@ export const FleetManagement: React.FC = () => {
         ) : viewMode === 'list' ? (
           <ModernTable 
             data={machines.filter(m => {
-              const matchesSearch = (m.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || m.placa?.toLowerCase().includes(searchTerm.toLowerCase()) || m.modelo?.toLowerCase().includes(searchTerm.toLowerCase()));
+              const matchesSearch = (
+                (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase())
+              );
               const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
               const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
               const matchesMarca = filterValues.marca === 'all' || m.marca === filterValues.marca;
@@ -445,7 +449,11 @@ export const FleetManagement: React.FC = () => {
           >
             {machines
               .filter(m => {
-                const matchesSearch = (m.nome?.toLowerCase().includes(searchTerm.toLowerCase()) || m.placa?.toLowerCase().includes(searchTerm.toLowerCase()) || m.modelo?.toLowerCase().includes(searchTerm.toLowerCase()));
+                const matchesSearch = (
+                  (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                  (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase())
+                );
                 const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
                 const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
                 const matchesMarca = filterValues.marca === 'all' || m.marca === filterValues.marca;
