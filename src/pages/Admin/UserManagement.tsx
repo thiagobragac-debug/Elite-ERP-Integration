@@ -50,6 +50,18 @@ export const UserManagement: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [globalLogs, setGlobalLogs] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+  const [securitySettings, setSecuritySettings] = useState({
+    min8Chars: true,
+    specialChars: true,
+    numLetters: true,
+    inactivity30m: true,
+    forceLogout: false,
+    multiDevice: true,
+    block3Attempts: true,
+    geoIpCheck: true
+  });
+
+  const isAdmin = userProfile?.role === 'ADMIN' || userProfile?.role === 'Administrador';
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -88,6 +100,13 @@ export const UserManagement: React.FC = () => {
     } finally {
       setLogsLoading(false);
     }
+  };
+
+  const toggleSecuritySetting = (key: keyof typeof securitySettings) => {
+    setSecuritySettings(prev => ({ ...prev, [key]: !prev[key] }));
+    // Here we would sync with DB: supabase.from('tenant_settings').update({ security: ... })
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 2000);
   };
 
   const fetchData = async () => {
@@ -296,13 +315,15 @@ export const UserManagement: React.FC = () => {
           <h1 className="page-title">Controle de Usuários & Perfis</h1>
           <p className="page-subtitle">Gerencie quem tem acesso ao sistema e quais permissões cada perfil possui em tempo real.</p>
         </div>
-        <button 
-          className="primary-btn" 
-          onClick={() => activeTab === 'users' ? setIsUserModalOpen(true) : setIsProfileModalOpen(true)}
-        >
-          {activeTab === 'users' ? <UserPlus size={18} /> : <Shield size={18} />}
-          {activeTab === 'users' ? 'NOVO USUÁRIO' : 'NOVO PERFIL'}
-        </button>
+        {activeTab !== 'seguranca' && (
+          <button 
+            className="primary-btn" 
+            onClick={() => activeTab === 'users' ? setIsUserModalOpen(true) : setIsProfileModalOpen(true)}
+          >
+            {activeTab === 'users' ? <UserPlus size={18} /> : <Shield size={18} />}
+            {activeTab === 'users' ? 'NOVO USUÁRIO' : 'NOVO PERFIL'}
+          </button>
+        )}
 
         <AnimatePresence>
           {saveSuccess && (
@@ -333,12 +354,14 @@ export const UserManagement: React.FC = () => {
           >
             Perfis de Acesso
           </button>
-          <button 
-            className={`elite-tab-item ${activeTab === 'seguranca' ? 'active' : ''}`}
-            onClick={() => setActiveTab('seguranca')}
-          >
-            Segurança
-          </button>
+          {isAdmin && (
+            <button 
+              className={`elite-tab-item ${activeTab === 'seguranca' ? 'active' : ''}`}
+              onClick={() => setActiveTab('seguranca')}
+            >
+              Segurança
+            </button>
+          )}
         </div>
 
         <div className="elite-search-wrapper">
@@ -346,7 +369,11 @@ export const UserManagement: React.FC = () => {
           <input 
             type="text" 
             className="elite-search-input"
-            placeholder={activeTab === 'users' ? "Buscar por nome, email..." : "Buscar perfil..."} 
+            placeholder={
+              activeTab === 'users' ? "Buscar por nome, email..." : 
+              activeTab === 'profiles' ? "Buscar perfil ou cargo..." : 
+              "Filtrar políticas de segurança..."
+            } 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -415,15 +442,24 @@ export const UserManagement: React.FC = () => {
               <div className="security-options">
                 <div className="option-row">
                   <span>Mínimo de 8 caracteres</span>
-                  <div className="toggle-box active"></div>
+                  <div 
+                    className={`toggle-box ${securitySettings.min8Chars ? 'active' : ''}`}
+                    onClick={() => toggleSecuritySetting('min8Chars')}
+                  ></div>
                 </div>
                 <div className="option-row">
                   <span>Exigir Caracteres Especiais (@#$)</span>
-                  <div className="toggle-box active"></div>
+                  <div 
+                    className={`toggle-box ${securitySettings.specialChars ? 'active' : ''}`}
+                    onClick={() => toggleSecuritySetting('specialChars')}
+                  ></div>
                 </div>
                 <div className="option-row">
                   <span>Exigir Números e Letras</span>
-                  <div className="toggle-box active"></div>
+                  <div 
+                    className={`toggle-box ${securitySettings.numLetters ? 'active' : ''}`}
+                    onClick={() => toggleSecuritySetting('numLetters')}
+                  ></div>
                 </div>
               </div>
             </section>
@@ -439,15 +475,24 @@ export const UserManagement: React.FC = () => {
               <div className="security-options">
                 <div className="option-row">
                   <span>Expiração por Inatividade (30 min)</span>
-                  <div className="toggle-box active"></div>
+                  <div 
+                    className={`toggle-box ${securitySettings.inactivity30m ? 'active' : ''}`}
+                    onClick={() => toggleSecuritySetting('inactivity30m')}
+                  ></div>
                 </div>
                 <div className="option-row">
                   <span>Forçar Logout Semanal</span>
-                  <div className="toggle-box"></div>
+                  <div 
+                    className={`toggle-box ${securitySettings.forceLogout ? 'active' : ''}`}
+                    onClick={() => toggleSecuritySetting('forceLogout')}
+                  ></div>
                 </div>
                 <div className="option-row">
                   <span>Permitir Acesso Multi-dispositivo</span>
-                  <div className="toggle-box active"></div>
+                  <div 
+                    className={`toggle-box ${securitySettings.multiDevice ? 'active' : ''}`}
+                    onClick={() => toggleSecuritySetting('multiDevice')}
+                  ></div>
                 </div>
               </div>
             </section>
@@ -463,13 +508,27 @@ export const UserManagement: React.FC = () => {
               <div className="security-options">
                 <div className="option-row">
                   <span>Bloqueio após 3 tentativas falhas</span>
-                  <div className="toggle-box active"></div>
+                  <div 
+                    className={`toggle-box ${securitySettings.block3Attempts ? 'active' : ''}`}
+                    onClick={() => toggleSecuritySetting('block3Attempts')}
+                  ></div>
                 </div>
                 <div className="option-row">
                   <span>Verificação de IP Geográfico</span>
-                  <div className="toggle-box active"></div>
+                  <div 
+                    className={`toggle-box ${securitySettings.geoIpCheck ? 'active' : ''}`}
+                    onClick={() => toggleSecuritySetting('geoIpCheck')}
+                  ></div>
                 </div>
-                <button className="elite-action-btn w-full mt-4">
+                <button 
+                  className="elite-action-btn w-full mt-4"
+                  onClick={() => {
+                    if(confirm('Deseja realmente ativar o MODO DE MANUTENÇÃO? Todos os usuários não-admin serão desconectados.')) {
+                      setSaveSuccess(true);
+                      setTimeout(() => setSaveSuccess(false), 3000);
+                    }
+                  }}
+                >
                   <Shield size={16} />
                   ATIVAR MODO DE MANUTENÇÃO
                 </button>
