@@ -188,15 +188,6 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
               change="-0.8%"
               trend="down"
             />
-            <EliteStatCard 
-              label="Conformidade Analítica"
-              value="99.8%"
-              icon={CheckCircle2}
-              color="#8b5cf6"
-              progress={100}
-              change="Auditado"
-              trend="up"
-            />
           </div>
 
           <div className="viewer-main-analytics">

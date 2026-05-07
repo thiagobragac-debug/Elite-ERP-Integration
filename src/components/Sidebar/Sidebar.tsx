@@ -12,7 +12,8 @@ import {
   ChevronDown,
   ChevronRight,
   PieChart,
-  Server
+  Server,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
@@ -101,7 +102,8 @@ const menuItems: NavItem[] = [
       { title: 'Conciliação Bancária', href: '/financeiro/conciliacao' },
     ]
   },
-  { title: 'Relatórios & BI', icon: PieChart, href: '/relatorios' },
+  { title: 'Relatórios', icon: FileText, href: '/relatorios' },
+  { title: 'Inteligência (BI)', icon: PieChart, href: '/bi' },
 ];
 
 export const Sidebar: React.FC = () => {

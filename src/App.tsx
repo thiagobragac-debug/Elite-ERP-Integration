@@ -163,6 +163,7 @@ function AppContent() {
               <Route path="/financeiro/conciliacao" element={<BankReconciliation />} />
               
               <Route path="/relatorios" element={<Reports />} />
+              <Route path="/bi" element={<ExecutiveDashboard />} />
 
               {/* Catch-all route to prevent blank screens */}
               <Route path="*" element={<ExecutiveDashboard />} />
