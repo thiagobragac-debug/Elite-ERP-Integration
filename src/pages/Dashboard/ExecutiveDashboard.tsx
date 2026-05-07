@@ -542,7 +542,7 @@ export const ExecutiveDashboard: React.FC = () => {
                     : [250, 210, 160, 180, 120, 140][i];
                   return (
                     <g key={`${activeChartMetric}-${i}`} className="chart-point-group">
-                      <circle cx={x} cy={y} r="8" fill="white" stroke={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} strokeWidth="3" />
+                      <circle cx={x} cy={y} r="8" fill="hsl(var(--bg-card))" stroke={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} strokeWidth="3" />
                       <circle cx={x} cy={y} r="3" fill={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} />
                     </g>
                   );

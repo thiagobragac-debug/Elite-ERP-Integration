@@ -586,7 +586,7 @@ export const AdminSettings: React.FC = () => {
         }
 
         .settings-panel {
-          background: white;
+          background: hsl(var(--bg-card));
           padding: 32px;
           border-radius: 28px;
           border: 1px solid hsl(var(--border));
@@ -635,7 +635,7 @@ export const AdminSettings: React.FC = () => {
           border-color: hsl(var(--brand));
           box-shadow: 0 0 0 4px hsl(var(--brand) / 0.1);
           outline: none;
-          background: white;
+          background: hsl(var(--bg-card));
         }
 
         .switch-list { display: flex; flex-direction: column; gap: 12px; }
@@ -651,7 +651,7 @@ export const AdminSettings: React.FC = () => {
         }
         .premium-switch:hover {
           border-color: hsl(var(--brand) / 0.4);
-          background: white;
+          background: hsl(var(--bg-card));
           transform: translateX(4px);
         }
 
@@ -711,7 +711,7 @@ export const AdminSettings: React.FC = () => {
           display: grid;
           grid-template-columns: 320px 1fr;
           gap: 24px;
-          background: white;
+          background: hsl(var(--bg-card));
           padding: 24px;
           border-radius: 32px;
           border: 1px solid hsl(var(--border));
@@ -732,7 +732,7 @@ export const AdminSettings: React.FC = () => {
           text-align: left;
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .metric-option-item:hover { transform: translateX(4px); border-color: hsl(var(--brand) / 0.5); background: white; }
+        .metric-option-item:hover { transform: translateX(4px); border-color: hsl(var(--brand) / 0.5); background: hsl(var(--bg-card)); }
         .metric-option-item.active { border-color: hsl(var(--brand)); background: hsl(var(--brand) / 0.05); }
         .check { width: 22px; height: 22px; border: 2px solid hsl(var(--border)); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: transparent; transition: all 0.2s; }
         .check.active { background: hsl(var(--brand)); border-color: hsl(var(--brand)); color: white; }
@@ -758,7 +758,7 @@ export const AdminSettings: React.FC = () => {
         }
 
         .v-widget { 
-          background: white; 
+          background: hsl(var(--bg-card)); 
           border-radius: 20px; 
           box-shadow: 0 4px 12px rgba(0,0,0,0.03); 
           padding: 20px;
@@ -767,7 +767,7 @@ export const AdminSettings: React.FC = () => {
           gap: 12px;
           cursor: grab;
           user-select: none;
-          border: 1px solid #f1f5f9;
+          border: 1px solid hsl(var(--border));
         }
         .v-widget:active { cursor: grabbing; }
 
@@ -781,7 +781,7 @@ export const AdminSettings: React.FC = () => {
           cursor: pointer;
           min-height: 120px;
         }
-        .v-widget.dash-border:hover { background: white; border-color: #27a376; color: #27a376; }
+        .v-widget.dash-border:hover { background: hsl(var(--bg-card)); border-color: #27a376; color: #27a376; }
 
         .mini-bar-chart {
           display: flex;
@@ -810,7 +810,7 @@ export const AdminSettings: React.FC = () => {
         .remove-w:hover { background: #fecaca; transform: scale(1.1); }
 
         .v-value-row { display: flex; justify-content: space-between; align-items: baseline; }
-        .v-value-row .val { font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em; }
+        .v-value-row .val { font-size: 24px; font-weight: 800; color: hsl(var(--text-main)); letter-spacing: -0.02em; }
         .trend-tag { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 100px; font-size: 10px; font-weight: 800; }
         .trend-tag.up { background: #f0fdf4; color: #16a34a; }
         .trend-tag.down { background: #fef2f2; color: #ef4444; }
@@ -833,7 +833,7 @@ export const AdminSettings: React.FC = () => {
         .v-widget.dash-border.clickable-add:hover {
           border-color: #27a376;
           color: #27a376;
-          background: #f0fdf4;
+          background: hsl(var(--bg-card));
         }
 
         .pulse-highlight {
@@ -859,16 +859,18 @@ export const AdminSettings: React.FC = () => {
           gap: 10px; 
           padding: 12px; 
           border-radius: 14px; 
-          border: 2px solid #f1f5f9; 
-          background: #f8fafc; 
+          border: 1px solid hsl(var(--border)); 
+          background: hsl(var(--bg-main)); 
           font-size: 11px; 
           font-weight: 800; 
-          color: #64748b; 
+          color: hsl(var(--text-muted)); 
           cursor: pointer; 
           transition: all 0.2s; 
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
-        .scope-btn:hover { border-color: #cbd5e1; color: #1e293b; }
-        .scope-btn.active { border-color: #16a34a; background: #f0fdf4; color: #16a34a; }
+        .scope-btn:hover { border-color: hsl(var(--brand) / 0.5); color: hsl(var(--text-main)); }
+        .scope-btn.active { border-color: hsl(var(--brand)); background: hsl(var(--brand) / 0.1); color: hsl(var(--brand)); }
         .scope-btn svg { opacity: 0.6; }
         .scope-btn.active svg { opacity: 1; }
 
@@ -880,19 +882,19 @@ export const AdminSettings: React.FC = () => {
           gap: 24px; 
           align-items: center; 
           padding: 20px; 
-          background: #f8fafc; 
+          background: hsl(var(--bg-card)); 
           border-radius: 20px; 
-          border: 1px solid #f1f5f9; 
+          border: 1px solid hsl(var(--border)); 
           transition: 0.2s;
         }
-        .target-config-row:hover { border-color: #cbd5e1; background: white; }
+        .target-config-row:hover { border-color: hsl(var(--brand) / 0.4); background: hsl(var(--bg-card)); }
         
         .m-info { display: flex; align-items: center; gap: 12px; }
-        .m-icon-box { width: 36px; height: 36px; border-radius: 10px; background: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        .m-text .n { display: block; font-size: 13px; font-weight: 800; color: #1e293b; }
-        .m-text .c { font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; }
+        .m-icon-box { width: 36px; height: 36px; border-radius: 10px; background: hsl(var(--bg-main)); display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border: 1px solid hsl(var(--border)); }
+        .m-text .n { display: block; font-size: 13px; font-weight: 800; color: hsl(var(--text-main)); }
+        .m-text .c { font-size: 10px; font-weight: 700; color: hsl(var(--text-muted)); text-transform: uppercase; }
 
-        .mode-selector { display: flex; background: #e2e8f0; padding: 4px; border-radius: 12px; gap: 4px; }
+        .mode-selector { display: flex; background: hsl(var(--bg-main)); padding: 4px; border-radius: 12px; gap: 4px; border: 1px solid hsl(var(--border)); }
         .mode-btn { 
           flex: 1; 
           display: flex; 
@@ -907,14 +909,14 @@ export const AdminSettings: React.FC = () => {
           cursor: pointer; 
           transition: all 0.2s;
           background: transparent;
-          color: #64748b;
+          color: hsl(var(--text-muted));
         }
-        .mode-btn.active { background: white; color: #0f172a; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .mode-btn.active { background: hsl(var(--bg-card)); color: hsl(var(--text-main)); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid hsl(var(--border)); }
 
-        .value-input-area { padding-left: 24px; border-left: 2px solid #e2e8f0; }
-        .manual-input label { display: block; font-size: 10px; font-weight: 900; color: #94a3b8; margin-bottom: 4px; }
-        .manual-input input { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 14px; width: 120px; outline: none; }
-        .manual-input input:focus { border-color: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1); }
+        .value-input-area { padding-left: 24px; border-left: 2px solid hsl(var(--border)); }
+        .manual-input label { display: block; font-size: 10px; font-weight: 900; color: hsl(var(--text-muted)); margin-bottom: 4px; }
+        .manual-input input { background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); border-radius: 8px; padding: 6px 12px; font-weight: 800; font-size: 14px; width: 120px; outline: none; color: hsl(var(--text-main)); }
+        .manual-input input:focus { border-color: hsl(var(--brand)); box-shadow: 0 0 0 3px hsl(var(--brand) / 0.1); }
 
         .auto-info { display: flex; flex-direction: column; }
         .auto-info .label { font-size: 10px; font-weight: 900; color: #94a3b8; }

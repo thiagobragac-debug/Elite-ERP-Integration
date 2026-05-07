@@ -705,9 +705,9 @@ export const UserManagement: React.FC = () => {
         }
 
         .security-panel {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 24px;
-          border: 1px solid #f1f5f9;
+          border: 1px solid hsl(var(--border));
           padding: 24px;
           box-shadow: 0 4px 20px rgba(0,0,0,0.02);
         }
@@ -717,12 +717,12 @@ export const UserManagement: React.FC = () => {
           align-items: center;
           gap: 16px;
           margin-bottom: 24px;
-          border-bottom: 1px solid #f1f5f9;
+          border-bottom: 1px solid hsl(var(--border));
           padding-bottom: 16px;
         }
 
-        .security-panel h3 { font-size: 16px; font-weight: 800; color: #1e293b; margin-bottom: 4px; }
-        .security-panel p { font-size: 11px; color: #64748b; font-weight: 600; }
+        .security-panel h3 { font-size: 16px; font-weight: 800; color: hsl(var(--text-main)); margin-bottom: 4px; }
+        .security-panel p { font-size: 11px; color: hsl(var(--text-muted)); font-weight: 600; }
 
         .security-options {
           display: flex;
@@ -735,11 +735,11 @@ export const UserManagement: React.FC = () => {
           justify-content: space-between;
           align-items: center;
           padding: 12px 16px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-radius: 12px;
           font-size: 13px;
           font-weight: 700;
-          color: #334155;
+          color: hsl(var(--text-main));
         }
 
         .elite-action-btn {
@@ -783,11 +783,12 @@ export const UserManagement: React.FC = () => {
         .toggle-box.active::after { left: 21px; }
         .view-mode-toggle {
           display: flex;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           padding: 4px;
           border-radius: 12px;
           gap: 4px;
           margin: 0 16px;
+          border: 1px solid hsl(var(--border));
         }
 
         .view-btn {
@@ -805,9 +806,9 @@ export const UserManagement: React.FC = () => {
         }
 
         .view-btn.active {
-          background: white;
-          color: #16a34a;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+          background: hsl(var(--bg-card));
+          color: hsl(var(--brand));
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
         .user-cards-grid {
@@ -818,9 +819,9 @@ export const UserManagement: React.FC = () => {
         }
 
         .user-card-premium {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 24px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid hsl(var(--border));
           display: flex;
           overflow: hidden;
           padding: 0;
@@ -854,18 +855,18 @@ export const UserManagement: React.FC = () => {
 
         .card-left-section {
           width: 130px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main) / 0.5);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          border-right: 1px solid #f1f5f9;
+          border-right: 1px solid hsl(var(--border));
         }
 
         .card-avatar {
           width: 70px;
           height: 70px;
-          background: #0f172a;
+          background: hsl(var(--bg-main));
           color: white;
           border-radius: 20px;
           display: flex;
@@ -874,7 +875,7 @@ export const UserManagement: React.FC = () => {
           font-size: 28px;
           font-weight: 900;
           margin-bottom: 12px;
-          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
 
         .card-main-content {
@@ -888,7 +889,7 @@ export const UserManagement: React.FC = () => {
         .card-header-info h3 {
           font-size: 19px;
           font-weight: 900;
-          color: #0f172a;
+          color: hsl(var(--text-main));
           margin-bottom: 4px;
           letter-spacing: -0.02em;
         }
@@ -897,8 +898,8 @@ export const UserManagement: React.FC = () => {
           display: inline-block;
           font-size: 10px;
           font-weight: 800;
-          color: #16a34a;
-          background: #f0fdf4;
+          color: hsl(var(--brand));
+          background: hsl(var(--brand) / 0.1);
           padding: 4px 10px;
           border-radius: 8px;
           text-transform: uppercase;
@@ -916,7 +917,7 @@ export const UserManagement: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #64748b;
+          color: hsl(var(--text-muted));
           font-size: 12px;
           font-weight: 600;
         }
@@ -935,9 +936,9 @@ export const UserManagement: React.FC = () => {
           width: 34px;
           height: 34px;
           border-radius: 10px;
-          border: 1px solid #f1f5f9;
-          background: white;
-          color: #64748b;
+          border: 1px solid hsl(var(--border));
+          background: hsl(var(--bg-main));
+          color: hsl(var(--text-muted));
           display: flex;
           align-items: center;
           justify-content: center;
@@ -997,8 +998,8 @@ export const UserManagement: React.FC = () => {
           border-radius: 12px;
           font-size: 10px;
           font-weight: 900;
-          background: #f1f5f9;
-          color: #64748b;
+          background: hsl(var(--bg-main));
+          color: hsl(var(--text-muted));
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }

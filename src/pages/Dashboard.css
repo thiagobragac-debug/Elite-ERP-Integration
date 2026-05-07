@@ -323,11 +323,11 @@
 .title-group { display: flex; align-items: center; gap: 12px; }
 .title-group h2 { font-size: 1.125rem; font-weight: 800; color: hsl(var(--text-main)); text-transform: uppercase; letter-spacing: 0.05em; }
 .activity-stack { display: flex; flex-direction: column; gap: 16px; }
-.activity-item-modern { display: flex; gap: 20px; padding: 20px; background: hsl(var(--card)); border-radius: 20px; border: 1px solid hsl(var(--border)); }
+.activity-item-modern { display: flex; gap: 20px; padding: 20px; background: hsl(var(--bg-card)); border-radius: 20px; border: 1px solid hsl(var(--border)); }
 .icon-wrapper { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.icon-wrapper.success { background: #f0fdf4; color: #10b981; }
-.icon-wrapper.info { background: #eff6ff; color: #3b82f6; }
-.icon-wrapper.warning { background: #fffbeb; color: #f59e0b; }
+.icon-wrapper.success { background: hsl(161 64% 39% / 0.1); color: #10b981; }
+.icon-wrapper.info { background: hsl(230 60% 50% / 0.1); color: #3b82f6; }
+.icon-wrapper.warning { background: hsl(45 93% 47% / 0.1); color: #f59e0b; }
 .activity-info { flex: 1; }
 .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .type-tag { font-size: 0.65rem; font-weight: 800; color: hsl(var(--brand)); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -341,7 +341,7 @@
 .occupation-preview { padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .chart-mockup { width: 180px; height: 180px; }
 .c-circle { width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(#10b981 18%, #3b82f6 18% 82%, #e2e8f0 82%); display: flex; align-items: center; justify-content: center; }
-.c-inner { width: 75%; height: 75%; background: hsl(var(--card)); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+.c-inner { width: 75%; height: 75%; background: hsl(var(--bg-card)); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
 .c-val { font-size: 1.5rem; font-weight: 900; color: hsl(var(--text-main)); }
 .c-label { font-size: 0.65rem; font-weight: 800; color: hsl(var(--text-muted)); text-transform: uppercase; }
 .chart-legend { width: 100%; display: flex; flex-direction: column; gap: 12px; }

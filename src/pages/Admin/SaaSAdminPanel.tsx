@@ -840,7 +840,7 @@ export const SaaSAdminPanel: React.FC = () => {
           right: 0;
           bottom: 0;
           width: 420px;
-          background: white;
+          background: hsl(var(--bg-card));
           box-shadow: -20px 0 60px rgba(0,0,0,0.15);
           z-index: 1001;
           display: flex;
@@ -888,7 +888,7 @@ export const SaaSAdminPanel: React.FC = () => {
 
         .view-mode-toggle {
           display: flex;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           padding: 4px;
           border-radius: 12px;
           gap: 4px;
@@ -904,13 +904,13 @@ export const SaaSAdminPanel: React.FC = () => {
           border-radius: 8px;
           border: none;
           background: transparent;
-          color: #64748b;
+          color: hsl(var(--text-muted));
           cursor: pointer;
           transition: 0.2s;
         }
 
         .view-btn.active {
-          background: white;
+          background: hsl(var(--bg-card));
           color: #16a34a;
           box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         }
@@ -923,9 +923,9 @@ export const SaaSAdminPanel: React.FC = () => {
         }
 
         .user-card-premium {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 24px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid hsl(var(--border));
           display: flex;
           overflow: hidden;
           padding: 0;
@@ -943,7 +943,7 @@ export const SaaSAdminPanel: React.FC = () => {
           top: 0;
           bottom: 0;
           width: 6px;
-          background: #cbd5e1;
+          background: hsl(var(--border-strong));
           transition: 0.3s;
         }
 
@@ -958,19 +958,19 @@ export const SaaSAdminPanel: React.FC = () => {
         }
 
         .user-card-premium:hover {
-          transform: translateX(8px);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-          border-color: #16a34a33;
+          transform: translateY(-8px);
+          box-shadow: var(--shadow-lg);
+          border-color: hsl(var(--brand) / 0.3);
         }
 
         .card-left-section {
           width: 130px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main) / 0.5);
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          border-right: 1px solid #f1f5f9;
+          border-right: 1px solid hsl(var(--border));
         }
 
         .card-avatar {
@@ -1006,7 +1006,7 @@ export const SaaSAdminPanel: React.FC = () => {
         .card-header-info h3 {
           font-size: 17px;
           font-weight: 900;
-          color: #0f172a;
+          color: hsl(var(--text-main));
           margin: 0;
           letter-spacing: -0.02em;
           flex: 1;
@@ -1023,7 +1023,7 @@ export const SaaSAdminPanel: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #64748b;
+          color: hsl(var(--text-muted));
           font-size: 12px;
           font-weight: 600;
         }
@@ -1042,9 +1042,9 @@ export const SaaSAdminPanel: React.FC = () => {
           width: 34px;
           height: 34px;
           border-radius: 10px;
-          border: 1px solid #f1f5f9;
-          background: white;
-          color: #64748b;
+          border: 1px solid hsl(var(--border));
+          background: hsl(var(--bg-card));
+          color: hsl(var(--text-muted));
           display: flex;
           align-items: center;
           justify-content: center;

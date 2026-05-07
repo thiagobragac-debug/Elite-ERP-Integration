@@ -22,7 +22,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #f8fafc;
+  background: hsl(var(--bg-main));
   border: 1px solid hsl(var(--border));
   padding: 0 20px;
   height: 48px;
@@ -90,10 +90,11 @@
 
 .modern-table th {
   padding: 14px 20px;
-  background: white;
+  background: hsl(var(--bg-main) / 0.5);
+  backdrop-filter: blur(8px);
   font-size: 0.75rem;
   font-weight: 800;
-  color: #10b981;
+  color: hsl(var(--brand));
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid hsl(var(--border) / 0.5);
@@ -124,7 +125,7 @@
 }
 
 .modern-table tbody tr:hover {
-  background: #f8fafc !important;
+  background: hsl(var(--bg-main)) !important;
 }
 
 .modern-table tr:last-child td {
@@ -186,7 +187,7 @@
 .table-cell-title .main-text {
   font-size: 1.125rem;
   font-weight: 800;
-  color: #1e293b;
+  color: hsl(var(--text-main));
   letter-spacing: -0.01em;
 }
 
@@ -196,7 +197,7 @@
   gap: 6px;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #64748b;
+  color: hsl(var(--text-muted));
 }
 
 .table-cell-meta {
@@ -204,7 +205,7 @@
   align-items: center;
   gap: 8px;
   font-size: 0.875rem;
-  color: #1e293b;
+  color: hsl(var(--text-main));
   font-weight: 700;
 }
 
@@ -224,7 +225,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: hsl(var(--bg-card));
   border-top: 1px solid hsl(var(--border) / 0.4);
 }
 
@@ -235,7 +236,7 @@
 }
 
 .pagination-info b {
-  color: #1e293b;
+  color: hsl(var(--text-main));
   font-weight: 700;
 }
 
@@ -252,9 +253,9 @@
   align-items: center;
   justify-content: center;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: white;
-  color: #64748b;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--bg-main));
+  color: hsl(var(--text-muted));
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -284,9 +285,9 @@
   border-radius: 10px;
   font-size: 0.8125rem;
   font-weight: 700;
-  color: #64748b;
-  border: 1px solid #e2e8f0;
-  background: white;
+  color: hsl(var(--text-muted));
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--bg-main));
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
