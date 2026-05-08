@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Fuel, 
   Plus, 
@@ -18,9 +19,10 @@ import {
   Zap,
   Gauge,
   Activity,
-  FileText
+  FileText,
+  X
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { FuelForm } from '../../components/Forms/FuelForm';
@@ -35,6 +37,7 @@ export const FuelManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'LOG' | 'ANALYSIS'>('LOG');
   const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
@@ -157,7 +160,7 @@ export const FuelManagement: React.FC = () => {
           <p className="page-subtitle">Telemetria de consumo, análise de autonomia e controle rigoroso de custos energéticos.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn primary">
+          <button className="glass-btn primary" onClick={() => setIsAnalysisOpen(true)}>
             <Zap size={18} />
             KPI AUTONOMIA
           </button>
@@ -252,6 +255,112 @@ export const FuelManagement: React.FC = () => {
         onSubmit={handleSubmit}
         initialData={selectedLog}
       />
+
+      {createPortal(
+        <AnimatePresence>
+          {isAnalysisOpen && (
+            <div className="modal-overlay" onClick={() => setIsAnalysisOpen(false)}>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, x: 50 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.95, x: 50 }}
+                className="analysis-panel"
+                onClick={e => e.stopPropagation()}
+              >
+                <header className="analysis-header">
+                  <div className="title-group">
+                    <div className="icon-badge">
+                      <TrendingUp size={22} className="text-brand" />
+                    </div>
+                    <div>
+                      <h2>Análise de Autonomia</h2>
+                      <p>Performance energética por ativo da frota</p>
+                    </div>
+                  </div>
+                  <button className="close-btn" onClick={() => setIsAnalysisOpen(false)}>
+                    <X size={20} />
+                  </button>
+                </header>
+
+                <div className="analysis-content">
+                  <div className="analysis-grid">
+                    {Object.entries(
+                      logs.reduce((acc: any, log: any) => {
+                        const name = log.maquinas?.nome || 'Desconhecido';
+                        if (!acc[name]) acc[name] = { litros: 0, abastecimentos: 0, custo: 0 };
+                        acc[name].litros += Number(log.litros);
+                        acc[name].abastecimentos += 1;
+                        acc[name].custo += Number(log.valor_total);
+                        return acc;
+                      }, {})
+                    ).map(([name, data]: [string, any]) => (
+                      <div key={name} className="analysis-card">
+                        <div className="card-top">
+                          <span className="machine-name">{name}</span>
+                          <span className="efficiency-badge">{(data.litros / data.abastecimentos).toFixed(1)} L/médio</span>
+                        </div>
+                        <div className="card-main">
+                          <div className="stat">
+                            <label>Total Consumido</label>
+                            <span>{data.litros.toLocaleString()} L</span>
+                          </div>
+                          <div className="stat">
+                            <label>Custo Total</label>
+                            <span>{data.custo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                          </div>
+                        </div>
+                        <div className="progress-bar-wrapper">
+                          <div className="bar-label">Carga de Operação</div>
+                          <div className="bar-bg">
+                            <div className="bar-fill" style={{ width: `${Math.min(100, (data.litros / 1000) * 100)}%` }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      <style>{`
+        .modal-overlay {
+          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(8px); z-index: 10000; display: flex;
+          align-items: center; justify-content: center; padding: 40px;
+        }
+        .analysis-panel {
+          background: white; width: 100%; max-width: 900px; height: 650px;
+          border-radius: 28px; border: 1px solid #e2e8f0; box-shadow: -20px 0 50px rgba(0,0,0,0.1);
+          display: flex; flex-direction: column; overflow: hidden;
+        }
+        .analysis-header { padding: 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .title-group { display: flex; gap: 16px; align-items: center; }
+        .icon-badge { width: 44px; height: 44px; border-radius: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0; }
+        .analysis-header h2 { font-size: 20px; font-weight: 900; color: #0f172a; margin: 0; }
+        .analysis-header p { font-size: 13px; color: #64748b; margin: 2px 0 0; }
+        .close-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; transition: 0.2s; color: #94a3b8; }
+        .close-btn:hover { background: #fee2e2; color: #ef4444; }
+
+        .analysis-content { flex: 1; padding: 32px; overflow-y: auto; background: #f8fafc; }
+        .analysis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px; }
+        .analysis-card { background: white; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .machine-name { font-size: 15px; font-weight: 800; color: #0f172a; }
+        .efficiency-badge { font-size: 11px; font-weight: 700; color: #059669; background: #ecfdf5; padding: 4px 10px; border-radius: 6px; }
+        
+        .card-main { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .stat label { display: block; font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 4px; }
+        .stat span { font-size: 16px; font-weight: 800; color: #1e293b; }
+
+        .progress-bar-wrapper { border-top: 1px solid #f1f5f9; padding-top: 12px; }
+        .bar-label { font-size: 10px; font-weight: 700; color: #64748b; margin: 12px 0 6px; }
+        .bar-bg { height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; background: hsl(var(--brand)); border-radius: 3px; transition: 1s ease-out; }
+      `}</style>
     </div>
   );
 };

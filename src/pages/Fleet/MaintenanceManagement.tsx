@@ -17,9 +17,11 @@ import {
   Zap,
   Truck,
   FileText,
-  Edit3
+  Edit3,
+  X
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { MaintenanceForm } from '../../components/Forms/MaintenanceForm';
@@ -33,9 +35,12 @@ export const MaintenanceManagement: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
+  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY' | 'PLANS'>('ACTIVE');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isChecklistOpen, setIsChecklistOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
@@ -172,7 +177,7 @@ export const MaintenanceManagement: React.FC = () => {
           <p className="page-subtitle">Rastreabilidade completa de intervenções mecânicas, revisões preventivas e custos em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn primary">
+          <button className="glass-btn primary" onClick={() => setIsChecklistOpen(true)}>
             <Settings size={18} />
             CHECKLIST 100H
           </button>
@@ -214,6 +219,12 @@ export const MaintenanceManagement: React.FC = () => {
           >
             Histórico Mecânico
           </button>
+          <button 
+            className={`elite-tab-item ${activeTab === 'PLANS' ? 'active' : ''}`}
+            onClick={() => setActiveTab('PLANS')}
+          >
+            Planos Preventivos
+          </button>
         </div>
 
         <div className="elite-search-wrapper">
@@ -238,30 +249,76 @@ export const MaintenanceManagement: React.FC = () => {
       </div>
 
       <div className="management-content">
-        <ModernTable 
-          data={orders.filter(o => {
-            const matchesSearch = (o.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'ACTIVE' ? o.status !== 'CONCLUIDA' : o.status === 'CONCLUIDA';
-            return matchesSearch && matchesTab;
-          })}
-          columns={columns}
-          loading={loading}
-          hideHeader={true}
-          searchPlaceholder="Buscar por máquina, descrição ou responsável..."
-          actions={(item) => (
-            <div className="modern-actions">
-              <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossiê">
-                <History size={18} />
-              </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          )}
-        />
+        {activeTab === 'PLANS' ? (
+          <div className="plans-grid animate-fade-in">
+            {[
+              { id: 1, title: 'Revisão Motor Pesado', freq: '250', unit: 'H', assets: 4, items: ['Óleo 15W40', 'Filtro Óleo', 'Filtro Combustível'] },
+              { id: 2, title: 'Manutenção Caminhões', freq: '10.000', unit: 'KM', assets: 2, items: ['Alinhamento', 'Balanceamento', 'Lubrificação'] },
+              { id: 3, title: 'Preventiva Semanal', freq: '50', unit: 'H', assets: 12, items: ['Engraxamento', 'Limpeza Radiador'] },
+            ].map(plan => (
+              <div key={plan.id} className="plan-card">
+                <div className="plan-status-active">ATIVO</div>
+                <div className="plan-main">
+                  <div className="plan-icon">
+                    <Clock size={20} />
+                  </div>
+                  <div className="plan-info">
+                    <h3>{plan.title}</h3>
+                    <p>Frequência: <strong>{plan.freq} {plan.unit}</strong></p>
+                  </div>
+                </div>
+                <div className="plan-stats">
+                  <div className="p-stat">
+                    <Truck size={14} />
+                    <span>{plan.assets} Ativos</span>
+                  </div>
+                  <div className="p-stat">
+                    <FileText size={14} />
+                    <span>{plan.items.length} Itens</span>
+                  </div>
+                </div>
+                <div className="plan-actions">
+                  <button className="plan-btn-edit" onClick={() => {
+                    setSelectedPlan(plan);
+                    setIsPlanModalOpen(true);
+                  }}>CONFIGURAR PLANO</button>
+                </div>
+              </div>
+            ))}
+            <button className="add-plan-card" onClick={() => {
+              setSelectedPlan(null);
+              setIsPlanModalOpen(true);
+            }}>
+              <Plus size={32} />
+              <span>CRIAR NOVO PLANO</span>
+            </button>
+          </div>
+        ) : (
+          <ModernTable 
+            data={orders.filter(o => {
+              const matchesSearch = (o.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
+              const matchesTab = activeTab === 'ACTIVE' ? o.status !== 'CONCLUIDA' : o.status === 'CONCLUIDA';
+              return matchesSearch && matchesTab;
+            })}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            searchPlaceholder="Buscar por máquina, descrição ou responsável..."
+            actions={(item) => (
+              <div className="modern-actions">
+                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossiê">
+                  <History size={18} />
+                </button>
+                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                  <Edit3 size={18} />
+                </button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+          />
+        )}
       </div>
 
       <MaintenanceForm 
@@ -279,6 +336,244 @@ export const MaintenanceManagement: React.FC = () => {
         items={historyItems}
         loading={historyLoading}
       />
+
+      {createPortal(
+        <AnimatePresence>
+          {isChecklistOpen && (
+            <div className="modal-overlay" onClick={() => setIsChecklistOpen(false)}>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="checklist-modal"
+                onClick={e => e.stopPropagation()}
+              >
+                <header className="checklist-header">
+                  <div className="title-group">
+                    <div className="icon-badge">
+                      <Settings size={22} className="text-brand" />
+                    </div>
+                    <div>
+                      <h2>Checklist Preventivo 100H</h2>
+                      <p>Inspeção técnica obrigatória para maquinário pesado</p>
+                    </div>
+                  </div>
+                  <button className="close-btn" onClick={() => setIsChecklistOpen(false)}>
+                    <X size={20} />
+                  </button>
+                </header>
+
+                <div className="checklist-body">
+                  <div className="machine-selector-row">
+                    <label className="elite-label">Selecione o Ativo</label>
+                    <select className="elite-select">
+                      <option value="">Selecione uma máquina...</option>
+                      <option value="1">Trator John Deere 7230</option>
+                      <option value="2">Colheitadeira Case IH 9250</option>
+                    </select>
+                  </div>
+
+                  <div className="items-grid">
+                    {[
+                      'Troca de óleo do motor (15W40)',
+                      'Substituição do filtro de combustível',
+                      'Limpeza/Troca do filtro de ar primário',
+                      'Lubrificação de todos os pontos de graxa',
+                      'Verificação de tensão das correias',
+                      'Inspeção de terminais de bateria',
+                      'Análise de vazamentos hidráulicos',
+                      'Verificação de luzes e sinalização'
+                    ].map((item, idx) => (
+                      <label key={idx} className="checklist-item">
+                        <input type="checkbox" />
+                        <div className="item-content">
+                          <span className="item-text">{item}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <footer className="checklist-footer">
+                  <button className="text-btn" onClick={() => setIsChecklistOpen(false)}>CANCELAR</button>
+                  <button className="primary-btn" onClick={() => {
+                    alert('Checklist 100H finalizado e OS Preventiva gerada!');
+                    setIsChecklistOpen(false);
+                    fetchOrders();
+                  }}>
+                    <CheckCircle2 size={18} />
+                    FINALIZAR E GERAR OS
+                  </button>
+                </footer>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {createPortal(
+        <AnimatePresence>
+          {isPlanModalOpen && (
+            <div className="modal-overlay" onClick={() => setIsPlanModalOpen(false)}>
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="plan-builder-modal"
+                onClick={e => e.stopPropagation()}
+              >
+                <header className="builder-header">
+                  <div className="title-group">
+                    <div className="icon-badge brand">
+                      <Settings size={22} />
+                    </div>
+                    <div>
+                      <h2>{selectedPlan ? 'Editar Plano de Manutenção' : 'Novo Plano de Manutenção'}</h2>
+                      <p>Defina as regras e itens técnicos da revisão preventiva</p>
+                    </div>
+                  </div>
+                  <button className="close-btn" onClick={() => setIsPlanModalOpen(false)}>
+                    <X size={20} />
+                  </button>
+                </header>
+
+                <div className="builder-body">
+                  <div className="builder-section">
+                    <h4 className="section-title">Identificação do Plano</h4>
+                    <div className="input-group-row">
+                      <div className="field">
+                        <label className="elite-label">Nome do Plano</label>
+                        <input type="text" className="elite-input" placeholder="Ex: Revisão 250 Horas" defaultValue={selectedPlan?.title} />
+                      </div>
+                    </div>
+                    <div className="input-group-row col-2">
+                      <div className="field">
+                        <label className="elite-label">Frequência</label>
+                        <input type="text" className="elite-input" placeholder="Ex: 250" defaultValue={selectedPlan?.freq} />
+                      </div>
+                      <div className="field">
+                        <label className="elite-label">Unidade</label>
+                        <select className="elite-select" defaultValue={selectedPlan?.unit}>
+                          <option value="H">Horas (H)</option>
+                          <option value="KM">Quilômetros (KM)</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="builder-section">
+                    <h4 className="section-title">Checklist Técnico (Itens de Verificação)</h4>
+                    <div className="checklist-builder">
+                      {(selectedPlan?.items || ['Troca de Óleo', 'Troca de Filtro']).map((item: string, i: number) => (
+                        <div key={i} className="builder-item-row">
+                          <input type="text" className="elite-input-sm" defaultValue={item} />
+                          <button className="remove-item-btn"><Trash2 size={14} /></button>
+                        </div>
+                      ))}
+                      <button className="add-item-btn-sm">+ ADICIONAR ITEM</button>
+                    </div>
+                  </div>
+
+                  <div className="builder-section">
+                    <h4 className="section-title">Ativos Vinculados ({selectedPlan?.assets || 0})</h4>
+                    <div className="asset-link-grid">
+                      <label className="asset-link-item">
+                        <input type="checkbox" defaultChecked />
+                        <span>Trator John Deere 7230</span>
+                      </label>
+                      <label className="asset-link-item">
+                        <input type="checkbox" />
+                        <span>Pulverizador Patriot 350</span>
+                      </label>
+                      <label className="asset-link-item">
+                        <input type="checkbox" />
+                        <span>Caminhão Ford Cargo</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <footer className="builder-footer">
+                  <button className="text-btn" onClick={() => setIsPlanModalOpen(false)}>DESCARTAR</button>
+                  <button className="primary-btn" onClick={() => {
+                    alert('Plano de Manutenção salvo com sucesso!');
+                    setIsPlanModalOpen(false);
+                  }}>
+                    <CheckCircle2 size={18} />
+                    SALVAR PLANO E APLICAR
+                  </button>
+                </footer>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      <style>{`
+        .modal-overlay {
+          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(8px); z-index: 10000; display: flex;
+          align-items: center; justify-content: center; padding: 20px;
+        }
+        .plan-builder-modal {
+          background: white; width: 100%; max-width: 700px;
+          border-radius: 28px; overflow: hidden; box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
+          display: flex; flex-direction: column; max-height: 90vh;
+        }
+        .builder-header { padding: 28px 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .icon-badge.brand { background: #eff6ff; color: #3b82f6; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .builder-header h2 { font-size: 20px; font-weight: 900; color: #0f172a; margin: 0; }
+        .builder-header p { font-size: 13px; color: #64748b; margin: 2px 0 0; }
+        
+        .builder-body { padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+        .section-title { font-size: 11px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 20px; display: flex; align-items: center; gap: 8px; }
+        .section-title::after { content: ''; flex: 1; height: 1px; background: #f1f5f9; }
+        
+        .input-group-row { display: flex; flex-direction: column; gap: 24px; margin-bottom: 8px; }
+        .input-group-row.col-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .elite-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 14px; transition: 0.2s; background: #f8fafc; }
+        .elite-input:focus { border-color: #3b82f6; background: white; outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        
+        .checklist-builder { display: flex; flex-direction: column; gap: 10px; }
+        .builder-item-row { display: flex; gap: 10px; }
+        .elite-input-sm { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid #f1f5f9; font-size: 13px; background: #f8fafc; font-weight: 600; }
+        .remove-item-btn { padding: 0 12px; color: #94a3b8; transition: 0.2s; border-radius: 10px; }
+        .remove-item-btn:hover { color: #ef4444; background: #fee2e2; }
+        .add-item-btn-sm { align-self: flex-start; padding: 8px 16px; font-size: 10px; font-weight: 800; color: #3b82f6; background: #eff6ff; border-radius: 8px; margin-top: 4px; }
+        
+        .asset-link-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .asset-link-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; cursor: pointer; transition: 0.2s; }
+        .asset-link-item:hover { border-color: #3b82f6; }
+        .asset-link-item span { font-size: 13px; font-weight: 700; color: #334155; }
+        .asset-link-item input { width: 18px; height: 18px; accent-color: #3b82f6; }
+
+        .builder-footer { padding: 24px 32px; border-top: 1px solid #f1f5f9; background: #f8fafc; display: flex; justify-content: flex-end; gap: 16px; }
+        
+        .elite-label { display: block; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
+        .elite-select { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 14px; background: #f8fafc; font-weight: 600; }
+        .close-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; transition: 0.2s; color: #94a3b8; }
+        .close-btn:hover { background: #fee2e2; color: #ef4444; }
+
+        .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .plan-card { background: white; border-radius: 20px; border: 1px solid #e2e8f0; padding: 24px; position: relative; transition: 0.3s; }
+        .plan-card:hover { transform: translateY(-5px); border-color: hsl(var(--brand)); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1); }
+        .plan-status-active { position: absolute; top: 20px; right: 20px; font-size: 9px; font-weight: 900; background: #ecfdf5; color: #059669; padding: 4px 8px; border-radius: 6px; }
+        .plan-main { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
+        .plan-icon { width: 44px; height: 44px; border-radius: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0; color: #64748b; }
+        .plan-info h3 { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; }
+        .plan-info p { font-size: 12px; color: #64748b; margin: 4px 0 0; }
+        .plan-stats { display: flex; gap: 16px; margin-bottom: 24px; padding: 16px; background: #f8fafc; border-radius: 12px; }
+        .p-stat { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #475569; }
+        .plan-actions { display: flex; }
+        .plan-btn-edit { width: 100%; padding: 12px; border-radius: 12px; background: #f1f5f9; color: #1e293b; font-size: 11px; font-weight: 800; border: none; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        .plan-btn-edit:hover { background: #e2e8f0; }
+        
+        .add-plan-card { border: 2px dashed #e2e8f0; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 240px; color: #94a3b8; transition: 0.2s; background: transparent; cursor: pointer; }
+        .add-plan-card:hover { background: #f8fafc; border-color: hsl(var(--brand)); color: hsl(var(--brand)); }
+        .add-plan-card span { font-size: 12px; font-weight: 900; }
+      `}</style>
 
     </div>
   );
