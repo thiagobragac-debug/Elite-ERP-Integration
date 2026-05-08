@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ModernTable } from '../../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../../components/Cards/EliteStatCard';
 import { useTenant } from '../../../contexts/TenantContext';
+import { supabase } from '../../../lib/supabase';
 import { useReportData } from '../../../hooks/useReportData';
 import { exportToExcel } from '../../../utils/exportUtils';
 
@@ -114,14 +115,41 @@ const ReportPrintLayout: React.FC<{
 );
 
 export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, userProfile, refreshProfile } = useTenant();
   const { data, stats, columns, loading, error } = useReportData(report?.id || null);
   const pdfRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
   
+  const updateGenerationHistory = async () => {
+    if (!userProfile?.id) return;
+    
+    try {
+      const now = new Date().toISOString();
+      const newHistory = { 
+        ...(userProfile.settings?.generationHistory || {}),
+        [report.id]: now
+      };
+      
+      await supabase
+        .from('profiles')
+        .update({ 
+          settings: { 
+            ...(userProfile.settings || {}), 
+            generationHistory: newHistory 
+          } 
+        })
+        .eq('id', userProfile.id);
+        
+      await refreshProfile();
+    } catch (error) {
+      console.error("Erro ao atualizar histórico de geração:", error);
+    }
+  };
+
   const handleExportExcel = () => {
     if (!data || data.length === 0) return;
     exportToExcel(data, columns, report.title);
+    updateGenerationHistory();
   };
 
   const handleDownloadPDF = async () => {
@@ -159,6 +187,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
 
       html2pdf().set(opt).from(element).save().then(() => {
         setIsExporting(false);
+        updateGenerationHistory();
       }).catch((err: any) => {
         console.error('Erro ao gerar PDF:', err);
         setIsExporting(false);

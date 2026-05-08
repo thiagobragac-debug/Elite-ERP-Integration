@@ -148,6 +148,27 @@ export const Reports: React.FC = () => {
       
       if (data && data.length > 0) {
         exportToExcel(data, columns, report.title);
+        
+        // Atualizar timestamp de geração
+        if (userProfile?.id) {
+          const now = new Date().toISOString();
+          const newHistory = { 
+            ...(userProfile.settings?.generationHistory || {}),
+            [report.id]: now
+          };
+          
+          await supabase
+            .from('profiles')
+            .update({ 
+              settings: { 
+                ...(userProfile.settings || {}), 
+                generationHistory: newHistory 
+              } 
+            })
+            .eq('id', userProfile.id);
+            
+          await refreshProfile();
+        }
       } else {
         alert("Este relatório não possui dados para exportação no momento.");
       }
@@ -157,6 +178,18 @@ export const Reports: React.FC = () => {
     } finally {
       document.body.style.cursor = 'default';
     }
+  };
+
+
+  const getGenerationTime = (reportId: string) => {
+    const timestamp = userProfile?.settings?.generationHistory?.[reportId];
+    if (!timestamp) return { date: 'Nunca', time: '--:--:--' };
+    
+    const d = new Date(timestamp);
+    return {
+      date: d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase(),
+      time: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    };
   };
 
   const filteredReports = (activeCategory === 'all' 
@@ -179,10 +212,6 @@ export const Reports: React.FC = () => {
           <button className="glass-btn secondary" onClick={() => navigate('/bi')}>
             <PieChart size={18} />
             CENTRAL DE BI
-          </button>
-          <button className="primary-btn">
-            <Download size={18} />
-            EXPORTAR DATASET
           </button>
         </div>
       </header>
@@ -357,8 +386,8 @@ export const Reports: React.FC = () => {
                         </div>
 
                       <div className="doc-timestamp">
-                        <span className="date">07 MAI 2026</span>
-                        <span className="time">14:30:22</span>
+                        <span className="date">{getGenerationTime(report.id).date}</span>
+                        <span className="time">{getGenerationTime(report.id).time}</span>
                       </div>
 
                         <div className="doc-actions">
