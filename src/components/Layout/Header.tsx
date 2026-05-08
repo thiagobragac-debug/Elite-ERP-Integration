@@ -1,5 +1,5 @@
 import { Search, Bell, HelpCircle, LogOut, Sun, Moon, GitBranch, User } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { NotificationCenter } from '../Notifications/NotificationCenter';
@@ -13,6 +13,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenProfile }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <header className="header">
@@ -22,10 +23,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenProfile }) => {
       </div>
 
       <div className="header-actions">
-        <div className="sync-status" title="GitHub Sincronizado (Elite v5.0 Cloud)">
-          <GitBranch size={18} />
-          <div className="status-dot-pulse"></div>
-        </div>
+        {(location.pathname.startsWith('/admin') || location.pathname.startsWith('/saas')) && (
+          <div className="sync-status" title="GitHub Sincronizado (Elite v5.0 Cloud)">
+            <GitBranch size={18} />
+            <div className="status-dot-pulse"></div>
+          </div>
+        )}
 
         <button className="action-btn" onClick={toggleTheme} title={theme === 'light' ? 'Mudar para modo escuro' : 'Mudar para modo claro'}>
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
