@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
-  Package, 
   Plus, 
   Search, 
   Layout, 
@@ -10,12 +9,17 @@ import {
   X,
   Edit3,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  LayoutGrid,
+  List as ListIcon,
+  Filter,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { ModernTable } from '../../components/DataTable/ModernTable';
 
 export const WarehouseManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -24,11 +28,25 @@ export const WarehouseManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+
+  const [farms, setFarms] = useState<any[]>([]);
 
   useEffect(() => {
     if (!activeFarm) return;
     fetchWarehouses();
+    fetchFarms();
   }, [activeFarm]);
+
+  const fetchFarms = async () => {
+    if (!activeFarm) return;
+    const { data } = await supabase
+      .from('fazendas')
+      .select('id, nome')
+      .eq('tenant_id', activeFarm.tenantId || activeFarm.tenant_id);
+    if (data) setFarms(data);
+  };
 
   const fetchWarehouses = async () => {
     setLoading(true);
@@ -53,9 +71,29 @@ export const WarehouseManagement: React.FC = () => {
     const payload = {
       nome: formData.get('nome'),
       descricao: formData.get('descricao'),
-      fazenda_id: activeFarm.id,
+      status: formData.get('status'),
+      fazenda_id: formData.get('fazenda_id') || activeFarm.id,
       tenant_id: activeFarm.tenantId
     };
+
+    // Check if inactivating and verify balance
+    if (selectedWarehouse && payload.status === 'inativo' && selectedWarehouse.status === 'ativo') {
+      const { data: balanceData, error: balanceError } = await supabase
+        .from('movimentacoes_estoque')
+        .select('quantidade, tipo')
+        .eq('deposito_id', selectedWarehouse.id);
+
+      if (!balanceError && balanceData) {
+        const totalBalance = balanceData.reduce((acc, curr) => {
+          return acc + (curr.tipo === 'IN' || curr.tipo === 'in' ? Number(curr.quantidade) : -Number(curr.quantidade));
+        }, 0);
+
+        if (totalBalance > 0) {
+          alert(`Não é possível inativar o depósito "${selectedWarehouse.nome}" pois ele possui um saldo atual de ${totalBalance} itens em estoque. Zere o estoque antes de inativar.`);
+          return;
+        }
+      }
+    }
 
     if (selectedWarehouse) {
       const { error } = await supabase.from('depositos').update(payload).eq('id', selectedWarehouse.id);
@@ -82,6 +120,37 @@ export const WarehouseManagement: React.FC = () => {
     w.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (w.descricao || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const columns = [
+    {
+      header: 'Nome do Depósito',
+      accessor: (item: any) => (
+        <div className="table-cell-title">
+          <span className="main-text">{item.nome}</span>
+          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
+            {activeFarm?.nome}
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Descrição',
+      accessor: (item: any) => (
+        <div className="table-cell-meta">
+          <span>{item.descricao || 'Sem descrição'}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Status',
+      accessor: (item: any) => (
+        <span className={`status-pill ${item.status === 'ativo' ? 'active' : ''}`}>
+          {item.status === 'ativo' ? 'Ativo' : 'Inativo'}
+        </span>
+      ),
+      align: 'center' as const
+    }
+  ];
 
   return (
     <div className="inventory-page animate-slide-up">
@@ -146,49 +215,201 @@ export const WarehouseManagement: React.FC = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-      </div>
 
-      <div className="management-content">
-        <div className="warehouse-grid animate-fade-in">
-          {filteredWarehouses.map(w => (
-            <div key={w.id} className="warehouse-card">
-              <div className="w-icon">
-                <Layout size={24} />
-              </div>
-              <div className="w-info">
-                <h3>{w.nome}</h3>
-                <p>{w.descricao || 'Sem descrição cadastrada'}</p>
-              </div>
-              <div className="w-meta">
-                <div className="m-item">
-                  <Boxes size={14} />
-                  <span>Farm: {activeFarm?.nome}</span>
-                </div>
-                <div className="m-item">
-                  <div className={`status-dot ${w.status === 'ativo' ? 'active' : ''}`} />
-                  <span>{w.status === 'ativo' ? 'Ativo' : 'Inativo'}</span>
-                </div>
-              </div>
-              <div className="w-actions">
-                <button onClick={() => {
-                  setSelectedWarehouse(w);
-                  setIsModalOpen(true);
-                }}>EDITAR</button>
-                <button className="delete" onClick={() => handleDelete(w.id)}>EXCLUIR</button>
-              </div>
-            </div>
-          ))}
-          <button className="add-warehouse-card" onClick={() => {
-            setSelectedWarehouse(null);
-            setIsModalOpen(true);
-          }}>
-            <Plus size={32} />
-            <span>CRIAR NOVO DEPÓSITO</span>
+        <div className="view-mode-toggle">
+          <button 
+            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+            title="Visualização em Lista"
+          >
+            <ListIcon size={18} />
+          </button>
+          <button 
+            className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+            onClick={() => setViewMode('grid')}
+            title="Visualização em Cards"
+          >
+            <LayoutGrid size={18} />
+          </button>
+        </div>
+
+        <div className="elite-filter-group">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
+            <Filter size={20} />
+          </button>
+          <button className="icon-btn-secondary" title="Exportar Log">
+            <FileText size={20} />
           </button>
         </div>
       </div>
 
+      <AnimatePresence>
+        {showAdvancedFilters && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="advanced-filter-panel"
+            style={{ marginBottom: '20px', overflow: 'hidden' }}
+          >
+            <div className="filter-grid" style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '20px',
+              background: 'hsl(var(--bg-card))',
+              padding: '24px',
+              borderRadius: '24px',
+              border: '1px solid hsl(var(--border))'
+            }}>
+              <div className="filter-field">
+                <label className="elite-label">Status do Depósito</label>
+                <select className="elite-input elite-select">
+                  <option value="all">Todos os Status</option>
+                  <option value="active">Apenas Ativos</option>
+                  <option value="inactive">Apenas Inativos</option>
+                </select>
+              </div>
+              <div className="filter-field">
+                <label className="elite-label">Ocupação</label>
+                <select className="elite-input elite-select">
+                  <option value="all">Qualquer Ocupação</option>
+                  <option value="high">Alta (&gt; 80%)</option>
+                  <option value="low">Baixa (&lt; 20%)</option>
+                </select>
+              </div>
+              <div className="filter-actions-inline" style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <button className="text-btn" onClick={() => setShowAdvancedFilters(false)}>LIMPAR FILTROS</button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="management-content">
+        {viewMode === 'list' ? (
+          <ModernTable 
+            data={filteredWarehouses}
+            columns={columns}
+            loading={loading}
+            hideHeader={true}
+            actions={(item) => (
+              <div className="modern-actions">
+                <button className="action-dot edit" onClick={() => {
+                  setSelectedWarehouse(item);
+                  setIsModalOpen(true);
+                }}>
+                  <Edit3 size={18} />
+                </button>
+                <button className="action-dot delete" onClick={() => handleDelete(item.id)}>
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            )}
+          />
+        ) : (
+          <div className="warehouse-grid animate-fade-in">
+            {filteredWarehouses.map(w => (
+              <div key={w.id} className="warehouse-card">
+                <div className="w-icon">
+                  <Layout size={24} />
+                </div>
+                <div className="w-info">
+                  <h3>{w.nome}</h3>
+                  <p>{w.descricao || 'Sem descrição cadastrada'}</p>
+                </div>
+                <div className="w-meta">
+                  <div className="m-item">
+                    <Boxes size={14} />
+                    <span>Farm: {activeFarm?.nome}</span>
+                  </div>
+                  <div className="m-item">
+                    <div className={`status-dot ${w.status === 'ativo' ? 'active' : ''}`} />
+                    <span>{w.status === 'ativo' ? 'Ativo' : 'Inativo'}</span>
+                  </div>
+                </div>
+                <div className="w-actions">
+                  <button onClick={() => {
+                    setSelectedWarehouse(w);
+                    setIsModalOpen(true);
+                  }}>EDITAR</button>
+                  <button className="delete" onClick={() => handleDelete(w.id)}>EXCLUIR</button>
+                </div>
+              </div>
+            ))}
+            <button className="add-warehouse-card" onClick={() => {
+              setSelectedWarehouse(null);
+              setIsModalOpen(true);
+            }}>
+              <Plus size={32} />
+              <span>CRIAR NOVO DEPÓSITO</span>
+            </button>
+          </div>
+        )}
+      </div>
+
       <style>{`
+        .view-mode-toggle {
+          display: flex;
+          background: hsl(var(--bg-main));
+          padding: 4px;
+          border-radius: 12px;
+          gap: 4px;
+        }
+        .view-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          border: none;
+          background: transparent;
+          color: hsl(var(--text-muted));
+          cursor: pointer;
+          transition: 0.2s;
+        }
+        .view-btn.active {
+          background: white;
+          color: hsl(var(--brand));
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .elite-filter-group {
+          display: flex;
+          gap: 8px;
+          margin-left: 8px;
+        }
+
+        .icon-btn-secondary {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          border: 1px solid hsl(var(--border));
+          background: hsl(var(--bg-card));
+          color: hsl(var(--text-muted));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .icon-btn-secondary:hover {
+          background: hsl(var(--bg-main));
+          color: hsl(var(--brand));
+          border-color: hsl(var(--brand) / 0.3);
+        }
+
+        .icon-btn-secondary.active {
+          background: hsl(var(--brand) / 0.1);
+          color: hsl(var(--brand));
+          border-color: hsl(var(--brand));
+        }
+
         .warehouse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         .warehouse-card { background: white; border-radius: 24px; padding: 24px; border: 1px solid #e2e8f0; position: relative; transition: 0.3s; }
         .warehouse-card:hover { transform: translateY(-5px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1); border-color: hsl(var(--brand)); }
@@ -220,11 +441,17 @@ export const WarehouseManagement: React.FC = () => {
           border-radius: 28px; overflow: hidden; box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
           display: flex; flex-direction: column; max-height: 90vh;
         }
+        .plan-builder-modal form {
+          display: flex;
+          flex-direction: column;
+          max-height: 90vh;
+          width: 100%;
+        }
         .builder-header { padding: 28px 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
         .icon-badge.brand { background: #eff6ff; color: #3b82f6; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
         .builder-header h2 { font-size: 20px; font-weight: 900; color: #0f172a; margin: 0; }
         .builder-header p { font-size: 13px; color: #64748b; margin: 2px 0 0; }
-        .builder-body { padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
+        .builder-body { flex: 1; padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
         .builder-footer { padding: 24px 32px; border-top: 1px solid #f1f5f9; background: #f8fafc; display: flex; justify-content: flex-end; gap: 16px; }
         .input-group-row { display: flex; flex-direction: column; gap: 20px; }
         .elite-label { display: block; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -273,7 +500,28 @@ export const WarehouseManagement: React.FC = () => {
                       </div>
                       <div className="field">
                         <label className="elite-label">Fazenda Vinculada</label>
-                        <input type="text" className="elite-input" value={activeFarm?.nome} disabled style={{ opacity: 0.6 }} />
+                        <select 
+                          name="fazenda_id" 
+                          className="elite-input"
+                          defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id}
+                          required
+                        >
+                          <option value="">Selecione uma fazenda...</option>
+                          {farms.map(f => (
+                            <option key={f.id} value={f.id}>{f.nome}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="filter-field">
+                        <label className="elite-label">Status do Depósito</label>
+                        <select 
+                          name="status" 
+                          className="elite-input"
+                          defaultValue={selectedWarehouse?.status || 'ativo'}
+                        >
+                          <option value="ativo">Ativo</option>
+                          <option value="inativo">Inativo</option>
+                        </select>
                       </div>
                     </div>
                   </div>

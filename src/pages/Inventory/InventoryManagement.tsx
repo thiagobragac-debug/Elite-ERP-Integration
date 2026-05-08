@@ -126,15 +126,26 @@ export const InventoryManagement: React.FC = () => {
 
   const handleMovementSubmit = async (data: any) => {
     if (!activeFarm) return;
-    const { error } = await supabase.from('estoque_movimentacao').insert([{
-      ...data,
-      fazenda_id: activeFarm.id,
-      tenant_id: activeFarm.tenantId
-    }]);
+    
+    // Call the FIFO processing RPC
+    const { error } = await supabase.rpc('process_fifo_movement', {
+      p_produto_id: data.produto_id,
+      p_deposito_id: data.deposito_id,
+      p_quantidade: Number(data.quantidade),
+      p_tipo: data.tipo.toUpperCase(),
+      p_valor_unitario: Number(data.valor_unitario || 0),
+      p_fazenda_id: activeFarm.id,
+      p_tenant_id: activeFarm.tenantId,
+      p_responsavel: data.responsavel,
+      p_origem_destino: data.origem_destino
+    });
 
     if (!error) {
       setIsMovementModalOpen(false);
       fetchProducts();
+    } else {
+      console.error('Error processing FIFO movement:', error);
+      alert('Erro ao processar movimentação FIFO: ' + error.message);
     }
   };
 

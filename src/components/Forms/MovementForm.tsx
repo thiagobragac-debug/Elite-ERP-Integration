@@ -8,7 +8,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Hash,
-  Settings
+  Settings,
+  DollarSign
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
@@ -26,14 +27,17 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
   const { activeFarm } = useTenant();
   const [formData, setFormData] = useState({
     produto_id: '',
+    deposito_id: '',
     tipo: defaultType as 'in' | 'out' | 'adjust',
     quantidade: '',
+    valor_unitario: '',
     data_movimentacao: new Date().toISOString().split('T')[0],
     origem_destino: '',
     responsavel: ''
   });
 
   const [products, setProducts] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<any[]>([]);
 
   useEffect(() => {
     if (initialData) {
@@ -48,8 +52,10 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
     } else {
       setFormData({
         produto_id: '',
+        deposito_id: '',
         tipo: defaultType as any,
         quantidade: '',
+        valor_unitario: '',
         data_movimentacao: new Date().toISOString().split('T')[0],
         origem_destino: '',
         responsavel: ''
@@ -60,6 +66,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
   useEffect(() => {
     if (isOpen && activeFarm) {
       fetchProducts();
+      fetchWarehouses();
     }
   }, [isOpen, activeFarm]);
 
@@ -69,6 +76,15 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
       .select('id, nome, unidade')
       .eq('fazenda_id', activeFarm?.id);
     if (data) setProducts(data);
+  };
+
+  const fetchWarehouses = async () => {
+    const { data } = await supabase
+      .from('depositos')
+      .select('id, nome')
+      .eq('fazenda_id', activeFarm?.id)
+      .eq('status', 'ativo');
+    if (data) setWarehouses(data);
   };
 
   const [loading, setLoading] = useState(false);
@@ -104,6 +120,20 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
           <option value="">Selecione um item do estoque...</option>
           {products.map(p => (
             <option key={p.id} value={p.id}>{p.nome} ({p.unidade})</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group full-width">
+        <label><Building2 size={14} /> Depósito / Almoxarifado</label>
+        <select 
+          value={formData.deposito_id}
+          onChange={(e) => setFormData({...formData, deposito_id: e.target.value})}
+          required
+        >
+          <option value="">Selecione o local de armazenagem...</option>
+          {warehouses.map(w => (
+            <option key={w.id} value={w.id}>{w.nome}</option>
           ))}
         </select>
       </div>
@@ -156,6 +186,20 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
           required
         />
       </div>
+
+      {formData.tipo === 'in' && (
+        <div className="form-group">
+          <label><DollarSign size={14} /> Valor Unitário (R$)</label>
+          <input 
+            type="number" 
+            step="0.01"
+            placeholder="0.00" 
+            value={formData.valor_unitario}
+            onChange={(e) => setFormData({...formData, valor_unitario: e.target.value})}
+            required
+          />
+        </div>
+      )}
 
       <div className="form-group">
         <label><Users size={14} /> Responsável</label>
