@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
 import { 
   FileText, 
   Download, 
@@ -39,7 +40,7 @@ import { fetchReportDataById } from '../../hooks/useReportData';
 import { exportToExcel } from '../../utils/exportUtils';
 
 export const Reports: React.FC = () => {
-  const { activeFarm, tenant } = useTenant();
+  const { activeFarm, tenant, userProfile, refreshProfile } = useTenant();
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<'all' | 'finance' | 'livestock' | 'fleet' | 'supply' | 'sales' | 'gov'>('all');
   const [selectedReport, setSelectedReport] = useState<any>(null);
@@ -47,11 +48,43 @@ export const Reports: React.FC = () => {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  const toggleFavorite = (e: React.MouseEvent, id: string) => {
+  // Carregar favoritos iniciais do perfil
+  useEffect(() => {
+    if (userProfile?.settings?.reportFavorites) {
+      setFavorites(userProfile.settings.reportFavorites);
+    }
+  }, [userProfile]);
+
+  const toggleFavorite = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    setFavorites(prev => 
-      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
-    );
+    if (!userProfile?.id) return;
+
+    const newFavorites = favorites.includes(id) 
+      ? favorites.filter(f => f !== id) 
+      : [...favorites, id];
+    
+    // Atualização otimista
+    setFavorites(newFavorites);
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          settings: { 
+            ...(userProfile.settings || {}), 
+            reportFavorites: newFavorites 
+          } 
+        })
+        .eq('id', userProfile.id);
+
+      if (error) throw error;
+      // Opcional: atualizar o perfil no contexto para manter consistência
+      await refreshProfile();
+    } catch (error) {
+      console.error('Erro ao salvar favorito:', error);
+      // Reverter em caso de erro
+      setFavorites(favorites);
+    }
   };
 
   const reportTypes = [

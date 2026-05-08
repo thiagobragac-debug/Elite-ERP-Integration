@@ -103,7 +103,6 @@ const menuItems: NavItem[] = [
     ]
   },
   { title: 'Relatórios', icon: FileText, href: '/relatorios' },
-  { title: 'Inteligência (BI)', icon: PieChart, href: '/bi' },
 ];
 
 export const Sidebar: React.FC = () => {

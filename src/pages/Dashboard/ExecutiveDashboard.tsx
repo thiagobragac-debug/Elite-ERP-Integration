@@ -399,10 +399,6 @@ export const ExecutiveDashboard: React.FC = () => {
             <div className="sync-dot active"></div>
             <span>LIVE SYNC ACTIVE</span>
           </div>
-          <button className="glass-btn" onClick={() => navigate('/relatorios')}>
-            <FileText size={18} />
-            RELATÓRIOS
-          </button>
           <button className={`glass-btn ${isTVMode ? 'active' : ''}`} onClick={() => setIsTVMode(!isTVMode)}>
             <Monitor size={18} />
             {isTVMode ? 'SAIR MODO TV' : 'MODO TV'}

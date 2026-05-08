@@ -27,10 +27,96 @@ interface ReportViewerProps {
   onClose: () => void;
 }
 
+// Sub-componente para o Layout de Impressão/PDF para evitar duplicação
+const ReportPrintLayout: React.FC<{
+  report: any;
+  data: any[];
+  stats: any[];
+  columns: any[];
+  activeFarm: any;
+}> = ({ report, data, stats, columns, activeFarm }) => (
+  <div className="pdf-print-root">
+    <div className="print-only-header">
+      <div className="print-logo-section">
+        <div className="print-logo">E</div>
+        <div className="print-brand-info">
+          <span className="print-brand-name">ELITE ERP v5.0</span>
+          <span className="print-brand-tag">Inteligência Operacional de Precisão</span>
+        </div>
+      </div>
+      <div className="print-report-meta">
+        <div className="meta-item"><strong>Documento:</strong> {report.title}</div>
+        <div className="meta-item"><strong>Unidade:</strong> {activeFarm?.name || 'Fazenda Elite'}</div>
+        <div className="meta-item"><strong>Emissão:</strong> {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+      </div>
+    </div>
+
+    <div className="viewer-content">
+      <div className="next-gen-kpi-grid">
+        {stats.map((s, idx) => (
+           <EliteStatCard 
+           key={idx}
+           label={s.label}
+           value={s.value}
+           icon={s.trend === 'up' ? TrendingUp : s.trend === 'down' ? TrendingDown : Activity}
+           color={s.trend === 'up' ? "#10b981" : s.trend === 'down' ? "#ef4444" : "#3b82f6"}
+           progress={100}
+           change={s.change}
+           trend={s.trend}
+         />
+        ))}
+      </div>
+
+      <div className="print-data-full export-visible">
+        <table className="full-print-table">
+          <thead>
+            <tr>
+              {columns.map((col: any, i: number) => <th key={i}>{col.header}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((item: any, i: number) => (
+              <tr key={i}>
+                {columns.map((col: any, j: number) => {
+                  const isNumeric = col.header.toLowerCase().includes('valor') || 
+                                   col.header.toLowerCase().includes('gmd') || 
+                                   col.header.toLowerCase().includes('total') ||
+                                   col.header.toLowerCase().includes('peso');
+                  return (
+                    <td key={j} style={{ textAlign: isNumeric ? 'right' : 'left' }}>
+                      {typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor]}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="print-signature-section">
+        <div className="signature-box">
+          <div className="sig-line"></div>
+          <span>Responsável Técnico / Emissor</span>
+        </div>
+        <div className="signature-box">
+          <div className="sig-line"></div>
+          <span>Gestor da Unidade</span>
+        </div>
+      </div>
+
+      <div className="print-only-footer">
+        <div className="footer-left">Documento gerado eletronicamente por Elite Intelligence • Protocolo: {Math.random().toString(36).substring(7).toUpperCase()}</div>
+        <div className="footer-right">Página 1 de 1</div>
+      </div>
+    </div>
+  </div>
+);
+
 export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) => {
   const { activeFarm } = useTenant();
   const { data, stats, columns, loading, error } = useReportData(report?.id || null);
-  const reportRef = useRef<HTMLDivElement>(null);
+  const pdfRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
   
   const handleExportExcel = () => {
@@ -39,21 +125,28 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
   };
 
   const handleDownloadPDF = async () => {
-    if (!reportRef.current) return;
+    // Primeiro ativamos o estado de exportação para que o container oculto seja montado
     setIsExporting(true);
     
-    // Pequeno delay para garantir que o React renderizou o estado de exportação
+    // Pequeno delay (500ms) para garantir que o React montou o ReportPrintLayout no DOM e as fontes/estilos carregaram
     setTimeout(() => {
-      const element = reportRef.current;
+      const element = pdfRef.current;
+      
+      if (!element) {
+        console.error('Erro: Container de exportação não encontrado no DOM.');
+        setIsExporting(false);
+        return;
+      }
+
       const opt = {
         margin: [10, 10, 10, 10],
         filename: `RELATORIO_${report.title.replace(/\s+/g, '_').toUpperCase()}_${activeFarm?.name?.replace(/\s+/g, '_').toUpperCase() || 'ELITE'}.pdf`,
         image: { type: 'jpeg', quality: 1.0 },
         html2canvas: { 
-          scale: 3, // Aumento de escala para fidelidade premium
+          scale: 3, 
           useCORS: true, 
           letterRendering: true,
-          width: 1120, // Otimizado para largura A4 Proporcional
+          width: 1120,
           windowWidth: 1120,
           scrollX: 0,
           scrollY: 0,
@@ -70,7 +163,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
         console.error('Erro ao gerar PDF:', err);
         setIsExporting(false);
       });
-    }, 600); // Tempo extra para estabilização do layout
+    }, 500);
   };
 
   if (!report) return null;
@@ -79,64 +172,43 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
     <AnimatePresence>
       <div className="report-viewer-overlay" onClick={onClose}>
         <motion.div 
-          ref={reportRef}
-          initial={isExporting ? false : { opacity: 0, scale: 0.95, y: 20 }}
-          animate={isExporting ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={isExporting ? { duration: 0 } : { duration: 0.2 }}
-          className={`viewer-container ${isExporting ? 'is-exporting-pdf' : ''}`}
+          transition={{ duration: 0.2 }}
+          className="viewer-container"
           onClick={e => e.stopPropagation()}
         >
         <header className="viewer-header">
-          {/* Cabeçalho Exclusivo para Impressão / PDF */}
-          <div className="print-only-header">
-            <div className="print-logo-section">
-              <div className="print-logo">E</div>
-              <div className="print-brand-info">
-                <span className="print-brand-name">ELITE ERP v5.0</span>
-                <span className="print-brand-tag">Inteligência Operacional de Precisão</span>
+          <div className="left-side">
+            <button className="back-btn" onClick={onClose}>
+              <ChevronLeft size={20} />
+            </button>
+            <div className="report-title">
+              <div className="title-row">
+                <report.icon size={20} style={{ color: report.color }} />
+                <h2>{report.title}</h2>
               </div>
-            </div>
-            <div className="print-report-meta">
-              <div className="meta-item"><strong>Documento:</strong> {report.title}</div>
-              <div className="meta-item"><strong>Unidade:</strong> {activeFarm?.name || 'Fazenda Elite'}</div>
-              <div className="meta-item"><strong>Emissão:</strong> {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+              <p>{report.desc}</p>
             </div>
           </div>
-
-          {!isExporting && (
-            <div className="left-side hide-on-print">
-              <button className="back-btn" onClick={onClose}>
-                <ChevronLeft size={20} />
-              </button>
-              <div className="report-title">
-                <div className="title-row">
-                  <report.icon size={20} style={{ color: report.color }} />
-                  <h2>{report.title}</h2>
-                </div>
-                <p>{report.desc}</p>
-              </div>
-            </div>
-          )}
           
-          {!isExporting && (
-            <div className="viewer-actions hide-on-print">
-              <button 
-                className={`icon-btn ${isExporting ? 'loading' : ''}`} 
-                title="Baixar Layout PDF" 
-                onClick={handleDownloadPDF}
-                disabled={isExporting}
-              >
-                {isExporting ? <div className="mini-spinner" /> : <Download size={18} />}
-              </button>
-              <button className="icon-btn" title="Imprimir / PDF" onClick={() => window.print()}><Printer size={18} /></button>
-              <button className="icon-btn" title="Compartilhar"><Share2 size={18} /></button>
-              <div className="v-sep"></div>
-              <button className="close-btn-premium" onClick={onClose}>
-                <X size={20} />
-              </button>
-            </div>
-          )}
+          <div className="viewer-actions">
+            <button 
+              className={`icon-btn ${isExporting ? 'loading' : ''}`} 
+              title="Baixar Layout PDF" 
+              onClick={handleDownloadPDF}
+              disabled={isExporting}
+            >
+              {isExporting ? <div className="mini-spinner" /> : <Download size={18} />}
+            </button>
+            <button className="icon-btn" title="Imprimir / PDF" onClick={() => window.print()}><Printer size={18} /></button>
+            <button className="icon-btn" title="Compartilhar"><Share2 size={18} /></button>
+            <div className="v-sep"></div>
+            <button className="close-btn-premium" onClick={onClose}>
+              <X size={20} />
+            </button>
+          </div>
         </header>
 
         <div className="viewer-content">
@@ -161,286 +233,142 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
             )}
           </div>
 
-          {!isExporting && (
-            <div className="viewer-main-analytics">
-              <div className="analytics-card">
-                <div className="card-header">
-                  <h3>Detalhamento de Registros</h3>
-                  <span className="subtitle">Últimos dados sincronizados em tempo real</span>
-                </div>
-              {loading ? (
-                <div className="report-loading">
-                  <div className="spinner"></div>
-                  <span>Processando Inteligência de Dados...</span>
-                </div>
-              ) : error ? (
-                <div className="report-error">
-                  <span>Ocorreu um erro ao carregar os dados reais: {error}</span>
-                  <button onClick={() => window.location.reload()}>Tentar Novamente</button>
-                </div>
-              ) : (
-                <ModernTable 
-                  data={data}
-                  columns={columns}
-                  hideHeader={false}
-                  onExport={handleExportExcel}
-                />
-              )}
+          <div className="viewer-main-analytics">
+            <div className="analytics-card">
+              <div className="card-header">
+                <h3>Detalhamento de Registros</h3>
+                <span className="subtitle">Últimos dados sincronizados em tempo real</span>
               </div>
+            {loading ? (
+              <div className="report-loading">
+                <div className="spinner"></div>
+                <span>Processando Inteligência de Dados...</span>
+              </div>
+            ) : error ? (
+              <div className="report-error">
+                <span>Ocorreu um erro ao carregar os dados reais: {error}</span>
+                <button onClick={() => window.location.reload()}>Tentar Novamente</button>
+              </div>
+            ) : (
+              <ModernTable 
+                data={data}
+                columns={columns}
+                hideHeader={false}
+                onExport={handleExportExcel}
+              />
+            )}
             </div>
-          )}
-
-          {/* Tabela Integral para Impressão / PDF (Sem Paginação) */}
-          {(isExporting || true) && (
-            <div className={`print-data-full ${isExporting ? 'export-visible' : ''}`}>
-              <table className="full-print-table">
-                <thead>
-                  <tr>
-                    {columns.map((col: any, i: number) => <th key={i}>{col.header}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((item: any, i: number) => (
-                    <tr key={i}>
-                      {columns.map((col: any, j: number) => {
-                        const isNumeric = col.header.toLowerCase().includes('valor') || 
-                                         col.header.toLowerCase().includes('gmd') || 
-                                         col.header.toLowerCase().includes('total') ||
-                                         col.header.toLowerCase().includes('peso');
-                        return (
-                          <td key={j} style={{ textAlign: isNumeric ? 'right' : 'left' }}>
-                            {typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor]}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                  {data.length === 0 && !loading && (
-                    <tr>
-                      <td colSpan={columns.length} style={{ textAlign: 'center', padding: '20px' }}>
-                        Nenhum registro encontrado para este período.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {(isExporting || true) && (
-            <>
-              <div className="print-signature-section">
-                <div className="signature-box">
-                  <div className="sig-line"></div>
-                  <span>Responsável Técnico / Emissor</span>
-                </div>
-                <div className="signature-box">
-                  <div className="sig-line"></div>
-                  <span>Gestor da Unidade</span>
-                </div>
-              </div>
-
-              <div className="print-only-footer">
-                <div className="footer-left">Documento gerado eletronicamente por Elite Intelligence • Protocolo: {Math.random().toString(36).substring(7).toUpperCase()}</div>
-                <div className="footer-right">Página 1 de 1</div>
-              </div>
-            </>
-          )}
+          </div>
         </div>
         </motion.div>
+
+        {/* CONTAINER OCULTO PARA GERAÇÃO DE PDF - Evita flicker na UI */}
+        <div 
+          className="pdf-export-engine-container" 
+          style={{ position: 'absolute', left: '-9999px', top: 0, width: '1120px' }}
+        >
+          {isExporting && (
+            <div ref={pdfRef} className="is-exporting-pdf">
+              <ReportPrintLayout 
+                report={report} 
+                data={data} 
+                stats={stats} 
+                columns={columns} 
+                activeFarm={activeFarm} 
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Versão para Impressão do Navegador (Oculta na Tela) */}
+        <div className="browser-print-only-container">
+           <ReportPrintLayout 
+              report={report} 
+              data={data} 
+              stats={stats} 
+              columns={columns} 
+              activeFarm={activeFarm} 
+            />
+        </div>
+
         <style>{`
           .report-viewer-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(8px);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
+            position: fixed; inset: 0;
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px);
+            z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 40px;
           }
 
           .viewer-container {
-            width: 100%;
-            max-width: 1200px;
-            height: 100%;
-            max-height: 85vh;
-            background: hsl(var(--bg-main));
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%; max-width: 1200px; height: 100%; max-height: 85vh;
+            background: hsl(var(--bg-main)); display: flex; flex-direction: column;
+            overflow: hidden; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
           }
 
-          /* ESTILOS DE EXPORTAÇÃO PDF (HTML2PDF) */
-          .viewer-container.is-exporting-pdf {
-            max-height: none !important;
-            height: auto !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            overflow: visible !important;
-            width: 1120px !important; 
-            background: white !important;
-            padding: 40px !important;
-            margin: 0 !important;
-            transform: none !important;
-          }
-
-          .is-exporting-pdf .viewer-header {
-            display: block !important;
-            height: auto !important;
-            padding: 0 !important;
-            margin-bottom: 30px !important;
-            border: none !important;
-            background: white !important;
-          }
-
-          .is-exporting-pdf, .is-exporting-pdf * {
-            box-sizing: border-box !important;
-            transform: none !important;
-            animation: none !important;
-            transition: none !important;
-            scroll-behavior: auto !important;
-          }
-
-          .is-exporting-pdf .viewer-content {
-            background: white !important;
-            padding: 0 !important;
-            gap: 20px !important;
-          }
-
-          .is-exporting-pdf .hide-on-print {
-            display: none !important;
+          /* ESTILOS DE EXPORTAÇÃO PDF */
+          .is-exporting-pdf {
+            width: 1120px !important; background: white !important; padding: 40px !important;
           }
 
           .is-exporting-pdf .print-only-header {
-            display: flex !important;
-            justify-content: space-between;
-            align-items: flex-start;
-            width: 100%;
-            border-bottom: 3px solid #000 !important;
-            padding: 0 0 20px 0;
-            background: white !important;
-            color: #000 !important;
+            display: flex !important; justify-content: space-between; align-items: flex-start;
+            width: 100%; border-bottom: 3px solid #000 !important; padding: 0 0 20px 0;
+            background: white !important; color: #000 !important; margin-bottom: 30px;
           }
 
-          .is-exporting-pdf .print-logo-section { display: flex; align-items: center; gap: 10px; }
           .is-exporting-pdf .print-logo {
-            width: 48px;
-            height: 48px;
-            background: #000 !important;
-            color: #fff !important;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            font-size: 28px;
+            width: 48px; height: 48px; background: #000 !important; color: #fff !important;
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 28px;
           }
-          .is-exporting-pdf .print-brand-name { display: block; font-weight: 900; font-size: 22px; color: #000 !important; }
-          .is-exporting-pdf .print-brand-tag { display: block; font-size: 11px; color: #333 !important; text-transform: uppercase; letter-spacing: 1px; }
-          .is-exporting-pdf .print-report-meta { text-align: right; font-size: 14px; line-height: 1.8; color: #000 !important; font-weight: 700; }
 
           .is-exporting-pdf .next-gen-kpi-grid {
-            display: grid !important;
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 20px !important;
-            margin-bottom: 30px !important;
-            width: 100% !important;
+            display: grid !important; grid-template-columns: repeat(3, 1fr) !important;
+            gap: 20px !important; margin-bottom: 30px !important; width: 100% !important;
           }
 
           .is-exporting-pdf .elite-stat-card {
-            border: 1px solid #ddd !important;
-            box-shadow: none !important;
-            background: #fff !important;
-            padding: 20px !important;
-            height: auto !important;
-            min-height: auto !important;
+            border: 1px solid #ddd !important; box-shadow: none !important;
+            background: #fff !important; padding: 20px !important; color: #000 !important;
             border-radius: 12px !important;
-            color: #000 !important;
           }
 
           .is-exporting-pdf .elite-stat-card .chart-container, 
           .is-exporting-pdf .elite-stat-card .progress-bar-container { display: none !important; }
-          .is-exporting-pdf .elite-stat-card .card-value { font-size: 26px !important; color: #000 !important; font-weight: 900 !important; }
-          .is-exporting-pdf .elite-stat-card .card-label { font-size: 12px !important; color: #444 !important; font-weight: 700 !important; }
 
-          .is-exporting-pdf .print-data-full { 
-            display: block !important; 
-            width: 100% !important; 
-            background: white !important;
+          .is-exporting-pdf .print-data-full {
+            display: block !important; width: 100% !important; background: white !important;
           }
 
           .is-exporting-pdf .full-print-table { 
-            width: 100% !important; 
-            border-collapse: collapse !important; 
-            font-size: 12px !important; 
-            background: white !important;
-            page-break-inside: auto !important;
+            width: 100% !important; border-collapse: collapse !important; 
+            font-size: 12px !important; background: white !important;
           }
 
           .is-exporting-pdf .full-print-table th { 
-            background: #f1f5f9 !important; 
-            border: 1px solid #94a3b8 !important; 
-            padding: 12px 10px !important;
-            color: #000 !important;
-            font-weight: 900 !important;
-            text-transform: uppercase !important;
-            text-align: left;
+            background: #f1f5f9 !important; border: 1px solid #94a3b8 !important; 
+            padding: 12px 10px !important; color: #000 !important; font-weight: 900 !important;
+            text-transform: uppercase !important; text-align: left;
           }
 
-          .is-exporting-pdf .full-print-table td { 
-            border: 1px solid #e2e8f0 !important; 
-            padding: 10px !important; 
-            color: #1e293b !important;
-          }
+          .is-exporting-pdf .full-print-table td { border: 1px solid #e2e8f0 !important; padding: 10px !important; color: #1e293b !important; }
 
           .is-exporting-pdf .print-signature-section {
-            display: flex !important;
-            justify-content: space-around;
-            margin-top: 60px !important;
-            padding-top: 20px !important;
-            page-break-inside: avoid !important;
+            display: flex !important; justify-content: space-around; margin-top: 60px !important;
+            padding-top: 20px !important; page-break-inside: avoid !important;
           }
 
-          .is-exporting-pdf .signature-box {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            width: 250px !important;
-          }
-
-          .is-exporting-pdf .sig-line {
-            width: 100% !important;
-            border-top: 2px solid #000 !important;
-            margin-bottom: 10px !important;
-          }
+          .is-exporting-pdf .sig-line { width: 100% !important; border-top: 2px solid #000 !important; margin-bottom: 10px !important; }
 
           .is-exporting-pdf .print-only-footer {
-            display: flex !important;
-            justify-content: space-between;
-            margin-top: 40px;
-            border-top: 1px solid #eee;
-            padding-top: 15px;
-            font-size: 11px;
-            color: #666 !important;
+            display: flex !important; justify-content: space-between; margin-top: 40px;
+            border-top: 1px solid #eee; padding-top: 15px; font-size: 11px; color: #666 !important;
           }
 
-          .is-exporting-pdf .viewer-main-analytics {
-            display: none !important;
-          }
-
-          /* ESTILOS DE INTERFACE PADRÃO */
+          /* INTERFACE PADRÃO */
           .viewer-header {
-            padding: 20px 40px;
-            border-bottom: 1px solid hsl(var(--border));
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: hsl(var(--bg-card));
-            height: 80px;
+            padding: 20px 40px; border-bottom: 1px solid hsl(var(--border));
+            display: flex; justify-content: space-between; align-items: center;
+            background: hsl(var(--bg-card)); height: 80px;
           }
 
           .left-side { display: flex; align-items: center; gap: 20px; }
@@ -511,114 +439,39 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
 
           @keyframes spin { to { transform: rotate(360deg); } }
 
-          /* ESTILOS DE IMPRESSÃO DO NAVEGADOR (CTRL+P) */
+          /* IMPRESSÃO DO NAVEGADOR */
           @media print {
             @page { margin: 1cm; size: A4; }
-            
-            html, body { 
-              height: auto !important; width: 100% !important;
-              margin: 0 !important; padding: 0 !important;
-              overflow: visible !important; background: white !important;
-              -webkit-print-color-adjust: exact;
-            }
-
+            html, body { height: auto !important; width: 100% !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; -webkit-print-color-adjust: exact; }
             body > *:not(.report-viewer-overlay) { display: none !important; }
-
-            .report-viewer-overlay { 
-              position: static !important; display: block !important;
-              background: white !important; padding: 0 !important;
-              margin: 0 !important; opacity: 1 !important;
-              visibility: visible !important; zoom: 1.0 !important;
-            }
-
-            .viewer-container { 
-              position: static !important; display: block !important;
-              width: 100% !important; max-width: none !important; 
-              height: auto !important; max-height: none !important; 
-              min-height: auto !important; box-shadow: none !important; 
-              border: none !important; border-radius: 0 !important;
-              background: white !important; opacity: 1 !important;
-              transform: none !important;
-            }
-
-            .viewer-header { 
-              border-bottom: 2px solid #000; height: auto; 
-              padding: 10px 0; margin-bottom: 20px;
-              background: white !important;
-            }
-
-            .print-only-header {
-              display: flex !important;
-              justify-content: space-between;
-              align-items: flex-start;
-              width: 100%;
-              border-bottom: 2px solid #000;
-              padding-bottom: 15px;
-            }
-
-            .print-logo { width: 44px; height: 44px; background: #000 !important; color: #fff !important; }
-            .print-brand-name { font-size: 18px; color: #000 !important; }
+            .report-viewer-overlay { position: static !important; display: block !important; background: white !important; padding: 0 !important; margin: 0 !important; opacity: 1 !important; visibility: visible !important; }
+            .viewer-container { display: none !important; }
+            .browser-print-only-container { display: block !important; width: 100% !important; }
+            
+            .print-only-header { display: flex !important; justify-content: space-between; align-items: flex-start; width: 100%; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
+            .print-logo { width: 44px; height: 44px; background: #000 !important; color: #fff !important; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 24px; }
+            .print-brand-name { font-size: 18px; color: #000 !important; font-weight: 900; }
+            .print-brand-tag { font-size: 10px; color: #666 !important; }
             .print-report-meta { text-align: right; font-size: 12px; color: #000 !important; }
 
-            .viewer-content { padding: 0 !important; overflow: visible !important; gap: 20px !important; }
-            
-            .next-gen-kpi-grid {
-              display: grid !important;
-              grid-template-columns: repeat(3, 1fr) !important;
-              gap: 15px !important;
-              margin-bottom: 20px !important;
-            }
+            .next-gen-kpi-grid { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 15px !important; margin-bottom: 20px !important; }
+            .elite-stat-card { border: 1px solid #eee !important; background: #fff !important; padding: 15px !important; color: #000 !important; border-radius: 8px !important; }
+            .elite-stat-card .chart-container, .elite-stat-card .progress-bar-container { display: none !important; }
+            .elite-stat-card .card-value { font-size: 22px !important; font-weight: 900 !important; }
 
-            .elite-stat-card {
-              border: 1px solid #eee !important;
-              box-shadow: none !important;
-              background: #fff !important;
-              -webkit-print-color-adjust: exact;
-              padding: 15px !important;
-              min-height: auto !important;
-              height: auto !important;
-              color: #000 !important;
-            }
-
-            .elite-stat-card .chart-container, 
-            .elite-stat-card .progress-bar-container { display: none !important; }
-            .elite-stat-card .card-value { font-size: 22px !important; color: #000 !important; font-weight: 900 !important; }
-
-            .viewer-main-analytics { display: none !important; }
-            .print-data-full { display: block !important; width: 100% !important; }
-            .full-print-table { 
-              width: 100% !important; border-collapse: collapse !important; 
-              font-size: 10px !important; 
-            }
-            .full-print-table th { 
-              background: #f1f5f9 !important; border: 1px solid #94a3b8 !important; 
-              padding: 10px 8px !important; color: #000 !important;
-              font-weight: 900 !important;
-            }
-            .full-print-table td { 
-              border: 1px solid #e2e8f0 !important; padding: 8px 6px !important; 
-              color: #000 !important;
-            }
+            .full-print-table { width: 100% !important; border-collapse: collapse !important; font-size: 10px !important; }
+            .full-print-table th { background: #f1f5f9 !important; border: 1px solid #94a3b8 !important; padding: 10px 8px !important; color: #000 !important; font-weight: 900 !important; }
+            .full-print-table td { border: 1px solid #e2e8f0 !important; padding: 8px 6px !important; color: #000 !important; }
             .full-print-table tr { page-break-inside: avoid !important; }
-            
-            .print-signature-section {
-              display: flex !important; justify-content: space-around;
-              margin-top: 80px !important; padding-top: 20px !important;
-              page-break-inside: avoid !important;
-            }
+
+            .print-signature-section { display: flex !important; justify-content: space-around; margin-top: 80px !important; padding-top: 20px !important; page-break-inside: avoid !important; }
             .sig-line { width: 100% !important; border-top: 2px solid #000 !important; }
             .signature-box span { font-size: 10px !important; font-weight: 700 !important; color: #000 !important; }
 
-            .print-only-footer {
-              display: flex !important; justify-content: space-between;
-              margin-top: 40px; padding-top: 10px; border-top: 1px solid #eee;
-              font-size: 10px; color: #666 !important;
-            }
-
-            .hide-on-print, .close-btn-premium, .back-btn, .viewer-actions { display: none !important; }
+            .print-only-footer { display: flex !important; justify-content: space-between; margin-top: 40px; padding-top: 10px; border-top: 1px solid #eee; font-size: 10px; color: #666 !important; }
           }
 
-          .print-only-header, .print-only-footer, .print-data-full, .print-signature-section { display: none; }
+          .print-only-header, .browser-print-only-container, .print-signature-section, .print-only-footer, .print-data-full { display: none; }
         `}</style>
       </div>
     </AnimatePresence>,
