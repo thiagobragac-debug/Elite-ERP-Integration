@@ -51,12 +51,28 @@ export const WarehouseManagement: React.FC = () => {
   const fetchWarehouses = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      // Fetch warehouses and calculate current balance per warehouse
+      const { data, error } = await supabase
         .from('depositos')
-        .select('*')
+        .select(`
+          *,
+          movimentacoes_estoque (
+            quantidade,
+            tipo
+          )
+        `)
         .eq('fazenda_id', activeFarm.id)
         .order('nome', { ascending: true });
-      if (data) setWarehouses(data);
+
+      if (data) {
+        const processed = data.map((w: any) => {
+          const saldo = w.movimentacoes_estoque?.reduce((acc: number, curr: any) => {
+            return acc + (curr.tipo === 'IN' || curr.tipo === 'in' ? Number(curr.quantidade) : -Number(curr.quantidade));
+          }, 0) || 0;
+          return { ...w, saldo_atual: saldo };
+        });
+        setWarehouses(processed);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -73,6 +89,10 @@ export const WarehouseManagement: React.FC = () => {
       descricao: formData.get('descricao'),
       status: formData.get('status'),
       fazenda_id: formData.get('fazenda_id') || activeFarm.id,
+      capacidade_maxima: Number(formData.get('capacidade_maxima') || 0),
+      unidade_capacidade: formData.get('unidade_capacidade') || 'un',
+      tipo: formData.get('tipo'),
+      localizacao_tecnica: formData.get('localizacao_tecnica'),
       tenant_id: activeFarm.tenantId
     };
 
@@ -186,12 +206,12 @@ export const WarehouseManagement: React.FC = () => {
         />
         <EliteStatCard 
           label="Capacidade Utilizada" 
-          value="82%" 
+          value={`${warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) : 0), 0) / (warehouses.filter(w => w.capacidade_maxima > 0).length || 1) * 100 > 0 ? Math.round(warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) : 0), 0) / (warehouses.filter(w => w.capacidade_maxima > 0).length || 1) * 100) : 0}%`} 
           icon={Boxes} 
           color="#3b82f6"
-          progress={82}
-          change="+5% este mês"
-          periodLabel="Ocupação Média"
+          progress={warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) : 0), 0) / (warehouses.filter(w => w.capacidade_maxima > 0).length || 1) * 100}
+          change="Média Global"
+          periodLabel="Ocupação Real"
         />
         <EliteStatCard 
           label="Alertas de Manutenção" 
@@ -314,6 +334,7 @@ export const WarehouseManagement: React.FC = () => {
           <div className="warehouse-grid animate-fade-in">
             {filteredWarehouses.map(w => (
               <div key={w.id} className="warehouse-card">
+                <div className="type-badge">{w.tipo || 'Galpão'}</div>
                 <div className="w-icon">
                   <Layout size={24} />
                 </div>
@@ -321,10 +342,29 @@ export const WarehouseManagement: React.FC = () => {
                   <h3>{w.nome}</h3>
                   <p>{w.descricao || 'Sem descrição cadastrada'}</p>
                 </div>
+
+                {w.capacidade_maxima > 0 && (
+                  <div className="occupation-wrapper" style={{ marginBottom: '20px' }}>
+                    <div className="m-item" style={{ justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '10px' }}>OCUPAÇÃO ATUAL</span>
+                      <span style={{ fontWeight: 800 }}>{Math.round((w.saldo_atual / w.capacidade_maxima) * 100)}%</span>
+                    </div>
+                    <div className="occupation-bar">
+                      <div 
+                        className={`occupation-fill ${(w.saldo_atual / w.capacidade_maxima) > 0.9 ? 'danger' : (w.saldo_atual / w.capacidade_maxima) > 0.7 ? 'warning' : ''}`}
+                        style={{ width: `${Math.min((w.saldo_atual / w.capacidade_maxima) * 100, 100)}%` }}
+                      />
+                    </div>
+                    <div className="sub-meta" style={{ fontSize: '10px', color: '#94a3b8' }}>
+                      {w.saldo_atual} / {w.capacidade_maxima} {w.unidade_capacidade || 'un'}
+                    </div>
+                  </div>
+                )}
+
                 <div className="w-meta">
                   <div className="m-item">
                     <Boxes size={14} />
-                    <span>Farm: {activeFarm?.nome}</span>
+                    <span>{w.localizacao_tecnica || 'Localização não definida'}</span>
                   </div>
                   <div className="m-item">
                     <div className={`status-dot ${w.status === 'ativo' ? 'active' : ''}`} />
@@ -431,13 +471,19 @@ export const WarehouseManagement: React.FC = () => {
         .add-warehouse-card:hover { border-color: hsl(var(--brand)); color: hsl(var(--brand)); background: #f8fafc; }
         .add-warehouse-card span { font-size: 12px; font-weight: 900; }
 
+        .occupation-bar { width: 100%; height: 6px; background: #f1f5f9; border-radius: 3px; margin: 12px 0; overflow: hidden; }
+        .occupation-fill { height: 100%; background: hsl(var(--brand)); border-radius: 3px; transition: 0.5s; }
+        .occupation-fill.warning { background: #f59e0b; }
+        .occupation-fill.danger { background: #ef4444; }
+        .type-badge { position: absolute; top: 24px; right: 24px; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; text-transform: uppercase; }
+
         .modal-overlay {
           position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
           backdrop-filter: blur(8px); z-index: 10000; display: flex;
           align-items: center; justify-content: center; padding: 20px;
         }
         .plan-builder-modal {
-          background: white; width: 100%; max-width: 500px;
+          background: white; width: 100%; max-width: 850px;
           border-radius: 28px; overflow: hidden; box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
           display: flex; flex-direction: column; max-height: 90vh;
         }
@@ -459,6 +505,27 @@ export const WarehouseManagement: React.FC = () => {
         .elite-input:focus { border-color: #3b82f6; background: white; outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
         .close-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; transition: 0.2s; color: #94a3b8; background: transparent; border: none; cursor: pointer; }
         .close-btn:hover { background: #fee2e2; color: #ef4444; }
+
+        .form-section { display: flex; flex-direction: column; gap: 12px; padding: 16px 0; border-top: 1px solid #f1f5f9; }
+        .form-section:first-child { border-top: none; padding-top: 0; }
+        .section-title { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+        .input-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .elite-label { margin-bottom: 0 !important; }
+        
+        /* Premium Scrollbar */
+        .builder-body::-webkit-scrollbar { width: 6px; }
+        .builder-body::-webkit-scrollbar-track { background: transparent; }
+        .builder-body::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        
+        .field .elite-input {
+          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+          border-color: #e2e8f0;
+        }
+        
+        .field .elite-input:hover {
+          border-color: hsl(var(--brand) / 0.4);
+        }
       `}</style>
 
       {createPortal(
@@ -488,49 +555,85 @@ export const WarehouseManagement: React.FC = () => {
                     </button>
                   </header>
 
-                  <div className="builder-body">
-                    <div className="input-group-row">
-                      <div className="field">
-                        <label className="elite-label">Nome do Depósito</label>
-                        <input name="nome" type="text" className="elite-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
+                  <div className="builder-body" style={{ padding: '20px 32px' }}>
+                    {/* Seção 1: Identificação & Tipo */}
+                    <div className="form-section">
+                      <h3 className="section-title">Informações Básicas</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
+                        <div className="field">
+                          <label className="elite-label">Nome do Depósito</label>
+                          <input name="nome" type="text" className="elite-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
+                        </div>
+                        <div className="field">
+                          <label className="elite-label">Tipo de Estrutura</label>
+                          <select name="tipo" className="elite-input" defaultValue={selectedWarehouse?.tipo || 'Galpão'}>
+                            <option value="Galpão">Galpão Geral</option>
+                            <option value="Silo">Silo de Grãos/Sementes</option>
+                            <option value="Câmara Fria">Câmara Fria</option>
+                            <option value="Tanque">Tanque de Líquidos</option>
+                            <option value="Depósito de Defensivos">Depósito de Defensivos</option>
+                          </select>
+                        </div>
                       </div>
                       <div className="field">
-                        <label className="elite-label">Descrição / Observações</label>
-                        <textarea name="descricao" className="elite-input" style={{ height: '100px', resize: 'none' }} placeholder="Detalhes sobre a localização..." defaultValue={selectedWarehouse?.descricao}></textarea>
+                        <label className="elite-label">Descrição / Finalidade</label>
+                        <textarea name="descricao" className="elite-input" style={{ height: '60px', resize: 'none' }} placeholder="Detalhes estratégicos..." defaultValue={selectedWarehouse?.descricao}></textarea>
                       </div>
-                      <div className="field">
-                        <label className="elite-label">Fazenda Vinculada</label>
-                        <select 
-                          name="fazenda_id" 
-                          className="elite-input"
-                          defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id}
-                          required
-                        >
-                          <option value="">Selecione uma fazenda...</option>
-                          {farms.map(f => (
-                            <option key={f.id} value={f.id}>{f.nome}</option>
-                          ))}
-                        </select>
+                    </div>
+
+                    {/* Seção 2: Engenharia & Logística */}
+                    <div className="form-section">
+                      <h3 className="section-title">Engenharia & Logística</h3>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+                        <div className="field">
+                          <label className="elite-label">Capacidade Máxima</label>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <input name="capacidade_maxima" type="number" className="elite-input" style={{ flex: 1 }} placeholder="0.00" defaultValue={selectedWarehouse?.capacidade_maxima} />
+                            <select name="unidade_capacidade" className="elite-input" style={{ width: '75px', padding: '12px 8px' }} defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}>
+                              <option value="un">un</option>
+                              <option value="kg">kg</option>
+                              <option value="ton">ton</option>
+                              <option value="L">L</option>
+                              <option value="m³">m³</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="field">
+                          <label className="elite-label">Localização Técnica / GPS / Setor</label>
+                          <input name="localizacao_tecnica" type="text" className="elite-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
+                        </div>
                       </div>
-                      <div className="filter-field">
-                        <label className="elite-label">Status do Depósito</label>
-                        <select 
-                          name="status" 
-                          className="elite-input"
-                          defaultValue={selectedWarehouse?.status || 'ativo'}
-                        >
-                          <option value="ativo">Ativo</option>
-                          <option value="inativo">Inativo</option>
-                        </select>
+                    </div>
+
+                    {/* Seção 3: Governança Operacional */}
+                    <div className="form-section">
+                      <h3 className="section-title">Governança Operacional</h3>
+                      <div className="input-grid-2">
+                        <div className="field">
+                          <label className="elite-label">Fazenda Vinculada</label>
+                          <select name="fazenda_id" className="elite-input" defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id} required>
+                            <option value="">Selecione...</option>
+                            {farms.map(f => (
+                              <option key={f.id} value={f.id}>{f.nome}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="field">
+                          <label className="elite-label">Status do Ativo</label>
+                          <select name="status" className="elite-input" defaultValue={selectedWarehouse?.status || 'ativo'}>
+                            <option value="ativo">Operacional</option>
+                            <option value="inativo">Inativo</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <footer className="builder-footer">
-                    <button type="button" className="text-btn" onClick={() => setIsModalOpen(false)}>CANCELAR</button>
-                    <button type="submit" className="primary-btn">
-                      <CheckCircle2 size={18} />
-                      SALVAR DEPÓSITO
+                  <footer className="builder-footer" style={{ padding: '32px 40px' }}>
+                    <button type="button" className="text-btn" onClick={() => setIsModalOpen(false)}>DESCARTAR ALTERAÇÕES</button>
+                    <button type="submit" className="primary-btn" style={{ padding: '14px 48px', minWidth: '220px', fontSize: '12px' }}>
+                      <CheckCircle2 size={20} />
+                      {selectedWarehouse ? 'ATUALIZAR DEPÓSITO' : 'CONFIRMAR CADASTRO'}
                     </button>
                   </footer>
                 </form>
