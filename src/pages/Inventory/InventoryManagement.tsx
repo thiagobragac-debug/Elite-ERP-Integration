@@ -39,122 +39,36 @@ export const InventoryManagement: React.FC = () => {
   const { activeFarm } = useTenant();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'PRODUCTS' | 'WAREHOUSES'>('PRODUCTS');
   const [products, setProducts] = useState<any[]>([]);
-  const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isWarehouseModalOpen, setIsWarehouseModalOpen] = useState(false);
   const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     categoria: 'all',
     status: 'all'
   });
-  const [stats, setStats] = useState<any[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
     if (!activeFarm) return;
     fetchProducts();
-    fetchWarehouses();
   }, [activeFarm]);
-
-  const fetchWarehouses = async () => {
-    try {
-      const { data } = await supabase
-        .from('depositos')
-        .select('*')
-        .eq('fazenda_id', activeFarm.id)
-        .order('nome', { ascending: true });
-      if (data) setWarehouses(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('produtos')
         .select('*')
         .eq('fazenda_id', activeFarm.id)
         .order('nome', { ascending: true });
       
-      if (data) {
-        setProducts(data);
-        const valorTotal = data.reduce((acc, curr) => {
-          const saldo = curr.estoque_atual || 0;
-          const custo = curr.custo_medio || 0;
-          return acc + (Number(saldo) * Number(custo));
-        }, 0);
-        const abaixoMinimo = data.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length;
-        
-        setStats([
-          { 
-            label: 'Liquidez em Insumos', 
-            value: valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: DollarSign, 
-            color: 'hsl(var(--brand))', 
-            progress: 85,
-            change: 'Valor de Inventário',
-            periodLabel: 'Patrimônio Atual',
-            sparkline: [
-              { value: 60, label: 'R$ 150k' }, { value: 65, label: 'R$ 162k' }, { value: 70, label: 'R$ 175k' }, 
-              { value: 68, label: 'R$ 170k' }, { value: 75, label: 'R$ 185k' }, { value: 80, label: 'R$ 195k' }, 
-              { value: 90, label: 'R$ 210k' }, { value: 85, label: 'Total: R$ ' + (valorTotal / 1000).toFixed(0) + 'k' }
-            ]
-          },
-          { 
-            label: 'Ruptura de Estoque', 
-            value: abaixoMinimo, 
-            icon: AlertTriangle, 
-            color: '#ef4444', 
-            progress: data.length > 0 ? (abaixoMinimo / data.length) * 100 : 0, 
-            trend: 'down',
-            change: 'Crítico/Minimo',
-            periodLabel: 'Alertas Reposição',
-            sparkline: [
-              { value: 10, label: '1' }, { value: 20, label: '3' }, { value: 5, label: '0' }, 
-              { value: 30, label: '5' }, { value: 15, label: '2' }, { value: 25, label: '4' }, 
-              { value: 10, label: '1' }, { value: data.length > 0 ? (abaixoMinimo / data.length) * 100 : 0, label: abaixoMinimo + ' abaixo do min.' }
-            ]
-          },
-          { 
-            label: 'SKUs Ativos', 
-            value: data.length, 
-            icon: Boxes, 
-            color: 'hsl(230 60% 50%)', 
-            progress: 100,
-            change: 'Catálogo de Itens',
-            periodLabel: 'Mix de Produtos',
-            sparkline: [
-              { value: 80, label: '120' }, { value: 82, label: '124' }, { value: 85, label: '130' }, 
-              { value: 88, label: '135' }, { value: 90, label: '140' }, { value: 95, label: '150' }, 
-              { value: 100, label: '160' }, { value: 100, label: data.length.toString() }
-            ]
-          },
-          { 
-            label: 'Giro Mensal', 
-            value: '1.2x', 
-            icon: Zap, 
-            color: 'hsl(161 64% 25%)', 
-            progress: 40,
-            periodLabel: 'Evolução Logística',
-            sparkline: [
-              { value: 30, label: '0.8x' }, { value: 40, label: '1.0x' }, { value: 35, label: '0.9x' }, 
-              { value: 50, label: '1.2x' }, { value: 45, label: '1.1x' }, { value: 60, label: '1.4x' }, 
-              { value: 55, label: '1.3x' }, { value: 50, label: '1.2x' }
-            ]
-          },
-        ]);
-      }
+      if (data) setProducts(data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -172,21 +86,20 @@ export const InventoryManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!activeFarm) return;
 
+    const formData = new FormData(e.currentTarget);
     const payload = {
-      nome: formData.nome,
-      categoria: formData.categoria,
-      unidade: formData.unidade,
-      estoque_atual: parseFloat(formData.estoque_atual),
-      estoque_minimo: parseFloat(formData.estoque_minimo),
-      custo_medio: parseFloat(formData.custo_medio),
-      descricao: formData.descricao,
-      ean: formData.ean,
-      ncm: formData.ncm,
-      marca: formData.marca,
-      localizacao: formData.localizacao
+      nome: formData.get('nome'),
+      categoria: formData.get('categoria'),
+      unidade: formData.get('unidade'),
+      estoque_minimo: Number(formData.get('estoque_minimo')),
+      estoque_atual: Number(formData.get('estoque_atual')),
+      custo_medio: Number(formData.get('custo_medio')),
+      fazenda_id: activeFarm.id,
+      tenant_id: activeFarm.tenantId
     };
 
     if (selectedProduct) {
@@ -200,12 +113,10 @@ export const InventoryManagement: React.FC = () => {
         fetchProducts();
       }
     } else {
-      const { error } = await supabase.from('produtos').insert([{
-        ...payload,
-        fazenda_id: activeFarm.id,
-        tenant_id: activeFarm.tenantId
-      }]);
-
+      const { error } = await supabase
+        .from('produtos')
+        .insert([payload]);
+      
       if (!error) {
         setIsModalOpen(false);
         fetchProducts();
@@ -213,45 +124,14 @@ export const InventoryManagement: React.FC = () => {
     }
   };
 
-  const handleWarehouseSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!activeFarm) return;
-    const formData = new FormData(e.currentTarget);
-    const payload = {
-      nome: formData.get('nome'),
-      descricao: formData.get('descricao'),
-      fazenda_id: activeFarm.id,
-      tenant_id: activeFarm.tenantId
-    };
-
-    if (selectedWarehouse) {
-      const { error } = await supabase.from('depositos').update(payload).eq('id', selectedWarehouse.id);
-      if (!error) {
-        setIsWarehouseModalOpen(false);
-        fetchWarehouses();
-      }
-    } else {
-      const { error } = await supabase.from('depositos').insert([payload]);
-      if (!error) {
-        setIsWarehouseModalOpen(false);
-        fetchWarehouses();
-      }
-    }
-  };
-
-  const handleDeleteWarehouse = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este depósito?')) return;
-    const { error } = await supabase.from('depositos').delete().eq('id', id);
-    if (!error) fetchWarehouses();
-  };
-
   const handleMovementSubmit = async (data: any) => {
     if (!activeFarm) return;
-    const { error } = await supabase.from('movimentacoes_estoque').insert([{
+    const { error } = await supabase.from('estoque_movimentacao').insert([{
       ...data,
       fazenda_id: activeFarm.id,
       tenant_id: activeFarm.tenantId
     }]);
+
     if (!error) {
       setIsMovementModalOpen(false);
       fetchProducts();
@@ -287,6 +167,66 @@ export const InventoryManagement: React.FC = () => {
     }
     setHistoryLoading(false);
   };
+
+  const stats = [
+    { 
+      label: 'Liquidez em Insumos', 
+      value: `R$ ${products.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0).toLocaleString('pt-BR')}`, 
+      icon: DollarSign, 
+      color: '#10b981', 
+      progress: 85,
+      trend: 'up',
+      change: 'Valor de Inventário vs mês ant.',
+      periodLabel: 'Patrimônio Atual',
+      sparkline: [
+        { value: 10, label: 'Jan' }, { value: 15, label: 'Fev' }, { value: 8, label: 'Mar' }, 
+        { value: 20, label: 'Abr' }, { value: 18, label: 'Mai' }, { value: 25, label: 'Jun' }
+      ]
+    },
+    { 
+      label: 'Ruptura de Estoque', 
+      value: products.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length, 
+      icon: AlertTriangle, 
+      color: '#ef4444', 
+      progress: products.length > 0 ? (products.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length / products.length) * 100 : 0, 
+      trend: 'down',
+      change: 'Crítico/Minimo vs mês ant.',
+      periodLabel: 'Alertas Reposição',
+      sparkline: [
+        { value: 10, label: '1' }, { value: 20, label: '3' }, { value: 5, label: '0' }, 
+        { value: 30, label: '5' }, { value: 15, label: '2' }, { value: 25, label: '4' }, 
+        { value: 10, label: '1' }, { value: products.length > 0 ? (products.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length / products.length) * 100 : 0, label: 'Hoje' }
+      ]
+    },
+    { 
+      label: 'SKUs Ativos', 
+      value: products.length, 
+      icon: Boxes, 
+      color: '#3b82f6', 
+      progress: 65,
+      trend: 'up',
+      change: 'Catálogo de Itens vs mês ant.',
+      periodLabel: 'Mix de Produtos',
+      sparkline: [
+        { value: 50, label: 'Seg' }, { value: 52, label: 'Ter' }, { value: 51, label: 'Qua' }, 
+        { value: 55, label: 'Qui' }, { value: 54, label: 'Sex' }, { value: 56, label: 'Sab' }
+      ]
+    },
+    { 
+      label: 'Giro Mensal', 
+      value: '1.2x', 
+      icon: Zap, 
+      color: '#10b981', 
+      progress: 45,
+      trend: 'up',
+      change: 'Evolução Logística',
+      periodLabel: 'Giro Médio',
+      sparkline: [
+        { value: 1.0, label: 'S1' }, { value: 1.1, label: 'S2' }, { value: 1.3, label: 'S3' }, 
+        { value: 1.2, label: 'S4' }
+      ]
+    }
+  ];
 
   const columns = [
     {
@@ -345,15 +285,9 @@ export const InventoryManagement: React.FC = () => {
             <ArrowRightLeft size={18} />
             MOVIMENTAÇÃO
           </button>
-          <button className="primary-btn" onClick={() => {
-            if (activeTab === 'PRODUCTS') handleOpenCreate();
-            else {
-              setSelectedWarehouse(null);
-              setIsWarehouseModalOpen(true);
-            }
-          }}>
+          <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
-            {activeTab === 'PRODUCTS' ? 'NOVO ITEM' : 'NOVO DEPÓSITO'}
+            NOVO ITEM
           </button>
         </div>
       </header>
@@ -379,18 +313,15 @@ export const InventoryManagement: React.FC = () => {
 
       <div className="elite-controls-row">
         <div className="elite-tab-group">
-          <button 
-            className={`elite-tab-item ${activeTab === 'PRODUCTS' ? 'active' : ''}`} 
-            onClick={() => setActiveTab('PRODUCTS')}
-          >
-            Insumos & Produtos
-          </button>
-          <button 
-            className={`elite-tab-item ${activeTab === 'WAREHOUSES' ? 'active' : ''}`} 
-            onClick={() => setActiveTab('WAREHOUSES')}
-          >
-            Depósitos (Almoxarifado)
-          </button>
+          {['All', 'Suplemento', 'Vacina', 'Combustível', 'Semente'].map((cat) => (
+            <button 
+              key={cat}
+              className={`elite-tab-item ${filterValues.categoria === (cat === 'All' ? 'all' : cat) ? 'active' : ''}`} 
+              onClick={() => setFilterValues({...filterValues, categoria: cat === 'All' ? 'all' : cat})}
+            >
+              {cat === 'All' ? 'Consolidado' : cat}
+            </button>
+          ))}
         </div>
 
         <div className="elite-search-wrapper">
@@ -481,45 +412,7 @@ export const InventoryManagement: React.FC = () => {
       </AnimatePresence>
 
       <div className="management-content">
-        {activeTab === 'WAREHOUSES' ? (
-          <div className="warehouse-grid animate-fade-in">
-            {warehouses.map(w => (
-              <div key={w.id} className="warehouse-card">
-                <div className="w-icon">
-                  <Layout size={24} />
-                </div>
-                <div className="w-info">
-                  <h3>{w.nome}</h3>
-                  <p>{w.descricao || 'Sem descrição cadastrada'}</p>
-                </div>
-                <div className="w-meta">
-                  <div className="m-item">
-                    <Boxes size={14} />
-                    <span>Farm: {activeFarm.nome}</span>
-                  </div>
-                  <div className="m-item">
-                    <div className={`status-dot ${w.status === 'ativo' ? 'active' : ''}`} />
-                    <span>{w.status === 'ativo' ? 'Ativo' : 'Inativo'}</span>
-                  </div>
-                </div>
-                <div className="w-actions">
-                  <button onClick={() => {
-                    setSelectedWarehouse(w);
-                    setIsWarehouseModalOpen(true);
-                  }}>EDITAR</button>
-                  <button className="delete" onClick={() => handleDeleteWarehouse(w.id)}>EXCLUIR</button>
-                </div>
-              </div>
-            ))}
-            <button className="add-warehouse-card" onClick={() => {
-              setSelectedWarehouse(null);
-              setIsWarehouseModalOpen(true);
-            }}>
-              <Plus size={32} />
-              <span>CRIAR DEPÓSITO</span>
-            </button>
-          </div>
-        ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
           <ModernTable 
             data={products.filter(p => {
               const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -802,52 +695,9 @@ export const InventoryManagement: React.FC = () => {
           color: white;
         }
 
-        .warehouse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-        .warehouse-card { background: white; border-radius: 24px; padding: 24px; border: 1px solid #e2e8f0; position: relative; transition: 0.3s; }
-        .warehouse-card:hover { transform: translateY(-5px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1); border-color: hsl(var(--brand)); }
-        .w-icon { width: 50px; height: 50px; background: #f8fafc; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #64748b; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-        .w-info h3 { font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; }
-        .w-info p { font-size: 12px; color: #64748b; margin: 4px 0 20px; }
-        .w-meta { display: flex; gap: 16px; margin-bottom: 20px; padding: 12px; background: #f8fafc; border-radius: 12px; }
-        .m-item { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: #475569; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
-        .status-dot.active { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
-        .w-actions { display: flex; gap: 10px; }
-        .w-actions button { flex: 1; padding: 10px; border-radius: 10px; font-size: 11px; font-weight: 900; cursor: pointer; transition: 0.2s; border: none; }
-        .w-actions button:first-child { background: #f1f5f9; color: #475569; }
-        .w-actions button:first-child:hover { background: #e2e8f0; }
-        .w-actions button.delete { background: #fee2e2; color: #ef4444; }
-        .w-actions button.delete:hover { background: #fecaca; }
-
-        .add-warehouse-card { border: 2px dashed #e2e8f0; border-radius: 24px; min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: transparent; cursor: pointer; color: #94a3b8; transition: 0.2s; }
-        .add-warehouse-card:hover { border-color: hsl(var(--brand)); color: hsl(var(--brand)); background: #f8fafc; }
-        .add-warehouse-card span { font-size: 12px; font-weight: 900; }
-
-        .modal-overlay {
-          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
-          backdrop-filter: blur(8px); z-index: 10000; display: flex;
-          align-items: center; justify-content: center; padding: 20px;
-        }
-        .plan-builder-modal {
-          background: white; width: 100%; max-width: 600px;
-          border-radius: 28px; overflow: hidden; box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
-          display: flex; flex-direction: column; max-height: 90vh;
-        }
-        .builder-header { padding: 28px 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-        .icon-badge.brand { background: #eff6ff; color: #3b82f6; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-        .builder-header h2 { font-size: 20px; font-weight: 900; color: #0f172a; margin: 0; }
-        .builder-header p { font-size: 13px; color: #64748b; margin: 2px 0 0; }
-        .builder-body { padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
-        .builder-footer { padding: 24px 32px; border-top: 1px solid #f1f5f9; background: #f8fafc; display: flex; justify-content: flex-end; gap: 16px; }
-        
-        .input-group-row { display: flex; flex-direction: column; gap: 20px; }
         .elite-label { display: block; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
         .elite-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 14px; transition: 0.2s; background: #f8fafc; color: #1e293b; font-weight: 600; }
         .elite-input:focus { border-color: #3b82f6; background: white; outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
-        .elite-input:disabled { opacity: 0.6; cursor: not-allowed; }
-        
-        .close-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; transition: 0.2s; color: #94a3b8; background: transparent; border: none; cursor: pointer; }
-        .close-btn:hover { background: #fee2e2; color: #ef4444; }
       `}</style>
 
       <ProductForm 
@@ -872,68 +722,6 @@ export const InventoryManagement: React.FC = () => {
         items={historyItems}
         loading={historyLoading}
       />
-
-      {createPortal(
-        <AnimatePresence>
-          {isWarehouseModalOpen && (
-            <div className="modal-overlay" onClick={() => setIsWarehouseModalOpen(false)}>
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="plan-builder-modal"
-                style={{ maxWidth: '500px' }}
-                onClick={e => e.stopPropagation()}
-              >
-                <form onSubmit={handleWarehouseSubmit}>
-                  <header className="builder-header">
-                    <div className="title-group">
-                      <div className="icon-badge brand">
-                        <Layout size={22} />
-                      </div>
-                      <div>
-                        <h2>{selectedWarehouse ? 'Editar Depósito' : 'Novo Depósito'}</h2>
-                        <p>Vincule este almoxarifado à fazenda {activeFarm?.nome}</p>
-                      </div>
-                    </div>
-                    <button type="button" className="close-btn" onClick={() => setIsWarehouseModalOpen(false)}>
-                      <X size={20} />
-                    </button>
-                  </header>
-
-                  <div className="builder-body">
-                    <div className="builder-section">
-                      <div className="input-group-row">
-                        <div className="field">
-                          <label className="elite-label">Nome do Depósito</label>
-                          <input name="nome" type="text" className="elite-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
-                        </div>
-                        <div className="field">
-                          <label className="elite-label">Descrição / Observações</label>
-                          <textarea name="descricao" className="elite-input" style={{ height: '100px', resize: 'none' }} placeholder="Detalhes sobre a localização ou tipo de itens armazenados..." defaultValue={selectedWarehouse?.descricao}></textarea>
-                        </div>
-                        <div className="field">
-                          <label className="elite-label">Fazenda Vinculada</label>
-                          <input type="text" className="elite-input" value={activeFarm?.nome} disabled style={{ opacity: 0.6 }} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <footer className="builder-footer">
-                    <button type="button" className="text-btn" onClick={() => setIsWarehouseModalOpen(false)}>CANCELAR</button>
-                    <button type="submit" className="primary-btn">
-                      <CheckCircle2 size={18} />
-                      SALVAR DEPÓSITO
-                    </button>
-                  </footer>
-                </form>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
     </div>
   );
 };

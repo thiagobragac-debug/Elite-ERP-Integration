@@ -23,6 +23,7 @@ import { ReproductionManagement } from './pages/Pecuaria/ReproductionManagement'
 import { ConfinementManagement } from './pages/Pecuaria/ConfinementManagement';
 import { AnimalDetail } from './pages/Pecuaria/AnimalDetail';
 import { InventoryManagement } from './pages/Inventory/InventoryManagement';
+import { WarehouseManagement } from './pages/Inventory/WarehouseManagement';
 import { MovementManagement } from './pages/Inventory/MovementManagement';
 import { AuditManagement } from './pages/Inventory/AuditManagement';
 import { CashFlow } from './pages/Finance/CashFlow';
@@ -152,6 +153,7 @@ function AppContent() {
               
               {/* Estoque */}
               <Route path="/estoque/insumo" element={<InventoryManagement />} />
+              <Route path="/estoque/deposito" element={<WarehouseManagement />} />
               <Route path="/estoque/movimentacao" element={<MovementManagement />} />
               <Route path="/estoque/inventario" element={<AuditManagement />} />
               

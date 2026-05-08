@@ -86,11 +86,12 @@ const menuItems: NavItem[] = [
   { 
     title: 'Estoque', 
     icon: Package,
-    subItems: [
-      { title: 'Insumo', href: '/estoque/insumo' },
-      { title: 'Movimentação', href: '/estoque/movimentacao' },
-      { title: 'Inventário', href: '/estoque/inventario' },
-    ]
+      subItems: [
+        { title: 'Insumo', href: '/estoque/insumo' },
+        { title: 'Depósito', href: '/estoque/deposito' },
+        { title: 'Movimentação', href: '/estoque/movimentacao' },
+        { title: 'Inventário', href: '/estoque/inventario' },
+      ]
   },
   { 
     title: 'Financeiro & Banco', 
