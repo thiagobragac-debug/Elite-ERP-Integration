@@ -60,7 +60,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           backgroundColor: '#ffffff'
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
+        pagebreak: { mode: 'legacy' } // Legacy é mais estável para tabelas longas
       };
 
       html2pdf().set(opt).from(element).save().then(() => {
@@ -374,15 +374,17 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
         }
 
         .is-exporting-pdf .full-print-table tr { 
-          page-break-inside: avoid !important;
-          break-inside: avoid !important;
+          page-break-inside: auto !important; /* Permitir quebra natural para evitar gaps */
+          break-inside: auto !important;
         }
 
         .is-exporting-pdf .full-print-table th { 
-          background: #f1f5f9 !important; 
-          border: 1px solid #cbd5e1 !important; 
-          padding: 8px !important;
+          background: #e2e8f0 !important; 
+          border: 1px solid #94a3b8 !important; 
+          padding: 10px 8px !important;
           color: #000 !important;
+          font-weight: 900 !important;
+          text-transform: uppercase !important;
         }
 
         .is-exporting-pdf .full-print-table td { 
