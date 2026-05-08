@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BarChart2, 
@@ -28,9 +28,11 @@ import { QuotationForm } from '../../components/Forms/QuotationForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const QuotationMap: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [quotations, setQuotations] = useState<any[]>([]);
@@ -44,17 +46,15 @@ export const QuotationMap: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchQuotations();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchQuotations = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('mapas_cotacao')
-      .select('*')
-      .eq('fazenda_id', activeFarm.id)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('mapas_cotacao').select('*').order('created_at', { ascending: false });
+    query = applyFarmFilter(query);
+    const { data } = await query;
     
     if (data) {
       setQuotations(data);
@@ -81,7 +81,10 @@ export const QuotationMap: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) return;
+    if (!canCreate) {
+      alert('⚠️ Selecione uma unidade específica para criar um mapa de cotação. No modo Visão Global, a fazenda emitente deve ser definida.');
+      return;
+    }
     const payload = {
       produto_id: formData.item_id,
       quantidade: parseFloat(formData.quantity),
@@ -94,7 +97,7 @@ export const QuotationMap: React.FC = () => {
       const { error } = await supabase.from('mapas_cotacao').update(payload).eq('id', selectedQuotation.id);
       if (!error) { setIsModalOpen(false); fetchQuotations(); }
     } else {
-      const { error } = await supabase.from('mapas_cotacao').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
+      const { error } = await supabase.from('mapas_cotacao').insert([{ ...payload, ...insertPayload }]);
       if (!error) { setIsModalOpen(false); fetchQuotations(); }
     }
   };
@@ -174,6 +177,7 @@ export const QuotationMap: React.FC = () => {
 
   return (
     <div className="quotation-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

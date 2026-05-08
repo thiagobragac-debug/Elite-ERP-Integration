@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -33,10 +33,12 @@ import { MovementForm } from '../../components/Forms/MovementForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { formatNumber } from '../../utils/format';
 
 export const InventoryManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<any[]>([]);
@@ -55,18 +57,16 @@ export const InventoryManagement: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchProducts();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('produtos')
-        .select('*')
-        .eq('fazenda_id', activeFarm.id)
-        .order('nome', { ascending: true });
+      let query = supabase.from('produtos').select('*').order('nome', { ascending: true });
+      query = applyFarmFilter(query);
+      const { data, error } = await query;
       
       if (data) setProducts(data);
     } catch (err) {
@@ -88,7 +88,10 @@ export const InventoryManagement: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!activeFarm) return;
+    if (!canCreate && !selectedProduct) {
+      alert('⚠️ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.');
+      return;
+    }
 
     const formData = new FormData(e.currentTarget);
     const payload = {
@@ -98,8 +101,7 @@ export const InventoryManagement: React.FC = () => {
       estoque_minimo: Number(formData.get('estoque_minimo')),
       estoque_atual: Number(formData.get('estoque_atual')),
       custo_medio: Number(formData.get('custo_medio')),
-      fazenda_id: activeFarm.id,
-      tenant_id: activeFarm.tenantId
+      ...insertPayload
     };
 
     if (selectedProduct) {
@@ -282,6 +284,7 @@ export const InventoryManagement: React.FC = () => {
 
   return (
     <div className="inventory-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

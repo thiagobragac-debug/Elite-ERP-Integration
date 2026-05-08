@@ -25,9 +25,11 @@ import { useTenant } from '../../contexts/TenantContext';
 import { ContractForm } from '../../components/Forms/ContractForm';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const Contracts: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,17 +45,15 @@ export const Contracts: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchContracts();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchContracts = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('contratos')
-      .select('*, clientes(nome)')
-      .eq('fazenda_id', activeFarm.id)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('contratos').select('*, clientes(nome)').order('created_at', { ascending: false });
+    query = applyFarmFilter(query);
+    const { data } = await query;
     
     if (data) {
       setContracts(data);
@@ -82,7 +82,10 @@ export const Contracts: React.FC = () => {
   };
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
+    if (!canCreate) {
+      alert('⚠️ Selecione uma unidade específica para registrar um novo contrato. No modo Visão Global, a fazenda contratante deve ser definida.');
+      return;
+    }
     const payload: any = {
       numero_contrato: data.contract_number,
       tipo: data.type,
@@ -99,7 +102,7 @@ export const Contracts: React.FC = () => {
       const { error } = await supabase.from('contratos').update(payload).eq('id', selectedContract.id);
       if (!error) { setIsModalOpen(false); fetchContracts(); }
     } else {
-      const { error } = await supabase.from('contratos').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
+      const { error } = await supabase.from('contratos').insert([{ ...payload, ...insertPayload }]);
       if (!error) { setIsModalOpen(false); fetchContracts(); }
     }
   };
@@ -172,6 +175,7 @@ export const Contracts: React.FC = () => {
 
   return (
     <div className="contract-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

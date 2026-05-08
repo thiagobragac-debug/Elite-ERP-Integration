@@ -30,9 +30,11 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const FleetManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -54,18 +56,16 @@ export const FleetManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchMachines();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchMachines = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from('maquinas')
-        .select('*')
-        .eq('fazenda_id', activeFarm.id)
-        .order('nome', { ascending: true });
+      let query = supabase.from('maquinas').select('*').order('nome', { ascending: true });
+      query = applyFarmFilter(query);
+      const { data } = await query;
       
       if (data) {
         setMachines(data);
@@ -152,7 +152,10 @@ export const FleetManagement: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) return;
+    if (!canCreate && !selectedMachine) {
+      alert('⚠️ Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.');
+      return;
+    }
     const payload = {
       nome: formData.nome,
       marca: formData.marca,
@@ -175,17 +178,19 @@ export const FleetManagement: React.FC = () => {
       const { error } = await supabase.from('maquinas').update(payload).eq('id', selectedMachine.id);
       if (!error) { setIsModalOpen(false); fetchMachines(); }
     } else {
-      const { error } = await supabase.from('maquinas').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
+      const { error } = await supabase.from('maquinas').insert([{ ...payload, ...insertPayload }]);
       if (!error) { setIsModalOpen(false); fetchMachines(); }
     }
   };
 
   const handleMaintenanceSubmit = async (data: any) => {
-    if (!activeFarm) return;
+    if (!canCreate) {
+      alert('⚠️ Selecione uma unidade específica para registrar uma manutenção. No modo Visão Global, a fazenda deve ser definida.');
+      return;
+    }
     const { error } = await supabase.from('manutencoes').insert([{
       ...data,
-      fazenda_id: activeFarm.id,
-      tenant_id: activeFarm.tenantId
+      ...insertPayload
     }]);
     if (!error) {
       setIsMaintenanceModalOpen(false);
@@ -258,6 +263,7 @@ export const FleetManagement: React.FC = () => {
 
   return (
     <div className="fleet-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

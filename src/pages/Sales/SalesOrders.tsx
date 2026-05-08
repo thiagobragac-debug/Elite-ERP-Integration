@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   FileText, 
@@ -31,9 +31,11 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const SalesOrders: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
@@ -53,18 +55,16 @@ export const SalesOrders: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchOrders();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from('pedidos_venda')
-        .select('*, clientes(nome)')
-        .eq('fazenda_id', activeFarm.id)
-        .order('created_at', { ascending: false });
+      let query = supabase.from('pedidos_venda').select('*, clientes(nome)').order('created_at', { ascending: false });
+      query = applyFarmFilter(query);
+      const { data } = await query;
       
       if (data) {
         setOrders(data);
@@ -150,7 +150,10 @@ export const SalesOrders: React.FC = () => {
   };
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
+    if (!canCreate) {
+      alert('⚠️ Selecione uma unidade específica para registrar um pedido. No modo Visão Global, defina a fazenda emitente antes de prosseguir.');
+      return;
+    }
     const payload = {
       numero_pedido: data.orderNumber,
       cliente_id: data.clientId,
@@ -172,7 +175,7 @@ export const SalesOrders: React.FC = () => {
       const { error } = await supabase.from('pedidos_venda').update(payload).eq('id', selectedOrder.id);
       if (!error) { setIsModalOpen(false); fetchOrders(); }
     } else {
-      const { error } = await supabase.from('pedidos_venda').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
+      const { error } = await supabase.from('pedidos_venda').insert([{ ...payload, ...insertPayload }]);
       if (!error) { setIsModalOpen(false); fetchOrders(); }
     }
   };
@@ -238,6 +241,7 @@ export const SalesOrders: React.FC = () => {
 
   return (
     <div className="orders-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

@@ -28,10 +28,12 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import './LotManagement.css';
 
 export const LotManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [lots, setLots] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,18 +54,16 @@ export const LotManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchLots();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchLots = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from('lotes')
-        .select('*')
-        .eq('fazenda_id', activeFarm.id)
-        .order('created_at', { ascending: false });
+      let query = supabase.from('lotes').select('*').order('created_at', { ascending: false });
+      query = applyFarmFilter(query);
+      const { data } = await query;
       
         if (data) {
           setLots(data);
@@ -156,7 +156,10 @@ export const LotManagement: React.FC = () => {
   };
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
+    if (!canCreate && !selectedLot) {
+      alert('⚠️ Selecione uma unidade específica para criar um novo lote. No modo Visão Global, a fazenda deve ser definida.');
+      return;
+    }
 
     const payload = {
       nome: data.nome,
@@ -181,8 +184,7 @@ export const LotManagement: React.FC = () => {
     } else {
       const { error } = await supabase.from('lotes').insert([{
         ...payload,
-        fazenda_id: activeFarm.id,
-        tenant_id: activeFarm.tenantId
+        ...insertPayload
       }]);
       if (!error) {
         setIsModalOpen(false);
@@ -234,6 +236,7 @@ export const LotManagement: React.FC = () => {
 
   return (
     <div className="lot-mgmt-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

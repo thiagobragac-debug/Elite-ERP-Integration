@@ -23,9 +23,11 @@ import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { FormModal } from '../../components/Forms/FormModal';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const WarehouseManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,35 +39,30 @@ export const WarehouseManagement: React.FC = () => {
   const [farms, setFarms] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchWarehouses();
     fetchFarms();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchFarms = async () => {
-    if (!activeFarm) return;
-    const { data } = await supabase
-      .from('fazendas')
-      .select('id, nome')
-      .eq('tenant_id', activeFarm.tenantId || activeFarm.tenant_id);
+    let query = supabase.from('fazendas').select('id, nome');
+    query = applyTenantFilter(query);
+    const { data } = await query;
     if (data) setFarms(data);
   };
 
   const fetchWarehouses = async () => {
     setLoading(true);
     try {
-      // Fetch warehouses and calculate current balance per warehouse
-      const { data, error } = await supabase
-        .from('depositos')
-        .select(`
+      let query = supabase.from('depositos').select(`
           *,
           movimentacoes_estoque (
             quantidade,
             tipo
           )
-        `)
-        .eq('fazenda_id', activeFarm.id)
-        .order('nome', { ascending: true });
+        `).order('nome', { ascending: true });
+      query = applyFarmFilter(query);
+      const { data, error } = await query;
 
       if (data) {
         const processed = data.map((w: any) => {
@@ -85,18 +82,21 @@ export const WarehouseManagement: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!activeFarm) return;
+    if (!canCreate && !selectedWarehouse) {
+      alert('⚠️ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.');
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     const payload = {
       nome: formData.get('nome'),
       descricao: formData.get('descricao'),
       status: formData.get('status'),
-      fazenda_id: formData.get('fazenda_id') || activeFarm.id,
+      fazenda_id: formData.get('fazenda_id') || activeFarmId,
       capacidade_maxima: Number(formData.get('capacidade_maxima') || 0),
       unidade_capacidade: formData.get('unidade_capacidade') || 'un',
       tipo: formData.get('tipo'),
       localizacao_tecnica: formData.get('localizacao_tecnica'),
-      tenant_id: activeFarm.tenantId
+      tenant_id: activeTenantId
     };
 
     // Check if inactivating and verify balance
@@ -125,7 +125,7 @@ export const WarehouseManagement: React.FC = () => {
         fetchWarehouses();
       }
     } else {
-      const { error } = await supabase.from('depositos').insert([payload]);
+      const { error } = await supabase.from('depositos').insert([{ ...payload, ...insertPayload }]);
       if (!error) {
         setIsModalOpen(false);
         fetchWarehouses();
@@ -177,6 +177,7 @@ export const WarehouseManagement: React.FC = () => {
 
   return (
     <div className="inventory-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

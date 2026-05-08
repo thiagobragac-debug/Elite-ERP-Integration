@@ -27,11 +27,13 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { HealthProtocolsModal } from './components/HealthProtocolsModal';
 import './HealthManagement.css';
 
 export const HealthManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [events, setEvents] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'MANEJOS' | 'PROTOCOLOS'>('MANEJOS');
   const [loading, setLoading] = useState(true);
@@ -44,17 +46,15 @@ export const HealthManagement: React.FC = () => {
   const [isProtocolsModalOpen, setIsProtocolsModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchEvents();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchEvents = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('sanidade')
-      .select('*, animais(brinco)')
-      .eq('fazenda_id', activeFarm.id)
-      .order('data_manejo', { ascending: false });
+    let query = supabase.from('sanidade').select('*, animais(brinco)').order('data_manejo', { ascending: false });
+    query = applyFarmFilter(query);
+    const { data } = await query;
     
     if (data) {
       setEvents(data);
@@ -72,6 +72,10 @@ export const HealthManagement: React.FC = () => {
   };
 
   const handleOpenCreate = () => {
+    if (!canCreate) {
+      alert('⚠️ Selecione uma unidade específica para registrar um novo manejo sanitário. No modo Visão Global, a fazenda deve ser definida.');
+      return;
+    }
     setSelectedEvent(null);
     setIsModalOpen(true);
   };
@@ -139,6 +143,7 @@ export const HealthManagement: React.FC = () => {
 
   return (
     <div className="health-mgmt-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

@@ -36,11 +36,13 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useNavigate } from 'react-router-dom';
 import { ReportViewer } from './components/ReportViewer';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { fetchReportDataById } from '../../hooks/useReportData';
 import { exportToExcel } from '../../utils/exportUtils';
 
 export const Reports: React.FC = () => {
-  const { activeFarm, tenant, userProfile, refreshProfile } = useTenant();
+  const { activeFarm, tenant, userProfile, refreshProfile, isGlobalMode, activeFarmId } = useFarmFilter();
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<'all' | 'finance' | 'livestock' | 'fleet' | 'supply' | 'sales' | 'gov'>('all');
   const [selectedReport, setSelectedReport] = useState<any>(null);
@@ -199,6 +201,7 @@ export const Reports: React.FC = () => {
 
   return (
     <div className="admin-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
@@ -206,7 +209,11 @@ export const Reports: React.FC = () => {
             <span>ELITE INTELLIGENCE v5.0</span>
           </div>
           <h1 className="page-title">Relatórios Operacionais</h1>
-          <p className="page-subtitle">Listagem técnica e exportação de documentos da unidade <strong>{activeFarm?.name || 'sua fazenda'}</strong>.</p>
+          <p className="page-subtitle">
+            {isGlobalMode 
+              ? 'Visão consolidada de todas as unidades produtivas do grupo.' 
+              : `Listagem técnica e exportação de documentos da unidade ${activeFarm?.name || 'sua fazenda'}.`}
+          </p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => navigate('/bi')}>

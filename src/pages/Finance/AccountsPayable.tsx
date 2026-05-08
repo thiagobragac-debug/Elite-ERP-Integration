@@ -33,10 +33,12 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import './AccountsPayable.css';
 
 export const AccountsPayable: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bills, setBills] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'TODAS' | 'PENDENTE' | 'PAGO'>('TODAS');
@@ -51,9 +53,9 @@ export const AccountsPayable: React.FC = () => {
   const [filterValues, setFilterValues] = useState({ status: 'all', dateStart: '', dateEnd: '' });
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchBills();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const [searchParams] = useSearchParams();
 
@@ -72,11 +74,9 @@ export const AccountsPayable: React.FC = () => {
   const fetchBills = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from('contas_pagar')
-        .select('*, fornecedores(nome)')
-        .eq('fazenda_id', activeFarm.id)
-        .order('data_vencimento', { ascending: true });
+      let query = supabase.from('contas_pagar').select('*, fornecedores(nome)').order('data_vencimento', { ascending: true });
+      query = applyFarmFilter(query);
+      const { data } = await query;
       
       if (data) {
         setBills(data);
@@ -110,7 +110,10 @@ export const AccountsPayable: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) return;
+    if (!canCreate && !selectedBill) {
+      alert('⚠️ Selecione uma unidade específica para registrar uma nova conta. No modo Visão Global, a fazenda devedora deve ser definida.');
+      return;
+    }
 
     const payload = {
       descricao: formData.description,
@@ -120,8 +123,7 @@ export const AccountsPayable: React.FC = () => {
       fornecedor_id: formData.entityId,
       metodo_pagamento: formData.paymentMethod,
       status: formData.status,
-      fazenda_id: activeFarm.id,
-      tenant_id: activeFarm.tenantId
+      ...insertPayload
     };
 
     if (selectedBill) {
@@ -137,7 +139,7 @@ export const AccountsPayable: React.FC = () => {
     } else {
       const { error } = await supabase
         .from('contas_pagar')
-        .insert([payload]);
+        .insert([{ ...payload, ...insertPayload }]);
 
       if (!error) {
         setIsModalOpen(false);
@@ -214,6 +216,7 @@ export const AccountsPayable: React.FC = () => {
 
   return (
     <div className="accounts-payable-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

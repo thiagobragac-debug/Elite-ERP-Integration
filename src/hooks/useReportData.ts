@@ -15,16 +15,21 @@ export interface ReportData {
   error: string | null;
 }
 
-export const fetchReportDataById = async (reportId: string, tenantId: string) => {
+export const fetchReportDataById = async (reportId: string, tenantId: string, fazendaId?: string) => {
   let data: any[] = [];
   let stats: any[] = [];
   let columns: any[] = [];
+
+  const applyFilter = (query: any) => {
+    if (fazendaId) return query.eq('fazenda_id', fazendaId);
+    return query.eq('tenant_id', tenantId);
+  };
 
   try {
     switch (reportId) {
       case 'performance-ponderal':
       case '1': { // Pecuária: Performance Ponderal
-        const { data: pesagens, error: pError } = await supabase
+        let pQuery = supabase
           .from('pesagens')
           .select(`
             id,
@@ -32,9 +37,11 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
             peso,
             animais (brinco, lote_id)
           `)
-          .eq('tenant_id', tenantId)
           .order('data_pesagem', { ascending: false })
           .limit(100);
+        
+        pQuery = applyFilter(pQuery);
+        const { data: pesagens, error: pError } = await pQuery;
 
         if (pError) throw pError;
 
@@ -64,11 +71,13 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
 
       case 'fluxo-caixa':
       case '6': { // Financeiro: Fluxo de Caixa
-        const { data: finance, error: fError } = await supabase
+        let fQuery = supabase
           .from('contas_receber')
           .select('*')
-          .eq('tenant_id', tenantId)
           .order('data_vencimento', { ascending: false });
+        
+        fQuery = applyFilter(fQuery);
+        const { data: finance, error: fError } = await fQuery;
 
         if (fError) throw fError;
 
@@ -98,11 +107,13 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
 
       case 'sanidade-animal':
       case '2': { // Pecuária: Sanidade
-        const { data: sanidade, error: sError } = await supabase
+        let sQuery = supabase
           .from('sanidade')
           .select('*')
-          .eq('tenant_id', tenantId)
           .limit(50);
+        
+        sQuery = applyFilter(sQuery);
+        const { data: sanidade, error: sError } = await sQuery;
 
         if (sError) throw sError;
 
@@ -131,11 +142,13 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
 
       case 'consumo-frotas':
       case '11': { // Frotas: Abastecimento
-        const { data: frota, error: frError } = await supabase
+        let frQuery = supabase
           .from('abastecimentos')
           .select('*, maquinas(nome)')
-          .eq('tenant_id', tenantId)
           .limit(50);
+        
+        frQuery = applyFilter(frQuery);
+        const { data: frota, error: frError } = await frQuery;
 
         if (frError) throw frError;
 
@@ -165,11 +178,13 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
 
       case 'movimentacao-estoque':
       case '16': { // Suprimentos: Estoque
-        const { data: estoque, error: esError } = await supabase
+        let esQuery = supabase
           .from('movimentacoes_estoque')
           .select('*, produtos(nome)')
-          .eq('tenant_id', tenantId)
           .limit(50);
+        
+        esQuery = applyFilter(esQuery);
+        const { data: estoque, error: esError } = await esQuery;
 
         if (esError) throw esError;
 
@@ -197,11 +212,13 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '8': { // Financeiro: Contas a Pagar
-        const { data: pagar, error: pErr } = await supabase
+        let pgQuery = supabase
           .from('contas_pagar')
           .select('*')
-          .eq('tenant_id', tenantId)
           .order('data_vencimento', { ascending: true });
+        
+        pgQuery = applyFilter(pgQuery);
+        const { data: pagar, error: pErr } = await pgQuery;
         if (pErr) throw pErr;
         data = pagar.map(p => ({ id: p.id, desc: p.descricao, valor: p.valor_total, data: new Date(p.data_vencimento).toLocaleDateString('pt-BR'), status: p.status }));
         columns = [{ header: 'Descrição', accessor: 'desc' }, { header: 'Valor', accessor: 'valor' }, { header: 'Vencimento', accessor: 'data' }, { header: 'Status', accessor: 'status' }];
@@ -211,10 +228,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '10': { // Financeiro: Extrato Bancário
-        const { data: contas, error: cError } = await supabase
-          .from('contas_bancarias')
-          .select('*')
-          .eq('tenant_id', tenantId);
+        let cQuery = supabase.from('contas_bancarias').select('*');
+        cQuery = applyFilter(cQuery);
+        const { data: contas, error: cError } = await cQuery;
         if (cError) throw cError;
         data = contas.map(c => ({ id: c.id, banco: c.banco, conta: c.conta, saldo: c.saldo_atual, tipo: c.tipo }));
         columns = [{ header: 'Banco', accessor: 'banco' }, { header: 'Conta', accessor: 'conta' }, { header: 'Tipo', accessor: 'tipo' }, { header: 'Saldo Atual', accessor: 'saldo' }];
@@ -224,10 +240,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '12': { // Frotas: Manutenções
-        const { data: manut, error: mError } = await supabase
-          .from('manutencao_frota')
-          .select('*, maquinas(nome)')
-          .eq('tenant_id', tenantId);
+        let mQuery = supabase.from('manutencao_frota').select('*, maquinas(nome)');
+        mQuery = applyFilter(mQuery);
+        const { data: manut, error: mError } = await mQuery;
         if (mError) throw mError;
         data = manut.map(m => ({ id: m.id, maq: m.maquinas?.nome || 'N/A', tipo: m.tipo, valor: m.custo, data: new Date(m.data_inicio).toLocaleDateString('pt-BR') }));
         columns = [{ header: 'Equipamento', accessor: 'maq' }, { header: 'Tipo', accessor: 'tipo' }, { header: 'Custo', accessor: 'valor' }, { header: 'Data', accessor: 'data' }];
@@ -237,10 +252,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '14': { // Suprimentos: Inventário
-        const { data: inv, error: iError } = await supabase
-          .from('produtos')
-          .select('*')
-          .eq('tenant_id', tenantId);
+        let iQuery = supabase.from('produtos').select('*');
+        iQuery = applyFilter(iQuery);
+        const { data: inv, error: iError } = await iQuery;
         if (iError) throw iError;
         data = inv.map(i => ({ id: i.id, nome: i.nome, qtd: i.estoque_atual, un: i.unidade_medida || i.unidade, valor: i.custo_medio }));
         columns = [{ header: 'Produto', accessor: 'nome' }, { header: 'Estoque', accessor: 'qtd' }, { header: 'Unidade', accessor: 'un' }, { header: 'Custo Médio', accessor: 'valor' }];
@@ -250,10 +264,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '17': { // Vendas: Pedidos
-        const { data: vendas, error: vError } = await supabase
-          .from('pedidos_venda')
-          .select('*, clientes(nome)')
-          .eq('tenant_id', tenantId);
+        let vQuery = supabase.from('pedidos_venda').select('*, clientes(nome)');
+        vQuery = applyFilter(vQuery);
+        const { data: vendas, error: vError } = await vQuery;
         if (vError) throw vError;
         data = vendas.map(v => ({ id: v.id, cliente: v.clientes?.nome || 'N/A', total: v.valor_total, status: v.status, data: new Date(v.created_at).toLocaleDateString('pt-BR') }));
         columns = [{ header: 'Cliente', accessor: 'cliente' }, { header: 'Total', accessor: 'total' }, { header: 'Status', accessor: 'status' }, { header: 'Data', accessor: 'data' }];
@@ -263,10 +276,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '20': { // Clientes
-        const { data: cls, error: clError } = await supabase
-          .from('clientes')
-          .select('*')
-          .eq('tenant_id', tenantId);
+        let clQuery = supabase.from('clientes').select('*');
+        clQuery = applyFilter(clQuery);
+        const { data: cls, error: clError } = await clQuery;
         if (clError) throw clError;
         data = cls.map(c => ({ id: c.id, nome: c.nome, cnpj: c.documento, cidade: c.cidade }));
         columns = [{ header: 'Cliente', accessor: 'nome' }, { header: 'CNPJ/CPF', accessor: 'cnpj' }, { header: 'Cidade', accessor: 'cidade' }];
@@ -275,12 +287,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '21': { // Governança: Audit Logs
-        const { data: logs, error: lError } = await supabase
-          .from('audit_logs')
-          .select('*')
-          .eq('tenant_id', tenantId)
-          .order('created_at', { ascending: false })
-          .limit(50);
+        let lQuery = supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(50);
+        lQuery = applyFilter(lQuery);
+        const { data: logs, error: lError } = await lQuery;
         if (lError) throw lError;
         data = logs.map(l => ({ id: l.id, acao: l.action, modulo: l.table_name, user: l.user_id, data: new Date(l.created_at).toLocaleString('pt-BR') }));
         columns = [{ header: 'Ação', accessor: 'acao' }, { header: 'Módulo', accessor: 'modulo' }, { header: 'Usuário', accessor: 'user' }, { header: 'Data/Hora', accessor: 'data' }];
@@ -289,10 +298,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '3': { // Pecuária: Pastagens
-        const { data: pastos, error: pasError } = await supabase
-          .from('pastos')
-          .select('*, animais(count)')
-          .eq('tenant_id', tenantId);
+        let pasQuery = supabase.from('pastos').select('*, animais(count)');
+        pasQuery = applyFilter(pasQuery);
+        const { data: pastos, error: pasError } = await pasQuery;
         if (pasError) throw pasError;
         data = pastos.map(p => ({ id: p.id, nome: p.nome, area: `${p.area} ha`, lotacao: `${(p.animais?.[0]?.count || 0) / (Number(p.area) || 1).toFixed(2)} UA/ha` }));
         columns = [{ header: 'Pasto', accessor: 'nome' }, { header: 'Área', accessor: 'area' }, { header: 'Lotação Atual', accessor: 'lotacao' }];
@@ -301,8 +309,13 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '7': { // Financeiro: DRE
-        const { data: rec } = await supabase.from('contas_receber').select('valor_total').eq('tenant_id', tenantId).eq('status', 'Efetivado');
-        const { data: pagDre } = await supabase.from('contas_pagar').select('valor_total').eq('tenant_id', tenantId).eq('status', 'Efetivado');
+        let rQuery = supabase.from('contas_receber').select('valor_total').eq('status', 'Efetivado');
+        rQuery = applyFilter(rQuery);
+        const { data: rec } = await rQuery;
+
+        let pDreQuery = supabase.from('contas_pagar').select('valor_total').eq('status', 'Efetivado');
+        pDreQuery = applyFilter(pDreQuery);
+        const { data: pagDre } = await pDreQuery;
         const totalRec = rec?.reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0) || 0;
         const totalPag = pagDre?.reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0) || 0;
         data = [
@@ -316,9 +329,17 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '13': { // Frotas: Custo Total
-        const { data: cMaquinas } = await supabase.from('maquinas').select('id, nome').eq('tenant_id', tenantId);
-        const { data: cAbast } = await supabase.from('abastecimentos').select('maquina_id, valor_total').eq('tenant_id', tenantId);
-        const { data: cManut } = await supabase.from('manutencao_frota').select('maquina_id, custo').eq('tenant_id', tenantId);
+        let mchQuery = supabase.from('maquinas').select('id, nome');
+        mchQuery = applyFilter(mchQuery);
+        const { data: cMaquinas } = await mchQuery;
+
+        let absQuery = supabase.from('abastecimentos').select('maquina_id, valor_total');
+        absQuery = applyFilter(absQuery);
+        const { data: cAbast } = await absQuery;
+
+        let mntQuery = supabase.from('manutencao_frota').select('maquina_id, custo');
+        mntQuery = applyFilter(mntQuery);
+        const { data: cManut } = await mntQuery;
         data = cMaquinas?.map(m => {
           const abast = cAbast?.filter(a => a.maquina_id === m.id).reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0) || 0;
           const manut = cManut?.filter(ma => ma.maquina_id === m.id).reduce((acc, curr) => acc + (Number(curr.custo) || 0), 0) || 0;
@@ -330,10 +351,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '22': { // Governança: Usuários
-        const { data: users, error: uError } = await supabase
-          .from('perfis_usuario')
-          .select('*')
-          .eq('tenant_id', tenantId);
+        let usrQuery = supabase.from('perfis_usuario').select('*');
+        usrQuery = applyFilter(usrQuery);
+        const { data: users, error: uError } = await usrQuery;
         if (uError) throw uError;
         data = users.map(u => ({ id: u.id, nome: u.nome, cargo: u.cargo, status: u.ativo ? 'Ativo' : 'Inativo' }));
         columns = [{ header: 'Colaborador', accessor: 'nome' }, { header: 'Cargo/Função', accessor: 'cargo' }, { header: 'Status', accessor: 'status' }];
@@ -342,7 +362,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '15': { // Suprimentos: Compras
-        const { data: compras, error: comError } = await supabase.from('pedidos_compra').select('*, fornecedores(nome)').eq('tenant_id', tenantId);
+        let pcomQuery = supabase.from('pedidos_compra').select('*, fornecedores(nome)');
+        pcomQuery = applyFilter(pcomQuery);
+        const { data: compras, error: comError } = await pcomQuery;
         if (comError) throw comError;
         data = compras.map(c => ({ id: c.id, forn: c.fornecedores?.nome || 'N/A', total: c.valor_total, status: c.status, data: new Date(c.created_at).toLocaleDateString('pt-BR') }));
         columns = [{ header: 'Fornecedor', accessor: 'forn' }, { header: 'Total', accessor: 'total' }, { header: 'Status', accessor: 'status' }, { header: 'Data', accessor: 'data' }];
@@ -351,7 +373,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '4': { // Pecuária: Confinamento
-        const { data: conf, error: confError } = await supabase.from('confinamento').select('*').eq('tenant_id', tenantId);
+        let confQuery = supabase.from('confinamento').select('*');
+        confQuery = applyFilter(confQuery);
+        const { data: conf, error: confError } = await confQuery;
         if (confError) throw confError;
         data = conf.map(c => ({ id: c.id, lote: c.nome_curral, entrada: new Date(c.data_inicio).toLocaleDateString('pt-BR'), dias: c.dof_alvo, gmd: '1.25' }));
         columns = [{ header: 'Curral/Lote', accessor: 'lote' }, { header: 'Data Início', accessor: 'entrada' }, { header: 'DOF Alvo', accessor: 'dias' }, { header: 'GMD Médio', accessor: 'gmd' }];
@@ -360,7 +384,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '5': { // Pecuária: Reprodução
-        const { data: reprod, error: repError } = await supabase.from('eventos_reprodutivos').select('*').eq('tenant_id', tenantId);
+        let repQuery = supabase.from('eventos_reprodutivos').select('*');
+        repQuery = applyFilter(repQuery);
+        const { data: reprod, error: repError } = await repQuery;
         if (repError) throw repError;
         data = reprod.map(r => ({ id: r.id, animal: r.animal_id, tipo: r.tipo_evento, data: new Date(r.data_evento).toLocaleDateString('pt-BR'), resultado: r.resultado || 'Pendente' }));
         columns = [{ header: 'Matriz', accessor: 'animal' }, { header: 'Evento', accessor: 'tipo' }, { header: 'Data', accessor: 'data' }, { header: 'Resultado', accessor: 'resultado' }];
@@ -369,7 +395,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '18': { // Vendas: Notas Fiscais
-        const { data: notas, error: nError } = await supabase.from('notas_saida').select('*').eq('tenant_id', tenantId);
+        let ntsQuery = supabase.from('notas_saida').select('*');
+        ntsQuery = applyFilter(ntsQuery);
+        const { data: notas, error: nError } = await ntsQuery;
         if (nError) throw nError;
         data = notas.map(n => ({ id: n.id, numero: n.numero_nota, cliente: n.cliente_id, valor: n.valor_total, data: new Date(n.data_emissao).toLocaleDateString('pt-BR') }));
         columns = [{ header: 'Número NF', accessor: 'numero' }, { header: 'Cliente', accessor: 'cliente' }, { header: 'Valor', accessor: 'valor' }, { header: 'Emissão', accessor: 'data' }];
@@ -378,7 +406,9 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
       }
 
       case '19': { // Comissões
-        const { data: comVendas } = await supabase.from('pedidos_venda').select('*').eq('tenant_id', tenantId);
+        let cmsQuery = supabase.from('pedidos_venda').select('*');
+        cmsQuery = applyFilter(cmsQuery);
+        const { data: comVendas } = await cmsQuery;
         const cData = comVendas?.map(v => ({ id: v.id, ref: `PED-${v.id}`, total: v.valor_total, comissao: (Number(v.valor_total) || 0) * 0.03, data: new Date(v.created_at).toLocaleDateString('pt-BR') })) || [];
         data = cData;
         columns = [{ header: 'Pedido Ref.', accessor: 'ref' }, { header: 'Valor Venda', accessor: 'total' }, { header: 'Comissão (3%)', accessor: 'comissao' }, { header: 'Data', accessor: 'data' }];
@@ -399,7 +429,7 @@ export const fetchReportDataById = async (reportId: string, tenantId: string) =>
 };
 
 export const useReportData = (reportId: string | null) => {
-  const { tenant } = useTenant();
+  const { tenant, activeFarm } = useTenant();
   const [reportState, setReportState] = useState<ReportData>({
     data: [],
     stats: [],
@@ -415,7 +445,7 @@ export const useReportData = (reportId: string | null) => {
       setReportState(prev => ({ ...prev, loading: true, error: null }));
       
       try {
-        const result = await fetchReportDataById(reportId, tenant.id);
+        const result = await fetchReportDataById(reportId, tenant.id, activeFarm?.id);
         setReportState({
           ...result,
           loading: false,

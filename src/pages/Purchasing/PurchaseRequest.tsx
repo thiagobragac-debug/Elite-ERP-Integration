@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, 
@@ -28,9 +28,11 @@ import { PurchaseRequestForm } from '../../components/Forms/PurchaseRequestForm'
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const PurchaseRequest: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [requests, setRequests] = useState<any[]>([]);
@@ -44,17 +46,15 @@ export const PurchaseRequest: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchRequests();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchRequests = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('solicitacoes_compra')
-      .select('*')
-      .eq('fazenda_id', activeFarm.id)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('solicitacoes_compra').select('*').order('created_at', { ascending: false });
+    query = applyFarmFilter(query);
+    const { data } = await query;
     
     if (data) {
       setRequests(data);
@@ -84,7 +84,10 @@ export const PurchaseRequest: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) return;
+    if (!canCreate) {
+      alert('⚠️ Selecione uma unidade específica para criar uma nova solicitação. No modo Visão Global, o cadastro requer uma fazenda definida.');
+      return;
+    }
     const payload = {
       titulo: formData.title || formData.titulo,
       departamento: formData.department || formData.departamento,
@@ -99,7 +102,7 @@ export const PurchaseRequest: React.FC = () => {
       const { error } = await supabase.from('solicitacoes_compra').update(payload).eq('id', selectedRequest.id);
       if (!error) { setIsModalOpen(false); fetchRequests(); }
     } else {
-      const { error } = await supabase.from('solicitacoes_compra').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
+      const { error } = await supabase.from('solicitacoes_compra').insert([{ ...payload, ...insertPayload }]);
       if (!error) { setIsModalOpen(false); fetchRequests(); }
     }
   };
@@ -166,6 +169,7 @@ export const PurchaseRequest: React.FC = () => {
 
   return (
     <div className="requests-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

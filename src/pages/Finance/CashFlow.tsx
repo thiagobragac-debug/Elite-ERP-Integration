@@ -21,6 +21,8 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { TransactionForm } from '../../components/Forms/TransactionForm';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import './CashFlow.css';
 
 interface Transaction {
@@ -34,7 +36,7 @@ interface Transaction {
 }
 
 export const CashFlow: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<any[]>([]);
@@ -54,23 +56,28 @@ export const CashFlow: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchCashFlowData();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchCashFlowData = async () => {
     setLoading(true);
     try {
-      const { data: bankAccounts } = await supabase
-        .from('contas_bancarias')
-        .select('saldo_atual')
-        .eq('tenant_id', activeFarm.tenantId);
+      let bankQuery = supabase.from('contas_bancarias').select('saldo_atual');
+      bankQuery = applyTenantFilter(bankQuery);
+      const { data: bankAccounts } = await bankQuery;
       
       const totalBalance = bankAccounts?.reduce((acc, curr) => acc + Number(curr.saldo_atual), 0) || 0;
 
+      let payablesQuery = supabase.from('contas_pagar').select('*').order('data_vencimento', { ascending: false });
+      payablesQuery = applyFarmFilter(payablesQuery);
+
+      let receivablesQuery = supabase.from('contas_receber').select('*').order('data_vencimento', { ascending: false });
+      receivablesQuery = applyFarmFilter(receivablesQuery);
+
       const [payables, receivables] = await Promise.all([
-        supabase.from('contas_pagar').select('*').eq('fazenda_id', activeFarm.id).order('data_vencimento', { ascending: false }),
-        supabase.from('contas_receber').select('*').eq('fazenda_id', activeFarm.id).order('data_vencimento', { ascending: false })
+        payablesQuery,
+        receivablesQuery
       ]);
 
       const inMonth = receivables.data?.filter(r => r.status === 'PAGO').reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0;
@@ -182,7 +189,10 @@ export const CashFlow: React.FC = () => {
   };
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
+    if (!canCreate) {
+      alert('⚠️ Selecione uma unidade específica para lançar uma nova operação. No modo Visão Global, o caixa deve ser vinculado a uma fazenda.');
+      return;
+    }
 
     const payload = {
       descricao: data.description,
@@ -205,8 +215,7 @@ export const CashFlow: React.FC = () => {
       data_vencimento: data.date,
       categoria: data.category,
       status: data.status === 'paid' ? 'PAGO' : 'PENDENTE',
-      fazenda_id: activeFarm.id,
-      tenant_id: activeFarm.tenantId
+      ...insertPayload
     };
 
     const { error } = await supabase.from(table).insert([dbPayload]);
@@ -268,6 +277,7 @@ export const CashFlow: React.FC = () => {
 
   return (
     <div className="cash-flow-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

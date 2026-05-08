@@ -26,10 +26,12 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import './AccountsReceivable.css';
 
 export const AccountsReceivable: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [invoices, setInvoices] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'TODAS' | 'PENDENTE' | 'RECEBIDO'>('TODAS');
   const [loading, setLoading] = useState(true);
@@ -42,18 +44,16 @@ export const AccountsReceivable: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchInvoices();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
-        .from('contas_receber')
-        .select('*, clientes(nome)')
-        .eq('fazenda_id', activeFarm.id)
-        .order('data_vencimento', { ascending: true });
+      let query = supabase.from('contas_receber').select('*, clientes(nome)').order('data_vencimento', { ascending: true });
+      query = applyFarmFilter(query);
+      const { data } = await query;
       
       if (data) {
         setInvoices(data);
@@ -86,7 +86,10 @@ export const AccountsReceivable: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) return;
+    if (!canCreate && !selectedInvoice) {
+      alert('⚠️ Selecione uma unidade específica para registrar uma nova receita. No modo Visão Global, a fazenda beneficiária deve ser definida.');
+      return;
+    }
 
     const payload = {
       descricao: formData.description,
@@ -96,8 +99,7 @@ export const AccountsReceivable: React.FC = () => {
       cliente_id: formData.entityId,
       metodo_recebimento: formData.paymentMethod,
       status: formData.status,
-      fazenda_id: activeFarm.id,
-      tenant_id: activeFarm.tenantId
+      ...insertPayload
     };
 
     if (selectedInvoice) {
@@ -113,7 +115,7 @@ export const AccountsReceivable: React.FC = () => {
     } else {
       const { error } = await supabase
         .from('contas_receber')
-        .insert([payload]);
+        .insert([{ ...payload, ...insertPayload }]);
 
       if (!error) {
         setIsModalOpen(false);
@@ -190,6 +192,7 @@ export const AccountsReceivable: React.FC = () => {
 
   return (
     <div className="accounts-receivable-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

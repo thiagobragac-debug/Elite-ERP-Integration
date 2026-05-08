@@ -27,9 +27,11 @@ import { OutputInvoiceForm } from '../../components/Forms/OutputInvoiceForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const Invoices: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,17 +43,15 @@ export const Invoices: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchInvoices();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchInvoices = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('notas_saida')
-      .select('*, clientes(nome)')
-      .eq('fazenda_id', activeFarm.id)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('notas_saida').select('*, clientes(nome)').order('created_at', { ascending: false });
+    query = applyFarmFilter(query);
+    const { data } = await query;
     
     if (data) {
       setInvoices(data);
@@ -80,7 +80,10 @@ export const Invoices: React.FC = () => {
   };
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
+    if (!canCreate) {
+      alert('⚠️ Selecione uma unidade específica para emitir uma nova nota fiscal. No modo Visão Global, a fazenda emitente deve ser definida.');
+      return;
+    }
     const payload = {
       numero_nota: data.invoice_number,
       serie: data.series,
@@ -97,7 +100,7 @@ export const Invoices: React.FC = () => {
       const { error } = await supabase.from('notas_saida').update(payload).eq('id', selectedInvoice.id);
       if (!error) { setIsModalOpen(false); fetchInvoices(); }
     } else {
-      const { error } = await supabase.from('notas_saida').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
+      const { error } = await supabase.from('notas_saida').insert([{ ...payload, ...insertPayload }]);
       if (!error) { setIsModalOpen(false); fetchInvoices(); }
     }
   };
@@ -159,6 +162,7 @@ export const Invoices: React.FC = () => {
 
   return (
     <div className="invoice-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

@@ -25,11 +25,13 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { formatNumber } from '../../utils/format';
 import { useSearchParams } from 'react-router-dom';
 
 export const AnimalManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,9 +49,9 @@ export const AnimalManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchAnimals();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const [searchParams] = useSearchParams();
 
@@ -67,11 +69,9 @@ export const AnimalManagement: React.FC = () => {
 
   const fetchAnimals = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('animais')
-      .select('*')
-      .eq('fazenda_id', activeFarm.id)
-      .order('created_at', { ascending: false });
+    let query = supabase.from('animais').select('*').order('created_at', { ascending: false });
+    query = applyFarmFilter(query);
+    const { data } = await query;
     
     if (data) {
       setAnimals(data);
@@ -152,7 +152,10 @@ export const AnimalManagement: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) return;
+    if (!canCreate && !selectedAnimal) {
+      alert('⚠️ Selecione uma unidade específica para registrar um novo animal. No modo Visão Global, a fazenda de origem deve ser definida.');
+      return;
+    }
 
     const payload = {
       brinco: formData.brinco,
@@ -182,8 +185,7 @@ export const AnimalManagement: React.FC = () => {
     } else {
       const { error } = await supabase.from('animais').insert([{
         ...payload,
-        fazenda_id: activeFarm.id,
-        tenant_id: activeFarm.tenantId
+        ...insertPayload
       }]);
 
       if (!error) {
@@ -242,6 +244,7 @@ export const AnimalManagement: React.FC = () => {
 
   return (
     <div className="animal-mgmt-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

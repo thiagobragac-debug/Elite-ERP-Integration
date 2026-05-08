@@ -13,7 +13,9 @@ import {
   ChevronRight,
   PieChart,
   Server,
-  FileText
+  FileText,
+  Globe,
+  Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
@@ -109,7 +111,7 @@ const menuItems: NavItem[] = [
 export const Sidebar: React.FC = () => {
   const [openMenus, setOpenMenus] = useState<string[]>(['Pecuária', 'Administração', 'Compra & Cotação', 'Financeiro & Banco']);
   const [isFarmSelectorOpen, setIsFarmSelectorOpen] = useState(false);
-  const { activeFarm, farms, setActiveFarm } = useTenant();
+  const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode } = useTenant();
   const location = useLocation();
 
   const toggleMenu = (title: string) => {
@@ -184,11 +186,16 @@ export const Sidebar: React.FC = () => {
       <div className="sidebar-footer">
         <div className="farm-selector-wrapper">
           <button 
-            className={`tenant-badge ${isFarmSelectorOpen ? 'active' : ''}`}
+            className={`tenant-badge ${isFarmSelectorOpen ? 'active' : ''} ${isGlobalMode ? 'global' : ''}`}
             onClick={() => setIsFarmSelectorOpen(!isFarmSelectorOpen)}
           >
-            <div className="tenant-dot"></div>
-            <span>{activeFarm?.name || 'Selecionar Fazenda'}</span>
+            {isGlobalMode 
+              ? <Globe size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />
+              : <div className="tenant-dot"></div>
+            }
+            <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {isGlobalMode ? 'Visão Global' : (activeFarm?.name || 'Selecionar Fazenda')}
+            </span>
             <ChevronDown size={14} className={`selector-arrow ${isFarmSelectorOpen ? 'up' : ''}`} />
           </button>
 
@@ -202,10 +209,30 @@ export const Sidebar: React.FC = () => {
               >
                 <div className="dropdown-header">Mudar Unidade Ativa</div>
                 <div className="farm-list">
+                  {/* ── Global Mode Option ── */}
+                  <button
+                    className={`farm-option global-option ${isGlobalMode ? 'active' : ''}`}
+                    onClick={() => {
+                      setGlobalMode(true);
+                      setIsFarmSelectorOpen(false);
+                    }}
+                  >
+                    <Globe size={14} style={{ flexShrink: 0 }} />
+                    <span style={{ flex: 1 }}>Visão Global</span>
+                    <span style={{ fontSize: '9px', fontWeight: 800, opacity: 0.7, letterSpacing: '0.05em' }}>TODAS</span>
+                  </button>
+
+                  {/* ── Divider ── */}
+                  <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
+                  <div style={{ fontSize: '9px', fontWeight: 800, color: 'rgba(255,255,255,0.4)', padding: '4px 12px', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Building2 size={10} /> Unidades
+                  </div>
+
+                  {/* ── Individual Farms ── */}
                   {farms.map(farm => (
                     <button 
                       key={farm.id}
-                      className={`farm-option ${activeFarm?.id === farm.id ? 'active' : ''}`}
+                      className={`farm-option ${!isGlobalMode && activeFarm?.id === farm.id ? 'active' : ''}`}
                       onClick={() => {
                         setActiveFarm(farm);
                         setIsFarmSelectorOpen(false);

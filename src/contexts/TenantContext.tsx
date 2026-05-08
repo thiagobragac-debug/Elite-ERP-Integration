@@ -26,12 +26,19 @@ interface TenantContextType {
   companies: Company[];
   farms: Farm[];
   setActiveCompany: (company: Company) => void;
-  setActiveFarm: (farm: Farm) => void;
+  setActiveFarm: (farm: Farm | null) => void;
   loading: boolean;
   refreshData: () => Promise<void>;
   tenant: any;
   userProfile: any;
   refreshProfile: () => Promise<void>;
+  // ── Visão Global ──────────────────────────────────────────
+  isGlobalMode: boolean;
+  setGlobalMode: (global: boolean) => void;
+  /** null when globalMode is active; use tenant_id filter instead */
+  activeFarmId: string | null;
+  /** always the tenant id — safe to use in any query */
+  activeTenantId: string | null;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -41,19 +48,34 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [companies, setCompanies] = useState<Company[]>([]);
   const [farms, setFarms] = useState<Farm[]>([]);
   const [activeCompany, setActiveCompany] = useState<Company | null>(null);
-  const [activeFarm, setActiveFarm] = useState<Farm | null>(null);
+  const [activeFarm, setActiveFarmState] = useState<Farm | null>(null);
   const [tenant, setTenant] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isGlobalMode, setIsGlobalMode] = useState<boolean>(() => {
+    return localStorage.getItem('elite_global_mode') === 'true';
+  });
+
+  const setGlobalMode = (global: boolean) => {
+    setIsGlobalMode(global);
+    localStorage.setItem('elite_global_mode', String(global));
+  };
+
+  const setActiveFarm = (farm: Farm | null) => {
+    setActiveFarmState(farm);
+    if (farm) setGlobalMode(false); // selecting a specific farm exits global mode
+  };
+
+  // Computed helpers for query filtering
+  const activeFarmId = isGlobalMode ? null : (activeFarm?.id ?? null);
+  const activeTenantId = activeFarm?.tenantId ?? tenant?.id ?? null;
 
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
     
-    // 1. Fetch Tenant (Account)
     const impersonateId = localStorage.getItem('saas_impersonate_tenant_id');
     
-    // 0. Fetch User Profile
     const { data: profileData } = await supabase
       .from('profiles')
       .select('*')
@@ -76,7 +98,6 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (tenantData) {
       setTenant(tenantData);
 
-      // 2. Fetch Unidades (Companies/Branches)
       const { data: unidadesData } = await supabase
         .from('unidades')
         .select('*')
@@ -94,7 +115,6 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         if (!activeCompany && mappedCompanies.length > 0) setActiveCompany(mappedCompanies[0]);
       }
 
-      // 3. Fetch Farms for this tenant
       const { data: farmData } = await supabase
         .from('fazendas')
         .select('*')
@@ -111,7 +131,10 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           location: f.localizacao || ''
         }));
         setFarms(mappedFarms);
-        if (!activeFarm && mappedFarms.length > 0) setActiveFarm(mappedFarms[0]);
+        // Only auto-select if NOT in global mode
+        if (!activeFarm && mappedFarms.length > 0 && !isGlobalMode) {
+          setActiveFarmState(mappedFarms[0]);
+        }
       }
     }
     setLoading(false);
@@ -136,7 +159,12 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       refreshProfile: async () => {
         const { data } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
         if (data) setUserProfile(data);
-      }
+      },
+      // Global mode
+      isGlobalMode,
+      setGlobalMode,
+      activeFarmId,
+      activeTenantId,
     }}>
       {children}
     </TenantContext.Provider>

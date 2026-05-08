@@ -24,9 +24,11 @@ import { DietForm } from '../../components/Forms/DietForm';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { NutritionSimulatorModal } from './components/NutritionSimulatorModal';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const NutritionManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [diets, setDiets] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'DIETAS' | 'INSUMOS'>('DIETAS');
@@ -40,16 +42,15 @@ export const NutritionManagement: React.FC = () => {
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchDiets();
-  }, [activeFarm]);
+  }, [activeFarmId, isGlobalMode]);
 
   const fetchDiets = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('dietas')
-      .select('*')
-      .eq('fazenda_id', activeFarm.id);
+    let query = supabase.from('dietas').select('*');
+    query = applyFarmFilter(query);
+    const { data } = await query;
     
     if (data) {
       setDiets(data);
@@ -77,7 +78,10 @@ export const NutritionManagement: React.FC = () => {
   };
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
+    if (!canCreate && !selectedDiet) {
+      alert('⚠️ Selecione uma unidade específica para formular uma nova dieta. No modo Visão Global, a fazenda deve ser definida.');
+      return;
+    }
     const payload = {
       nome: data.nome,
       tipo: data.tipo,
@@ -91,7 +95,7 @@ export const NutritionManagement: React.FC = () => {
       const { error } = await supabase.from('dietas').update(payload).eq('id', selectedDiet.id);
       if (!error) { setIsModalOpen(false); fetchDiets(); }
     } else {
-      const { error } = await supabase.from('dietas').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
+      const { error } = await supabase.from('dietas').insert([{ ...payload, ...insertPayload }]);
       if (!error) { setIsModalOpen(false); fetchDiets(); }
     }
   };
@@ -162,6 +166,7 @@ export const NutritionManagement: React.FC = () => {
 
   return (
     <div className="nutrition-page animate-slide-up">
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">

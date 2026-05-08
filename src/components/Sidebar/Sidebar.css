@@ -294,3 +294,35 @@
   0% { transform: scale(1); opacity: 1; }
   100% { transform: scale(2.5); opacity: 0; }
 }
+
+/* ── Global Mode Styles ─────────────────────────────────── */
+.tenant-badge.global {
+  border-color: rgba(56, 189, 248, 0.4);
+  background: linear-gradient(135deg, hsl(215 20% 15%), hsl(200 80% 12%));
+}
+
+.tenant-badge.global:hover,
+.tenant-badge.global.active {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+}
+
+.farm-option.global-option {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.06), rgba(99, 102, 241, 0.06));
+  border: 1px solid rgba(56, 189, 248, 0.12);
+  color: #7dd3fc;
+  font-size: 0.82rem;
+}
+
+.farm-option.global-option:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(99, 102, 241, 0.12));
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.farm-option.global-option.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(99, 102, 241, 0.15));
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
+}

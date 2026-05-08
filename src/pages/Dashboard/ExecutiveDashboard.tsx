@@ -33,10 +33,12 @@ import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { EliteMainChart } from '../../components/Charts/EliteMainChart';
 import { KPISkeleton, TableSkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import './ExecutiveDashboard.css';
 
 export const ExecutiveDashboard: React.FC = () => {
-  const { activeFarm, tenant, userProfile } = useTenant();
+  const { activeFarm, tenant, userProfile, isGlobalMode, activeFarmId, applyFarmFilter } = useFarmFilter();
   const [kpiData, setKpiData] = useState<any[]>([
     { id: 'gmd', label: 'Evolução de GMD', value: '---', icon: Activity, color: '#10b981', progress: 0 },
     { id: 'caixa', label: 'Fluxo de Caixa', value: '---', icon: DollarSign, color: '#f59e0b', progress: 0 },
@@ -74,9 +76,9 @@ export const ExecutiveDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarmId && !isGlobalMode) return;
     fetchExecutiveStats();
-  }, [activeFarm, tenant]);
+  }, [activeFarmId, isGlobalMode, tenant]);
 
   useEffect(() => {
     if (isTVMode) {
@@ -136,24 +138,21 @@ export const ExecutiveDashboard: React.FC = () => {
     try {
       console.log('[Dashboard] Buscando estatísticas para tenant:', tenant?.id);
       
-      const { count: animalCount } = await supabase
-        .from('animais')
-        .select('*', { count: 'exact', head: true })
-        .eq('fazenda_id', activeFarm.id);
+      let animalQuery = supabase.from('animais').select('*', { count: 'exact', head: true });
+      animalQuery = applyFarmFilter(animalQuery);
+      const { count: animalCount } = await animalQuery;
       
       const vivoValue = (animalCount || 0) * 3500;
 
-      const { data: bankAccounts } = await supabase
-        .from('contas_bancarias')
-        .select('saldo_atual')
-        .eq('tenant_id', activeFarm.tenantId);
+      let bankQuery = supabase.from('contas_bancarias').select('saldo_atual');
+      bankQuery = applyFarmFilter(bankQuery);
+      const { data: bankAccounts } = await bankQuery;
       
       const totalCash = bankAccounts?.reduce((acc, curr) => acc + Number(curr.saldo_atual), 0) || 0;
 
-      const { data: stockData } = await supabase
-        .from('produtos')
-        .select('estoque_atual, custo_medio')
-        .eq('fazenda_id', activeFarm.id);
+      let stockQuery = supabase.from('produtos').select('estoque_atual, custo_medio');
+      stockQuery = applyFarmFilter(stockQuery);
+      const { data: stockData } = await stockQuery;
       
       const totalStockValue = stockData?.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0) || 0;
 
@@ -340,11 +339,9 @@ export const ExecutiveDashboard: React.FC = () => {
 
       setKpiData(filteredStats);
 
-      const { data: pesagens } = await supabase
-        .from('pesagens')
-        .select('peso, data_pesagem')
-        .order('data_pesagem', { ascending: true })
-        .limit(200);
+      let weightsQuery = supabase.from('pesagens').select('peso, data_pesagem').order('data_pesagem', { ascending: true }).limit(200);
+      weightsQuery = applyFarmFilter(weightsQuery);
+      const { data: pesagens } = await weightsQuery;
 
       if (pesagens && pesagens.length > 0) {
         const formatted = Array.from({ length: 7 }).map((_, i) => ({
@@ -364,12 +361,9 @@ export const ExecutiveDashboard: React.FC = () => {
         ]);
       }
 
-      const { data: activities } = await supabase
-        .from('pesagens')
-        .select('created_at, observacao, animais(brinco)')
-        .eq('fazenda_id', activeFarm.id)
-        .order('created_at', { ascending: false })
-        .limit(4);
+      let activitiesQuery = supabase.from('pesagens').select('created_at, observacao, animais(brinco)').order('created_at', { ascending: false }).limit(4);
+      activitiesQuery = applyFarmFilter(activitiesQuery);
+      const { data: activities } = await activitiesQuery;
 
       setRecentActivities(activities || []);
 
@@ -385,6 +379,7 @@ export const ExecutiveDashboard: React.FC = () => {
 
   return (
     <div className={`executive-page animate-slide-up ${isTVMode ? 'tv-mode' : ''}`}>
+      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
