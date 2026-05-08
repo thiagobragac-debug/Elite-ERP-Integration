@@ -31,38 +31,42 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
   const { activeFarm } = useTenant();
   const { data, stats, columns, loading, error } = useReportData(report?.id || null);
   const reportRef = useRef<HTMLDivElement>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
   
   const handleExportExcel = () => {
     if (!data || data.length === 0) return;
     exportToExcel(data, columns, report.title);
   };
 
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     if (!reportRef.current) return;
-
-    const element = reportRef.current;
-    const opt = {
-      margin: [10, 10],
-      filename: `${report.title.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { 
-        scale: 2, 
-        useCORS: true, 
-        letterRendering: true,
-        scrollX: 0,
-        scrollY: 0
-      },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    // Temporariamente ajustar estilos para captura (forçar visibilidade de elementos de impressão se necessário)
-    // Mas o html2pdf captura o estado atual do DOM. 
-    // Podemos usar uma classe temporária para forçar o layout de impressão durante a captura.
-    element.classList.add('is-exporting-pdf');
+    setIsExporting(true);
     
-    html2pdf().set(opt).from(element).save().then(() => {
-      element.classList.remove('is-exporting-pdf');
-    });
+    // Pequeno delay para garantir que o React renderizou o estado de exportação
+    setTimeout(() => {
+      const element = reportRef.current;
+      const opt = {
+        margin: 10,
+        filename: `${report.title.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+          scale: 2, 
+          useCORS: true, 
+          letterRendering: true,
+          width: 1200,
+          windowWidth: 1200,
+          scrollX: 0,
+          scrollY: 0,
+          backgroundColor: '#ffffff'
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        setIsExporting(false);
+      });
+    }, 300);
   };
 
   if (!report) return null;
@@ -72,10 +76,11 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
       <div className="report-viewer-overlay" onClick={onClose}>
         <motion.div 
           ref={reportRef}
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          initial={isExporting ? false : { opacity: 0, scale: 0.95, y: 20 }}
+          animate={isExporting ? { opacity: 1, scale: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="viewer-container"
+          transition={isExporting ? { duration: 0 } : { duration: 0.2 }}
+          className={`viewer-container ${isExporting ? 'is-exporting-pdf' : ''}`}
           onClick={e => e.stopPropagation()}
         >
         <header className="viewer-header">
@@ -95,28 +100,32 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
             </div>
           </div>
 
-          <div className="left-side hide-on-print">
-            <button className="back-btn" onClick={onClose}>
-              <ChevronLeft size={20} />
-            </button>
-            <div className="report-title">
-              <div className="title-row">
-                <report.icon size={20} style={{ color: report.color }} />
-                <h2>{report.title}</h2>
+          {!isExporting && (
+            <div className="left-side hide-on-print">
+              <button className="back-btn" onClick={onClose}>
+                <ChevronLeft size={20} />
+              </button>
+              <div className="report-title">
+                <div className="title-row">
+                  <report.icon size={20} style={{ color: report.color }} />
+                  <h2>{report.title}</h2>
+                </div>
+                <p>{report.desc}</p>
               </div>
-              <p>{report.desc}</p>
             </div>
-          </div>
+          )}
           
-          <div className="viewer-actions hide-on-print">
-            <button className="icon-btn" title="Baixar Layout PDF" onClick={handleDownloadPDF}><Download size={18} /></button>
-            <button className="icon-btn" title="Imprimir / PDF" onClick={() => window.print()}><Printer size={18} /></button>
-            <button className="icon-btn" title="Compartilhar"><Share2 size={18} /></button>
-            <div className="v-sep"></div>
-            <button className="close-btn-premium" onClick={onClose}>
-              <X size={20} />
-            </button>
-          </div>
+          {!isExporting && (
+            <div className="viewer-actions hide-on-print">
+              <button className="icon-btn" title="Baixar Layout PDF" onClick={handleDownloadPDF}><Download size={18} /></button>
+              <button className="icon-btn" title="Imprimir / PDF" onClick={() => window.print()}><Printer size={18} /></button>
+              <button className="icon-btn" title="Compartilhar"><Share2 size={18} /></button>
+              <div className="v-sep"></div>
+              <button className="close-btn-premium" onClick={onClose}>
+                <X size={20} />
+              </button>
+            </div>
+          )}
         </header>
 
         <div className="viewer-content">
@@ -150,76 +159,83 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
             />
           </div>
 
-          <div className="viewer-main-analytics">
-            <div className="analytics-card">
-              <div className="card-header">
-                <h3>Detalhamento de Registros</h3>
-                <span className="subtitle">Últimos dados sincronizados em tempo real</span>
+          {!isExporting && (
+            <div className="viewer-main-analytics">
+              <div className="analytics-card">
+                <div className="card-header">
+                  <h3>Detalhamento de Registros</h3>
+                  <span className="subtitle">Últimos dados sincronizados em tempo real</span>
+                </div>
+              {loading ? (
+                <div className="report-loading">
+                  <div className="spinner"></div>
+                  <span>Processando Inteligência de Dados...</span>
+                </div>
+              ) : error ? (
+                <div className="report-error">
+                  <span>Ocorreu um erro ao carregar os dados reais: {error}</span>
+                  <button onClick={() => window.location.reload()}>Tentar Novamente</button>
+                </div>
+              ) : (
+                <ModernTable 
+                  data={data}
+                  columns={columns}
+                  hideHeader={false}
+                  onExport={handleExportExcel}
+                />
+              )}
               </div>
-            {loading ? (
-              <div className="report-loading">
-                <div className="spinner"></div>
-                <span>Processando Inteligência de Dados...</span>
-              </div>
-            ) : error ? (
-              <div className="report-error">
-                <span>Ocorreu um erro ao carregar os dados reais: {error}</span>
-                <button onClick={() => window.location.reload()}>Tentar Novamente</button>
-              </div>
-            ) : (
-              <ModernTable 
-                data={data}
-                columns={columns}
-                hideHeader={false}
-                onExport={handleExportExcel}
-              />
-            )}
             </div>
-          </div>
+          )}
 
           {/* Tabela Integral para Impressão (Sem Paginação) */}
-          <div className="print-data-full">
-            <table className="full-print-table">
-              <thead>
-                <tr>
-                  {columns.map((col: any, i: number) => <th key={i}>{col.header}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((item: any, i: number) => (
-                  <tr key={i} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                    {columns.map((col: any, j: number) => {
-                      const isNumeric = col.header.toLowerCase().includes('valor') || 
-                                      col.header.toLowerCase().includes('gmd') || 
-                                      col.header.toLowerCase().includes('peso');
-                      return (
-                        <td key={j} style={{ textAlign: isNumeric ? 'right' : 'left' }}>
-                          {typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor]}
-                        </td>
-                      );
-                    })}
+          {(isExporting || true) && (
+            <div className={`print-data-full ${isExporting ? 'export-visible' : ''}`}>
+              <table className="full-print-table">
+                <thead>
+                  <tr>
+                    {columns.map((col: any, i: number) => <th key={i}>{col.header}</th>)}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="print-signature-section">
-            <div className="signature-box">
-              <div className="sig-line"></div>
-              <span>Responsável Técnico / Emissor</span>
+                </thead>
+                <tbody>
+                  {data.map((item: any, i: number) => (
+                    <tr key={i}>
+                      {columns.map((col: any, j: number) => {
+                        const isNumeric = col.header.toLowerCase().includes('valor') || 
+                                        col.header.toLowerCase().includes('gmd') || 
+                                        col.header.toLowerCase().includes('peso');
+                        return (
+                          <td key={j} style={{ textAlign: isNumeric ? 'right' : 'left' }}>
+                            {typeof col.accessor === 'function' ? col.accessor(item) : item[col.accessor]}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="signature-box">
-              <div className="sig-line"></div>
-              <span>Gestor da Unidade</span>
-            </div>
-          </div>
+          )}
 
-          {/* Rodapé Exclusivo para Impressão */}
-          <div className="print-only-footer">
-            <div className="footer-left">Documento gerado eletronicamente por Elite Intelligence</div>
-            <div className="footer-right"></div>
-          </div>
+          {(isExporting || true) && (
+            <>
+              <div className="print-signature-section">
+                <div className="signature-box">
+                  <div className="sig-line"></div>
+                  <span>Responsável Técnico / Emissor</span>
+                </div>
+                <div className="signature-box">
+                  <div className="sig-line"></div>
+                  <span>Gestor da Unidade</span>
+                </div>
+              </div>
+
+              <div className="print-only-footer">
+                <div className="footer-left">Documento gerado eletronicamente por Elite Intelligence</div>
+                <div className="footer-right"></div>
+              </div>
+            </>
+          )}
         </div>
       </motion.div>
       <style>{`
@@ -254,19 +270,157 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           border-radius: 0 !important;
           box-shadow: none !important;
           overflow: visible !important;
+          width: 1200px !important; /* Largura ideal para renderização dos cards */
+          background: white !important;
+          padding: 40px !important;
+          margin: 0 !important;
+          transform: none !important;
+        }
+
+        .is-exporting-pdf .viewer-header {
+          display: block !important;
+          height: auto !important;
+          padding: 0 !important;
+          margin-bottom: 30px !important;
+          border: none !important; /* Removida linha duplicada */
+          background: white !important;
+        }
+
+        .is-exporting-pdf, .is-exporting-pdf * {
+          box-sizing: border-box !important;
+          transform: none !important;
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+
+        .is-exporting-pdf .viewer-content {
+          background: white !important;
+          padding: 0 !important;
         }
 
         .is-exporting-pdf .hide-on-print {
           display: none !important;
         }
 
-        .is-exporting-pdf .print-only-header,
-        .is-exporting-pdf .print-only-footer,
-        .is-exporting-pdf .print-signature-section,
-        .is-exporting-pdf .print-data-full {
-          display: block !important;
+        .is-exporting-pdf .print-only-header {
+          display: flex !important;
+          justify-content: space-between;
+          align-items: flex-start;
+          width: 100%;
+          border-bottom: 3px solid #000;
+          padding: 0 0 20px 0;
+          margin-bottom: 0; /* Espaçamento controlado pelo container pai */
+          background: white !important;
+          color: #000 !important;
         }
-        
+
+        .is-exporting-pdf .print-logo-section { display: flex; align-items: center; gap: 10px; }
+        .is-exporting-pdf .print-logo {
+          width: 44px;
+          height: 44px;
+          background: #000;
+          color: #fff;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 900;
+          font-size: 26px;
+        }
+        .is-exporting-pdf .print-brand-name { display: block; font-weight: 900; font-size: 20px; color: #000; }
+        .is-exporting-pdf .print-brand-tag { display: block; font-size: 11px; color: #333; text-transform: uppercase; letter-spacing: 1px; }
+        .is-exporting-pdf .print-report-meta { text-align: right; font-size: 13px; line-height: 1.8; color: #000; font-weight: 700; }
+
+        .is-exporting-pdf .next-gen-kpi-grid {
+          display: grid !important;
+          grid-template-columns: repeat(3, 1fr) !important;
+          gap: 15px !important;
+          margin-bottom: 30px !important;
+          width: 100% !important;
+        }
+
+        .is-exporting-pdf .elite-stat-card {
+          border: 1px solid #ddd !important;
+          box-shadow: none !important;
+          background: #fff !important;
+          padding: 15px !important;
+          height: auto !important;
+          min-height: auto !important;
+          border-radius: 12px !important;
+        }
+
+        .is-exporting-pdf .elite-stat-card .chart-container, 
+        .is-exporting-pdf .elite-stat-card .progress-bar-container { display: none !important; }
+        .is-exporting-pdf .elite-stat-card .card-value { font-size: 22px !important; color: #000 !important; }
+        .is-exporting-pdf .elite-stat-card .card-label { font-size: 11px !important; color: #444 !important; }
+
+        .is-exporting-pdf .print-data-full { 
+          display: block !important; 
+          width: 100% !important; 
+          background: white !important;
+        }
+
+        .is-exporting-pdf .full-print-table { 
+          width: 100% !important; 
+          border-collapse: collapse !important; 
+          font-size: 10px !important; 
+          background: white !important;
+          page-break-inside: auto !important;
+        }
+
+        .is-exporting-pdf .full-print-table thead {
+          display: table-header-group !important;
+        }
+
+        .is-exporting-pdf .full-print-table tr { 
+          page-break-inside: avoid !important;
+          break-inside: avoid !important;
+        }
+
+        .is-exporting-pdf .full-print-table th { 
+          background: #f1f5f9 !important; 
+          border: 1px solid #cbd5e1 !important; 
+          padding: 8px !important;
+          color: #000 !important;
+        }
+
+        .is-exporting-pdf .full-print-table td { 
+          border: 1px solid #e2e8f0 !important; 
+          padding: 6px !important; 
+          color: #1e293b !important;
+        }
+
+        .is-exporting-pdf .print-signature-section {
+          display: flex !important;
+          justify-content: space-around;
+          margin-top: 50px !important;
+          padding-top: 20px !important;
+        }
+
+        .is-exporting-pdf .signature-box {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          width: 200px !important;
+        }
+
+        .is-exporting-pdf .sig-line {
+          width: 100% !important;
+          border-top: 1px solid #000 !important;
+          margin-bottom: 8px !important;
+        }
+
+        .is-exporting-pdf .print-only-footer {
+          display: flex !important;
+          justify-content: space-between;
+          margin-top: 30px;
+          border-top: 1px solid #eee;
+          padding-top: 10px;
+          font-size: 10px;
+          color: #999;
+        }
+
         .is-exporting-pdf .viewer-main-analytics {
           display: none !important;
         }
