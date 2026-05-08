@@ -15,6 +15,7 @@ interface ModernTableProps<T> {
   data: T[];
   columns: Column<T>[];
   onRowClick?: (item: T) => void;
+  onExport?: () => void;
   actions?: (item: T) => React.ReactNode;
   searchPlaceholder?: string;
   loading?: boolean;
@@ -28,6 +29,7 @@ export function ModernTable<T extends { id: string | number }>({
   data, 
   columns, 
   onRowClick,
+  onExport,
   actions,
   searchPlaceholder = "Buscar registros...",
   loading = false,
@@ -78,8 +80,12 @@ export function ModernTable<T extends { id: string | number }>({
             />
           </div>
           <div className="table-actions">
-            <button className="icon-btn-secondary"><Filter size={20} /></button>
-            <button className="icon-btn-secondary"><Download size={20} /></button>
+            <button className="icon-btn-secondary" title="Filtros Avançados"><Filter size={20} /></button>
+            {onExport && (
+              <button className="icon-btn-secondary" title="Exportar para Excel" onClick={onExport}>
+                <Download size={20} />
+              </button>
+            )}
           </div>
         </div>
       )}

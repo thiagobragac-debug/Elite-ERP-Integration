@@ -35,9 +35,11 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useNavigate } from 'react-router-dom';
 import { ReportViewer } from './components/ReportViewer';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { fetchReportDataById } from '../../hooks/useReportData';
+import { exportToExcel } from '../../utils/exportUtils';
 
 export const Reports: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, tenant } = useTenant();
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<'all' | 'finance' | 'livestock' | 'fleet' | 'supply' | 'sales' | 'gov'>('all');
   const [selectedReport, setSelectedReport] = useState<any>(null);
@@ -99,6 +101,29 @@ export const Reports: React.FC = () => {
   const handleGenerateReport = (report: any) => {
     setSelectedReport(report);
     setIsViewerOpen(true);
+  };
+
+  const handleDirectDownload = async (e: React.MouseEvent, report: any) => {
+    e.stopPropagation();
+    if (!tenant?.id) return;
+
+    try {
+      // Feedback visual: mudar cursor para 'wait'
+      document.body.style.cursor = 'wait';
+      
+      const { data, columns } = await fetchReportDataById(report.id, tenant.id);
+      
+      if (data && data.length > 0) {
+        exportToExcel(data, columns, report.title);
+      } else {
+        alert("Este relatório não possui dados para exportação no momento.");
+      }
+    } catch (error) {
+      console.error("Erro ao baixar relatório:", error);
+      alert("Erro ao processar exportação. Tente novamente.");
+    } finally {
+      document.body.style.cursor = 'default';
+    }
   };
 
   const filteredReports = (activeCategory === 'all' 
@@ -303,15 +328,15 @@ export const Reports: React.FC = () => {
                         <span className="time">14:30:22</span>
                       </div>
 
-                      <div className="doc-actions">
-                        <button 
-                          className="action-btn-doc" 
-                          title="Download Direto" 
-                          onClick={(e) => { e.stopPropagation(); }}
-                        >
-                          <Download size={16} />
-                        </button>
-                      </div>
+                        <div className="doc-actions">
+                          <button 
+                            className="action-btn-doc" 
+                            title="Download Direto Excel" 
+                            onClick={(e) => handleDirectDownload(e, report)}
+                          >
+                            <Download size={16} />
+                          </button>
+                        </div>
                     </motion.div>
                   ))}
                 </div>

@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
+// @ts-ignore
+import html2pdf from 'html2pdf.js';
 import { 
   X, 
   Download, 
@@ -17,6 +19,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ModernTable } from '../../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../../components/Cards/EliteStatCard';
 import { useTenant } from '../../../contexts/TenantContext';
+import { useReportData } from '../../../hooks/useReportData';
+import { exportToExcel } from '../../../utils/exportUtils';
 
 interface ReportViewerProps {
   report: any;
@@ -25,133 +29,49 @@ interface ReportViewerProps {
 
 export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) => {
   const { activeFarm } = useTenant();
+  const { data, stats, columns, loading, error } = useReportData(report?.id || null);
+  const reportRef = useRef<HTMLDivElement>(null);
   
-  // Mock data for different report types
-  const getMockData = () => {
-    if (report.category === 'livestock') {
-      return {
-        columns: [
-          { 
-            header: 'Animal / Lote', 
-            accessor: (item: any) => (
-              <div className="table-cell-title">
-                <span className="main-text">{item.id_animal}</span>
-                <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-                  {item.lote}
-                </div>
-              </div>
-            )
-          },
-          { 
-            header: 'Evolução de Peso', 
-            accessor: (item: any) => (
-              <div className="table-cell-meta">
-                <Activity size={14} />
-                <span>{item.peso_ini}kg → {item.peso_atual}kg</span>
-              </div>
-            )
-          },
-          { 
-            header: 'GMD (kg)', 
-            accessor: (item: any) => (
-              <span className="font-bold text-slate-900">{item.gmd}</span>
-            )
-          },
-          { 
-            header: 'Eficiência', 
-            accessor: (item: any) => (
-              <span className={`status-pill ${item.gmd > 0.8 ? 'success' : 'warning'}`}>
-                {item.gmd > 0.8 ? 'Alta Performance' : 'Atenção Necessária'}
-              </span>
-            )
-          }
-        ],
-        data: [
-          { id: '1', id_animal: 'ELITE-001', lote: 'CONFINAMENTO A', peso_ini: 350, peso_atual: 420, gmd: 0.95 },
-          { id: '2', id_animal: 'ELITE-002', lote: 'CONFINAMENTO A', peso_ini: 342, peso_atual: 405, gmd: 0.88 },
-          { id: '3', id_animal: 'ELITE-003', lote: 'CONFINAMENTO B', peso_ini: 360, peso_atual: 410, gmd: 0.75 },
-          { id: '4', id_animal: 'ELITE-004', lote: 'PASTO 12', peso_ini: 320, peso_atual: 380, gmd: 0.82 },
-          { id: '5', id_animal: 'ELITE-005', lote: 'PASTO 12', peso_ini: 335, peso_atual: 395, gmd: 0.85 },
-          { id: '6', id_animal: 'ELITE-006', lote: 'CONFINAMENTO A', peso_ini: 348, peso_atual: 415, gmd: 0.92 },
-          { id: '7', id_animal: 'ELITE-007', lote: 'CONFINAMENTO B', peso_ini: 355, peso_atual: 408, gmd: 0.78 },
-          { id: '8', id_animal: 'ELITE-008', lote: 'PASTO 10', peso_ini: 315, peso_atual: 372, gmd: 0.81 },
-          { id: '9', id_animal: 'ELITE-009', lote: 'CONFINAMENTO A', peso_ini: 352, peso_atual: 425, gmd: 0.96 },
-          { id: '10', id_animal: 'ELITE-010', lote: 'PASTO 05', peso_ini: 330, peso_atual: 390, gmd: 0.84 },
-          { id: '11', id_animal: 'ELITE-011', lote: 'CONFINAMENTO B', peso_ini: 358, peso_atual: 412, gmd: 0.76 },
-          { id: '12', id_animal: 'ELITE-012', lote: 'CONFINAMENTO A', peso_ini: 345, peso_atual: 410, gmd: 0.90 },
-          { id: '13', id_animal: 'ELITE-013', lote: 'PASTO 12', peso_ini: 325, peso_atual: 385, gmd: 0.83 },
-          { id: '14', id_animal: 'ELITE-014', lote: 'CONFINAMENTO B', peso_ini: 362, peso_atual: 418, gmd: 0.79 },
-          { id: '15', id_animal: 'ELITE-015', lote: 'CONFINAMENTO A', peso_ini: 350, peso_atual: 422, gmd: 0.94 },
-        ]
-      };
-    }
-    
-    if (report.category === 'finance') {
-      return {
-        columns: [
-          { 
-            header: 'Lançamento / Data', 
-            accessor: (item: any) => (
-              <div className="table-cell-title">
-                <span className="main-text">{item.desc}</span>
-                <div className="sub-meta uppercase font-bold text-[10px] tracking-wider text-slate-500">
-                  {item.data}
-                </div>
-              </div>
-            )
-          },
-          { 
-            header: 'Categoria', 
-            accessor: (item: any) => (
-              <div className="table-cell-meta">
-                <span>{item.cat}</span>
-              </div>
-            )
-          },
-          { 
-            header: 'Valor', 
-            accessor: (item: any) => (
-              <span className={`font-bold ${item.tipo === 'entrada' ? 'text-emerald-500' : 'text-slate-900'}`}>
-                {item.tipo === 'entrada' ? '+' : '-'} {Number(item.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              </span>
-            )
-          },
-          { 
-            header: 'Status', 
-            accessor: (item: any) => (
-              <span className="status-pill active">EFETIVADO</span>
-            )
-          }
-        ],
-        data: [
-          { id: '1', desc: 'Venda de Gado - Lote 45', data: '12/05/2026', cat: 'Receita Operacional', valor: 145200.00 },
-          { id: '2', desc: 'Compra de Sal Mineral', data: '10/05/2026', cat: 'Insumos', valor: -12400.00 },
-          { id: '3', desc: 'Manutenção Trator JD 750', data: '08/05/2026', cat: 'Manutenção', valor: -4500.00 },
-          { id: '4', desc: 'Folha de Pagamento', data: '05/05/2026', cat: 'Pessoal', valor: -28400.00 },
-          { id: '5', desc: 'Venda de Bezerros - Desmama', data: '02/05/2026', cat: 'Receita Operacional', valor: 88500.00 },
-          { id: '6', desc: 'Diesel S10 - 5000L', data: '15/05/2026', cat: 'Combustível', valor: -32500.00 },
-          { id: '7', desc: 'Energia Elétrica - Sede', data: '14/05/2026', cat: 'Utilidades', valor: -1250.00 },
-          { id: '8', desc: 'Venda Couro e Subprodutos', data: '13/05/2026', cat: 'Outras Receitas', valor: 4500.00 },
-          { id: '9', desc: 'Seguro Rebanho Anual', data: '11/05/2026', cat: 'Seguros', valor: -15600.00 },
-          { id: '10', desc: 'Serviço de Agronomia', data: '09/05/2026', cat: 'Consultoria', valor: -8200.00 },
-          { id: '11', desc: 'Vacinas Febre Aftosa', data: '07/05/2026', cat: 'Sanidade', valor: -18400.00 },
-          { id: '12', desc: 'Venda Milho Safrinha', data: '06/05/2026', cat: 'Receita Agrícola', valor: 125000.00 },
-          { id: '13', desc: 'Frete Terceirizado Gado', data: '04/05/2026', cat: 'Logística', valor: -6500.00 },
-          { id: '14', desc: 'Arrendamento Pastagem', data: '03/05/2026', cat: 'Aluguel', valor: -12000.00 },
-          { id: '15', desc: 'Venda Vacas de Descarte', data: '01/05/2026', cat: 'Receita Operacional', valor: 64200.00 },
-        ]
-      };
-    }
-
-    return { columns: [], data: [] };
+  const handleExportExcel = () => {
+    if (!data || data.length === 0) return;
+    exportToExcel(data, columns, report.title);
   };
 
-  const { columns, data } = getMockData();
+  const handleDownloadPDF = () => {
+    if (!reportRef.current) return;
+
+    const element = reportRef.current;
+    const opt = {
+      margin: [10, 10],
+      filename: `${report.title.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { 
+        scale: 2, 
+        useCORS: true, 
+        letterRendering: true,
+        scrollX: 0,
+        scrollY: 0
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Temporariamente ajustar estilos para captura (forçar visibilidade de elementos de impressão se necessário)
+    // Mas o html2pdf captura o estado atual do DOM. 
+    // Podemos usar uma classe temporária para forçar o layout de impressão durante a captura.
+    element.classList.add('is-exporting-pdf');
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+      element.classList.remove('is-exporting-pdf');
+    });
+  };
+
+  if (!report) return null;
 
   return createPortal(
     <AnimatePresence>
       <div className="report-viewer-overlay" onClick={onClose}>
         <motion.div 
+          ref={reportRef}
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -189,8 +109,8 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           </div>
           
           <div className="viewer-actions hide-on-print">
-            <button className="icon-btn" title="Download PDF" onClick={() => window.print()}><Download size={18} /></button>
-            <button className="icon-btn" title="Imprimir" onClick={() => window.print()}><Printer size={18} /></button>
+            <button className="icon-btn" title="Baixar Layout PDF" onClick={handleDownloadPDF}><Download size={18} /></button>
+            <button className="icon-btn" title="Imprimir / PDF" onClick={() => window.print()}><Printer size={18} /></button>
             <button className="icon-btn" title="Compartilhar"><Share2 size={18} /></button>
             <div className="v-sep"></div>
             <button className="close-btn-premium" onClick={onClose}>
@@ -236,11 +156,24 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
                 <h3>Detalhamento de Registros</h3>
                 <span className="subtitle">Últimos dados sincronizados em tempo real</span>
               </div>
+            {loading ? (
+              <div className="report-loading">
+                <div className="spinner"></div>
+                <span>Processando Inteligência de Dados...</span>
+              </div>
+            ) : error ? (
+              <div className="report-error">
+                <span>Ocorreu um erro ao carregar os dados reais: {error}</span>
+                <button onClick={() => window.location.reload()}>Tentar Novamente</button>
+              </div>
+            ) : (
               <ModernTable 
                 data={data}
                 columns={columns}
                 hideHeader={false}
+                onExport={handleExportExcel}
               />
+            )}
             </div>
           </div>
 
@@ -313,6 +246,29 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           overflow: hidden;
           border-radius: 24px;
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .viewer-container.is-exporting-pdf {
+          max-height: none !important;
+          height: auto !important;
+          border-radius: 0 !important;
+          box-shadow: none !important;
+          overflow: visible !important;
+        }
+
+        .is-exporting-pdf .hide-on-print {
+          display: none !important;
+        }
+
+        .is-exporting-pdf .print-only-header,
+        .is-exporting-pdf .print-only-footer,
+        .is-exporting-pdf .print-signature-section,
+        .is-exporting-pdf .print-data-full {
+          display: block !important;
+        }
+        
+        .is-exporting-pdf .viewer-main-analytics {
+          display: none !important;
         }
 
         .viewer-header {
@@ -418,6 +374,29 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
         .status-pill.warning { background: hsla(38, 92%, 50%, 0.1); color: #f59e0b; }
         .status-pill.active { background: hsla(217, 91%, 60%, 0.1); color: #3b82f6; }
         
+        .report-loading, .report-error {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 60px;
+          gap: 20px;
+          color: hsl(var(--text-muted));
+        }
+
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 3px solid rgba(0,0,0,0.1);
+          border-top-color: #10b981;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
         @media print {
           @page { margin: 1cm; size: A4; }
           
