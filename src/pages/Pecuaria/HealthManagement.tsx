@@ -27,6 +27,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { HealthProtocolsModal } from './components/HealthProtocolsModal';
 import './HealthManagement.css';
 
 export const HealthManagement: React.FC = () => {
@@ -40,6 +41,7 @@ export const HealthManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [stats, setStats] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isProtocolsModalOpen, setIsProtocolsModalOpen] = useState(false);
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -147,7 +149,7 @@ export const HealthManagement: React.FC = () => {
           <p className="page-subtitle">Rastreabilidade de vacinas, tratamentos e controle de carência medicamentosa em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => {}}>
+          <button className="glass-btn secondary" onClick={() => setIsProtocolsModalOpen(true)}>
             <ShieldCheck size={18} />
             PROTOCOLOS
           </button>
@@ -260,6 +262,15 @@ export const HealthManagement: React.FC = () => {
         subtitle="Rastreabilidade completa do manejo e fármacos aplicados"
         items={historyItems}
         loading={false}
+      />
+
+      <HealthProtocolsModal 
+        isOpen={isProtocolsModalOpen}
+        onClose={() => setIsProtocolsModalOpen(false)}
+        onApply={(protocol) => {
+          alert('Protocolo ' + protocol.name + ' selecionado. Em breve você poderá aplicar a um lote ou animal específico.');
+          setIsProtocolsModalOpen(false);
+        }}
       />
     </div>
   );

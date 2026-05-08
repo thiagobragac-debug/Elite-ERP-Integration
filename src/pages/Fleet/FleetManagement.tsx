@@ -268,10 +268,6 @@ export const FleetManagement: React.FC = () => {
           <p className="page-subtitle">Telemetria de ativos, controle de manutenção e eficiência operacional do maquinário em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsMaintenanceModalOpen(true)}>
-            <Gauge size={18} />
-            CHECKLIST
-          </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
             NOVO ATIVO
