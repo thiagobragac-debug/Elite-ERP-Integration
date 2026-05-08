@@ -28,6 +28,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { ConfinementForm } from '../../components/Forms/ConfinementForm';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { CheckOutModal } from './components/CheckOutModal';
 
 export const ConfinementManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -41,6 +42,7 @@ export const ConfinementManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -85,6 +87,22 @@ export const ConfinementManagement: React.FC = () => {
 
     if (!error) {
       setIsModalOpen(false);
+      fetchConfinements();
+    }
+  };
+
+  const handleCheckOut = async (data: any) => {
+    const { error } = await supabase
+      .from('confinamento')
+      .update({
+        data_fim: data.data_fim,
+        peso_final: data.peso_final,
+        destino: data.destino,
+        status: 'archived'
+      })
+      .eq('id', data.id);
+
+    if (!error) {
       fetchConfinements();
     }
   };
@@ -163,7 +181,7 @@ export const ConfinementManagement: React.FC = () => {
           <p className="page-subtitle">Terminação intensiva, controle de DOF e projeção de performance em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary">
+          <button className="glass-btn secondary" onClick={() => setIsCheckOutModalOpen(true)}>
             <Scale size={18} />
             Check-out Lote
           </button>
@@ -531,6 +549,13 @@ export const ConfinementManagement: React.FC = () => {
         subtitle="Rastreabilidade de ciclo e performance nutricional"
         items={historyItems}
         loading={historyLoading}
+      />
+
+      <CheckOutModal 
+        isOpen={isCheckOutModalOpen}
+        onClose={() => setIsCheckOutModalOpen(false)}
+        activePens={confinements.filter(p => p.status !== 'archived' && p.lote_id)}
+        onCheckOut={handleCheckOut}
       />
     </div>
   );

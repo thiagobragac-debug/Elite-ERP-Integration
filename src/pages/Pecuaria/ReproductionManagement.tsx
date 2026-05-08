@@ -25,6 +25,7 @@ import { ReproductionForm } from '../../components/Forms/ReproductionForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { BatchReproModal } from './components/BatchReproModal';
 
 export const ReproductionManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -38,6 +39,7 @@ export const ReproductionManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -94,6 +96,13 @@ export const ReproductionManagement: React.FC = () => {
     } else {
       const { error } = await supabase.from('eventos_reprodutivos').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
       if (!error) { setIsModalOpen(false); fetchEvents(); }
+    }
+  };
+
+  const handleBatchSubmit = async (batchData: any[]) => {
+    const { error } = await supabase.from('eventos_reprodutivos').insert(batchData);
+    if (!error) {
+      fetchEvents();
     }
   };
 
@@ -165,7 +174,7 @@ export const ReproductionManagement: React.FC = () => {
           <p className="page-subtitle">Controle de biotecnologias, diagnóstico de gestação e monitoramento de parição em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary">
+          <button className="glass-btn secondary" onClick={() => setIsBatchModalOpen(true)}>
             <ClipboardCheck size={18} />
             LANÇAMENTO LOTE
           </button>
@@ -270,6 +279,14 @@ export const ReproductionManagement: React.FC = () => {
         subtitle="Rastreabilidade do ciclo e próximos passos da matriz"
         items={historyItems}
         loading={historyLoading}
+      />
+
+      <BatchReproModal 
+        isOpen={isBatchModalOpen}
+        onClose={() => setIsBatchModalOpen(false)}
+        onBatchSubmit={handleBatchSubmit}
+        activeFarmId={activeFarm?.id}
+        tenantId={activeFarm?.tenantId}
       />
 
     </div>

@@ -23,6 +23,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { DietForm } from '../../components/Forms/DietForm';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { NutritionSimulatorModal } from './components/NutritionSimulatorModal';
 
 export const NutritionManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -36,6 +37,7 @@ export const NutritionManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
+  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -170,7 +172,7 @@ export const NutritionManagement: React.FC = () => {
           <p className="page-subtitle">Formulações de precisão, controle de custos e monitoramento de conversão alimentar em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary">
+          <button className="glass-btn secondary" onClick={() => setIsSimulatorOpen(true)}>
             <Scale size={18} />
             SIMULADOR
           </button>
@@ -276,6 +278,12 @@ export const NutritionManagement: React.FC = () => {
         subtitle="Rastreabilidade de consumo e lotes atendidos"
         items={historyItems}
         loading={historyLoading}
+      />
+
+      <NutritionSimulatorModal 
+        isOpen={isSimulatorOpen}
+        onClose={() => setIsSimulatorOpen(false)}
+        diets={diets}
       />
 
     </div>

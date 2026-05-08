@@ -23,6 +23,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { ScaleConfigModal } from './components/ScaleConfigModal';
 
 export const WeightManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -43,6 +44,7 @@ export const WeightManagement: React.FC = () => {
     dateStart: '',
     dateEnd: ''
   });
+  const [isScaleModalOpen, setIsScaleModalOpen] = useState(false);
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -176,7 +178,7 @@ export const WeightManagement: React.FC = () => {
           <p className="page-subtitle">Monitoramento de ganho de peso individual e performance do lote em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary">
+          <button className="glass-btn secondary" onClick={() => setIsScaleModalOpen(true)}>
             <Wifi size={18} />
             CONFIGURAR BALANÇA
           </button>
@@ -341,6 +343,11 @@ export const WeightManagement: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleSubmit}
         initialData={selectedWeight}
+      />
+
+      <ScaleConfigModal 
+        isOpen={isScaleModalOpen} 
+        onClose={() => setIsScaleModalOpen(false)} 
       />
 
     </div>
