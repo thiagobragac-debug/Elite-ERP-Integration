@@ -12,6 +12,7 @@ interface FormModalProps {
   children: ReactNode;
   submitLabel?: string;
   loading?: boolean;
+  size?: 'small' | 'medium' | 'large';
 }
 
 export const FormModal: React.FC<FormModalProps> = ({ 
@@ -23,13 +24,18 @@ export const FormModal: React.FC<FormModalProps> = ({
   icon: Icon, 
   children,
   submitLabel = 'Salvar Alterações',
-  loading = false
+  loading = false,
+  size = 'medium'
 }) => {
   if (!isOpen) return null;
 
   return createPortal(
     <div className="elite-modal-overlay" onClick={onClose}>
-      <div className="elite-modal-container" onClick={e => e.stopPropagation()}>
+      <div 
+        className={`elite-modal-container ${size}`} 
+        style={{ maxWidth: size === 'large' ? '900px' : size === 'small' ? '440px' : '680px' }}
+        onClick={e => e.stopPropagation()}
+      >
         <div className="elite-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper" style={{ 

@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -13,13 +12,17 @@ import {
   LayoutGrid,
   List as ListIcon,
   Filter,
-  FileText
+  FileText,
+  Package,
+  Scale,
+  Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { FormModal } from '../../components/Forms/FormModal';
 
 export const WarehouseManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -221,6 +224,15 @@ export const WarehouseManagement: React.FC = () => {
           progress={30}
           change="Estrutura Física"
           periodLabel="Checklists Pendentes"
+        />
+        <EliteStatCard 
+          label="Valor Total em Estoque" 
+          value="R$ 1.2M" 
+          icon={Package} 
+          color="#10b981"
+          progress={85}
+          change="Patrimônio Armazenado"
+          periodLabel="Avaliação em Tempo Real"
         />
       </div>
 
@@ -477,172 +489,116 @@ export const WarehouseManagement: React.FC = () => {
         .occupation-fill.danger { background: #ef4444; }
         .type-badge { position: absolute; top: 24px; right: 24px; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; text-transform: uppercase; }
 
-        .modal-overlay {
-          position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
-          backdrop-filter: blur(8px); z-index: 10000; display: flex;
-          align-items: center; justify-content: center; padding: 20px;
-        }
-        .plan-builder-modal {
-          background: white; width: 100%; max-width: 850px;
-          border-radius: 28px; overflow: hidden; box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
-          display: flex; flex-direction: column; max-height: 90vh;
-        }
-        .plan-builder-modal form {
-          display: flex;
-          flex-direction: column;
-          max-height: 90vh;
-          width: 100%;
-        }
-        .builder-header { padding: 28px 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
-        .icon-badge.brand { background: #eff6ff; color: #3b82f6; width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-        .builder-header h2 { font-size: 20px; font-weight: 900; color: #0f172a; margin: 0; }
-        .builder-header p { font-size: 13px; color: #64748b; margin: 2px 0 0; }
-        .builder-body { flex: 1; padding: 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 24px; }
-        .builder-footer { padding: 24px 32px; border-top: 1px solid #f1f5f9; background: #f8fafc; display: flex; justify-content: flex-end; gap: 16px; }
-        .input-group-row { display: flex; flex-direction: column; gap: 20px; }
-        .elite-label { display: block; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .elite-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 14px; transition: 0.2s; background: #f8fafc; color: #1e293b; font-weight: 600; }
-        .elite-input:focus { border-color: #3b82f6; background: white; outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
-        .close-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; transition: 0.2s; color: #94a3b8; background: transparent; border: none; cursor: pointer; }
-        .close-btn:hover { background: #fee2e2; color: #ef4444; }
-
-        .form-section { display: flex; flex-direction: column; gap: 12px; padding: 16px 0; border-top: 1px solid #f1f5f9; }
-        .form-section:first-child { border-top: none; padding-top: 0; }
-        .section-title { font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
-        .input-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-        .field { display: flex; flex-direction: column; gap: 6px; }
-        .elite-label { margin-bottom: 0 !important; }
-        
-        /* Premium Scrollbar */
-        .builder-body::-webkit-scrollbar { width: 6px; }
-        .builder-body::-webkit-scrollbar-track { background: transparent; }
-        .builder-body::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        
-        .field .elite-input {
-          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-          border-color: #e2e8f0;
-        }
-        
-        .field .elite-input:hover {
-          border-color: hsl(var(--brand) / 0.4);
-        }
       `}</style>
 
-      {createPortal(
-        <AnimatePresence>
-          {isModalOpen && (
-            <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="plan-builder-modal"
-                onClick={e => e.stopPropagation()}
-              >
-                <form onSubmit={handleSubmit}>
-                  <header className="builder-header">
-                    <div className="title-group">
-                      <div className="icon-badge brand">
-                        <Layout size={22} />
-                      </div>
-                      <div>
-                        <h2>{selectedWarehouse ? 'Editar Depósito' : 'Novo Depósito'}</h2>
-                        <p>Vincule este almoxarifado à fazenda {activeFarm?.nome}</p>
-                      </div>
-                    </div>
-                    <button type="button" className="close-btn" onClick={() => setIsModalOpen(false)}>
-                      <X size={20} />
-                    </button>
-                  </header>
+      <FormModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedWarehouse(null);
+        }}
+        onSubmit={handleSubmit}
+        title={selectedWarehouse ? "Editar Depósito" : "Novo Depósito"}
+        subtitle={`Vincule este almoxarifado à fazenda ${activeFarm?.nome}`}
+        icon={Package}
+        submitLabel={selectedWarehouse ? "Salvar Alterações" : "Confirmar Cadastro"}
+        size="large"
+      >
+        <div className="elite-field-group">
+          <label className="elite-label">
+            <Plus size={14} /> NOME DO DEPÓSITO
+          </label>
+          <input name="nome" type="text" className="elite-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
+        </div>
 
-                  <div className="builder-body" style={{ padding: '20px 32px' }}>
-                    {/* Seção 1: Identificação & Tipo */}
-                    <div className="form-section">
-                      <h3 className="section-title">Informações Básicas</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px' }}>
-                        <div className="field">
-                          <label className="elite-label">Nome do Depósito</label>
-                          <input name="nome" type="text" className="elite-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
-                        </div>
-                        <div className="field">
-                          <label className="elite-label">Tipo de Estrutura</label>
-                          <select name="tipo" className="elite-input" defaultValue={selectedWarehouse?.tipo || 'Galpão'}>
-                            <option value="Galpão">Galpão Geral</option>
-                            <option value="Silo">Silo de Grãos/Sementes</option>
-                            <option value="Câmara Fria">Câmara Fria</option>
-                            <option value="Tanque">Tanque de Líquidos</option>
-                            <option value="Depósito de Defensivos">Depósito de Defensivos</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="field">
-                        <label className="elite-label">Descrição / Finalidade</label>
-                        <textarea name="descricao" className="elite-input" style={{ height: '60px', resize: 'none' }} placeholder="Detalhes estratégicos..." defaultValue={selectedWarehouse?.descricao}></textarea>
-                      </div>
-                    </div>
+        <div className="elite-field-group">
+          <label className="elite-label">
+            <Layout size={14} /> TIPO DE ESTRUTURA
+          </label>
+          <select name="tipo" className="elite-input" defaultValue={selectedWarehouse?.tipo || 'Galpão'}>
+            <option value="Galpão">Galpão Geral</option>
+            <option value="Silo">Silo de Grãos/Sementes</option>
+            <option value="Câmara Fria">Câmara Fria</option>
+            <option value="Tanque">Tanque de Líquidos</option>
+            <option value="Defensivos">Defensivos</option>
+          </select>
+        </div>
 
-                    {/* Seção 2: Engenharia & Logística */}
-                    <div className="form-section">
-                      <h3 className="section-title">Engenharia & Logística</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
-                        <div className="field">
-                          <label className="elite-label">Capacidade Máxima</label>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <input name="capacidade_maxima" type="number" className="elite-input" style={{ flex: 1 }} placeholder="0.00" defaultValue={selectedWarehouse?.capacidade_maxima} />
-                            <select name="unidade_capacidade" className="elite-input" style={{ width: '75px', padding: '12px 8px' }} defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}>
-                              <option value="un">un</option>
-                              <option value="kg">kg</option>
-                              <option value="ton">ton</option>
-                              <option value="L">L</option>
-                              <option value="m³">m³</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className="field">
-                          <label className="elite-label">Localização Técnica / GPS / Setor</label>
-                          <input name="localizacao_tecnica" type="text" className="elite-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
-                        </div>
-                      </div>
-                    </div>
+        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="elite-label">
+            <FileText size={14} /> DESCRIÇÃO / FINALIDADE
+          </label>
+          <textarea name="descricao" className="elite-input" style={{ height: '50px', resize: 'none' }} placeholder="Detalhes estratégicos..." defaultValue={selectedWarehouse?.descricao}></textarea>
+        </div>
 
-                    {/* Seção 3: Governança Operacional */}
-                    <div className="form-section">
-                      <h3 className="section-title">Governança Operacional</h3>
-                      <div className="input-grid-2">
-                        <div className="field">
-                          <label className="elite-label">Fazenda Vinculada</label>
-                          <select name="fazenda_id" className="elite-input" defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id} required>
-                            <option value="">Selecione...</option>
-                            {farms.map(f => (
-                              <option key={f.id} value={f.id}>{f.nome}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="field">
-                          <label className="elite-label">Status do Ativo</label>
-                          <select name="status" className="elite-input" defaultValue={selectedWarehouse?.status || 'ativo'}>
-                            <option value="ativo">Operacional</option>
-                            <option value="inativo">Inativo</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+        <div className="elite-field-group">
+          <label className="elite-label">
+            <Scale size={14} /> CAPACIDADE MÁXIMA
+          </label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input name="capacidade_maxima" type="number" className="elite-input" style={{ flex: 1 }} placeholder="0.00" defaultValue={selectedWarehouse?.capacidade_maxima} />
+            <select name="unidade_capacidade" className="elite-input" style={{ width: '75px' }} defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}>
+              <option value="un">un</option>
+              <option value="kg">kg</option>
+              <option value="ton">ton</option>
+              <option value="L">L</option>
+              <option value="m³">m³</option>
+            </select>
+          </div>
+        </div>
 
-                  <footer className="builder-footer" style={{ padding: '32px 40px' }}>
-                    <button type="button" className="text-btn" onClick={() => setIsModalOpen(false)}>DESCARTAR ALTERAÇÕES</button>
-                    <button type="submit" className="primary-btn" style={{ padding: '14px 48px', minWidth: '220px', fontSize: '12px' }}>
-                      <CheckCircle2 size={20} />
-                      {selectedWarehouse ? 'ATUALIZAR DEPÓSITO' : 'CONFIRMAR CADASTRO'}
-                    </button>
-                  </footer>
-                </form>
-              </motion.div>
+        <div className="elite-field-group">
+          <label className="elite-label">
+            <Plus size={14} /> LOCALIZAÇÃO TÉCNICA / GPS
+          </label>
+          <input name="localizacao_tecnica" type="text" className="elite-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
+        </div>
+
+        <div className="elite-field-group">
+          <label className="elite-label">
+            <Layout size={14} /> FAZENDA VINCULADA
+          </label>
+          <select name="fazenda_id" className="elite-input" defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id} required>
+            <option value="">Selecione...</option>
+            {farms.map(f => (
+              <option key={f.id} value={f.id}>{f.nome}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="elite-field-group">
+          <label className="elite-label">
+            <Activity size={14} /> STATUS DO ATIVO
+          </label>
+          <div className="elite-form-radio-group">
+            <input type="hidden" name="status" value={selectedWarehouse?.status || 'ativo'} />
+            <div 
+              className={`elite-form-radio-item ${(selectedWarehouse?.status || 'ativo') === 'ativo' ? 'active' : ''}`}
+              onClick={(e) => {
+                const hiddenInput = e.currentTarget.parentElement?.querySelector('input[name="status"]') as HTMLInputElement;
+                if (hiddenInput) hiddenInput.value = 'ativo';
+                const items = e.currentTarget.parentElement?.querySelectorAll('.elite-form-radio-item');
+                items?.forEach(i => i.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+              }}
+            >
+              <CheckCircle2 size={16} /> OPERACIONAL
             </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+            <div 
+              className={`elite-form-radio-item ${(selectedWarehouse?.status || 'ativo') === 'inativo' ? 'active' : ''}`}
+              onClick={(e) => {
+                const hiddenInput = e.currentTarget.parentElement?.querySelector('input[name="status"]') as HTMLInputElement;
+                if (hiddenInput) hiddenInput.value = 'inativo';
+                const items = e.currentTarget.parentElement?.querySelectorAll('.elite-form-radio-item');
+                items?.forEach(i => i.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+              }}
+            >
+              <X size={16} /> INATIVO
+            </div>
+          </div>
+        </div>
+      </FormModal>
     </div>
   );
 };

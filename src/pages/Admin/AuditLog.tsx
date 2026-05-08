@@ -14,6 +14,7 @@ import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { FormModal } from '../../components/Forms/FormModal';
 
 /* ─── Mapa de ícones e rótulos por tabela ─── */
 const MODULE_ICONS: Record<string, React.ElementType> = {
@@ -467,66 +468,45 @@ export const AuditLog: React.FC = () => {
         )}
       </div>
 
-      {/* ─── Modal de Dossiê Técnico ─── */}
-      <AnimatePresence>
-        {selectedLog && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="audit-modal-overlay"
-            onClick={() => setSelectedLog(null)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="audit-modal-content"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="audit-modal-header">
-                <div>
-                  <h3>Dossiê de Auditoria</h3>
-                  <p>{selectedLog.description}</p>
-                </div>
-                <button className="close-btn" onClick={() => setSelectedLog(null)}>
-                  <X size={20} />
-                </button>
+      <FormModal
+        isOpen={!!selectedLog}
+        onClose={() => setSelectedLog(null)}
+        onSubmit={(e) => { e.preventDefault(); setSelectedLog(null); }}
+        title="Dossiê de Auditoria"
+        subtitle={selectedLog?.description || "Rastreabilidade técnica de dados"}
+        icon={Shield}
+        submitLabel="Fechar Dossiê"
+        hideSubmit={true}
+      >
+        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            {selectedLog?.old_data && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: 'hsl(var(--text-muted))' }}>Estado Anterior</div>
+                <pre style={{ padding: '20px', borderRadius: '16px', background: 'hsl(var(--bg-main)/0.5)', border: '1px solid hsl(var(--border))', fontSize: '12px', overflow: 'auto', maxHeight: '400px', fontFamily: 'JetBrains Mono, monospace' }}>
+                  {JSON.stringify(selectedLog.old_data, null, 2)}
+                </pre>
               </div>
-
-              <div className="audit-modal-grid">
-                {selectedLog.old_data && (
-                  <div className="audit-data-section">
-                    <div className="section-label">Estado Anterior</div>
-                    <pre className="audit-json-viewer">
-                      {JSON.stringify(selectedLog.old_data, null, 2)}
-                    </pre>
-                  </div>
-                )}
-                {selectedLog.new_data && (
-                  <div className="audit-data-section">
-                    <div className="section-label">Novo Estado</div>
-                    <pre className="audit-json-viewer success">
-                      {JSON.stringify(selectedLog.new_data, null, 2)}
-                    </pre>
-                  </div>
-                )}
+            )}
+            {selectedLog?.new_data && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: 'hsl(var(--text-muted))' }}>Novo Estado</div>
+                <pre style={{ padding: '20px', borderRadius: '16px', background: 'hsl(161 64% 39% / 0.05)', border: '1px solid hsl(161 64% 39% / 0.3)', color: 'hsl(161 64% 39%)', fontSize: '12px', overflow: 'auto', maxHeight: '400px', fontFamily: 'JetBrains Mono, monospace' }}>
+                  {JSON.stringify(selectedLog.new_data, null, 2)}
+                </pre>
               </div>
-              
-              <div className="audit-modal-footer">
-                <div className="log-meta">
-                  <span>ID do Log: {selectedLog.id}</span>
-                  <span>•</span>
-                  <span>Tabela: {selectedLog.table_name}</span>
-                </div>
-                <button className="primary-btn" onClick={() => setSelectedLog(null)}>
-                  FECHAR
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            )}
+          </div>
+        </div>
+        
+        <div className="elite-field-group" style={{ gridColumn: 'span 2', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid hsl(var(--border))' }}>
+          <div style={{ display: 'flex', gap: '12px', fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>
+            <span>ID: {selectedLog?.id}</span>
+            <span>•</span>
+            <span>Tabela: {selectedLog?.table_name}</span>
+          </div>
+        </div>
+      </FormModal>
 
       <style>{`
         .audit-entry {
@@ -606,56 +586,6 @@ export const AuditLog: React.FC = () => {
           text-transform: uppercase; letter-spacing: 0.05em;
           margin-left: auto;
         }
-
-        /* ─── Modal Premium Styles ─── */
-        .audit-modal-overlay {
-          position: fixed; inset: 0; z-index: 10000;
-          background: rgba(2, 6, 23, 0.6); backdrop-filter: blur(8px);
-          display: flex; align-items: center; justify-content: center; padding: 20px;
-        }
-
-        .audit-modal-content {
-          background: hsl(var(--bg-card)); width: 100%; max-width: 800px;
-          border-radius: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-          overflow: hidden; display: flex; flex-direction: column;
-          max-height: 90vh; border: 1px solid hsl(var(--border));
-        }
-
-        .audit-modal-header {
-          padding: 32px; border-bottom: 1px solid hsl(var(--border));
-          display: flex; justify-content: space-between; align-items: flex-start;
-        }
-
-        .audit-modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: hsl(var(--text-main)); text-transform: uppercase; letter-spacing: 0.05em; }
-        .audit-modal-header p { margin: 6px 0 0; font-size: 0.85rem; color: hsl(var(--text-muted)); font-weight: 500; }
-
-        .audit-modal-grid {
-          padding: 32px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
-          overflow-y: auto; flex: 1;
-        }
-
-        @media (max-width: 640px) { .audit-modal-grid { grid-template-columns: 1fr; } }
-
-        .audit-data-section { display: flex; flex-direction: column; gap: 12px; }
-        .section-label { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; color: hsl(var(--text-muted)); letter-spacing: 0.05em; }
-
-        .audit-json-viewer {
-          padding: 20px; border-radius: 16px; background: hsl(var(--bg-main) / 0.5);
-          font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-          color: hsl(var(--text-main)); margin: 0; border: 1px solid hsl(var(--border));
-          overflow-x: auto; max-height: 400px; line-height: 1.6;
-        }
-
-        .audit-json-viewer.success { border-color: hsl(161 64% 39% / 0.3); background: hsl(161 64% 39% / 0.05); color: hsl(161 64% 39%); }
-
-        .audit-modal-footer {
-          padding: 24px 32px; background: hsl(var(--bg-main) / 0.3); border-top: 1px solid hsl(var(--border));
-          display: flex; justify-content: space-between; align-items: center;
-        }
-
-        .log-meta { font-size: 0.7rem; color: hsl(var(--text-muted)); font-weight: 700; display: flex; gap: 10px; text-transform: uppercase; }
-        .close-btn { background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); padding: 8px; border-radius: 12px; cursor: pointer; color: hsl(var(--text-muted)); transition: 0.2s; }
-        .close-btn:hover { color: hsl(var(--brand)); border-color: hsl(var(--brand)); }
 
         .audit-desc {
           font-size: 0.78rem; font-weight: 500;

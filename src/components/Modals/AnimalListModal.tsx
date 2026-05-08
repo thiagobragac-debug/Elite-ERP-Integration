@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { X, Search, Beef, Scale } from 'lucide-react';
+import { FormModal } from '../Forms/FormModal';
 import { supabase } from '../../lib/supabase';
 
 interface AnimalListModalProps {
@@ -51,106 +51,95 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
     setLoading(false);
   };
 
-  if (!isOpen) return null;
-
   const filteredAnimals = animals.filter(a => 
     a.brinco.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (a.raca && a.raca.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  return createPortal(
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <header className="modal-header">
-          <div className="header-icon">
-            <Icon size={24} />
+  return (
+    <FormModal
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); onClose(); }}
+      title={title}
+      subtitle={subtitle}
+      icon={Icon}
+      submitLabel="Fechar"
+      hideSubmit={true}
+      size="large"
+    >
+      <div style={{ gridColumn: 'span 2' }}>
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))' }} />
+            <input 
+              type="text" 
+              className="elite-input"
+              style={{ paddingLeft: '48px' }}
+              placeholder="Filtrar por brinco ou raça..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <div className="header-text">
-            <h2>{title}</h2>
-            {subtitle && <p>{subtitle}</p>}
+          <div style={{ padding: '0 20px', height: '48px', background: 'hsl(var(--bg-main))', borderRadius: '14px', border: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: 900, color: 'hsl(var(--text-muted))' }}>
+            {filteredAnimals.length} ANIMAIS
           </div>
-          <button className="close-btn" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </header>
-
-        <div className="animal-list-body" style={{ padding: '24px', overflowY: 'auto' }}>
-          <div className="list-filters">
-            <div className="search-box">
-              <Search size={16} />
-              <input 
-                type="text" 
-                placeholder="Filtrar por brinco ou raça..." 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="count-badge">
-              {filteredAnimals.length} animais
-            </div>
-          </div>
-
-          {!loading && filteredAnimals.length > 0 && (
-            <div className="lot-summary-row">
-              <div className="summary-item">
-                <span className="label">Total Animais</span>
-                <span className="value">{filteredAnimals.length}</span>
-              </div>
-              <div className="summary-item">
-                <span className="label">Peso Total</span>
-                <span className="value">
-                  {filteredAnimals.reduce((acc, curr) => acc + (curr.currentWeight || 0), 0).toLocaleString()} kg
-                </span>
-              </div>
-              <div className="summary-item">
-                <span className="label">Peso Médio</span>
-                <span className="value">
-                  {(filteredAnimals.reduce((acc, curr) => acc + (curr.currentWeight || 0), 0) / (filteredAnimals.length || 1)).toFixed(1)} kg
-                </span>
-              </div>
-            </div>
-          )}
-
-          {loading ? (
-            <div className="loading-state">
-              <div className="spinner"></div>
-              <span>Carregando animais...</span>
-            </div>
-          ) : filteredAnimals.length === 0 ? (
-            <div className="empty-state">
-              <p>Nenhum animal encontrado para este critério.</p>
-            </div>
-          ) : (
-            <div className="animals-grid">
-              {filteredAnimals.map(animal => (
-                <div key={animal.id} className="animal-mini-card">
-                  <div className="animal-avatar">
-                    <Beef size={20} />
-                  </div>
-                  <div className="animal-info">
-                    <div className="animal-top">
-                      <span className="brinco">{animal.brinco}</span>
-                      <span className="category-tag">{animal.categoria}</span>
-                    </div>
-                    <div className="animal-bottom">
-                      <span className="raca">{animal.raca}</span>
-                      <span className="weight">
-                        <Scale size={12} />
-                        {animal.currentWeight} kg
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
-        <footer className="modal-footer">
-          <button className="secondary-btn" onClick={onClose}>Fechar</button>
-        </footer>
+        {!loading && filteredAnimals.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ padding: '20px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '20px', border: '1px solid hsl(var(--border))', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Efetivo Total</div>
+              <div style={{ fontSize: '18px', fontWeight: 900 }}>{filteredAnimals.length} cab.</div>
+            </div>
+            <div style={{ padding: '20px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '20px', border: '1px solid hsl(var(--border))', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Peso Total</div>
+              <div style={{ fontSize: '18px', fontWeight: 900 }}>{filteredAnimals.reduce((acc, curr) => acc + (curr.currentWeight || 0), 0).toLocaleString()} kg</div>
+            </div>
+            <div style={{ padding: '20px', background: 'hsl(var(--brand)/0.05)', borderRadius: '20px', border: '1px solid hsl(var(--brand)/0.2)', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', textTransform: 'uppercase', marginBottom: '8px' }}>Peso Médio</div>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>{(filteredAnimals.reduce((acc, curr) => acc + (curr.currentWeight || 0), 0) / (filteredAnimals.length || 1)).toFixed(1)} kg</div>
+            </div>
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ padding: '48px', textAlign: 'center' }}>
+            <div style={{ width: '32px', height: '32px', border: '3.5px solid hsl(var(--border))', borderTopColor: 'hsl(var(--brand))', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }}></div>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>Carregando animais...</span>
+          </div>
+        ) : filteredAnimals.length === 0 ? (
+          <div style={{ padding: '48px', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
+            <p style={{ fontSize: '14px', fontWeight: 600 }}>Nenhum animal encontrado para este critério.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+            {filteredAnimals.map(animal => (
+              <div key={animal.id} style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.3)', borderRadius: '16px', border: '1px solid hsl(var(--border))', display: 'flex', gap: '16px', alignItems: 'center' }}>
+                <div style={{ width: '44px', height: '44px', background: 'white', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--text-muted))', border: '1px solid hsl(var(--border))' }}>
+                  <Beef size={22} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 900 }}>{animal.brinco}</span>
+                    <span style={{ fontSize: '9px', fontWeight: 900, color: 'hsl(var(--brand))', background: 'hsl(var(--brand)/0.1)', padding: '2px 8px', borderRadius: '4px' }}>{animal.categoria}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, opacity: 0.6 }}>{animal.raca}</span>
+                    <span style={{ fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Scale size={12} />
+                      {animal.currentWeight} kg
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
-    </div>,
-    document.body
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
+    </FormModal>
   );
 };

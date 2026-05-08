@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { 
   X, 
   Scale, 
@@ -14,6 +13,7 @@ import {
   FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FormModal } from '../../../components/Forms/FormModal';
 
 interface NutritionSimulatorModalProps {
   isOpen: boolean;
@@ -35,141 +35,93 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
   const costPerAnimalDay = Number(dailyConsumption) * costPerKg;
   const monthlyProjection = totalDailyCost * 30;
 
-  if (!isOpen) return null;
+  return (
+    <>
+      <FormModal
+        isOpen={isOpen}
+        onClose={onClose}
+        onSubmit={(e) => { e.preventDefault(); window.print(); }}
+        title="Simulador Nutricional"
+        subtitle="Projeção de consumo, custo e ganho de peso"
+        icon={Zap}
+        submitLabel="Exportar Relatório"
+        iconSubmit={FileText}
+      >
+        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="elite-label">Configuração da Dieta</label>
+          <select 
+            className="elite-input elite-select"
+            value={selectedDietId}
+            onChange={e => setSelectedDietId(e.target.value)}
+          >
+            <option value="">Escolha uma formulação...</option>
+            {diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(diet => (
+              <option key={diet.id} value={diet.id}>{diet.nome} (R$ {Number(diet.custo_por_kg).toFixed(2)}/kg)</option>
+            ))}
+          </select>
+        </div>
 
-  return createPortal(
-    <AnimatePresence>
-      <div className="modal-overlay" onClick={onClose}>
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="simulator-modal-container"
-          onClick={e => e.stopPropagation()}
-        >
-          <header className="simulator-header">
-            <div className="title-group">
-              <div className="icon-badge">
-                <Zap size={22} className="text-brand" />
-              </div>
-              <div>
-                <h2>Simulador Nutricional</h2>
-                <p>Projeção de consumo, custo e ganho de peso</p>
-              </div>
+        <div className="elite-field-group">
+          <label className="elite-label">N° de Animais</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Beef size={14} style={{ color: 'hsl(var(--text-muted))' }} />
+            <input 
+              type="number" 
+              className="elite-input" 
+              value={animalCount}
+              onChange={e => setAnimalCount(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="elite-field-group">
+          <label className="elite-label">Consumo (kg/dia)</label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Utensils size={14} style={{ color: 'hsl(var(--text-muted))' }} />
+            <input 
+              type="number" 
+              className="elite-input" 
+              value={dailyConsumption}
+              onChange={e => setDailyConsumption(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="elite-label">Resultados da Simulação</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Consumo Total Diário</div>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>{totalDailyConsumption.toLocaleString()} kg</div>
             </div>
-            <button className="close-btn" onClick={onClose}>
-              <X size={20} />
-            </button>
-          </header>
-
-          <div className="simulator-body">
-            <div className="simulator-inputs">
-              <div className="form-field">
-                <label className="elite-label">Selecione a Dieta</label>
-                <select 
-                  className="elite-select"
-                  value={selectedDietId}
-                  onChange={e => setSelectedDietId(e.target.value)}
-                >
-                  <option value="">Escolha uma formulação...</option>
-                  {diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(diet => (
-                    <option key={diet.id} value={diet.id}>{diet.nome} (R$ {Number(diet.custo_por_kg).toFixed(2)}/kg)</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="input-row">
-                <div className="form-field">
-                  <label className="elite-label"><Beef size={14} /> N° de Animais</label>
-                  <input 
-                    type="number" 
-                    className="elite-input" 
-                    value={animalCount}
-                    onChange={e => setAnimalCount(e.target.value)}
-                  />
-                </div>
-                <div className="form-field">
-                  <label className="elite-label"><Utensils size={14} /> Consumo (kg/dia)</label>
-                  <input 
-                    type="number" 
-                    className="elite-input" 
-                    value={dailyConsumption}
-                    onChange={e => setDailyConsumption(e.target.value)}
-                  />
-                </div>
-                <div className="form-field">
-                  <label className="elite-label"><Activity size={14} /> GMD Alvo (kg)</label>
-                  <input 
-                    type="number" 
-                    step="0.001"
-                    className="elite-input" 
-                    value={expectedGMD}
-                    onChange={e => setExpectedGMD(e.target.value)}
-                  />
-                </div>
-              </div>
+            <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo Diário Total</div>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {totalDailyCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
             </div>
-
-            <div className="simulation-results">
-              <label className="section-label">Resultados da Simulação</label>
-              
-              <div className="result-grid">
-                <div className="result-card">
-                  <span className="res-label">Consumo Total Diário</span>
-                  <div className="res-value">
-                    <Scale size={18} className="text-brand" />
-                    <span>{totalDailyConsumption.toLocaleString()} kg</span>
-                  </div>
-                </div>
-                <div className="result-card">
-                  <span className="res-label">Custo Diário Total</span>
-                  <div className="res-value">
-                    <DollarSign size={18} className="text-brand" />
-                    <span>R$ {totalDailyCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                  </div>
-                </div>
-                <div className="result-card">
-                  <span className="res-label">Custo / Cabeça / Dia</span>
-                  <div className="res-value">
-                    <TrendingUp size={18} className="text-brand" />
-                    <span>R$ {costPerAnimalDay.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                  </div>
-                </div>
-                <div className="result-card highlight">
-                  <span className="res-label">Projeção 30 Dias</span>
-                  <div className="res-value">
-                    <Target size={18} />
-                    <span>R$ {monthlyProjection.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="performance-box">
-                <div className="perf-header">
-                  <TrendingUp size={16} />
-                  <span>EFICIÊNCIA PROJETADA</span>
-                </div>
-                <div className="perf-content">
-                  <div className="perf-item">
-                    <span className="p-label">Conversão Alimentar</span>
-                    <span className="p-value">{(Number(dailyConsumption) / Number(expectedGMD)).toFixed(2)} : 1</span>
-                  </div>
-                  <div className="perf-item">
-                    <span className="p-label">Custo kg Produzido</span>
-                    <span className="p-value">R$ {(costPerAnimalDay / Number(expectedGMD)).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
+            <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo / Cabeça / Dia</div>
+              <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {costPerAnimalDay.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            </div>
+            <div style={{ padding: '16px', background: 'hsl(var(--text-main))', borderRadius: '16px', color: 'white' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', marginBottom: '8px' }}>Projeção 30 Dias</div>
+              <div style={{ fontSize: '18px', fontWeight: 900 }}>R$ {monthlyProjection.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
             </div>
           </div>
+        </div>
 
-          <footer className="simulator-footer">
-            <button className="text-btn" onClick={onClose}>FECHAR</button>
-            <button className="primary-btn" onClick={() => window.print()}>
-              <FileText size={18} />
-              EXPORTAR RELATÓRIO
-            </button>
-          </footer>
+        <div className="elite-field-group" style={{ gridColumn: 'span 2', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '16px', border: '1px dashed hsl(var(--brand)/0.3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Conversão Alimentar</div>
+              <div style={{ fontSize: '15px', fontWeight: 900 }}>{(Number(dailyConsumption) / Number(expectedGMD)).toFixed(2)} : 1</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Custo kg Produzido</div>
+              <div style={{ fontSize: '15px', fontWeight: 900 }}>R$ {(costPerAnimalDay / Number(expectedGMD)).toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      </FormModal>
 
           {/* Versão para Impressão Profissional */}
           <div className="print-report-container">
@@ -259,58 +211,6 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
           </div>
 
           <style>{`
-            .modal-overlay {
-              position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6);
-              backdrop-filter: blur(8px); z-index: 10000; display: flex;
-              align-items: center; justify-content: center; padding: 20px;
-            }
-            .simulator-modal-container {
-              background: hsl(var(--bg-card)); width: 100%; max-width: 650px;
-              max-height: 90vh; display: flex; flex-direction: column;
-              border-radius: 28px; border: 1px solid hsl(var(--border));
-              box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5); overflow: hidden;
-            }
-            .simulator-header {
-              padding: 20px 24px; border-bottom: 1px solid hsl(var(--border));
-              display: flex; justify-content: space-between; align-items: center;
-              background: linear-gradient(to bottom, hsl(var(--bg-card)), hsl(var(--bg-main)));
-              flex-shrink: 0;
-            }
-            .simulator-body { padding: 24px; display: flex; flex-direction: column; gap: 24px; overflow-y: auto; flex: 1; }
-            .simulator-inputs { display: flex; flex-direction: column; gap: 16px; }
-            .input-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-            .form-field { display: flex; flex-direction: column; gap: 8px; }
-            .section-label { display: block; font-size: 11px; font-weight: 900; color: hsl(var(--text-muted)); letter-spacing: 0.1em; margin-bottom: 16px; text-transform: uppercase; }
-            
-            .result-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
-            .result-card {
-              padding: 20px; background: hsl(var(--bg-main) / 0.5); border: 1px solid hsl(var(--border));
-              border-radius: 20px; display: flex; flex-direction: column; gap: 8px;
-            }
-            .result-card.highlight { background: #0f172a; color: white; border-color: #0f172a; }
-            .res-label { font-size: 10px; font-weight: 800; color: hsl(var(--text-muted)); text-transform: uppercase; }
-            .result-card.highlight .res-label { color: #94a3b8; }
-            .res-value { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 900; }
-            
-            .performance-box {
-              background: hsl(var(--brand) / 0.05); border: 1px dashed hsl(var(--brand) / 0.3);
-              border-radius: 20px; padding: 20px; margin-top: 8px;
-            }
-            .perf-header { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 900; color: hsl(var(--brand)); margin-bottom: 16px; }
-            .perf-content { display: flex; justify-content: space-between; }
-            .perf-item { display: flex; flex-direction: column; gap: 4px; }
-            .p-label { font-size: 10px; font-weight: 700; color: hsl(var(--text-muted)); }
-            .p-value { font-size: 15px; font-weight: 900; color: hsl(var(--text-main)); }
-
-            .simulator-footer {
-              padding: 16px 24px; border-top: 1px solid hsl(var(--border));
-              display: flex; justify-content: space-between; align-items: center;
-              background: hsl(var(--bg-main) / 0.3);
-              flex-shrink: 0;
-            }
-            .text-brand { color: hsl(var(--brand)); }
-            .close-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 10px; transition: 0.2s; color: hsl(var(--text-muted)); }
-            .close-btn:hover { background: #fee2e2; color: #ef4444; }
 
             .print-report-container { display: none; }
 
@@ -399,9 +299,6 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
               }
             }
           `}</style>
-        </motion.div>
-      </div>
-    </AnimatePresence>,
-    document.body
+    </>
   );
 };
