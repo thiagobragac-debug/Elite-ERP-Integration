@@ -30,6 +30,7 @@ import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { PurchaseRequestFilterModal } from './components/PurchaseRequestFilterModal';
 
 export const PurchaseRequest: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -43,7 +44,17 @@ export const PurchaseRequest: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    priorities: [],
+    departments: [],
+    maxAmount: 100000,
+    dateStart: '',
+    dateEnd: ''
+  });
   const [stats, setStats] = useState<any[]>([]);
+  const [showOnlyUrgent, setShowOnlyUrgent] = useState(false);
 
   useEffect(() => {
     if (!activeFarmId && !isGlobalMode) return;
@@ -52,25 +63,31 @@ export const PurchaseRequest: React.FC = () => {
 
   const fetchRequests = async () => {
     setLoading(true);
-    let query = supabase.from('solicitacoes_compra').select('*').order('created_at', { ascending: false });
-    query = applyFarmFilter(query);
-    const { data } = await query;
-    
-    if (data) {
-      setRequests(data);
-      const abertas = data.filter(r => r.status === 'pending').length;
-      const aguardando = data.filter(r => r.status === 'approved').length;
-      const urgentes = data.filter(r => r.prioridade === 'high' || r.prioridade === 'Urgente').length;
-      const valorTotal = data.reduce((acc, curr) => acc + Number(curr.valor_estimado || 0), 0);
+    try {
+      let query = supabase.from('solicitacoes_compra').select('*').order('created_at', { ascending: false });
+      query = applyFarmFilter(query);
+      const { data } = await query;
       
-      setStats([
-        { label: 'Requisições Ativas', value: abertas, icon: ShoppingCart, color: '#10b981', progress: 100 },
-        { label: 'Aguardando Direção', value: aguardando, icon: Clock, color: '#f59e0b', progress: (aguardando / (data.length || 1)) * 100 },
-        { label: 'Volume Orçado', value: valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: Package, color: '#3b82f6', progress: 65, trend: 'up' },
-        { label: 'Nível de Urgência', value: urgentes, icon: AlertTriangle, color: '#ef4444', progress: (urgentes / (data.length || 1)) * 100, trend: 'up' },
-      ]);
+      if (data) {
+        setRequests(data);
+        const abertas = data.filter(r => r.status === 'pending').length;
+        const urgentes = data.filter(r => r.prioridade === 'high' || r.prioridade === 'Urgente').length;
+        const valorTotal = data.reduce((acc, curr) => acc + Number(curr.valor_estimado || 0), 0);
+        const totalRequests = data.length || 1;
+        const avgValue = valorTotal / totalRequests;
+        
+        setStats([
+          { label: 'Requisições Ativas', value: abertas, icon: ShoppingCart, color: '#10b981', progress: 100, change: 'Volume de Entrada' },
+          { label: 'Ticket Médio (Est.)', value: avgValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: Zap, color: '#3b82f6', progress: 100, change: 'Impacto Financeiro' },
+          { label: 'Agilidade de Fluxo', value: '1.4 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up', change: 'SLA Aprovação' },
+          { label: 'Nível de Urgência', value: urgentes, icon: AlertTriangle, color: '#ef4444', progress: (urgentes / totalRequests) * 100, trend: 'up', change: 'Prioridade Alta' },
+        ]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOpenCreate = () => {
@@ -129,23 +146,53 @@ export const PurchaseRequest: React.FC = () => {
   const tableColumns = [
     {
       header: 'ID / Título',
-      accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">#{item.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.titulo || 'SOLICITAÇÃO'}
+      accessor: (item: any) => {
+        const isUrgent = item.prioridade === 'high' || item.prioridade === 'urgent' || item.prioridade === 'Urgente';
+        const isHighValue = Number(item.valor_estimado) > 5000;
+        return (
+          <div className="table-cell-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="flex flex-col">
+              <span className="main-text">#{item.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</span>
+              <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
+                <span>{item.titulo || 'SOLICITAÇÃO'}</span>
+                {isHighValue && <span className="text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">NÍVEL EXECUTIVO</span>}
+              </div>
+            </div>
+            {isUrgent && (
+              <span style={{ 
+                fontSize: '8px', 
+                fontWeight: 900, 
+                color: '#ef4444', 
+                background: '#fef2f2', 
+                padding: '2px 6px', 
+                borderRadius: '4px',
+                border: '1px solid #fee2e2'
+              }}>
+                URGENTE
+              </span>
+            )}
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
-      header: 'Departamento',
-      accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <User size={14} />
-          <span>{item.departamento}</span>
-        </div>
-      )
+      header: 'Origem / Espera',
+      accessor: (item: any) => {
+        const daysAgo = Math.floor((new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24));
+        return (
+          <div className="table-cell-meta">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1">
+                <User size={14} />
+                <span>{item.departamento}</span>
+              </div>
+              <span className={`text-[10px] font-bold uppercase ${daysAgo > 3 ? 'text-red-500' : 'text-slate-400'}`}>
+                HA {daysAgo} DIAS EM AGUARDO
+              </span>
+            </div>
+          </div>
+        );
+      }
     },
     {
       header: 'Vlr Estimado',
@@ -160,7 +207,7 @@ export const PurchaseRequest: React.FC = () => {
       header: 'Status',
       accessor: (item: any) => (
         <span className={`status-pill ${item.status === 'approved' ? 'active' : item.status === 'pending' ? 'warning' : 'stopped'}`}>
-          {item.status === 'approved' ? 'Aprovado' : item.status === 'pending' ? 'Pendente' : 'Rejeitado'}
+          {item.status === 'approved' ? 'Em Cotação' : item.status === 'pending' ? 'Triagem' : 'Rejeitado'}
         </span>
       ),
       align: 'center' as const
@@ -180,9 +227,18 @@ export const PurchaseRequest: React.FC = () => {
           <p className="page-subtitle">Fluxo interno de requisições de materiais, serviços e reposição de ativos em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => navigate('/compras/solicitacao')}>
-            <Zap size={18} />
-            PRIORIDADES
+          <button 
+            className={`glass-btn secondary ${showOnlyUrgent ? 'active' : ''}`} 
+            onClick={() => setShowOnlyUrgent(!showOnlyUrgent)}
+            style={showOnlyUrgent ? { 
+              background: 'hsl(var(--brand) / 0.1)', 
+              borderColor: 'hsl(var(--brand))',
+              color: 'hsl(var(--brand))',
+              boxShadow: '0 0 15px hsl(var(--brand) / 0.2)'
+            } : {}}
+          >
+            <Zap size={18} fill={showOnlyUrgent ? "currentColor" : "none"} />
+            {showOnlyUrgent ? 'FILTRO ATIVO' : 'PRIORIDADES'}
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
@@ -236,7 +292,11 @@ export const PurchaseRequest: React.FC = () => {
         </div>
 
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Log">
@@ -245,12 +305,28 @@ export const PurchaseRequest: React.FC = () => {
         </div>
       </div>
 
+      <PurchaseRequestFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
+
       <div className="management-content">
         <ModernTable 
           data={requests.filter(r => {
-            const matchesSearch = (r.id || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = (r.id || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                 (r.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'PENDING' ? r.status === 'pending' : r.status === 'approved';
-            return matchesSearch && matchesTab;
+            const matchesUrgency = showOnlyUrgent ? (r.prioridade === 'high' || r.prioridade === 'Urgente') : true;
+            
+            const matchesPriority = filterValues.priorities.length === 0 || filterValues.priorities.includes(r.prioridade?.toLowerCase());
+            const matchesDept = filterValues.departments.length === 0 || filterValues.departments.includes(r.departamento);
+            const matchesAmount = Number(r.valor_estimado) <= filterValues.maxAmount;
+            const matchesDate = (!filterValues.dateStart || new Date(r.created_at) >= new Date(filterValues.dateStart)) &&
+                               (!filterValues.dateEnd || new Date(r.created_at) <= new Date(filterValues.dateEnd));
+
+            return matchesSearch && matchesTab && matchesUrgency && matchesPriority && matchesDept && matchesAmount && matchesDate;
           })}
           columns={tableColumns}
           loading={loading}

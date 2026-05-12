@@ -23,22 +23,36 @@ import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { FormModal } from '../../components/Forms/FormModal';
+<<<<<<< HEAD
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const WarehouseManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
+=======
+import { WarehouseFilterModal } from './components/WarehouseFilterModal';
+
+export const WarehouseManagement: React.FC = () => {
+  const { activeFarm, isGlobalMode, activeTenantId, activeFarmId } = useTenant();
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [activeTab, setActiveTab] = useState('Todos');
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    occupation: 'all',
+    types: []
+  });
 
   const [farms, setFarms] = useState<any[]>([]);
 
   useEffect(() => {
+<<<<<<< HEAD
     if (!activeFarmId && !isGlobalMode) return;
     fetchWarehouses();
     fetchFarms();
@@ -48,28 +62,80 @@ export const WarehouseManagement: React.FC = () => {
     let query = supabase.from('fazendas').select('id, nome');
     query = applyTenantFilter(query);
     const { data } = await query;
+=======
+    if (!activeTenantId) return;
+    fetchWarehouses();
+    fetchFarms();
+  }, [activeFarmId, activeTenantId, isGlobalMode]);
+
+  const fetchFarms = async () => {
+    if (!activeTenantId) return;
+    const { data } = await supabase
+      .from('fazendas')
+      .select('id, nome')
+      .eq('tenant_id', activeTenantId);
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
     if (data) setFarms(data);
   };
 
   const fetchWarehouses = async () => {
     setLoading(true);
     try {
+<<<<<<< HEAD
       let query = supabase.from('depositos').select(`
+=======
+      // Fetch warehouses, their movements AND the products involved to calculate value
+      let query = supabase
+        .from('depositos')
+        .select(`
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
           *,
           movimentacoes_estoque (
             quantidade,
-            tipo
+            tipo,
+            produto_id,
+            produtos (
+              custo_medio
+            )
           )
+<<<<<<< HEAD
         `).order('nome', { ascending: true });
       query = applyFarmFilter(query);
       const { data, error } = await query;
+=======
+        `);
+
+      if (isGlobalMode) {
+        query = query.eq('tenant_id', activeTenantId);
+      } else {
+        query = query.eq('fazenda_id', activeFarmId).eq('tenant_id', activeTenantId);
+      }
+
+      const { data, error } = await query.order('nome', { ascending: true });
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
 
       if (data) {
         const processed = data.map((w: any) => {
+          let valorTotal = 0;
           const saldo = w.movimentacoes_estoque?.reduce((acc: number, curr: any) => {
-            return acc + (curr.tipo === 'IN' || curr.tipo === 'in' ? Number(curr.quantidade) : -Number(curr.quantidade));
+            const qty = Number(curr.quantidade);
+            const isEntry = curr.tipo === 'IN' || curr.tipo === 'in';
+            const prodValue = (curr.produtos?.custo_medio || 0) * qty;
+            
+            if (isEntry) {
+              valorTotal += prodValue;
+              return acc + qty;
+            } else {
+              valorTotal -= prodValue;
+              return acc - qty;
+            }
           }, 0) || 0;
-          return { ...w, saldo_atual: saldo };
+
+          return { 
+            ...w, 
+            saldo_atual: saldo,
+            valor_total: Math.max(0, valorTotal)
+          };
         });
         setWarehouses(processed);
       }
@@ -139,28 +205,63 @@ export const WarehouseManagement: React.FC = () => {
     if (!error) fetchWarehouses();
   };
 
-  const filteredWarehouses = warehouses.filter(w => 
-    w.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (w.descricao || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+   const filteredWarehouses = warehouses.filter(w => {
+    const matchesSearch = (w.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (w.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab = activeTab === 'Todos' || (w.tipo === activeTab);
+    
+    const matchesStatus = filterValues.status === 'all' || w.status === filterValues.status;
+    
+    const perc = w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) * 100 : 0;
+    let matchesOccupation = true;
+    if (filterValues.occupation === 'critical') matchesOccupation = perc > 90;
+    else if (filterValues.occupation === 'high') matchesOccupation = perc > 70;
+    else if (filterValues.occupation === 'low') matchesOccupation = perc < 20;
+
+    const matchesTypes = filterValues.types.length === 0 || filterValues.types.includes(w.tipo);
+
+    return matchesSearch && matchesTab && matchesStatus && matchesOccupation && matchesTypes;
+  });
 
   const columns = [
     {
-      header: 'Nome do Depósito',
+      header: 'Depósito / Estrutura',
       accessor: (item: any) => (
         <div className="table-cell-title">
           <span className="main-text">{item.nome}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {activeFarm?.nome}
+          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
+            <span>{item.tipo}</span>
+            <span className="text-slate-400">• {item.localizacao_tecnica || 'Sede'}</span>
           </div>
         </div>
       )
     },
     {
-      header: 'Descrição',
+      header: 'Ocupação',
+      accessor: (item: any) => {
+        const perc = item.capacidade_maxima > 0 ? (item.saldo_atual / item.capacidade_maxima) * 100 : 0;
+        return (
+          <div className="flex flex-col gap-1 w-32">
+            <div className="flex justify-between text-[10px] font-bold">
+              <span>{Math.round(perc)}%</span>
+              <span className="text-slate-400">{item.saldo_atual} {item.unidade_capacidade}</span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div 
+                className={`h-full ${perc > 90 ? 'bg-red-500' : perc > 70 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                style={{ width: `${Math.min(perc, 100)}%` }}
+              />
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      header: 'Patrimônio Armazenado',
       accessor: (item: any) => (
         <div className="table-cell-meta">
-          <span>{item.descricao || 'Sem descrição'}</span>
+          <DollarSign size={14} className="text-emerald-500" />
+          <span className="font-bold">R$ {Number(item.valor_total || 0).toLocaleString('pt-BR')}</span>
         </div>
       )
     },
@@ -168,7 +269,7 @@ export const WarehouseManagement: React.FC = () => {
       header: 'Status',
       accessor: (item: any) => (
         <span className={`status-pill ${item.status === 'ativo' ? 'active' : ''}`}>
-          {item.status === 'ativo' ? 'Ativo' : 'Inativo'}
+          {item.status === 'ativo' ? 'Operacional' : 'Inativo'}
         </span>
       ),
       align: 'center' as const
@@ -238,7 +339,19 @@ export const WarehouseManagement: React.FC = () => {
       </div>
 
       <div className="elite-controls-row">
-        <div className="elite-search-wrapper" style={{ flex: 1 }}>
+        <div className="elite-tab-group">
+          {['Todos', 'Galpão', 'Silo', 'Tanque', 'Outros'].map((type) => (
+            <button 
+              key={type}
+              className={`elite-tab-item ${activeTab === type ? 'active' : ''}`} 
+              onClick={() => setActiveTab(type)}
+            >
+              {type === 'Todos' ? 'Consolidado' : type}
+            </button>
+          ))}
+        </div>
+
+        <div className="elite-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
@@ -277,50 +390,14 @@ export const WarehouseManagement: React.FC = () => {
           <button className="icon-btn-secondary" title="Exportar Log">
             <FileText size={20} />
           </button>
+          <WarehouseFilterModal 
+            isOpen={showAdvancedFilters}
+            onClose={() => setShowAdvancedFilters(false)}
+            filters={filterValues}
+            setFilters={setFilterValues}
+          />
         </div>
       </div>
-
-      <AnimatePresence>
-        {showAdvancedFilters && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="advanced-filter-panel"
-            style={{ marginBottom: '20px', overflow: 'hidden' }}
-          >
-            <div className="filter-grid" style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-              gap: '20px',
-              background: 'hsl(var(--bg-card))',
-              padding: '24px',
-              borderRadius: '24px',
-              border: '1px solid hsl(var(--border))'
-            }}>
-              <div className="filter-field">
-                <label className="elite-label">Status do Depósito</label>
-                <select className="elite-input elite-select">
-                  <option value="all">Todos os Status</option>
-                  <option value="active">Apenas Ativos</option>
-                  <option value="inactive">Apenas Inativos</option>
-                </select>
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Ocupação</label>
-                <select className="elite-input elite-select">
-                  <option value="all">Qualquer Ocupação</option>
-                  <option value="high">Alta (&gt; 80%)</option>
-                  <option value="low">Baixa (&lt; 20%)</option>
-                </select>
-              </div>
-              <div className="filter-actions-inline" style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <button className="text-btn" onClick={() => setShowAdvancedFilters(false)}>LIMPAR FILTROS</button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <div className="management-content">
         {viewMode === 'list' ? (
@@ -344,74 +421,249 @@ export const WarehouseManagement: React.FC = () => {
             )}
           />
         ) : (
-          <div className="warehouse-grid animate-fade-in">
+          <div className="warehouse-cards-grid animate-fade-in">
             {filteredWarehouses.map(w => (
-              <div key={w.id} className="warehouse-card">
-                <div className="type-badge">{w.tipo || 'Galpão'}</div>
-                <div className="w-icon">
-                  <Layout size={24} />
-                </div>
-                <div className="w-info">
-                  <h3>{w.nome}</h3>
-                  <p>{w.descricao || 'Sem descrição cadastrada'}</p>
+              <div key={w.id} className={`warehouse-card-premium ${w.status === 'ativo' ? 'active' : ''}`}>
+                <div className="card-left-section">
+                  <div className="card-avatar">
+                    {w.tipo?.includes('Silo') ? <Boxes size={28} /> : <Layout size={28} />}
+                  </div>
+                  <div className="card-bottom-actions">
+                    <button className="action-icon-btn" onClick={() => {
+                      setSelectedWarehouse(w);
+                      setIsModalOpen(true);
+                    }} title="Editar"><Edit3 size={16} /></button>
+                    <button className="action-icon-btn delete" onClick={() => handleDelete(w.id)} title="Excluir"><Trash2 size={16} /></button>
+                  </div>
                 </div>
 
-                {w.capacidade_maxima > 0 && (
-                  <div className="occupation-wrapper" style={{ marginBottom: '20px' }}>
-                    <div className="m-item" style={{ justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '10px' }}>OCUPAÇÃO ATUAL</span>
-                      <span style={{ fontWeight: 800 }}>{Math.round((w.saldo_atual / w.capacidade_maxima) * 100)}%</span>
+                <div className="card-main-content">
+                  <div className="card-header-info">
+                    <div className="title-row">
+                      <h3>{w.name || w.nome}</h3>
+                      <span className={`status-pill mini ${w.status === 'ativo' ? 'active' : ''}`}>
+                        {w.status === 'ativo' ? 'ATIVO' : 'INATIVO'}
+                      </span>
                     </div>
-                    <div className="occupation-bar">
+                    <div className="card-type-meta">{w.tipo || 'DEPÓSITO GERAL'}</div>
+                  </div>
+
+                  <div className="card-occupation-section">
+                    <div className="occ-header">
+                      <span>OCUPAÇÃO ATUAL</span>
+                      <span className={w.capacidade_maxima > 0 && (w.saldo_atual / w.capacidade_maxima) > 0.9 ? 'critical' : ''}>
+                        {w.capacidade_maxima > 0 ? Math.round((w.saldo_atual / w.capacidade_maxima) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="occ-bar-container">
                       <div 
-                        className={`occupation-fill ${(w.saldo_atual / w.capacidade_maxima) > 0.9 ? 'danger' : (w.saldo_atual / w.capacidade_maxima) > 0.7 ? 'warning' : ''}`}
-                        style={{ width: `${Math.min((w.saldo_atual / w.capacidade_maxima) * 100, 100)}%` }}
+                        className={`occ-bar-fill ${w.capacidade_maxima > 0 && (w.saldo_atual / w.capacidade_maxima) > 0.9 ? 'critical' : (w.saldo_atual / w.capacidade_maxima) > 0.7 ? 'warning' : ''}`}
+                        style={{ width: `${Math.min(w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) * 100 : 0, 100)}%` }}
                       />
                     </div>
-                    <div className="sub-meta" style={{ fontSize: '10px', color: '#94a3b8' }}>
-                      {w.saldo_atual} / {w.capacidade_maxima} {w.unidade_capacidade || 'un'}
+                    <div className="occ-footer">
+                      {w.saldo_atual} / {w.capacidade_maxima || '∞'} {w.unidade_capacidade || 'un'}
                     </div>
                   </div>
-                )}
 
-                <div className="w-meta">
-                  <div className="m-item">
-                    <Boxes size={14} />
-                    <span>{w.localizacao_tecnica || 'Localização não definida'}</span>
+                  <div className="card-footer-meta">
+                    <div className="meta-item">
+                      <Boxes size={12} />
+                      <span>{w.localizacao_tecnica || 'Sede'}</span>
+                    </div>
+                    <div className="meta-item">
+                      <Activity size={12} />
+                      <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Unidade')}</span>
+                    </div>
                   </div>
-                  <div className="m-item">
-                    <div className={`status-dot ${w.status === 'ativo' ? 'active' : ''}`} />
-                    <span>{w.status === 'ativo' ? 'Ativo' : 'Inativo'}</span>
-                  </div>
-                </div>
-                <div className="w-actions">
-                  <button onClick={() => {
-                    setSelectedWarehouse(w);
-                    setIsModalOpen(true);
-                  }}>EDITAR</button>
-                  <button className="delete" onClick={() => handleDelete(w.id)}>EXCLUIR</button>
                 </div>
               </div>
             ))}
-            <button className="add-warehouse-card" onClick={() => {
+            <button className="add-warehouse-card-premium" onClick={() => {
               setSelectedWarehouse(null);
               setIsModalOpen(true);
             }}>
               <Plus size={32} />
-              <span>CRIAR NOVO DEPÓSITO</span>
+              <span>NOVO DEPÓSITO</span>
             </button>
           </div>
         )}
       </div>
 
       <style>{`
+        .warehouse-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+          padding: 8px;
+        }
+
+        @media (max-width: 1400px) {
+          .warehouse-cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 900px) {
+          .warehouse-cards-grid { grid-template-columns: 1fr; }
+        }
+
+        .warehouse-card-premium {
+          background: hsl(var(--bg-card));
+          border-radius: 24px;
+          border: 1px solid hsl(var(--border));
+          display: flex;
+          overflow: hidden;
+          padding: 0;
+          height: 180px;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+          position: relative;
+          text-align: left;
+        }
+
+        .warehouse-card-premium::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 6px;
+          background: #94a3b8;
+          transition: 0.3s;
+        }
+
+        .warehouse-card-premium.active::before {
+          background: #10b981;
+          box-shadow: 4px 0 15px rgba(16, 185, 129, 0.3);
+        }
+
+        .warehouse-card-premium:hover {
+          transform: translateY(-8px);
+          box-shadow: var(--shadow-lg);
+          border-color: hsl(var(--brand) / 0.3);
+        }
+
+        .card-left-section {
+          width: 110px;
+          background: hsl(var(--bg-main) / 0.5);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          border-right: 1px solid hsl(var(--border));
+        }
+
+        .card-avatar {
+          width: 56px;
+          height: 56px;
+          background: hsl(var(--bg-card));
+          color: hsl(var(--brand));
+          border-radius: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+          border: 1px solid hsl(var(--border));
+          margin-bottom: 12px;
+        }
+
+        .card-main-content {
+          flex: 1;
+          padding: 16px 20px;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+
+        .card-header-info .title-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 4px;
+        }
+
+        .card-header-info h3 {
+          font-size: 17px;
+          font-weight: 900;
+          color: #0f172a;
+          letter-spacing: -0.02em;
+        }
+
+        .status-pill.mini {
+          font-size: 9px;
+          padding: 3px 8px;
+          border-radius: 6px;
+        }
+
+        .card-type-meta {
+          font-size: 10px;
+          font-weight: 800;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .card-occupation-section {
+          margin: 10px 0;
+        }
+
+        .occ-header {
+          display: flex;
+          justify-content: space-between;
+          font-size: 10px;
+          font-weight: 800;
+          margin-bottom: 4px;
+          color: #64748b;
+        }
+
+        .occ-header .critical { color: #ef4444; }
+
+        .occ-bar-container {
+          height: 6px;
+          background: #f1f5f9;
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 4px;
+        }
+
+        .occ-bar-fill {
+          height: 100%;
+          background: #3b82f6;
+          border-radius: 3px;
+          transition: 0.5s;
+        }
+
+        .occ-bar-fill.warning { background: #f59e0b; }
+        .occ-bar-fill.critical { background: #ef4444; }
+
+        .occ-footer {
+          font-size: 10px;
+          font-weight: 600;
+          color: #94a3b8;
+        }
+
+        .card-footer-meta {
+          display: flex;
+          gap: 12px;
+        }
+
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #64748b;
+        }
+
         .view-mode-toggle {
           display: flex;
-          background: hsl(var(--bg-main));
+          background: #f8fafc;
           padding: 4px;
           border-radius: 12px;
           gap: 4px;
+          border: 1px solid hsl(var(--border));
         }
+
         .view-btn {
           width: 32px;
           height: 32px;
@@ -421,29 +673,35 @@ export const WarehouseManagement: React.FC = () => {
           border-radius: 8px;
           border: none;
           background: transparent;
-          color: hsl(var(--text-muted));
+          color: #94a3b8;
           cursor: pointer;
           transition: 0.2s;
         }
+
         .view-btn.active {
           background: white;
-          color: hsl(var(--brand));
-          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+          color: #10b981;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+          border: 1px solid rgba(16, 185, 129, 0.1);
         }
 
-        .elite-filter-group {
+        .card-farm-meta {
+          color: #10b981;
+          font-weight: 800;
+        }
+
+        .card-bottom-actions {
           display: flex;
           gap: 8px;
-          margin-left: 8px;
         }
 
-        .icon-btn-secondary {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
+        .action-icon-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
           border: 1px solid hsl(var(--border));
-          background: hsl(var(--bg-card));
-          color: hsl(var(--text-muted));
+          background: white;
+          color: #64748b;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -451,44 +709,36 @@ export const WarehouseManagement: React.FC = () => {
           transition: 0.2s;
         }
 
-        .icon-btn-secondary:hover {
-          background: hsl(var(--bg-main));
-          color: hsl(var(--brand));
-          border-color: hsl(var(--brand) / 0.3);
-        }
-
-        .icon-btn-secondary.active {
-          background: hsl(var(--brand) / 0.1);
-          color: hsl(var(--brand));
+        .action-icon-btn:hover {
+          background: hsl(var(--brand));
+          color: white;
           border-color: hsl(var(--brand));
         }
 
-        .warehouse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
-        .warehouse-card { background: white; border-radius: 24px; padding: 24px; border: 1px solid #e2e8f0; position: relative; transition: 0.3s; }
-        .warehouse-card:hover { transform: translateY(-5px); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1); border-color: hsl(var(--brand)); }
-        .w-icon { width: 50px; height: 50px; background: #f8fafc; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #64748b; margin-bottom: 20px; border: 1px solid #e2e8f0; }
-        .w-info h3 { font-size: 18px; font-weight: 900; color: #0f172a; margin: 0; }
-        .w-info p { font-size: 12px; color: #64748b; margin: 4px 0 20px; min-height: 36px; }
-        .w-meta { display: flex; gap: 16px; margin-bottom: 20px; padding: 12px; background: #f8fafc; border-radius: 12px; }
-        .m-item { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: #475569; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
-        .status-dot.active { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
-        .w-actions { display: flex; gap: 10px; }
-        .w-actions button { flex: 1; padding: 10px; border-radius: 10px; font-size: 11px; font-weight: 900; cursor: pointer; transition: 0.2s; border: none; }
-        .w-actions button:first-child { background: #f1f5f9; color: #475569; }
-        .w-actions button:first-child:hover { background: #e2e8f0; }
-        .w-actions button.delete { background: #fee2e2; color: #ef4444; }
-        .w-actions button.delete:hover { background: #fecaca; }
+        .action-icon-btn.delete:hover { background: #ef4444; border-color: #ef4444; }
 
-        .add-warehouse-card { border: 2px dashed #e2e8f0; border-radius: 24px; min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: transparent; cursor: pointer; color: #94a3b8; transition: 0.2s; }
-        .add-warehouse-card:hover { border-color: hsl(var(--brand)); color: hsl(var(--brand)); background: #f8fafc; }
-        .add-warehouse-card span { font-size: 12px; font-weight: 900; }
+        .add-warehouse-card-premium {
+          border: 2px dashed #e2e8f0;
+          border-radius: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          background: transparent;
+          cursor: pointer;
+          color: #94a3b8;
+          transition: 0.2s;
+          height: 180px;
+        }
 
-        .occupation-bar { width: 100%; height: 6px; background: #f1f5f9; border-radius: 3px; margin: 12px 0; overflow: hidden; }
-        .occupation-fill { height: 100%; background: hsl(var(--brand)); border-radius: 3px; transition: 0.5s; }
-        .occupation-fill.warning { background: #f59e0b; }
-        .occupation-fill.danger { background: #ef4444; }
-        .type-badge { position: absolute; top: 24px; right: 24px; font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 20px; background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; text-transform: uppercase; }
+        .add-warehouse-card-premium:hover {
+          border-color: #10b981;
+          color: #10b981;
+          background: rgba(16, 185, 129, 0.02);
+        }
+
+        .add-warehouse-card-premium span { font-size: 11px; font-weight: 900; letter-spacing: 0.05em; }
 
       `}</style>
 

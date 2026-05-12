@@ -39,7 +39,7 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, on
 
   const fetchPastures = async () => {
     const { data } = await supabase
-      .from('pastagens')
+      .from('pastos')
       .select('id, nome')
       .eq('fazenda_id', activeFarm?.id);
     if (data) setPastures(data);
@@ -49,10 +49,8 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, on
     e.preventDefault();
     setLoading(true);
     try {
-      // Registrar no histórico (simulado ou em tabela de eventos se existir)
-      // E atualizar o status do pasto na tabela pastagens
       const { error } = await supabase
-        .from('pastagens')
+        .from('pastos')
         .update({ 
           status: formData.novo_status,
           data_ultima_fertilizacao: formData.tipo_manejo === 'Adubação' ? formData.data_manejo : undefined

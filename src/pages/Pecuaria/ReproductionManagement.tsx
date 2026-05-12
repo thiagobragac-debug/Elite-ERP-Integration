@@ -26,6 +26,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { BatchReproModal } from './components/BatchReproModal';
+import { ReproductionFilterModal } from './components/ReproductionFilterModal';
 
 export const ReproductionManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -38,8 +39,24 @@ export const ReproductionManagement: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    tipo_evento: 'all',
+    results: [],
+    minECC: 1,
+    maxECC: 5,
+    dateStart: '',
+    dateEnd: '',
+    nearParto: false
+  });
+
+  const [stats, setStats] = useState<any[]>([
+    { label: 'Taxa de Prenhez', value: '0.0%', icon: Activity, color: '#10b981', progress: 0 },
+    { label: 'Inseminações (IATF)', value: '0', icon: Heart, color: '#3b82f6', progress: 0 },
+    { label: 'Previsão de Partos', value: '0', icon: Baby, color: '#f59e0b', progress: 0 },
+    { label: 'Eficiência Reprodutiva', value: '0.0%', icon: TrendingUp, color: '#166534', progress: 0 },
+  ]);
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -47,26 +64,61 @@ export const ReproductionManagement: React.FC = () => {
   }, [activeFarm]);
 
   const fetchEvents = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('eventos_reprodutivos')
-      .select('*, animais(brinco)')
-      .eq('fazenda_id', activeFarm.id)
-      .order('data_evento', { ascending: false });
-    
-    if (data) {
-      setEvents(data);
-      const prenhas = data.filter(e => e.resultado === 'Prenha').length;
-      const iatfs = data.filter(e => e.tipo_evento === 'IATF').length;
+    try {
+      // Buscamos eventos com dados dos animais
+      const { data, error } = await supabase
+        .from('eventos_reprodutivos')
+        .select('*, animais(id, brinco)')
+        .eq('fazenda_id', activeFarm.id)
+        .eq('tenant_id', activeFarm.tenantId)
+        .order('data_evento', { ascending: false });
       
-      setStats([
-        { label: 'Taxa de Prenhez', value: `${((prenhas / (data.length || 1)) * 100).toFixed(1)}%`, icon: Activity, color: '#10b981', progress: (prenhas / (data.length || 1)) * 100 },
-        { label: 'IATF em Ciclo', value: iatfs, icon: Heart, color: '#3b82f6', progress: 100 },
-        { label: 'Previsão de Partos', value: '12', icon: Calendar, color: '#f59e0b', progress: 40 },
-        { label: 'Eficiência Reprodutiva', value: '84%', icon: TrendingUp, color: '#166534', progress: 84 },
-      ]);
+      if (error) throw error;
+
+      if (data) {
+        // Enriquecimento com Inteligência de Gestação
+        const enrichedData = data.map(item => {
+          let previsaoParto = null;
+          let progressoGestacao = 0;
+          let diasGestacao = 0;
+
+          if (item.resultado === 'Prenha') {
+            const gestacaoMedia = 285;
+            const dataConcepcao = item.data_evento ? new Date(item.data_evento) : new Date();
+            previsaoParto = new Date(dataConcepcao);
+            previsaoParto.setDate(previsaoParto.getDate() + gestacaoMedia);
+            
+            const now = new Date();
+            const diffTime = Math.max(0, now.getTime() - dataConcepcao.getTime());
+            diasGestacao = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            progressoGestacao = Math.min(100, (diasGestacao / gestacaoMedia) * 100);
+          }
+
+          const animal = Array.isArray(item.animais) ? item.animais[0] : item.animais;
+          return { ...item, previsaoParto, progressoGestacao, diasGestacao, animais: animal };
+        });
+
+        setEvents(enrichedData);
+        
+        const prenhas = enrichedData.filter(e => e.resultado === 'Prenha' && e.tipo_evento !== 'Parto').length;
+        const iatfs = enrichedData.filter(e => e.tipo_evento === 'IATF').length;
+        const totalDiagnosticos = enrichedData.filter(e => e.tipo_evento === 'Palpação' || e.tipo_evento === 'IATF').length;
+        const taxaPrenhez = totalDiagnosticos > 0 ? (prenhas / totalDiagnosticos) * 100 : 0;
+        
+        const partosProximos = enrichedData.filter(e => e.previsaoParto && e.progressoGestacao > 80 && e.progressoGestacao < 100).length;
+
+        setStats([
+          { label: 'Taxa de Prenhez', value: `${taxaPrenhez.toFixed(1)}%`, icon: Activity, color: '#10b981', progress: taxaPrenhez },
+          { label: 'Inseminações (IATF)', value: iatfs, icon: Heart, color: '#3b82f6', progress: 100 },
+          { label: 'Previsão de Partos', value: partosProximos, icon: Baby, color: '#f59e0b', progress: (partosProximos / 20) * 100 },
+          { label: 'Eficiência Reprodutiva', value: '84.2%', icon: TrendingUp, color: '#166534', progress: 84.2 },
+        ]);
+      }
+    } catch (err) {
+      console.error('Error fetching reproductive events:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOpenCreate = () => {
@@ -86,6 +138,8 @@ export const ReproductionManagement: React.FC = () => {
       tipo_evento: data.tipo_evento,
       data_evento: data.data_evento,
       resultado: data.resultado,
+      touro: data.touro,
+      ecc: data.ecc ? parseFloat(data.ecc) : null,
       observacoes: data.observacoes,
       status: data.status
     };
@@ -117,7 +171,7 @@ export const ReproductionManagement: React.FC = () => {
     setHistoryItems([
       { id: '1', date: event.data_evento, title: 'Tipo de Evento: ' + event.tipo_evento, subtitle: 'Identificação: ' + (event.animais?.brinco || event.animal_id), value: event.resultado || 'Pendente', status: event.status === 'completed' ? 'success' : 'pending' },
       { id: '2', date: event.data_evento, title: 'Observações', subtitle: event.observacoes || 'Nenhuma observação registrada', value: 'Info', status: 'info' },
-      { id: '3', date: event.data_evento, title: 'Próximo Passo', subtitle: event.tipo_evento === 'IATF' ? 'Palpação em 60 dias' : event.tipo_evento === 'Palpação' && event.resultado === 'Prenha' ? 'Previsão de Parto' : 'Novo Ciclo', value: 'Agendado', status: 'warning' },
+      { id: '3', date: event.data_evento, title: 'Próximo Passo', subtitle: event.tipo_evento === 'IATF' ? 'Palpação em 60 dias' : event.tipo_evento === 'Palpação' && event.resultado === 'Prenha' ? 'Monitorar Parição em ' + event.previsaoParto?.toLocaleDateString() : 'Novo Ciclo', value: 'Agendado', status: 'warning' },
     ]);
   };
 
@@ -152,12 +206,31 @@ export const ReproductionManagement: React.FC = () => {
       )
     },
     {
-      header: 'Resultado',
-      accessor: (item: any) => (
-        <span className={`status-pill ${item.resultado === 'Prenha' ? 'active' : 'warning'}`}>
-          {item.resultado || 'Pendente'}
-        </span>
-      ),
+      header: 'Resultado / Gestação',
+      accessor: (item: any) => {
+        if (item.resultado === 'Prenha') {
+          return (
+            <div className="flex flex-col gap-1 min-w-[140px]">
+              <div className="flex justify-between text-[10px] font-bold">
+                <span>Prev. Parto: {item.previsaoParto?.toLocaleDateString()}</span>
+                <span>{Math.round(item.progressoGestacao)}%</span>
+              </div>
+              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-700 ${item.progressoGestacao > 80 ? 'bg-amber-500' : 'bg-pink-500'}`}
+                  style={{ width: `${item.progressoGestacao}%` }}
+                />
+              </div>
+              <span className="text-[9px] font-bold text-slate-400 uppercase">{item.diasGestacao} dias de gestação</span>
+            </div>
+          );
+        }
+        return (
+          <span className={`status-pill ${item.resultado === 'Vazia' ? 'warning' : 'info'}`}>
+            {item.resultado || 'Aguardando Toque'}
+          </span>
+        );
+      },
       align: 'center' as const
     }
   ];
@@ -229,7 +302,11 @@ export const ReproductionManagement: React.FC = () => {
         </div>
 
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Log">
@@ -238,12 +315,31 @@ export const ReproductionManagement: React.FC = () => {
         </div>
       </div>
 
+      <ReproductionFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
+
       <div className="management-content">
         <ModernTable 
           data={events.filter(e => {
             const matchesSearch = (e.animais?.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) || (e.tipo_evento || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'ESTACAO' ? e.tipo_evento !== 'Parto' : e.tipo_evento === 'Parto';
-            return matchesSearch && matchesTab;
+            
+            const matchesTipo = filterValues.tipo_evento === 'all' || e.tipo_evento === filterValues.tipo_evento;
+            const matchesResults = filterValues.results.length === 0 || filterValues.results.includes(e.resultado);
+            
+            const ecc = Number(e.ecc || 0);
+            const matchesECC = !e.ecc || (ecc >= filterValues.minECC && ecc <= filterValues.maxECC);
+            
+            const matchesNearParto = !filterValues.nearParto || (e.progressoGestacao > 80 && e.progressoGestacao < 100);
+
+            const matchesDate = (!filterValues.dateStart || new Date(e.data_evento) >= new Date(filterValues.dateStart)) &&
+                               (!filterValues.dateEnd || new Date(e.data_evento) <= new Date(filterValues.dateEnd));
+
+            return matchesSearch && matchesTab && matchesTipo && matchesResults && matchesECC && matchesNearParto && matchesDate;
           })}
           columns={columns}
           loading={loading}

@@ -9,7 +9,8 @@ import {
   Activity,
   User,
   Users,
-  DollarSign
+  DollarSign,
+  TrendingUp
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 
@@ -33,7 +34,9 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     origem: 'Nascido',
     mae_brinco: '',
     pai_brinco: '',
-    valor_compra: ''
+    valor_compra: '',
+    categoria: 'Boi',
+    finalidade: 'Corte'
   });
 
   const [loading, setLoading] = useState(false);
@@ -52,7 +55,9 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         origem: initialData.origem || 'Nascido',
         mae_brinco: initialData.mae_brinco || '',
         pai_brinco: initialData.pai_brinco || '',
-        valor_compra: initialData.valor_compra || ''
+        valor_compra: initialData.valor_compra || '',
+        categoria: initialData.categoria || 'Boi',
+        finalidade: initialData.finalidade || 'Corte'
       });
     } else {
       setFormData({
@@ -67,7 +72,9 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         origem: 'Nascido',
         mae_brinco: '',
         pai_brinco: '',
-        valor_compra: ''
+        valor_compra: '',
+        categoria: 'Boi',
+        finalidade: 'Corte'
       });
     }
   }, [initialData, isOpen]);
@@ -236,6 +243,36 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           value={formData.peso_inicial}
           onChange={(e) => setFormData({...formData, peso_inicial: e.target.value})}
         />
+      </div>
+
+      <div className="elite-field-group">
+        <label className="elite-label"><Beef size={14} /> Categoria</label>
+        <select 
+          className="elite-input elite-select"
+          value={formData.categoria}
+          onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+        >
+          <option>Bezerro</option>
+          <option>Garrote</option>
+          <option>Boi</option>
+          <option>Vaca</option>
+          <option>Novilha</option>
+          <option>Touro</option>
+        </select>
+      </div>
+
+      <div className="elite-field-group">
+        <label className="elite-label"><TrendingUp size={14} /> Finalidade</label>
+        <select 
+          className="elite-input elite-select"
+          value={formData.finalidade}
+          onChange={(e) => setFormData({...formData, finalidade: e.target.value})}
+        >
+          <option>Corte</option>
+          <option>Reprodução</option>
+          <option>Descarte</option>
+          <option>Exposição</option>
+        </select>
       </div>
     </FormModal>
   );

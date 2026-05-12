@@ -59,11 +59,11 @@ const ReportPrintLayout: React.FC<{
            key={idx}
            label={s.label}
            value={s.value}
-           icon={s.trend === 'up' ? TrendingUp : s.trend === 'down' ? TrendingDown : Activity}
-           color={s.trend === 'up' ? "#10b981" : s.trend === 'down' ? "#ef4444" : "#3b82f6"}
+           icon={s.trend === 'down' ? TrendingDown : TrendingUp}
+           color={s.trend === 'down' ? "#ef4444" : "#10b981"}
            progress={100}
            change={s.change}
-           trend={s.trend}
+           trend={s.trend === 'down' ? 'down' : 'up'}
          />
         ))}
       </div>
@@ -167,9 +167,9 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
       }
 
       const opt = {
-        margin: [10, 10, 10, 10],
+        margin: [10, 10, 10, 10] as [number, number, number, number],
         filename: `RELATORIO_${report.title.replace(/\s+/g, '_').toUpperCase()}_${activeFarm?.name?.replace(/\s+/g, '_').toUpperCase() || 'ELITE'}.pdf`,
-        image: { type: 'jpeg', quality: 1.0 },
+        image: { type: 'jpeg' as const, quality: 1.0 },
         html2canvas: { 
           scale: 3, 
           useCORS: true, 
@@ -181,7 +181,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           backgroundColor: '#ffffff',
           logging: false
         },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
         pagebreak: { mode: ['css', 'legacy'], avoid: '.elite-stat-card' }
       };
 
@@ -247,11 +247,11 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
                key={idx}
                label={s.label}
                value={s.value}
-               icon={s.trend === 'up' ? TrendingUp : s.trend === 'down' ? TrendingDown : Activity}
-               color={s.trend === 'up' ? "#10b981" : s.trend === 'down' ? "#ef4444" : "#3b82f6"}
+               icon={s.trend === 'down' ? TrendingDown : TrendingUp}
+               color={s.trend === 'down' ? "#ef4444" : "#10b981"}
                progress={100}
                change={s.change}
-               trend={s.trend}
+               trend={s.trend === 'down' ? 'down' : 'up'}
              />
             )) : (
               <>
@@ -410,7 +410,15 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           .back-btn:hover { background: hsla(var(--brand) / 0.1); color: hsl(var(--brand)); border-color: hsl(var(--brand)); }
 
           .report-title h2 { font-size: 20px; font-weight: 800; color: hsl(var(--text-main)); margin: 0; }
-          .report-title p { font-size: 13px; color: hsl(var(--text-muted)); margin: 2px 0 0; }
+          .report-title p { 
+            font-size: 13px; 
+            color: hsl(var(--text-muted)); 
+            margin: 2px 0 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 600px;
+          }
           .title-row { display: flex; align-items: center; gap: 10px; }
 
           .viewer-actions { display: flex; align-items: center; gap: 8px; }

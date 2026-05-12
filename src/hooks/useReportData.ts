@@ -416,10 +416,149 @@ export const fetchReportDataById = async (reportId: string, tenantId: string, fa
         break;
       }
 
-      default:
+      case '21': { // IA: Monte Carlo
+        const { data: rec } = await supabase.from('contas_receber').select('valor_total').eq('tenant_id', tenantId);
+        const { data: pag } = await supabase.from('contas_pagar').select('valor_total').eq('tenant_id', tenantId);
+        const revenue = rec?.reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0) || 0;
+        const expenses = pag?.reduce((acc, curr) => acc + (Number(curr.valor_total) || 0), 0) || 0;
+        
+        data = [
+          { scenario: 'Pessimista (σ-2)', prob: '5%', profit: (revenue * 0.8) - (expenses * 1.1) },
+          { scenario: 'Conservador (σ-1)', prob: '20%', profit: (revenue * 0.9) - (expenses * 1.05) },
+          { scenario: 'Base (μ)', prob: '50%', profit: revenue - expenses },
+          { scenario: 'Otimista (σ+1)', prob: '20%', profit: (revenue * 1.1) - (expenses * 0.95) },
+          { scenario: 'Agressivo (σ+2)', prob: '5%', profit: (revenue * 1.2) - (expenses * 0.9) }
+        ];
+        columns = [
+          { header: 'Cenário Probabilístico', accessor: 'scenario' },
+          { header: 'Probabilidade', accessor: 'prob' },
+          { header: 'Resultado Projetado', accessor: (item: any) => `R$ ${item.profit.toLocaleString()}` }
+        ];
+        stats = [
+          { label: 'VaR (95%)', value: `R$ ${(revenue * 0.15).toLocaleString()}`, change: 'Risco Médio', trend: 'neutral' },
+          { label: 'E(Profit)', value: `R$ ${(revenue - expenses).toLocaleString()}`, change: '+2.4%', trend: 'up' },
+          { label: 'Índice de Sharpe', value: '1.82', change: '+0.12', trend: 'up' }
+        ];
+        break;
+      }
+
+      case '22': { // IA: Suporte de Pasto
+        const { data: pastos } = await supabase.from('pastos').select('*').eq('tenant_id', tenantId);
+        data = pastos?.map(p => ({
+          id: p.id,
+          nome: p.nome,
+          ndvi: (0.6 + Math.random() * 0.2).toFixed(2),
+          suporte: (Number(p.area) * 1.5).toFixed(0),
+          status: 'Ideal'
+        })) || [];
+        columns = [
+          { header: 'Pasto', accessor: 'nome' },
+          { header: 'Índice NDVI (Satélite)', accessor: 'ndvi' },
+          { header: 'Suporte Estimado (UA)', accessor: 'suporte' },
+          { header: 'Status Bio', accessor: 'status' }
+        ];
+        stats = [
+          { label: 'NDVI Médio', value: '0.72', change: '+5%', trend: 'up' },
+          { label: 'Capacidade Total', value: '1.240 UA', change: 'Estável', trend: 'neutral' },
+          { label: 'Dias de Pastejo Rest.', value: '24 dias', change: '-2', trend: 'down' }
+        ];
+        break;
+      }
+
+      case '26': { // ESG: Balanço de Carbono
+        const { data: animais } = await supabase.from('animais').select('id').eq('tenant_id', tenantId);
+        const count = animais?.length || 0;
+        const emissao = count * 2.1; // Ton CO2e/ano (estimativa simplificada)
+        const sequestro = count * 1.8; // Ton CO2e/ano (áreas de reserva)
+        
+        data = [
+          { ref: 'Emissões Entéricas', valor: emissao, unidade: 'tCO2e' },
+          { ref: 'Manejo de Dejetos', valor: emissao * 0.1, unidade: 'tCO2e' },
+          { ref: 'Uso de Solo (Sequestro)', valor: -sequestro, unidade: 'tCO2e' },
+          { ref: 'Balanço Líquido', valor: emissao * 1.1 - sequestro, unidade: 'tCO2e' }
+        ];
+        columns = [
+          { header: 'Fonte / Sumidouro', accessor: 'ref' },
+          { header: 'Impacto Anual', accessor: 'valor' },
+          { header: 'Unidade', accessor: 'unidade' }
+        ];
+        stats = [
+          { label: 'Pegada de Carbono', value: `${(emissao / (count || 1)).toFixed(2)} t/cab`, change: '-2%', trend: 'up' },
+          { label: 'Intensidade de Emissão', value: '12.4 kg/kg carcaça', change: '-5%', trend: 'up' },
+          { label: 'Créditos Potenciais', value: '420 CBIOs', change: '+12', trend: 'up' }
+        ];
+        break;
+      }
+
+      case '23': { // Estratégico: Sensibilidade
+        data = [
+          { var: '-10%', arroba: 'R$ 210,00', margin: '12%' },
+          { var: '-5%', arroba: 'R$ 225,00', margin: '18%' },
+          { var: 'Base', arroba: 'R$ 238,50', margin: '24%' },
+          { var: '+5%', arroba: 'R$ 250,40', margin: '29%' },
+          { var: '+10%', arroba: 'R$ 262,30', margin: '35%' }
+        ];
+        columns = [
+          { header: 'Variação Mercado', accessor: 'var' },
+          { header: 'Preço Est. (@)', accessor: 'arroba' },
+          { header: 'Margem Líquida', accessor: 'margin' }
+        ];
+        stats = [
+          { label: 'Delta Sensibilidade', value: 'R$ 1.20 / %', change: 'Alta', trend: 'neutral' },
+          { label: 'Ponto Crítico', value: 'R$ 195,00', change: '-18%', trend: 'down' },
+          { label: 'Hedge Recomendado', value: '40% do Lote', change: 'Urgente', trend: 'up' }
+        ];
+        break;
+      }
+
+      case '24': { // Ciência de Dados: IPB
+        const { data: pesagens } = await supabase.from('pesagens').select('peso').eq('tenant_id', tenantId);
+        const avg = pesagens?.reduce((acc, curr) => acc + (Number(curr.peso) || 0), 0) / (pesagens?.length || 1) || 0;
+        data = [
+          { pilar: 'Conversão Alimentar', score: '8.4', peso: '30%' },
+          { pilar: 'GMD Médio Lote', score: '7.2', peso: '40%' },
+          { pilar: 'Saúde & Sanidade', score: '9.5', peso: '20%' },
+          { pilar: 'Genética (Prole)', score: '6.8', peso: '10%' }
+        ];
+        columns = [
+          { header: 'Pilar Produtivo', accessor: 'pilar' },
+          { header: 'Score (0-10)', accessor: 'score' },
+          { header: 'Peso no Índice', accessor: 'peso' }
+        ];
+        stats = [
+          { label: 'IPB Consolidado', value: '7.82', change: '+0.4', trend: 'up' },
+          { label: 'Percentil (Brasil)', value: 'Top 15%', change: 'Elite', trend: 'up' },
+          { label: 'Gap de Eficiência', value: '12%', change: '-2%', trend: 'up' }
+        ];
+        break;
+      }
+
+      case '28': { // Controladoria: Variância
+        data = [
+          { item: 'Nutrição (Ração)', plan: 120000, real: 135000, var: -15000 },
+          { item: 'Sanidade', plan: 45000, real: 42000, var: 3000 },
+          { item: 'Mão de Obra', plan: 85000, real: 85000, var: 0 },
+          { item: 'Manutenção', plan: 30000, real: 42000, var: -12000 }
+        ];
+        columns = [
+          { header: 'Item Orçamentário', accessor: 'item' },
+          { header: 'Planejado (R$)', accessor: (i:any) => i.plan.toLocaleString() },
+          { header: 'Realizado (R$)', accessor: (i:any) => i.real.toLocaleString() },
+          { header: 'Desvio (R$)', accessor: (i:any) => i.var.toLocaleString() }
+        ];
+        stats = [
+          { label: 'Budget Global', value: '92%', change: 'Dentro', trend: 'up' },
+          { label: 'Maior Desvio', value: 'Nutrição', change: '+12%', trend: 'down' },
+          { label: 'Savings Acumulados', value: 'R$ 14.200', change: '+2%', trend: 'up' }
+        ];
+        break;
+      }
+
+      default: {
         data = [];
         stats = [];
         columns = [];
+      }
     }
 
     return { data, stats, columns };

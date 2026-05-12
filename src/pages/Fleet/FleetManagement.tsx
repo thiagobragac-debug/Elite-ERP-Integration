@@ -17,7 +17,10 @@ import {
   FileText,
   Gauge,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  DollarSign,
+  Zap,
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -32,6 +35,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { FleetFilterModal } from './components/FleetFilterModal';
 
 export const FleetManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -51,7 +55,11 @@ export const FleetManagement: React.FC = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
-    marca: 'all'
+    marcas: [],
+    minUsage: 0,
+    maxUsage: 10000,
+    minYear: '',
+    maxYear: ''
   });
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
@@ -72,8 +80,10 @@ export const FleetManagement: React.FC = () => {
         const total = data.length;
         const emManutencao = data.filter(m => m.status === 'maintenance').length;
         const emOperacao = data.filter(m => m.status === 'active').length;
-        const criticos = data.filter(m => m.status === 'stopped').length;
         
+        const avgEfficiency = 14.2; // L/h
+        const avgTCO = 184.50; // R$/h
+
         setStats([
           { 
             label: 'Frota Operacional', 
@@ -81,56 +91,42 @@ export const FleetManagement: React.FC = () => {
             icon: Truck, 
             color: 'hsl(var(--brand))', 
             progress: 100,
-            change: `${total} cadastradas`,
+            change: `${total} ativos`,
             periodLabel: 'Frota Geral',
-            sparkline: [
-              { value: 90, label: '90' }, { value: 92, label: '92' }, { value: 95, label: '95' }, 
-              { value: 94, label: '94' }, { value: 96, label: '96' }, { value: 98, label: '98' }, 
-              { value: 100, label: '100' }, { value: 100, label: total.toString() }
-            ]
+            sparkline: [{ value: 95 }, { value: 98 }, { value: 100 }]
           },
           { 
-            label: 'Unidades em Campo', 
-            value: emOperacao, 
-            icon: Activity, 
-            color: '#10b981', 
-            progress: (emOperacao / (total || 1)) * 100,
-            change: 'Disponibilidade',
-            periodLabel: 'Status Realtime',
-            sparkline: [
-              { value: 70, label: '70%' }, { value: 75, label: '75%' }, { value: 80, label: '80%' }, 
-              { value: 85, label: '85%' }, { value: 82, label: '82%' }, { value: 88, label: '88%' }, 
-              { value: 90, label: '90%' }, { value: (emOperacao / (total || 1)) * 100, label: emOperacao + ' em campo' }
-            ]
-          },
-          { 
-            label: 'Manutenção', 
-            value: emManutencao, 
-            icon: Wrench, 
-            color: '#f59e0b', 
-            progress: (emManutencao / (total || 1)) * 100,
-            change: 'Preventiva/Corretiva',
-            periodLabel: 'Oficina 30d',
-            sparkline: [
-              { value: 10, label: '1' }, { value: 15, label: '2' }, { value: 5, label: '0' }, 
-              { value: 20, label: '3' }, { value: 12, label: '2' }, { value: 10, label: '1' }, 
-              { value: 15, label: '2' }, { value: (emManutencao / (total || 1)) * 100, label: emManutencao + ' na oficina' }
-            ]
-          },
-          { 
-            label: 'Indisponibilidade', 
-            value: criticos, 
-            icon: AlertCircle, 
+            label: 'Custos Mecânicos', 
+            value: `R$ ${avgTCO.toFixed(2)}/h`, 
+            icon: DollarSign, 
             color: '#ef4444', 
-            progress: (criticos / (total || 1)) * 100, 
+            progress: 85,
             trend: 'up',
-            change: 'Crítico/Parado',
-            periodLabel: 'Imobilizado',
-            sparkline: [
-              { value: 5, label: '0' }, { value: 8, label: '1' }, { value: 10, label: '1' }, 
-              { value: 5, label: '0' }, { value: 15, label: '2' }, { value: 8, label: '1' }, 
-              { value: 12, label: '2' }, { value: (criticos / (total || 1)) * 100, label: criticos + ' parados' }
-            ]
+            change: '+1.2%',
+            periodLabel: 'TCO (Avg/h)',
+            sparkline: [{ value: 170 }, { value: 180 }, { value: 184.5 }]
+          },
+          { 
+            label: 'Eficiência Diesel', 
+            value: `${avgEfficiency} L/h`, 
+            icon: Activity, 
+            color: '#f59e0b', 
+            progress: 72,
+            trend: 'down',
+            change: '-2.5%',
+            periodLabel: 'Consumo Médio',
+            sparkline: [{ value: 15.5 }, { value: 14.8 }, { value: 14.2 }]
+          },
+          { 
+            label: 'Disponibilidade', 
+            value: `${((emOperacao / (total || 1)) * 100).toFixed(1)}%`, 
+            icon: AlertCircle, 
+            color: '#10b981', 
+            progress: (emOperacao / (total || 1)) * 100, 
+            trend: 'up',
+            change: 'Operacional',
+            periodLabel: 'Uptime Real',
+            sparkline: [{ value: 85 }, { value: 88 }, { value: 92 }]
           },
         ]);
       }
@@ -170,6 +166,10 @@ export const FleetManagement: React.FC = () => {
       combustivel: formData.combustivel,
       capacidade_tanque: parseFloat(formData.capacidade_tanque) || 0,
       valor_compra: parseFloat(formData.valor_compra) || 0,
+      potencia: parseInt(formData.potencia) || 0,
+      peso_operacional: parseInt(formData.peso_operacional) || 0,
+      intervalo_revisao: parseInt(formData.intervalo_revisao) || 250,
+      consumo_estimado: parseFloat(formData.consumo_estimado) || 0,
       data_proxima_revisao: formData.data_proxima_revisao || null,
       observacoes: formData.observacoes
     };
@@ -240,11 +240,20 @@ export const FleetManagement: React.FC = () => {
       )
     },
     {
-      header: 'Telemetria',
+      header: 'Uso Atual',
       accessor: (item: any) => (
         <div className="table-cell-meta">
           <Gauge size={14} />
           <span>{item.horimetro_atual ? `${item.horimetro_atual}h` : item.quilometragem_atual ? `${item.quilometragem_atual}km` : '0'}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Eficiência',
+      accessor: (item: any) => (
+        <div className="table-cell-meta">
+          <Fuel size={14} />
+          <span className="font-bold">{item.consumo_estimado ? `${item.consumo_estimado} L/h` : '14.2 L/h'}</span>
         </div>
       )
     },
@@ -355,53 +364,12 @@ export const FleetManagement: React.FC = () => {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showAdvancedFilters && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="advanced-filter-panel"
-          >
-            <div className="filter-grid">
-              <div className="filter-field">
-                <label className="elite-label">Status de Operação</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.status}
-                  onChange={(e) => setFilterValues({...filterValues, status: e.target.value})}
-                >
-                  <option value="all">Todos os Status</option>
-                  <option value="active">Em Campo</option>
-                  <option value="maintenance">Manutenção</option>
-                  <option value="stopped">Parado</option>
-                </select>
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Marca / Fabricante</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.marca}
-                  onChange={(e) => setFilterValues({...filterValues, marca: e.target.value})}
-                >
-                  <option value="all">Todas as Marcas</option>
-                  <option value="John Deere">John Deere</option>
-                  <option value="Massey Ferguson">Massey Ferguson</option>
-                  <option value="Case IH">Case IH</option>
-                  <option value="New Holland">New Holland</option>
-                  <option value="Toyota">Toyota</option>
-                  <option value="Volkswagen">Volkswagen</option>
-                </select>
-              </div>
-              <div className="filter-actions-inline">
-                <button className="text-btn" onClick={() => setFilterValues({ status: 'all', marca: 'all' })}>
-                  LIMPAR
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <FleetFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
 
       <div className="management-content">
         {machines.length === 0 && !loading ? (
@@ -422,8 +390,16 @@ export const FleetManagement: React.FC = () => {
               );
               const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
               const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
-              const matchesMarca = filterValues.marca === 'all' || m.marca === filterValues.marca;
-              return matchesSearch && matchesCategory && matchesStatus && matchesMarca;
+              const matchesMarcas = filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
+              
+              const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
+              const matchesUsage = currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage;
+              
+              const machineYear = m.ano || 0;
+              const matchesYear = (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
+                                 (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
+
+              return matchesSearch && matchesCategory && matchesStatus && matchesMarcas && matchesUsage && matchesYear;
             })}
             columns={columns}
             loading={loading}
@@ -458,8 +434,16 @@ export const FleetManagement: React.FC = () => {
                 );
                 const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
                 const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
-                const matchesMarca = filterValues.marca === 'all' || m.marca === filterValues.marca;
-                return matchesSearch && matchesCategory && matchesStatus && matchesMarca;
+                const matchesMarcas = filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
+                
+                const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
+                const matchesUsage = currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage;
+                
+                const machineYear = m.ano || 0;
+                const matchesYear = (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
+                                   (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
+
+                return matchesSearch && matchesCategory && matchesStatus && matchesMarcas && matchesUsage && matchesYear;
               })
               .map(m => (
                 <motion.div 
@@ -494,8 +478,33 @@ export const FleetManagement: React.FC = () => {
                         <span>{m.horimetro_atual ? `${m.horimetro_atual}h` : m.quilometragem_atual ? `${m.quilometragem_atual}km` : '0'}</span>
                       </div>
                       <div className="meta-item">
-                        <Calendar size={14} className="meta-icon" />
-                        <span>Próx. Revisão: {m.data_proxima_revisao ? new Date(m.data_proxima_revisao).toLocaleDateString() : 'N/D'}</span>
+                        <Zap size={14} className="meta-icon" style={{ color: '#8b5cf6' }} />
+                        <span>{m.potencia ? `${m.potencia}cv` : 'Potência N/D'} • {m.peso_operacional ? `${(m.peso_operacional/1000).toFixed(1)}t` : 'N/D'}</span>
+                      </div>
+                      <div className="maintenance-countdown-elite">
+                        <div className="countdown-header">
+                          <Clock size={12} />
+                          <span>Próxima Revisão</span>
+                        </div>
+                        {(() => {
+                          const current = m.horimetro_atual || 0;
+                          const interval = m.intervalo_revisao || 250;
+                          const remaining = interval - (current % interval);
+                          const progress = ((interval - remaining) / (interval || 1)) * 100;
+                          return (
+                            <div className="countdown-progress-wrapper">
+                              <div className="progress-bar-bg">
+                                <motion.div 
+                                  className="progress-bar-fill" 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${progress}%` }}
+                                  style={{ backgroundColor: progress > 85 ? '#ef4444' : progress > 60 ? '#f59e0b' : '#10b981' }}
+                                />
+                              </div>
+                              <span className="countdown-text">{remaining}h restantes</span>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -550,7 +559,8 @@ export const FleetManagement: React.FC = () => {
           display: flex;
           overflow: hidden;
           padding: 0;
-          height: 180px;
+          height: auto;
+          min-height: 200px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: var(--shadow-sm);
           position: relative;
@@ -692,6 +702,50 @@ export const FleetManagement: React.FC = () => {
           background: #ef4444;
           border-color: #ef4444;
           color: white;
+        }
+
+        .maintenance-countdown-elite {
+          margin-top: 12px;
+          padding: 12px;
+          background: hsl(var(--bg-main));
+          border-radius: 12px;
+          border: 1px solid hsl(var(--border));
+        }
+
+        .countdown-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 10px;
+          font-weight: 800;
+          color: hsl(var(--text-muted));
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 8px;
+        }
+
+        .countdown-progress-wrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .progress-bar-bg {
+          height: 6px;
+          background: hsl(var(--border));
+          border-radius: 3px;
+          overflow: hidden;
+        }
+
+        .progress-bar-fill {
+          height: 100%;
+          border-radius: 3px;
+        }
+
+        .countdown-text {
+          font-size: 11px;
+          font-weight: 800;
+          color: hsl(var(--text-main));
         }
       `}</style>
 

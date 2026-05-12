@@ -28,6 +28,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
+import { PurchasingFilterModal } from './components/PurchasingFilterModal';
 
 export const PurchaseOrder: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -41,6 +42,16 @@ export const PurchaseOrder: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    suppliers: [],
+    minAmount: 0,
+    maxAmount: 100000,
+    dateStart: '',
+    dateEnd: '',
+    onlyDelayed: false
+  });
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -59,13 +70,17 @@ export const PurchaseOrder: React.FC = () => {
       if (data) {
         setOrders(data);
         const totalPurchased = data.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
-        const pendingDeliveries = data.filter(o => o.status === 'PENDENTE').length;
+        const openOrders = data.filter(o => o.status !== 'received');
+        const exposure = openOrders.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
+        
+        const delayed = openOrders.filter(o => o.previsao_entrega && new Date(o.previsao_entrega) < new Date()).length;
+        const slaPerformance = data.length > 0 ? ((data.length - delayed) / data.length) * 100 : 100;
         
         setStats([
-          { label: 'Investimento Insumos', value: totalPurchased.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: ShoppingCart, color: '#10b981', progress: 100 },
-          { label: 'Entregas em Trânsito', value: pendingDeliveries, icon: Truck, color: '#3b82f6', progress: (pendingDeliveries / (data.length || 1)) * 100 },
-          { label: 'Ordens Pendentes', value: '3', icon: Clock, color: '#f59e0b', progress: 15 },
-          { label: 'Saving Médio (Mês)', value: 'R$ 12.4k', icon: TrendingDown, color: '#166534', progress: 88, trend: 'down' },
+          { label: 'Exposição de Caixa', value: exposure.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#3b82f6', progress: 100, change: 'Ordens em Aberto' },
+          { label: 'Investimento Mensal', value: totalPurchased.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: ShoppingCart, color: '#10b981', progress: 100, change: 'Gasto Consolidado' },
+          { label: 'SLA de Entrega', value: `${slaPerformance.toFixed(0)}%`, icon: Truck, color: slaPerformance < 80 ? '#ef4444' : '#166534', progress: slaPerformance, change: 'Pontualidade Rede', trend: slaPerformance < 80 ? 'down' : 'up' },
+          { label: 'Gargalos Logísticos', value: delayed, icon: Clock, color: '#f59e0b', progress: (delayed / (openOrders.length || 1)) * 100, change: 'Pedidos Atrasados' },
         ]);
       }
     } catch (err) {
@@ -100,10 +115,20 @@ export const PurchaseOrder: React.FC = () => {
 
     if (selectedOrder) {
       const { error } = await supabase.from('pedidos_compra').update(payload).eq('id', selectedOrder.id);
-      if (!error) { setIsModalOpen(false); fetchOrders(); }
+      if (!error && data.itens) {
+        // Lógica para salvar itens (itens_pedido_compra)
+        // await supabase.from('itens_pedido_compra').upsert(data.itens.map(i => ({ ...i, pedido_id: selectedOrder.id })));
+        setIsModalOpen(false); 
+        fetchOrders(); 
+      }
     } else {
-      const { error } = await supabase.from('pedidos_compra').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
-      if (!error) { setIsModalOpen(false); fetchOrders(); }
+      const { data: newOrder, error } = await supabase.from('pedidos_compra').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]).select().single();
+      if (!error && newOrder && data.itens) {
+        // Lógica para salvar itens (itens_pedido_compra)
+        // await supabase.from('itens_pedido_compra').insert(data.itens.map(i => ({ ...i, pedido_id: newOrder.id })));
+        setIsModalOpen(false); 
+        fetchOrders(); 
+      }
     }
   };
 
@@ -131,7 +156,7 @@ export const PurchaseOrder: React.FC = () => {
       header: 'OC / Fornecedor',
       accessor: (item: any) => (
         <div className="table-cell-title">
-          <span className="main-text">#{item.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</span>
+          <span className="main-text">#{item.numero_pedido || item.id?.slice(0, 8)?.toUpperCase()}</span>
           <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
             {item.fornecedores?.nome || 'N/A'}
           </div>
@@ -139,27 +164,40 @@ export const PurchaseOrder: React.FC = () => {
       )
     },
     {
-      header: 'Previsão Entrega',
-      accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Truck size={14} />
-          <span>{item.previsao_entrega ? new Date(item.previsao_entrega).toLocaleDateString() : 'N/A'}</span>
-        </div>
-      )
+      header: 'Logística / Previsão',
+      accessor: (item: any) => {
+        const isDelayed = item.status !== 'received' && item.previsao_entrega && new Date(item.previsao_entrega) < new Date();
+        return (
+          <div className="table-cell-meta">
+            <div className="flex flex-col">
+              <div className="flex items-center gap-1">
+                <Truck size={14} className={isDelayed ? 'text-red-500' : 'text-emerald-500'} />
+                <span>{item.previsao_entrega ? new Date(item.previsao_entrega).toLocaleDateString() : 'N/A'}</span>
+              </div>
+              {isDelayed && <span className="text-[10px] font-black text-red-500 uppercase">Atraso Crítico</span>}
+            </div>
+          </div>
+        );
+      }
     },
     {
-      header: 'Valor Total',
+      header: 'Financeiro',
       accessor: (item: any) => (
-        <span className="font-bold text-slate-900">
-          {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </span>
+        <div className="flex flex-col">
+          <span className="font-bold text-slate-900">
+            {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+          <span className="text-[10px] text-slate-400 uppercase font-bold">
+            {item.forma_pagamento || 'A Combinar'}
+          </span>
+        </div>
       )
     },
     {
       header: 'Status',
       accessor: (item: any) => (
         <span className={`status-pill ${item.status === 'received' ? 'active' : 'warning'}`}>
-          {item.status === 'received' ? 'Recebido' : 'Aguardando'}
+          {item.status === 'received' ? 'Recebido' : 'Em Trânsito'}
         </span>
       ),
       align: 'center' as const
@@ -234,7 +272,11 @@ export const PurchaseOrder: React.FC = () => {
         </div>
 
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Ordens">
@@ -243,12 +285,32 @@ export const PurchaseOrder: React.FC = () => {
         </div>
       </div>
 
+      <PurchasingFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
+
       <div className="management-content">
         <ModernTable 
           data={orders.filter(o => {
             const matchesSearch = (o.numero_pedido || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'OPEN' ? o.status !== 'received' : o.status === 'received';
-            return matchesSearch && matchesTab;
+            
+            // Advanced Sidebar Filters
+            const matchesStatus = filterValues.status === 'all' || o.status === filterValues.status;
+            const matchesSuppliers = filterValues.suppliers.length === 0 || filterValues.suppliers.includes(o.fornecedores?.nome);
+            const matchesAmount = Number(o.valor_total || 0) <= filterValues.maxAmount;
+            
+            const isDelayed = o.status !== 'received' && o.previsao_entrega && new Date(o.previsao_entrega) < new Date();
+            const matchesDelayed = !filterValues.onlyDelayed || isDelayed;
+            
+            const deliveryDate = o.previsao_entrega ? new Date(o.previsao_entrega) : null;
+            const matchesDateStart = !filterValues.dateStart || (deliveryDate && deliveryDate >= new Date(filterValues.dateStart));
+            const matchesDateEnd = !filterValues.dateEnd || (deliveryDate && deliveryDate <= new Date(filterValues.dateEnd));
+
+            return matchesSearch && matchesTab && matchesStatus && matchesSuppliers && matchesAmount && matchesDelayed && matchesDateStart && matchesDateEnd;
           })}
           columns={columns}
           loading={loading}

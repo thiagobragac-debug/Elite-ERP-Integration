@@ -4,10 +4,38 @@
   gap: 16px;
 }
 
-.stats-grid {
+.stats-grid, .next-gen-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
+  margin-bottom: 24px;
+}
+
+.premium-card {
+  background: white;
+  border-radius: 24px;
+  border: 1px solid hsl(var(--border));
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: hsl(var(--brand) / 0.3);
+}
+
+.management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.management-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .stat-card {

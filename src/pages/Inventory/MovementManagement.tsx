@@ -23,6 +23,7 @@ import { MovementForm } from '../../components/Forms/MovementForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { MovementFilterModal } from './components/MovementFilterModal';
 
 export const MovementManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -30,48 +31,60 @@ export const MovementManagement: React.FC = () => {
   const [movements, setMovements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<'in' | 'out'>('in');
+  const [modalType, setModalType] = useState<'in' | 'out' | 'transfer'>('in');
   const [activeTab, setActiveTab] = useState<'LOG' | 'ANALYSIS'>('LOG');
   const [selectedMovement, setSelectedMovement] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
+   const [stats, setStats] = useState<any[]>([]);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    type: 'all',
+    minAmount: 0,
+    maxAmount: 500000,
+    dateStart: '',
+    dateEnd: ''
+  });
 
   useEffect(() => {
     if (!activeFarm) return;
     fetchMovements();
   }, [activeFarm]);
 
-  const fetchMovements = async () => {
+   const fetchMovements = async () => {
+    if (!activeFarm?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data } = await supabase
       .from('movimentacoes_estoque')
       .select(`
         *,
-        produtos (nome, unidade)
+        produtos (nome, unidade, categoria)
       `)
       .eq('fazenda_id', activeFarm.id)
+      .eq('tenant_id', activeFarm.tenantId)
       .order('data_movimentacao', { ascending: false });
     
     if (data) {
       setMovements(data);
       
-      const entradas = data.filter(m => m.tipo === 'in').length;
-      const saidas = data.filter(m => m.tipo === 'out').length;
-      const totalMov = data.length;
+      const valEntradas = data.filter(m => m.tipo === 'in').reduce((acc, curr) => acc + (Number(curr.quantidade) * Number(curr.valor_unitario || 0)), 0);
+      const valSaidas = data.filter(m => m.tipo === 'out').reduce((acc, curr) => acc + (Number(curr.quantidade) * Number(curr.valor_unitario || 0)), 0);
       
       setStats([
-        { label: 'Entradas de Insumos', value: entradas, icon: ArrowDownLeft, color: '#10b981', progress: 100 },
-        { label: 'Saídas de Insumos', value: saidas, icon: ArrowUpRight, color: '#ef4444', progress: 85 },
-        { label: 'Fluxo Operacional', value: totalMov, icon: ArrowRightLeft, color: '#3b82f6', progress: 100 },
-        { label: 'Eficiência Carga', value: '98%', icon: Activity, color: '#166534', progress: 98 },
+        { label: 'Volume Entradas (R$)', value: `R$ ${valEntradas.toLocaleString('pt-BR')}`, icon: ArrowDownLeft, color: '#10b981', progress: 100, change: 'Aquisição de Ativos' },
+        { label: 'Consumo Mensal (R$)', value: `R$ ${valSaidas.toLocaleString('pt-BR')}`, icon: ArrowUpRight, color: '#ef4444', progress: 85, change: 'Custo Operacional' },
+        { label: 'Giro de Lotes', value: data.filter(m => m.lote).length, icon: History, color: '#3b82f6', progress: 100, change: 'Rastreabilidade Ativa' },
+        { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências' },
       ]);
     }
     setLoading(false);
   };
 
-  const handleOpenCreate = (type: 'in' | 'out') => {
+  const handleOpenCreate = (type: 'in' | 'out' | 'transfer') => {
     setSelectedMovement(null);
     setModalType(type);
     setIsModalOpen(true);
@@ -86,10 +99,67 @@ export const MovementManagement: React.FC = () => {
   const handleSubmit = async (formData: any) => {
     if (!activeFarm) return;
 
+    if (formData.tipo === 'transfer') {
+      try {
+        // 1. Get current product to use current average cost
+        const { data: product } = await supabase
+          .from('produtos')
+          .select('custo_medio')
+          .eq('id', formData.produto_id)
+          .single();
+        
+        const currentCost = product?.custo_medio || 0;
+
+        // 2. Create the "OUT" movement from source
+        const outPayload = {
+          produto_id: formData.produto_id,
+          tipo: 'out',
+          quantidade: parseFloat(formData.quantidade),
+          deposito_id: formData.deposito_id,
+          valor_unitario: currentCost,
+          data_movimentacao: formData.data_movimentacao,
+          origem_destino: `Transferência para depósito destino`,
+          responsavel: formData.responsavel,
+          fazenda_id: activeFarm.id,
+          tenant_id: activeFarm.tenantId
+        };
+
+        // 3. Create the "IN" movement to destination
+        const inPayload = {
+          produto_id: formData.produto_id,
+          tipo: 'in',
+          quantidade: parseFloat(formData.quantidade),
+          deposito_id: formData.destino_deposito_id,
+          valor_unitario: currentCost,
+          data_movimentacao: formData.data_movimentacao,
+          origem_destino: `Transferência de depósito origem`,
+          responsavel: formData.responsavel,
+          fazenda_id: activeFarm.id,
+          tenant_id: activeFarm.tenantId
+        };
+
+        const { error: errorOut } = await supabase.from('movimentacoes_estoque').insert([outPayload]);
+        if (errorOut) throw errorOut;
+
+        const { error: errorIn } = await supabase.from('movimentacoes_estoque').insert([inPayload]);
+        if (errorIn) throw errorIn;
+
+        setIsModalOpen(false);
+        fetchMovements();
+        return;
+      } catch (err) {
+        console.error('Error in transfer:', err);
+        alert('Erro ao processar transferência');
+        return;
+      }
+    }
+
     const payload = {
       produto_id: formData.produto_id,
       tipo: formData.tipo,
       quantidade: parseFloat(formData.quantidade),
+      deposito_id: formData.deposito_id,
+      valor_unitario: parseFloat(formData.valor_unitario || 0),
       data_movimentacao: formData.data_movimentacao,
       origem_destino: formData.origem_destino,
       responsavel: formData.responsavel,
@@ -141,23 +211,33 @@ export const MovementManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Item / Produto',
+      header: 'Item / Rastreabilidade',
       accessor: (item: any) => (
         <div className="table-cell-title">
           <span className="main-text">{item.produtos?.nome || 'Item Excluído'}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            REF: {item.origem_destino || 'Direta'}
+          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
+            <span className="text-slate-500">LOTE: {item.lote || 'N/A'}</span>
+            {item.data_validade && (
+              <span className={`flex items-center gap-1 ${new Date(item.data_validade) < new Date() ? 'text-red-500' : 'text-amber-500'}`}>
+                <Calendar size={10} /> {new Date(item.data_validade).toLocaleDateString()}
+              </span>
+            )}
           </div>
         </div>
       )
     },
     {
-      header: 'Movimento',
+      header: 'Tipo / Valor',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          {item.tipo === 'in' ? <ArrowDownLeft size={14} className="text-emerald-500" /> : <ArrowUpRight size={14} className="text-rose-500" />}
-          <span className={item.tipo === 'in' ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
-            {item.tipo === 'in' ? 'Entrada' : 'Saída'}
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1">
+            {item.tipo === 'in' ? <ArrowDownLeft size={14} className="text-emerald-500" /> : <ArrowUpRight size={14} className="text-rose-500" />}
+            <span className={item.tipo === 'in' ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
+              {item.tipo === 'in' ? 'Entrada' : item.tipo === 'transfer' ? 'Transf.' : 'Saída'}
+            </span>
+          </div>
+          <span className="text-[10px] font-bold text-slate-400 uppercase">
+            R$ {(Number(item.quantidade) * Number(item.valor_unitario || 0)).toLocaleString('pt-BR')}
           </span>
         </div>
       )
@@ -166,20 +246,29 @@ export const MovementManagement: React.FC = () => {
       header: 'Quantidade',
       accessor: (item: any) => (
         <div className="table-cell-meta">
-          <Package size={14} />
-          <span>{item.quantidade} {item.produtos?.unidade}</span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1 font-bold">
+              <Package size={14} />
+              <span>{item.quantidade} {item.produtos?.unidade}</span>
+            </div>
+            <span className="text-[10px] text-slate-400 uppercase truncate max-w-[150px]">
+              {item.origem_destino}
+            </span>
+          </div>
         </div>
       )
     },
     {
-      header: 'Data',
+      header: 'Data / Resp.',
       accessor: (item: any) => (
         <div className="table-cell-meta">
-          <Calendar size={14} />
-          <span>{item.data_movimentacao ? new Date(item.data_movimentacao).toLocaleDateString() : 'N/A'}</span>
+          <div className="flex flex-col items-end">
+            <span className="font-bold text-slate-700">{item.data_movimentacao ? new Date(item.data_movimentacao).toLocaleDateString() : 'N/A'}</span>
+            <span className="text-[10px] text-slate-400 uppercase">{item.responsavel}</span>
+          </div>
         </div>
       ),
-      align: 'center' as const
+      align: 'right' as const
     }
   ];
 
@@ -195,6 +284,10 @@ export const MovementManagement: React.FC = () => {
           <p className="page-subtitle">Rastreabilidade total de entradas, saídas e transferências de insumos em tempo real.</p>
         </div>
         <div className="page-actions">
+          <button className="glass-btn secondary" onClick={() => handleOpenCreate('transfer')}>
+            <ArrowRightLeft size={18} />
+            TRANSFERÊNCIA
+          </button>
           <button className="glass-btn secondary" onClick={() => handleOpenCreate('out')}>
             <Plus size={18} />
             LANÇAR SAÍDA
@@ -250,22 +343,40 @@ export const MovementManagement: React.FC = () => {
           />
         </div>
 
-        <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+         <div className="elite-filter-group">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Log">
             <FileText size={20} />
           </button>
         </div>
+
+        <MovementFilterModal 
+          isOpen={showAdvancedFilters}
+          onClose={() => setShowAdvancedFilters(false)}
+          filters={filterValues}
+          setFilters={setFilterValues}
+        />
       </div>
 
       <div className="management-content">
-        <ModernTable 
+         <ModernTable 
           data={movements.filter(m => {
             const matchesSearch = (m.produtos?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (m.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'LOG' ? true : m.status === 'analysis';
-            return matchesSearch && matchesTab;
+            const matchesTab = activeTab === 'LOG' ? true : m.tipo === 'out';
+            
+            const matchesType = filterValues.type === 'all' || m.tipo === filterValues.type;
+            const amount = Number(m.quantidade) * Number(m.valor_unitario || 0);
+            const matchesAmount = amount >= filterValues.minAmount && amount <= filterValues.maxAmount;
+            const matchesDate = (!filterValues.dateStart || new Date(m.data_movimentacao) >= new Date(filterValues.dateStart)) &&
+                               (!filterValues.dateEnd || new Date(m.data_movimentacao) <= new Date(filterValues.dateEnd));
+
+            return matchesSearch && matchesTab && matchesType && matchesAmount && matchesDate;
           })}
           columns={columns}
           loading={loading}

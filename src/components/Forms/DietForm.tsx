@@ -25,6 +25,7 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
     tipo: 'Concentrado',
     descricao: '',
     custo_por_kg: '0',
+    percentual_ms: '88',
     status: 'active'
   });
 
@@ -38,6 +39,7 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
         tipo: initialData.tipo || 'Concentrado',
         descricao: initialData.descricao || '',
         custo_por_kg: initialData.custo_por_kg?.toString() || '0',
+        percentual_ms: initialData.percentual_ms?.toString() || '88',
         status: initialData.status || 'active'
       });
       setIngredients(initialData.ingredientes || []);
@@ -47,6 +49,7 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
         tipo: 'Concentrado',
         descricao: '',
         custo_por_kg: '0',
+        percentual_ms: '88',
         status: 'active'
       });
       setIngredients([]);
@@ -133,13 +136,25 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
       </div>
 
       <div className="form-group">
-        <label><DollarSign size={14} /> Custo por Kg (R$)</label>
+        <label><DollarSign size={14} /> Custo por Kg Natural (R$)</label>
         <input 
           type="number" 
           step="0.01"
           placeholder="0.00" 
           value={formData.custo_por_kg}
           onChange={(e) => setFormData({...formData, custo_por_kg: e.target.value})}
+          required
+        />
+      </div>
+
+      <div className="form-group">
+        <label><Activity size={14} /> Matéria Seca (% MS)</label>
+        <input 
+          type="number" 
+          step="1"
+          placeholder="88" 
+          value={formData.percentual_ms}
+          onChange={(e) => setFormData({...formData, percentual_ms: e.target.value})}
           required
         />
       </div>

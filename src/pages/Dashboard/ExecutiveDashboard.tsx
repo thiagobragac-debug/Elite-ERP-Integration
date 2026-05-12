@@ -23,7 +23,10 @@ import {
   Search,
   Settings,
   PieChart as PieChartIcon,
-  FileText
+  FileText,
+  Globe,
+  Shield,
+  Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -38,7 +41,11 @@ import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import './ExecutiveDashboard.css';
 
 export const ExecutiveDashboard: React.FC = () => {
+<<<<<<< HEAD
   const { activeFarm, tenant, userProfile, isGlobalMode, activeFarmId, applyFarmFilter } = useFarmFilter();
+=======
+  const { activeFarm, tenant, userProfile, isGlobalMode, activeFarmId, activeTenantId } = useTenant();
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
   const [kpiData, setKpiData] = useState<any[]>([
     { id: 'gmd', label: 'Evolução de GMD', value: '---', icon: Activity, color: '#10b981', progress: 0 },
     { id: 'caixa', label: 'Fluxo de Caixa', value: '---', icon: DollarSign, color: '#f59e0b', progress: 0 },
@@ -53,6 +60,7 @@ export const ExecutiveDashboard: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [chartData, setChartData] = useState<any[]>([]);
   const [activeChartMetric, setActiveChartMetric] = useState<'gmd' | 'peso' | 'arroba'>('gmd');
+  const [chartMode, setChartMode] = useState<'line' | 'bar'>('line');
   const [targetValue, setTargetValue] = useState<number>(1.2);
   const [chatHistory, setChatHistory] = useState<any[]>([
     { type: 'system', text: 'Olá! Sou o Elite Copilot. Como posso ajudar na sua gestão hoje?' }
@@ -70,15 +78,21 @@ export const ExecutiveDashboard: React.FC = () => {
     setTimeout(() => {
       setChatHistory(prev => [...prev, { 
         type: 'system', 
-        text: `Analisando os dados de ${activeChartMetric.toUpperCase()}... Processando insights preditivos para a Fazenda ${activeFarm?.name}.` 
+        text: `Analisando os dados de ${activeChartMetric.toUpperCase()}... Processando insights preditivos para ${isGlobalMode ? 'todas as unidades do grupo' : `a Fazenda ${activeFarm?.name}`}.` 
       }]);
     }, 1000);
   };
 
   useEffect(() => {
+<<<<<<< HEAD
     if (!activeFarmId && !isGlobalMode) return;
     fetchExecutiveStats();
   }, [activeFarmId, isGlobalMode, tenant]);
+=======
+    if (!activeTenantId) return;
+    fetchExecutiveStats();
+  }, [activeFarmId, activeTenantId, isGlobalMode, tenant]);
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
 
   useEffect(() => {
     if (isTVMode) {
@@ -102,6 +116,29 @@ export const ExecutiveDashboard: React.FC = () => {
     }
     return () => clearInterval(interval);
   }, [isTVMode]);
+
+  // Sincronização em tempo real com o Canvas Studio
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'elite_selected_metrics') {
+        console.log('[Dashboard] Mudança detectada no Canvas. Atualizando...');
+        fetchExecutiveStats();
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('[Dashboard] Janela focada. Verificando atualizações...');
+      fetchExecutiveStats();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [activeTenantId, activeFarmId]);
 
   useEffect(() => {
     calculateDynamicTarget();
@@ -136,8 +173,9 @@ export const ExecutiveDashboard: React.FC = () => {
   const fetchExecutiveStats = async () => {
     setLoading(true);
     try {
-      console.log('[Dashboard] Buscando estatísticas para tenant:', tenant?.id);
+      console.log('[Dashboard] Buscando estatísticas. Modo Global:', isGlobalMode);
       
+<<<<<<< HEAD
       let animalQuery = supabase.from('animais').select('*', { count: 'exact', head: true });
       animalQuery = applyFarmFilter(animalQuery);
       const { count: animalCount } = await animalQuery;
@@ -152,6 +190,37 @@ export const ExecutiveDashboard: React.FC = () => {
 
       let stockQuery = supabase.from('produtos').select('estoque_atual, custo_medio');
       stockQuery = applyFarmFilter(stockQuery);
+=======
+      // 1. Animals
+      let animalCount = 0;
+      if (isGlobalMode && activeTenantId) {
+        const { count } = await supabase.from('animais')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', activeTenantId);
+        animalCount = count || 0;
+      } else if (activeFarmId) {
+        const { count } = await supabase.from('animais')
+          .select('*', { count: 'exact', head: true })
+          .eq('fazenda_id', activeFarmId);
+        animalCount = count || 0;
+      }
+      
+      // 2. Cash Flow
+      const { data: bankAccounts } = await supabase
+        .from('contas_bancarias')
+        .select('saldo_atual')
+        .eq('tenant_id', activeTenantId);
+      
+      const totalCash = bankAccounts?.reduce((acc, curr) => acc + Number(curr.saldo_atual), 0) || 0;
+
+      // 3. Stock
+      let stockQuery = supabase.from('produtos').select('estoque_atual, custo_medio');
+      if (isGlobalMode) {
+        stockQuery = stockQuery.eq('tenant_id', activeTenantId);
+      } else {
+        stockQuery = stockQuery.eq('fazenda_id', activeFarmId);
+      }
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
       const { data: stockData } = await stockQuery;
       
       const totalStockValue = stockData?.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0) || 0;
@@ -318,19 +387,39 @@ export const ExecutiveDashboard: React.FC = () => {
         { id: 'lead_time', label: 'Lead Time Médio', value: '4.2 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up', change: '-0.5d', periodLabel: 'Suprimentos', sparkline: [{value: 90}, {value: 88}, {value: 85}] },
         { id: 'acuracidade_est', label: 'Acuracidade Estoque', value: '98.8%', icon: Settings, color: '#10b981', progress: 98, trend: 'up', change: '+0.5%', periodLabel: 'Estoque', sparkline: [{value: 95}, {value: 97}, {value: 98}] },
         { id: 'ruptura_est', label: 'Índice de Ruptura', value: '1.2%', icon: AlertCircle, color: '#ef4444', progress: 95, trend: 'up', change: '-0.8%', periodLabel: 'Estoque', sparkline: [{value: 20}, {value: 15}, {value: 10}] },
-        { id: 'manutencao_hora', label: 'Custo Manutenção/h', value: 'R$ 42,10', icon: Settings, color: '#3b82f6', progress: 78, trend: 'up', change: '-2.5%', periodLabel: 'Frota', sparkline: [{value: 85}, {value: 80}, {value: 78}] },
-        { id: 'disponibilidade_frota', label: 'Disp. de Frota', value: '92.4%', icon: Monitor, color: '#10b981', progress: 92, trend: 'up', change: '+2.1%', periodLabel: 'Frota', sparkline: [{value: 85}, {value: 90}, {value: 92}] },
-        { id: 'margem_contribuicao', label: 'Margem Contrib.', value: 'R$ 1.2k', icon: TrendingUp, color: '#8b5cf6', progress: 84, trend: 'up', change: '+8.4%', periodLabel: 'Financeiro', sparkline: [{value: 60}, {value: 75}, {value: 84}] },
-        { id: 'break_even', label: 'Break-even (@)', value: 'R$ 172,40', icon: Target, color: '#16a34a', progress: 92, trend: 'up', change: '-1.2%', periodLabel: 'Financeiro', sparkline: [{value: 95}, {value: 93}, {value: 92}] },
-        { id: 'ticket_venda', label: 'Ticket Médio Venda', value: 'R$ 4.2k', icon: DollarSign, color: '#f59e0b', progress: 82, trend: 'up', change: '+2.5%', periodLabel: 'Vendas', sparkline: [{value: 70}, {value: 78}, {value: 82}] },
-        { id: 'roi_pastagem', label: 'ROI Pastagens', value: '2.4x', icon: Zap, color: '#db2777', progress: 75, trend: 'up', change: '+0.4', periodLabel: 'Financeiro', sparkline: [{value: 60}, {value: 68}, {value: 75}] },
-        { id: 'score_corporal', label: 'Score Cond. Corporal', value: '3.4', icon: Activity, color: '#10b981', progress: 85, trend: 'up', change: '+0.1', periodLabel: 'Pecuária', sparkline: [{value: 80}, {value: 82}, {value: 85}] },
-        { id: 'ociosidade_maq', label: 'Ociosidade Máq.', value: '14.2%', icon: AlertCircle, color: '#ef4444', progress: 85, trend: 'up', change: '-2.1%', periodLabel: 'Frota', sparkline: [{value: 25}, {value: 20}, {value: 15}] }
+        { id: 'manutencao_hora', label: 'Custo Manutenção/h', icon: Settings, color: '#3b82f6', value: 'R$ 42,10', trend: 'down', change: '-2.5%', periodLabel: 'Frota', sparkline: [{value: 85}, {value: 80}, {value: 78}] },
+        { id: 'disponibilidade_frota', label: 'Disp. de Frota', icon: Monitor, color: '#10b981', value: '92.4%', trend: 'up', change: '+2.1%', periodLabel: 'Frota', sparkline: [{value: 85}, {value: 90}, {value: 92}] },
+        { id: 'margem_contribuicao', label: 'Margem Contrib.', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 1.2k', trend: 'up', change: '+8.4%', periodLabel: 'Financeiro', sparkline: [{value: 60}, {value: 75}, {value: 84}] },
+        { id: 'break_even', label: 'Break-even (@)', icon: Target, color: '#16a34a', value: 'R$ 172,40', trend: 'up', change: '-1.2%', periodLabel: 'Financeiro', sparkline: [{value: 95}, {value: 93}, {value: 92}] },
+        { id: 'ticket_venda', label: 'Ticket Médio Venda', icon: DollarSign, color: '#f59e0b', value: 'R$ 4.2k', trend: 'up', change: '+2.5%', periodLabel: 'Vendas', sparkline: [{value: 70}, {value: 78}, {value: 82}] },
+        { id: 'ebitda_operacional', label: 'EBITDA Operacional', icon: Zap, color: '#8b5cf6', value: 'R$ 152k', trend: 'up', change: '+4.5%', periodLabel: 'Financeiro', sparkline: [{value: 40}, {value: 60}, {value: 85}] },
+        { id: 'burn_rate', label: 'Burn Rate / Runway', icon: Activity, color: '#f59e0b', value: '14 meses', trend: 'up', change: 'Estável', periodLabel: 'Estratégico', sparkline: [{value: 90}, {value: 85}, {value: 92}] },
+        { id: 'ponto_equilibrio', label: 'Ponto de Equilíbrio', icon: Target, color: '#3b82f6', value: 'R$ 280k', trend: 'down', change: '-2.1%', periodLabel: 'Financeiro', sparkline: [{value: 50}, {value: 65}, {value: 75}] },
+        { id: 'checklist_logistico', label: 'Checklist Logístico', icon: Check, color: '#10b981', value: '94%', trend: 'up', change: '+2.0%', periodLabel: 'Logística', sparkline: [{value: 80}, {value: 90}, {value: 94}] },
+        { id: 'divergencia_log', label: 'Divergência de Frete', icon: AlertCircle, color: '#ef4444', value: '1.2%', trend: 'down', change: '-0.5%', periodLabel: 'Logística', sparkline: [{value: 20}, {value: 15}, {value: 12}] },
+        { id: 'carbono_estoque', label: 'Estoque de Carbono', icon: Globe, color: '#059669', value: '2.4t/ha', trend: 'up', change: '+0.8', periodLabel: 'ESG', sparkline: [{value: 40}, {value: 55}, {value: 70}] },
+        { id: 'compliance_amb', label: 'Compliance Amb.', icon: Shield, color: '#10b981', value: '100%', trend: 'up', change: 'Total', periodLabel: 'ESG', sparkline: [{value: 95}, {value: 100}, {value: 100}] },
+        { id: 'preco_arroba', label: 'Cotação da @ (B3)', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 242,50', trend: 'up', change: '+1.2%', periodLabel: 'Mercado', sparkline: [{value: 60}, {value: 75}, {value: 85}] }
       ];
       
       // Filtragem dinâmica baseada no Canvas Studio
-      const selectedIds = tenant?.settings?.selected_metrics || ['gmd', 'lotacao', 'caixa', 'estoque'];
-      console.log('[Dashboard] Métricas selecionadas:', selectedIds);
+      // Prioridade: localStorage (Live) > Perfil Pessoal > Configuração Global da Fazenda
+      const savedLocal = localStorage.getItem('elite_selected_metrics');
+      let selectedIds = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
+      
+      if (savedLocal) {
+        try {
+          selectedIds = JSON.parse(savedLocal);
+        } catch (e) {
+          console.error("Erro ao ler métricas do localStorage", e);
+        }
+      }
+      
+      if (!selectedIds || selectedIds.length === 0) {
+        selectedIds = ['gmd', 'lotacao', 'caixa', 'estoque'];
+      }
+      
+      console.log('[Dashboard] Métricas aplicadas:', selectedIds);
       
       // Ordenar e filtrar allStats baseado na ordem de selectedIds
       const filteredStats = selectedIds
@@ -361,9 +450,18 @@ export const ExecutiveDashboard: React.FC = () => {
         ]);
       }
 
+<<<<<<< HEAD
       let activitiesQuery = supabase.from('pesagens').select('created_at, observacao, animais(brinco)').order('created_at', { ascending: false }).limit(4);
       activitiesQuery = applyFarmFilter(activitiesQuery);
       const { data: activities } = await activitiesQuery;
+=======
+      const { data: activities } = await supabase
+        .from('pesagens')
+        .select('created_at, observacao, animais(brinco)')
+        .eq('tenant_id', activeTenantId)
+        .order('created_at', { ascending: false })
+        .limit(4);
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
 
       setRecentActivities(activities || []);
 
@@ -386,7 +484,7 @@ export const ExecutiveDashboard: React.FC = () => {
             <Zap size={14} fill="currentColor" />
             <span>ELITE INTELLIGENCE v5.0</span>
           </div>
-          <h1 className="page-title">Centro de Comando</h1>
+          <h1 className="page-title">{isGlobalMode ? 'Centro de Comando Global' : 'Centro de Comando'}</h1>
           <p className="page-subtitle">Visão analítica consolidada do patrimônio e performance produtiva.</p>
         </div>
         <div className="page-actions">
@@ -431,9 +529,10 @@ export const ExecutiveDashboard: React.FC = () => {
         <div className="intelligence-main">
           <div className="panel-header">
             <div className="title-group">
-              <h3>Performance do Rebanho</h3>
+              <h3 style={{ whiteSpace: 'nowrap' }}>Performance do Rebanho</h3>
             </div>
             <div className="chart-controls">
+              <div className="v-separator"></div>
               <button 
                 className={`chart-btn ${activeChartMetric === 'gmd' ? 'active' : ''}`}
                 onClick={() => setActiveChartMetric('gmd')}
@@ -452,102 +551,16 @@ export const ExecutiveDashboard: React.FC = () => {
               >
                 @
               </button>
-              <div className="chart-period">Últimos 30 dias</div>
             </div>
           </div>
           
           <div className="chart-visual-wrapper">
-            <div className="chart-container-elite">
-              <div className="chart-y-axis">
-                <span>{activeChartMetric === 'gmd' ? '1.6' : activeChartMetric === 'peso' ? '550' : '20'}</span>
-                <span>{activeChartMetric === 'gmd' ? '1.2' : activeChartMetric === 'peso' ? '450' : '15'}</span>
-                <span>{activeChartMetric === 'gmd' ? '0.8' : activeChartMetric === 'peso' ? '350' : '10'}</span>
-                <span>{activeChartMetric === 'gmd' ? '0.4' : activeChartMetric === 'peso' ? '250' : '5'}</span>
-                <span>0</span>
-              </div>
-              <div className="chart-grid-lines">
-                {[...Array(5)].map((_, i) => <div key={i} className="grid-line" />)}
-              </div>
-              
-              <svg viewBox="0 0 800 300" className="performance-chart-svg" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} stopOpacity="0.3" />
-                    <stop offset="100%" stopColor={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} stopOpacity="0" />
-                  </linearGradient>
-                  <filter id="glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                    <feMerge>
-                      <feMergeNode in="coloredBlur"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                  </filter>
-                </defs>
-                
-                <motion.path 
-                  animate={{ 
-                    d: activeChartMetric === 'gmd' 
-                      ? "M0,240 Q100,240 150,160 T300,220 T450,120 T600,150 T800,200 L800,300 L0,300 Z"
-                      : activeChartMetric === 'peso'
-                      ? "M0,280 Q100,260 150,220 T300,180 T450,140 T600,100 T800,60 L800,300 L0,300 Z"
-                      : "M0,250 Q100,230 150,210 T300,160 T450,180 T600,120 T800,140 L800,300 L0,300 Z"
-                  }}
-                  fill="url(#chartGradient)" 
-                />
-                
-                {/* Heat Zone (Danger Zone) below target */}
-                <rect 
-                  x="0" 
-                  y={getTargetY()} 
-                  width="800" 
-                  height={300 - getTargetY()} 
-                  fill="rgba(239, 68, 68, 0.04)" 
-                />
-
-                <line 
-                  x1="0" 
-                  y1={getTargetY()} 
-                  x2="800" 
-                  y2={getTargetY()} 
-                  stroke="#3b82f6" 
-                  strokeWidth="2" 
-                  strokeDasharray="8,8" 
-                  opacity="0.6" 
-                />
-                <text x="750" y={getTargetY() - 10} fill="#3b82f6" fontSize="10" fontWeight="900">META: {targetValue.toFixed(2)}{activeChartMetric === 'gmd' ? 'kg' : activeChartMetric === 'peso' ? 'kg' : '@'}</text>
-                
-                <motion.path 
-                  animate={{ 
-                    d: activeChartMetric === 'gmd' 
-                      ? "M0,240 Q100,240 150,160 T300,220 T450,120 T600,150 T800,200"
-                      : activeChartMetric === 'peso'
-                      ? "M0,280 Q100,260 150,220 T300,180 T450,140 T600,100 T800,60"
-                      : "M0,250 Q100,230 150,210 T300,160 T450,180 T600,120 T800,140"
-                  }}
-                  fill="none" 
-                  stroke={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'}
-                  strokeWidth="4" 
-                  filter="url(#glow)"
-                />
-                
-                {[0, 150, 300, 450, 600, 800].map((x, i) => {
-                  const y = activeChartMetric === 'gmd' 
-                    ? [240, 160, 220, 120, 150, 200][i]
-                    : activeChartMetric === 'peso'
-                    ? [280, 220, 180, 140, 100, 60][i]
-                    : [250, 210, 160, 180, 120, 140][i];
-                  return (
-                    <g key={`${activeChartMetric}-${i}`} className="chart-point-group">
-                      <circle cx={x} cy={y} r="8" fill="hsl(var(--bg-card))" stroke={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} strokeWidth="3" />
-                      <circle cx={x} cy={y} r="3" fill={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'} />
-                    </g>
-                  );
-                })}
-              </svg>
-            </div>
-            <div className="chart-x-axis">
-              <span>Sem 01</span><span>Sem 02</span><span>Sem 03</span><span>Sem 04</span><span>Sem 05</span><span>Sem 06</span><span>Sem 07</span>
-            </div>
+            <EliteMainChart 
+              data={chartData}
+              color={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'}
+              height={320}
+              mode={chartMode}
+            />
           </div>
         </div>
 

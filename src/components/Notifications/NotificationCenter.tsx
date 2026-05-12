@@ -22,7 +22,7 @@ export const NotificationCenter: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (activeFarm) fetchNotifications();
+    if (activeFarm?.id) fetchNotifications();
   }, [activeFarm]);
 
   useEffect(() => {

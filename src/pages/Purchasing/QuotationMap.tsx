@@ -30,6 +30,7 @@ import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { QuotationFilterModal } from './components/QuotationFilterModal';
 
 export const QuotationMap: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -41,6 +42,14 @@ export const QuotationMap: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'OPEN' | 'CLOSED'>('OPEN');
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    minSaving: 0,
+    minBids: 0,
+    dateStart: '',
+    dateEnd: ''
+  });
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
@@ -52,22 +61,43 @@ export const QuotationMap: React.FC = () => {
 
   const fetchQuotations = async () => {
     setLoading(true);
-    let query = supabase.from('mapas_cotacao').select('*').order('created_at', { ascending: false });
-    query = applyFarmFilter(query);
-    const { data } = await query;
-    
-    if (data) {
-      setQuotations(data);
-      const abertas = data.filter(q => q.status === 'analyzing').length;
+    try {
+      let query = supabase.from('mapas_cotacao').select('*').order('created_at', { ascending: false });
+      query = applyFarmFilter(query);
+      const { data } = await query;
       
-      setStats([
-        { label: 'Mapas em Análise', value: abertas, icon: BarChart2, color: '#10b981', progress: 100 },
-        { label: 'Saving Potencial', value: '14.5%', icon: TrendingDown, color: '#3b82f6', progress: 85, trend: 'down' },
-        { label: 'Fornecedores na Rede', value: '12', icon: Building2, color: '#f59e0b', progress: 100 },
-        { label: 'Acuracidade Orç.', value: '98%', icon: Target, color: '#166534', progress: 98 },
-      ]);
+      if (data) {
+        setQuotations(data);
+        const abertas = data.filter(q => q.status === 'analyzing').length;
+        
+        // Calculate real saving metrics
+        let totalSaving = 0;
+        let totalBids = 0;
+        data.forEach(q => {
+          const bids = q.dados_fornecedores || q.suppliers || [];
+          totalBids += bids.length;
+          if (bids.length > 1) {
+            const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
+            const max = Math.max(...prices);
+            const min = Math.min(...prices);
+            totalSaving += (max - min);
+          }
+        });
+
+        const avgBids = data.length > 0 ? (totalBids / data.length).toFixed(1) : 0;
+        
+        setStats([
+          { label: 'Mapas em Análise', value: abertas, icon: BarChart2, color: '#10b981', progress: 100, change: 'Processos Ativos' },
+          { label: 'Saving Acumulado', value: `R$ ${totalSaving.toLocaleString('pt-BR')}`, icon: TrendingDown, color: '#3b82f6', progress: 85, trend: 'down', change: 'Economia Real' },
+          { label: 'Densidade de Rede', value: `${avgBids} propostas`, icon: Building2, color: '#f59e0b', progress: 100, change: 'Média por Mapa' },
+          { label: 'Acuracidade Orç.', value: '98%', icon: Target, color: '#166534', progress: 98, change: 'Precisão Lead' },
+        ]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOpenCreate = () => {
@@ -125,41 +155,64 @@ export const QuotationMap: React.FC = () => {
 
   const tableColumns = [
     {
-      header: 'Item / Quantidade',
-      accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.produto_id || `Cotação #${item.id?.slice(0,5) || 'N/A'}`}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.quantidade} {item.unidade}
-          </div>
-        </div>
-      )
-    },
-    {
-      header: 'Vencedor Sugerido',
+      header: 'Item / Volume de Propostas',
       accessor: (item: any) => {
-        const suppliers = item.suppliers || item.dados_fornecedores || [];
-        const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
-        return winner ? (
-          <div className="table-cell-meta text-emerald-600 font-bold">
-            <CheckCircle2 size={14} />
-            <span>{winner.name || winner.fornecedor_nome}</span>
+        const bids = item.suppliers || item.dados_fornecedores || [];
+        return (
+          <div className="table-cell-title">
+            <span className="main-text">{item.produto_id || `Cotação #${item.id?.slice(0,5) || 'N/A'}`}</span>
+            <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
+              <span>{item.quantidade} {item.unidade}</span>
+              <span className="text-slate-400">|</span>
+              <span className="text-blue-600">{bids.length} FORNECEDORES</span>
+            </div>
           </div>
-        ) : (
-          <span className="sub-meta italic text-amber-600">Em análise</span>
         );
       }
     },
     {
-      header: 'Melhor Preço',
+      header: 'Sugestão Vencedora',
+      accessor: (item: any) => {
+        const suppliers = item.suppliers || item.dados_fornecedores || [];
+        const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
+        return winner ? (
+          <div className="flex flex-col">
+            <div className="table-cell-meta text-emerald-600 font-bold">
+              <CheckCircle2 size={14} />
+              <span>{winner.name || winner.fornecedor_nome}</span>
+            </div>
+            <span className="text-[10px] text-slate-400 uppercase font-bold">
+              Entrega: {winner.deliveryDays || winner.prazo_entrega || 0} dias
+            </span>
+          </div>
+        ) : (
+          <span className="sub-meta italic text-amber-600">Aguardando definição</span>
+        );
+      }
+    },
+    {
+      header: 'Economia / Melhor Preço',
       accessor: (item: any) => {
         const suppliers = item.suppliers || item.dados_fornecedores || [];
         const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
-        const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-        return (
+        if (prices.length < 2) return (
           <span className="main-text font-bold">
-            {minPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            {prices.length > 0 ? prices[0].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '--'}
           </span>
+        );
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const savingPercent = ((maxPrice - minPrice) / (maxPrice || 1)) * 100;
+
+        return (
+          <div className="flex flex-col items-end">
+            <span className="main-text font-bold text-emerald-600">
+              {minPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </span>
+            <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-1 rounded">
+              SAVING: {savingPercent.toFixed(1)}%
+            </span>
+          </div>
         );
       },
       align: 'right' as const
@@ -168,7 +221,7 @@ export const QuotationMap: React.FC = () => {
       header: 'Status',
       accessor: (item: any) => (
         <span className={`status-pill ${item.status === 'closed' ? 'active' : 'warning'}`}>
-          {item.status === 'closed' ? 'Encerrado' : 'Em Análise'}
+          {item.status === 'closed' ? 'Contratado' : 'Em Análise'}
         </span>
       ),
       align: 'center' as const
@@ -244,7 +297,11 @@ export const QuotationMap: React.FC = () => {
         </div>
 
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Log">
@@ -253,12 +310,36 @@ export const QuotationMap: React.FC = () => {
         </div>
       </div>
 
+      <QuotationFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
+
       <div className="management-content">
         <ModernTable 
           data={quotations.filter(q => {
             const matchesSearch = (q.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed';
-            return matchesSearch && matchesTab;
+            
+            const suppliers = q.suppliers || q.dados_fornecedores || [];
+            const matchesBids = suppliers.length >= filterValues.minBids;
+            
+            let savingPercent = 0;
+            const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
+            if (prices.length >= 2) {
+              const minPrice = Math.min(...prices);
+              const maxPrice = Math.max(...prices);
+              savingPercent = ((maxPrice - minPrice) / (maxPrice || 1)) * 100;
+            }
+            const matchesSaving = savingPercent >= filterValues.minSaving;
+            
+            const matchesStatus = filterValues.status === 'all' || q.status === filterValues.status;
+            const matchesDate = (!filterValues.dateStart || new Date(q.created_at) >= new Date(filterValues.dateStart)) &&
+                               (!filterValues.dateEnd || new Date(q.created_at) <= new Date(filterValues.dateEnd));
+
+            return matchesSearch && matchesTab && matchesBids && matchesSaving && matchesStatus && matchesDate;
           })}
           columns={tableColumns}
           loading={loading}

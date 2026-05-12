@@ -8,6 +8,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CompanyManagement } from './pages/Admin/CompanyManagement';
 import { UserManagement } from './pages/Admin/UserManagement';
 import { AdminSettings } from './pages/Admin/AdminSettings';
+import { AdminIntelligenceHub } from './pages/Admin/AdminIntelligenceHub';
 import { ProfilePage } from './pages/Admin/ProfilePage';
 import { AuditLog } from './pages/Admin/AuditLog';
 import { SaaSAdminPanel } from './pages/Admin/SaaSAdminPanel';
@@ -22,6 +23,8 @@ import { NutritionManagement } from './pages/Pecuaria/NutritionManagement';
 import { ReproductionManagement } from './pages/Pecuaria/ReproductionManagement';
 import { ConfinementManagement } from './pages/Pecuaria/ConfinementManagement';
 import { AnimalDetail } from './pages/Pecuaria/AnimalDetail';
+import { LivestockDashboard } from './pages/Pecuaria/LivestockDashboard';
+import { InventoryDashboard } from './pages/Inventory/InventoryDashboard';
 import { InventoryManagement } from './pages/Inventory/InventoryManagement';
 import { WarehouseManagement } from './pages/Inventory/WarehouseManagement';
 import { MovementManagement } from './pages/Inventory/MovementManagement';
@@ -31,6 +34,8 @@ import { AccountsPayable } from './pages/Finance/AccountsPayable';
 import { AccountsReceivable } from './pages/Finance/AccountsReceivable';
 import { BankAccounts } from './pages/Finance/BankAccounts';
 import { BankReconciliation } from './pages/Finance/BankReconciliation';
+import { FinanceIntelligenceHub } from './pages/Finance/FinanceIntelligenceHub';
+import { FleetDashboard } from './pages/Fleet/FleetDashboard';
 import { FleetManagement } from './pages/Fleet/FleetManagement';
 import { MaintenanceManagement } from './pages/Fleet/MaintenanceManagement';
 import { FuelManagement } from './pages/Fleet/FuelManagement';
@@ -39,11 +44,14 @@ import { QuotationMap } from './pages/Purchasing/QuotationMap';
 import { PurchaseOrder } from './pages/Purchasing/PurchaseOrder';
 import { EntryInvoice } from './pages/Purchasing/EntryInvoice';
 import { SupplierManagement } from './pages/Purchasing/SupplierManagement';
+import { PriceAnalysis } from './pages/Purchasing/PriceAnalysis';
+import { PurchasingDashboard } from './pages/Purchasing/PurchasingDashboard';
 import { ExecutiveDashboard } from './pages/Dashboard/ExecutiveDashboard';
 import { ClientManagement } from './pages/Sales/ClientManagement';
 import { SalesOrders } from './pages/Sales/SalesOrders';
 import { Contracts } from './pages/Sales/Contracts';
 import { Invoices } from './pages/Sales/Invoices';
+import { SalesDashboard } from './pages/Sales/SalesDashboard';
 import { Reports } from './pages/Reports/Reports';
 import { Login } from './pages/Auth/Login';
 import { useAuth } from './contexts/AuthContext';
@@ -108,12 +116,14 @@ function AppContent() {
               <Route path="/admin/usuarios" element={<UserManagement />} />
               <Route path="/admin/perfil" element={<ProfilePage />} />
               <Route path="/admin/config" element={<CompanyManagement />} />
+              <Route path="/admin/intelligence" element={<AdminIntelligenceHub />} />
               <Route path="/admin/configuracoes" element={<AdminSettings />} />
               <Route path="/admin/bi" element={<AdminSettings />} />
               <Route path="/admin/canvas" element={<AdminSettings />} />
               <Route path="/admin/auditoria" element={<AuditLog />} />
               
               {/* Pecuária */}
+              <Route path="/pecuaria/dashboard" element={<LivestockDashboard />} />
               <Route path="/pecuaria/animal" element={<AnimalManagement />} />
               <Route path="/pecuaria/animal/:id" element={<AnimalDetail />} />
               <Route path="/pecuaria/lote" element={<LotManagement />} />
@@ -133,29 +143,38 @@ function AppContent() {
               <Route path="/admin/empresas" element={<Navigate to="/admin/config" replace />} />
               
               {/* Máquina & Frota */}
+              <Route path="/frota/dashboard" element={<FleetDashboard />} />
               <Route path="/frota/maquina" element={<FleetManagement />} />
               <Route path="/frota/veiculos" element={<Navigate to="/frota/maquina" replace />} />
               <Route path="/frota/manutencao" element={<MaintenanceManagement />} />
               <Route path="/frota/abastecimento" element={<FuelManagement />} />
+              <Route path="/frota" element={<Navigate to="/frota/dashboard" replace />} />
               
               {/* Compra & Cotação */}
+              <Route path="/compras/dashboard" element={<PurchasingDashboard />} />
               <Route path="/compras/fornecedores" element={<SupplierManagement />} />
               <Route path="/compras/solicitacao" element={<PurchaseRequest />} />
               <Route path="/compras/cotacao" element={<QuotationMap />} />
+              <Route path="/compras/mapa" element={<PriceAnalysis />} />
               <Route path="/compras/pedido" element={<PurchaseOrder />} />
               <Route path="/compras/nota" element={<EntryInvoice />} />
+              <Route path="/compras" element={<Navigate to="/compras/dashboard" replace />} />
               
               {/* Venda & CRM */}
+              <Route path="/vendas/dashboard" element={<SalesDashboard />} />
               <Route path="/vendas/clientes" element={<ClientManagement />} />
               <Route path="/vendas/pedido" element={<SalesOrders />} />
               <Route path="/vendas/contrato" element={<Contracts />} />
               <Route path="/vendas/notas" element={<Invoices />} />
+              <Route path="/vendas" element={<Navigate to="/vendas/dashboard" replace />} />
               
               {/* Estoque */}
+              <Route path="/estoque/dashboard" element={<InventoryDashboard />} />
               <Route path="/estoque/insumo" element={<InventoryManagement />} />
               <Route path="/estoque/deposito" element={<WarehouseManagement />} />
               <Route path="/estoque/movimentacao" element={<MovementManagement />} />
               <Route path="/estoque/inventario" element={<AuditManagement />} />
+              <Route path="/estoque" element={<Navigate to="/estoque/dashboard" replace />} />
               
               {/* Financeiro */}
               <Route path="/financeiro/contas" element={<BankAccounts />} />
@@ -163,6 +182,7 @@ function AppContent() {
               <Route path="/financeiro/pagar" element={<AccountsPayable />} />
               <Route path="/financeiro/receber" element={<AccountsReceivable />} />
               <Route path="/financeiro/conciliacao" element={<BankReconciliation />} />
+              <Route path="/financeiro/intelligence" element={<FinanceIntelligenceHub />} />
               
               <Route path="/relatorios" element={<Reports />} />
               <Route path="/bi" element={<ExecutiveDashboard />} />

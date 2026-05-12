@@ -301,6 +301,11 @@
   gap: 12px;
 }
 
+.title-group {
+  display: flex;
+  align-items: baseline;
+}
+
 .chart-btn {
   background: hsl(var(--bg-main));
   border: 1px solid hsl(var(--border));

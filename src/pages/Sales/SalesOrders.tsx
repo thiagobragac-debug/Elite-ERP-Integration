@@ -5,21 +5,16 @@ import {
   Plus, 
   Search, 
   Filter,
-  Calendar, 
-  DollarSign, 
-  Truck, 
-  Building2, 
-  CheckCircle2, 
-  Activity, 
-  Trash2, 
+  Calendar,
+  DollarSign,
+  History,
+  AlertTriangle,
+  Trash2,
   Edit3,
-  Package,
-  Zap,
-  ChevronRight,
   TrendingUp,
+  Zap,
   Tag,
-  Clock,
-  History
+  Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -33,6 +28,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { SalesFilterModal } from './components/SalesFilterModal';
 
 export const SalesOrders: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -49,9 +45,15 @@ export const SalesOrders: React.FC = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
+    clientTypes: [],
+    minMargin: 0,
+    maxMargin: 100,
     dateStart: '',
-    dateEnd: ''
+    dateEnd: '',
+    onlyHighRisk: false,
+    missingGta: false
   });
+  const [isLogisticsAuditActive, setIsLogisticsAuditActive] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
@@ -67,10 +69,24 @@ export const SalesOrders: React.FC = () => {
       const { data } = await query;
       
       if (data) {
-        setOrders(data);
+        // Enriching with intelligence (In real scenario, cost would come from inventory/production)
+        const enrichedOrders = data.map(order => {
+          const estimatedCost = order.valor_total * 0.72; // Mocking 72% production cost
+          const margin = ((order.valor_total - estimatedCost) / (order.valor_total || 1)) * 100;
+          const isHighRisk = order.valor_total > (order.clientes?.limite_credito || 0);
+          
+          return {
+            ...order,
+            margin,
+            isHighRisk,
+            clientRating: 'B' // Defaulting to 'B' as rating columns are missing in DB
+          };
+        });
+
+        setOrders(enrichedOrders);
         const valorTotal = data.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
         const abertos = data.filter(o => o.status === 'pending').length;
-        const entregues = data.filter(o => o.status === 'delivered').length;
+        const avgMargin = enrichedOrders.reduce((acc, curr) => acc + curr.margin, 0) / (data.length || 1);
         
         setStats([
           { 
@@ -81,54 +97,35 @@ export const SalesOrders: React.FC = () => {
             progress: 100,
             change: `${data.length} ordens`,
             periodLabel: 'Faturamento Bruto',
-            sparkline: [
-              { value: 40, label: 'R$ 150k' }, { value: 45, label: 'R$ 180k' }, { value: 42, label: 'R$ 160k' }, 
-              { value: 60, label: 'R$ 220k' }, { value: 55, label: 'R$ 200k' }, { value: 75, label: 'R$ 280k' }, 
-              { value: 70, label: 'R$ 260k' }, { value: 85, label: 'Total: R$ ' + (valorTotal / 1000).toFixed(0) + 'k' }
-            ]
+            sparkline: [{ value: 40 }, { value: 60 }, { value: 85 }]
           },
           { 
-            label: 'Ordens Pendentes', 
-            value: abertos, 
-            icon: Clock, 
-            color: '#f59e0b', 
-            progress: (abertos / (data.length || 1)) * 100,
-            change: 'Em processamento',
-            periodLabel: 'Gargalo Comercial',
-            sparkline: [
-              { value: 20, label: '2' }, { value: 35, label: '4' }, { value: 15, label: '1' }, 
-              { value: 50, label: '6' }, { value: 30, label: '3' }, { value: 40, label: '4' }, 
-              { value: 25, label: '2' }, { value: (abertos / (data.length || 1)) * 100, label: abertos + ' pendentes' }
-            ]
+            label: 'Saúde da Margem', 
+            value: `${avgMargin.toFixed(1)}%`, 
+            icon: TrendingUp, 
+            color: avgMargin > 20 ? '#10b981' : '#f59e0b', 
+            progress: avgMargin * 2,
+            change: 'Margem Operacional',
+            periodLabel: 'Lucratividade Est.'
           },
           { 
-            label: 'Entregas Concluídas', 
-            value: entregues, 
-            icon: Truck, 
-            color: '#3b82f6', 
-            progress: (entregues / (data.length || 1)) * 100,
-            change: 'Status Logístico',
-            periodLabel: 'Fluxo de Saída',
-            sparkline: [
-              { value: 60, label: '8' }, { value: 65, label: '10' }, { value: 70, label: '12' }, 
-              { value: 75, label: '14' }, { value: 80, label: '15' }, { value: 85, label: '18' }, 
-              { value: 90, label: '20' }, { value: (entregues / (data.length || 1)) * 100, label: entregues + ' entregues' }
-            ]
+            label: 'Exposição de Risco', 
+            value: enrichedOrders.filter(o => o.isHighRisk).length, 
+            icon: AlertTriangle, 
+            color: '#ef4444', 
+            progress: (enrichedOrders.filter(o => o.isHighRisk).length / (data.length || 1)) * 100,
+            change: 'Acima do Limite',
+            periodLabel: 'Auditoria de Crédito'
           },
           { 
             label: 'Taxa de Conversão', 
             value: '84%', 
-            icon: TrendingUp, 
-            color: '#166534', 
+            icon: Zap, 
+            color: '#3b82f6', 
             progress: 84, 
             trend: 'up',
             change: 'Meta: 90%',
-            periodLabel: 'Eficiência de Vendas',
-            sparkline: [
-              { value: 70, label: '70%' }, { value: 72, label: '72%' }, { value: 75, label: '75%' }, 
-              { value: 78, label: '78%' }, { value: 80, label: '80%' }, { value: 82, label: '82%' }, 
-              { value: 84, label: '84%' }, { value: 84, label: '84%' }
-            ]
+            periodLabel: 'Eficiência de Vendas'
           },
         ]);
       }
@@ -202,14 +199,27 @@ export const SalesOrders: React.FC = () => {
   const columns = [
     {
       header: 'Pedido / Cliente',
-      accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">#{item.id?.slice(0, 8).toUpperCase()}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.clientes?.nome || 'N/A'}
+      accessor: (item: any) => {
+        const missingLogistics = !item.transportadora || !item.placa_veiculo || !item.numero_gta;
+        return (
+          <div className="table-cell-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="flex flex-col">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="main-text">#{item.id?.slice(0, 8).toUpperCase()}</span>
+                {item.isHighRisk && (
+                  <span className="text-red-600 bg-red-50 px-1 rounded border border-red-100 text-[8px] font-black">RISCO CRÉDITO</span>
+                )}
+                {missingLogistics && item.status !== 'delivered' && (
+                  <span className="text-amber-600 bg-amber-50 px-1 rounded border border-amber-100 text-[8px] font-black">DOCS PENDENTES</span>
+                )}
+              </div>
+              <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
+                {item.clientes?.nome || 'N/A'} • {item.clientRating}
+              </div>
+            </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
       header: 'Data Emissão',
@@ -221,12 +231,18 @@ export const SalesOrders: React.FC = () => {
       )
     },
     {
-      header: 'Valor Total',
+      header: 'Valor / Lucratividade',
       accessor: (item: any) => (
-        <span className="font-bold text-slate-900">
-          {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </span>
-      )
+        <div className="flex flex-col items-end">
+          <span className="main-text font-bold text-slate-900">
+            {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+          <span className={`text-[10px] font-black flex items-center gap-1 ${item.margin > 20 ? 'text-emerald-600' : 'text-amber-600'}`}>
+            <TrendingUp size={10} /> {item.margin.toFixed(1)}% MARGEM
+          </span>
+        </div>
+      ),
+      align: 'right' as const
     },
     {
       header: 'Status',
@@ -253,9 +269,17 @@ export const SalesOrders: React.FC = () => {
         </div>
 
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => navigate('/vendas/contrato')}>
-            <Zap size={18} />
-            CHECKLIST LOGÍSTICO
+          <button 
+            className={`glass-btn secondary ${isLogisticsAuditActive ? 'active' : ''}`} 
+            onClick={() => setIsLogisticsAuditActive(!isLogisticsAuditActive)}
+            style={isLogisticsAuditActive ? { 
+              background: 'hsl(var(--brand) / 0.1)', 
+              borderColor: 'hsl(var(--brand))',
+              color: 'hsl(var(--brand))' 
+            } : {}}
+          >
+            <Zap size={18} fill={isLogisticsAuditActive ? "currentColor" : "none"} />
+            {isLogisticsAuditActive ? 'AUDITORIA ATIVA' : 'CHECKLIST LOGÍSTICO'}
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
@@ -324,55 +348,12 @@ export const SalesOrders: React.FC = () => {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showAdvancedFilters && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="advanced-filter-panel"
-          >
-            <div className="filter-grid">
-              <div className="filter-field">
-                <label className="elite-label">Status do Pedido</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.status}
-                  onChange={(e) => setFilterValues({...filterValues, status: e.target.value})}
-                >
-                  <option value="all">Todos os Status</option>
-                  <option value="pending">Pendentes</option>
-                  <option value="shipped">Em Trânsito</option>
-                  <option value="delivered">Entregues</option>
-                </select>
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Data Inicial</label>
-                <input 
-                  className="elite-input"
-                  type="date" 
-                  value={filterValues.dateStart}
-                  onChange={(e) => setFilterValues({...filterValues, dateStart: e.target.value})}
-                />
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Data Final</label>
-                <input 
-                  className="elite-input"
-                  type="date" 
-                  value={filterValues.dateEnd}
-                  onChange={(e) => setFilterValues({...filterValues, dateEnd: e.target.value})}
-                />
-              </div>
-              <div className="filter-actions-inline">
-                <button className="text-btn" onClick={() => setFilterValues({ status: 'all', dateStart: '', dateEnd: '' })}>
-                  LIMPAR
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SalesFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
 
       <div className="management-content">
         {orders.length === 0 && !loading ? (
@@ -389,9 +370,22 @@ export const SalesOrders: React.FC = () => {
               const matchesSearch = (o.numero_pedido || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
               const matchesTab = activeTab === 'OPEN' ? o.status !== 'delivered' : o.status === 'delivered';
               const matchesStatus = filterValues.status === 'all' || o.status === filterValues.status;
+              
+              const matchesClientTypes = filterValues.clientTypes.length === 0 || 
+                                        filterValues.clientTypes.some(type => o.clientRating === type.split(' ')[0] || (type === 'Risco' && o.isHighRisk));
+              
+              const matchesMargin = o.margin >= filterValues.minMargin;
+              const matchesRisk = !filterValues.onlyHighRisk || o.isHighRisk;
+              
+              const missingLogistics = !o.transportadora || !o.placa_veiculo || !o.numero_gta;
+              const matchesMissingGta = !filterValues.missingGta || missingLogistics;
+
               const matchesDate = (!filterValues.dateStart || new Date(o.created_at) >= new Date(filterValues.dateStart)) &&
                                  (!filterValues.dateEnd || new Date(o.created_at) <= new Date(filterValues.dateEnd));
-              return matchesSearch && matchesTab && matchesStatus && matchesDate;
+              
+              const matchesLogisticsAudit = !isLogisticsAuditActive || missingLogistics;
+
+              return matchesSearch && matchesTab && matchesStatus && matchesClientTypes && matchesMargin && matchesRisk && matchesMissingGta && matchesDate && matchesLogisticsAudit;
             })}
             columns={columns}
             loading={loading}

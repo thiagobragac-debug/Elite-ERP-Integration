@@ -35,6 +35,7 @@ import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { InventoryFilterModal } from './components/InventoryFilterModal';
 import { formatNumber } from '../../utils/format';
 
 export const InventoryManagement: React.FC = () => {
@@ -52,8 +53,12 @@ export const InventoryManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
-    categoria: 'all',
-    status: 'all'
+    categorias: [],
+    status: 'all',
+    minStock: 0,
+    maxStock: 5000,
+    minPrice: 0,
+    maxPrice: 10000
   });
 
   useEffect(() => {
@@ -183,18 +188,15 @@ export const InventoryManagement: React.FC = () => {
 
   const stats = [
     { 
-      label: 'Liquidez em Insumos', 
+      label: 'Capital Imobilizado', 
       value: `R$ ${products.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0).toLocaleString('pt-BR')}`, 
       icon: DollarSign, 
       color: '#10b981', 
       progress: 85,
       trend: 'up',
-      change: 'Valor de Inventário vs mês ant.',
-      periodLabel: 'Patrimônio Atual',
-      sparkline: [
-        { value: 10, label: 'Jan' }, { value: 15, label: 'Fev' }, { value: 8, label: 'Mar' }, 
-        { value: 20, label: 'Abr' }, { value: 18, label: 'Mai' }, { value: 25, label: 'Jun' }
-      ]
+      change: 'Patrimônio em Insumos',
+      periodLabel: 'Valor de Inventário',
+      sparkline: [{ value: 10 }, { value: 15 }, { value: 20 }, { value: 18 }, { value: 25 }]
     },
     { 
       label: 'Ruptura de Estoque', 
@@ -203,41 +205,31 @@ export const InventoryManagement: React.FC = () => {
       color: '#ef4444', 
       progress: products.length > 0 ? (products.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length / products.length) * 100 : 0, 
       trend: 'down',
-      change: 'Crítico/Minimo vs mês ant.',
-      periodLabel: 'Alertas Reposição',
-      sparkline: [
-        { value: 10, label: '1' }, { value: 20, label: '3' }, { value: 5, label: '0' }, 
-        { value: 30, label: '5' }, { value: 15, label: '2' }, { value: 25, label: '4' }, 
-        { value: 10, label: '1' }, { value: products.length > 0 ? (products.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length / products.length) * 100 : 0, label: 'Hoje' }
-      ]
+      change: 'Itens abaixo do mínimo',
+      periodLabel: 'Ação Necessária',
+      sparkline: [{ value: 30 }, { value: 15 }, { value: 25 }, { value: 10 }, { value: 5 }]
     },
     { 
-      label: 'SKUs Ativos', 
-      value: products.length, 
-      icon: Boxes, 
-      color: '#3b82f6', 
-      progress: 65,
-      trend: 'up',
-      change: 'Catálogo de Itens vs mês ant.',
-      periodLabel: 'Mix de Produtos',
-      sparkline: [
-        { value: 50, label: 'Seg' }, { value: 52, label: 'Ter' }, { value: 51, label: 'Qua' }, 
-        { value: 55, label: 'Qui' }, { value: 54, label: 'Sex' }, { value: 56, label: 'Sab' }
-      ]
+      label: 'Maturidade (30d)', 
+      value: `${products.filter(p => p.categoria === 'Medicamento' || p.categoria === 'Vacina').length} itens`, 
+      icon: FlaskConical, 
+      color: '#f59e0b', 
+      progress: 32,
+      trend: 'stable',
+      change: 'Risco de Vencimento',
+      periodLabel: 'Monitoramento Lot',
+      sparkline: [{ value: 5 }, { value: 8 }, { value: 7 }, { value: 10 }, { value: 6 }]
     },
     { 
-      label: 'Giro Mensal', 
-      value: '1.2x', 
+      label: 'Giro de Estoque', 
+      value: '1.4x', 
       icon: Zap, 
-      color: '#10b981', 
+      color: '#3b82f6', 
       progress: 45,
       trend: 'up',
-      change: 'Evolução Logística',
-      periodLabel: 'Giro Médio',
-      sparkline: [
-        { value: 1.0, label: 'S1' }, { value: 1.1, label: 'S2' }, { value: 1.3, label: 'S3' }, 
-        { value: 1.2, label: 'S4' }
-      ]
+      change: 'Velocidade de Consumo',
+      periodLabel: 'Média Mensal',
+      sparkline: [{ value: 1.0 }, { value: 1.2 }, { value: 1.1 }, { value: 1.4 }]
     }
   ];
 
@@ -247,35 +239,50 @@ export const InventoryManagement: React.FC = () => {
       accessor: (item: any) => (
         <div className="table-cell-title">
           <span className="main-text">{item.nome}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.categoria}
+          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
+            <span>{item.categoria}</span>
+            {item.marca && <span className="text-slate-400">• {item.marca}</span>}
           </div>
         </div>
       )
     },
     {
-      header: 'Estoque Atual',
+      header: 'Saldo / Localização',
       accessor: (item: any) => (
         <div className="table-cell-meta">
-          <Package size={14} />
-          <span>{item.estoque_atual || 0} {item.unidade || 'un'}</span>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-1 font-bold text-slate-800">
+              <Package size={14} />
+              <span>{item.estoque_atual || 0} {item.unidade || 'un'}</span>
+            </div>
+            <span className="text-[10px] text-slate-400 uppercase">{item.localizacao || 'Geral'}</span>
+          </div>
         </div>
       )
     },
     {
-      header: 'Custo Médio',
-      accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <DollarSign size={14} />
-          <span>{Number(item.custo_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-        </div>
-      )
+      header: 'Indicadores',
+      accessor: (item: any) => {
+        const isCritical = Number(item.estoque_atual || 0) < Number(item.estoque_minimo);
+        return (
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col">
+              <span className="text-[9px] text-slate-400 font-bold">CUSTO MÉDIO</span>
+              <span className="text-xs font-bold">{Number(item.custo_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[9px] text-slate-400 font-bold">AUTONOMIA</span>
+              <span className="text-xs font-medium text-slate-600">~15 dias</span>
+            </div>
+          </div>
+        );
+      }
     },
     {
       header: 'Status',
       accessor: (item: any) => (
         <span className={`status-pill ${Number(item.estoque_atual || 0) < Number(item.estoque_minimo) ? 'stopped' : 'active'}`}>
-          {Number(item.estoque_atual || 0) < Number(item.estoque_minimo) ? 'Crítico' : 'Normal'}
+          {Number(item.estoque_atual || 0) < Number(item.estoque_minimo) ? 'Reposição' : 'Disponível'}
         </span>
       ),
       align: 'center' as const
@@ -301,7 +308,7 @@ export const InventoryManagement: React.FC = () => {
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
-            NOVO ITEM
+            NOVA ITEM
           </button>
         </div>
       </header>
@@ -380,60 +387,37 @@ export const InventoryManagement: React.FC = () => {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showAdvancedFilters && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="advanced-filter-panel"
-          >
-            <div className="filter-grid">
-              <div className="filter-field">
-                <label className="elite-label">Categoria de Insumo</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.categoria}
-                  onChange={(e) => setFilterValues({...filterValues, categoria: e.target.value})}
-                >
-                  <option value="all">Todas as Categorias</option>
-                  <option value="Suplemento">Suplementos</option>
-                  <option value="Medicamento">Medicamentos</option>
-                  <option value="Semente">Sementes</option>
-                  <option value="Combustível">Combustíveis</option>
-                </select>
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Status de Estoque</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.status}
-                  onChange={(e) => setFilterValues({...filterValues, status: e.target.value})}
-                >
-                  <option value="all">Todos</option>
-                  <option value="critico">Estoque Crítico</option>
-                  <option value="normal">Estoque Normal</option>
-                </select>
-              </div>
-              <div className="filter-actions-inline">
-                <button className="text-btn" onClick={() => setFilterValues({ categoria: 'all', status: 'all' })}>
-                  LIMPAR
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <InventoryFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
 
       <div className="management-content">
-        {viewMode === 'list' ? (
+        {products.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhum insumo cadastrado"
+            description="A frota desta unidade ainda não possui insumos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
+            actionLabel="Novo Insumo"
+            onAction={handleOpenCreate}
+            icon={Package}
+          />
+        ) : viewMode === 'list' ? (
           <ModernTable 
             data={products.filter(p => {
               const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesCategoria = filterValues.categoria === 'all' || p.categoria === filterValues.categoria;
+              const matchesCategorias = filterValues.categorias.length === 0 || filterValues.categorias.includes(p.categoria);
               const matchesStatus = filterValues.status === 'all' || 
                                    (filterValues.status === 'critico' ? Number(p.estoque_atual) <= Number(p.estoque_minimo) : Number(p.estoque_atual) > Number(p.estoque_minimo));
-              return matchesSearch && matchesCategoria && matchesStatus;
+              
+              const stock = Number(p.estoque_atual || 0);
+              const matchesStock = stock >= filterValues.minStock && stock <= filterValues.maxStock;
+              
+              const price = Number(p.custo_medio || 0);
+              const matchesPrice = price >= filterValues.minPrice && price <= filterValues.maxPrice;
+
+              return matchesSearch && matchesCategorias && matchesStatus && matchesStock && matchesPrice;
             })}
             columns={columns}
             loading={loading}
@@ -462,10 +446,17 @@ export const InventoryManagement: React.FC = () => {
             {products
               .filter(p => {
                 const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesCategoria = filterValues.categoria === 'all' || p.categoria === filterValues.categoria;
+                const matchesCategorias = filterValues.categorias.length === 0 || filterValues.categorias.includes(p.categoria);
                 const matchesStatus = filterValues.status === 'all' || 
                                      (filterValues.status === 'critico' ? Number(p.estoque_atual) <= Number(p.estoque_minimo) : Number(p.estoque_atual) > Number(p.estoque_minimo));
-                return matchesSearch && matchesCategoria && matchesStatus;
+                
+                const stock = Number(p.estoque_atual || 0);
+                const matchesStock = stock >= filterValues.minStock && stock <= filterValues.maxStock;
+                
+                const price = Number(p.custo_medio || 0);
+                const matchesPrice = price >= filterValues.minPrice && price <= filterValues.maxPrice;
+
+                return matchesSearch && matchesCategorias && matchesStatus && matchesStock && matchesPrice;
               })
               .map(p => {
                 const isCritical = Number(p.estoque_atual) <= Number(p.estoque_minimo);
@@ -568,7 +559,8 @@ export const InventoryManagement: React.FC = () => {
           display: flex;
           overflow: hidden;
           padding: 0;
-          height: 180px;
+          height: auto;
+          min-height: 180px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 4px 15px rgba(0,0,0,0.03);
           position: relative;

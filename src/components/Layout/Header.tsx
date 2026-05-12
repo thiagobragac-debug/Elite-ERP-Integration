@@ -15,11 +15,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenProfile }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isFleetRoute = location.pathname.startsWith('/frota');
+
   return (
     <header className="header">
       <div className="header-search">
         <Search size={20} className="search-icon" />
-        <input type="text" placeholder="Pesquisar animais, lotes, notas..." />
+        <input 
+          type="text" 
+          placeholder={isFleetRoute ? "Pesquisar máquinas, OS, abastecimentos..." : "Pesquisar animais, lotes, notas..."} 
+        />
       </div>
 
       <div className="header-actions">

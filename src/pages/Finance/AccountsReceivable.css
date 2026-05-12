@@ -4,6 +4,14 @@
   gap: 16px;
 }
 
+.receivable-page .next-gen-kpi-grid {
+  margin-bottom: 16px !important;
+}
+
+.receivable-page .elite-controls-row {
+  margin-bottom: 16px !important;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -48,9 +56,7 @@
 }
 
 .management-content {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: contents;
 }
 
 /* Table Cells */
@@ -96,27 +102,129 @@
   text-transform: uppercase;
 }
 
-.status-pill.paid { background: hsl(161 64% 95%); color: hsl(161 64% 25%); }
-.status-pill.overdue { background: #fee2e2; color: #ef4444; }
-.status-pill.pending { background: #dbeafe; color: #1e40af; }
-
-.action-icon-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.action-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s;
+  cursor: pointer;
   border: 1px solid transparent;
 }
 
-.action-icon-btn.success { color: #10b981; background: #dcfce7; }
-.action-icon-btn.info { color: hsl(var(--brand)); background: hsl(var(--brand) / 0.1); }
-.action-icon-btn.edit { color: hsl(var(--text-muted)); background: hsl(var(--bg-main)); border-color: hsl(var(--border)); }
-.action-icon-btn.delete { color: #ef4444; background: #fee2e2; }
+.action-dot.success { color: #10b981; background: #dcfce7; }
+.action-dot.info { color: #3b82f6; background: #dbeafe; }
+.action-dot.edit { color: #64748b; background: #f1f5f9; }
+.action-dot.delete { color: #ef4444; background: #fee2e2; }
 
-.action-icon-btn:hover {
+.action-dot:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.modern-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.status-pill.paid { background: hsl(142 71% 95%); color: hsl(142 71% 30%); }
+.status-pill.overdue { background: #fee2e2; color: #ef4444; }
+.status-pill.pending { background: hsl(38 92% 95%); color: hsl(38 92% 25%); }
+
+/* Batch Actions Bar */
+.elite-batch-actions-bar {
+  position: sticky;
+  bottom: 24px;
+  margin: 0 auto 24px auto;
+  width: fit-content;
+  background: white;
+  padding: 12px 24px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid hsl(var(--border));
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kiosk-mode .elite-batch-actions-bar {
+  /* No special logic needed for sticky in kiosk mode */
+}
+
+.batch-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.batch-count {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: hsl(var(--brand));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.batch-text {
+  font-size: 13px;
+  font-weight: 800;
+  color: hsl(var(--text-main));
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.batch-btn {
+  padding: 10px 24px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.batch-btn.secondary {
+  background: hsl(var(--bg-main));
+  color: hsl(var(--text-main));
+  border: 1px solid hsl(var(--border-strong));
+}
+
+.batch-btn.success {
+  background: hsl(var(--success));
+  color: white;
+  box-shadow: 0 10px 20px -5px hsl(var(--success) / 0.4);
+}
+
+.batch-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+
+.batch-btn.success:hover {
+  background: hsl(var(--success) / 0.9);
+  box-shadow: 0 15px 30px -8px hsl(var(--success) / 0.6);
+}
+
+.batch-btn.secondary:hover {
+  background: white;
+  border-color: hsl(var(--brand));
+  color: hsl(var(--brand));
 }

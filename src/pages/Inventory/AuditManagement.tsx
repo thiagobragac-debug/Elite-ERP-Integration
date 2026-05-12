@@ -27,6 +27,7 @@ import { AuditForm } from '../../components/Forms/AuditForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { AuditFilterModal } from './components/AuditFilterModal';
 
 export const AuditManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -39,7 +40,14 @@ export const AuditManagement: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
+   const [stats, setStats] = useState<any[]>([]);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    accuracyRange: 'all',
+    dateStart: '',
+    dateEnd: ''
+  });
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -47,11 +55,16 @@ export const AuditManagement: React.FC = () => {
   }, [activeFarm]);
 
   const fetchAudits = async () => {
+    if (!activeFarm?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     const { data } = await supabase
       .from('auditorias_estoque')
       .select('*')
       .eq('fazenda_id', activeFarm.id)
+      .eq('tenant_id', activeFarm.tenantId)
       .order('created_at', { ascending: false });
     
     if (data) {
@@ -185,10 +198,7 @@ export const AuditManagement: React.FC = () => {
           <p className="page-subtitle">Reconciliação física vs. contábil, análise de divergências e controle rigoroso de perdas.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary">
-            <TrendingUp size={18} />
-            BI ANALYTICS
-          </button>
+
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
             NOVO INVENTÁRIO
@@ -240,22 +250,45 @@ export const AuditManagement: React.FC = () => {
           />
         </div>
 
-        <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+         <div className="elite-filter-group">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Log">
             <FileText size={20} />
           </button>
         </div>
+
+        <AuditFilterModal 
+          isOpen={showAdvancedFilters}
+          onClose={() => setShowAdvancedFilters(false)}
+          filters={filterValues}
+          setFilters={setFilterValues}
+        />
       </div>
 
       <div className="management-content">
-        <ModernTable 
+         <ModernTable 
           data={audits.filter(a => {
             const matchesSearch = (a.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) || (a.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'HISTORY' ? true : a.critical === true;
-            return matchesSearch && matchesTab;
+            const matchesTab = activeTab === 'HISTORY' ? true : (Number(a.accuracy || 100) < 95);
+            
+            const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
+            
+            let matchesAccuracy = true;
+            const acc = a.accuracy || 0;
+            if (filterValues.accuracyRange === 'excellent') matchesAccuracy = acc >= 98;
+            else if (filterValues.accuracyRange === 'good') matchesAccuracy = acc >= 90 && acc < 98;
+            else if (filterValues.accuracyRange === 'critical') matchesAccuracy = acc < 90;
+
+            const matchesDate = (!filterValues.dateStart || new Date(a.data || a.created_at) >= new Date(filterValues.dateStart)) &&
+                               (!filterValues.dateEnd || new Date(a.data || a.created_at) <= new Date(filterValues.dateEnd));
+
+            return matchesSearch && matchesTab && matchesStatus && matchesAccuracy && matchesDate;
           })}
           columns={columns}
           loading={loading}

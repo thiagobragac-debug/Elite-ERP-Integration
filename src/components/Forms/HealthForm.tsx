@@ -30,6 +30,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({ isOpen, onClose, onSubmi
     data_manejo: new Date().toISOString().split('T')[0],
     produto: '',
     dose: '',
+    via_aplicacao: 'IM',
+    local_aplicacao: '',
     carencia_dias: '',
     observacao: '',
     status: 'REALIZADO'
@@ -47,6 +49,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({ isOpen, onClose, onSubmi
         data_manejo: initialData.data_manejo || new Date().toISOString().split('T')[0],
         produto: initialData.produto || '',
         dose: initialData.dose || '',
+        via_aplicacao: initialData.via_aplicacao || 'IM',
+        local_aplicacao: initialData.local_aplicacao || '',
         carencia_dias: initialData.carencia_dias?.toString() || '',
         observacao: initialData.observacao || '',
         status: initialData.status || 'REALIZADO'
@@ -60,6 +64,8 @@ export const HealthForm: React.FC<HealthFormProps> = ({ isOpen, onClose, onSubmi
         data_manejo: new Date().toISOString().split('T')[0],
         produto: '',
         dose: '',
+        via_aplicacao: 'IM',
+        local_aplicacao: '',
         carencia_dias: '',
         observacao: '',
         status: 'REALIZADO'
@@ -159,6 +165,30 @@ export const HealthForm: React.FC<HealthFormProps> = ({ isOpen, onClose, onSubmi
           placeholder="Ex: 2ml" 
           value={formData.dose}
           onChange={(e) => setFormData({...formData, dose: e.target.value})}
+        />
+      </div>
+
+      <div className="form-group">
+        <label><Activity size={14} /> Via de Aplicação</label>
+        <select 
+          value={formData.via_aplicacao}
+          onChange={(e) => setFormData({...formData, via_aplicacao: e.target.value})}
+        >
+          <option value="IM">Intramuscular (IM)</option>
+          <option value="SC">Subcutânea (SC)</option>
+          <option value="ORAL">Oral</option>
+          <option value="TOPICO">Tópico</option>
+          <option value="IV">Intravenosa (IV)</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label><Hash size={14} /> Local de Aplicação</label>
+        <input 
+          type="text" 
+          placeholder="Ex: Tábua do Pescoço, Garupa..." 
+          value={formData.local_aplicacao}
+          onChange={(e) => setFormData({...formData, local_aplicacao: e.target.value})}
         />
       </div>
 

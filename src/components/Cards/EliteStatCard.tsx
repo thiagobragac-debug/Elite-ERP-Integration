@@ -80,18 +80,25 @@ export const EliteStatCard: React.FC<EliteStatCardProps> = ({
 
       <div className="kpi-footer-elite">
         <div className="kpi-sparkline" style={{ color: color }}>
-          {sparkline.map((item, i) => (
-            <motion.div 
-              key={i}
-              initial={{ height: 0 }}
-              animate={{ height: `${item.value}%` }}
-              transition={{ delay: 0.2 + (i * 0.05) }}
-              className="spark-bar"
-              whileHover={{ opacity: 1, scaleY: 1.1 }}
-            >
-              <div className="spark-tooltip">{item.label}</div>
-            </motion.div>
-          ))}
+          {(() => {
+            const maxVal = Math.max(...sparkline.map(s => s.value), 1);
+            return sparkline.map((item, i) => (
+              <motion.div 
+                key={i}
+                initial={{ height: 0 }}
+                animate={{ height: `${(item.value / maxVal) * 100}%` }}
+                transition={{ delay: 0.2 + (i * 0.05) }}
+                className="spark-bar"
+                style={{ 
+                  backgroundColor: color,
+                  opacity: 0.2 + (item.value / maxVal) * 0.8
+                }}
+                whileHover={{ opacity: 1, scaleY: 1.1 }}
+              >
+                <div className="spark-tooltip">{item.label}</div>
+              </motion.div>
+            ));
+          })()}
         </div>
         <span className="period-badge-elite">{periodLabel}</span>
       </div>

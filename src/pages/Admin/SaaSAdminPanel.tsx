@@ -208,6 +208,66 @@ export const SaaSAdminPanel: React.FC = () => {
         </div>
       </header>
 
+      <style>{`
+        .next-gen-kpi-grid {
+          display: grid !important;
+          grid-template-columns: repeat(4, 1fr) !important;
+          gap: 20px !important;
+          margin-bottom: 32px !important;
+        }
+
+        @media (max-width: 1400px) {
+          .next-gen-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .next-gen-kpi-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
+      <div className="next-gen-kpi-grid" style={{ padding: '0 8px' }}>
+        <EliteStatCard 
+          label="Receita Mensal (MRR)" 
+          value="R$ 2.45M" 
+          icon={DollarSign} 
+          color="#10b981" 
+          trend="up" 
+          change="+12.4%" 
+          sparkline={[{value: 30}, {value: 45}, {value: 60}, {value: 85}]}
+        />
+        <EliteStatCard 
+          label="Total de Inquilinos" 
+          value="1.284" 
+          icon={Globe} 
+          color="#3b82f6" 
+          trend="up" 
+          change="+82 este mês" 
+          sparkline={[{value: 20}, {value: 30}, {value: 50}, {value: 70}]}
+        />
+        <EliteStatCard 
+          label="Usuários Ativos" 
+          value="18.5k" 
+          icon={Users} 
+          color="#6366f1" 
+          trend="up" 
+          change="+5.2%" 
+          sparkline={[{value: 40}, {value: 55}, {value: 65}, {value: 80}]}
+        />
+        <EliteStatCard 
+          label="Saúde da Rede" 
+          value="99.98%" 
+          icon={Activity} 
+          color="#f59e0b" 
+          trend="neutral" 
+          change="SLA Nominal" 
+          sparkline={[{value: 99}, {value: 98}, {value: 99}, {value: 99}]}
+        />
+      </div>
+
       <main className="management-content">
         <AnimatePresence mode="wait">
           {activeTab === 'overview' && (
@@ -218,44 +278,6 @@ export const SaaSAdminPanel: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               className="saas-view"
             >
-              <div className="next-gen-kpi-grid">
-                <EliteStatCard 
-                  label="Receita Mensal (MRR)" 
-                  value="R$ 2.45M" 
-                  icon={DollarSign} 
-                  color="#10b981" 
-                  trend="up" 
-                  change="+12.4%" 
-                  sparkline={[{value: 30}, {value: 45}, {value: 60}, {value: 85}]}
-                />
-                <EliteStatCard 
-                  label="Total de Inquilinos" 
-                  value="1.284" 
-                  icon={Globe} 
-                  color="#3b82f6" 
-                  trend="up" 
-                  change="+82 este mês" 
-                  sparkline={[{value: 20}, {value: 30}, {value: 50}, {value: 70}]}
-                />
-                <EliteStatCard 
-                  label="Usuários Ativos" 
-                  value="18.5k" 
-                  icon={Users} 
-                  color="#6366f1" 
-                  trend="up" 
-                  change="+5.2%" 
-                  sparkline={[{value: 40}, {value: 55}, {value: 65}, {value: 80}]}
-                />
-                <EliteStatCard 
-                  label="Saúde da Rede" 
-                  value="99.98%" 
-                  icon={Activity} 
-                  color="#f59e0b" 
-                  trend="neutral" 
-                  change="SLA Nominal" 
-                  sparkline={[{value: 99}, {value: 98}, {value: 99}, {value: 99}]}
-                />
-              </div>
 
               <div className="health-grid">
                 <div className="health-panel">

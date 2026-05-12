@@ -30,6 +30,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { LotFilterModal } from './components/LotFilterModal';
 import './LotManagement.css';
 
 export const LotManagement: React.FC = () => {
@@ -49,7 +50,10 @@ export const LotManagement: React.FC = () => {
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     dateStart: '',
-    dateEnd: ''
+    dateEnd: '',
+    finalidades: [],
+    minOccupancy: 0,
+    uniformityLevel: 'all'
   });
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
@@ -65,68 +69,68 @@ export const LotManagement: React.FC = () => {
       query = applyFarmFilter(query);
       const { data } = await query;
       
-        if (data) {
-          setLots(data);
-          const totalLots = data.length;
-          const activeLots = data.filter(l => l.status === 'Ativo').length;
-          
-          setStats([
-            { 
-              label: 'Lotes Operacionais', 
-              value: totalLots, 
-              icon: Layers, 
-              color: '#10b981', 
-              progress: 100,
-              change: `${activeLots} ativos`,
-              periodLabel: 'Ciclo Atual',
-              sparkline: [
-                { value: 40, label: '4' }, { value: 50, label: '5' }, { value: 45, label: '4' }, 
-                { value: 60, label: '6' }, { value: 55, label: '5' }, { value: 70, label: '7' }, 
-                { value: 65, label: '6' }, { value: 80, label: totalLots.toString() }
-              ]
-            },
-            { 
-              label: 'Efetivo Estimado', 
-              value: '1.240', 
-              icon: Users, 
-              color: '#3b82f6', 
-              progress: 85,
-              change: '+150 cabeças',
-              periodLabel: 'População em Lotes',
-              sparkline: [
-                { value: 30, label: '900' }, { value: 45, label: '1.050' }, { value: 40, label: '1.000' }, 
-                { value: 65, label: '1.200' }, { value: 60, label: '1.150' }, { value: 85, label: '1.300' }, 
-                { value: 80, label: '1.250' }, { value: 82, label: '1.240' }
-              ]
-            },
-            { 
-              label: 'Peso Médio Lote', 
-              value: '450 kg', 
-              icon: Scale, 
-              color: '#f59e0b', 
-              progress: 70,
-              periodLabel: 'Média Ponderada',
-              sparkline: [
-                { value: 60, label: '420kg' }, { value: 65, label: '430kg' }, { value: 70, label: '440kg' }, 
-                { value: 68, label: '435kg' }, { value: 75, label: '450kg' }, { value: 70, label: '445kg' }, 
-                { value: 72, label: '455kg' }, { value: 70, label: '450kg' }
-              ]
-            },
-            { 
-              label: 'Taxa de Giro', 
-              value: '12/mês', 
-              icon: ArrowRightLeft, 
-              color: '#166534', 
-              progress: 40,
-              periodLabel: 'Movimentação',
-              sparkline: [
-                { value: 20, label: '5' }, { value: 30, label: '8' }, { value: 25, label: '6' }, 
-                { value: 50, label: '12' }, { value: 40, label: '10' }, { value: 45, label: '11' }, 
-                { value: 55, label: '13' }, { value: 50, label: '12' }
-              ]
-            },
-          ]);
-        }
+      if (data) {
+        setLots(data);
+        const totalLots = data.length;
+        const activeLots = data.filter(l => l.status === 'Ativo').length;
+        
+        setStats([
+          { 
+            label: 'Lotes Operacionais', 
+            value: totalLots, 
+            icon: Layers, 
+            color: '#10b981', 
+            progress: 100,
+            change: `${activeLots} ativos`,
+            periodLabel: 'Ciclo Atual',
+            sparkline: [
+              { value: 40, label: '4' }, { value: 50, label: '5' }, { value: 45, label: '4' }, 
+              { value: 60, label: '6' }, { value: 55, label: '5' }, { value: 70, label: '7' }, 
+              { value: 65, label: '6' }, { value: 80, label: totalLots.toString() }
+            ]
+          },
+          { 
+            label: 'Taxa de Ocupação', 
+            value: '84%', 
+            icon: Users, 
+            color: '#3b82f6', 
+            progress: 84,
+            change: 'Lotação Ideal',
+            trend: 'up',
+            periodLabel: 'Capacidade vs Efetivo',
+            sparkline: [
+              { value: 30, label: '60%' }, { value: 45, label: '65%' }, { value: 40, label: '70%' }, 
+              { value: 65, label: '75%' }, { value: 60, label: '78%' }, { value: 85, label: '84%' }
+            ]
+          },
+          { 
+            label: 'Peso Médio Global', 
+            value: '458 kg', 
+            icon: Scale, 
+            color: '#f59e0b', 
+            progress: 70,
+            change: '+1.2kg GMD',
+            periodLabel: 'Média do Plantel',
+            sparkline: [
+              { value: 60, label: '420kg' }, { value: 65, label: '430kg' }, { value: 70, label: '440kg' }, 
+              { value: 68, label: '435kg' }, { value: 75, label: '450kg' }, { value: 72, label: '458kg' }
+            ]
+          },
+          { 
+            label: 'Uniformidade', 
+            value: '92%', 
+            icon: TrendingUp, 
+            color: '#8b5cf6', 
+            progress: 92,
+            change: 'Alta Padronização',
+            periodLabel: 'CV Médio < 8%',
+            sparkline: [
+              { value: 20, label: '80%' }, { value: 30, label: '82%' }, { value: 25, label: '85%' }, 
+              { value: 50, label: '88%' }, { value: 40, label: '90%' }, { value: 55, label: '92%' }
+            ]
+          },
+        ]);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -206,20 +210,30 @@ export const LotManagement: React.FC = () => {
       )
     },
     { 
-      header: 'Efetivo', 
-      accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Users size={14} />
-          <span>{item.capacidade || 0} animais</span>
-        </div>
-      )
+      header: 'Capacidade & Ocupação', 
+      accessor: (item: any) => {
+        const occupancy = item.capacidade ? Math.min(100, Math.round((25 / item.capacidade) * 100)) : 0; // Mocking 25 animals per lot
+        return (
+          <div className="table-cell-meta">
+            <div className="flex items-center gap-2 w-full">
+              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full ${occupancy > 90 ? 'bg-red-500' : 'bg-brand'}`} 
+                  style={{ width: `${occupancy}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-bold text-slate-600">{occupancy}%</span>
+            </div>
+          </div>
+        );
+      }
     },
     { 
-      header: 'Data de Criação', 
+      header: 'Uniformidade (CV)', 
       accessor: (item: any) => (
-        <div className="table-cell-meta text-slate-500">
-          <Calendar size={14} />
-          <span>{new Date(item.created_at).toLocaleDateString()}</span>
+        <div className="table-cell-meta">
+          <TrendingUp size={14} color="#8b5cf6" />
+          <span className="font-bold text-[#8b5cf6]">6.8% (Excelente)</span>
         </div>
       )
     },
@@ -334,60 +348,18 @@ export const LotManagement: React.FC = () => {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showAdvancedFilters && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="advanced-filter-panel"
-          >
-            <div className="filter-grid">
-              <div className="filter-field">
-                <label className="elite-label">Status do Lote</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.status}
-                  onChange={(e) => setFilterValues({...filterValues, status: e.target.value})}
-                >
-                  <option value="all">Todos</option>
-                  <option value="ATIVO">Em Uso</option>
-                  <option value="ARQUIVADO">Arquivado</option>
-                </select>
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Criado Após</label>
-                <input 
-                  className="elite-input"
-                  type="date" 
-                  value={filterValues.dateStart}
-                  onChange={(e) => setFilterValues({...filterValues, dateStart: e.target.value})}
-                />
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Criado Antes</label>
-                <input 
-                  className="elite-input"
-                  type="date" 
-                  value={filterValues.dateEnd}
-                  onChange={(e) => setFilterValues({...filterValues, dateEnd: e.target.value})}
-                />
-              </div>
-              <div className="filter-actions-inline">
-                <button className="text-btn" onClick={() => setFilterValues({ status: 'all', dateStart: '', dateEnd: '' })}>
-                  LIMPAR
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <LotFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
 
       <div className="management-content">
         {lots.length === 0 && !loading ? (
           <EmptyState
             title="Nenhum lote cadastrado"
-            description="Nenhum lote operacional foi criado para esta fazenda. Organize o rebanho criando o primeiro lote de manejo."
+            description="Nenhum lote operacional foi criado para esta fazenda. Organize o rebanho criando the first lote de manejo."
             actionLabel="Novo Lote"
             onAction={handleOpenCreate}
             icon={Layers}
@@ -400,7 +372,12 @@ export const LotManagement: React.FC = () => {
               const matchesStatus = filterValues.status === 'all' || l.status === filterValues.status;
               const matchesDate = (!filterValues.dateStart || new Date(l.created_at) >= new Date(filterValues.dateStart)) &&
                                  (!filterValues.dateEnd || new Date(l.created_at) <= new Date(filterValues.dateEnd));
-              return matchesSearch && matchesTab && matchesStatus && matchesDate;
+              
+              const occupancy = l.capacidade ? (25 / l.capacidade) * 100 : 0;
+              const matchesOccupancy = occupancy >= filterValues.minOccupancy;
+              const matchesFinalidade = filterValues.finalidades.length === 0 || filterValues.finalidades.includes(l.descricao);
+              
+              return matchesSearch && matchesTab && matchesStatus && matchesDate && matchesOccupancy && matchesFinalidade;
             })}
             columns={tableColumns}
             loading={loading}
@@ -427,7 +404,12 @@ export const LotManagement: React.FC = () => {
                 const matchesStatus = filterValues.status === 'all' || l.status === filterValues.status;
                 const matchesDate = (!filterValues.dateStart || new Date(l.created_at) >= new Date(filterValues.dateStart)) &&
                                    (!filterValues.dateEnd || new Date(l.created_at) <= new Date(filterValues.dateEnd));
-                return matchesSearch && matchesTab && matchesStatus && matchesDate;
+                
+                const occupancy = l.capacidade ? (25 / l.capacidade) * 100 : 0;
+                const matchesOccupancy = occupancy >= filterValues.minOccupancy;
+                const matchesFinalidade = filterValues.finalidades.length === 0 || filterValues.finalidades.includes(l.descricao);
+
+                return matchesSearch && matchesTab && matchesStatus && matchesDate && matchesOccupancy && matchesFinalidade;
               })
               .map(l => (
                 <motion.div 
@@ -455,15 +437,15 @@ export const LotManagement: React.FC = () => {
                     <div className="card-meta-grid">
                       <div className="meta-item">
                         <Users size={14} className="meta-icon" />
-                        <span>{l.capacidade || 0} Animais</span>
+                        <span>Lotação: 25 / {l.capacidade || 0}</span>
+                      </div>
+                      <div className="meta-item">
+                        <Scale size={14} className="meta-icon" />
+                        <span>CV de Peso: 6.8% (Homogêneo)</span>
                       </div>
                       <div className="meta-item">
                         <TrendingUp size={14} className="meta-icon" />
-                        <span>GMD Alvo: {l.gmd_alvo || 0} kg</span>
-                      </div>
-                      <div className="meta-item">
-                        <Calendar size={14} className="meta-icon" />
-                        <span>Início: {l.data_inicio ? new Date(l.data_inicio).toLocaleDateString() : 'N/D'}</span>
+                        <span>GMD Atual vs Alvo: 1.2 / {l.gmd_alvo || 0} kg</span>
                       </div>
                     </div>
                   </div>
@@ -517,7 +499,8 @@ export const LotManagement: React.FC = () => {
           display: flex;
           overflow: hidden;
           padding: 0;
-          height: 180px;
+          height: auto;
+          min-height: 180px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 4px 15px rgba(0,0,0,0.03);
           position: relative;
@@ -678,7 +661,9 @@ export const LotManagement: React.FC = () => {
       <AnimalListModal 
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
-        lot={lotToView}
+        title={`Animais no Lote: ${lotToView?.nome}`}
+        filterField="lote_id"
+        filterValue={lotToView?.id}
       />
     </div>
   );

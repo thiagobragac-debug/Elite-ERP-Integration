@@ -26,6 +26,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { NutritionSimulatorModal } from './components/NutritionSimulatorModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { NutritionFilterModal } from './components/NutritionFilterModal';
 
 export const NutritionManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -40,6 +41,15 @@ export const NutritionManagement: React.FC = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    tipo: 'all',
+    ingredients: [],
+    maxCostMS: 5,
+    minMS: 0,
+    onlyActive: true
+  });
 
   useEffect(() => {
     if (!activeFarmId && !isGlobalMode) return;
@@ -48,23 +58,72 @@ export const NutritionManagement: React.FC = () => {
 
   const fetchDiets = async () => {
     setLoading(true);
-    let query = supabase.from('dietas').select('*');
-    query = applyFarmFilter(query);
-    const { data } = await query;
-    
-    if (data) {
-      setDiets(data);
-      const totalDiets = data.length;
-      const avgCost = data.reduce((acc, curr) => acc + Number(curr.custo_por_kg), 0) / (totalDiets || 1);
+    try {
+      let query = supabase.from('dietas').select('*');
+      query = applyFarmFilter(query);
+      const { data } = await query;
       
-      setStats([
-        { label: 'Dietas Ativas', value: totalDiets, icon: Utensils, color: '#10b981', progress: 100 },
-        { label: 'Custo Médio/kg', value: `R$ ${avgCost.toFixed(2)}`, icon: TrendingUp, color: '#3b82f6', progress: 85, trend: 'up' },
-        { label: 'Estoque de Grãos', value: '145 ton', icon: Package, color: '#f59e0b', progress: 60 },
-        { label: 'Eficiência Alimentar', value: '6.2:1', icon: Scale, color: '#166534', progress: 75 },
-      ]);
+      if (data) {
+        const enrichedData = data.map(item => {
+          const percMS = item.percentual_ms || 88;
+          const custoMS = Number(item.custo_por_kg) / (percMS / 100);
+          return { ...item, percMS, custoMS };
+        });
+
+        setDiets(enrichedData);
+        
+        const totalDiets = enrichedData.length;
+        const avgCostMS = enrichedData.reduce((acc, curr) => acc + (curr.custoMS || 0), 0) / (totalDiets || 1);
+        
+        setStats([
+          { 
+            label: 'Dietas Formuladas', 
+            value: totalDiets, 
+            icon: Utensils, 
+            color: '#10b981', 
+            progress: 100,
+            change: 'Gestão Ativa',
+            periodLabel: 'Portfólio Nutricional',
+            sparkline: [{ value: 4 }, { value: 5 }, { value: 6 }, { value: 7 }, { value: 8 }, { value: totalDiets }]
+          },
+          { 
+            label: 'Custo Médio/kg MS', 
+            value: `R$ ${avgCostMS.toFixed(2)}`, 
+            icon: TrendingUp, 
+            color: '#3b82f6', 
+            progress: 85, 
+            trend: 'up',
+            change: '+R$ 0.08',
+            periodLabel: 'Matéria Seca (Real)',
+            sparkline: [{ value: 1.35 }, { value: 1.38 }, { value: 1.42 }, { value: 1.45 }, { value: 1.48 }, { value: avgCostMS }]
+          },
+          { 
+            label: 'Autonomia de Estoque', 
+            value: '18 dias', 
+            icon: Package, 
+            color: '#f59e0b', 
+            progress: 45,
+            change: 'Risco Médio',
+            periodLabel: 'Projeção de Ruptura',
+            sparkline: [{ value: 30 }, { value: 28 }, { value: 25 }, { value: 22 }, { value: 20 }, { value: 18 }]
+          },
+          { 
+            label: 'Eficiência Alimentar', 
+            value: '6.4:1', 
+            icon: Scale, 
+            color: '#166534', 
+            progress: 75,
+            change: 'Ótima',
+            periodLabel: 'kg MS / kg Peso',
+            sparkline: [{ value: 6.8 }, { value: 6.7 }, { value: 6.6 }, { value: 6.5 }, { value: 6.4 }, { value: 6.4 }]
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOpenCreate = () => {
@@ -87,6 +146,7 @@ export const NutritionManagement: React.FC = () => {
       tipo: data.tipo,
       ingredientes: data.ingredientes,
       custo_por_kg: parseFloat(data.custo_por_kg),
+      percentual_ms: parseFloat(data.percentual_ms),
       descricao: data.descricao,
       status: data.status
     };
@@ -121,35 +181,27 @@ export const NutritionManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Formulação',
+      header: 'Nutrição (Matéria Seca)',
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.nome}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.tipo}
+        <div className="flex flex-col gap-0.5">
+          <div className="flex gap-2 items-center">
+            <span className="text-[12px] font-extrabold text-emerald-600">R$ {item.custoMS?.toFixed(2)} / kg MS</span>
+            <span className="text-[10px] font-bold text-slate-400">({item.percMS}% MS)</span>
           </div>
+          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Custo Natural: R$ {Number(item.custo_por_kg).toFixed(2)} / kg</span>
         </div>
       )
     },
     {
-      header: 'Custo / kg',
+      header: 'Composição',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <TrendingUp size={14} />
-          <span>R$ {Number(item.custo_por_kg).toFixed(2)}</span>
-        </div>
-      )
-    },
-    {
-      header: 'Ingredientes',
-      accessor: (item: any) => (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-1 max-w-[200px]">
           {item.ingredientes?.slice(0, 3).map((ing: string) => (
-            <span key={ing} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold uppercase tracking-tighter">
+            <span key={ing} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[9px] font-extrabold uppercase tracking-tighter">
               {ing}
             </span>
           ))}
-          {item.ingredientes?.length > 3 && <span className="text-[10px] font-bold text-slate-400">+{item.ingredientes.length - 3}</span>}
+          {item.ingredientes?.length > 3 && <span className="text-[9px] font-bold text-slate-400">+{item.ingredientes.length - 3}</span>}
         </div>
       )
     },
@@ -194,13 +246,7 @@ export const NutritionManagement: React.FC = () => {
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change="+1.2%"
-            trend={stat.trend}
+            {...stat}
           />
         ))}
       </div>
@@ -233,7 +279,11 @@ export const NutritionManagement: React.FC = () => {
         </div>
 
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Dieta">
@@ -242,12 +292,30 @@ export const NutritionManagement: React.FC = () => {
         </div>
       </div>
 
+      <NutritionFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
+
       <div className="management-content">
         <ModernTable 
           data={diets.filter(d => {
             const matchesSearch = (d.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'DIETAS' ? d.tipo !== 'MATERIA_PRIMA' : d.tipo === 'MATERIA_PRIMA';
-            return matchesSearch && matchesTab;
+            
+            const matchesStatus = filterValues.status === 'all' || d.status === filterValues.status;
+            const matchesTipo = filterValues.tipo === 'all' || d.tipo === filterValues.tipo;
+            
+            const matchesIngredients = filterValues.ingredients.length === 0 || 
+                                       filterValues.ingredients.some(ing => d.ingredientes?.includes(ing));
+            
+            const matchesCost = (d.custoMS || 0) <= filterValues.maxCostMS;
+            const matchesMS = (d.percMS || 0) >= filterValues.minMS;
+            const matchesActive = !filterValues.onlyActive || d.status === 'active';
+
+            return matchesSearch && matchesTab && matchesStatus && matchesTipo && matchesIngredients && matchesCost && matchesMS && matchesActive;
           })}
           columns={columns}
           loading={loading}

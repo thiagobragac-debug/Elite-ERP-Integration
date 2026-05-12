@@ -28,6 +28,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
     capacidade_animais: '100',
     dof_alvo: '90',
     data_inicio: new Date().toISOString().split('T')[0],
+    peso_entrada: '420',
     lote_id: '',
     status: 'active'
   });
@@ -92,6 +93,18 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
           placeholder="100" 
           value={formData.capacidade_animais}
           onChange={(e) => setFormData({...formData, capacidade_animais: e.target.value})}
+          required
+        />
+      </div>
+
+      <div className="elite-field-group">
+        <label className="elite-label"><Scale size={14} /> Peso Médio Entrada (kg)</label>
+        <input 
+          className="elite-input"
+          type="number" 
+          placeholder="420.0" 
+          value={formData.peso_entrada}
+          onChange={(e) => setFormData({...formData, peso_entrada: e.target.value})}
           required
         />
       </div>

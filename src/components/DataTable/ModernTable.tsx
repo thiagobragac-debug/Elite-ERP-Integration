@@ -20,6 +20,10 @@ interface ModernTableProps<T> {
   searchPlaceholder?: string;
   loading?: boolean;
   hideHeader?: boolean;
+  selectable?: boolean;
+  isSelectable?: (item: T) => boolean;
+  selectedItems?: (string | number)[];
+  onSelectionChange?: (selectedIds: (string | number)[]) => void;
 }
 
 import { formatNumber } from '../../utils/format';
@@ -33,11 +37,38 @@ export function ModernTable<T extends { id: string | number }>({
   actions,
   searchPlaceholder = "Buscar registros...",
   loading = false,
-  hideHeader = false
+  hideHeader = false,
+  selectable = false,
+  isSelectable = () => true,
+  selectedItems = [],
+  onSelectionChange
 }: ModernTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Reset pagination when data changes to avoid empty pages
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [data]);
+
+  const handleToggleAll = () => {
+    if (!onSelectionChange) return;
+    const selectableItems = paginatedData.filter(item => isSelectable(item));
+    if (selectedItems.length === selectableItems.length && selectableItems.length > 0) {
+      onSelectionChange([]);
+    } else {
+      onSelectionChange(selectableItems.map(item => item.id));
+    }
+  };
+
+  const handleToggleRow = (id: string | number) => {
+    if (!onSelectionChange) return;
+    const newSelection = selectedItems.includes(id)
+      ? selectedItems.filter(item => item !== id)
+      : [...selectedItems, id];
+    onSelectionChange(newSelection);
+  };
 
   const safeData = Array.isArray(data) ? data : [];
   const filteredData = safeData.filter(item => {
@@ -94,6 +125,15 @@ export function ModernTable<T extends { id: string | number }>({
         <table className="modern-table">
           <thead>
             <tr>
+              {selectable && (
+                <th style={{ width: '40px' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={paginatedData.length > 0 && selectedItems.length === paginatedData.length}
+                    onChange={handleToggleAll}
+                  />
+                </th>
+              )}
               {columns.map((col, idx) => (
                 <th key={idx} style={{ width: col.width, textAlign: col.align || 'left' }}>
                   {col.header}
@@ -119,8 +159,24 @@ export function ModernTable<T extends { id: string | number }>({
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ delay: idx * 0.02, duration: 0.2 }}
                   onClick={() => onRowClick?.(item)}
-                  className={onRowClick ? 'clickable' : ''}
+                  className={`${onRowClick ? 'clickable' : ''} ${selectedItems.includes(item.id) ? 'selected' : ''}`}
                 >
+                  {selectable && (
+                    <td onClick={(e) => { 
+                      e.stopPropagation(); 
+                      if (isSelectable(item)) handleToggleRow(item.id); 
+                    }}>
+                      {isSelectable(item) ? (
+                        <input 
+                          type="checkbox" 
+                          checked={selectedItems.includes(item.id)}
+                          onChange={() => {}} // Handled by td click
+                        />
+                      ) : (
+                        <div style={{ width: '16px', height: '16px' }} />
+                      )}
+                    </td>
+                  )}
                   {columns.map((col, j) => (
                     <td key={j} style={{ textAlign: col.align || 'left' }}>
                       {renderValue(item, col)}

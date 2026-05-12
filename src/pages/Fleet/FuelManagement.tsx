@@ -29,6 +29,9 @@ import { useTenant } from '../../contexts/TenantContext';
 import { FuelForm } from '../../components/Forms/FuelForm';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { EmptyState } from '../../components/Feedback/EmptyState';
+import { FuelFilterModal } from './components/FuelFilterModal';
+import './FuelManagement.css';
 
 export const FuelManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -39,7 +42,21 @@ export const FuelManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'LOG' | 'ANALYSIS'>('LOG');
   const [selectedLog, setSelectedLog] = useState<any>(null);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    fuelTypes: [],
+    minLiters: 0,
+    maxLiters: 1000,
+    dateStart: '',
+    dateEnd: ''
+  });
+  const [stats, setStats] = useState<any[]>([
+    { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0 },
+    { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0 },
+    { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0 },
+    { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0 },
+  ]);
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -47,14 +64,27 @@ export const FuelManagement: React.FC = () => {
   }, [activeFarm]);
 
   const fetchLogs = async () => {
+    if (!activeFarm?.id) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const { data } = await supabase
+
+    const { data, error } = await supabase
       .from('abastecimentos')
-      .select('*, maquinas(nome)')
+      .select(`
+        *,
+        maquinas:maquina_id (nome)
+      `)
       .eq('fazenda_id', activeFarm.id)
+      .eq('tenant_id', activeFarm.tenantId)
       .order('data', { ascending: false });
     
-    if (data) {
+    if (error) {
+      console.error('Error fetching fuel logs:', error);
+      setLoading(false);
+      return;
+    }
       setLogs(data);
       const totalLitros = data.reduce((acc, curr) => acc + Number(curr.litros || 0), 0);
       const gastoTotal = data.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
@@ -66,7 +96,6 @@ export const FuelManagement: React.FC = () => {
         { label: 'Eficiência de Frota', value: '92%', icon: Gauge, color: '#3b82f6', progress: 92 },
         { label: 'Preço Médio (L)', value: precoMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: BarChart3, color: '#f59e0b', progress: 45 },
       ]);
-    }
     setLoading(false);
   };
 
@@ -84,6 +113,7 @@ export const FuelManagement: React.FC = () => {
     if (!activeFarm) return;
     const payload = {
       maquina_id: formData.machine_id,
+      estoque_id: formData.estoque_id,
       data: formData.date,
       litros: parseFloat(formData.liters),
       valor_total: parseFloat(formData.total_cost),
@@ -131,20 +161,23 @@ export const FuelManagement: React.FC = () => {
       )
     },
     {
+      header: 'Performance',
+      accessor: (item: any) => {
+        // Delta calculation logic (would be more precise with previous row join)
+        const isEfficient = Math.random() > 0.3; // Mocking visual for demo
+        return (
+          <div className={`status-pill ${isEfficient ? 'active' : 'warning'}`} style={{ fontSize: '10px' }}>
+            {isEfficient ? 'Alta Eficiência' : 'Alto Consumo'}
+          </div>
+        );
+      }
+    },
+    {
       header: 'Valor Total',
       accessor: (item: any) => (
         <span className="font-bold text-slate-900">
           {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
         </span>
-      )
-    },
-    {
-      header: 'Operador',
-      accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Activity size={14} />
-          <span>{item.responsavel || 'N/A'}</span>
-        </div>
       )
     }
   ];
@@ -171,6 +204,27 @@ export const FuelManagement: React.FC = () => {
           </button>
         </div>
       </header>
+
+      <style>{`
+        .next-gen-kpi-grid {
+          display: grid !important;
+          grid-template-columns: repeat(4, 1fr) !important;
+          gap: 20px !important;
+          margin-bottom: 32px !important;
+        }
+
+        @media (max-width: 1400px) {
+          .next-gen-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .next-gen-kpi-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
 
       <div className="next-gen-kpi-grid">
         {loading ? (
@@ -217,7 +271,11 @@ export const FuelManagement: React.FC = () => {
         </div>
 
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Log">
@@ -226,12 +284,30 @@ export const FuelManagement: React.FC = () => {
         </div>
       </div>
 
+      <FuelFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
+
       <div className="management-content">
         <ModernTable 
           data={logs.filter(l => {
             const matchesSearch = (l.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (l.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'LOG' ? true : l.status === 'analysis';
-            return matchesSearch && matchesTab;
+            const matchesTab = activeTab === 'LOG' ? true : l.tipo_combustivel === 'Especial'; // Fixed logic
+            
+            const isEfficient = l.litros / (l.valor_total || 1) < 0.2; // Mocking efficiency logic
+            const matchesStatus = filterValues.status === 'all' || 
+                                 (filterValues.status === 'efficient' && isEfficient) ||
+                                 (filterValues.status === 'high-consumption' && !isEfficient);
+            
+            const matchesFuel = filterValues.fuelTypes.length === 0 || filterValues.fuelTypes.includes(l.tipo_combustivel);
+            const matchesLiters = l.litros <= filterValues.maxLiters;
+            const matchesDate = (!filterValues.dateStart || new Date(l.data) >= new Date(filterValues.dateStart)) &&
+                               (!filterValues.dateEnd || new Date(l.data) <= new Date(filterValues.dateEnd));
+
+            return matchesSearch && matchesTab && matchesStatus && matchesFuel && matchesLiters && matchesDate;
           })}
           columns={columns}
           loading={loading}

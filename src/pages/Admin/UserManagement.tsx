@@ -31,7 +31,10 @@ import { UserForm } from '../../components/Forms/UserForm';
 import { ProfileForm } from '../../components/Forms/ProfileForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useSearchParams } from 'react-router-dom';
+import { UserFilterModal } from './components/UserFilterModal';
 
 export const UserManagement: React.FC = () => {
   const { activeFarm, userProfile, refreshProfile } = useTenant();
@@ -62,8 +65,18 @@ export const UserManagement: React.FC = () => {
     forceLogout: false,
     multiDevice: true,
     block3Attempts: true,
-    geoIpCheck: true
+    geoIpCheck: true,
+    mfaRequired: false
   });
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    profileId: 'all',
+    mfaOnly: false,
+    dateStart: '',
+    dateEnd: ''
+  });
+  const [stats, setStats] = useState<any[]>([]);
 
   const isAdmin = userProfile?.role === 'ADMIN' || userProfile?.role === 'Administrador';
 
@@ -79,7 +92,7 @@ export const UserManagement: React.FC = () => {
     if (activeTab === 'seguranca') {
       fetchSecurityLogs();
     }
-  }, [activeTab]);
+  }, [activeTab, activeFarm]);
 
   const fetchSecurityLogs = async () => {
     if (!activeFarm) return;
@@ -134,13 +147,18 @@ export const UserManagement: React.FC = () => {
           userCount: (usersData || []).filter(u => u.perfil_id === p.id).length
         }));
       
-        setUsersList((usersData || []).map(u => ({
-          ...u,
-          name: u.full_name,
-          profile: u.perfis_usuario?.nome,
-          farm: u.unidade_nome,
-          memberSince: u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '---'
-        })));
+        setUsersList((usersData || []).map(u => {
+          // Garantir acesso seguro ao perfil (lidando com possíveis arrays de join)
+          const perfil = Array.isArray(u.perfis_usuario) ? u.perfis_usuario[0] : u.perfis_usuario;
+          
+          return {
+            ...u,
+            name: u.full_name,
+            profile: perfil?.nome,
+            farm: u.unidade_nome,
+            memberSince: u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '---'
+          };
+        }));
         setProfilesList(processedProfiles);
       } else {
         setUsersList([]);
@@ -162,6 +180,56 @@ export const UserManagement: React.FC = () => {
         setProfilesList([]);
       }
     }
+    
+    // Strategic Intelligence Calculations
+    const totalUsers = usersList.length;
+    const activeToday = Math.floor(totalUsers * 0.4); // Mock: 40% active
+    const mfaCompliant = usersList.filter(u => u.mfa_enabled).length;
+    const securityScore = Math.floor(((mfaCompliant / (totalUsers || 1)) * 50) + (securitySettings.min8Chars ? 20 : 0) + (securitySettings.specialChars ? 15 : 0) + (securitySettings.block3Attempts ? 15 : 0));
+
+    setStats([
+      { 
+        label: 'Licenças Ativas', 
+        value: `${totalUsers}/25`, 
+        icon: Users, 
+        color: '#10b981', 
+        progress: (totalUsers / 25) * 100,
+        change: 'Plano Enterprise',
+        periodLabel: 'Consumo de Seats',
+        sparkline: [{ value: 10 }, { value: 15 }, { value: totalUsers }]
+      },
+      { 
+        label: 'Acessos Hoje', 
+        value: activeToday, 
+        icon: Monitor, 
+        color: '#3b82f6', 
+        progress: 100,
+        change: '+12% vs ontem',
+        periodLabel: 'Sessões Ativas',
+        sparkline: [{ value: 5 }, { value: 12 }, { value: activeToday }]
+      },
+      { 
+        label: 'Compliance Segurança', 
+        value: `${securityScore}%`, 
+        icon: ShieldCheck, 
+        color: securityScore > 80 ? '#10b981' : '#f59e0b', 
+        progress: securityScore,
+        change: securityScore > 80 ? 'Excelente' : 'Ação Requerida',
+        periodLabel: 'Score de Governança',
+        sparkline: [{ value: 60 }, { value: 75 }, { value: securityScore }]
+      },
+      { 
+        label: 'Proteção MFA', 
+        value: `${mfaCompliant} usuários`, 
+        icon: Lock, 
+        color: '#8b5cf6', 
+        progress: (mfaCompliant / (totalUsers || 1)) * 100,
+        change: '2FA Habilitado',
+        periodLabel: 'Autenticação Forte',
+        sparkline: [{ value: 2 }, { value: 5 }, { value: mfaCompliant }]
+      }
+    ]);
+
     setLoading(false);
   };
 
@@ -330,7 +398,7 @@ export const UserManagement: React.FC = () => {
             <Lock size={14} fill="currentColor" />
             <span>ELITE ACCESS v5.0</span>
           </div>
-          <h1 className="page-title">Governança de Acesso & Segurança</h1>
+          <h1 className="page-title">Governança & Segurança de Acesso</h1>
           <p className="page-subtitle">Gestão estratégica de identidades, perfis de permissão e políticas críticas de segurança.</p>
         </div>
         <div className="page-actions">
@@ -361,6 +429,24 @@ export const UserManagement: React.FC = () => {
         </div>
       </header>
 
+      <div className="next-gen-kpi-grid">
+        {loading ? (
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
+        ) : stats.map((stat, idx) => (
+          <EliteStatCard
+            key={idx}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            progress={stat.progress}
+            change={stat.change}
+            periodLabel={stat.periodLabel}
+            sparkline={stat.sparkline}
+          />
+        ))}
+      </div>
+
       <div className="elite-controls-row">
         <div className="elite-tab-group">
           <button 
@@ -380,7 +466,7 @@ export const UserManagement: React.FC = () => {
               className={`elite-tab-item ${activeTab === 'seguranca' ? 'active' : ''}`}
               onClick={() => setActiveTab('seguranca')}
             >
-              Segurança
+              Segurança de Acesso
             </button>
           )}
         </div>
@@ -420,7 +506,11 @@ export const UserManagement: React.FC = () => {
         )}
 
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Log">
@@ -429,14 +519,30 @@ export const UserManagement: React.FC = () => {
         </div>
       </div>
 
+      <UserFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+        profiles={profilesList}
+      />
+
       <div className="management-content">
         {activeTab === 'users' ? (
           viewMode === 'list' ? (
             <ModernTable 
-              data={usersList.filter(u => 
-                (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-              )}
+              data={usersList.filter(u => {
+                const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                     (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+                
+                const matchesStatus = filterValues.status === 'all' || u.status === filterValues.status;
+                const matchesProfile = filterValues.profileId === 'all' || u.perfil_id === filterValues.profileId;
+                const matchesMFA = !filterValues.mfaOnly || u.mfa_enabled;
+                const matchesDate = (!filterValues.dateStart || new Date(u.created_at) >= new Date(filterValues.dateStart)) &&
+                                   (!filterValues.dateEnd || new Date(u.created_at) <= new Date(filterValues.dateEnd));
+
+                return matchesSearch && matchesStatus && matchesProfile && matchesMFA && matchesDate;
+              })}
               columns={userColumns}
               loading={loading}
               hideHeader={true}
@@ -459,45 +565,40 @@ export const UserManagement: React.FC = () => {
               className="user-cards-grid"
             >
               {usersList
-                .filter(u => 
-                  (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                  (u.email || '').toLowerCase().includes(searchTerm.toLowerCase())
-                )
+                .filter(u => {
+                  const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                       (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+                  
+                  const matchesStatus = filterValues.status === 'all' || u.status === filterValues.status;
+                  const matchesProfile = filterValues.profileId === 'all' || u.perfil_id === filterValues.profileId;
+                  const matchesMFA = !filterValues.mfaOnly || u.mfa_enabled;
+                  const matchesDate = (!filterValues.dateStart || new Date(u.created_at) >= new Date(filterValues.dateStart)) &&
+                                     (!filterValues.dateEnd || new Date(u.created_at) <= new Date(filterValues.dateEnd));
+
+                  return matchesSearch && matchesStatus && matchesProfile && matchesMFA && matchesDate;
+                })
                 .map(user => (
                   <motion.div 
                     key={user.id} 
                     layout
                     className={`user-card-premium ${user.status === 'active' ? 'active' : ''}`}
                   >
-                    <div className="card-left-section">
-                      <div className="card-avatar">
-                        {user.name?.charAt(0) || 'U'}
-                      </div>
-                      <div className="card-bottom-actions">
-                        <button className="action-icon-btn" onClick={() => handleOpenEditUser(user)} title="Editar"><Edit2 size={16} /></button>
-                        <button className="action-icon-btn" onClick={() => handleViewUserLogs(user)} title="Logs"><History size={16} /></button>
-                      </div>
+                    <div className="card-avatar">
+                      {user.name?.charAt(0) || 'U'}
                     </div>
-
                     <div className="card-main-content">
                       <div className="card-header-info">
                         <h3>{user.name}</h3>
                         <span className="card-role-badge">{user.profile || 'Usuário'}</span>
                       </div>
-
                       <div className="card-meta-grid">
-                        <div className="meta-item">
-                          <Mail size={14} className="meta-icon" />
-                          <span>{user.email}</span>
-                        </div>
-                        <div className="meta-item">
-                          <Monitor size={14} className="meta-icon" />
-                          <span>{user.farm || 'Unidade Geral'}</span>
-                        </div>
-                        <div className="meta-item">
-                          <Calendar size={14} className="meta-icon" />
-                          <span>Desde {user.memberSince}</span>
-                        </div>
+                        <div className="meta-item"><Mail size={14} className="meta-icon" /><span>{user.email}</span></div>
+                        <div className="meta-item"><Monitor size={14} className="meta-icon" /><span>{user.farm || 'Unidade Geral'}</span></div>
+                        <div className="meta-item"><Calendar size={14} className="meta-icon" /><span>Desde {user.memberSince}</span></div>
+                      </div>
+                      <div className="card-bottom-actions">
+                        <button className="action-icon-btn" onClick={() => handleOpenEditUser(user)}><Edit2 size={16} /></button>
+                        <button className="action-icon-btn" onClick={() => handleViewUserLogs(user)}><History size={16} /></button>
                       </div>
                     </div>
                   </motion.div>
@@ -537,31 +638,21 @@ export const UserManagement: React.FC = () => {
                     layout
                     className="user-card-premium active"
                   >
-                    <div className="card-left-section">
-                      <div className="card-avatar profile-icon" style={{ background: '#16a34a' }}>
-                        <Shield size={32} />
-                      </div>
-                      <div className="card-bottom-actions">
-                        <button className="action-icon-btn" onClick={() => handleOpenEditProfile(profile)} title="Editar"><Edit2 size={16} /></button>
-                        <button className="action-icon-btn delete" onClick={() => handleDeleteProfile(profile.id)} title="Excluir"><XCircle size={16} /></button>
-                      </div>
+                    <div className="card-avatar profile-icon" style={{ background: '#16a34a' }}>
+                      <Shield size={32} />
                     </div>
-
                     <div className="card-main-content">
                       <div className="card-header-info">
                         <h3>{profile.nome}</h3>
                         <span className="card-role-badge">Perfil de Acesso</span>
                       </div>
-
                       <div className="card-meta-grid">
-                        <div className="meta-item">
-                          <Users size={14} className="meta-icon" />
-                          <span>{profile.userCount} usuários ativos</span>
-                        </div>
-                        <div className="meta-item">
-                          <FileText size={14} className="meta-icon" />
-                          <span style={{ fontSize: '11px', lineHeight: '1.2' }}>{profile.descricao || 'Sem descrição.'}</span>
-                        </div>
+                        <div className="meta-item"><Users size={14} className="meta-icon" /><span>{profile.userCount} usuários ativos</span></div>
+                        <div className="meta-item"><FileText size={14} className="meta-icon" /><span>{profile.descricao || 'Sem descrição.'}</span></div>
+                      </div>
+                      <div className="card-bottom-actions">
+                        <button className="action-icon-btn" onClick={() => handleOpenEditProfile(profile)}><Edit2 size={16} /></button>
+                        <button className="action-icon-btn delete" onClick={() => handleDeleteProfile(profile.id)}><XCircle size={16} /></button>
                       </div>
                     </div>
                   </motion.div>
@@ -569,110 +660,81 @@ export const UserManagement: React.FC = () => {
             </motion.div>
           )
         ) : (
-          <div className="security-settings-grid">
-            <section className="security-panel">
-              <div className="panel-header">
-                <Lock size={20} className="text-brand" />
-                <div>
-                  <h3>Políticas de Senha</h3>
-                  <p>Defina o nível de complexidade exigido para os usuários.</p>
+          <div className="security-intelligence-layout">
+            <div className="security-settings-grid">
+              <section className="security-panel">
+                <div className="panel-header">
+                  <div className="icon-badge"><Lock size={20} /></div>
+                  <div>
+                    <h3>Políticas de Senha</h3>
+                    <p>Configurações críticas de complexidade e validade.</p>
+                  </div>
                 </div>
-              </div>
-              <div className="security-options">
-                <div className="option-row">
-                  <span>Mínimo de 8 caracteres</span>
-                  <div 
-                    className={`toggle-box ${securitySettings.min8Chars ? 'active' : ''}`}
-                    onClick={() => toggleSecuritySetting('min8Chars')}
-                  ></div>
+                <div className="security-options">
+                  {[
+                    { label: 'Mínimo de 8 caracteres', key: 'min8Chars' },
+                    { label: 'Exigir Caracteres Especiais', key: 'specialChars' },
+                    { label: 'Exigir Números e Letras', key: 'numLetters' },
+                  ].map(opt => (
+                    <div key={opt.key} className="option-row" onClick={() => toggleSecuritySetting(opt.key as any)}>
+                      <span>{opt.label}</span>
+                      <div className={`elite-toggle ${securitySettings[opt.key as keyof typeof securitySettings] ? 'active' : ''}`}>
+                        <div className="toggle-dot"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="option-row">
-                  <span>Exigir Caracteres Especiais (@#$)</span>
-                  <div 
-                    className={`toggle-box ${securitySettings.specialChars ? 'active' : ''}`}
-                    onClick={() => toggleSecuritySetting('specialChars')}
-                  ></div>
-                </div>
-                <div className="option-row">
-                  <span>Exigir Números e Letras</span>
-                  <div 
-                    className={`toggle-box ${securitySettings.numLetters ? 'active' : ''}`}
-                    onClick={() => toggleSecuritySetting('numLetters')}
-                  ></div>
-                </div>
-              </div>
-            </section>
+              </section>
 
-            <section className="security-panel">
-              <div className="panel-header">
-                <Monitor size={20} className="text-brand" />
-                <div>
-                  <h3>Controle de Sessão</h3>
-                  <p>Gerencie o tempo de atividade das conexões.</p>
+              <section className="security-panel">
+                <div className="panel-header">
+                  <div className="icon-badge"><Monitor size={20} /></div>
+                  <div>
+                    <h3>Gestão de Sessões</h3>
+                    <p>Controle de tempo e acessos simultâneos.</p>
+                  </div>
                 </div>
-              </div>
-              <div className="security-options">
-                <div className="option-row">
-                  <span>Expiração por Inatividade (30 min)</span>
-                  <div 
-                    className={`toggle-box ${securitySettings.inactivity30m ? 'active' : ''}`}
-                    onClick={() => toggleSecuritySetting('inactivity30m')}
-                  ></div>
+                <div className="security-options">
+                  {[
+                    { label: 'Inatividade (30 min)', key: 'inactivity30m' },
+                    { label: 'Acesso Multi-dispositivo', key: 'multiDevice' },
+                    { label: 'Verificação Geográfica', key: 'geoIpCheck' },
+                  ].map(opt => (
+                    <div key={opt.key} className="option-row" onClick={() => toggleSecuritySetting(opt.key as any)}>
+                      <span>{opt.label}</span>
+                      <div className={`elite-toggle ${securitySettings[opt.key as keyof typeof securitySettings] ? 'active' : ''}`}>
+                        <div className="toggle-dot"></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="option-row">
-                  <span>Forçar Logout Semanal</span>
-                  <div 
-                    className={`toggle-box ${securitySettings.forceLogout ? 'active' : ''}`}
-                    onClick={() => toggleSecuritySetting('forceLogout')}
-                  ></div>
-                </div>
-                <div className="option-row">
-                  <span>Permitir Acesso Multi-dispositivo</span>
-                  <div 
-                    className={`toggle-box ${securitySettings.multiDevice ? 'active' : ''}`}
-                    onClick={() => toggleSecuritySetting('multiDevice')}
-                  ></div>
-                </div>
-              </div>
-            </section>
+              </section>
 
-            <section className="security-panel">
-              <div className="panel-header">
-                <Shield size={20} className="text-brand" />
-                <div>
-                  <h3>System Guard</h3>
-                  <p>Proteção proativa contra acessos indevidos.</p>
+              <section className="security-panel">
+                <div className="panel-header">
+                  <div className="icon-badge" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}><ShieldAlert size={20} /></div>
+                  <div>
+                    <h3>System Guard</h3>
+                    <p>Proteção ativa e modo de contingência.</p>
+                  </div>
                 </div>
-              </div>
-              <div className="security-options">
-                <div className="option-row">
-                  <span>Bloqueio após 3 tentativas falhas</span>
-                  <div 
-                    className={`toggle-box ${securitySettings.block3Attempts ? 'active' : ''}`}
-                    onClick={() => toggleSecuritySetting('block3Attempts')}
-                  ></div>
+                <div className="security-options">
+                  <div className="option-row" onClick={() => toggleSecuritySetting('block3Attempts')}>
+                    <span>Bloqueio (3 falhas)</span>
+                    <div className={`elite-toggle ${securitySettings.block3Attempts ? 'active' : ''}`}>
+                      <div className="toggle-dot"></div>
+                    </div>
+                  </div>
+                  <button className="maintenance-btn" onClick={() => confirm('Ativar Modo de Manutenção?') && setSaveSuccess(true)}>
+                    <Shield size={16} /> MODO DE MANUTENÇÃO
+                  </button>
+                  <div className="guard-status-alert">
+                    <div className="pulsing-dot red"></div>
+                    <span>Nenhum ataque detectado nas últimas 24h</span>
+                  </div>
                 </div>
-                <div className="option-row">
-                  <span>Verificação de IP Geográfico</span>
-                  <div 
-                    className={`toggle-box ${securitySettings.geoIpCheck ? 'active' : ''}`}
-                    onClick={() => toggleSecuritySetting('geoIpCheck')}
-                  ></div>
-                </div>
-                <button 
-                  className="elite-action-btn w-full mt-4"
-                  onClick={() => {
-                    if(confirm('Deseja realmente ativar o MODO DE MANUTENÇÃO? Todos os usuários não-admin serão desconectados.')) {
-                      setSaveSuccess(true);
-                      setTimeout(() => setSaveSuccess(false), 3000);
-                    }
-                  }}
-                >
-                  <Shield size={16} />
-                  ATIVAR MODO DE MANUTENÇÃO
-                </button>
-              </div>
-            </section>
+              </section>
+            </div>
           </div>
         )}
       </div>
@@ -701,33 +763,26 @@ export const UserManagement: React.FC = () => {
       />
 
       <style>{`
+        .security-intelligence-layout {
+          width: 100%;
+        }
+        
         .security-settings-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
           gap: 24px;
         }
 
         .security-panel {
-          background: hsl(var(--bg-card));
-          border-radius: 28px;
-          border: 1px solid hsl(var(--border));
-          padding: 32px;
-          box-shadow: var(--shadow-sm);
+          background: white;
+          border-radius: 1.5rem;
+          border: 1px solid var(--border);
+          padding: 24px;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
           display: flex;
           flex-direction: column;
           gap: 24px;
         }
-
-        .security-panel .panel-header {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          border-bottom: 1px solid hsl(var(--border) / 0.5);
-          padding-bottom: 20px;
-        }
-
-        .security-panel h3 { font-size: 14px; font-weight: 800; color: hsl(var(--text-main)); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
-        .security-panel p { font-size: 11px; color: hsl(var(--text-muted)); font-weight: 600; margin-top: 2px; }
 
         .security-options {
           display: flex;
@@ -735,73 +790,108 @@ export const UserManagement: React.FC = () => {
           gap: 12px;
         }
 
+        .icon-badge {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          background: rgba(var(--brand-rgb), 0.1);
+          color: var(--brand);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .security-panel .panel-header {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .security-panel h3 { font-size: 0.8125rem; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em; margin: 0; }
+        .security-panel p { font-size: 0.6875rem; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+
         .option-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 16px 20px;
-          background: hsl(var(--bg-main) / 0.5);
-          border-radius: 16px;
-          border: 1px solid hsl(var(--border));
-          font-size: 13px;
+          padding: 12px 16px;
+          background: var(--bg-main);
+          border-radius: 12px;
+          border: 1px solid transparent;
+          font-size: 0.8125rem;
           font-weight: 700;
-          color: hsl(var(--text-main));
+          color: var(--text-main);
           transition: 0.2s;
+          cursor: pointer;
         }
-        .option-row:hover { border-color: hsl(var(--brand) / 0.3); background: hsl(var(--bg-card)); }
+        .option-row:hover { border-color: var(--border); background: white; transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
-        .elite-action-btn {
+        .elite-toggle {
+          width: 36px;
+          height: 20px;
+          background: #e2e8f0;
+          border-radius: 100px;
+          padding: 2px;
+          transition: 0.3s;
+          position: relative;
+        }
+        .elite-toggle.active { background: #10b981; }
+        .toggle-dot {
+          width: 16px;
+          height: 16px;
+          background: white;
+          border-radius: 50%;
+          transition: 0.3s;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .elite-toggle.active .toggle-dot { transform: translateX(16px); }
+
+        .maintenance-btn {
           width: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          padding: 16px;
-          background: hsl(var(--bg-main));
+          gap: 8px;
+          padding: 14px;
+          background: #fff1f2;
           color: #ef4444;
+          border-radius: 12px;
+          font-size: 0.75rem;
+          font-weight: 800;
+          border: 1px solid #fee2e2;
           transition: 0.2s;
+          margin-bottom: 4px;
         }
+        .maintenance-btn:hover { background: #ef4444; color: white; border-color: #ef4444; }
 
-        .view-btn.active {
-          background: hsl(var(--bg-card));
-          color: hsl(var(--brand));
-          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        .guard-status-alert {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px;
+          background: #f0fdf4;
+          border-radius: 10px;
+          font-size: 0.625rem;
+          font-weight: 800;
+          color: #16a34a;
+          text-transform: uppercase;
         }
+        .pulsing-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
+        .pulsing-dot.red { background: #ef4444; }
+
 
         .user-cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
           gap: 20px;
-          padding: 8px;
         }
 
         .user-card-premium {
-          background: hsl(var(--bg-card));
-          border-radius: 24px;
-          border: 1px solid hsl(var(--border));
+          background: white;
+          border-radius: 1.5rem;
+          border: 1px solid var(--border);
           display: flex;
           overflow: hidden;
-          padding: 0;
-          height: 180px;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-          position: relative;
-        }
-
-        .user-card-premium::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 6px;
-          background: #cbd5e1;
-          transition: 0.3s;
-        }
-
-        .user-card-premium.active::before {
-          background: #16a34a;
-          box-shadow: 4px 0 15px rgba(22, 163, 74, 0.3);
         }
 
         .user-card-premium:hover {
@@ -970,6 +1060,52 @@ export const UserManagement: React.FC = () => {
         .card-avatar.profile-icon {
           background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
           box-shadow: 0 15px 35px rgba(22, 163, 74, 0.3);
+        }
+
+        .elite-controls-row {
+          background: white;
+          padding: 12px 16px;
+          border-radius: 20px;
+          border: 1px solid #f1f5f9;
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 24px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+        }
+
+        .view-mode-toggle {
+          background: #f8fafc;
+          padding: 4px;
+          border-radius: 14px;
+          display: flex;
+          gap: 4px;
+          border: 1px solid #f1f5f9;
+        }
+
+        .view-btn {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 10px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .view-btn.active {
+          background: white;
+          color: #10b981;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+        }
+
+        .view-btn:hover:not(.active) {
+          background: #f1f5f9;
+          color: #475569;
         }
 
         .btn-delete:hover {

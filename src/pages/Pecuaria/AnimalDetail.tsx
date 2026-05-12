@@ -97,8 +97,33 @@ export const AnimalDetail: React.FC = () => {
     return <div>Animal não encontrado.</div>;
   }
 
-  const currentWeight = animal.peso_atual || animal.peso_inicial;
-  const gmd = 0.840; // Mocked GMD
+  const currentWeight = animal.peso_atual || animal.peso_inicial || 0;
+  
+  // Cálculo Real de GMD
+  const calculateRealGMD = () => {
+    if (weightHistory.length < 2) return 0;
+    const first = weightHistory[0];
+    const last = weightHistory[weightHistory.length - 1];
+    const weightDiff = last.value - first.value;
+    
+    // Parse dates to get day diff
+    const d1 = new Date(animal.created_at);
+    const d2 = new Date(); // Today
+    const dayDiff = Math.max(1, Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    return weightDiff / dayDiff;
+  };
+
+  const realGmd = calculateRealGMD();
+  
+  // Projeção de Abate (Meta: 20@ ou 600kg)
+  const targetWeight = 600;
+  const remainingWeight = Math.max(0, targetWeight - currentWeight);
+  const daysToTarget = realGmd > 0 ? Math.ceil(remainingWeight / realGmd) : 0;
+  const estimatedDate = daysToTarget > 0 ? new Date(Date.now() + daysToTarget * 24 * 60 * 60 * 1000) : null;
+
+  // Regra de Negócio: Carência Sanitária (Simulando verificação em registros de manejo)
+  const isUnderGracePeriod = events.some(e => e.type === 'MEDICAMENTO' && new Date(e.expiryDate) > new Date());
 
   return (
     <div className="animal-detail-page animate-slide-up">
@@ -127,28 +152,39 @@ export const AnimalDetail: React.FC = () => {
           value={`${currentWeight} kg`} 
           icon={Scale} 
           color="#3b82f6" 
-          progress={75}
-          change="+12kg (30d)"
+          progress={(currentWeight / 600) * 100}
+          change={`${formatNumber(currentWeight - animal.peso_inicial)}kg total`}
           trend="up"
           periodLabel="Última Pesagem"
         />
         <EliteStatCard 
-          label="GMD Médio" 
-          value={`${gmd} kg`} 
+          label="GMD Médio Real" 
+          value={`${realGmd.toFixed(3)} kg`} 
           icon={TrendingUp} 
-          color="#10b981" 
-          progress={84}
-          change="Acima da Meta"
-          trend="up"
-          periodLabel="Acumulado Ciclo"
+          color={realGmd > 0.8 ? "#10b981" : "#f59e0b"} 
+          progress={realGmd * 100}
+          change={realGmd > 0.8 ? "Meta Atingida" : "Abaixo da Meta"}
+          trend={realGmd > 0.7 ? "up" : "down"}
+          periodLabel="Desde a Entrada"
         />
         <EliteStatCard 
-          label="Status Sanitário" 
-          value="Regular" 
+          label="Previsão de Abate" 
+          value={estimatedDate ? estimatedDate.toLocaleDateString() : 'Sem Dados'} 
+          icon={Calendar} 
+          color="#8b5cf6" 
+          progress={daysToTarget > 0 ? Math.max(10, 100 - (daysToTarget / 3)) : 100}
+          change={daysToTarget > 0 ? `${daysToTarget} dias restantes` : "Pronto para Abate"}
+          trend="up"
+          periodLabel="Meta: 600kg (20@)"
+        />
+        <EliteStatCard 
+          label="Segurança Sanitária" 
+          value={isUnderGracePeriod ? "BLOQUEADO" : "LIBERADO"} 
           icon={ShieldCheck} 
-          color="#166534" 
-          progress={100}
-          periodLabel="Sem Pendências"
+          color={isUnderGracePeriod ? "#ef4444" : "#166534"} 
+          progress={isUnderGracePeriod ? 40 : 100}
+          change={isUnderGracePeriod ? "Carência Ativa" : "Sem Restrições"}
+          periodLabel="Manejo Sanitário"
         />
       </div>
 

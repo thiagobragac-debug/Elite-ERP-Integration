@@ -33,6 +33,10 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
     combustivel: 'Diesel',
     capacidade_tanque: '',
     valor_compra: '',
+    potencia: '',
+    peso_operacional: '',
+    intervalo_revisao: '250',
+    consumo_estimado: '',
     data_proxima_revisao: '',
     observacoes: ''
   });
@@ -55,6 +59,10 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
         combustivel: initialData.combustivel || 'Diesel',
         capacidade_tanque: initialData.capacidade_tanque?.toString() || '',
         valor_compra: initialData.valor_compra?.toString() || '',
+        potencia: initialData.potencia?.toString() || '',
+        peso_operacional: initialData.peso_operacional?.toString() || '',
+        intervalo_revisao: initialData.intervalo_revisao?.toString() || '250',
+        consumo_estimado: initialData.consumo_estimado?.toString() || '',
         data_proxima_revisao: initialData.data_proxima_revisao || '',
         observacoes: initialData.observacoes || ''
       });
@@ -73,6 +81,10 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
         combustivel: 'Diesel',
         capacidade_tanque: '',
         valor_compra: '',
+        potencia: '',
+        peso_operacional: '',
+        intervalo_revisao: '250',
+        consumo_estimado: '',
         data_proxima_revisao: '',
         observacoes: ''
       });
@@ -230,6 +242,47 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
           placeholder="0.00" 
           value={formData.valor_compra}
           onChange={(e) => setFormData({...formData, valor_compra: e.target.value})}
+        />
+      </div>
+
+      <div className="form-group">
+        <label><Activity size={14} /> Potência (cv)</label>
+        <input 
+          type="number" 
+          placeholder="Ex: 125" 
+          value={formData.potencia}
+          onChange={(e) => setFormData({...formData, potencia: e.target.value})}
+        />
+      </div>
+
+      <div className="form-group">
+        <label><Activity size={14} /> Peso Operacional (kg)</label>
+        <input 
+          type="number" 
+          placeholder="Ex: 5800" 
+          value={formData.peso_operacional}
+          onChange={(e) => setFormData({...formData, peso_operacional: e.target.value})}
+        />
+      </div>
+
+      <div className="form-group">
+        <label><Settings size={14} /> Intervalo Revisão (h/km)</label>
+        <input 
+          type="number" 
+          placeholder="Ex: 250" 
+          value={formData.intervalo_revisao}
+          onChange={(e) => setFormData({...formData, intervalo_revisao: e.target.value})}
+        />
+      </div>
+
+      <div className="form-group">
+        <label><Activity size={14} /> Meta de Consumo (L/h)</label>
+        <input 
+          type="number" 
+          step="0.1"
+          placeholder="Ex: 14.5" 
+          value={formData.consumo_estimado}
+          onChange={(e) => setFormData({...formData, consumo_estimado: e.target.value})}
         />
       </div>
 

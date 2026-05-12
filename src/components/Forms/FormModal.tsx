@@ -12,7 +12,7 @@ interface FormModalProps {
   children: ReactNode;
   submitLabel?: string;
   loading?: boolean;
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'medium' | 'large' | 'xlarge';
 }
 
 export const FormModal: React.FC<FormModalProps> = ({ 
@@ -33,7 +33,10 @@ export const FormModal: React.FC<FormModalProps> = ({
     <div className="elite-modal-overlay" onClick={onClose}>
       <div 
         className={`elite-modal-container ${size}`} 
-        style={{ maxWidth: size === 'large' ? '900px' : size === 'small' ? '440px' : '680px' }}
+        style={{ 
+          maxWidth: size === 'xlarge' ? '1200px' : size === 'large' ? '900px' : size === 'small' ? '440px' : '680px',
+          width: '95%'
+        }}
         onClick={e => e.stopPropagation()}
       >
         <div className="elite-modal-header">

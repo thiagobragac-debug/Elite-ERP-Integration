@@ -24,6 +24,7 @@ import { formatNumber } from '../../utils/format';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { ScaleConfigModal } from './components/ScaleConfigModal';
+import { WeightFilterModal } from './components/WeightFilterModal';
 
 export const WeightManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -36,15 +37,25 @@ export const WeightManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'RECENT' | 'PERFORMANCE'>('RECENT');
-  const [stats, setStats] = useState<any[]>([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
-    minWeight: '',
-    maxWeight: '',
+    minWeight: 0,
+    maxWeight: 1000,
+    minGMD: 0,
+    maxGMD: 2,
     dateStart: '',
-    dateEnd: ''
+    dateEnd: '',
+    performanceLevel: 'all',
+    daysSinceLastWeighing: 0
   });
   const [isScaleModalOpen, setIsScaleModalOpen] = useState(false);
+
+  const [stats, setStats] = useState<any[]>([
+    { label: 'Peso Médio Global', value: '0 kg', icon: Scale, color: '#10b981', progress: 0 },
+    { label: 'Pesagens (Ciclo)', value: '0', icon: History, color: '#3b82f6', progress: 0 },
+    { label: 'GMD Médio Real', value: '0.000 kg', icon: TrendingUp, color: '#f59e0b', progress: 0 },
+    { label: 'Status da Operação', value: 'Sincronizando...', icon: Wifi, color: '#166534', progress: 0 },
+  ]);
 
   useEffect(() => {
     if (!activeFarm) return;
@@ -52,26 +63,48 @@ export const WeightManagement: React.FC = () => {
   }, [activeFarm]);
 
   const fetchWeighings = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('pesagens')
-      .select('*, animais(brinco)')
-      .eq('fazenda_id', activeFarm.id)
-      .order('data_pesagem', { ascending: false });
-    
-    if (data) {
-      setWeighings(data);
-      const totalPesagens = data.length;
-      const pesoMedio = data.reduce((acc: number, curr: any) => acc + Number(curr.peso), 0) / (totalPesagens || 1);
+    try {
+      // Buscamos as pesagens com dados dos animais
+      const { data, error } = await supabase
+        .from('pesagens')
+        .select('*, animais(id, brinco)')
+        .eq('fazenda_id', activeFarm.id)
+        .order('data_pesagem', { ascending: false });
       
-      setStats([
-        { label: 'Peso Médio Global', value: `${formatNumber(pesoMedio)} kg`, icon: Scale, color: '#10b981', progress: 65 },
-        { label: 'Pesagens Realizadas', value: String(totalPesagens), icon: History, color: '#3b82f6', progress: 100 },
-        { label: 'GMD Médio (Lote)', value: '0.850 kg', icon: TrendingUp, color: '#f59e0b', progress: 80 },
-        { label: 'Status da Operação', value: 'Em Dia', icon: Wifi, color: '#166534', progress: 100 },
-      ]);
+      if (error) throw error;
+
+      if (data) {
+        // Cálculo de GMD Real (Comparativo)
+        const enrichedData = data.map((curr: any, idx: number) => {
+          const prev = data.slice(idx + 1).find((w: any) => w.animal_id === curr.animal_id);
+          
+          let gmd = 0;
+          if (prev) {
+            const days = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / (1000 * 60 * 60 * 24);
+            gmd = days > 0 ? (Number(curr.peso) - Number(prev.peso)) / days : 0;
+          }
+
+          return { ...curr, gmd };
+        });
+
+        setWeighings(enrichedData);
+        
+        const totalPesagens = enrichedData.length;
+        const pesoMedio = enrichedData.reduce((acc: number, curr: any) => acc + Number(curr.peso), 0) / (totalPesagens || 1);
+        const gmdMedio = enrichedData.reduce((acc: number, curr: any) => acc + (curr.gmd || 0), 0) / (totalPesagens || 1);
+        
+        setStats([
+          { label: 'Peso Médio Global', value: `${formatNumber(pesoMedio)} kg`, icon: Scale, color: '#10b981', progress: 65 },
+          { label: 'Pesagens (Ciclo)', value: String(totalPesagens), icon: History, color: '#3b82f6', progress: 100 },
+          { label: 'GMD Médio Real', value: `${gmdMedio.toFixed(3)} kg`, icon: TrendingUp, color: '#f59e0b', progress: (gmdMedio / 1.2) * 100 },
+          { label: 'Status da Operação', value: 'Em Dia', icon: Wifi, color: '#166534', progress: 100 },
+        ]);
+      }
+    } catch (err) {
+      console.error('Error fetching weighings:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOpenCreate = () => {
@@ -155,13 +188,35 @@ export const WeightManagement: React.FC = () => {
       )
     },
     {
-      header: 'GMD Estimado',
+      header: 'GMD Médio Real',
       accessor: (item: any) => (
         <div className="flex items-center gap-2">
-          <TrendingUp size={14} className="text-emerald-500" />
-          <span className="text-emerald-600 font-bold">0.850 kg</span>
+          <TrendingUp 
+            size={14} 
+            className={item.gmd > 0.8 ? 'text-emerald-500' : 'text-amber-500'} 
+          />
+          <span className={`${item.gmd > 0.8 ? 'text-emerald-600' : 'text-amber-600'} font-bold`}>
+            {item.gmd?.toFixed(3)} kg/dia
+          </span>
         </div>
       ),
+      align: 'center' as const
+    },
+    {
+      header: 'Projeção Abate',
+      accessor: (item: any) => {
+        const targetWeight = 520; // Peso alvo padrão
+        const remaining = targetWeight - Number(item.peso);
+        const daysToAbate = item.gmd > 0 ? Math.ceil(remaining / item.gmd) : 0;
+        
+        return (
+          <div className="table-cell-meta">
+            <span className={`status-pill ${daysToAbate < 30 ? 'warning' : 'info'}`}>
+              {daysToAbate > 0 ? `~${daysToAbate} dias` : 'Pronto'}
+            </span>
+          </div>
+        );
+      },
       align: 'center' as const
     }
   ];
@@ -246,62 +301,12 @@ export const WeightManagement: React.FC = () => {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showAdvancedFilters && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="advanced-filter-panel"
-          >
-            <div className="filter-grid">
-              <div className="filter-field">
-                <label className="elite-label">Peso Mínimo (kg)</label>
-                <input 
-                  className="elite-input"
-                  type="number" 
-                  placeholder="0"
-                  value={filterValues.minWeight}
-                  onChange={(e) => setFilterValues({...filterValues, minWeight: e.target.value})}
-                />
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Peso Máximo (kg)</label>
-                <input 
-                  className="elite-input"
-                  type="number" 
-                  placeholder="1000"
-                  value={filterValues.maxWeight}
-                  onChange={(e) => setFilterValues({...filterValues, maxWeight: e.target.value})}
-                />
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Data Inicial</label>
-                <input 
-                  className="elite-input"
-                  type="date" 
-                  value={filterValues.dateStart}
-                  onChange={(e) => setFilterValues({...filterValues, dateStart: e.target.value})}
-                />
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Data Final</label>
-                <input 
-                  className="elite-input"
-                  type="date" 
-                  value={filterValues.dateEnd}
-                  onChange={(e) => setFilterValues({...filterValues, dateEnd: e.target.value})}
-                />
-              </div>
-              <div className="filter-actions-inline">
-                <button className="text-btn" onClick={() => setFilterValues({ minWeight: '', maxWeight: '', dateStart: '', dateEnd: '' })}>
-                  LIMPAR
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <WeightFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
 
       <div className="management-content">
         {weighings.length === 0 && !loading ? (
@@ -317,11 +322,23 @@ export const WeightManagement: React.FC = () => {
             data={weighings.filter(w => {
               const matchesSearch = w.animais?.brinco?.toLowerCase().includes(searchTerm.toLowerCase());
               const matchesTab = activeTab === 'RECENT' ? true : Number(w.peso) > 400; 
-              const matchesMinWeight = !filterValues.minWeight || Number(w.peso) >= Number(filterValues.minWeight);
-              const matchesMaxWeight = !filterValues.maxWeight || Number(w.peso) <= Number(filterValues.maxWeight);
+              
+              const weight = Number(w.peso || 0);
+              const matchesWeight = weight >= filterValues.minWeight && weight <= filterValues.maxWeight;
+              
+              const gmd = w.gmd || 0;
+              const matchesPerformance = filterValues.performanceLevel === 'all' || 
+                                        (filterValues.performanceLevel === 'high' && gmd > 1.0) ||
+                                        (filterValues.performanceLevel === 'medium' && gmd >= 0.5 && gmd <= 1.0) ||
+                                        (filterValues.performanceLevel === 'low' && gmd < 0.5);
+
               const matchesDate = (!filterValues.dateStart || new Date(w.data_pesagem) >= new Date(filterValues.dateStart)) &&
                                  (!filterValues.dateEnd || new Date(w.data_pesagem) <= new Date(filterValues.dateEnd));
-              return matchesSearch && matchesTab && matchesMinWeight && matchesMaxWeight && matchesDate;
+              
+              const daysSince = (new Date().getTime() - new Date(w.data_pesagem).getTime()) / (1000 * 3600 * 24);
+              const matchesDays = !filterValues.daysSinceLastWeighing || daysSince >= filterValues.daysSinceLastWeighing;
+
+              return matchesSearch && matchesTab && matchesWeight && matchesPerformance && matchesDate && matchesDays;
             })}
             columns={columns}
             loading={loading}

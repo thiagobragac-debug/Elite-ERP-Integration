@@ -21,6 +21,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimalForm } from '../../components/Forms/AnimalForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
+import { AnimalFilterModal } from './components/AnimalFilterModal';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
@@ -43,7 +44,10 @@ export const AnimalManagement: React.FC = () => {
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     sexo: 'all',
-    lote: 'all'
+    lote: 'all',
+    racas: [],
+    minWeight: 0,
+    sanidadeOk: true
   });
   const [stats, setStats] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
@@ -80,6 +84,12 @@ export const AnimalManagement: React.FC = () => {
       const activeAnimals = data.filter(a => a.status === 'Ativo').length;
       const avgWeight = data.reduce((acc, curr) => acc + (Number(curr.peso_atual || curr.peso_inicial) || 0), 0) / (totalAnimals || 1);
       
+      const avgGmd = data.reduce((acc, curr) => {
+        const weightDiff = (curr.peso_atual || curr.peso_inicial) - curr.peso_inicial;
+        const days = Math.max(1, Math.floor((new Date().getTime() - new Date(curr.created_at).getTime()) / (1000 * 60 * 60 * 24)));
+        return acc + (weightDiff / days);
+      }, 0) / (totalAnimals || 1);
+      
       setStats([
         { 
           label: 'Total Rebanho', 
@@ -111,7 +121,7 @@ export const AnimalManagement: React.FC = () => {
         },
         { 
           label: 'GMD Médio', 
-          value: '0.820 kg', 
+          value: `${avgGmd.toFixed(3)} kg`, 
           icon: TrendingUp, 
           color: '#f59e0b', 
           progress: 80,
@@ -169,7 +179,9 @@ export const AnimalManagement: React.FC = () => {
       origem: formData.origem,
       mae_brinco: formData.mae_brinco,
       pai_brinco: formData.pai_brinco,
-      valor_compra: parseFloat(formData.valor_compra) || 0
+      valor_compra: parseFloat(formData.valor_compra) || 0,
+      categoria: formData.categoria,
+      finalidade: formData.finalidade
     };
 
     if (selectedAnimal) {
@@ -206,7 +218,12 @@ export const AnimalManagement: React.FC = () => {
       header: 'Brinco / Identificação', 
       accessor: (item: any) => (
         <div className="table-cell-title">
-          <span className="main-text">#{item.brinco}</span>
+          <div className="title-with-badge">
+            <span className="main-text">#{item.brinco}</span>
+            {item.status === 'Ativo' && (item.peso_atual || item.peso_inicial) > 550 && (
+              <span className="mini-badge warning">PRONTO</span>
+            )}
+          </div>
           <div className="sub-meta">
             <Tag size={12} />
             <span>{item.raca} | {item.sexo}</span>
@@ -215,28 +232,36 @@ export const AnimalManagement: React.FC = () => {
       )
     },
     { 
-      header: 'Peso Inicial', 
+      header: 'Performance', 
+      accessor: (item: any) => {
+        const weight = item.peso_atual || item.peso_inicial || 0;
+        const gain = weight - (item.peso_inicial || 0);
+        return (
+          <div className="table-cell-meta">
+            <div className="meta-main">
+              <Scale size={16} color="hsl(var(--brand))" />
+              <span>{weight} kg</span>
+            </div>
+            <span className={`meta-sub ${gain >= 0 ? 'text-success' : 'text-danger'}`}>
+              {gain >= 0 ? '+' : ''}{gain}kg total
+            </span>
+          </div>
+        );
+      }
+    },
+    { 
+      header: 'Segurança', 
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Scale size={16} color="hsl(var(--text-muted))" />
-          <span>{item.peso_inicial} kg</span>
+        <div className="status-indicator-group">
+          <div className={`status-dot ${item.status === 'Ativo' ? 'success' : 'neutral'}`}></div>
+          <span className="status-text">{item.status.toUpperCase()}</span>
+          {/* Alerta de Carência Sanitária (Simulado) */}
+          {item.id.includes('7') && (
+            <div className="alert-icon-mini" title="Período de Carência Ativo">
+              <Activity size={14} color="#ef4444" />
+            </div>
+          )}
         </div>
-      )
-    },
-    { 
-      header: 'Data Cadastro', 
-      accessor: (item: any) => (
-        <span style={{ color: 'hsl(var(--text-muted))', fontWeight: 600 }}>
-          {new Date(item.created_at).toLocaleDateString()}
-        </span>
-      )
-    },
-    { 
-      header: 'Status', 
-      accessor: (item: any) => (
-        <span style={{ fontWeight: 800, color: 'hsl(var(--text-main))' }}>
-          {item.status.toUpperCase()}
-        </span>
       ),
       align: 'center' as const
     }
@@ -348,59 +373,12 @@ export const AnimalManagement: React.FC = () => {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showAdvancedFilters && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="advanced-filter-panel"
-          >
-            <div className="filter-grid">
-              <div className="filter-field">
-                <label className="elite-label">Status Operacional</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.status}
-                  onChange={(e) => setFilterValues({...filterValues, status: e.target.value})}
-                >
-                  <option value="all">Todos os Status</option>
-                  <option value="ativo">Ativos</option>
-                  <option value="vendido">Vendidos</option>
-                  <option value="morto">Óbitos</option>
-                </select>
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Sexo</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.sexo}
-                  onChange={(e) => setFilterValues({...filterValues, sexo: e.target.value})}
-                >
-                  <option value="all">Ambos</option>
-                  <option value="M">Macho</option>
-                  <option value="F">Fêmea</option>
-                </select>
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Lote / Pasto</label>
-                <input 
-                  className="elite-input"
-                  type="text" 
-                  placeholder="Nome do lote..."
-                  value={filterValues.lote === 'all' ? '' : filterValues.lote}
-                  onChange={(e) => setFilterValues({...filterValues, lote: e.target.value || 'all'})}
-                />
-              </div>
-              <div className="filter-actions-inline">
-                <button className="text-btn" onClick={() => setFilterValues({ status: 'all', sexo: 'all', lote: 'all' })}>
-                  LIMPAR
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <AnimalFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
 
       <div className="management-content">
         {viewMode === 'list' ? (
@@ -411,7 +389,10 @@ export const AnimalManagement: React.FC = () => {
               const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
               const matchesSexo = filterValues.sexo === 'all' || a.sexo === filterValues.sexo;
               const matchesLote = filterValues.lote === 'all' || (a.lotes?.nome || '').toLowerCase().includes(filterValues.lote.toLowerCase());
-              return matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesLote;
+              const matchesRaca = filterValues.racas.length === 0 || filterValues.racas.includes(a.raca);
+              const matchesWeight = (a.peso_atual || a.peso_inicial || 0) >= filterValues.minWeight;
+              
+              return matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesLote && matchesRaca && matchesWeight;
             })}
             columns={tableColumns}
             loading={loading}
@@ -447,7 +428,10 @@ export const AnimalManagement: React.FC = () => {
                 const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
                 const matchesSexo = filterValues.sexo === 'all' || a.sexo === filterValues.sexo;
                 const matchesLote = filterValues.lote === 'all' || (a.lotes?.nome || '').toLowerCase().includes(filterValues.lote.toLowerCase());
-                return matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesLote;
+                const matchesRaca = filterValues.racas.length === 0 || filterValues.racas.includes(a.raca);
+                const matchesWeight = (a.peso_atual || a.peso_inicial || 0) >= filterValues.minWeight;
+                
+                return matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesLote && matchesRaca && matchesWeight;
               })
               .map(a => (
                 <motion.div 
@@ -671,6 +655,65 @@ export const AnimalManagement: React.FC = () => {
           background: #ef4444;
           border-color: #ef4444;
           color: white;
+        }
+
+        .title-with-badge {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .mini-badge {
+          font-size: 9px;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-weight: 800;
+        }
+
+        .mini-badge.warning {
+          background: #fef3c7;
+          color: #d97706;
+          border: 1px solid #fcd34d;
+        }
+
+        .status-indicator-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          justify-content: center;
+        }
+
+        .status-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+
+        .status-dot.success { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+        .status-dot.neutral { background: #94a3b8; }
+
+        .alert-icon-mini {
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.5; }
+          100% { opacity: 1; }
+        }
+
+        .meta-main {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-weight: 700;
+          color: hsl(var(--text-main));
+        }
+
+        .meta-sub {
+          font-size: 11px;
+          font-weight: 600;
+          margin-left: 22px;
         }
       `}</style>
 

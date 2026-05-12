@@ -5,7 +5,8 @@ import {
   FlaskConical, 
   Clock, 
   Zap, 
-  History
+  History,
+  Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FormModal } from '../../../components/Forms/FormModal';
@@ -37,12 +38,55 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
 
   useEffect(() => {
     if (isOpen) {
-      setProtocols([
-        { id: '1', name: 'Vermifugação Estratégica', category: 'SANIDADE', steps: [{ day: 0, product: 'Ivermectina 3.5%', dose: '1ml/50kg', via: 'Subcutânea' }] },
-        { id: '2', name: 'Protocolo Reclamatória', category: 'VACINAÇÃO', steps: [{ day: 0, product: 'Clostridiose 10v', dose: '2ml', via: 'Subcutânea' }, { day: 30, product: 'Reforço Clostridiose', dose: '2ml', via: 'Subcutânea' }] },
-      ]);
+      fetchProtocols();
     }
   }, [isOpen]);
+
+  const fetchProtocols = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('protocolos')
+        .select('*')
+        .eq('status', 'ativo')
+        .order('nome', { ascending: true });
+      
+      if (error) throw error;
+      
+      const defaults = [
+        { id: 'def-1', name: 'Vermifugação Estratégica', category: 'SANIDADE', steps: [{ day: 0, product: 'Ivermectina 3.5%', dose: '1ml/50kg', via: 'Subcutânea' }] },
+        { id: 'def-2', name: 'Protocolo Reclamatória', category: 'VACINAÇÃO', steps: [{ day: 0, product: 'Clostridiose 10v', dose: '2ml', via: 'Subcutânea' }, { day: 30, product: 'Reforço Clostridiose', dose: '2ml', via: 'Subcutânea' }] },
+      ];
+
+      const allProtocols = data && data.length > 0 
+        ? [...data.map(p => ({ ...p, name: p.nome, category: p.categoria, steps: p.passos || [] })), ...defaults]
+        : defaults;
+
+      setProtocols(allProtocols);
+    } catch (err) {
+      console.error('Error fetching protocols:', err);
+    }
+  };
+
+  const handleDeleteProtocol = async (id: string) => {
+    if (!confirm('Deseja desativar este protocolo?')) return;
+    
+    try {
+      if (!id.startsWith('def-')) {
+        const { error } = await supabase
+          .from('protocolos')
+          .update({ status: 'inativo' })
+          .eq('id', id);
+
+        if (error) throw error;
+      }
+      
+      setProtocols(prev => prev.filter(p => p.id !== id));
+      if (selectedProtocol?.id === id) setSelectedProtocol(null);
+    } catch (err) {
+      console.error('Error deleting protocol:', err);
+      alert('Erro ao desativar protocolo');
+    }
+  };
 
   const handleAddStep = () => {
     setNewProtocol({
@@ -51,18 +95,38 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
     });
   };
 
-  const handleSaveProtocol = () => {
+  const handleSaveProtocol = async () => {
     if (!newProtocol.name) return alert('Dê um nome ao protocolo');
-    const protocol = { ...newProtocol, id: Date.now().toString() };
-    setProtocols([protocol, ...protocols]);
-    setSelectedProtocol(protocol);
-    setIsCreating(false);
-    setNewProtocol({
-      name: '',
-      category: 'VACINAÇÃO',
-      description: '',
-      steps: [{ day: 0, product: '', dose: '', via: 'Subcutânea' }]
-    });
+    
+    try {
+      const { data, error } = await supabase
+        .from('protocolos')
+        .insert([{
+          nome: newProtocol.name,
+          categoria: newProtocol.category,
+          passos: newProtocol.steps,
+          fazenda_id: activeFarm?.id,
+          tenant_id: activeFarm?.tenantId
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const savedProtocol = { ...data, name: data.nome, category: data.categoria, steps: data.passos };
+      setProtocols([savedProtocol, ...protocols]);
+      setSelectedProtocol(savedProtocol);
+      setIsCreating(false);
+      setNewProtocol({
+        name: '',
+        category: 'VACINAÇÃO',
+        description: '',
+        steps: [{ day: 0, product: '', dose: '', via: 'Subcutânea' }]
+      });
+    } catch (err) {
+      console.error('Error saving protocol:', err);
+      alert('Erro ao salvar protocolo');
+    }
   };
 
   const handleConfirmApplication = () => {
@@ -86,37 +150,54 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
     >
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', height: '500px', gridColumn: 'span 2', overflow: 'hidden' }}>
         <div style={{ borderRight: '1px solid hsl(var(--border))', paddingRight: '20px', display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
-          <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: 'hsl(var(--text-muted))' }}>Protocolos</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ padding: '4px 0', borderBottom: '1px solid hsl(var(--border))', marginBottom: '12px' }}>
+            <button 
+              type="button"
+              className="primary-btn" 
+              style={{ width: '100%', padding: '10px', fontSize: '11px', justifyContent: 'center' }}
+              onClick={() => { setIsCreating(true); setSelectedProtocol(null); setIsApplying(false); }}
+            >
+              <Plus size={14} /> NOVO PROTOCOLO
+            </button>
+          </div>
+          <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: 'hsl(var(--text-muted))', marginBottom: '8px' }}>Modelos Ativos</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
             {protocols.map(p => (
-              <button 
-                key={p.id} 
-                type="button"
-                style={{ 
-                  padding: '12px', borderRadius: '12px', border: `1px solid ${selectedProtocol?.id === p.id ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
-                  background: selectedProtocol?.id === p.id ? 'hsl(var(--brand)/0.05)' : 'white',
-                  display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left', cursor: 'pointer'
-                }}
-                onClick={() => { setSelectedProtocol(p); setIsCreating(false); setIsApplying(false); }}
-              >
-                <div style={{ color: selectedProtocol?.id === p.id ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}>
-                  {p.category === 'VACINAÇÃO' ? <Zap size={14} /> : <FlaskConical size={14} />}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '12px', fontWeight: 800 }}>{p.name}</div>
-                  <div style={{ fontSize: '9px', fontWeight: 700, opacity: 0.6 }}>{p.category}</div>
-                </div>
-              </button>
+              <div key={p.id} style={{ position: 'relative', group: 'true' }}>
+                <button 
+                  type="button"
+                  style={{ 
+                    width: '100%',
+                    padding: '12px', borderRadius: '12px', border: `1px solid ${selectedProtocol?.id === p.id ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
+                    background: selectedProtocol?.id === p.id ? 'hsl(var(--brand)/0.05)' : 'white',
+                    display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left', cursor: 'pointer',
+                    transition: '0.2s', paddingRight: p.id.startsWith('def-') ? '12px' : '40px'
+                  }}
+                  onClick={() => { setSelectedProtocol(p); setIsCreating(false); setIsApplying(false); }}
+                >
+                  <div style={{ color: selectedProtocol?.id === p.id ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}>
+                    {p.category === 'VACINAÇÃO' ? <Zap size={14} /> : <FlaskConical size={14} />}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '12px', fontWeight: 800 }}>{p.name || p.nome}</div>
+                    <div style={{ fontSize: '9px', fontWeight: 700, opacity: 0.6 }}>{p.category || p.categoria}</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteProtocol(p.id); }}
+                  style={{
+                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                    background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer',
+                    padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}
+                  title="Excluir Protocolo"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             ))}
           </div>
-          <button 
-            type="button"
-            className="text-btn" 
-            style={{ marginTop: 'auto', border: '1px dashed hsl(var(--border))', borderRadius: '12px', padding: '10px', cursor: 'pointer', fontSize: '11px', fontWeight: 900 }}
-            onClick={() => { setIsCreating(true); setSelectedProtocol(null); setIsApplying(false); }}
-          >
-            <Plus size={14} /> NOVO PROTOCOLO
-          </button>
         </div>
 
         <div style={{ overflowY: 'auto', paddingRight: '10px' }}>
@@ -211,15 +292,21 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <span style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Cronograma</span>
-                  {selectedProtocol.steps.map((step: any, idx: number) => (
-                    <div key={idx} style={{ padding: '16px', borderRadius: '16px', background: 'hsl(var(--bg-main)/0.3)', border: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'hsl(var(--text-main))', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900 }}>D{step.day}</div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '14px', fontWeight: 800 }}>{step.product}</div>
-                        <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>{step.dose} • {step.via}</div>
+                  {selectedProtocol.steps && Array.isArray(selectedProtocol.steps) ? (
+                    selectedProtocol.steps.map((step: any, idx: number) => (
+                      <div key={idx} style={{ padding: '16px', borderRadius: '16px', background: 'hsl(var(--bg-main)/0.3)', border: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'hsl(var(--text-main))', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900 }}>D{step.day}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '14px', fontWeight: 800 }}>{step.product}</div>
+                          <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>{step.dose} • {step.via || 'N/A'}</div>
+                        </div>
                       </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
+                      Nenhuma etapa configurada para este protocolo.
                     </div>
-                  ))}
+                  )}
                 </div>
               </motion.div>
             ) : (

@@ -14,8 +14,10 @@ import {
   Trash2,
   FileText,
   Target,
+  Scale,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimalListModal } from '../../components/Modals/AnimalListModal';
@@ -28,6 +30,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber, formatPercent } from '../../utils/format';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { PastureFilterModal } from './components/PastureFilterModal';
 
 export const PastureManagement: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -45,14 +48,14 @@ export const PastureManagement: React.FC = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
-    tipo_capim: 'all'
+    capins: [],
+    minArea: 0,
+    maxArea: 500,
+    minUA: 0,
+    maxUA: 100,
+    needsFertilization: false
   });
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
-
-  useEffect(() => {
-    if (!activeFarm) return;
-    fetchPastures();
-  }, [activeFarm]);
 
   const fetchPastures = async () => {
     setLoading(true);
@@ -78,54 +81,57 @@ export const PastureManagement: React.FC = () => {
           periodLabel: 'Mapeamento Atual',
           sparkline: [
             { value: 100, label: '100%' }, { value: 100, label: '100%' }, { value: 100, label: '100%' }, 
-            { value: 100, label: '100%' }, { value: 100, label: '100%' }, { value: 100, label: '100%' }, 
-            { value: 100, label: '100%' }, { value: 100, label: 'Total: ' + totalArea.toFixed(0) + 'ha' }
+            { value: 100, label: '100%' }, { value: 100, label: '100%' }, { value: 100, label: 'Total: ' + totalArea.toFixed(0) + 'ha' }
           ]
         },
         { 
-          label: 'Pastos em Descanso', 
+          label: 'Em Descanso (DDR)', 
           value: restingPastures, 
           icon: Trees, 
           color: '#3b82f6', 
           progress: (restingPastures / data.length) * 100,
-          change: `${occupiedPastures} em uso`,
-          periodLabel: 'Rotacionamento',
+          change: 'Média 24 dias',
+          periodLabel: 'Período de Recuperação',
           sparkline: [
             { value: 30, label: '3' }, { value: 45, label: '5' }, { value: 20, label: '2' }, 
-            { value: 60, label: '7' }, { value: 40, label: '4' }, { value: 50, label: '6' }, 
-            { value: 55, label: '6' }, { value: (restingPastures / data.length) * 100, label: restingPastures + ' em descanso' }
+            { value: 60, label: '7' }, { value: 40, label: '4' }, { value: (restingPastures / data.length) * 100, label: restingPastures + ' em descanso' }
           ]
         },
         { 
-          label: 'Taxa de Lotação', 
-          value: '1.4 UA/ha', 
+          label: 'Pressão de Pastejo', 
+          value: '92%', 
           icon: Activity, 
           color: '#f59e0b', 
-          progress: 70,
-          periodLabel: 'Carga Animal',
+          progress: 92,
+          change: 'Próximo do Limite',
+          periodLabel: 'UA Real vs Suportada',
           sparkline: [
             { value: 60, label: '1.2 UA' }, { value: 65, label: '1.3 UA' }, { value: 70, label: '1.4 UA' }, 
-            { value: 68, label: '1.3 UA' }, { value: 72, label: '1.5 UA' }, { value: 70, label: '1.4 UA' }, 
-            { value: 71, label: '1.4 UA' }, { value: 70, label: '1.4 UA' }
+            { value: 72, label: '1.5 UA' }, { value: 85, label: '1.6 UA' }, { value: 92, label: '92%' }
           ]
         },
         { 
-          label: 'Pluviosidade Mês', 
-          value: '120mm', 
-          icon: CloudRain, 
+          label: 'Degradação Médio', 
+          value: '8%', 
+          icon: Target, 
           color: '#166534', 
-          progress: 85,
-          periodLabel: 'Índice Pluviom.',
+          progress: 8,
+          change: 'Nível Controlado',
+          periodLabel: 'Monitoramento Solo',
           sparkline: [
-            { value: 20, label: '20mm' }, { value: 40, label: '40mm' }, { value: 10, label: '10mm' }, 
-            { value: 80, label: '120mm' }, { value: 30, label: '45mm' }, { value: 50, label: '70mm' }, 
-            { value: 90, label: '140mm' }, { value: 85, label: '120mm' }
+            { value: 5, label: '5%' }, { value: 12, label: '12%' }, { value: 10, label: '10%' }, 
+            { value: 8, label: '8%' }, { value: 6, label: '6%' }, { value: 8, label: '8%' }
           ]
         },
       ]);
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    if (!activeFarm) return;
+    fetchPastures();
+  }, [activeFarm]);
 
   const handleOpenCreate = () => {
     setSelectedPasture(null);
@@ -208,20 +214,35 @@ export const PastureManagement: React.FC = () => {
       )
     },
     {
-      header: 'Lotação',
-      accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Activity size={14} />
-          <span>{item.capacidade_ua} UA</span>
-        </div>
-      )
+      header: 'Pressão de Pastejo',
+      accessor: (item: any) => {
+        const pressure = item.status === 'occupied' ? 85 : 0; // Mocking pressure
+        return (
+          <div className="table-cell-meta">
+            <div className="flex items-center gap-2 w-full">
+              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div 
+                  className={`h-full ${pressure > 90 ? 'bg-red-500' : 'bg-brand'}`} 
+                  style={{ width: `${pressure}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-bold text-slate-600">{pressure}%</span>
+            </div>
+          </div>
+        );
+      }
     },
     {
-      header: 'Status',
+      header: 'Status & DDR',
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status}`}>
-          {item.status === 'occupied' ? 'Ocupado' : item.status === 'resting' ? 'Descanso' : 'Livre'}
-        </span>
+        <div className="flex flex-col items-center">
+          <span className={`status-pill ${item.status}`}>
+            {item.status === 'occupied' ? 'Ocupado' : item.status === 'resting' ? 'Descanso' : 'Livre'}
+          </span>
+          {item.status === 'resting' && (
+            <span className="text-[9px] font-bold text-blue-600 mt-1">12 DIAS DDR</span>
+          )}
+        </div>
       ),
       align: 'center' as const
     }
@@ -326,51 +347,12 @@ export const PastureManagement: React.FC = () => {
         </div>
       </div>
 
-      <AnimatePresence>
-        {showAdvancedFilters && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="advanced-filter-panel"
-          >
-            <div className="filter-grid">
-              <div className="filter-field">
-                <label className="elite-label">Status de Ocupação</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.status}
-                  onChange={(e) => setFilterValues({...filterValues, status: e.target.value})}
-                >
-                  <option value="all">Todos</option>
-                  <option value="occupied">Ocupado</option>
-                  <option value="resting">Em Descanso</option>
-                  <option value="free">Livre</option>
-                </select>
-              </div>
-              <div className="filter-field">
-                <label className="elite-label">Tipo de Capim</label>
-                <select 
-                  className="elite-input elite-select"
-                  value={filterValues.tipo_capim}
-                  onChange={(e) => setFilterValues({...filterValues, tipo_capim: e.target.value})}
-                >
-                  <option value="all">Todos os tipos</option>
-                  <option value="Brachiaria">Brachiaria</option>
-                  <option value="Panicum">Panicum</option>
-                  <option value="Cynodon">Cynodon</option>
-                  <option value="Estrela">Estrela</option>
-                </select>
-              </div>
-              <div className="filter-actions-inline">
-                <button className="text-btn" onClick={() => setFilterValues({ status: 'all', tipo_capim: 'all' })}>
-                  LIMPAR
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <PastureFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
 
       <div className="management-content">
         {pastures.length === 0 && !loading ? (
@@ -386,9 +368,17 @@ export const PastureManagement: React.FC = () => {
             data={pastures.filter(p => {
               const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.tipo_capim || '').toLowerCase().includes(searchTerm.toLowerCase());
               const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
+              
               const matchesStatus = filterValues.status === 'all' || p.status === filterValues.status;
-              const matchesCapim = filterValues.tipo_capim === 'all' || p.tipo_capim === filterValues.tipo_capim;
-              return matchesSearch && matchesTab && matchesStatus && matchesCapim;
+              const matchesCapins = filterValues.capins.length === 0 || filterValues.capins.some(c => p.tipo_capim?.includes(c));
+              
+              const area = Number(p.area || 0);
+              const matchesArea = area <= filterValues.maxArea;
+              
+              const ua = Number(p.capacidade_ua || 0);
+              const matchesUA = ua >= filterValues.minUA && ua <= filterValues.maxUA;
+
+              return matchesSearch && matchesTab && matchesStatus && matchesCapins && matchesArea && matchesUA;
             })}
             columns={columns}
             loading={loading}
@@ -412,9 +402,17 @@ export const PastureManagement: React.FC = () => {
               .filter(p => {
                 const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.tipo_capim || '').toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
+                
                 const matchesStatus = filterValues.status === 'all' || p.status === filterValues.status;
-                const matchesCapim = filterValues.tipo_capim === 'all' || p.tipo_capim === filterValues.tipo_capim;
-                return matchesSearch && matchesTab && matchesStatus && matchesCapim;
+                const matchesCapins = filterValues.capins.length === 0 || filterValues.capins.some(c => p.tipo_capim?.includes(c));
+                
+                const area = Number(p.area || 0);
+                const matchesArea = area <= filterValues.maxArea;
+                
+                const ua = Number(p.capacidade_ua || 0);
+                const matchesUA = ua >= filterValues.minUA && ua <= filterValues.maxUA;
+
+                return matchesSearch && matchesTab && matchesStatus && matchesCapins && matchesArea && matchesUA;
               })
               .map(p => (
                 <motion.div 
@@ -442,15 +440,15 @@ export const PastureManagement: React.FC = () => {
                     <div className="card-meta-grid">
                       <div className="meta-item">
                         <Maximize size={14} className="meta-icon" />
-                        <span>{p.area || 0} ha</span>
+                        <span>{p.area || 0} ha | {p.capacidade_ua || 0} UA Suportada</span>
                       </div>
                       <div className="meta-item">
                         <Activity size={14} className="meta-icon" />
-                        <span>Capacidade: {p.capacidade_ua || 0} UA</span>
+                        <span>Pressão: {p.status === 'occupied' ? '85% (Equilibrada)' : '0% (Descanso)'}</span>
                       </div>
                       <div className="meta-item">
-                        <Target size={14} className="meta-icon" />
-                        <span>Status: {p.status === 'occupied' ? 'Ocupado' : 'Descanso'}</span>
+                        <Calendar size={14} className="meta-icon" />
+                        <span>{p.status === 'occupied' ? 'Entrada: 12/05' : 'DDR: 14 dias'}</span>
                       </div>
                     </div>
                   </div>
@@ -663,7 +661,9 @@ export const PastureManagement: React.FC = () => {
       <AnimalListModal 
         isOpen={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
-        pasture={pastureToView}
+        title={`Animais no Pasto: ${pastureToView?.nome}`}
+        filterField="pasto_id"
+        filterValue={pastureToView?.id}
       />
 
     </div>

@@ -15,7 +15,10 @@ import {
   XCircle,
   FileText,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  Calendar,
+  ShieldCheck,
+  History
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -24,6 +27,9 @@ import { CompanyForm } from '../../components/Forms/CompanyForm';
 import { FarmForm } from '../../components/Forms/FarmForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { CompanyFilterModal } from './components/CompanyFilterModal';
 
 export const CompanyManagement: React.FC = () => {
   const { activeFarm, tenant } = useTenant();
@@ -40,6 +46,16 @@ export const CompanyManagement: React.FC = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    type: 'all',
+    state: 'all',
+    minArea: 0,
+    maxArea: 100000,
+    onlyValidated: false,
+    hasMatriz: 'all'
+  });
+  const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
     if (tenant?.id) {
@@ -63,6 +79,55 @@ export const CompanyManagement: React.FC = () => {
 
       if (unitsData) setCompanies(unitsData);
       if (farmsData) setFarms(farmsData);
+
+      // Strategic Intelligence Calculations
+      const totalUnits = (unitsData?.length || 0) + (farmsData?.length || 0);
+      const totalArea = (farmsData || []).reduce((acc, f) => acc + (Number(f.area_total) || 0), 0);
+      const matrizCount = (unitsData || []).filter(u => u.tipo?.toLowerCase() === 'matriz').length;
+      const complianceScore = Math.floor((matrizCount > 0 ? 60 : 0) + (totalUnits > 0 ? 40 : 0));
+
+      setStats([
+        { 
+          label: 'Unidades Ativas', 
+          value: totalUnits, 
+          icon: Building2, 
+          color: '#3b82f6', 
+          progress: 100,
+          change: 'Instâncias Ativas',
+          periodLabel: 'Portfólio Global',
+          sparkline: [{ value: 2 }, { value: 5 }, { value: totalUnits }]
+        },
+        { 
+          label: 'Área Consolidada', 
+          value: `${totalArea.toLocaleString('pt-BR')} ha`, 
+          icon: Map, 
+          color: '#10b981', 
+          progress: 100,
+          change: 'Área de Produção',
+          periodLabel: 'Extensão Territorial',
+          sparkline: [{ value: 1000 }, { value: 1500 }, { value: totalArea }]
+        },
+        { 
+          label: 'Governança Fiscal', 
+          value: matrizCount > 0 ? 'MATRIZ ATIVA' : 'PENDENTE', 
+          icon: ShieldCheck, 
+          color: matrizCount > 0 ? '#10b981' : '#ef4444', 
+          progress: matrizCount > 0 ? 100 : 0,
+          change: matrizCount > 0 ? 'Conforme' : 'Risco Fiscal',
+          periodLabel: 'Compliance Contábil',
+          sparkline: [{ value: 0 }, { value: matrizCount > 0 ? 1 : 0 }]
+        },
+        { 
+          label: 'Score Operacional', 
+          value: `${complianceScore}%`, 
+          icon: Layout, 
+          color: complianceScore > 80 ? '#10b981' : '#f59e0b', 
+          progress: complianceScore,
+          change: 'Health Index',
+          periodLabel: 'Integridade de Dados',
+          sparkline: [{ value: 40 }, { value: 60 }, { value: complianceScore }]
+        }
+      ]);
     } catch (err) {
       console.error(err);
     } finally {
@@ -252,16 +317,27 @@ export const CompanyManagement: React.FC = () => {
     }
   ];
 
-  const filteredCompanies = companies.filter(c => 
-    (c.razao_social?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-    (c.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-    (c.cnpj || '').includes(searchTerm) ||
-    (c.documento || '').includes(searchTerm)
-  );
+  const filteredCompanies = companies.filter(c => {
+    const matchesSearch = (c.razao_social?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+                         (c.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+                         (c.cnpj || '').includes(searchTerm) ||
+                         (c.documento || '').includes(searchTerm);
+    
+    const matchesType = filterValues.type === 'all' || c.tipo?.toLowerCase() === filterValues.type;
+    const matchesState = filterValues.state === 'all' || c.estado === filterValues.state;
+    const matchesValidated = !filterValues.onlyValidated || c.ativo;
 
-  const filteredFarms = farms.filter(f => 
-    (f.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-  );
+    return matchesSearch && matchesType && matchesState && matchesValidated;
+  });
+
+  const filteredFarms = farms.filter(f => {
+    const matchesSearch = (f.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+    
+    const matchesArea = Number(f.area_total || 0) <= filterValues.maxArea;
+    const matchesState = filterValues.state === 'all' || f.localizacao?.includes(filterValues.state);
+
+    return matchesSearch && matchesArea && matchesState;
+  });
 
   const hasMatriz = companies.some(c => c.tipo?.toUpperCase() === 'MATRIZ');
 
@@ -286,6 +362,24 @@ export const CompanyManagement: React.FC = () => {
           </button>
         </div>
       </header>
+
+      <div className="next-gen-kpi-grid">
+        {loading ? (
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
+        ) : stats.map((stat, idx) => (
+          <EliteStatCard
+            key={idx}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            progress={stat.progress}
+            change={stat.change}
+            periodLabel={stat.periodLabel}
+            sparkline={stat.sparkline}
+          />
+        ))}
+      </div>
 
       <div className="elite-controls-row">
         <div className="elite-tab-group">
@@ -332,7 +426,11 @@ export const CompanyManagement: React.FC = () => {
         </div>
 
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Log">
@@ -340,6 +438,13 @@ export const CompanyManagement: React.FC = () => {
           </button>
         </div>
       </div>
+
+      <CompanyFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
 
       <div className="management-content">
         {activeTab === 'companies' && !hasMatriz && !loading && (
@@ -398,24 +503,16 @@ export const CompanyManagement: React.FC = () => {
                     <motion.div 
                       key={c.id} 
                       layout
-                      className={`user-card-premium ${c.tipo === 'matriz' ? 'info-badge' : ''}`}
+                      className={`user-card-premium ${c.tipo?.toLowerCase() === 'matriz' ? 'active' : ''}`}
                     >
-                      <div className="card-left-section">
-                        <div className="card-avatar">
-                          <Building2 size={32} />
-                        </div>
-                        <div className="card-bottom-actions">
-                          <button className="action-icon-btn" onClick={() => handleViewLogs(c)} title="Logs"><Eye size={16} /></button>
-                          <button className="action-icon-btn" onClick={() => { setEditingItem(c); setIsCompanyModalOpen(true); }} title="Editar"><Edit3 size={16} /></button>
-                        </div>
+                      <div className="card-avatar">
+                        <Building2 size={32} />
                       </div>
-
                       <div className="card-main-content">
                         <div className="card-header-info">
                           <h3>{c.razao_social || c.nome}</h3>
                           <span className="card-role-badge">{c.tipo || 'UNIDADE'}</span>
                         </div>
-
                         <div className="card-meta-grid">
                           <div className="meta-item">
                             <Globe size={14} className="meta-icon" />
@@ -423,8 +520,17 @@ export const CompanyManagement: React.FC = () => {
                           </div>
                           <div className="meta-item">
                             <MapPin size={14} className="meta-icon" />
-                            <span>{c.cidade}/{c.estado}</span>
+                            <span>{c.cidade || 'Sede'}/{c.estado || 'BR'}</span>
                           </div>
+                          <div className="meta-item">
+                            <Calendar size={14} className="meta-icon" />
+                            <span>Contrato Ativo</span>
+                          </div>
+                        </div>
+                        <div className="card-bottom-actions">
+                          <button className="action-icon-btn" onClick={() => handleViewLogs(c)} title="Logs"><History size={16} /></button>
+                          <button className="action-icon-btn" onClick={() => { setEditingItem(c); setIsCompanyModalOpen(true); }} title="Editar"><Edit3 size={16} /></button>
+                          <button className="action-icon-btn delete" onClick={() => handleDelete('company', c.id)} title="Excluir"><XCircle size={16} /></button>
                         </div>
                       </div>
                     </motion.div>
@@ -463,28 +569,20 @@ export const CompanyManagement: React.FC = () => {
                     <motion.div 
                       key={f.id} 
                       layout
-                      className={`user-card-premium active`}
+                      className="user-card-premium active"
                     >
-                      <div className="card-left-section">
-                        <div className="card-avatar">
-                          <Map size={32} />
-                        </div>
-                        <div className="card-bottom-actions">
-                          <button className="action-icon-btn" onClick={() => { setEditingItem(f); setIsFarmModalOpen(true); }} title="Editar"><Edit3 size={16} /></button>
-                          <button className="action-icon-btn delete" onClick={() => handleDelete('farm', f.id)} title="Excluir"><XCircle size={16} /></button>
-                        </div>
+                      <div className="card-avatar profile-icon" style={{ background: '#10b981' }}>
+                        <Map size={32} />
                       </div>
-
                       <div className="card-main-content">
                         <div className="card-header-info">
                           <h3>{f.nome}</h3>
-                          <span className="card-role-badge">FAZENDA</span>
+                          <span className="card-role-badge" style={{ color: '#10b981', background: '#10b98115', borderColor: '#10b98130' }}>PRODUTIVA</span>
                         </div>
-
                         <div className="card-meta-grid">
                           <div className="meta-item">
                             <Layout size={14} className="meta-icon" />
-                            <span>{f.area_total} ha</span>
+                            <span>Área: {f.area_total} ha</span>
                           </div>
                           <div className="meta-item">
                             <Building2 size={14} className="meta-icon" />
@@ -492,8 +590,12 @@ export const CompanyManagement: React.FC = () => {
                           </div>
                           <div className="meta-item">
                             <MapPin size={14} className="meta-icon" />
-                            <span>{f.localizacao}</span>
+                            <span>{f.localizacao || 'Localização não informada'}</span>
                           </div>
+                        </div>
+                        <div className="card-bottom-actions">
+                          <button className="action-icon-btn" onClick={() => { setEditingItem(f); setIsFarmModalOpen(true); }} title="Editar"><Edit3 size={16} /></button>
+                          <button className="action-icon-btn delete" onClick={() => handleDelete('farm', f.id)} title="Excluir"><XCircle size={16} /></button>
                         </div>
                       </div>
                     </motion.div>
@@ -631,103 +733,41 @@ export const CompanyManagement: React.FC = () => {
         }
 
         .card-avatar {
-          width: 64px;
-          height: 64px;
-          background: hsl(var(--bg-card));
-          color: hsl(var(--brand));
-          border-radius: 20px;
+          width: 56px;
+          height: 56px;
+          border-radius: 16px;
+          background: var(--bg-main);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 28px;
+          font-size: 1.5rem;
           font-weight: 900;
-          margin-bottom: 12px;
-          box-shadow: var(--shadow-sm);
-          border: 1px solid hsl(var(--border));
+          color: var(--brand);
+          flex-shrink: 0;
+          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
         }
-
-        .card-main-content {
-          flex: 1;
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
+        .card-avatar.profile-icon {
+          color: white;
+          box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
         }
-
-        .card-header-info h3 {
-          font-size: 16px;
-          font-weight: 800;
-          color: hsl(var(--text-main));
-          margin-bottom: 6px;
-          letter-spacing: -0.01em;
-        }
-
-        .card-role-badge {
-          display: inline-block;
-          font-size: 10px;
-          font-weight: 900;
-          color: hsl(var(--brand));
-          background: hsl(var(--brand) / 0.08);
-          padding: 4px 12px;
-          border-radius: 100px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          border: 1px solid hsl(var(--brand) / 0.2);
-        }
-
-        .card-meta-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 10px;
-          margin-top: 12px;
-        }
-
-        .meta-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          color: hsl(var(--text-muted));
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        .meta-icon {
-          color: hsl(var(--brand));
-          opacity: 0.8;
-        }
-
-        .card-bottom-actions {
-          display: flex;
-          gap: 8px;
-          margin-top: 15px;
-        }
-
-        .action-icon-btn {
-          width: 34px;
-          height: 34px;
-          border-radius: 10px;
-          border: 1px solid hsl(var(--border));
-          background: hsl(var(--bg-card));
-          color: hsl(var(--text-muted));
-          display: flex;
-          align-items: center;
-          justify-content: center;
+        .card-main-content { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 24px; }
+        .card-header-info h3 { font-size: 1rem; font-weight: 900; color: var(--text-main); margin: 0; letter-spacing: -0.01em; }
+        .card-role-badge { font-size: 0.625rem; font-weight: 800; color: var(--brand); background: rgba(var(--brand-rgb), 0.1); padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+        
+        .card-meta-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+        .meta-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
+        .meta-icon { color: var(--brand); opacity: 0.7; }
+        
+        .card-bottom-actions { display: flex; gap: 8px; margin-top: auto; }
+        .action-icon-btn { 
+          width: 32px; height: 32px; border-radius: 8px; 
+          background: var(--bg-main); color: var(--text-muted); 
+          display: flex; align-items: center; justify-content: center; 
+          transition: 0.2s; 
           cursor: pointer;
-          transition: 0.2s;
         }
-
-        .action-icon-btn:hover {
-          background: hsl(var(--brand));
-          color: white;
-          transform: scale(1.1);
-          border-color: hsl(var(--brand));
-        }
-
-        .action-icon-btn.delete:hover {
-          background: #ef4444;
-          border-color: #ef4444;
-          color: white;
-        }
+        .action-icon-btn:hover { background: var(--brand); color: white; transform: translateY(-2px); }
+        .action-icon-btn.delete:hover { background: #ef4444; }
       `}</style>
 
       <CompanyForm 

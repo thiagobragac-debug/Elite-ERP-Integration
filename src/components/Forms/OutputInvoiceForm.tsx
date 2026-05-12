@@ -17,6 +17,7 @@ import {
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { InsumoEntryTable } from './InsumoEntryTable';
 
 interface OutputInvoiceFormProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
     transport_company: '',
     description: ''
   });
+  const [items, setItems] = useState<any[]>([]);
 
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,19 +55,26 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         transport_company: initialData.transportadora || '',
         description: initialData.observacoes || ''
       });
+      setItems(initialData.itens || []);
     } else {
       setFormData({
         invoice_number: '',
         series: '1',
         client_id: '',
         date: new Date().toISOString().split('T')[0],
-        total_value: '',
+        total_value: '0',
         nature_of_operation: 'Venda de Produção Própria',
         transport_company: '',
         description: ''
       });
+      setItems([]);
     }
   }, [initialData, isOpen]);
+
+  useEffect(() => {
+    const total = items.reduce((acc, curr) => acc + (curr.total || 0), 0);
+    setFormData(prev => ({ ...prev, total_value: total.toString() }));
+  }, [items]);
 
   useEffect(() => {
     if (isOpen && activeFarm) {
@@ -82,7 +91,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, itens: items });
     } finally {
       setLoading(false);
     }
@@ -98,20 +107,21 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
       icon={ArrowUpRight}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Transmitir NF-e"}
+      size="xlarge"
     >
-      <div className="elite-field-group">
+      <div className="elite-field-group span-1">
         <label className="elite-label"><Hash size={14} /> Número da Nota</label>
         <input 
           className="elite-input"
           type="text" 
-          placeholder="Gerado automaticamente ou manual..." 
+          placeholder="Ex: 123456..." 
           value={formData.invoice_number}
           onChange={(e) => setFormData({...formData, invoice_number: e.target.value})}
           required 
         />
       </div>
 
-      <div className="elite-field-group">
+      <div className="elite-field-group span-1">
         <label className="elite-label"><Layers size={14} /> Série</label>
         <input 
           className="elite-input"
@@ -122,7 +132,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         />
       </div>
 
-      <div className="elite-field-group">
+      <div className="elite-field-group span-2">
         <label className="elite-label"><User size={14} /> Cliente / Destinatário</label>
         <select 
           className="elite-input elite-select"
@@ -137,7 +147,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         </select>
       </div>
 
-      <div className="elite-field-group">
+      <div className="elite-field-group span-2">
         <label className="elite-label"><Settings size={14} /> Natureza da Operação</label>
         <select 
           className="elite-input elite-select"
@@ -153,7 +163,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         </select>
       </div>
 
-      <div className="elite-field-group">
+      <div className="elite-field-group span-1">
         <label className="elite-label"><Calendar size={14} /> Data de Emissão</label>
         <input 
           className="elite-input"
@@ -164,8 +174,8 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><DollarSign size={14} /> Valor Total da NF (R$)</label>
+      <div className="elite-field-group span-1">
+        <label className="elite-label"><DollarSign size={14} /> Valor Total (R$)</label>
         <input 
           className="elite-input"
           type="number" 
@@ -177,7 +187,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         />
       </div>
 
-      <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
+      <div className="elite-field-group span-2">
         <label className="elite-label"><Truck size={14} /> Transportadora</label>
         <input 
           className="elite-input"
@@ -188,7 +198,14 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         />
       </div>
 
-      <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
+      <div className="form-group full-width">
+        <InsumoEntryTable 
+          items={items}
+          onChange={setItems}
+        />
+      </div>
+
+      <div className="elite-field-group span-2">
         <label className="elite-label"><FileText size={14} /> Dados Adicionais</label>
         <textarea 
           className="elite-input elite-textarea"

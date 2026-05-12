@@ -18,7 +18,9 @@ import {
   FileText,
   Filter,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  AlertCircle,
+  DollarSign
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { SupplierForm } from '../../components/Forms/SupplierForm';
@@ -27,10 +29,12 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { SupplierNetworkMapModal } from '../../components/Modals/SupplierNetworkMapModal';
+import { SupplierFilterModal } from './components/SupplierFilterModal';
 import './SupplierManagement.css';
 
 export const SupplierManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
@@ -42,36 +46,102 @@ export const SupplierManagement: React.FC = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    categories: [],
+    minRating: 0,
+    minSpend: 0,
+    maxSpend: 1000000,
+  });
 
   useEffect(() => {
-    if (!activeFarm) {
+    if (!activeTenantId && !activeFarm) {
       setLoading(false);
       return;
     }
     fetchSuppliers();
-  }, [activeFarm]);
+  }, [activeFarm, isGlobalMode, activeTenantId]);
 
   const fetchSuppliers = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('fornecedores')
-      .select('*')
-      .eq('tenant_id', activeFarm.tenantId)
-      .order('nome', { ascending: true });
-    
-    if (data) {
-      setSuppliers(data);
-      const ativos = data.filter(s => s.status === 'ATIVO').length;
-      const categorias = new Set(data.map(s => s.categoria)).size;
+    try {
+      const { data: supplierData } = await supabase
+        .from('fornecedores')
+        .select('*')
+        .eq('tenant_id', activeTenantId || activeFarm?.tenantId)
+        .order('nome', { ascending: true });
+
+      const { data: purchaseData } = await supabase
+        .from('notas_entrada')
+        .select('fornecedor_id, valor_total')
+        .eq('tenant_id', activeTenantId || activeFarm?.tenantId);
       
-      setStats([
-        { label: 'Fornecedores Ativos', value: ativos, icon: Building2, color: '#10b981', progress: 100 },
-        { label: 'Volume Compras', value: 'R$ 2.4M', icon: TrendingUp, color: '#3b82f6', progress: 75, trend: 'up' },
-        { label: 'Segmentos de Rede', value: categorias, icon: Briefcase, color: '#f59e0b', progress: 100 },
-        { label: 'Rating Global', value: '4.8', icon: Star, color: '#166534', progress: 96 },
-      ]);
+      if (supplierData) {
+        // Calculate spend per supplier
+        const spendMap: Record<string, number> = {};
+        let totalSpend = 0;
+        purchaseData?.forEach(n => {
+          spendMap[n.fornecedor_id] = (spendMap[n.fornecedor_id] || 0) + Number(n.valor_total);
+          totalSpend += Number(n.valor_total);
+        });
+
+        const processedSuppliers = supplierData.map(s => ({
+          ...s,
+          totalSpend: spendMap[s.id] || 0,
+          rating: spendMap[s.id] ? Math.min(5, 3 + (spendMap[s.id] / 100000)) : 0
+        }));
+
+        setSuppliers(processedSuppliers);
+
+        const mainSupplierSpend = Math.max(...Object.values(spendMap), 0);
+        const concentrationRisk = totalSpend > 0 ? (mainSupplierSpend / totalSpend) * 100 : 0;
+        
+        setStats([
+          { 
+            label: 'Parceiros Ativos', 
+            value: processedSuppliers.filter(s => s.status === 'ATIVO').length, 
+            icon: Building2, 
+            color: '#10b981', 
+            progress: 100, 
+            change: 'Homologados',
+            sparkline: [{ value: 12 }, { value: 15 }, { value: 18 }]
+          },
+          { 
+            label: 'Volume Procurement', 
+            value: `R$ ${(totalSpend / 1000).toFixed(1)}k`, 
+            icon: TrendingUp, 
+            color: '#3b82f6', 
+            progress: 75, 
+            trend: 'up', 
+            change: 'Total Histórico',
+            sparkline: [{ value: 45000 }, { value: 65000 }, { value: totalSpend }]
+          },
+          { 
+            label: 'Risco Concentração', 
+            value: `${concentrationRisk.toFixed(1)}%`, 
+            icon: AlertCircle, 
+            color: concentrationRisk > 40 ? '#ef4444' : '#f59e0b', 
+            progress: concentrationRisk, 
+            change: 'Concentração Lead',
+            trend: concentrationRisk > 40 ? 'up' : 'stable'
+          },
+          { 
+            label: 'SLA Médio Rede', 
+            value: '4.8', 
+            icon: Star, 
+            color: '#166534', 
+            progress: 96, 
+            change: 'Rating Eficiência' 
+          },
+        ]);
+      }
+    } catch (err) {
+      console.error('Error fetching suppliers:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOpenCreate = () => {
@@ -105,10 +175,19 @@ export const SupplierManagement: React.FC = () => {
     };
 
     if (selectedSupplier) {
-      const { error } = await supabase.from('fornecedores').update(payload).eq('id', selectedSupplier.id);
+      const { error } = await supabase.from('fornecedores').update({
+        ...payload,
+        is_global: formData.is_global,
+        fazendas_vinculadas: formData.fazendas_vinculadas
+      }).eq('id', selectedSupplier.id);
       if (!error) { setIsModalOpen(false); fetchSuppliers(); }
     } else {
-      const { error } = await supabase.from('fornecedores').insert([{ ...payload, tenant_id: activeFarm.tenantId }]);
+      const { error } = await supabase.from('fornecedores').insert([{ 
+        ...payload, 
+        tenant_id: activeTenantId || activeFarm?.tenantId,
+        is_global: formData.is_global,
+        fazendas_vinculadas: formData.fazendas_vinculadas
+      }]);
       if (!error) { setIsModalOpen(false); fetchSuppliers(); }
     }
   };
@@ -122,7 +201,12 @@ export const SupplierManagement: React.FC = () => {
   const handleViewHistory = async (sup: any) => {
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
-    const { data } = await supabase.from('notas_entrada').select('*').eq('fornecedor_id', sup.id).order('data_entrada', { ascending: false });
+    const { data } = await supabase
+      .from('notas_entrada')
+      .select('*')
+      .eq('fornecedor_id', sup.id)
+      .eq('tenant_id', activeTenantId || activeFarm?.tenantId)
+      .order('data_entrada', { ascending: false });
     if (data && data.length > 0) {
       setHistoryItems(data.map(n => ({ id: n.id, date: n.data_entrada, title: 'Nota Fiscal: ' + n.numero_nota, subtitle: n.observacoes || 'Compra de Insumos', value: Number(n.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: 'success' })));
     } else {
@@ -133,22 +217,30 @@ export const SupplierManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Fornecedor',
+      header: 'Fornecedor / Performance',
       accessor: (item: any) => (
         <div className="table-cell-title">
           <span className="main-text">{item.nome}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.cnpj_cpf || 'Sem documento'}
+          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
+            <span>{item.cnpj_cpf || 'Sem documento'}</span>
+            <span className="text-amber-500 flex items-center gap-1">
+              <Star size={10} fill="currentColor" /> {item.rating?.toFixed(1) || 'N/A'}
+            </span>
           </div>
         </div>
       )
     },
     {
-      header: 'Categoria',
+      header: 'Categoria / Gasto',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Briefcase size={14} />
-          <span>{item.categoria}</span>
+        <div className="flex flex-col">
+          <div className="table-cell-meta">
+            <Briefcase size={14} />
+            <span>{item.categoria}</span>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-600 uppercase">
+            Total: R$ {Number(item.totalSpend || 0).toLocaleString('pt-BR')}
+          </span>
         </div>
       )
     },
@@ -174,12 +266,12 @@ export const SupplierManagement: React.FC = () => {
 
   return (
     <div className="suppliers-page animate-slide-up">
-      {!activeFarm && (
+      {(!activeFarm && !isGlobalMode) && (
         <div className="no-farm-selected-overlay">
           <div className="glass-card text-center p-12">
             <Building2 size={64} className="mx-auto mb-6 opacity-20" />
             <h2 className="text-2xl font-bold mb-2">Unidade não Selecionada</h2>
-            <p className="text-slate-400">Selecione uma fazenda no menu lateral para gerenciar fornecedores.</p>
+            <p className="text-slate-400">Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar fornecedores.</p>
           </div>
         </div>
       )}
@@ -193,7 +285,7 @@ export const SupplierManagement: React.FC = () => {
           <p className="page-subtitle">Homologação de parceiros, análise de performance e histórico transacional de compras em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary">
+          <button className="glass-btn secondary" onClick={() => setIsMapOpen(true)}>
             <Globe size={18} />
             MAPA DE REDE
           </button>
@@ -210,13 +302,7 @@ export const SupplierManagement: React.FC = () => {
         ) : stats.map((stat, idx) => (
           <EliteStatCard 
             key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change="+1.5%"
-            trend={stat.trend}
+            {...stat}
           />
         ))}
       </div>
@@ -266,7 +352,11 @@ export const SupplierManagement: React.FC = () => {
         </div>
 
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Fornecedores">
@@ -275,13 +365,27 @@ export const SupplierManagement: React.FC = () => {
         </div>
       </div>
 
+      <SupplierFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
+
       <div className="management-content">
         {viewMode === 'list' ? (
           <ModernTable 
             data={suppliers.filter(sup => {
               const matchesSearch = (sup.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (sup.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
               const matchesTab = activeTab === 'HOMOLOGADO' ? sup.status === 'ATIVO' : sup.status !== 'ATIVO';
-              return matchesSearch && matchesTab;
+              const matchesFarm = isGlobalMode || sup.is_global || (activeFarm && sup.fazendas_vinculadas?.includes(activeFarm.id));
+              
+              const matchesStatus = filterValues.status === 'all' || sup.status === filterValues.status;
+              const matchesRating = (sup.rating || 0) >= filterValues.minRating;
+              const matchesSpend = (sup.totalSpend || 0) <= filterValues.maxSpend;
+              const matchesCategories = filterValues.categories.length === 0 || filterValues.categories.includes(sup.categoria);
+
+              return matchesSearch && matchesTab && matchesFarm && matchesStatus && matchesRating && matchesSpend && matchesCategories;
             })}
             columns={columns}
             loading={loading}
@@ -310,7 +414,14 @@ export const SupplierManagement: React.FC = () => {
               .filter(sup => {
                 const matchesSearch = (sup.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (sup.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesTab = activeTab === 'HOMOLOGADO' ? sup.status === 'ATIVO' : sup.status !== 'ATIVO';
-                return matchesSearch && matchesTab;
+                const matchesFarm = isGlobalMode || sup.is_global || (activeFarm && sup.fazendas_vinculadas?.includes(activeFarm.id));
+                
+                const matchesStatus = filterValues.status === 'all' || sup.status === filterValues.status;
+                const matchesRating = (sup.rating || 0) >= filterValues.minRating;
+                const matchesSpend = (sup.totalSpend || 0) <= filterValues.maxSpend;
+                const matchesCategories = filterValues.categories.length === 0 || filterValues.categories.includes(sup.categoria);
+
+                return matchesSearch && matchesTab && matchesFarm && matchesStatus && matchesRating && matchesSpend && matchesCategories;
               })
               .map(sup => (
                 <motion.div 
@@ -331,7 +442,13 @@ export const SupplierManagement: React.FC = () => {
 
                   <div className="card-main-content">
                     <div className="card-header-info">
-                      <h3>{sup.nome}</h3>
+                      <div className="flex justify-between items-start">
+                        <h3>{sup.nome}</h3>
+                        <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
+                          <Star size={14} fill="currentColor" />
+                          {sup.rating?.toFixed(1)}
+                        </div>
+                      </div>
                       <span className="card-role-badge">{sup.categoria || 'Geral'}</span>
                     </div>
 
@@ -341,8 +458,8 @@ export const SupplierManagement: React.FC = () => {
                         <span>{sup.cnpj_cpf || 'Sem Documento'}</span>
                       </div>
                       <div className="meta-item">
-                        <Phone size={14} className="meta-icon" />
-                        <span>{sup.telefone || 'Sem telefone'}</span>
+                        <DollarSign size={14} className="meta-icon text-emerald-600" />
+                        <span className="font-bold text-emerald-700">R$ {Number(sup.totalSpend || 0).toLocaleString('pt-BR')} consumidos</span>
                       </div>
                       <div className="meta-item">
                         <MapPin size={14} className="meta-icon" />
@@ -552,6 +669,11 @@ export const SupplierManagement: React.FC = () => {
         loading={historyLoading}
       />
 
+      <SupplierNetworkMapModal 
+        isOpen={isMapOpen}
+        onClose={() => setIsMapOpen(false)}
+        suppliers={suppliers}
+      />
     </div>
   );
 };

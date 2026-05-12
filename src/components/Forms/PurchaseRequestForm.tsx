@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { 
-  ShoppingCart, 
-  Package,
-  Calendar,
-  User,
+  FileText, 
+  User, 
+  Building2, 
+  Calendar, 
+  AlertCircle, 
   DollarSign,
-  AlertTriangle,
-  Layers,
-  FileText,
-  Building2
+  ClipboardList
 } from 'lucide-react';
 import { FormModal } from './FormModal';
+import { InsumoEntryTable } from './InsumoEntryTable';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface PurchaseRequestFormProps {
   isOpen: boolean;
@@ -19,45 +19,35 @@ interface PurchaseRequestFormProps {
   initialData?: any;
 }
 
-export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
-    title: '',
-    department: '',
-    priority: 'medium',
-    estimatedValue: '',
-    description: '',
-    items: [] as any[]
-  });
-
+export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData
+}) => {
+  const { activeCompany, companies } = useTenant();
   const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<any[]>(initialData?.items || []);
 
-  React.useEffect(() => {
-    if (initialData) {
-      setFormData({
-        title: initialData.titulo || '',
-        department: initialData.departamento || '',
-        priority: initialData.prioridade || 'medium',
-        estimatedValue: initialData.valor_estimado?.toString() || '',
-        description: initialData.descricao || '',
-        items: initialData.itens || []
-      });
-    } else {
-      setFormData({
-        title: '',
-        department: '',
-        priority: 'medium',
-        estimatedValue: '',
-        description: '',
-        items: []
-      });
-    }
-  }, [initialData, isOpen]);
+  const [formData, setFormData] = useState({
+    company_id: initialData?.company_id || activeCompany?.id || '',
+    title: initialData?.title || '',
+    requester: initialData?.requester || '',
+    department: initialData?.department || '',
+    date: initialData?.date || new Date().toISOString().split('T')[0],
+    priority: initialData?.priority || 'medium',
+    estimated_value: initialData?.estimated_value || '',
+    description: initialData?.description || ''
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, items });
+      onClose();
+    } catch (error) {
+      console.error('Error submitting request:', error);
     } finally {
       setLoading(false);
     }
@@ -69,81 +59,110 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({ isOpen
       onClose={onClose}
       onSubmit={handleSubmit}
       title={initialData ? "Editar Solicitação" : "Nova Solicitação de Compra"}
-      subtitle="Abra uma requisição interna de materiais ou serviços."
-      icon={ShoppingCart}
+      subtitle="Crie uma nova requisição de materiais ou serviços para aprovação."
+      icon={ClipboardList}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Enviar Solicitação"}
+      size="xlarge"
     >
+      <div className="form-group full-width">
+        <label><Building2 size={14} /> Empresa / Unidade Solicitante</label>
+        <select 
+          className="elite-input"
+          value={formData.company_id}
+          onChange={(e) => setFormData({...formData, company_id: e.target.value})}
+          required
+        >
+          <option value="">Selecione a empresa...</option>
+          {companies.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+
       <div className="form-group full-width">
         <label><FileText size={14} /> Título da Solicitação</label>
         <input 
+          className="elite-input"
           type="text" 
-          placeholder="Ex: Adubo NPK Safra 2024, Peças Trator..." 
+          placeholder="Ex: Compra de Fertilizantes para Safra..." 
           value={formData.title}
           onChange={(e) => setFormData({...formData, title: e.target.value})}
           required 
         />
       </div>
 
-      <div className="form-group">
-        <label><Building2 size={14} /> Departamento / Setor</label>
+      <div className="form-group span-2">
+        <label><User size={14} /> Requerente</label>
+        <input 
+          className="elite-input"
+          type="text" 
+          value={formData.requester}
+          onChange={(e) => setFormData({...formData, requester: e.target.value})}
+          required 
+        />
+      </div>
+
+      <div className="form-group span-2">
+        <label><Building2 size={14} /> Departamento</label>
         <select 
+          className="elite-input"
           value={formData.department}
           onChange={(e) => setFormData({...formData, department: e.target.value})}
           required
         >
           <option value="">Selecione o setor...</option>
-          <option value="Pecuária">Pecuária / Campo</option>
-          <option value="Veterinária">Veterinária / Sanidade</option>
-          <option value="Nutrição">Nutrição / Fábrica</option>
-          <option value="Frota">Frota / Oficina</option>
-          <option value="Admin">Administrativo / Sede</option>
+          <option value="Operacional">Operacional</option>
+          <option value="Administrativo">Administrativo</option>
+          <option value="Manutenção">Manutenção</option>
+          <option value="Logística">Logística</option>
         </select>
       </div>
 
-      <div className="form-group">
-        <label><AlertTriangle size={14} /> Prioridade</label>
+      <div className="form-group span-1">
+        <label><Calendar size={14} /> Data</label>
+        <input 
+          className="elite-input"
+          type="date" 
+          value={formData.date}
+          onChange={(e) => setFormData({...formData, date: e.target.value})}
+          required
+        />
+      </div>
+
+      <div className="form-group span-1">
+        <label><AlertCircle size={14} /> Prioridade</label>
         <select 
+          className="elite-input"
           value={formData.priority}
           onChange={(e) => setFormData({...formData, priority: e.target.value})}
           required
         >
-          <option value="low">Baixa (Planejada)</option>
-          <option value="medium">Média (Normal)</option>
-          <option value="high">Alta (Urgente)</option>
+          <option value="low">Baixa</option>
+          <option value="medium">Média</option>
+          <option value="high">Alta</option>
+          <option value="urgent">Urgente</option>
         </select>
       </div>
 
-      <div className="form-group">
+      <div className="form-group span-1">
         <label><DollarSign size={14} /> Valor Estimado (R$)</label>
         <input 
+          className="elite-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
-          value={formData.estimatedValue}
-          onChange={(e) => setFormData({...formData, estimatedValue: e.target.value})}
+          value={formData.estimated_value}
+          onChange={(e) => setFormData({...formData, estimated_value: e.target.value})}
           required
         />
       </div>
 
       <div className="form-group full-width">
-        <label><FileText size={14} /> Justificativa / Detalhes</label>
-        <textarea 
-          placeholder="Descreva a necessidade da compra e urgência..." 
-          value={formData.description}
-          onChange={(e) => setFormData({...formData, description: e.target.value})}
-          rows={3}
-          required
+        <InsumoEntryTable 
+          items={items}
+          onChange={setItems}
         />
-      </div>
-
-      <div className="form-group full-width">
-        <label><Package size={14} /> Lista de Itens (Opcional)</label>
-        <div className="elite-form-info-box" style={{ justifyContent: 'center' }}>
-          <p style={{ textAlign: 'center' }}>
-            Adicione itens detalhados à solicitação após o salvamento inicial.
-          </p>
-        </div>
       </div>
     </FormModal>
   );

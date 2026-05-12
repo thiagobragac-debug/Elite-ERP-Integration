@@ -5,20 +5,18 @@ import {
   Search, 
   Filter,
   Building2, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  ChevronRight, 
-  MoreVertical,
+  Phone,
   Star,
   TrendingUp,
   Trash2,
   Edit3,
-  History,
   FileText,
+  MapPin,
   Target,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  AlertTriangle,
+  History
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { ClientForm } from '../../components/Forms/ClientForm';
@@ -28,9 +26,10 @@ import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { useSearchParams } from 'react-router-dom';
+import { ClientFilterModal } from './components/ClientFilterModal';
 
 export const ClientManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -42,11 +41,24 @@ export const ClientManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [selectedSegment, setSelectedSegment] = useState('TODOS');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    segments: [],
+    minLtv: 0,
+    maxLtv: 1000000,
+    onlyChurnRisk: false,
+    rating: 'all'
+  });
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeTenantId && !activeFarm) {
+      setLoading(false);
+      return;
+    }
     fetchClients();
-  }, [activeFarm]);
+  }, [activeFarm, isGlobalMode, activeTenantId]);
 
   const [searchParams] = useSearchParams();
 
@@ -69,21 +81,54 @@ export const ClientManagement: React.FC = () => {
 
   const fetchClients = async () => {
     setLoading(true);
-    const { data } = await supabase
+    const tenantId = activeTenantId || activeFarm?.tenantId;
+    if (!tenantId) {
+      setLoading(false);
+      return;
+    }
+    // Fetch Clients
+    const { data: clientData } = await supabase
       .from('clientes')
       .select('*')
-      .eq('tenant_id', activeFarm.tenantId)
+      .eq('tenant_id', tenantId)
       .order('nome', { ascending: true });
     
-    if (data) {
-      setClients(data);
-      const total = data.length;
+    // Fetch Sales Data for Intelligence
+    const { data: salesData } = await supabase
+      .from('pedidos_venda')
+      .select('*')
+      .eq('tenant_id', tenantId);
+
+    if (clientData) {
+      const enrichedClients = clientData.map(client => {
+        const clientSales = salesData?.filter(s => s.cliente_id === client.id) || [];
+        const ltv = clientSales.reduce((acc, s) => acc + Number(s.valor_total || 0), 0);
+        const lastSale = clientSales.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+        
+        // Churn Logic: No purchase in > 90 days for active clients
+        const daysSinceLastSale = lastSale ? (new Date().getTime() - new Date(lastSale.created_at).getTime()) / (1000 * 3600 * 24) : 999;
+        const churnRisk = daysSinceLastSale > 90 && ltv > 0;
+
+        return {
+          ...client,
+          ltv,
+          daysSinceLastSale,
+          churnRisk,
+          rating: String(ltv > 100000 ? 'AAA' : ltv > 50000 ? 'AA' : ltv > 10000 ? 'A' : 'B'),
+          segmento: String(client.segmento || (ltv > 50000 ? 'Ouro/VIP' : 'Prata/Recorrente'))
+        };
+      });
+
+      setClients(enrichedClients);
       
+      const totalSales = salesData?.reduce((acc, s) => acc + Number(s.valor_total || 0), 0) || 0;
+      const activeCount = enrichedClients.filter(c => c.status?.toUpperCase() === 'ATIVO').length;
+
       setStats([
-        { label: 'Rede de Clientes', value: total, icon: Users, color: '#10b981', progress: 100 },
-        { label: 'Volume de Vendas', value: 'R$ 8.7M', icon: TrendingUp, color: '#3b82f6', progress: 85, trend: 'up' },
-        { label: 'Market Share', value: '14%', icon: Target, color: '#f59e0b', progress: 14 },
-        { label: 'Satisfação Global', value: '4.9', icon: Star, color: '#166534', progress: 98 },
+        { label: 'Rede de Clientes', value: enrichedClients.length, icon: Users, color: '#10b981', progress: 100, change: 'Base Total' },
+        { label: 'Receita Retida (LTV)', value: `R$ ${(totalSales / 1000).toFixed(1)}k`, icon: TrendingUp, color: '#3b82f6', progress: 85, trend: 'up', change: 'Total Histórico' },
+        { label: 'Risco de Churn', value: enrichedClients.filter(c => c.churnRisk).length, icon: AlertTriangle, color: '#ef4444', progress: 12, change: 'Inativos > 90d' },
+        { label: 'Aderência VIP', value: `${((enrichedClients.filter(c => String(c.rating || '').startsWith('A')).length / (enrichedClients.length || 1)) * 100).toFixed(0)}%`, icon: Star, color: '#f59e0b', progress: 98, change: 'Rating A+' },
       ]);
     }
     setLoading(false);
@@ -117,14 +162,24 @@ export const ClientManagement: React.FC = () => {
       estado: formData.estado,
       pais: formData.pais,
       limite_credito: formData.creditLimit,
-      status: formData.status
+      status: formData.status,
+      segmento: formData.segment
     };
 
     if (selectedClient) {
-      const { error } = await supabase.from('clientes').update(payload).eq('id', selectedClient.id);
+      const { error } = await supabase.from('clientes').update({
+        ...payload,
+        is_global: formData.is_global,
+        fazendas_vinculadas: formData.fazendas_vinculadas
+      }).eq('id', selectedClient.id);
       if (!error) { setIsModalOpen(false); fetchClients(); }
     } else {
-      const { error } = await supabase.from('clientes').insert([{ ...payload, tenant_id: activeFarm.tenantId }]);
+      const { error } = await supabase.from('clientes').insert([{ 
+        ...payload, 
+        tenant_id: activeTenantId || activeFarm?.tenantId,
+        is_global: formData.is_global,
+        fazendas_vinculadas: formData.fazendas_vinculadas
+      }]);
       if (!error) { setIsModalOpen(false); fetchClients(); }
     }
   };
@@ -146,23 +201,44 @@ export const ClientManagement: React.FC = () => {
   const columns = [
     {
       header: 'Cliente',
-      accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.nome}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.documento || 'Sem documento'}
+      accessor: (item: any) => {
+        return (
+          <div className="table-cell-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="flex flex-col">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="main-text">{item.nome}</span>
+                <span className={`px-1 rounded text-[8px] font-black border ${
+                  item.rating === 'AAA' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
+                  item.rating === 'AA' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                  'bg-slate-50 text-slate-400 border-slate-100'
+                }`}>
+                  RATING {item.rating}
+                </span>
+                {item.churnRisk && (
+                  <span className="bg-red-50 text-red-600 border border-red-100 px-1 rounded text-[8px] font-black animate-pulse">
+                    RISCO DE CHURN
+                  </span>
+                )}
+              </div>
+              <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
+                {item.documento || 'Sem documento'} • {item.segmento || 'Prata'}
+              </div>
+            </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
-      header: 'Localização',
+      header: 'LTV / Exposição',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <MapPin size={14} />
-          <span>{item.cidade ? `${item.cidade}/${item.estado}` : 'N/A'}</span>
+        <div className="flex flex-col">
+          <span className="main-text font-bold">
+            {Number(item.ltv || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+          <span className="text-[10px] text-slate-400 font-bold uppercase">Última Venda: {item.daysSinceLastSale > 365 ? 'NUNCA' : `${item.daysSinceLastSale.toFixed(0)}d atrás`}</span>
         </div>
-      )
+      ),
+      align: 'right' as const
     },
     {
       header: 'Tipo',
@@ -185,6 +261,15 @@ export const ClientManagement: React.FC = () => {
 
   return (
     <div className="crm-page animate-slide-up">
+      {(!activeFarm && !isGlobalMode) && (
+        <div className="no-farm-selected-overlay">
+          <div className="glass-card text-center p-12">
+            <Building2 size={64} className="mx-auto mb-6 opacity-20" />
+            <h2 className="text-2xl font-bold mb-2">Unidade não Selecionada</h2>
+            <p className="text-slate-400">Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar clientes.</p>
+          </div>
+        </div>
+      )}
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -195,9 +280,21 @@ export const ClientManagement: React.FC = () => {
           <p className="page-subtitle">Homologação de compradores, análise de crédito e histórico comercial consolidado em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary">
-            <Star size={18} />
-            SEGMENTOS
+          <button 
+            className={`glass-btn secondary ${selectedSegment !== 'TODOS' ? 'active' : ''}`}
+            onClick={() => {
+              const segments = ['TODOS', 'Ouro/VIP', 'Prata/Recorrente', 'Bronze/Inativo', 'Novo'];
+              const nextIdx = (segments.indexOf(selectedSegment) + 1) % segments.length;
+              setSelectedSegment(segments[nextIdx]);
+            }}
+            style={selectedSegment !== 'TODOS' ? { 
+              background: 'hsl(var(--brand) / 0.1)', 
+              borderColor: 'hsl(var(--brand))',
+              color: 'hsl(var(--brand))' 
+            } : {}}
+          >
+            <Star size={18} fill={selectedSegment !== 'TODOS' ? "currentColor" : "none"} />
+            {selectedSegment === 'TODOS' ? 'SEGMENTOS' : selectedSegment.toUpperCase()}
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
@@ -268,7 +365,11 @@ export const ClientManagement: React.FC = () => {
         </div>
         
         <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar">
@@ -277,13 +378,29 @@ export const ClientManagement: React.FC = () => {
         </div>
       </div>
 
+      <ClientFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+      />
+
       <div className="management-content">
         {viewMode === 'list' ? (
           <ModernTable 
             data={clients.filter(client => {
               const matchesSearch = (client.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (client.tipo || '').toLowerCase().includes(searchTerm.toLowerCase());
               const matchesTab = activeTab === 'ATIVO' ? client.status?.toUpperCase() === 'ATIVO' : client.status?.toUpperCase() !== 'ATIVO';
-              return matchesSearch && matchesTab;
+              const matchesFarm = isGlobalMode || client.is_global || (activeFarm && client.fazendas_vinculadas?.includes(activeFarm.id));
+              const matchesSegmentTab = selectedSegment === 'TODOS' ? true : client.segmento === selectedSegment;
+              
+              const matchesStatus = filterValues.status === 'all' || client.status === filterValues.status;
+              const matchesRating = filterValues.rating === 'all' || client.rating === filterValues.rating;
+              const matchesLtv = (client.ltv || 0) <= filterValues.maxLtv;
+              const matchesChurn = filterValues.onlyChurnRisk ? client.churnRisk : true;
+              const matchesSegments = filterValues.segments.length === 0 || filterValues.segments.includes(client.segmento);
+
+              return matchesSearch && matchesTab && matchesFarm && matchesSegmentTab && matchesStatus && matchesRating && matchesLtv && matchesChurn && matchesSegments;
             })}
             columns={columns}
             loading={loading}
@@ -312,7 +429,16 @@ export const ClientManagement: React.FC = () => {
               .filter(client => {
                 const matchesSearch = (client.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (client.tipo || '').toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesTab = activeTab === 'ATIVO' ? client.status?.toUpperCase() === 'ATIVO' : client.status?.toUpperCase() !== 'ATIVO';
-                return matchesSearch && matchesTab;
+                const matchesFarm = isGlobalMode || client.is_global || (activeFarm && client.fazendas_vinculadas?.includes(activeFarm.id));
+                const matchesSegmentTab = selectedSegment === 'TODOS' ? true : client.segmento === selectedSegment;
+                
+                const matchesStatus = filterValues.status === 'all' || client.status === filterValues.status;
+                const matchesRating = filterValues.rating === 'all' || client.rating === filterValues.rating;
+                const matchesLtv = (client.ltv || 0) <= filterValues.maxLtv;
+                const matchesChurn = filterValues.onlyChurnRisk ? client.churnRisk : true;
+                const matchesSegments = filterValues.segments.length === 0 || filterValues.segments.includes(client.segmento);
+
+                return matchesSearch && matchesTab && matchesFarm && matchesSegmentTab && matchesStatus && matchesRating && matchesLtv && matchesChurn && matchesSegments;
               })
               .map(client => (
                 <motion.div 
@@ -333,7 +459,10 @@ export const ClientManagement: React.FC = () => {
 
                   <div className="card-main-content">
                     <div className="card-header-info">
-                      <h3>{client.nome}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3>{client.nome}</h3>
+                        {client.segmento === 'Ouro/VIP' && <Star size={16} fill="#eab308" color="#eab308" style={{ filter: 'drop-shadow(0 0 5px rgba(234, 179, 8, 0.4))' }} />}
+                      </div>
                       <span className="card-role-badge">{client.tipo || 'Cliente'}</span>
                     </div>
 

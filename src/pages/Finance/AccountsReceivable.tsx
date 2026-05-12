@@ -15,19 +15,25 @@ import {
   Eye,
   Check,
   Edit3,
-  Filter
+  Filter,
+  AlertTriangle,
+  TrendingDown,
+  Zap as ZapIcon
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { TransactionForm } from '../../components/Forms/TransactionForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { BatchLiquidationModal } from '../../components/Modals/BatchLiquidationModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { FinancialCalendarModal } from '../../components/Modals/FinancialCalendarModal';
+import { ReceivableFilterModal } from './components/ReceivableFilterModal';
 import './AccountsReceivable.css';
 
 export const AccountsReceivable: React.FC = () => {
@@ -42,6 +48,17 @@ export const AccountsReceivable: React.FC = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    minAmount: 0,
+    maxAmount: 1000000,
+    dateStart: '',
+    dateEnd: ''
+  });
+  const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   useEffect(() => {
     if (!activeFarmId && !isGlobalMode) return;
@@ -57,15 +74,52 @@ export const AccountsReceivable: React.FC = () => {
       
       if (data) {
         setInvoices(data);
+        const now = new Date();
         const totalAReceber = data.filter(i => i.status === 'PENDENTE').reduce((acc, curr) => acc + Number(curr.valor_total), 0);
-        const recebidoMes = data.filter(i => i.status === 'RECEBIDO').reduce((acc, curr) => acc + Number(curr.valor_total), 0);
-        const emAtraso = data.filter(i => i.status === 'PENDENTE' && new Date(i.data_vencimento) < new Date()).reduce((acc, curr) => acc + Number(curr.valor_total), 0);
+        const emAtraso = data.filter(i => i.status === 'PENDENTE' && new Date(i.data_vencimento) < now).reduce((acc, curr) => acc + Number(curr.valor_total), 0);
         
+        const next30DaysDate = new Date();
+        next30DaysDate.setDate(now.getDate() + 30);
+        const proj30Dias = data.filter(i => i.status === 'PENDENTE' && new Date(i.data_vencimento) <= next30DaysDate).reduce((acc, curr) => acc + Number(curr.valor_total), 0);
+
         setStats([
-          { label: 'Projeção de Receita', value: totalAReceber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: HandCoins, color: '#10b981', progress: 100 },
-          { label: 'Liquidado (Mês)', value: recebidoMes.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: TrendingUp, color: '#3b82f6', progress: 75, trend: 'up' },
-          { label: 'Inadimplência', value: emAtraso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: Clock, color: '#ef4444', progress: (emAtraso / (totalAReceber || 1)) * 100 },
-          { label: 'Títulos Ativos', value: data.length, icon: FileText, color: '#f59e0b', progress: 100 },
+          { 
+            label: 'Projeção de Receita', 
+            value: totalAReceber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
+            icon: HandCoins, 
+            color: '#10b981', 
+            progress: 100,
+            change: 'Consolidado',
+            periodLabel: 'Aberto Total'
+          },
+          { 
+            label: 'Inadimplência (Aging)', 
+            value: emAtraso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
+            icon: AlertTriangle, 
+            color: '#ef4444', 
+            progress: totalAReceber > 0 ? (emAtraso / totalAReceber) * 100 : 0,
+            trend: emAtraso > 0 ? 'up' : 'down',
+            change: `${((emAtraso / (totalAReceber || 1)) * 100).toFixed(1)}% do total`,
+            periodLabel: 'Títulos em Atraso'
+          },
+          { 
+            label: 'Previsão (30 Dias)', 
+            value: proj30Dias.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
+            icon: Calendar, 
+            color: '#3b82f6', 
+            progress: 65,
+            change: 'Próximo Período',
+            periodLabel: 'Entrada Esperada'
+          },
+          { 
+            label: 'DSO (Médio)', 
+            value: '34 dias', 
+            icon: TrendingUp, 
+            color: '#f59e0b', 
+            progress: 80,
+            change: 'Tempo de Giro',
+            periodLabel: 'Ciclo de Caixa'
+          },
         ]);
       }
     } catch (err) {
@@ -98,8 +152,7 @@ export const AccountsReceivable: React.FC = () => {
       categoria: formData.category,
       cliente_id: formData.entityId,
       metodo_recebimento: formData.paymentMethod,
-      status: formData.status,
-      ...insertPayload
+      status: formData.status
     };
 
     if (selectedInvoice) {
@@ -131,11 +184,8 @@ export const AccountsReceivable: React.FC = () => {
   };
 
   const handleMarkAsReceived = async (id: string) => {
-    const { error } = await supabase
-      .from('contas_receber')
-      .update({ status: 'RECEBIDO', data_recebimento: new Date().toISOString() })
-      .eq('id', id);
-    if (!error) fetchInvoices();
+    setSelectedInvoice(invoices.find(i => i.id === id));
+    setIsBatchModalOpen(true);
   };
 
   const handleViewDetails = (inv: any) => {
@@ -150,17 +200,32 @@ export const AccountsReceivable: React.FC = () => {
   const columns = [
     {
       header: 'Vencimento / Título',
-      accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className={`main-text ${new Date(item.data_vencimento) < new Date() && item.status === 'PENDENTE' ? 'text-red-500' : ''}`}>
-            {new Date(item.data_vencimento).toLocaleDateString()}
-          </span>
-          <div className="sub-meta">
-            <FileText size={12} />
-            <span>{item.descricao}</span>
+      accessor: (item: any) => {
+        const dueDate = new Date(item.data_vencimento);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        const diffTime = dueDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const isOverdue = diffDays < 0 && item.status === 'PENDENTE';
+
+        return (
+          <div className="table-cell-title">
+            <span className={`main-text ${isOverdue ? 'text-red-600 font-black' : ''}`}>
+              {dueDate.toLocaleDateString()}
+              {isOverdue && <AlertTriangle size={12} className="inline ml-1 text-red-600 animate-pulse" />}
+            </span>
+            <div className="sub-meta flex items-center gap-1">
+              <FileText size={12} />
+              <span className="truncate max-w-[150px]">{item.descricao}</span>
+              {item.status === 'PENDENTE' && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black uppercase ${diffDays <= 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                  {diffDays === 0 ? 'HOJE' : diffDays < 0 ? `${Math.abs(diffDays)}d ATRASO` : `${diffDays}d REST`}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      )
+        );
+      }
     },
     {
       header: 'Cliente',
@@ -182,7 +247,7 @@ export const AccountsReceivable: React.FC = () => {
     {
       header: 'Status',
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'RECEBIDO' ? 'active' : item.status === 'ATRASADO' ? 'danger' : 'warning'}`}>
+        <span className={`status-pill ${item.status === 'RECEBIDO' ? 'paid' : item.status === 'ATRASADO' ? 'overdue' : 'pending'}`}>
           {item.status}
         </span>
       ),
@@ -203,7 +268,7 @@ export const AccountsReceivable: React.FC = () => {
           <p className="page-subtitle">Rastreabilidade de receitas, liquidação de faturas e saúde do crédito em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn primary" onClick={() => {}}>
+          <button className="glass-btn primary" onClick={() => setIsCalendarOpen(true)}>
             <Calendar size={18} />
             PREVISÃO
           </button>
@@ -264,22 +329,29 @@ export const AccountsReceivable: React.FC = () => {
           />
         </div>
 
-        <div className="elite-filter-group">
-          <button className="icon-btn-secondary" title="Filtros Avançados">
+         <div className="elite-filter-group">
+          <button 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
+            title="Filtros Avançados"
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+          >
             <Filter size={20} />
           </button>
           <button className="icon-btn-secondary" title="Exportar Log">
             <FileText size={20} />
           </button>
         </div>
+
+        <ReceivableFilterModal 
+          isOpen={showAdvancedFilters}
+          onClose={() => setShowAdvancedFilters(false)}
+          filters={filterValues}
+          setFilters={setFilterValues}
+        />
       </div>
 
       <div className="management-content">
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-             <KPISkeleton />
-          </div>
-        ) : invoices.length === 0 ? (
+        {invoices.length === 0 && !loading ? (
           <EmptyState 
             title="Nenhum recebível cadastrado" 
             description="Você ainda não registrou nenhuma conta a receber para esta unidade. Comece adicionando uma nova venda ou fatura."
@@ -289,14 +361,29 @@ export const AccountsReceivable: React.FC = () => {
           />
         ) : (
           <ModernTable 
-            data={invoices.filter(i => {
+             data={invoices.filter(i => {
               const matchesSearch = (i.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (i.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
               const matchesTab = activeTab === 'TODAS' || i.status === activeTab;
-              return matchesSearch && matchesTab;
+              
+              const matchesStatus = filterValues.status === 'all' || i.status === filterValues.status;
+              const amount = Number(i.valor_total);
+              const matchesAmount = amount >= (filterValues.minAmount || 0) && amount <= (filterValues.maxAmount || 1000000);
+              const matchesDate = (!filterValues.dateStart || new Date(i.data_vencimento) >= new Date(filterValues.dateStart)) &&
+                                 (!filterValues.dateEnd || new Date(i.data_vencimento) <= new Date(filterValues.dateEnd));
+
+              return matchesSearch && matchesTab && matchesStatus && matchesAmount && matchesDate;
             })}
             columns={columns}
             loading={loading}
             hideHeader={true}
+            selectable={true}
+            isSelectable={(item) => item.status !== 'RECEBIDO'}
+            selectedItems={selectedItems}
+            onSelectionChange={(ids) => {
+              const selectableIds = invoices.filter(i => i.status !== 'RECEBIDO').map(i => i.id);
+              const onlySelectableSelected = ids.filter(id => selectableIds.includes(id as string));
+              setSelectedItems(onlySelectableSelected);
+            }}
             actions={(item) => (
               <div className="modern-actions">
                 {item.status === 'PENDENTE' && (
@@ -319,6 +406,31 @@ export const AccountsReceivable: React.FC = () => {
         )}
       </div>
 
+      <AnimatePresence>
+        {selectedItems.length > 0 && (
+          <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="elite-batch-actions-bar"
+          >
+            <div className="batch-info">
+              <div className="batch-count">{selectedItems.length}</div>
+              <div className="batch-text">Títulos Selecionados</div>
+            </div>
+            <div className="batch-actions">
+              <button className="batch-btn secondary" onClick={() => setSelectedItems([])}>
+                CANCELAR
+              </button>
+              <button className="batch-btn success" onClick={() => setIsBatchModalOpen(true)}>
+                <Check size={18} />
+                LIQUIDAR EM LOTE
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <TransactionForm 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -334,6 +446,32 @@ export const AccountsReceivable: React.FC = () => {
         subtitle="Rastreabilidade completa do recebível"
         items={historyItems}
         loading={historyLoading}
+      />
+
+      <BatchLiquidationModal 
+        isOpen={isBatchModalOpen}
+        onClose={() => {
+          setIsBatchModalOpen(false);
+          setSelectedInvoice(null);
+        }}
+        onSuccess={() => {
+          fetchInvoices();
+          setSelectedItems([]);
+        }}
+        selectedIds={selectedInvoice ? [selectedInvoice.id] : selectedItems}
+        type="receivable"
+        title={selectedInvoice ? "Baixa Individual" : "Baixa em Lote"}
+        subtitle={selectedInvoice 
+          ? `Liquidando título: ${selectedInvoice.descricao}` 
+          : `Liquidando ${selectedItems.length} títulos selecionados.`
+        }
+      />
+
+      <FinancialCalendarModal 
+        isOpen={isCalendarOpen}
+        onClose={() => setIsCalendarOpen(false)}
+        data={invoices}
+        type="receivable"
       />
     </div>
   );

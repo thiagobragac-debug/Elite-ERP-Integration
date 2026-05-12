@@ -25,6 +25,8 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
     tipo_evento: 'IATF',
     data_evento: new Date().toISOString().split('T')[0],
     resultado: '',
+    touro: '',
+    ecc: '',
     observacoes: '',
     status: 'pending'
   });
@@ -36,6 +38,8 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
         tipo_evento: initialData.tipo_evento || 'IATF',
         data_evento: initialData.data_evento || new Date().toISOString().split('T')[0],
         resultado: initialData.resultado || '',
+        touro: initialData.touro || '',
+        ecc: initialData.ecc?.toString() || '',
         observacoes: initialData.observacoes || '',
         status: initialData.status || 'pending'
       });
@@ -45,6 +49,8 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
         tipo_evento: 'IATF',
         data_evento: new Date().toISOString().split('T')[0],
         resultado: '',
+        touro: '',
+        ecc: '',
         observacoes: '',
         status: 'pending'
       });
@@ -141,6 +147,27 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
           placeholder="Ex: Prenha (45d), Vazia, Macho..." 
           value={formData.resultado}
           onChange={(e) => setFormData({...formData, resultado: e.target.value})}
+        />
+      </div>
+
+      <div className="form-group">
+        <label><Activity size={14} /> ECC (Escore 1-5)</label>
+        <input 
+          type="number" 
+          step="0.1"
+          placeholder="Ex: 3.5" 
+          value={formData.ecc}
+          onChange={(e) => setFormData({...formData, ecc: e.target.value})}
+        />
+      </div>
+
+      <div className="form-group full-width">
+        <label><Hash size={14} /> Touro / Partida de Sêmen</label>
+        <input 
+          type="text" 
+          placeholder="Identificação do Reprodutor..." 
+          value={formData.touro}
+          onChange={(e) => setFormData({...formData, touro: e.target.value})}
         />
       </div>
 

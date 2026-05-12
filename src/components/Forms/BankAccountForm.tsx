@@ -4,7 +4,9 @@ import {
   CreditCard,
   Hash,
   Info,
-  Activity
+  Activity,
+  ShieldCheck,
+  TrendingUp
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 
@@ -22,6 +24,8 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
     conta: '',
     tipo: 'CORRENTE',
     saldo_inicial: '0',
+    limite_credito: '0',
+    benchmark_rendimento: '',
     descricao: ''
   });
 
@@ -35,6 +39,8 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
         conta: initialData.conta || '',
         tipo: initialData.tipo || 'CORRENTE',
         saldo_inicial: initialData.saldo_atual?.toString() || '0',
+        limite_credito: initialData.limite_credito?.toString() || '0',
+        benchmark_rendimento: initialData.benchmark_rendimento || '',
         descricao: initialData.descricao || ''
       });
     } else {
@@ -44,6 +50,8 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
         conta: '',
         tipo: 'CORRENTE',
         saldo_inicial: '0',
+        limite_credito: '0',
+        benchmark_rendimento: '',
         descricao: ''
       });
     }
@@ -147,6 +155,32 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
           onChange={(e) => setFormData({...formData, saldo_inicial: e.target.value})}
           required
         />
+      </div>
+
+      <div className="form-group">
+        <label><ShieldCheck size={14} /> Limite de Crédito (R$)</label>
+        <input 
+          type="number" 
+          step="0.01"
+          placeholder="0,00" 
+          value={formData.limite_credito}
+          onChange={(e) => setFormData({...formData, limite_credito: e.target.value})}
+        />
+      </div>
+
+      <div className="form-group">
+        <label><TrendingUp size={14} /> Benchmark Rendimento</label>
+        <select 
+          className="elite-select"
+          value={formData.benchmark_rendimento}
+          onChange={(e) => setFormData({...formData, benchmark_rendimento: e.target.value})}
+        >
+          <option value="">Nenhum</option>
+          <option value="100% CDI">100% CDI</option>
+          <option value="95% CDI">95% CDI</option>
+          <option value="Poupança">Poupança</option>
+          <option value="IPCA+">IPCA+</option>
+        </select>
       </div>
 
       <div className="form-group full-width">

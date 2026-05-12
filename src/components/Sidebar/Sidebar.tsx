@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Settings, 
@@ -35,8 +35,9 @@ const menuItems: NavItem[] = [
     title: 'Administração', 
     icon: Settings,
     subItems: [
-      { title: 'Usuários', href: '/admin/usuarios' },
-      { title: 'Unidades', href: '/admin/config' },
+      { title: 'Intelligence Hub', href: '/admin/intelligence' },
+      { title: 'Usuário', href: '/admin/usuarios' },
+      { title: 'Empresa / Fazenda', href: '/admin/config' },
       { title: 'Configurações', href: '/admin/configuracoes' },
       { title: 'Log de Auditoria', href: '/admin/auditoria' },
     ]
@@ -45,6 +46,7 @@ const menuItems: NavItem[] = [
     title: 'Pecuária', 
     icon: Activity,
     subItems: [
+      { title: 'Intelligence Hub', href: '/pecuaria/dashboard' },
       { title: 'Animal', href: '/pecuaria/animal' },
       { title: 'Lote', href: '/pecuaria/lote' },
       { title: 'Pasto', href: '/pecuaria/pasto' },
@@ -59,6 +61,7 @@ const menuItems: NavItem[] = [
     title: 'Máquina & Frota', 
     icon: Truck,
     subItems: [
+      { title: 'Intelligence Hub', href: '/frota/dashboard' },
       { title: 'Máquina', href: '/frota/maquina' },
       { title: 'Abastecimento', href: '/frota/abastecimento' },
       { title: 'Manutenção', href: '/frota/manutencao' },
@@ -68,17 +71,19 @@ const menuItems: NavItem[] = [
     title: 'Compra & Cotação', 
     icon: ShoppingCart,
     subItems: [
+      { title: 'Intelligence Hub', href: '/compras/dashboard' },
       { title: 'Fornecedor', href: '/compras/fornecedores' },
       { title: 'Solicitação de Compra', href: '/compras/solicitacao' },
       { title: 'Mapa de Cotação', href: '/compras/cotacao' },
       { title: 'Pedido de Compra', href: '/compras/pedido' },
-      { title: 'Nota Entrada', href: '/compras/nota' },
+      { title: 'Nota Fiscal de Entrada', href: '/compras/nota' },
     ]
   },
   { 
     title: 'Venda & CRM', 
     icon: TrendingUp,
     subItems: [
+      { title: 'Intelligence Hub', href: '/vendas/dashboard' },
       { title: 'Cliente (CRM)', href: '/vendas/clientes' },
       { title: 'Pedido de Venda', href: '/vendas/pedido' },
       { title: 'Contrato & Hedge', href: '/vendas/contrato' },
@@ -87,18 +92,21 @@ const menuItems: NavItem[] = [
   },
   { 
     title: 'Estoque', 
-    icon: Package,
-      subItems: [
-        { title: 'Insumo', href: '/estoque/insumo' },
-        { title: 'Depósito', href: '/estoque/deposito' },
-        { title: 'Movimentação', href: '/estoque/movimentacao' },
-        { title: 'Inventário', href: '/estoque/inventario' },
-      ]
+    icon: Package, 
+    subItems: [
+      { title: 'Intelligence Hub', href: '/estoque/dashboard' },
+      { title: 'Insumo', href: '/estoque/insumo' },
+      { title: 'Depósito', href: '/estoque/deposito' },
+      { title: 'Movimentação', href: '/estoque/movimentacao' },
+      { title: 'Inventário', href: '/estoque/inventario' },
+    ]
   },
   { 
     title: 'Financeiro & Banco', 
     icon: Wallet,
     subItems: [
+      { title: 'Intelligence Hub', href: '/financeiro/intelligence' },
+      { title: 'Fluxo de Caixa', href: '/financeiro/fluxo' },
       { title: 'Conta Bancária', href: '/financeiro/contas' },
       { title: 'Conta a Pagar', href: '/financeiro/pagar' },
       { title: 'Conta a Receber', href: '/financeiro/receber' },
@@ -111,8 +119,35 @@ const menuItems: NavItem[] = [
 export const Sidebar: React.FC = () => {
   const [openMenus, setOpenMenus] = useState<string[]>(['Pecuária', 'Administração', 'Compra & Cotação', 'Financeiro & Banco']);
   const [isFarmSelectorOpen, setIsFarmSelectorOpen] = useState(false);
+<<<<<<< HEAD
   const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode } = useTenant();
+=======
+  const { activeFarm, farms, setActiveFarm, isGlobalMode } = useTenant();
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
   const location = useLocation();
+  const isFleetRoute = location.pathname.startsWith('/frota');
+  const isPurchasingRoute = location.pathname.startsWith('/compras');
+
+  useEffect(() => {
+    if (isFleetRoute) {
+      setOpenMenus(prev => {
+        const next = prev.filter(m => m !== 'Pecuária');
+        if (!next.includes('Máquina & Frota')) {
+          next.push('Máquina & Frota');
+        }
+        return next;
+      });
+    }
+    if (isPurchasingRoute) {
+      setOpenMenus(prev => {
+        const next = prev.filter(m => m !== 'Pecuária');
+        if (!next.includes('Compra & Cotação')) {
+          next.push('Compra & Cotação');
+        }
+        return next;
+      });
+    }
+  }, [isFleetRoute, isPurchasingRoute]);
 
   const toggleMenu = (title: string) => {
     setOpenMenus(prev => 
@@ -124,10 +159,12 @@ export const Sidebar: React.FC = () => {
     <aside className="sidebar">
       <div className="sidebar-header">
         <div className="logo-container">
-          <div className="logo-icon">
-            <Activity size={24} color="white" />
+          <div className="logo-icon" style={{ 
+            background: isFleetRoute ? '#0f172a' : isPurchasingRoute ? '#4f46e5' : 'hsl(var(--brand))' 
+          }}>
+            {isFleetRoute ? <Truck size={24} color="white" /> : isPurchasingRoute ? <ShoppingCart size={24} color="white" /> : <Activity size={24} color="white" />}
           </div>
-          <span className="logo-text">Elite Pecuária</span>
+          <span className="logo-text">{isFleetRoute ? 'Elite Frota' : isPurchasingRoute ? 'Elite Compras' : 'Elite Pecuária'}</span>
         </div>
       </div>
 
@@ -189,6 +226,7 @@ export const Sidebar: React.FC = () => {
             className={`tenant-badge ${isFarmSelectorOpen ? 'active' : ''} ${isGlobalMode ? 'global' : ''}`}
             onClick={() => setIsFarmSelectorOpen(!isFarmSelectorOpen)}
           >
+<<<<<<< HEAD
             {isGlobalMode 
               ? <Globe size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />
               : <div className="tenant-dot"></div>
@@ -196,6 +234,10 @@ export const Sidebar: React.FC = () => {
             <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {isGlobalMode ? 'Visão Global' : (activeFarm?.name || 'Selecionar Fazenda')}
             </span>
+=======
+            <div className={`tenant-dot ${isGlobalMode ? 'global' : ''}`}></div>
+            <span>{isGlobalMode ? 'Visão Global (Grupo)' : (activeFarm?.name || 'Selecionar Fazenda')}</span>
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
             <ChevronDown size={14} className={`selector-arrow ${isFarmSelectorOpen ? 'up' : ''}`} />
           </button>
 
@@ -209,6 +251,7 @@ export const Sidebar: React.FC = () => {
               >
                 <div className="dropdown-header">Mudar Unidade Ativa</div>
                 <div className="farm-list">
+<<<<<<< HEAD
                   {/* ── Global Mode Option ── */}
                   <button
                     className={`farm-option global-option ${isGlobalMode ? 'active' : ''}`}
@@ -229,6 +272,19 @@ export const Sidebar: React.FC = () => {
                   </div>
 
                   {/* ── Individual Farms ── */}
+=======
+                  <button 
+                    className={`farm-option ${isGlobalMode ? 'active' : ''}`}
+                    onClick={() => {
+                      setActiveFarm(null);
+                      setIsFarmSelectorOpen(false);
+                    }}
+                  >
+                    <div className="option-dot global"></div>
+                    <span>Visão Global (Grupo)</span>
+                  </button>
+                  <div className="dropdown-divider"></div>
+>>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
                   {farms.map(farm => (
                     <button 
                       key={farm.id}

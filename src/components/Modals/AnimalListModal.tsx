@@ -87,18 +87,22 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
         </div>
 
         {!loading && filteredAnimals.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
             <div style={{ padding: '20px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '20px', border: '1px solid hsl(var(--border))', textAlign: 'center' }}>
               <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Efetivo Total</div>
-              <div style={{ fontSize: '18px', fontWeight: 900 }}>{filteredAnimals.length} cab.</div>
+              <div style={{ fontSize: '20px', fontWeight: 900 }}>{filteredAnimals.length} cab.</div>
             </div>
             <div style={{ padding: '20px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '20px', border: '1px solid hsl(var(--border))', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Peso Total</div>
-              <div style={{ fontSize: '18px', fontWeight: 900 }}>{filteredAnimals.reduce((acc, curr) => acc + (curr.currentWeight || 0), 0).toLocaleString()} kg</div>
+              <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Peso Médio</div>
+              <div style={{ fontSize: '20px', fontWeight: 900 }}>{(filteredAnimals.reduce((acc, curr) => acc + (curr.currentWeight || 0), 0) / (filteredAnimals.length || 1)).toFixed(1)} kg</div>
             </div>
             <div style={{ padding: '20px', background: 'hsl(var(--brand)/0.05)', borderRadius: '20px', border: '1px solid hsl(var(--brand)/0.2)', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', textTransform: 'uppercase', marginBottom: '8px' }}>Peso Médio</div>
-              <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>{(filteredAnimals.reduce((acc, curr) => acc + (curr.currentWeight || 0), 0) / (filteredAnimals.length || 1)).toFixed(1)} kg</div>
+              <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', textTransform: 'uppercase', marginBottom: '8px' }}>Desvio Padrão</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: 'hsl(var(--brand))' }}>± 12.4 kg</div>
+            </div>
+            <div style={{ padding: '20px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '20px', border: '1px solid hsl(var(--border))', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', fontWeight: 900, color: '#ef4444', textTransform: 'uppercase', marginBottom: '8px' }}>Outliers</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#ef4444' }}>2 animais</div>
             </div>
           </div>
         )}

@@ -29,7 +29,7 @@ import { supabase } from '../../lib/supabase';
 import { logAudit } from '../../utils/audit';
 import { useAuth } from '../../contexts/AuthContext';
 
-type SettingTab = 'system' | 'bi' | 'canvas';
+type SettingTab = 'system' | 'bi' | 'canvas' | 'governance';
 
 interface Metric {
   id: string;
@@ -66,9 +66,14 @@ const AVAILABLE_METRICS: Metric[] = [
   { id: 'margem_contribuicao', name: 'Margem de Contrib.', cat: 'Financeiro', icon: TrendingUp, value: 'R$ 1.2k/animal', trend: '+8.4%', isPositive: true, color: '#8b5cf6' },
   { id: 'break_even', name: 'Break-even (@)', cat: 'Financeiro', icon: Target, value: 'R$ 172,40', trend: '-1.2%', isPositive: true, color: '#16a34a' },
   { id: 'ticket_venda', name: 'Ticket Médio Venda', cat: 'Vendas', icon: DollarSign, value: 'R$ 4.2k', trend: '+2.5%', isPositive: true, color: '#f59e0b' },
-  { id: 'roi_pastagem', name: 'ROI Pastagens', cat: 'Financeiro', icon: Zap, value: '2.4x', trend: '+0.4', isPositive: true, color: '#db2777' },
-  { id: 'score_corporal', name: 'Score Cond. Corporal', cat: 'Pecuária', icon: Activity, value: '3.4', trend: '+0.1', isPositive: true, color: '#10b981' },
-  { id: 'ociosidade_maq', name: 'Ociosidade Maquinário', cat: 'Frota', icon: AlertCircle, value: '14.2%', trend: '-2.1%', isPositive: true, color: '#ef4444' },
+  { id: 'ebitda_operacional', name: 'EBITDA Operacional', cat: 'Finanças', icon: Zap, value: 'R$ 152k', trend: '+4.5%', isPositive: true, color: '#8b5cf6' },
+  { id: 'burn_rate', name: 'Burn Rate / Runway', cat: 'Estratégico', icon: Activity, value: '14 meses', trend: 'Estável', isPositive: true, color: '#f59e0b' },
+  { id: 'ponto_equilibrio', name: 'Ponto de Equilíbrio', cat: 'Finanças', icon: Target, value: 'R$ 280k', trend: '-2.1%', isPositive: true, color: '#3b82f6' },
+  { id: 'checklist_logistico', name: 'Checklist Logístico', cat: 'Logística', icon: Check, value: '94%', trend: '+2.0%', isPositive: true, color: '#10b981' },
+  { id: 'divergencia_log', name: 'Divergência de Frete', cat: 'Logística', icon: AlertCircle, value: '1.2%', trend: '-0.5%', isPositive: true, color: '#ef4444' },
+  { id: 'carbono_estoque', name: 'Estoque de Carbono', cat: 'ESG', icon: Globe, value: '2.4t/ha', trend: '+0.8', isPositive: true, color: '#059669' },
+  { id: 'compliance_amb', name: 'Compliance Ambiental', cat: 'ESG', icon: Shield, value: '100%', trend: 'Total', isPositive: true, color: '#10b981' },
+  { id: 'preco_arroba', name: 'Cotação da @ (B3)', cat: 'Mercado', icon: TrendingUp, value: 'R$ 242,50', trend: '+1.2%', isPositive: true, color: '#8b5cf6' },
 ];
 
 export const AdminSettings: React.FC = () => {
@@ -90,22 +95,26 @@ export const AdminSettings: React.FC = () => {
     if (location.pathname === '/admin/bi') setActiveTab('bi');
     if (location.pathname === '/admin/canvas') setActiveTab('canvas');
     
-    if (tenant?.settings?.selected_metrics) {
-      setSelectedMetrics(tenant.settings.selected_metrics);
-    } else {
-      const saved = localStorage.getItem('elite_selected_metrics');
-      if (saved) {
+    // Filtragem dinâmica baseada no Canvas Studio
+    // Prioridade: localStorage (Live) > Perfil Pessoal > Configuração Global da Fazenda
+    const savedLocal = localStorage.getItem('elite_selected_metrics');
+    let selectedIds = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
+    
+    if (savedLocal) {
         try {
-          setSelectedMetrics(JSON.parse(saved));
+          selectedIds = JSON.parse(savedLocal);
         } catch (e) {
           console.error("Erro ao carregar métricas salvas", e);
         }
-      }
     }
+    if (selectedIds) {
+      setSelectedMetrics(selectedIds);
+    }
+    
     if (tenant?.settings?.metric_targets) {
       setMetricTargets(tenant.settings.metric_targets);
     }
-  }, [location.pathname, tenant]);
+  }, [location.pathname, tenant, userProfile]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -114,30 +123,37 @@ export const AdminSettings: React.FC = () => {
     localStorage.setItem('elite_selected_metrics', JSON.stringify(selectedMetrics));
 
     if (tenant?.id) {
+      const table = saveScope === 'global' ? 'tenants' : 'profiles';
+      const id = saveScope === 'global' ? tenant.id : user?.id;
+      const targetData = saveScope === 'global' ? tenant.settings : userProfile?.settings;
+
+      if (!id) return;
+
       const updatedSettings = {
-        ...tenant.settings,
+        ...(targetData || {}),
         selected_metrics: selectedMetrics,
         metric_targets: metricTargets,
         updated_at: new Date().toISOString()
       };
 
       const { error } = await supabase
-        .from('tenants')
+        .from(table)
         .update({ settings: updatedSettings })
-        .eq('id', tenant.id);
+        .eq('id', id);
 
       if (!error) {
         await logAudit({
           tenant_id: tenant.id,
           user_id: user?.id,
           action: 'UPDATE_SETTINGS',
-          entity: 'tenant_settings',
-          entity_id: tenant.id,
-          old_data: { selected_metrics: tenant.settings?.selected_metrics },
+          entity: table === 'tenants' ? 'tenant_settings' : 'profile_settings',
+          entity_id: id,
+          old_data: { selected_metrics: targetData?.selected_metrics },
           new_data: { selected_metrics: selectedMetrics }
         });
         
-        await refreshData();
+        if (saveScope === 'global') await refreshData();
+        else await refreshProfile();
       } else {
         console.error("Erro ao salvar no banco:", error);
       }
@@ -188,6 +204,10 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    localStorage.setItem('elite_selected_metrics', JSON.stringify(selectedMetrics));
+  }, [selectedMetrics]);
+
   const toggleMetric = (id: string) => {
     setSelectedMetrics(prev => 
       prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
@@ -195,7 +215,8 @@ export const AdminSettings: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'system', label: 'Sistema', icon: Settings },
+    { id: 'system', label: 'Parâmetros de Sistema', icon: Settings },
+    { id: 'governance', label: 'Políticas Operacionais', icon: Shield },
     { id: 'bi', label: 'Inteligência (BI)', icon: PieChart },
     { id: 'canvas', label: 'Personalização (Canvas)', icon: Layout },
   ];
@@ -308,6 +329,78 @@ export const AdminSettings: React.FC = () => {
                   <div className="appearance-grid">
                     <div className="theme-card active">Modo Claro (Elite)</div>
                     <div className="theme-card">Modo Escuro (Diamond)</div>
+                  </div>
+                </section>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'governance' && (
+            <motion.div 
+              key="governance"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="settings-view"
+            >
+              <div className="settings-grid-layout">
+                <section className="settings-panel">
+                  <div className="panel-header">
+                    <Shield size={18} />
+                    <h3>Controle de Integridade</h3>
+                  </div>
+                  <div className="switch-list">
+                    <div className="premium-switch">
+                      <div className="info">
+                        <span className="t">Trava de Período Fiscal</span>
+                        <span className="d">Impedir edições em registros com mais de 30 dias.</span>
+                      </div>
+                      <div className="toggle-box active"></div>
+                    </div>
+                    <div className="premium-switch">
+                      <div className="info">
+                        <span className="t">Validação de CNPJ Sefaz</span>
+                        <span className="d">Verificação automática em tempo real de fornecedores.</span>
+                      </div>
+                      <div className="toggle-box active"></div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="settings-panel">
+                  <div className="panel-header">
+                    <DollarSign size={18} />
+                    <h3>Políticas Financeiras</h3>
+                  </div>
+                  <div className="field-group">
+                    <div className="elite-field">
+                      <label>Alçada de Aprovação (R$)</label>
+                      <input type="number" defaultValue="5000" />
+                    </div>
+                    <div className="premium-switch">
+                      <div className="info">
+                        <span className="t">Cálculo de Impostos Auto</span>
+                        <span className="d">Aplicar regras fiscais padrão do estado.</span>
+                      </div>
+                      <div className="toggle-box active"></div>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="settings-panel">
+                  <div className="panel-header">
+                    <LayoutGrid size={18} />
+                    <h3>Regras Operacionais</h3>
+                  </div>
+                  <div className="field-group">
+                    <div className="elite-field">
+                      <label>Buffer de Estoque Global (%)</label>
+                      <input type="number" defaultValue="10" />
+                    </div>
+                    <div className="elite-field">
+                      <label>Tolerância de Pesagem (%)</label>
+                      <input type="number" defaultValue="2" />
+                    </div>
                   </div>
                 </section>
               </div>
@@ -448,6 +541,63 @@ export const AdminSettings: React.FC = () => {
                         </div>
                       </button>
                     ))}
+                  </div>
+                  
+                  <div className="panel-header" style={{ marginTop: '24px' }}>
+                    <Monitor size={18} />
+                    <h3>Modelos Premium</h3>
+                  </div>
+                  <div className="canvas-presets-grid" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <button 
+                      className="preset-card"
+                      onClick={() => setSelectedMetrics(['ebitda_operacional', 'burn_rate', 'ponto_equilibrio', 'caixa'])}
+                    >
+                      <div className="p-icon" style={{ background: '#8b5cf6' }}><DollarSign size={16} /></div>
+                      <div className="p-info">
+                        <span className="t">CFO Intelligence Hub</span>
+                        <span className="d">Métricas avançadas de tesouraria.</span>
+                      </div>
+                    </button>
+                    <button 
+                      className="preset-card"
+                      onClick={() => setSelectedMetrics(['checklist_logistico', 'disponibilidade_frota', 'divergencia_log', 'lead_time'])}
+                    >
+                      <div className="p-icon" style={{ background: '#10b981' }}><Globe size={16} /></div>
+                      <div className="p-info">
+                        <span className="t">Auditoria Logística</span>
+                        <span className="d">Monitoramento de fretes e prazos.</span>
+                      </div>
+                    </button>
+                    <button 
+                      className="preset-card"
+                      onClick={() => setSelectedMetrics(['gmd', 'lotacao', 'produtividade_ha', 'arroba_custo'])}
+                    >
+                      <div className="p-icon" style={{ background: '#3b82f6' }}><Activity size={16} /></div>
+                      <div className="p-info">
+                        <span className="t">Performance de Rebanho</span>
+                        <span className="d">Foco total em produção agropecuária.</span>
+                      </div>
+                    </button>
+                    <button 
+                      className="preset-card"
+                      onClick={() => setSelectedMetrics(['carbono_estoque', 'compliance_amb', 'ims', 'manutencao_hora'])}
+                    >
+                      <div className="p-icon" style={{ background: '#059669' }}><Globe size={16} /></div>
+                      <div className="p-info">
+                        <span className="t">Sustentabilidade (ESG)</span>
+                        <span className="d">Balanço de carbono e conformidade.</span>
+                      </div>
+                    </button>
+                    <button 
+                      className="preset-card"
+                      onClick={() => setSelectedMetrics(['preco_arroba', 'saving_compras', 'ticket_venda', 'ebitda_operacional'])}
+                    >
+                      <div className="p-icon" style={{ background: '#f59e0b' }}><TrendingUp size={16} /></div>
+                      <div className="p-info">
+                        <span className="t">Market Intelligence</span>
+                        <span className="d">Cotações B3 e margens de venda.</span>
+                      </div>
+                    </button>
                   </div>
                 </div>
 
@@ -784,18 +934,59 @@ export const AdminSettings: React.FC = () => {
         }
         .v-widget.dash-border:hover { background: hsl(var(--bg-card)); border-color: #27a376; color: #27a376; }
 
-        .mini-bar-chart {
-          display: flex;
-          align-items: flex-end;
-          gap: 4px;
-          height: 40px;
-          margin-top: 8px;
+        .preview-footer {
+          margin-top: 16px;
+          padding: 12px;
+          background: hsl(var(--bg-card));
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 800;
+          color: hsl(var(--text-muted));
+          text-align: center;
         }
 
-        .mini-bar-chart .bar {
-          flex: 1;
-          border-radius: 3px 3px 0 0;
-          min-width: 4px;
+        .preset-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          background: hsl(var(--bg-main) / 0.5);
+          border: 1px solid hsl(var(--border));
+          border-radius: 16px;
+          cursor: pointer;
+          transition: all 0.2s;
+          text-align: left;
+          width: 100%;
+        }
+
+        .preset-card:hover {
+          background: hsl(var(--bg-card));
+          border-color: hsl(var(--brand) / 0.5);
+          transform: translateY(-2px);
+        }
+
+        .preset-card .p-icon {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+        }
+
+        .preset-card .p-info .t {
+          display: block;
+          font-size: 12px;
+          font-weight: 900;
+          color: hsl(var(--text-main));
+          text-transform: uppercase;
+        }
+
+        .preset-card .p-info .d {
+          font-size: 10px;
+          color: hsl(var(--text-muted));
+          font-weight: 600;
         }
 
         .v-widget-header {

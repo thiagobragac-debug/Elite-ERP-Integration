@@ -10,20 +10,23 @@ interface EliteMainChartProps {
   data: DataPoint[];
   color?: string;
   height?: number;
+  mode?: 'line' | 'bar';
 }
 
 export const EliteMainChart: React.FC<EliteMainChartProps> = ({ 
   data, 
   color = '#10b981', 
-  height = 400 
+  height = 400,
+  mode = 'line'
 }) => {
   const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
   
-  const max = 2.0; 
+  const max = Math.max(...data.map(d => d.value), 2.0); 
   const targetStartValue = 1.2;
   const targetEndValue = 1.45;
 
-  const yLabels = [0, 0.4, 0.8, 1.2, 1.6];
+  const yLabels = [0, 0.4, 0.8, 1.2, 1.6].filter(v => v <= max);
+  if (max > 1.6) yLabels.push(Number(max.toFixed(1)));
 
   // Cubic Bezier Curve Calculation
   const getPath = (isArea = false) => {
@@ -72,7 +75,7 @@ export const EliteMainChart: React.FC<EliteMainChartProps> = ({
                 style={{ fontSize: '2.2px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
                 textAnchor="end"
               >
-                {val === 0 ? '0' : val.toFixed(1)}
+                {val.toFixed(1)}
               </text>
             </g>
           );
@@ -85,49 +88,93 @@ export const EliteMainChart: React.FC<EliteMainChartProps> = ({
           stroke="#3b82f6" 
           strokeWidth="0.3" 
           strokeDasharray="1,1" 
+          opacity="0.6"
         />
 
-        {/* Area */}
-        <motion.path
-          d={getPath(true)}
-          fill="url(#areaGradient)"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.5 }}
-        />
-
-        {/* Line */}
-        <motion.path
-          d={getPath()}
-          fill="none"
-          stroke={color}
-          strokeWidth="0.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          initial={{ pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={{ duration: 2, ease: "easeInOut" }}
-        />
-
-        {/* Dots */}
-        {data.map((d, i) => {
-          const x = (i / (data.length - 1)) * 100;
-          const y = 100 - (d.value / max) * 100;
-          return (
-            <circle
-              key={i}
-              cx={x} cy={y}
-              r="0.6"
-              fill="white"
-              stroke={color}
-              strokeWidth="0.3"
+        {mode === 'line' ? (
+          <>
+            {/* Area */}
+            <motion.path
+              d={getPath(true)}
+              fill="url(#areaGradient)"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1.5 }}
             />
-          );
-        })}
 
-        {/* X Labels (Inside SVG for perfect alignment) */}
+            {/* Line */}
+            <motion.path
+              d={getPath()}
+              fill="none"
+              stroke={color}
+              strokeWidth="0.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 2, ease: "easeInOut" }}
+            />
+
+            {/* Dots */}
+            {data.map((d, i) => {
+              const x = (i / (data.length - 1)) * 100;
+              const y = 100 - (d.value / max) * 100;
+              return (
+                <circle
+                  key={i}
+                  cx={x} cy={y}
+                  r="0.6"
+                  fill="white"
+                  stroke={color}
+                  strokeWidth="0.3"
+                  onMouseEnter={() => setHoveredPoint(i)}
+                  onMouseLeave={() => setHoveredPoint(null)}
+                />
+              );
+            })}
+          </>
+        ) : (
+          /* Bar Mode with Heat Map */
+          <g>
+            {data.map((d, i) => {
+              const width = 100 / data.length;
+              const barWidth = width * 0.7;
+              const x = (i * width) + (width - barWidth) / 2;
+              const h = (d.value / max) * 100;
+              const y = 100 - h;
+              
+              // Heat map opacity logic
+              const opacity = 0.2 + (d.value / max) * 0.8;
+
+              return (
+                <motion.rect
+                  key={i}
+                  x={x}
+                  y={100}
+                  width={barWidth}
+                  height={0}
+                  initial={{ height: 0, y: 100 }}
+                  animate={{ height: h, y: y }}
+                  transition={{ delay: i * 0.1, duration: 0.8 }}
+                  fill={color}
+                  opacity={opacity}
+                  rx="0.5"
+                  onMouseEnter={() => setHoveredPoint(i)}
+                  onMouseLeave={() => setHoveredPoint(null)}
+                >
+                  <title>{d.label}: {d.value}</title>
+                </motion.rect>
+              );
+            })}
+          </g>
+        )}
+
+        {/* X Labels */}
         {data.map((d, i) => {
-          const x = (i / (data.length - 1)) * 100;
+          const width = 100 / data.length;
+          const x = mode === 'line' 
+            ? (i / (data.length - 1)) * 100 
+            : (i * width) + width / 2;
           return (
             <text
               key={i}
