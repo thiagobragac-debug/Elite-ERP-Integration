@@ -21,6 +21,7 @@ import {
   Zap as ZapIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { TransactionForm } from '../../components/Forms/TransactionForm';
@@ -177,6 +178,33 @@ export const AccountsReceivable: React.FC = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = invoices.filter(i => {
+      const matchesSearch = (i.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (i.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'TODAS' || i.status === activeTab;
+      const matchesStatus = filterValues.status === 'all' || i.status === filterValues.status;
+      const amount = Number(i.valor_total);
+      const matchesAmount = amount >= (filterValues.minAmount || 0) && amount <= (filterValues.maxAmount || 1000000);
+      const matchesDate = (!filterValues.dateStart || new Date(i.data_vencimento) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(i.data_vencimento) <= new Date(filterValues.dateEnd));
+      return matchesSearch && matchesTab && matchesStatus && matchesAmount && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Vencimento: item.data_vencimento,
+      Descricao: item.descricao,
+      Cliente: item.clientes?.nome || item.cliente || 'Geral',
+      Valor: item.valor_total,
+      Status: item.status,
+      Categoria: item.categoria,
+      Metodo_Recebimento: item.metodo_recebimento
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_contas_receber');
+    else if (format === 'excel') exportToExcel(exportData, 'log_contas_receber');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_contas_receber', 'Relatório de Contas a Receber');
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
     const { error } = await supabase.from('contas_receber').delete().eq('id', id);
@@ -331,15 +359,29 @@ export const AccountsReceivable: React.FC = () => {
 
          <div className="elite-filter-group">
           <button 
-            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
+            className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-receivable');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-receivable" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-receivable')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-receivable')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-receivable')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
 
         <ReceivableFilterModal 

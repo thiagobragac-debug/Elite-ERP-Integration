@@ -25,6 +25,7 @@ import {
   Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
@@ -229,6 +230,37 @@ export const CashFlow: React.FC = () => {
       setIsModalOpen(false);
       fetchCashFlowData();
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = transactions.filter(t => {
+      const matchesSearch = (t.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ALL' || (activeTab === 'INFLOW' ? t.type === 'inflow' : t.type === 'outflow');
+      const matchesStatusFilter = statusFilter === 'ALL' || (statusFilter === 'PENDING' ? t.status === 'pending' : t.status === 'paid');
+      
+      const matchesType = filterValues.type === 'all' || t.type === filterValues.type;
+      const matchesCategory = filterValues.categories.length === 0 || filterValues.categories.includes(t.category);
+      const matchesLiquidation = filterValues.status === 'all' || t.status === (filterValues.status === 'PAID' ? 'paid' : 'pending');
+      
+      const txDate = new Date(t.date);
+      const matchesDateStart = !filterValues.dateStart || txDate >= new Date(filterValues.dateStart);
+      const matchesDateEnd = !filterValues.dateEnd || txDate <= new Date(filterValues.dateEnd);
+
+      return matchesSearch && matchesTab && matchesStatusFilter && matchesType && matchesCategory && matchesLiquidation && matchesDateStart && matchesDateEnd;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Data: new Date(item.date).toLocaleDateString(),
+      Descricao: item.description,
+      Categoria: item.category,
+      Tipo: item.type === 'inflow' ? 'Entrada' : 'Saída',
+      Valor: Math.abs(item.amount),
+      Status: item.status === 'paid' ? 'Liquidado' : 'Provisionado'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'fluxo_caixa');
+    else if (format === 'excel') exportToExcel(exportData, 'fluxo_caixa');
+    else if (format === 'pdf') exportToPDF(exportData, 'fluxo_caixa', 'Relatório de Fluxo de Caixa');
   };
 
   const handleViewDetails = (tx: Transaction) => {
@@ -520,7 +552,23 @@ export const CashFlow: React.FC = () => {
 
               <div className="elite-filter-group">
                 <button className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}><Filter size={20} /></button>
-                <button className="icon-btn-secondary"><Download size={20} /></button>
+                <div className="export-dropdown-container">
+                  <button 
+                    className="icon-btn-secondary" 
+                    title="Exportar"
+                    onClick={() => {
+                      const menu = document.getElementById('export-menu-cashflow');
+                      if (menu) menu.classList.toggle('active');
+                    }}
+                  >
+                    <Download size={20} />
+                  </button>
+                  <div id="export-menu-cashflow" className="export-menu">
+                    <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-cashflow')?.classList.remove('active'); }}>CSV</button>
+                    <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-cashflow')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+                    <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-cashflow')?.classList.remove('active'); }}>PDF Profissional</button>
+                  </div>
+                </div>
               </div>
             </div>
 

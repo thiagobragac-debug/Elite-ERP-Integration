@@ -28,6 +28,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { PurchasingFilterModal } from './components/PurchasingFilterModal';
 
 export const PurchaseOrder: React.FC = () => {
@@ -130,6 +131,35 @@ export const PurchaseOrder: React.FC = () => {
         fetchOrders(); 
       }
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = orders.filter(o => {
+      const matchesSearch = (o.numero_pedido || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'OPEN' ? o.status !== 'received' : o.status === 'received';
+      const matchesStatus = filterValues.status === 'all' || o.status === filterValues.status;
+      const matchesAmount = Number(o.valor_total || 0) <= filterValues.maxAmount;
+      const isDelayed = o.status !== 'received' && o.previsao_entrega && new Date(o.previsao_entrega) < new Date();
+      const matchesDelayed = !filterValues.onlyDelayed || isDelayed;
+      const deliveryDate = o.previsao_entrega ? new Date(o.previsao_entrega) : null;
+      const matchesDateStart = !filterValues.dateStart || (deliveryDate && deliveryDate >= new Date(filterValues.dateStart));
+      const matchesDateEnd = !filterValues.dateEnd || (deliveryDate && deliveryDate <= new Date(filterValues.dateEnd));
+      return matchesSearch && matchesTab && matchesStatus && matchesAmount && matchesDelayed && matchesDateStart && matchesDateEnd;
+    });
+
+    const exportData = filteredData.map(item => ({
+      ID: item.id?.slice(0, 8).toUpperCase(),
+      Pedido: item.numero_pedido || '-',
+      Fornecedor: item.fornecedores?.nome || '-',
+      Previsao: item.previsao_entrega ? new Date(item.previsao_entrega).toLocaleDateString() : '-',
+      Valor_Total: item.valor_total || 0,
+      Forma_Pagto: item.forma_pagamento || '-',
+      Status: item.status === 'received' ? 'Recebido' : 'Em Trânsito'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'pedidos_compra');
+    else if (format === 'excel') exportToExcel(exportData, 'pedidos_compra');
+    else if (format === 'pdf') exportToPDF(exportData, 'pedidos_compra', 'Relatório de Pedidos de Compra');
   };
 
   const handleDelete = async (id: string) => {
@@ -279,9 +309,23 @@ export const PurchaseOrder: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Ordens">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-purchase');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-purchase" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-purchase')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-purchase')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-purchase')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

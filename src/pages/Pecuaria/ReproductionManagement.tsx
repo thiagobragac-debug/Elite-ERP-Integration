@@ -19,6 +19,7 @@ import {
   FileText
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { ReproductionForm } from '../../components/Forms/ReproductionForm';
@@ -166,6 +167,42 @@ export const ReproductionManagement: React.FC = () => {
     if (!error) fetchEvents();
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = events.filter(e => {
+      const matchesSearch = (e.animais?.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) || (e.tipo_evento || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ESTACAO' ? e.tipo_evento !== 'Parto' : e.tipo_evento === 'Parto';
+      
+      const matchesTipo = filterValues.tipo_evento === 'all' || e.tipo_evento === filterValues.tipo_evento;
+      const matchesResults = filterValues.results.length === 0 || filterValues.results.includes(e.resultado);
+      
+      const ecc = Number(e.ecc || 0);
+      const matchesECC = !e.ecc || (ecc >= filterValues.minECC && ecc <= filterValues.maxECC);
+      
+      const matchesNearParto = !filterValues.nearParto || (e.progressoGestacao > 80 && e.progressoGestacao < 100);
+
+      const matchesDate = (!filterValues.dateStart || new Date(e.data_evento) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(e.data_evento) <= new Date(filterValues.dateEnd));
+
+      return matchesSearch && matchesTab && matchesTipo && matchesResults && matchesECC && matchesNearParto && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Animal: item.animais?.brinco || 'N/A',
+      Evento: item.tipo_evento,
+      Data: item.data_evento ? new Date(item.data_evento).toLocaleDateString() : 'N/A',
+      Resultado: item.resultado || 'Aguardando',
+      ECC: item.ecc || '-',
+      Touro: item.touro || '-',
+      Prev_Parto: item.previsaoParto ? new Date(item.previsaoParto).toLocaleDateString() : '-',
+      Gestacao_Dias: item.diasGestacao || 0,
+      Observacoes: item.observacoes || ''
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_reproducao');
+    else if (format === 'excel') exportToExcel(exportData, 'log_reproducao');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_reproducao', 'Relatório de Reprodução');
+  };
+
   const handleViewDetails = (event: any) => {
     setIsHistoryModalOpen(true);
     setHistoryItems([
@@ -309,9 +346,23 @@ export const ReproductionManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-repro');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-repro" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-repro')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-repro')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-repro')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

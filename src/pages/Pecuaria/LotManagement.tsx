@@ -19,6 +19,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { LotForm } from '../../components/Forms/LotForm';
@@ -197,6 +198,35 @@ export const LotManagement: React.FC = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = lots.filter(l => {
+      const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ATIVO' ? (l.status === 'ATIVO' || !l.status) : l.status === 'ARQUIVADO';
+      const matchesStatus = filterValues.status === 'all' || l.status === filterValues.status;
+      const matchesDate = (!filterValues.dateStart || new Date(l.created_at) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(l.created_at) <= new Date(filterValues.dateEnd));
+      
+      const occupancy = l.capacidade ? (25 / l.capacidade) * 100 : 0;
+      const matchesOccupancy = occupancy >= filterValues.minOccupancy;
+      const matchesFinalidade = filterValues.finalidades.length === 0 || filterValues.finalidades.includes(l.descricao);
+      
+      return matchesSearch && matchesTab && matchesStatus && matchesDate && matchesOccupancy && matchesFinalidade;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Nome: item.nome,
+      Status: item.status || 'ATIVO',
+      Capacidade: item.capacidade,
+      GMD_Alvo: item.gmd_alvo,
+      Peso_Alvo: item.peso_alvo,
+      Data_Inicio: item.data_inicio
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_lotes');
+    else if (format === 'excel') exportToExcel(exportData, 'log_lotes');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_lotes', 'Relatório de Lotes');
+  };
+
   const tableColumns = [
     { 
       header: 'Identificação / Nome', 
@@ -342,9 +372,23 @@ export const LotManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-lots');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-lots" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-lots')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-lots')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-lots')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

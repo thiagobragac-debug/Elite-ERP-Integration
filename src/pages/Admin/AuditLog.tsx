@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
@@ -211,6 +212,21 @@ export const AuditLog: React.FC = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const exportData = filteredLogs.map(log => ({
+      Data: new Date(log.timestamp).toLocaleString('pt-BR'),
+      Modulo: MODULE_LABELS[log.table_name] || log.table_name,
+      Acao: ACTION_CONFIG[log.action]?.label || log.action,
+      Usuario: log.user_name,
+      Descricao: log.description,
+      Severidade: ACTION_CONFIG[log.action]?.severity?.toUpperCase() || 'LOW'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'audit_log');
+    else if (format === 'excel') exportToExcel(exportData, 'audit_log');
+    else if (format === 'pdf') exportToPDF(exportData, 'audit_log', 'Relatório de Auditoria e Rastreabilidade');
+  };
+
   /* ─── Filtro local ─── */
   const filteredLogs = logs.filter(log => {
     const matchesAction = filterValues.action === 'ALL' || log.action === filterValues.action;
@@ -309,9 +325,23 @@ export const AuditLog: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar para Excel (Auditoria)">
-            <FileSpreadsheet size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-audit');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileSpreadsheet size={20} />
+            </button>
+            <div id="export-menu-audit" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-audit')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-audit')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-audit')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

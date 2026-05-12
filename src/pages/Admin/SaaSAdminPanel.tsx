@@ -35,6 +35,8 @@ import { PlanForm } from '../../components/Forms/PlanForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
 import { supabase } from '../../lib/supabase';
+import { SaaSFilterModal } from './components/SaaSFilterModal';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 
 type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'health';
 
@@ -46,6 +48,15 @@ export const SaaSAdminPanel: React.FC = () => {
   const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [filterValues, setFilterValues] = useState({
+    status: 'all',
+    plan: 'all',
+    minUsers: 0,
+    maxUsers: 1000,
+    dateStart: '',
+    dateEnd: ''
+  });
 
   useEffect(() => {
     const path = location.pathname;
@@ -139,6 +150,29 @@ export const SaaSAdminPanel: React.FC = () => {
     });
 
     window.location.href = '/dashboard'; // Force a full reload to reset context states
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    let dataToExport = [];
+    let fileName = '';
+
+    if (activeTab === 'tenants') {
+      dataToExport = tenantsList.filter(t => {
+        const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesStatus = filterValues.status === 'all' || t.status === filterValues.status;
+        const matchesPlan = filterValues.plan === 'all' || t.plan === filterValues.plan;
+        const matchesUsers = t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers;
+        return matchesSearch && matchesStatus && matchesPlan && matchesUsers;
+      });
+      fileName = 'gestao_inquilinos_saas';
+    } else if (activeTab === 'plans') {
+      dataToExport = plansList.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      fileName = 'catalogo_planos_saas';
+    }
+
+    if (format === 'csv') exportToCSV(dataToExport, fileName);
+    else if (format === 'excel') exportToExcel(dataToExport, fileName);
+    else if (format === 'pdf') exportToPDF(dataToExport, fileName, `Relatório SaaS - ${activeTab.toUpperCase()}`);
   };
 
   const tenantColumns = [
@@ -345,12 +379,50 @@ export const SaaSAdminPanel: React.FC = () => {
                       <LayoutGrid size={18} />
                     </button>
                   </div>
+                  <button 
+                    className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+                    title="Filtros Avançados"
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  >
+                    <Filter size={20} />
+                  </button>
+                  <div className="export-dropdown-container">
+                    <button 
+                      className="icon-btn-secondary" 
+                      title="Exportar"
+                      onClick={() => {
+                        const menu = document.getElementById('export-menu-saas');
+                        if (menu) menu.classList.toggle('active');
+                      }}
+                    >
+                      <FileText size={20} />
+                    </button>
+                    <div id="export-menu-saas" className="export-menu">
+                      <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-saas')?.classList.remove('active'); }}>CSV</button>
+                      <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-saas')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+                      <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-saas')?.classList.remove('active'); }}>PDF Profissional</button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
+              <SaaSFilterModal 
+                isOpen={showAdvancedFilters}
+                onClose={() => setShowAdvancedFilters(false)}
+                filters={filterValues}
+                setFilters={setFilterValues}
+                activeTab={activeTab}
+              />
+
               {viewMode === 'list' ? (
                 <ModernTable 
-                  data={tenantsList.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase()))}
+                  data={tenantsList.filter(t => {
+                    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesStatus = filterValues.status === 'all' || t.status === filterValues.status;
+                    const matchesPlan = filterValues.plan === 'all' || t.plan === filterValues.plan;
+                    const matchesUsers = t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers;
+                    return matchesSearch && matchesStatus && matchesPlan && matchesUsers;
+                  })}
                   columns={tenantColumns}
                   loading={false}
                   hideHeader={true}
@@ -372,7 +444,13 @@ export const SaaSAdminPanel: React.FC = () => {
               ) : (
                 <div className="user-cards-grid">
                   {tenantsList
-                    .filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .filter(t => {
+                      const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase());
+                      const matchesStatus = filterValues.status === 'all' || t.status === filterValues.status;
+                      const matchesPlan = filterValues.plan === 'all' || t.plan === filterValues.plan;
+                      const matchesUsers = t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers;
+                      return matchesSearch && matchesStatus && matchesPlan && matchesUsers;
+                    })
                     .map(t => {
                       const getPlanColor = (plan: string) => {
                         if (plan === 'Enterprise') return 'info-badge';
@@ -448,21 +526,47 @@ export const SaaSAdminPanel: React.FC = () => {
                   />
                 </div>
 
-                <div className="view-mode-toggle">
+                <div className="elite-filter-group">
+                  <div className="view-mode-toggle">
+                    <button 
+                      className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+                      onClick={() => setViewMode('list')}
+                      title="Visualização em Lista"
+                    >
+                      <ListIcon size={18} />
+                    </button>
+                    <button 
+                      className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                      onClick={() => setViewMode('grid')}
+                      title="Visualização em Cards"
+                    >
+                      <LayoutGrid size={18} />
+                    </button>
+                  </div>
                   <button 
-                    className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                    onClick={() => setViewMode('list')}
-                    title="Visualização em Lista"
+                    className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+                    title="Filtros Avançados"
+                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                   >
-                    <ListIcon size={18} />
+                    <Filter size={20} />
                   </button>
-                  <button 
-                    className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                    onClick={() => setViewMode('grid')}
-                    title="Visualização em Cards"
-                  >
-                    <LayoutGrid size={18} />
-                  </button>
+                  <div className="export-dropdown-container">
+                    <button 
+                      className="icon-btn-secondary" 
+                      title="Exportar"
+                      onClick={() => {
+                        const menu = document.getElementById('export-menu-plans-saas');
+                        if (menu) menu.classList.toggle('active');
+                      }}
+                    >
+                      <FileText size={20} />
+                    </button>
+                    <div id="export-menu-plans-saas" className="export-menu">
+                      <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-plans-saas')?.classList.remove('active'); }}>CSV</button>
+                      <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-plans-saas')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+                      <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-plans-saas')?.classList.remove('active'); }}>PDF Profissional</button>
+                    </div>
+                  </div>
                 </div>
               </div>
 

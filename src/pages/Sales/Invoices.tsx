@@ -22,6 +22,7 @@ import {
   Activity
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { OutputInvoiceForm } from '../../components/Forms/OutputInvoiceForm';
@@ -148,6 +149,35 @@ export const Invoices: React.FC = () => {
       { id: '2', date: inv.data_emissao, title: 'Natureza da Operação', subtitle: inv.natureza_operacao || 'Venda de Produção', value: 'OK', status: 'info' },
       { id: '3', date: inv.data_emissao, title: 'Protocolo SEFAZ', subtitle: 'Transmissão autorizada', value: 'Ver XML', status: 'success' },
     ]);
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = invoices.filter(inv => {
+      const matchesSearch = (inv.numero_nota || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           (inv.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterValues.status === 'all' || inv.status === filterValues.status || (filterValues.status === 'pending' && inv.status !== 'authorized');
+      const matchesAmount = Number(inv.valor_total) <= filterValues.maxAmount;
+      const matchesConciliation = filterValues.onlyConciliated ? inv.hasFinancialLink : true;
+      const matchesDate = (!filterValues.dateStart || new Date(inv.data_emissao) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(inv.data_emissao) <= new Date(filterValues.dateEnd));
+      return matchesSearch && matchesStatus && matchesAmount && matchesConciliation && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Nota: 'NF ' + item.numero_nota,
+      Serie: item.serie,
+      Cliente: item.clientes?.nome || 'N/A',
+      CFOP: item.cfop,
+      Natureza: item.natureza_operacao,
+      Data_Emissao: new Date(item.data_emissao).toLocaleDateString(),
+      Valor_Total: 'R$ ' + Number(item.valor_total).toLocaleString(),
+      Imposto_Est: 'R$ ' + item.taxValue.toLocaleString(),
+      Status: item.status === 'authorized' ? 'Autorizada' : 'Pendente'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'notas_saida');
+    else if (format === 'excel') exportToExcel(exportData, 'notas_saida');
+    else if (format === 'pdf') exportToPDF(exportData, 'notas_saida', 'Relatório de Notas Fiscais de Saída');
   };
 
   const columns = [
@@ -293,9 +323,23 @@ export const Invoices: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar XML/PDF">
-            <Download size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-invoices');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <Download size={20} />
+            </button>
+            <div id="export-menu-invoices" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-invoices')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-invoices')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-invoices')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

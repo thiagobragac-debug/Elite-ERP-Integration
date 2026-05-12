@@ -17,6 +17,7 @@ import {
   FileText
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
@@ -179,6 +180,35 @@ export const NutritionManagement: React.FC = () => {
     }, 800);
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = diets.filter(d => {
+      const matchesSearch = (d.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'DIETAS' ? d.tipo !== 'MATERIA_PRIMA' : d.tipo === 'MATERIA_PRIMA';
+      const matchesStatus = filterValues.status === 'all' || d.status === filterValues.status;
+      const matchesTipo = filterValues.tipo === 'all' || d.tipo === filterValues.tipo;
+      const matchesIngredients = filterValues.ingredients.length === 0 || 
+                                 filterValues.ingredients.some(ing => d.ingredientes?.includes(ing));
+      const matchesCost = (d.custoMS || 0) <= filterValues.maxCostMS;
+      const matchesMS = (d.percMS || 0) >= filterValues.minMS;
+      const matchesActive = !filterValues.onlyActive || d.status === 'active';
+      return matchesSearch && matchesTab && matchesStatus && matchesTipo && matchesIngredients && matchesCost && matchesMS && matchesActive;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Nome: item.nome,
+      Tipo: item.tipo,
+      Custo_kg_Natural: 'R$ ' + Number(item.custo_por_kg).toFixed(2),
+      Percentual_MS: item.percMS + '%',
+      Custo_kg_MS: 'R$ ' + (item.custoMS || 0).toFixed(2),
+      Ingredientes: item.ingredientes?.join(', ') || 'N/A',
+      Status: item.status === 'active' ? 'Liberada' : 'Bloqueada'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'dietas_nutricao');
+    else if (format === 'excel') exportToExcel(exportData, 'dietas_nutricao');
+    else if (format === 'pdf') exportToPDF(exportData, 'dietas_nutricao', 'Relatório Nutricional - Formulações');
+  };
+
   const columns = [
     {
       header: 'Nutrição (Matéria Seca)',
@@ -286,9 +316,23 @@ export const NutritionManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Dieta">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-nutrition');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-nutrition" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-nutrition')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-nutrition')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-nutrition')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

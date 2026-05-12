@@ -30,6 +30,7 @@ import { useEffect } from 'react';
 import { UserForm } from '../../components/Forms/UserForm';
 import { ProfileForm } from '../../components/Forms/ProfileForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
@@ -231,6 +232,40 @@ export const UserManagement: React.FC = () => {
     ]);
 
     setLoading(false);
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = activeTab === 'users' ? usersList.filter(u => {
+      const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterValues.status === 'all' || u.status === filterValues.status;
+      const matchesProfile = filterValues.profileId === 'all' || u.perfil_id === filterValues.profileId;
+      const matchesMFA = !filterValues.mfaOnly || u.mfa_enabled;
+      const matchesDate = (!filterValues.dateStart || new Date(u.created_at) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(u.created_at) <= new Date(filterValues.dateEnd));
+      return matchesSearch && matchesStatus && matchesProfile && matchesMFA && matchesDate;
+    }) : profilesList.filter(p => (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const exportData = activeTab === 'users' ? filteredData.map(item => ({
+      Nome: item.name,
+      Email: item.email,
+      Perfil: item.profile,
+      Unidade: item.farm || '-',
+      Membro_Desde: item.memberSince,
+      MFA: item.mfa_enabled ? 'SIM' : 'NÃO',
+      Status: item.status
+    })) : filteredData.map(item => ({
+      Perfil: item.nome,
+      Descricao: item.descricao || '-',
+      Usuarios: item.userCount || 0,
+      Permissoes: (item.permissoes || []).join(', ')
+    }));
+
+    const filename = activeTab === 'users' ? 'usuarios' : 'perfis_acesso';
+    const title = activeTab === 'users' ? 'Relatório de Usuários do Sistema' : 'Relatório de Perfis de Acesso';
+
+    if (format === 'csv') exportToCSV(exportData, filename);
+    else if (format === 'excel') exportToExcel(exportData, filename);
+    else if (format === 'pdf') exportToPDF(exportData, filename, title);
   };
 
   const handleAddUser = async (data: any) => {
@@ -513,9 +548,23 @@ export const UserManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-users');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-users" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-users')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-users')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-users')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

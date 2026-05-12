@@ -19,6 +19,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { AnimalForm } from '../../components/Forms/AnimalForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { AnimalFilterModal } from './components/AnimalFilterModal';
@@ -207,6 +208,34 @@ export const AnimalManagement: React.FC = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredAnimals = animals.filter(animal => {
+      const matchesSearch = (animal.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (animal.raca || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ATIVOS' ? animal.status === 'ATIVO' : animal.status === 'VENDIDO';
+      
+      const matchesStatus = filterValues.status === 'all' || animal.status === filterValues.status;
+      const matchesSex = filterValues.sexo === 'all' || animal.sexo === filterValues.sexo;
+      const matchesBreed = filterValues.racas.length === 0 || filterValues.racas.includes(animal.raca);
+      const matchesWeight = animal.peso_atual >= filterValues.minWeight;
+
+      return matchesSearch && matchesTab && matchesStatus && matchesSex && matchesBreed && matchesWeight;
+    });
+
+    const exportData = filteredAnimals.map(item => ({
+      Brinco: item.brinco,
+      Raca: item.raca,
+      Sexo: item.sexo,
+      Peso_Atual: item.peso_atual,
+      Status: item.status,
+      Lote: item.lote_nome || 'N/A'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_animais');
+    else if (format === 'excel') exportToExcel(exportData, 'log_animais');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_animais', 'Inventário de Animais');
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este animal?')) return;
     const { error } = await supabase.from('animais').delete().eq('id', id);
@@ -367,9 +396,24 @@ export const AnimalManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-animals');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-animals" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

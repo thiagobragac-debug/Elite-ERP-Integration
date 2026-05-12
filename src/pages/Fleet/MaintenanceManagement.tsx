@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { FormModal } from '../../components/Forms/FormModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { MaintenanceForm } from '../../components/Forms/MaintenanceForm';
@@ -110,6 +111,42 @@ export const MaintenanceManagement: React.FC = () => {
     if (!confirm('Deseja excluir esta ordem de serviço?')) return;
     const { error } = await supabase.from('manutencao_frota').delete().eq('id', id);
     if (!error) fetchOrders();
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = orders.filter(o => {
+      const matchesSearch = (o.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const isCompleted = o.status === 'completed' || o.status === 'CONCLUIDA' || o.status === 'finalizada';
+      const matchesTab = activeTab === 'ACTIVE' ? !isCompleted : isCompleted;
+      
+      const matchesStatus = filterValues.status === 'all' || 
+                           o.status === filterValues.status || 
+                           (filterValues.status === 'open' && (o.status === 'ABERTA' || o.status === 'pending')) ||
+                           (filterValues.status === 'completed' && isCompleted);
+      const matchesTypes = filterValues.types.length === 0 || filterValues.types.includes(o.tipo);
+      const totalCost = Number(o.custo_pecas || 0) + Number(o.custo_mao_obra || 0);
+      const matchesCost = totalCost <= filterValues.maxCost;
+      const matchesDate = (!filterValues.dateStart || new Date(o.data_inicio) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(o.data_inicio) <= new Date(filterValues.dateEnd));
+
+      return matchesSearch && matchesTab && matchesStatus && matchesTypes && matchesCost && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Data: item.data_inicio ? new Date(item.data_inicio).toLocaleDateString() : 'N/A',
+      Maquina: item.maquinas?.nome || 'Ativo',
+      Tipo: item.tipo,
+      Descricao: item.descricao,
+      Responsavel: item.responsavel,
+      Custo_Pecas: item.custo_pecas || 0,
+      Custo_MO: item.custo_mao_obra || 0,
+      Total: (Number(item.custo_pecas || 0) + Number(item.custo_mao_obra || 0)),
+      Status: item.status
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_manutencao');
+    else if (format === 'excel') exportToExcel(exportData, 'log_manutencao');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_manutencao', 'Relatório de Manutenção de Frota');
   };
 
   const handleSubmit = async (data: any) => {
@@ -277,9 +314,23 @@ export const MaintenanceManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Manutenções">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-maint');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-maint" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-maint')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-maint')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-maint')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

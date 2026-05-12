@@ -20,6 +20,7 @@ import {
   Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { ContractForm } from '../../components/Forms/ContractForm';
@@ -134,6 +135,34 @@ export const Contracts: React.FC = () => {
     if (!confirm('Deseja excluir este contrato?')) return;
     const { error } = await supabase.from('contratos').delete().eq('id', id);
     if (!error) fetchContracts();
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = contracts.filter(c => {
+      const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.clientes?.nome || c.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ACTIVE' ? c.status === 'active' : c.status === 'completed';
+      const matchesStatus = filterValues.status === 'all' || c.status === filterValues.status;
+      const matchesPriceType = filterValues.priceType === 'all' || c.priceType === filterValues.priceType;
+      const matchesProgress = (c.physicalProgress || 0) >= filterValues.minProgress;
+      const matchesDate = (!filterValues.dateStart || new Date(c.data_inicio) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(c.data_inicio) <= new Date(filterValues.dateEnd));
+      return matchesSearch && matchesTab && matchesStatus && matchesPriceType && matchesProgress && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      ID: '#' + (item.id?.slice(0, 8).toUpperCase()),
+      Contraparte: item.clientes?.nome || item.fornecedores?.nome || 'N/A',
+      Vigencia: new Date(item.data_inicio).toLocaleDateString() + ' - ' + new Date(item.data_fim).toLocaleDateString(),
+      Tipo_Preco: item.priceType,
+      Valor_Total: 'R$ ' + Number(item.valor_total).toLocaleString(),
+      Execucao_Fisica: item.physicalProgress.toFixed(1) + '%',
+      Delta_Mercado: item.isFixed ? item.marketDelta + '%' : '---',
+      Status: item.status === 'active' ? 'Vigente' : 'Concluído'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'contratos_venda');
+    else if (format === 'excel') exportToExcel(exportData, 'contratos_venda');
+    else if (format === 'pdf') exportToPDF(exportData, 'contratos_venda', 'Relatório de Contratos e Hedge de Venda');
   };
 
   const columns = [
@@ -286,9 +315,23 @@ export const Contracts: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-contracts');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-contracts" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-contracts')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-contracts')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-contracts')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

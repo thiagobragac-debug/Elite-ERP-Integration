@@ -17,6 +17,7 @@ import {
   Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SalesOrderForm } from '../../components/Forms/SalesOrderForm';
@@ -183,6 +184,33 @@ export const SalesOrders: React.FC = () => {
     if (!error) fetchOrders();
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = orders.filter(o => {
+      const matchesSearch = (o.numero_pedido || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'OPEN' ? o.status !== 'delivered' : o.status === 'delivered';
+      const matchesStatus = filterValues.status === 'all' || o.status === filterValues.status;
+      const matchesMargin = o.margin >= filterValues.minMargin;
+      const matchesRisk = !filterValues.onlyHighRisk || o.isHighRisk;
+      const matchesDate = (!filterValues.dateStart || new Date(o.created_at) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(o.created_at) <= new Date(filterValues.dateEnd));
+      return matchesSearch && matchesTab && matchesStatus && matchesMargin && matchesRisk && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      ID: item.id?.slice(0, 8).toUpperCase(),
+      Pedido: item.numero_pedido || '-',
+      Cliente: item.clientes?.nome || '-',
+      Data: new Date(item.data_pedido).toLocaleDateString(),
+      Valor_Total: item.valor_total || 0,
+      Margem_Est: item.margin.toFixed(1) + '%',
+      Status: item.status
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'pedidos_venda');
+    else if (format === 'excel') exportToExcel(exportData, 'pedidos_venda');
+    else if (format === 'pdf') exportToPDF(exportData, 'pedidos_venda', 'Relatório de Pedidos de Venda');
+  };
+
   const handleViewHistory = async (order: any) => {
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
@@ -342,9 +370,23 @@ export const SalesOrders: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Vendas">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-sales');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-sales" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-sales')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-sales')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-sales')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

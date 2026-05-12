@@ -22,6 +22,7 @@ import {
   Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { QuotationForm } from '../../components/Forms/QuotationForm';
@@ -151,6 +152,52 @@ export const QuotationMap: React.FC = () => {
       status: (s.isWinner || s.vencedor) ? 'success' : 'info'
     })));
     setHistoryLoading(false);
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = quotations.filter(q => {
+      const matchesSearch = (q.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed';
+      const suppliers = q.suppliers || q.dados_fornecedores || [];
+      const matchesBids = suppliers.length >= filterValues.minBids;
+      
+      let savingPercent = 0;
+      const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
+      if (prices.length >= 2) {
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        savingPercent = ((maxPrice - minPrice) / (maxPrice || 1)) * 100;
+      }
+      const matchesSaving = savingPercent >= filterValues.minSaving;
+      const matchesStatus = filterValues.status === 'all' || q.status === filterValues.status;
+      const matchesDate = (!filterValues.dateStart || new Date(q.created_at) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(q.created_at) <= new Date(filterValues.dateEnd));
+
+      return matchesSearch && matchesTab && matchesBids && matchesSaving && matchesStatus && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => {
+      const suppliers = item.suppliers || item.dados_fornecedores || [];
+      const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
+      const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
+      const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+      const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+      const saving = maxPrice > 0 ? (((maxPrice - minPrice) / maxPrice) * 100).toFixed(1) + '%' : '0%';
+
+      return {
+        Item: item.produto_id || 'N/A',
+        Quantidade: item.quantidade + ' ' + item.unidade,
+        Propostas: suppliers.length,
+        Melhor_Preco: 'R$ ' + minPrice.toLocaleString(),
+        Saving: saving,
+        Fornecedor_Vencedor: winner ? (winner.name || winner.fornecedor_nome) : '---',
+        Status: item.status === 'closed' ? 'Contratado' : 'Em Análise'
+      };
+    });
+
+    if (format === 'csv') exportToCSV(exportData, 'mapas_cotacao');
+    else if (format === 'excel') exportToExcel(exportData, 'mapas_cotacao');
+    else if (format === 'pdf') exportToPDF(exportData, 'mapas_cotacao', 'Relatório de Mapas de Cotação e Saving');
   };
 
   const tableColumns = [
@@ -304,9 +351,23 @@ export const QuotationMap: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-quotation');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-quotation" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

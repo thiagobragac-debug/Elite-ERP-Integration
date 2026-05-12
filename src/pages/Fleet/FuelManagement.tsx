@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { FormModal } from '../../components/Forms/FormModal';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { FuelForm } from '../../components/Forms/FuelForm';
@@ -131,6 +132,39 @@ export const FuelManagement: React.FC = () => {
       const { error } = await supabase.from('abastecimentos').insert([payload]);
       if (!error) { setIsModalOpen(false); fetchLogs(); }
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = logs.filter(l => {
+      const matchesSearch = (l.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (l.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'LOG' ? true : l.tipo_combustivel === 'Especial';
+      
+      const isEfficient = l.litros / (l.valor_total || 1) < 0.2;
+      const matchesStatus = filterValues.status === 'all' || 
+                           (filterValues.status === 'efficient' && isEfficient) ||
+                           (filterValues.status === 'high-consumption' && !isEfficient);
+      
+      const matchesFuel = filterValues.fuelTypes.length === 0 || filterValues.fuelTypes.includes(l.tipo_combustivel);
+      const matchesLiters = l.litros <= filterValues.maxLiters;
+      const matchesDate = (!filterValues.dateStart || new Date(l.data) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(l.data) <= new Date(filterValues.dateEnd));
+
+      return matchesSearch && matchesTab && matchesStatus && matchesFuel && matchesLiters && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Data: item.data ? new Date(item.data).toLocaleDateString() : 'N/A',
+      Maquina: item.maquinas?.nome || 'Ativo',
+      Litros: item.litros,
+      Tipo_Combustivel: item.tipo_combustivel,
+      Valor_Total: item.valor_total,
+      Responsavel: item.responsavel || '-',
+      Medidor: item.valor_medidor || '-'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_abastecimento');
+    else if (format === 'excel') exportToExcel(exportData, 'log_abastecimento');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_abastecimento', 'Relatório de Abastecimento de Frota');
   };
 
   const handleDelete = async (id: string) => {
@@ -278,9 +312,23 @@ export const FuelManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-fuel');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-fuel" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-fuel')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-fuel')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-fuel')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

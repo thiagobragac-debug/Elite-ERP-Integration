@@ -23,6 +23,7 @@ import {
   Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { MachineForm } from '../../components/Forms/MachineForm';
@@ -198,6 +199,44 @@ export const FleetManagement: React.FC = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = machines.filter(m => {
+      const matchesSearch = (
+        (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (m.modelo || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      const matchesCategory = activeCategory === 'All' || m.categoria === activeCategory;
+      const matchesStatus = filterValues.status === 'all' || m.status === filterValues.status;
+      const matchesMarcas = filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
+      
+      const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
+      const matchesUsage = currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage;
+      
+      const machineYear = m.ano || 0;
+      const matchesYear = (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
+                         (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
+
+      return matchesSearch && matchesCategory && matchesStatus && matchesMarcas && matchesUsage && matchesYear;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Nome: item.nome,
+      Categoria: item.categoria,
+      Marca: item.marca || '-',
+      Modelo: item.modelo || '-',
+      Ano: item.ano || '-',
+      Placa: item.placa || '-',
+      Uso_Atual: item.horimetro_atual ? `${item.horimetro_atual}h` : item.quilometragem_atual ? `${item.quilometragem_atual}km` : '0',
+      Status: item.status === 'active' ? 'Em Campo' : item.status === 'maintenance' ? 'Manutenção' : 'Parado',
+      Combustivel: item.combustivel || '-'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'frota_veiculos');
+    else if (format === 'excel') exportToExcel(exportData, 'frota_veiculos');
+    else if (format === 'pdf') exportToPDF(exportData, 'frota_veiculos', 'Relatório de Frota e Maquinários');
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este ativo?')) return;
     const { error } = await supabase.from('maquinas').delete().eq('id', id);
@@ -358,9 +397,23 @@ export const FleetManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Frota">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-fleet');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-fleet" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

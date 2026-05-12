@@ -20,6 +20,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { AnimalListModal } from '../../components/Modals/AnimalListModal';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
@@ -187,6 +188,36 @@ export const PastureManagement: React.FC = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = pastures.filter(p => {
+      const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.tipo_capim || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
+      const matchesStatus = filterValues.status === 'all' || p.status === filterValues.status;
+      const matchesCapins = filterValues.capins.length === 0 || filterValues.capins.some(c => p.tipo_capim?.includes(c));
+      const area = Number(p.area || 0);
+      const matchesArea = area <= filterValues.maxArea;
+      const ua = Number(p.capacidade_ua || 0);
+      const matchesUA = ua >= filterValues.minUA && ua <= filterValues.maxUA;
+
+      return matchesSearch && matchesTab && matchesStatus && matchesCapins && matchesArea && matchesUA;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Nome: item.nome,
+      Area: formatNumber(item.area) + ' ha',
+      Capacidade_UA: item.capacidade_ua + ' UA',
+      Tipo_Capim: item.tipo_capim,
+      Status: item.status === 'occupied' ? 'Ocupado' : item.status === 'resting' ? 'Descanso' : 'Livre',
+      Topografia: item.topografia,
+      Tipo_Solo: item.tipo_solo,
+      Ultima_Fertilizacao: item.data_ultima_fertilizacao ? new Date(item.data_ultima_fertilizacao).toLocaleDateString() : 'N/A'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'gestao_pastagens');
+    else if (format === 'excel') exportToExcel(exportData, 'gestao_pastagens');
+    else if (format === 'pdf') exportToPDF(exportData, 'gestao_pastagens', 'Relatório de Gestão de Pastagens e Lotação');
+  };
+
   const handleViewAnimals = (pasture: any) => {
     setPastureToView(pasture);
     setIsDetailsModalOpen(true);
@@ -341,9 +372,23 @@ export const PastureManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-pasture');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-pasture" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

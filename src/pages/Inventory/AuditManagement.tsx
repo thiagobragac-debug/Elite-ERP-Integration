@@ -21,6 +21,7 @@ import {
   Target
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { AuditForm } from '../../components/Forms/AuditForm';
@@ -117,6 +118,40 @@ export const AuditManagement: React.FC = () => {
       const { error } = await supabase.from('auditorias_estoque').insert([payload]);
       if (!error) { setIsModalOpen(false); fetchAudits(); }
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = audits.filter(a => {
+      const matchesSearch = (a.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) || (a.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'HISTORY' ? true : (Number(a.accuracy || 100) < 95);
+      
+      const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
+      
+      let matchesAccuracy = true;
+      const acc = a.accuracy || 0;
+      if (filterValues.accuracyRange === 'excellent') matchesAccuracy = acc >= 98;
+      else if (filterValues.accuracyRange === 'good') matchesAccuracy = acc >= 90 && acc < 98;
+      else if (filterValues.accuracyRange === 'critical') matchesAccuracy = acc < 90;
+
+      const matchesDate = (!filterValues.dateStart || new Date(a.data || a.created_at) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(a.data || a.created_at) <= new Date(filterValues.dateEnd));
+
+      return matchesSearch && matchesTab && matchesStatus && matchesAccuracy && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Data: item.data ? new Date(item.data).toLocaleDateString() : 'N/A',
+      Titulo: item.titulo,
+      Responsavel: item.responsavel || 'N/A',
+      Categoria: item.categoria || 'Geral',
+      Status: item.status === 'completed' ? 'Concluída' : 'Em Aberto',
+      Acuracidade: item.accuracy ? `${item.accuracy}%` : '0%',
+      Itens: item.items_count || 0
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_auditorias');
+    else if (format === 'excel') exportToExcel(exportData, 'log_auditorias');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_auditorias', 'Relatório de Auditoria de Estoque');
   };
 
   const handleDelete = async (id: string) => {
@@ -258,9 +293,23 @@ export const AuditManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-audit');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-audit" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-audit')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-audit')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-audit')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
 
         <AuditFilterModal 

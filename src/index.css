@@ -2405,3 +2405,58 @@ input:focus, textarea:focus, select:focus {
   border-color: #10b981;
   box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25);
 }
+/* Elite v5.0 Export Dropdown System */
+.export-dropdown-container {
+  position: relative;
+}
+
+.export-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  padding: 8px;
+  min-width: 180px;
+  margin-top: 8px;
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.export-menu.active {
+  display: flex;
+}
+
+.export-menu button {
+  padding: 10px 16px;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: hsl(var(--text-main));
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.export-menu button:hover {
+  background: hsl(var(--bg-main));
+  color: hsl(var(--brand));
+}
+
+[data-theme='dark'] .export-menu {
+  background: hsl(var(--bg-card));
+  border-color: hsl(var(--border));
+}
+
+[data-theme='dark'] .export-menu button:hover {
+  background: hsl(var(--bg-main));
+}

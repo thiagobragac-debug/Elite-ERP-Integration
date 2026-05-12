@@ -23,6 +23,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { SupplierForm } from '../../components/Forms/SupplierForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
@@ -198,6 +199,38 @@ export const SupplierManagement: React.FC = () => {
     if (!error) fetchSuppliers();
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = suppliers.filter(sup => {
+      const matchesSearch = (sup.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (sup.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'HOMOLOGADO' ? sup.status === 'ATIVO' : sup.status !== 'ATIVO';
+      const matchesFarm = isGlobalMode || sup.is_global || (activeFarm && sup.fazendas_vinculadas?.includes(activeFarm.id));
+      
+      const matchesStatus = filterValues.status === 'all' || sup.status === filterValues.status;
+      const matchesRating = (sup.rating || 0) >= filterValues.minRating;
+      const matchesSpend = (sup.totalSpend || 0) <= filterValues.maxSpend;
+      const matchesCategories = filterValues.categories.length === 0 || filterValues.categories.includes(sup.categoria);
+
+      return matchesSearch && matchesTab && matchesFarm && matchesStatus && matchesRating && matchesSpend && matchesCategories;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Nome: item.nome,
+      Documento: item.cnpj_cpf || '-',
+      Categoria: item.categoria,
+      Email: item.email || '-',
+      Telefone: item.telefone || '-',
+      Cidade: item.cidade || '-',
+      Estado: item.estado || '-',
+      Gasto_Total: item.totalSpend || 0,
+      Rating: item.rating?.toFixed(1) || '0.0',
+      Status: item.status
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'fornecedores');
+    else if (format === 'excel') exportToExcel(exportData, 'fornecedores');
+    else if (format === 'pdf') exportToPDF(exportData, 'fornecedores', 'Relatório de Fornecedores Homologados');
+  };
+
   const handleViewHistory = async (sup: any) => {
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
@@ -359,9 +392,23 @@ export const SupplierManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Fornecedores">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-suppliers');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-suppliers" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-suppliers')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-suppliers')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-suppliers')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

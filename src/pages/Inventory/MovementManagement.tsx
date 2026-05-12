@@ -17,6 +17,7 @@ import {
   History
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { MovementForm } from '../../components/Forms/MovementForm';
@@ -200,6 +201,36 @@ export const MovementManagement: React.FC = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = movements.filter(m => {
+      const matchesSearch = (m.produtos?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (m.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'LOG' ? true : m.tipo === 'out';
+      
+      const matchesType = filterValues.type === 'all' || m.tipo === filterValues.type;
+      const amount = Number(m.quantidade) * Number(m.valor_unitario || 0);
+      const matchesAmount = amount >= filterValues.minAmount && amount <= filterValues.maxAmount;
+      const matchesDate = (!filterValues.dateStart || new Date(m.data_movimentacao) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(m.data_movimentacao) <= new Date(filterValues.dateEnd));
+
+      return matchesSearch && matchesTab && matchesType && matchesAmount && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Data: item.data_movimentacao ? new Date(item.data_movimentacao).toLocaleDateString() : 'N/A',
+      Produto: item.produtos?.nome || 'Item Excluído',
+      Tipo: item.tipo === 'in' ? 'Entrada' : item.tipo === 'transfer' ? 'Transferência' : 'Saída',
+      Quantidade: `${item.quantidade} ${item.produtos?.unidade || ''}`,
+      Valor_Unitario: item.valor_unitario,
+      Valor_Total: (Number(item.quantidade) * Number(item.valor_unitario || 0)),
+      Responsavel: item.responsavel,
+      Origem_Destino: item.origem_destino
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_movimentacoes');
+    else if (format === 'excel') exportToExcel(exportData, 'log_movimentacoes');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_movimentacoes', 'Relatório de Movimentação de Estoque');
+  };
+
   const handleViewDetails = (move: any) => {
     setIsHistoryModalOpen(true);
     setHistoryItems([
@@ -351,9 +382,23 @@ export const MovementManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-movements');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-movements" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-movements')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-movements')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-movements')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
 
         <MovementFilterModal 

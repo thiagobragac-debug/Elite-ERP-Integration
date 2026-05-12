@@ -22,6 +22,7 @@ import {
   List as ListIcon
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
@@ -157,6 +158,39 @@ export const ConfinementManagement: React.FC = () => {
       { id: '2', date: pen.data_inicio, title: 'Lote Vinculado', subtitle: pen.lotes?.nome || 'N/A', value: pen.capacidade_animais + ' Cabeças', status: 'info' },
       { id: '3', date: new Date().toISOString(), title: 'Status Nutricional', subtitle: 'Dieta de terminação', value: 'Em dia', status: 'success' },
     ]);
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = confinements.filter(p => {
+      const matchesSearch = (p.nome_curral || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
+      const matchesStatus = filterValues.status === 'all' || 
+                           (filterValues.status === 'ENGORDA' && p.progress <= 90) ||
+                           (filterValues.status === 'TERMINACAO' && p.progress > 90) ||
+                           (filterValues.status === 'CHECKOUT' && p.progress >= 98);
+      const matchesDOF = p.dof >= filterValues.minDOF && p.dof <= filterValues.maxDOF;
+      const matchesWeight = (p.projectedWeight || 0) >= filterValues.minWeight && (p.projectedWeight || 0) <= filterValues.maxWeight;
+      const matchesCPD = (p.cpd || 0) <= filterValues.maxCPD;
+      const matchesActive = !filterValues.onlyActive || p.status !== 'archived';
+      return matchesSearch && matchesTab && matchesStatus && matchesDOF && matchesWeight && matchesCPD && matchesActive;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Curral: item.nome_curral,
+      Lote: item.lotes?.nome || 'N/A',
+      Data_Inicio: item.data_inicio ? new Date(item.data_inicio).toLocaleDateString() : 'N/A',
+      Animais: item.capacidade_animais || 0,
+      DOF_Atual: item.dof || 0,
+      DOF_Alvo: item.dof_alvo || 0,
+      Progresso: Math.round(item.progress || 0) + '%',
+      Peso_Projetado: (item.projectedWeight || 0).toFixed(1) + 'kg',
+      CPD: 'R$ ' + (item.cpd || 0).toFixed(2),
+      Status: item.progress > 90 ? 'Terminação' : 'Engorda'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'confinamento_pecuaria');
+    else if (format === 'excel') exportToExcel(exportData, 'confinamento_pecuaria');
+    else if (format === 'pdf') exportToPDF(exportData, 'confinamento_pecuaria', 'Relatório de Performance - Confinamento');
   };
 
   const columns = [
@@ -322,9 +356,23 @@ export const ConfinementManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-confinement');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-confinement" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-confinement')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-confinement')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-confinement')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -19,6 +19,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
@@ -159,6 +160,23 @@ export const WarehouseManagement: React.FC = () => {
         fetchWarehouses();
       }
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const exportData = filteredWarehouses.map(item => ({
+      Nome: item.nome,
+      Tipo: item.tipo,
+      Status: item.status,
+      Capacidade_Maxima: item.capacidade_maxima,
+      Saldo_Atual: item.saldo_atual,
+      Unidade: item.unidade_capacidade,
+      Valor_Total: item.valor_total,
+      Localizacao: item.localizacao_tecnica
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_depositos');
+    else if (format === 'excel') exportToExcel(exportData, 'log_depositos');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_depositos', 'Relatório de Depósitos');
   };
 
   const handleDelete = async (id: string) => {
@@ -349,9 +367,23 @@ export const WarehouseManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-warehouse');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-warehouse" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
           <WarehouseFilterModal 
             isOpen={showAdvancedFilters}
             onClose={() => setShowAdvancedFilters(false)}

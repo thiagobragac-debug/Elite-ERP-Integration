@@ -26,6 +26,7 @@ import {
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { ProductForm } from '../../components/Forms/ProductForm';
@@ -154,6 +155,39 @@ export const InventoryManagement: React.FC = () => {
       console.error('Error processing FIFO movement:', error);
       alert('Erro ao processar movimentação FIFO: ' + error.message);
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = products.filter(p => {
+      const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategorias = filterValues.categorias.length === 0 || filterValues.categorias.includes(p.categoria);
+      const matchesStatus = filterValues.status === 'all' || 
+                           (filterValues.status === 'critico' ? Number(p.estoque_atual) <= Number(p.estoque_minimo) : Number(p.estoque_atual) > Number(p.estoque_minimo));
+      
+      const stock = Number(p.estoque_atual || 0);
+      const matchesStock = stock >= filterValues.minStock && stock <= filterValues.maxStock;
+      
+      const price = Number(p.custo_medio || 0);
+      const matchesPrice = price >= filterValues.minPrice && price <= filterValues.maxPrice;
+
+      return matchesSearch && matchesCategorias && matchesStatus && matchesStock && matchesPrice;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Nome: item.nome,
+      Categoria: item.categoria,
+      Marca: item.marca || '-',
+      Unidade: item.unidade,
+      Estoque_Atual: item.estoque_atual || 0,
+      Estoque_Minimo: item.estoque_minimo || 0,
+      Custo_Medio: item.custo_medio || 0,
+      Valor_Total: (Number(item.estoque_atual || 0) * Number(item.custo_medio || 0)),
+      Localizacao: item.localizacao || 'Geral'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'inventario_produtos');
+    else if (format === 'excel') exportToExcel(exportData, 'inventario_produtos');
+    else if (format === 'pdf') exportToPDF(exportData, 'inventario_produtos', 'Relatório de Inventário de Insumos');
   };
 
   const handleDelete = async (id: string) => {
@@ -381,9 +415,23 @@ export const InventoryManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Inventário">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-inventory');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-inventory" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-inventory')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-inventory')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-inventory')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

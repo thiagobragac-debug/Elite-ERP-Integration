@@ -22,6 +22,7 @@ import {
   FileText
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { PurchaseRequestForm } from '../../components/Forms/PurchaseRequestForm';
@@ -141,6 +142,37 @@ export const PurchaseRequest: React.FC = () => {
       ]);
       setHistoryLoading(false);
     }, 800);
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = requests.filter(r => {
+      const matchesSearch = (r.id || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           (r.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'PENDING' ? r.status === 'pending' : r.status === 'approved';
+      const matchesUrgency = showOnlyUrgent ? (r.prioridade === 'high' || r.prioridade === 'Urgente') : true;
+      const matchesPriority = filterValues.priorities.length === 0 || filterValues.priorities.includes(r.prioridade?.toLowerCase());
+      const matchesDept = filterValues.departments.length === 0 || filterValues.departments.includes(r.departamento);
+      const matchesAmount = Number(r.valor_estimado) <= filterValues.maxAmount;
+      const matchesDate = (!filterValues.dateStart || new Date(r.created_at) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(r.created_at) <= new Date(filterValues.dateEnd));
+
+      return matchesSearch && matchesTab && matchesUrgency && matchesPriority && matchesDept && matchesAmount && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      ID: '#' + (item.id?.slice(0, 8)?.toUpperCase() || 'N/A'),
+      Titulo: item.titulo || 'SOLICITAÇÃO',
+      Departamento: item.departamento,
+      Solicitante: item.solicitante || '---',
+      Prioridade: item.prioridade,
+      Valor_Estimado: 'R$ ' + Number(item.valor_estimado).toLocaleString(),
+      Data: new Date(item.created_at).toLocaleDateString(),
+      Status: item.status === 'approved' ? 'Em Cotação' : item.status === 'pending' ? 'Triagem' : 'Rejeitado'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'solicitacoes_compra');
+    else if (format === 'excel') exportToExcel(exportData, 'solicitacoes_compra');
+    else if (format === 'pdf') exportToPDF(exportData, 'solicitacoes_compra', 'Relatório de Solicitações de Compra');
   };
 
   const tableColumns = [
@@ -299,9 +331,23 @@ export const PurchaseRequest: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-request');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-request" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-request')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-request')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-request')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

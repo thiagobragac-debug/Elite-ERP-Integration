@@ -30,6 +30,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { CompanyFilterModal } from './components/CompanyFilterModal';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 
 export const CompanyManagement: React.FC = () => {
   const { activeFarm, tenant } = useTenant();
@@ -253,6 +254,35 @@ export const CompanyManagement: React.FC = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    if (activeTab === 'companies') {
+      const exportData = filteredCompanies.map(item => ({
+        RazaoSocial: item.razao_social || item.nome,
+        CNPJ: item.cnpj || item.documento || '---',
+        Cidade: item.cidade || '---',
+        Estado: item.estado || '---',
+        Tipo: item.tipo || 'UNIDADE',
+        Status: item.ativo ? 'Ativo' : 'Inativo'
+      }));
+
+      if (format === 'csv') exportToCSV(exportData, 'empresas_unidades');
+      else if (format === 'excel') exportToExcel(exportData, 'empresas_unidades');
+      else if (format === 'pdf') exportToPDF(exportData, 'empresas_unidades', 'Relatório de Governança - Empresas e Matrizes');
+    } else {
+      const exportData = filteredFarms.map(item => ({
+        Nome: item.nome,
+        Area_ha: item.area_total || 0,
+        Localizacao: item.localizacao || '---',
+        Empresa_Pai: companies.find(c => c.id === item.unidade_id)?.razao_social || 'N/A',
+        IE_Produtor: item.ie_produtor || '---'
+      }));
+
+      if (format === 'csv') exportToCSV(exportData, 'fazendas_unidades');
+      else if (format === 'excel') exportToExcel(exportData, 'fazendas_unidades');
+      else if (format === 'pdf') exportToPDF(exportData, 'fazendas_unidades', 'Relatório de Governança - Fazendas e Unidades Produtivas');
+    }
+  };
+
   const companyColumns = [
     {
       header: 'Empresa / Razão Social',
@@ -433,9 +463,23 @@ export const CompanyManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-company');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-company" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-company')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-company')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-company')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -32,6 +32,7 @@ import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { BankAccountFilterModal } from './components/BankAccountFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 
 export const BankAccounts: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -192,6 +193,32 @@ export const BankAccounts: React.FC = () => {
     } else {
       alert('Erro ao salvar conta: ' + result.error.message);
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = accounts.filter(acc => {
+      const matchesSearch = (acc.banco || '').toLowerCase().includes(searchTerm.toLowerCase()) || (acc.conta || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'BALANCES' ? true : (acc.saldo_atual > 0);
+      const matchesType = filterValues.type === 'all' || acc.tipo === filterValues.type;
+      const matchesBalance = filterValues.balanceStatus === 'all' || 
+                            (filterValues.balanceStatus === 'positive' ? acc.saldo_atual >= 0 : acc.saldo_atual < 0);
+      const matchesInst = filterValues.institution === 'all' || (acc.banco || '').toLowerCase().includes(filterValues.institution.toLowerCase());
+      return matchesSearch && matchesTab && matchesType && matchesBalance && matchesInst;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Banco: item.banco,
+      Agencia: item.agencia,
+      Conta: item.conta,
+      Tipo: item.tipo || 'CONTA CORRENTE',
+      Saldo: item.saldo_atual || 0,
+      Limite: item.limite_credito || 0,
+      Descricao: item.descricao || '-'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'contas_bancarias');
+    else if (format === 'excel') exportToExcel(exportData, 'contas_bancarias');
+    else if (format === 'pdf') exportToPDF(exportData, 'contas_bancarias', 'Relatório de Tesouraria - Contas Bancárias');
   };
 
   const handleDelete = async (id: string) => {
@@ -362,9 +389,23 @@ export const BankAccounts: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Extrato">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-bank');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-bank" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-bank')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-bank')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-bank')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
 
         <BankAccountFilterModal 

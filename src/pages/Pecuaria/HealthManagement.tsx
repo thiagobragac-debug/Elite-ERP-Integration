@@ -18,7 +18,8 @@ import {
   History,
   FileText
 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { HealthForm } from '../../components/Forms/HealthForm';
@@ -276,6 +277,32 @@ export const HealthManagement: React.FC = () => {
     }
   };
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = events.filter(e => {
+      const matchesSearch = (e.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           (e.produto || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'MANEJOS' ? e.tipo === 'MANEJO' : e.tipo === 'PROTOCOLO';
+      const matchesStatus = filterValues.status === 'all' || e.status === filterValues.status;
+      const matchesDate = (!filterValues.dateStart || new Date(e.data_planejada) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(e.data_planejada) <= new Date(filterValues.dateEnd));
+      
+      return matchesSearch && matchesTab && matchesStatus && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Data: new Date(item.data_planejada).toLocaleDateString(),
+      Titulo: item.titulo,
+      Produto: item.produto,
+      Dosagem: item.dosagem,
+      Status: item.status,
+      Carencia: item.carencia_dias ? `${item.carencia_dias} dias` : 'N/A'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_saude');
+    else if (format === 'excel') exportToExcel(exportData, 'log_saude');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_saude', 'Relatório de Manejo Sanitário');
+  };
+
   return (
     <div className="health-mgmt-page animate-slide-up">
       <GlobalModeBanner />
@@ -346,9 +373,24 @@ export const HealthManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-health');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-health" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-health')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-health')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-health')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -456,6 +498,49 @@ export const HealthManagement: React.FC = () => {
           setIsProtocolsModalOpen(false);
         }}
       />
+      <style>{`
+        .export-dropdown-container {
+          position: relative;
+        }
+
+        .export-menu {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+          z-index: 100;
+          display: none;
+          flex-direction: column;
+          padding: 8px;
+          min-width: 160px;
+          margin-top: 8px;
+        }
+
+        .export-menu.active {
+          display: flex;
+        }
+
+        .export-menu button {
+          padding: 10px 16px;
+          text-align: left;
+          background: transparent;
+          border: none;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #475569;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .export-menu button:hover {
+          background: #f1f5f9;
+          color: #0f172a;
+        }
+      `}</style>
     </div>
   );
 };

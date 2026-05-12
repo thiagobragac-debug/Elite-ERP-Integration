@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { TransactionForm } from '../../components/Forms/TransactionForm';
@@ -194,6 +195,33 @@ export const AccountsPayable: React.FC = () => {
         fetchBills();
       }
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = bills.filter(b => {
+      const matchesSearch = (b.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'TODAS' || b.status === activeTab;
+      const matchesStatus = filterValues.status === 'all' || b.status === filterValues.status;
+      const amount = Number(b.valor_total);
+      const matchesAmount = amount >= (filterValues.minAmount || 0) && amount <= (filterValues.maxAmount || 1000000);
+      const matchesDate = (!filterValues.dateStart || new Date(b.data_vencimento) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(b.data_vencimento) <= new Date(filterValues.dateEnd));
+      return matchesSearch && matchesTab && matchesStatus && matchesAmount && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Vencimento: item.data_vencimento,
+      Descricao: item.descricao,
+      Fornecedor: item.fornecedores?.nome || item.fornecedor || 'Geral',
+      Valor: item.valor_total,
+      Status: item.status,
+      Categoria: item.categoria,
+      Metodo_Pagamento: item.metodo_pagamento
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_contas_pagar');
+    else if (format === 'excel') exportToExcel(exportData, 'log_contas_pagar');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_contas_pagar', 'Relatório de Contas a Pagar');
   };
 
   const handleDelete = async (id: string) => {
@@ -383,9 +411,23 @@ export const AccountsPayable: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-payable');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-payable" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-payable')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-payable')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-payable')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -26,6 +26,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { PurchasingFilterModal } from './components/PurchasingFilterModal';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 
 export const EntryInvoice: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -115,6 +116,34 @@ export const EntryInvoice: React.FC = () => {
       const { error } = await supabase.from('notas_entrada').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
       if (!error) { setIsModalOpen(false); fetchInvoices(); }
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = invoices.filter(inv => {
+      const matchesSearch = inv.numero_nota.toLowerCase().includes(searchTerm.toLowerCase()) || (inv.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'INVOICES' ? true : inv.status === 'fiscal';
+      const matchesDivergence = showDivergences ? (inv.status === 'divergent' || inv.valor_total > 50000) : true;
+      const matchesStatus = filterValues.status === 'all' || (filterValues.status === 'received' && (inv.status === 'processed' || inv.id));
+      const matchesAmount = Number(inv.valor_total) <= filterValues.maxAmount;
+      const matchesDate = (!filterValues.dateStart || new Date(inv.data_emissao) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(inv.data_emissao) <= new Date(filterValues.dateEnd));
+      return matchesSearch && matchesTab && matchesDivergence && matchesStatus && matchesAmount && matchesDate;
+    });
+
+    const exportData = filteredData.map(item => ({
+      ID: item.id?.slice(0, 8).toUpperCase(),
+      Numero_Nota: item.numero_nota,
+      Serie: item.serie,
+      Fornecedor: item.fornecedores?.nome || '-',
+      Emissao: new Date(item.data_emissao).toLocaleDateString(),
+      Entrada: new Date(item.data_entrada).toLocaleDateString(),
+      Valor_Total: item.valor_total || 0,
+      Chave_XML: item.chave_xml || '-'
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'notas_entrada');
+    else if (format === 'excel') exportToExcel(exportData, 'notas_entrada');
+    else if (format === 'pdf') exportToPDF(exportData, 'notas_entrada', 'Relatório de Notas Fiscais de Entrada');
   };
 
   const handleDelete = async (id: string) => {
@@ -275,9 +304,23 @@ export const EntryInvoice: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-invoice');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-invoice" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-invoice')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-invoice')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-invoice')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

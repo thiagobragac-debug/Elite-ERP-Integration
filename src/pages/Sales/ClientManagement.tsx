@@ -19,6 +19,7 @@ import {
   History
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { ClientForm } from '../../components/Forms/ClientForm';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
@@ -182,6 +183,41 @@ export const ClientManagement: React.FC = () => {
       }]);
       if (!error) { setIsModalOpen(false); fetchClients(); }
     }
+  };
+
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = clients.filter(client => {
+      const matchesSearch = (client.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (client.tipo || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ATIVO' ? client.status?.toUpperCase() === 'ATIVO' : client.status?.toUpperCase() !== 'ATIVO';
+      const matchesFarm = isGlobalMode || client.is_global || (activeFarm && client.fazendas_vinculadas?.includes(activeFarm.id));
+      const matchesSegmentTab = selectedSegment === 'TODOS' ? true : client.segmento === selectedSegment;
+      
+      const matchesStatus = filterValues.status === 'all' || client.status === filterValues.status;
+      const matchesRating = filterValues.rating === 'all' || client.rating === filterValues.rating;
+      const matchesLtv = (client.ltv || 0) <= filterValues.maxLtv;
+      const matchesChurn = filterValues.onlyChurnRisk ? client.churnRisk : true;
+      const matchesSegments = filterValues.segments.length === 0 || filterValues.segments.includes(client.segmento);
+
+      return matchesSearch && matchesTab && matchesFarm && matchesSegmentTab && matchesStatus && matchesRating && matchesLtv && matchesChurn && matchesSegments;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Nome: item.nome,
+      Documento: item.documento || '-',
+      Tipo: item.tipo,
+      Email: item.email || '-',
+      Telefone: item.telefone || '-',
+      Cidade: item.cidade || '-',
+      Estado: item.estado || '-',
+      LTV: item.ltv || 0,
+      Segmento: item.segmento || '-',
+      Rating: item.rating || '-',
+      Status: item.status
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'clientes');
+    else if (format === 'excel') exportToExcel(exportData, 'clientes');
+    else if (format === 'pdf') exportToPDF(exportData, 'clientes', 'Relatório de Clientes e CRM');
   };
 
   const handleDelete = async (id: string) => {
@@ -372,9 +408,23 @@ export const ClientManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-clients');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-clients" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-clients')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-clients')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-clients')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 

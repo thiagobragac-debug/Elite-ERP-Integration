@@ -14,6 +14,7 @@ import {
   FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { WeightForm } from '../../components/Forms/WeightForm';
@@ -151,10 +152,40 @@ export const WeightManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta pesagem?')) return;
-    const { error } = await supabase.from('pesagens').delete().eq('id', id);
-    if (!error) fetchWeighings();
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = weighings.filter(w => {
+      const matchesSearch = w.animais?.brinco?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'RECENT' ? true : Number(w.peso) > 400; 
+      
+      const weight = Number(w.peso || 0);
+      const matchesWeight = weight >= filterValues.minWeight && weight <= filterValues.maxWeight;
+      
+      const gmd = w.gmd || 0;
+      const matchesPerformance = filterValues.performanceLevel === 'all' || 
+                                (filterValues.performanceLevel === 'high' && gmd > 1.0) ||
+                                (filterValues.performanceLevel === 'medium' && gmd >= 0.5 && gmd <= 1.0) ||
+                                (filterValues.performanceLevel === 'low' && gmd < 0.5);
+
+      const matchesDate = (!filterValues.dateStart || new Date(w.data_pesagem) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(w.data_pesagem) <= new Date(filterValues.dateEnd));
+      
+      const daysSince = (new Date().getTime() - new Date(w.data_pesagem).getTime()) / (1000 * 3600 * 24);
+      const matchesDays = !filterValues.daysSinceLastWeighing || daysSince >= filterValues.daysSinceLastWeighing;
+
+      return matchesSearch && matchesTab && matchesWeight && matchesPerformance && matchesDate && matchesDays;
+    });
+
+    const exportData = filteredData.map(item => ({
+      Animal: item.animais?.brinco || 'N/A',
+      Data: new Date(item.data_pesagem).toLocaleDateString(),
+      Peso: item.peso,
+      GMD: item.gmd?.toFixed(3),
+      Observacao: item.observacao
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_pesagens');
+    else if (format === 'excel') exportToExcel(exportData, 'log_pesagens');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_pesagens', 'Relatório de Pesagens');
   };
 
   const columns = [
@@ -295,9 +326,23 @@ export const WeightManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          <button className="icon-btn-secondary" title="Exportar Log">
-            <FileText size={20} />
-          </button>
+          <div className="export-dropdown-container">
+            <button 
+              className="icon-btn-secondary" 
+              title="Exportar"
+              onClick={() => {
+                const menu = document.getElementById('export-menu-weight');
+                if (menu) menu.classList.toggle('active');
+              }}
+            >
+              <FileText size={20} />
+            </button>
+            <div id="export-menu-weight" className="export-menu">
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-weight')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-weight')?.classList.remove('active'); }}>Excel (.xlsx)</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-weight')?.classList.remove('active'); }}>PDF Profissional</button>
+            </div>
+          </div>
         </div>
       </div>
 
