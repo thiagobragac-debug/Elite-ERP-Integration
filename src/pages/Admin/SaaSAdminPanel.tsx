@@ -14,12 +14,14 @@ import {
   MoreVertical,
   CheckCircle,
   XCircle,
+  ShieldCheck,
   RefreshCw,
   Plus,
   CreditCard,
   FileText,
   Lock,
   Eye,
+  ChevronDown,
   Edit2,
   LogIn,
   History,
@@ -38,7 +40,7 @@ import { supabase } from '../../lib/supabase';
 import { SaaSFilterModal } from './components/SaaSFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 
-type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'health';
+type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'billing' | 'health' | 'settings';
 
 export const SaaSAdminPanel: React.FC = () => {
   const location = useLocation();
@@ -63,7 +65,9 @@ export const SaaSAdminPanel: React.FC = () => {
     if (path === '/saas' || path === '/saas/') setActiveTab('overview');
     else if (path.includes('tenants')) setActiveTab('tenants');
     else if (path.includes('plans')) setActiveTab('plans');
+    else if (path.includes('billing')) setActiveTab('billing');
     else if (path.includes('health')) setActiveTab('health');
+    else if (path.includes('settings')) setActiveTab('settings');
   }, [location.pathname]);
 
   const handleTabChange = (tabId: SaaSAdminTab) => {
@@ -87,6 +91,16 @@ export const SaaSAdminPanel: React.FC = () => {
       title: 'Catálogo de Planos & Revenue',
       subtitle: 'Configuração de ofertas comerciais, limites de uso e métricas de faturamento.',
       icon: CreditCard
+    },
+    billing: {
+      title: 'Financeiro & Revenue Intelligence',
+      subtitle: 'Monitoramento de MRR, fluxos de caixa, assinaturas e saúde financeira global.',
+      icon: DollarSign
+    },
+    settings: {
+      title: 'Configurações de Infraestrutura',
+      subtitle: 'Gerenciamento de chaves de API, webhooks e parâmetros globais do ecossistema.',
+      icon: Shield
     },
     health: {
       title: 'Saúde & Infraestrutura',
@@ -131,6 +145,79 @@ export const SaaSAdminPanel: React.FC = () => {
       setPlansList(prev => [...prev, { users: 0, rev: 'R$ 0', ...data }]);
     }
     setIsPlanModalOpen(false);
+  };
+
+  const [gatewaySettings, setGatewaySettings] = useState<any>({
+    stripe: { is_active: false, environment: 'test', api_key: '', secret_key: '' },
+    asaas: { is_active: false, environment: 'test', api_key: '' },
+    pagarme: { is_active: false, environment: 'test', api_key: '', encryption_key: '' }
+  });
+
+  const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+
+  // Fetch Gateway Settings
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      fetchSettings();
+    }
+  }, [activeTab]);
+
+  const fetchSettings = async () => {
+    setIsLoadingSettings(true);
+    try {
+      const { data, error } = await supabase
+        .from('saas_gateway_settings')
+        .select('*');
+
+      if (error) throw error;
+
+      if (data) {
+        const settingsMap: any = {};
+        data.forEach((item: any) => {
+          settingsMap[item.gateway_name] = item;
+        });
+        setGatewaySettings((prev: any) => ({ ...prev, ...settingsMap }));
+      }
+    } catch (err) {
+      console.error('Erro ao buscar configurações:', err);
+    } finally {
+      setIsLoadingSettings(false);
+    }
+  };
+
+  const updateGatewayField = (gateway: string, field: string, value: any) => {
+    setGatewaySettings((prev: any) => ({
+      ...prev,
+      [gateway]: { ...prev[gateway], [field]: value }
+    }));
+  };
+
+  const handleSaveSettings = async () => {
+    setIsLoadingSettings(true);
+    try {
+      for (const gateway of ['stripe', 'asaas', 'pagarme']) {
+        const { error } = await supabase
+          .from('saas_gateway_settings')
+          .update({
+            is_active: gatewaySettings[gateway].is_active,
+            environment: gatewaySettings[gateway].environment,
+            api_key: gatewaySettings[gateway].api_key,
+            secret_key: gatewaySettings[gateway].secret_key,
+            encryption_key: gatewaySettings[gateway].encryption_key,
+            updated_at: new Date().toISOString(),
+            updated_by: user?.id
+          })
+          .eq('gateway_name', gateway);
+
+        if (error) throw error;
+      }
+      alert('Configurações salvas com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar:', err);
+      alert('Erro ao salvar as configurações.');
+    } finally {
+      setIsLoadingSettings(false);
+    }
   };
 
   const openNewTenant = () => { setSelectedTenant(null); setIsTenantModalOpen(true); };
@@ -646,6 +733,314 @@ export const SaaSAdminPanel: React.FC = () => {
             </motion.div>
           )}
 
+          {activeTab === 'billing' && (
+            <motion.div 
+              key="billing"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="saas-view"
+            >
+              <div className="next-gen-kpi-grid">
+                <EliteStatCard 
+                  label="MRR (Mensalidade)" 
+                  value="R$ 1.84M" 
+                  icon={DollarSign} 
+                  color="#10b981" 
+                  trend="up" 
+                  change="+8.4%" 
+                />
+                <EliteStatCard 
+                  label="ARPU (Ticket Médio)" 
+                  value="R$ 1.432" 
+                  icon={Users} 
+                  color="#6366f1" 
+                  trend="up" 
+                  change="+2.1%" 
+                />
+                <EliteStatCard 
+                  label="Churn Rate" 
+                  value="1.2%" 
+                  icon={XCircle} 
+                  color="#ef4444" 
+                  trend="down" 
+                  change="-0.4%" 
+                />
+                <EliteStatCard 
+                  label="LTV Projetado" 
+                  value="R$ 48k" 
+                  icon={Activity} 
+                  color="#f59e0b" 
+                  trend="up" 
+                  change="+12k" 
+                />
+              </div>
+
+              <div className="health-grid" style={{ gridTemplateColumns: '2fr 1fr' }}>
+                <section className="health-panel">
+                  <div className="panel-header">
+                    <FileText size={18} />
+                    <h3>Histórico de Transações Recentes</h3>
+                  </div>
+                  <div className="modern-table-wrapper" style={{ padding: '0 24px 24px' }}>
+                    <ModernTable 
+                      data={[
+                        { id: 'INV-9021', tenant: 'Agro Fazenda v3', amount: 'R$ 1.200', date: 'Hoje, 14:20', status: 'Pago', method: 'Stripe' },
+                        { id: 'INV-9020', tenant: 'Pecuária Elite', amount: 'R$ 850', date: 'Hoje, 10:15', status: 'Pendente', method: 'Boleto' },
+                        { id: 'INV-9019', tenant: 'Grupo Santa Cruz', amount: 'R$ 4.500', date: 'Ontem', status: 'Pago', method: 'Pix' },
+                        { id: 'INV-9018', tenant: 'Unidade Matriz', amount: 'R$ 999', date: 'Ontem', status: 'Falha', method: 'Stripe' },
+                      ]}
+                      columns={[
+                        { header: 'ID', accessor: (i: any) => <span className="font-bold text-[11px] text-slate-400">{i.id}</span> },
+                        { header: 'Inquilino', accessor: (i: any) => <span className="font-bold">{i.tenant}</span> },
+                        { header: 'Valor', accessor: (i: any) => <span className="font-bold text-slate-700">{i.amount}</span> },
+                        { header: 'Status', accessor: (i: any) => <span className={`status-pill ${i.status === 'Pago' ? 'active' : i.status === 'Pendente' ? 'warning' : 'stopped'}`}>{i.status}</span> },
+                        { header: 'Método', accessor: (i: any) => <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">{i.method}</div> }
+                      ]}
+                      loading={false}
+                      hideHeader={true}
+                    />
+                  </div>
+                </section>
+
+                <section className="health-panel">
+                  <div className="panel-header">
+                    <RefreshCw size={18} />
+                    <h3>Ações Rápidas de Billing</h3>
+                  </div>
+                  <div className="flex flex-col gap-3" style={{ padding: '0 8px' }}>
+                    <button className="glass-btn secondary full-width" style={{ justifyContent: 'flex-start' }}>
+                      <CreditCard size={16} />
+                      REPROCESSAR FALHAS (12)
+                    </button>
+                    <button className="glass-btn secondary full-width" style={{ justifyContent: 'flex-start' }}>
+                      <FileText size={16} />
+                      GERAR RELATÓRIO FISCAL
+                    </button>
+                    <button className="glass-btn secondary full-width" style={{ justifyContent: 'flex-start' }}>
+                      <Shield size={16} />
+                      POLÍTICAS DE RETENÇÃO
+                    </button>
+                  </div>
+                </section>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'settings' && (
+            <motion.div 
+              key="settings"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="saas-view"
+            >
+              <div className="billing-settings-container">
+                {/* Global Status Banner */}
+                <div className="premium-status-banner">
+                  <div className="status-info">
+                    <div className="status-icon-wrapper">
+                      <Shield size={22} />
+                    </div>
+                    <div className="status-text">
+                      <h4>Governança de Pagamentos</h4>
+                      <p>Configurações de integração protegidas por camada AES-256 GCM.</p>
+                    </div>
+                  </div>
+                  <div className="server-badge">
+                    <div className="pulse-dot"></div>
+                    <span>Gateway Engine: Online</span>
+                  </div>
+                </div>
+
+                <div className="gateway-grid">
+                  {/* Stripe Card */}
+                  <div className="premium-card">
+                    <div className="card-header">
+                      <div className="brand-group">
+                        <div className="brand-icon stripe">
+                          <CreditCard size={20} />
+                        </div>
+                        <div className="brand-details">
+                          <h3>Stripe</h3>
+                          <span className={`status-tag ${gatewaySettings.stripe.is_active ? 'active' : 'inactive'}`}>
+                            {gatewaySettings.stripe.is_active ? 'ATIVO' : 'INATIVO'}
+                          </span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => updateGatewayField('stripe', 'is_active', !gatewaySettings.stripe.is_active)}
+                        className={`toggle-btn ${gatewaySettings.stripe.is_active ? 'active' : ''}`}
+                      >
+                        {gatewaySettings.stripe.is_active ? 'DESATIVAR' : 'ATIVAR'}
+                      </button>
+                    </div>
+
+                    <div className="card-body">
+                      <div className="field-group">
+                        <label>Ambiente de Execução</label>
+                        <select 
+                          value={gatewaySettings.stripe.environment}
+                          onChange={(e) => updateGatewayField('stripe', 'environment', e.target.value)}
+                          className="premium-select"
+                        >
+                          <option value="test">Sandbox (Homologação)</option>
+                          <option value="production">Produção (Live)</option>
+                        </select>
+                      </div>
+
+                      <div className="field-group">
+                        <label>Publishable Key (Pública)</label>
+                        <input 
+                          type="text" 
+                          value={gatewaySettings.stripe.api_key}
+                          onChange={(e) => updateGatewayField('stripe', 'api_key', e.target.value)}
+                          placeholder="pk_live_..." 
+                          className="premium-input font-mono"
+                        />
+                      </div>
+
+                      <div className="field-group">
+                        <label>Secret Key (Privada)</label>
+                        <div className="input-with-icon">
+                          <input 
+                            type="password" 
+                            value={gatewaySettings.stripe.secret_key}
+                            onChange={(e) => updateGatewayField('stripe', 'secret_key', e.target.value)}
+                            placeholder="sk_live_..." 
+                            className="premium-input font-mono"
+                          />
+                          <Eye size={16} className="input-icon" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Asaas Card */}
+                  <div className="premium-card">
+                    <div className="card-header">
+                      <div className="brand-group">
+                        <div className="brand-icon asaas">
+                          <DollarSign size={20} />
+                        </div>
+                        <div className="brand-details">
+                          <h3>Asaas</h3>
+                          <span className={`status-tag ${gatewaySettings.asaas.is_active ? 'active' : 'inactive'}`}>
+                            {gatewaySettings.asaas.is_active ? 'ATIVO' : 'INATIVO'}
+                          </span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => updateGatewayField('asaas', 'is_active', !gatewaySettings.asaas.is_active)}
+                        className={`toggle-btn ${gatewaySettings.asaas.is_active ? 'active' : ''}`}
+                      >
+                        {gatewaySettings.asaas.is_active ? 'DESATIVAR' : 'ATIVAR'}
+                      </button>
+                    </div>
+
+                    <div className="card-body">
+                      <div className="field-group">
+                        <label>Ambiente de Execução</label>
+                        <select 
+                          value={gatewaySettings.asaas.environment}
+                          onChange={(e) => updateGatewayField('asaas', 'environment', e.target.value)}
+                          className="premium-select"
+                        >
+                          <option value="test">Sandbox (Homologação)</option>
+                          <option value="production">Produção (Live)</option>
+                        </select>
+                      </div>
+
+                      <div className="field-group">
+                        <label>API Access Token</label>
+                        <div className="input-with-icon">
+                          <input 
+                            type="password" 
+                            value={gatewaySettings.asaas.api_key}
+                            onChange={(e) => updateGatewayField('asaas', 'api_key', e.target.value)}
+                            placeholder="$asaas_..." 
+                            className="premium-input font-mono"
+                          />
+                          <Eye size={16} className="input-icon" />
+                        </div>
+                      </div>
+
+                      <div className="info-box">
+                        <p>Gateway especializado em PIX e Boletos com gestão de cobranças.</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pagar.me Card */}
+                  <div className="premium-card">
+                    <div className="card-header">
+                      <div className="brand-group">
+                        <div className="brand-icon pagarme">
+                          <ShieldCheck size={20} />
+                        </div>
+                        <div className="brand-details">
+                          <h3>Pagar.me</h3>
+                          <span className={`status-tag ${gatewaySettings.pagarme.is_active ? 'active' : 'inactive'}`}>
+                            {gatewaySettings.pagarme.is_active ? 'ATIVO' : 'INATIVO'}
+                          </span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => updateGatewayField('pagarme', 'is_active', !gatewaySettings.pagarme.is_active)}
+                        className={`toggle-btn ${gatewaySettings.pagarme.is_active ? 'active' : ''}`}
+                      >
+                        {gatewaySettings.pagarme.is_active ? 'DESATIVAR' : 'ATIVAR'}
+                      </button>
+                    </div>
+
+                    <div className="card-body">
+                      <div className="field-group">
+                        <label>Ambiente de Execução</label>
+                        <select 
+                          value={gatewaySettings.pagarme.environment}
+                          onChange={(e) => updateGatewayField('pagarme', 'environment', e.target.value)}
+                          className="premium-select"
+                        >
+                          <option value="test">Sandbox (Development)</option>
+                          <option value="production">Produção (Live)</option>
+                        </select>
+                      </div>
+
+                      <div className="field-group">
+                        <label>Encryption Key</label>
+                        <div className="input-with-icon">
+                          <input 
+                            type="password" 
+                            value={gatewaySettings.pagarme.encryption_key}
+                            onChange={(e) => updateGatewayField('pagarme', 'encryption_key', e.target.value)}
+                            placeholder="ek_live_..." 
+                            className="premium-input font-mono"
+                          />
+                          <Eye size={16} className="input-icon" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Final Actions Footer */}
+                <div className="billing-footer">
+                  <div className="sync-status">
+                    <RefreshCw size={18} className={isLoadingSettings ? 'animate-spin' : ''} />
+                    <span>{isLoadingSettings ? 'Persistindo dados...' : `Última sincronização: ${new Date().toLocaleTimeString()}`}</span>
+                  </div>
+                  <button 
+                    onClick={handleSaveSettings}
+                    disabled={isLoadingSettings}
+                    className="save-configurations-btn"
+                  >
+                    {isLoadingSettings ? 'SALVANDO...' : 'SALVAR TODAS AS CONFIGURAÇÕES'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {activeTab === 'health' && (
             <motion.div 
               key="health"
@@ -777,10 +1172,302 @@ export const SaaSAdminPanel: React.FC = () => {
       </main>
 
       <style>{`
-        .saas-view {
+        .billing-settings-container {
+          padding: 20px;
+          width: 100%;
+        }
+
+        .premium-status-banner {
+          background: #0f172a;
+          border-radius: 24px;
+          padding: 32px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 40px;
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-info {
+          display: flex;
+          align-items: center;
+          gap: 24px;
+        }
+
+        .status-icon-wrapper {
+          width: 56px;
+          height: 56px;
+          background: linear-gradient(135deg, #06b6d4, #10b981);
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          box-shadow: 0 8px 16px rgba(6, 182, 212, 0.2);
+        }
+
+        .status-text h4 {
+          color: white;
+          font-size: 16px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin: 0 0 4px 0;
+        }
+
+        .status-text p {
+          color: #94a3b8;
+          font-size: 11px;
+          font-weight: 700;
+          margin: 0;
+        }
+
+        .server-badge {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          padding: 12px 20px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .pulse-dot {
+          width: 10px;
+          height: 10px;
+          background: #10b981;
+          border-radius: 50%;
+          animation: pulse 2s infinite;
+        }
+
+        .server-badge span {
+          color: #10b981;
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+
+        .gateway-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 32px;
+          width: 100%;
+        }
+
+        .premium-card {
+          background: white;
+          border: 1px solid #f1f5f9;
+          border-radius: 32px;
+          padding: 32px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+          display: flex;
+          flex-direction: column;
+          gap: 32px;
+          transition: all 0.3s ease;
+        }
+
+        .premium-card:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+          border-color: #e2e8f0;
+        }
+
+        .card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
+
+        .brand-group {
+          display: flex;
+          gap: 20px;
+          align-items: center;
+        }
+
+        .brand-icon {
+          width: 48px;
+          height: 48px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: white;
+        }
+
+        .brand-icon.stripe { background: #635bff; }
+        .brand-icon.asaas { background: #0060ff; }
+        .brand-icon.pagarme { background: #36b37e; }
+
+        .brand-details h3 {
+          font-size: 18px;
+          font-weight: 900;
+          color: #0f172a;
+          margin: 0 0 4px 0;
+          letter-spacing: -0.02em;
+        }
+
+        .status-tag {
+          font-size: 9px;
+          font-weight: 900;
+          padding: 2px 8px;
+          border-radius: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+
+        .status-tag.active {
+          background: #ecfdf5;
+          color: #10b981;
+        }
+
+        .status-tag.inactive {
+          background: #f8fafc;
+          color: #94a3b8;
+        }
+
+        .toggle-btn {
+          font-size: 10px;
+          font-weight: 900;
+          padding: 8px 16px;
+          border-radius: 10px;
+          border: 1px solid #f1f5f9;
+          background: #f8fafc;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+          background: #ecfdf5;
+          border-color: #10b981;
+          color: #059669;
+        }
+
+        .toggle-btn:hover {
+          background: #f1f5f9;
+        }
+
+        .card-body {
           display: flex;
           flex-direction: column;
           gap: 24px;
+        }
+
+        .field-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .field-group label {
+          font-size: 10px;
+          font-weight: 900;
+          color: #94a3b8;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-left: 4px;
+        }
+
+        .premium-select, .premium-input {
+          width: 100%;
+          background: #f8fafc;
+          border: 1px solid #f1f5f9;
+          border-radius: 12px;
+          padding: 12px 16px;
+          font-size: 13px;
+          font-weight: 600;
+          color: #334155;
+          outline: none;
+          transition: all 0.2s;
+        }
+
+        .premium-select:focus, .premium-input:focus {
+          background: white;
+          border-color: #cbd5e1;
+          box-shadow: 0 0 0 4px rgba(241, 245, 249, 1);
+        }
+
+        .input-with-icon {
+          position: relative;
+        }
+
+        .input-icon {
+          position: absolute;
+          right: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #cbd5e1;
+          cursor: pointer;
+        }
+
+        .info-box {
+          background: #f1f5f9;
+          border-radius: 16px;
+          padding: 16px;
+          border: 1px dashed #e2e8f0;
+        }
+
+        .info-box p {
+          font-size: 10px;
+          font-weight: 700;
+          color: #64748b;
+          text-align: center;
+          margin: 0;
+          line-height: 1.6;
+        }
+
+        .billing-footer {
+          margin-top: 48px;
+          background: white;
+          border: 1px solid #f1f5f9;
+          border-radius: 24px;
+          padding: 24px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .sync-status {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          color: #94a3b8;
+        }
+
+        .sync-status span {
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+        }
+
+        .save-configurations-btn {
+          background: #10b981;
+          color: white;
+          font-size: 12px;
+          font-weight: 900;
+          padding: 16px 32px;
+          border-radius: 16px;
+          border: none;
+          cursor: pointer;
+          letter-spacing: 0.1em;
+          box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+          transition: all 0.2s;
+        }
+
+        .save-configurations-btn:hover {
+          background: #059669;
+          transform: translateY(-2px);
+          box-shadow: 0 15px 30px rgba(16, 185, 129, 0.3);
+        }
+
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.5); opacity: 0.5; }
+          100% { transform: scale(1); opacity: 1; }
         }
 
         .next-gen-kpi-grid {

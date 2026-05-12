@@ -5,7 +5,8 @@ import {
   CreditCard, 
   Activity, 
   Database,
-  ArrowLeft
+  ArrowLeft,
+  Settings
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import '../Sidebar/Sidebar.css'; // Reusing standard sidebar styles
@@ -21,6 +22,7 @@ const saasMenuItems: NavItem[] = [
   { title: 'Gestão de Tenants', icon: Users, href: '/saas/tenants' },
   { title: 'Planos & Faturamento', icon: CreditCard, href: '/saas/plans' },
   { title: 'Saúde do Sistema', icon: Activity, href: '/saas/health' },
+  { title: 'Configurações', icon: Settings, href: '/saas/settings' },
 ];
 
 export const SaaSSidebar: React.FC = () => {
@@ -41,7 +43,7 @@ export const SaaSSidebar: React.FC = () => {
           <div className="logo-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand) / 0.7) 100%)', boxShadow: '0 0 20px hsl(var(--brand) / 0.3)' }}>
             <Database size={24} color="white" />
           </div>
-          <span className="logo-text" style={{ color: 'hsl(var(--text-main))', fontWeight: 900, letterSpacing: '-0.02em' }}>Elite SaaS</span>
+          <span className="logo-text" style={{ color: 'white', fontWeight: 900, letterSpacing: '-0.02em' }}>Elite SaaS</span>
         </div>
       </div>
 
@@ -72,7 +74,7 @@ export const SaaSSidebar: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '10px', 
-              color: 'hsl(var(--text-muted))',
+              color: 'rgba(255, 255, 255, 0.7)',
               background: 'hsl(var(--bg-main) / 0.5)',
               padding: '12px',
               borderRadius: '14px',
@@ -88,9 +90,9 @@ export const SaaSSidebar: React.FC = () => {
               e.currentTarget.style.borderColor = 'hsl(var(--brand) / 0.3)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'hsl(var(--bg-main) / 0.5)';
-              e.currentTarget.style.color = 'hsl(var(--text-muted))';
-              e.currentTarget.style.borderColor = 'hsl(var(--border))';
+              e.currentTarget.style.background = 'hsl(var(--bg-main) / 0.1)';
+              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
             }}
           >
             <ArrowLeft size={16} />

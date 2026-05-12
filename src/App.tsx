@@ -99,7 +99,9 @@ function AppContent() {
                 <Route path="/" element={<SaaSAdminPanel />} />
                 <Route path="/tenants" element={<SaaSAdminPanel />} />
                 <Route path="/plans" element={<SaaSAdminPanel />} />
+                <Route path="/billing" element={<SaaSAdminPanel />} />
                 <Route path="/health" element={<SaaSAdminPanel />} />
+                <Route path="/settings" element={<SaaSAdminPanel />} />
                 <Route path="*" element={<Navigate to="/saas" replace />} />
               </Routes>
             </SaaSLayout>

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { ProfileSidebar } from '../Navigation/ProfileSidebar';
+import { BillingBanner } from '../Billing/BillingBanner';
 import './Layout.css';
 
 interface LayoutProps {
@@ -15,6 +16,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const [isKioskMode, setIsKioskMode] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false); // Mock for governance logic
+  const [isOverdue, setIsOverdue] = useState(false); // Mock for soft lock
 
   // Toggle Kiosk Mode with Alt+F
   useEffect(() => {
@@ -49,6 +52,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         )}
 
         <div className="page-container">
+          {isOverdue && !isLocked && <BillingBanner status="warning" daysOverdue={3} />}
+          {isLocked && <BillingBanner status="lock" />}
+          
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
