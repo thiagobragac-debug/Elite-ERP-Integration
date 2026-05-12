@@ -32,7 +32,6 @@ interface TenantContextType {
   tenant: any;
   userProfile: any;
   refreshProfile: () => Promise<void>;
-<<<<<<< HEAD
   // ── Visão Global ──────────────────────────────────────────
   isGlobalMode: boolean;
   setGlobalMode: (global: boolean) => void;
@@ -40,13 +39,6 @@ interface TenantContextType {
   activeFarmId: string | null;
   /** always the tenant id — safe to use in any query */
   activeTenantId: string | null;
-=======
-  isGlobalMode: boolean;
-  activeFarmId: string | null;
-  activeTenantId: string | null;
-  setGlobalMode: (value: boolean) => void;
-  setActiveFarm: (farm: Farm | null) => void;
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -59,7 +51,6 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [activeFarm, setActiveFarmState] = useState<Farm | null>(null);
   const [tenant, setTenant] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [isGlobalMode, setGlobalMode] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isGlobalMode, setIsGlobalMode] = useState<boolean>(() => {
     return localStorage.getItem('elite_global_mode') === 'true';
@@ -68,11 +59,18 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const setGlobalMode = (global: boolean) => {
     setIsGlobalMode(global);
     localStorage.setItem('elite_global_mode', String(global));
+    if (global) {
+      setActiveFarmState(null);
+    }
   };
 
   const setActiveFarm = (farm: Farm | null) => {
     setActiveFarmState(farm);
-    if (farm) setGlobalMode(false); // selecting a specific farm exits global mode
+    if (farm) {
+      setGlobalMode(false);
+    } else {
+      setGlobalMode(true);
+    }
   };
 
   // Computed helpers for query filtering
@@ -160,6 +158,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       companies, 
       farms,
       setActiveCompany,
+      setActiveFarm,
       loading,
       refreshData: fetchData,
       tenant,
@@ -168,26 +167,11 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const { data } = await supabase.from('profiles').select('*').eq('id', user?.id).single();
         if (data) setUserProfile(data);
       },
-<<<<<<< HEAD
       // Global mode
       isGlobalMode,
       setGlobalMode,
       activeFarmId,
-      activeTenantId,
-=======
-      isGlobalMode,
-      activeFarmId: isGlobalMode ? null : activeFarm?.id || null,
-      activeTenantId: tenant?.id || null,
-      setGlobalMode,
-      setActiveFarm: (farm: Farm | null) => {
-        setActiveFarm(farm);
-        if (farm) {
-          setGlobalMode(false);
-        } else {
-          setGlobalMode(true);
-        }
-      }
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
+      activeTenantId
     }}>
       {children}
     </TenantContext.Provider>

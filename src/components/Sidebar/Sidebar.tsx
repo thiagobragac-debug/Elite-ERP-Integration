@@ -119,11 +119,7 @@ const menuItems: NavItem[] = [
 export const Sidebar: React.FC = () => {
   const [openMenus, setOpenMenus] = useState<string[]>(['Pecuária', 'Administração', 'Compra & Cotação', 'Financeiro & Banco']);
   const [isFarmSelectorOpen, setIsFarmSelectorOpen] = useState(false);
-<<<<<<< HEAD
   const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode } = useTenant();
-=======
-  const { activeFarm, farms, setActiveFarm, isGlobalMode } = useTenant();
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
   const location = useLocation();
   const isFleetRoute = location.pathname.startsWith('/frota');
   const isPurchasingRoute = location.pathname.startsWith('/compras');
@@ -226,7 +222,6 @@ export const Sidebar: React.FC = () => {
             className={`tenant-badge ${isFarmSelectorOpen ? 'active' : ''} ${isGlobalMode ? 'global' : ''}`}
             onClick={() => setIsFarmSelectorOpen(!isFarmSelectorOpen)}
           >
-<<<<<<< HEAD
             {isGlobalMode 
               ? <Globe size={14} style={{ color: '#38bdf8', flexShrink: 0 }} />
               : <div className="tenant-dot"></div>
@@ -234,10 +229,6 @@ export const Sidebar: React.FC = () => {
             <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {isGlobalMode ? 'Visão Global' : (activeFarm?.name || 'Selecionar Fazenda')}
             </span>
-=======
-            <div className={`tenant-dot ${isGlobalMode ? 'global' : ''}`}></div>
-            <span>{isGlobalMode ? 'Visão Global (Grupo)' : (activeFarm?.name || 'Selecionar Fazenda')}</span>
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
             <ChevronDown size={14} className={`selector-arrow ${isFarmSelectorOpen ? 'up' : ''}`} />
           </button>
 
@@ -251,7 +242,6 @@ export const Sidebar: React.FC = () => {
               >
                 <div className="dropdown-header">Mudar Unidade Ativa</div>
                 <div className="farm-list">
-<<<<<<< HEAD
                   {/* ── Global Mode Option ── */}
                   <button
                     className={`farm-option global-option ${isGlobalMode ? 'active' : ''}`}
@@ -272,19 +262,6 @@ export const Sidebar: React.FC = () => {
                   </div>
 
                   {/* ── Individual Farms ── */}
-=======
-                  <button 
-                    className={`farm-option ${isGlobalMode ? 'active' : ''}`}
-                    onClick={() => {
-                      setActiveFarm(null);
-                      setIsFarmSelectorOpen(false);
-                    }}
-                  >
-                    <div className="option-dot global"></div>
-                    <span>Visão Global (Grupo)</span>
-                  </button>
-                  <div className="dropdown-divider"></div>
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
                   {farms.map(farm => (
                     <button 
                       key={farm.id}

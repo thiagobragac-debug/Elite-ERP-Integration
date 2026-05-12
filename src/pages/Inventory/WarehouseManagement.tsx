@@ -15,7 +15,8 @@ import {
   FileText,
   Package,
   Scale,
-  Activity
+  Activity,
+  DollarSign
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -23,25 +24,19 @@ import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { FormModal } from '../../components/Forms/FormModal';
-<<<<<<< HEAD
+import { WarehouseFilterModal } from './components/WarehouseFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 
 export const WarehouseManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
-=======
-import { WarehouseFilterModal } from './components/WarehouseFilterModal';
-
-export const WarehouseManagement: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeTenantId, activeFarmId } = useTenant();
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('Todos');
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -52,7 +47,6 @@ export const WarehouseManagement: React.FC = () => {
   const [farms, setFarms] = useState<any[]>([]);
 
   useEffect(() => {
-<<<<<<< HEAD
     if (!activeFarmId && !isGlobalMode) return;
     fetchWarehouses();
     fetchFarms();
@@ -62,33 +56,13 @@ export const WarehouseManagement: React.FC = () => {
     let query = supabase.from('fazendas').select('id, nome');
     query = applyTenantFilter(query);
     const { data } = await query;
-=======
-    if (!activeTenantId) return;
-    fetchWarehouses();
-    fetchFarms();
-  }, [activeFarmId, activeTenantId, isGlobalMode]);
-
-  const fetchFarms = async () => {
-    if (!activeTenantId) return;
-    const { data } = await supabase
-      .from('fazendas')
-      .select('id, nome')
-      .eq('tenant_id', activeTenantId);
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
     if (data) setFarms(data);
   };
 
   const fetchWarehouses = async () => {
     setLoading(true);
     try {
-<<<<<<< HEAD
       let query = supabase.from('depositos').select(`
-=======
-      // Fetch warehouses, their movements AND the products involved to calculate value
-      let query = supabase
-        .from('depositos')
-        .select(`
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
           *,
           movimentacoes_estoque (
             quantidade,
@@ -98,21 +72,9 @@ export const WarehouseManagement: React.FC = () => {
               custo_medio
             )
           )
-<<<<<<< HEAD
         `).order('nome', { ascending: true });
       query = applyFarmFilter(query);
       const { data, error } = await query;
-=======
-        `);
-
-      if (isGlobalMode) {
-        query = query.eq('tenant_id', activeTenantId);
-      } else {
-        query = query.eq('fazenda_id', activeFarmId).eq('tenant_id', activeTenantId);
-      }
-
-      const { data, error } = await query.order('nome', { ascending: true });
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
 
       if (data) {
         const processed = data.map((w: any) => {
@@ -750,7 +712,7 @@ export const WarehouseManagement: React.FC = () => {
         }}
         onSubmit={handleSubmit}
         title={selectedWarehouse ? "Editar Depósito" : "Novo Depósito"}
-        subtitle={`Vincule este almoxarifado à fazenda ${activeFarm?.nome}`}
+        subtitle={`Vincule este almoxarifado à fazenda ${activeFarm?.nome || 'ativa'}`}
         icon={Package}
         submitLabel={selectedWarehouse ? "Salvar Alterações" : "Confirmar Cadastro"}
         size="large"

@@ -41,11 +41,7 @@ import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import './ExecutiveDashboard.css';
 
 export const ExecutiveDashboard: React.FC = () => {
-<<<<<<< HEAD
-  const { activeFarm, tenant, userProfile, isGlobalMode, activeFarmId, applyFarmFilter } = useFarmFilter();
-=======
-  const { activeFarm, tenant, userProfile, isGlobalMode, activeFarmId, activeTenantId } = useTenant();
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
+  const { activeFarm, tenant, userProfile, isGlobalMode, activeFarmId, applyFarmFilter, activeTenantId } = useFarmFilter();
   const [kpiData, setKpiData] = useState<any[]>([
     { id: 'gmd', label: 'Evolução de GMD', value: '---', icon: Activity, color: '#10b981', progress: 0 },
     { id: 'caixa', label: 'Fluxo de Caixa', value: '---', icon: DollarSign, color: '#f59e0b', progress: 0 },
@@ -84,15 +80,9 @@ export const ExecutiveDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-<<<<<<< HEAD
     if (!activeFarmId && !isGlobalMode) return;
     fetchExecutiveStats();
   }, [activeFarmId, isGlobalMode, tenant]);
-=======
-    if (!activeTenantId) return;
-    fetchExecutiveStats();
-  }, [activeFarmId, activeTenantId, isGlobalMode, tenant]);
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
 
   useEffect(() => {
     if (isTVMode) {
@@ -175,7 +165,6 @@ export const ExecutiveDashboard: React.FC = () => {
     try {
       console.log('[Dashboard] Buscando estatísticas. Modo Global:', isGlobalMode);
       
-<<<<<<< HEAD
       let animalQuery = supabase.from('animais').select('*', { count: 'exact', head: true });
       animalQuery = applyFarmFilter(animalQuery);
       const { count: animalCount } = await animalQuery;
@@ -190,37 +179,6 @@ export const ExecutiveDashboard: React.FC = () => {
 
       let stockQuery = supabase.from('produtos').select('estoque_atual, custo_medio');
       stockQuery = applyFarmFilter(stockQuery);
-=======
-      // 1. Animals
-      let animalCount = 0;
-      if (isGlobalMode && activeTenantId) {
-        const { count } = await supabase.from('animais')
-          .select('*', { count: 'exact', head: true })
-          .eq('tenant_id', activeTenantId);
-        animalCount = count || 0;
-      } else if (activeFarmId) {
-        const { count } = await supabase.from('animais')
-          .select('*', { count: 'exact', head: true })
-          .eq('fazenda_id', activeFarmId);
-        animalCount = count || 0;
-      }
-      
-      // 2. Cash Flow
-      const { data: bankAccounts } = await supabase
-        .from('contas_bancarias')
-        .select('saldo_atual')
-        .eq('tenant_id', activeTenantId);
-      
-      const totalCash = bankAccounts?.reduce((acc, curr) => acc + Number(curr.saldo_atual), 0) || 0;
-
-      // 3. Stock
-      let stockQuery = supabase.from('produtos').select('estoque_atual, custo_medio');
-      if (isGlobalMode) {
-        stockQuery = stockQuery.eq('tenant_id', activeTenantId);
-      } else {
-        stockQuery = stockQuery.eq('fazenda_id', activeFarmId);
-      }
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
       const { data: stockData } = await stockQuery;
       
       const totalStockValue = stockData?.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0) || 0;
@@ -450,18 +408,9 @@ export const ExecutiveDashboard: React.FC = () => {
         ]);
       }
 
-<<<<<<< HEAD
       let activitiesQuery = supabase.from('pesagens').select('created_at, observacao, animais(brinco)').order('created_at', { ascending: false }).limit(4);
       activitiesQuery = applyFarmFilter(activitiesQuery);
       const { data: activities } = await activitiesQuery;
-=======
-      const { data: activities } = await supabase
-        .from('pesagens')
-        .select('created_at, observacao, animais(brinco)')
-        .eq('tenant_id', activeTenantId)
-        .order('created_at', { ascending: false })
-        .limit(4);
->>>>>>> 1fbbc88 (Elite ERP: Diamond Precision 5.0 - Sincronizacao Consolidada)
 
       setRecentActivities(activities || []);
 
