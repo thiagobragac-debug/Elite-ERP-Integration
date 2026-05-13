@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Database,
   Search,
+  Zap,
   Filter,
   MoreVertical,
   CheckCircle,
@@ -26,8 +27,12 @@ import {
   LogIn,
   History,
   LayoutGrid,
-  List as ListIcon
+  List as ListIcon,
+  Calendar,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ModernTable } from '../../components/DataTable/ModernTable';
@@ -82,6 +87,11 @@ export const SaaSAdminPanel: React.FC = () => {
       subtitle: 'Monitoramento executivo de instâncias, faturamento global e governança de infraestrutura.',
       icon: Server
     },
+    billing: {
+      title: 'Financeiro & Revenue Intelligence',
+      subtitle: 'Monitoramento de MRR, fluxos de caixa, assinaturas e saúde financeira global.',
+      icon: Edit2
+    },
     tenants: {
       title: 'Gestão de Clientes (Tenants)',
       subtitle: 'Controle de instâncias ativas, provisionamento e acesso administrativo direto.',
@@ -91,11 +101,6 @@ export const SaaSAdminPanel: React.FC = () => {
       title: 'Catálogo de Planos & Revenue',
       subtitle: 'Configuração de ofertas comerciais, limites de uso e métricas de faturamento.',
       icon: CreditCard
-    },
-    billing: {
-      title: 'Financeiro & Revenue Intelligence',
-      subtitle: 'Monitoramento de MRR, fluxos de caixa, assinaturas e saúde financeira global.',
-      icon: DollarSign
     },
     settings: {
       title: 'Configurações de Infraestrutura',
@@ -128,6 +133,8 @@ export const SaaSAdminPanel: React.FC = () => {
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
+  const [billingSubTab, setBillingSubTab] = useState('monitor');
+
   const handleSaveTenant = (data: any) => {
     if (selectedTenant) {
       setTenantsList(prev => prev.map(t => t.id === selectedTenant.id ? { ...t, ...data } : t));
@@ -154,6 +161,36 @@ export const SaaSAdminPanel: React.FC = () => {
   });
 
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+  const [isRetentionModalOpen, setIsRetentionModalOpen] = useState(false);
+  const [retentionSettings, setRetentionSettings] = useState({
+    alertDays: 5,
+    readOnlyDays: 10,
+    pecuariaOnlyDays: 15,
+    forcedPaymentDays: 20
+  });
+
+  const handleReprocessFailures = async () => {
+    setIsLoadingSettings(true);
+    // Simulating backend reprocess
+    setTimeout(async () => {
+      await logAudit({
+        admin_id: user?.id,
+        action: 'BILLING_REPROCESS',
+        metadata: { status: 'success', items_processed: 12 }
+      });
+      setIsLoadingSettings(false);
+      alert('Reprocessamento concluído: 12 faturas re-encaminhadas para o gateway.');
+    }, 1500);
+  };
+
+  const handleFiscalReport = () => {
+    handleExport('pdf');
+    logAudit({
+      admin_id: user?.id,
+      action: 'EXPORT_FISCAL_REPORT',
+      metadata: { format: 'pdf' }
+    });
+  };
 
   // Fetch Gateway Settings
   useEffect(() => {
@@ -255,6 +292,13 @@ export const SaaSAdminPanel: React.FC = () => {
     } else if (activeTab === 'plans') {
       dataToExport = plansList.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
       fileName = 'catalogo_planos_saas';
+    } else if (activeTab === 'billing') {
+      dataToExport = [
+        { id: 1, name: 'Fazenda Santa Maria', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Stripe', status: 'pago', due: '15/10/2023' },
+        { id: 2, name: 'Agropecuária Vale Verde', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'pendente', due: '12/10/2023' },
+        { id: 3, name: 'Haras Serra Azul', plan: 'Starter Core', price: 'R$ 190', gateway: 'Stripe', status: 'atrasado', due: '05/10/2023' },
+      ];
+      fileName = 'monitor_faturamento_saas';
     }
 
     if (format === 'csv') exportToCSV(dataToExport, fileName);
@@ -262,11 +306,77 @@ export const SaaSAdminPanel: React.FC = () => {
     else if (format === 'pdf') exportToPDF(dataToExport, fileName, `Relatório SaaS - ${activeTab.toUpperCase()}`);
   };
 
+  const billingColumns = [
+    {
+      header: 'Fazenda / ID',
+      accessor: (item: any) => (
+        <div className="flex items-center gap-3 py-1">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+            <Globe size={18} />
+          </div>
+          <div className="flex flex-col leading-tight">
+            <span className="text-[13px] font-black text-slate-900 uppercase tracking-tighter block">
+              {item.name}
+            </span>
+            <span className="text-[10px] font-black text-slate-400 block mt-0.5">
+              ID: {item.id}
+            </span>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Plano / Valor',
+      accessor: (item: any) => (
+        <div className="flex flex-col gap-1 py-1">
+          <div className="flex items-center gap-2">
+            <Activity size={14} className="text-emerald-500 shrink-0" />
+            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{item.plan}</span>
+          </div>
+          <div className="pl-5">
+            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md italic">
+              {item.price} / mês
+            </span>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Gateway',
+      accessor: (item: any) => (
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-slate-300" />
+          <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{item.gateway}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Vencimento',
+      accessor: (item: any) => (
+        <div className="flex items-center gap-2 text-slate-500">
+          <Calendar size={14} className="shrink-0" />
+          <span className="text-[11px] font-black uppercase tracking-tighter">{item.due}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Status',
+      accessor: (item: any) => (
+        <div className="flex justify-center">
+          <span className={`status-badge-elite ${item.status}`}>
+            {item.status}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
+    }
+  ];
+
   const tenantColumns = [
     {
       header: 'Tenant',
       accessor: (item: any) => (
-        <div className="table-cell-title">
+        <div className="table-cell-title flex items-center gap-2">
           <span className="main-text">{item.name}</span>
           <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
             {item.id}
@@ -320,11 +430,19 @@ export const SaaSAdminPanel: React.FC = () => {
           </button>
           <button 
             className="primary-btn" 
-            onClick={activeTab === 'plans' ? openNewPlan : openNewTenant}
+            onClick={
+              activeTab === 'plans' ? openNewPlan : 
+              activeTab === 'billing' ? () => alert('Nova Cobrança Iniciada') : 
+              openNewTenant
+            }
             style={{ display: (activeTab === 'overview' || activeTab === 'health') ? 'none' : 'flex' }}
           >
             <Plus size={18} />
-            {activeTab === 'plans' ? 'CRIAR PLANO' : 'NOVO TENANT'}
+            {
+              activeTab === 'plans' ? 'CRIAR PLANO' : 
+              activeTab === 'billing' ? 'NOVA COBRANÇA' : 
+              'NOVO TENANT'
+            }
           </button>
         </div>
       </header>
@@ -354,7 +472,7 @@ export const SaaSAdminPanel: React.FC = () => {
         <EliteStatCard 
           label="Receita Mensal (MRR)" 
           value="R$ 2.45M" 
-          icon={DollarSign} 
+          icon={Edit2} 
           color="#10b981" 
           trend="up" 
           change="+12.4%" 
@@ -452,15 +570,15 @@ export const SaaSAdminPanel: React.FC = () => {
                 </div>
 
                 <div className="elite-filter-group">
-                  <div className="view-toggle-elite">
+                  <div className="elite-tab-group">
                     <button 
-                      className={`toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+                      className={`elite-tab-item ${viewMode === 'list' ? 'active' : ''}`}
                       onClick={() => setViewMode('list')}
                     >
                       <ListIcon size={18} />
                     </button>
                     <button 
-                      className={`toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+                      className={`elite-tab-item ${viewMode === 'grid' ? 'active' : ''}`}
                       onClick={() => setViewMode('grid')}
                     >
                       <LayoutGrid size={18} />
@@ -661,8 +779,8 @@ export const SaaSAdminPanel: React.FC = () => {
                 <ModernTable 
                   data={plansList.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))}
                   columns={[
-                    { header: 'Plano', accessor: (p: any) => <div className="table-cell-title"><span className="main-text">{p.name}</span></div> },
-                    { header: 'Preço', accessor: (p: any) => <div className="table-cell-meta"><DollarSign size={14} />{p.price}</div> },
+                    { header: 'Plano', accessor: (p: any) => <div className="table-cell-title flex items-center gap-2"><span className="main-text">{p.name}</span></div> },
+                    { header: 'Preço', accessor: (p: any) => <div className="table-cell-meta"><Edit2 size={14} />{p.price}</div> },
                     { header: 'Tenants', accessor: (p: any) => <div className="table-cell-meta"><Users size={14} />{p.users} Clientes</div> },
                     { header: 'MRR', accessor: (p: any) => <span className="status-pill active">{p.rev}</span> }
                   ]}
@@ -716,7 +834,7 @@ export const SaaSAdminPanel: React.FC = () => {
                                 <span>{plan.users} Clientes Ativos</span>
                               </div>
                               <div className="meta-item">
-                                <DollarSign size={14} className="meta-icon" style={{ color: '#f59e0b' }} />
+                                <Edit2 size={14} className="meta-icon" style={{ color: '#f59e0b' }} />
                                 <span>MRR: {plan.rev}</span>
                               </div>
                               <div className="meta-item">
@@ -734,100 +852,213 @@ export const SaaSAdminPanel: React.FC = () => {
           )}
 
           {activeTab === 'billing' && (
-            <motion.div 
-              key="billing"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="saas-view"
-            >
-              <div className="next-gen-kpi-grid">
-                <EliteStatCard 
-                  label="MRR (Mensalidade)" 
-                  value="R$ 1.84M" 
-                  icon={DollarSign} 
-                  color="#10b981" 
-                  trend="up" 
-                  change="+8.4%" 
-                />
-                <EliteStatCard 
-                  label="ARPU (Ticket Médio)" 
-                  value="R$ 1.432" 
-                  icon={Users} 
-                  color="#6366f1" 
-                  trend="up" 
-                  change="+2.1%" 
-                />
-                <EliteStatCard 
-                  label="Churn Rate" 
-                  value="1.2%" 
-                  icon={XCircle} 
-                  color="#ef4444" 
-                  trend="down" 
-                  change="-0.4%" 
-                />
-                <EliteStatCard 
-                  label="LTV Projetado" 
-                  value="R$ 48k" 
-                  icon={Activity} 
-                  color="#f59e0b" 
-                  trend="up" 
-                  change="+12k" 
-                />
-              </div>
+              <motion.div 
+                key="billing"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="saas-view"
+              >
+                {/* Advanced Metrics & Strategic Actions - Diamond Parity 5.0 */}
+                <div className="health-grid" style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 1fr 1fr 1fr', 
+                  gap: '20px', 
+                  marginBottom: '48px',
+                  marginTop: '10px'
+                }}>
+                  <EliteStatCard 
+                    label="Métricas de Faturamento"
+                    value="R$ 142.8k"
+                    change="+4.2%"
+                    trend="up"
+                    icon={DollarSign}
+                    color="#10b981"
+                    periodLabel="Taxa de recuperação: 94.2%"
+                    sparkline={[{value: 30, label: '1'}, {value: 50, label: '2'}, {value: 45, label: '3'}, {value: 80, label: '4'}]}
+                  />
 
-              <div className="health-grid" style={{ gridTemplateColumns: '2fr 1fr' }}>
-                <section className="health-panel">
-                  <div className="panel-header">
-                    <FileText size={18} />
-                    <h3>Histórico de Transações Recentes</h3>
-                  </div>
-                  <div className="modern-table-wrapper" style={{ padding: '0 24px 24px' }}>
-                    <ModernTable 
-                      data={[
-                        { id: 'INV-9021', tenant: 'Agro Fazenda v3', amount: 'R$ 1.200', date: 'Hoje, 14:20', status: 'Pago', method: 'Stripe' },
-                        { id: 'INV-9020', tenant: 'Pecuária Elite', amount: 'R$ 850', date: 'Hoje, 10:15', status: 'Pendente', method: 'Boleto' },
-                        { id: 'INV-9019', tenant: 'Grupo Santa Cruz', amount: 'R$ 4.500', date: 'Ontem', status: 'Pago', method: 'Pix' },
-                        { id: 'INV-9018', tenant: 'Unidade Matriz', amount: 'R$ 999', date: 'Ontem', status: 'Falha', method: 'Stripe' },
-                      ]}
-                      columns={[
-                        { header: 'ID', accessor: (i: any) => <span className="font-bold text-[11px] text-slate-400">{i.id}</span> },
-                        { header: 'Inquilino', accessor: (i: any) => <span className="font-bold">{i.tenant}</span> },
-                        { header: 'Valor', accessor: (i: any) => <span className="font-bold text-slate-700">{i.amount}</span> },
-                        { header: 'Status', accessor: (i: any) => <span className={`status-pill ${i.status === 'Pago' ? 'active' : i.status === 'Pendente' ? 'warning' : 'stopped'}`}>{i.status}</span> },
-                        { header: 'Método', accessor: (i: any) => <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">{i.method}</div> }
-                      ]}
-                      loading={false}
-                      hideHeader={true}
-                    />
-                  </div>
-                </section>
+                  <EliteStatCard 
+                    label="Inadimplência (30d)"
+                    value="R$ 14.2k"
+                    change="-12%"
+                    trend="down"
+                    icon={AlertCircle}
+                    color="#ef4444"
+                    periodLabel="Redução vs mês anterior"
+                    sparkline={[{value: 60, label: '1'}, {value: 40, label: '2'}, {value: 55, label: '3'}, {value: 30, label: '4'}]}
+                  />
 
-                <section className="health-panel">
-                  <div className="panel-header">
-                    <RefreshCw size={18} />
-                    <h3>Ações Rápidas de Billing</h3>
-                  </div>
-                  <div className="flex flex-col gap-3" style={{ padding: '0 8px' }}>
-                    <button className="glass-btn secondary full-width" style={{ justifyContent: 'flex-start' }}>
-                      <CreditCard size={16} />
-                      REPROCESSAR FALHAS (12)
-                    </button>
-                    <button className="glass-btn secondary full-width" style={{ justifyContent: 'flex-start' }}>
-                      <FileText size={16} />
-                      GERAR RELATÓRIO FISCAL
-                    </button>
-                    <button className="glass-btn secondary full-width" style={{ justifyContent: 'flex-start' }}>
-                      <Shield size={16} />
-                      POLÍTICAS DE RETENÇÃO
-                    </button>
-                  </div>
-                </section>
-              </div>
-            </motion.div>
-          )}
+                  <EliteStatCard 
+                    label="Previsão de Receita"
+                    value="R$ 158.4k"
+                    change="+11.5%"
+                    trend="up"
+                    icon={Activity}
+                    color="#f59e0b"
+                    periodLabel="Projeção para os próximos 30d"
+                    sparkline={[{value: 40, label: '1'}, {value: 60, label: '2'}, {value: 75, label: '3'}, {value: 90, label: '4'}]}
+                  />
 
-          {activeTab === 'settings' && (
+                  <EliteStatCard 
+                    label="Taxa de Churn"
+                    value="1.2%"
+                    change="-0.4%"
+                    trend="down"
+                    icon={Shield}
+                    color="#6366f1"
+                    periodLabel="Cancelamentos vs mês anterior"
+                    progress={15}
+                    sparkline={[{value: 70, label: '1'}, {value: 50, label: '2'}, {value: 45, label: '3'}, {value: 30, label: '4'}]}
+                  />
+                </div>
+
+
+                <div className="elite-controls-row" style={{ marginTop: '20px' }}>
+                 <div className="elite-tab-group">
+                   <button 
+                     className={`elite-tab-item ${billingSubTab === 'monitor' ? 'active' : ''}`}
+                     onClick={() => setBillingSubTab('monitor')}
+                   >
+                     Monitor Global
+                   </button>
+                   <button 
+                     className={`elite-tab-item ${billingSubTab === 'history' ? 'active' : ''}`}
+                     onClick={() => setBillingSubTab('history')}
+                   >
+                     HISTÓRICO
+                   </button>
+                 </div>
+
+                 <div className="elite-filter-group">
+                   <div className="elite-search-wrapper" style={{ width: '300px' }}>
+                     <Search size={18} className="s-icon" />
+                     <input 
+                       className="elite-search-input"
+                       type="text" 
+                       placeholder="Buscar por tenant ou ID..." 
+                       value={searchQuery}
+                       onChange={(e) => setSearchQuery(e.target.value)}
+                     />
+                   </div>
+                   
+                   <button className="icon-btn-secondary" title="Filtros Avançados">
+                     <Filter size={20} />
+                   </button>
+
+                   <div className="export-dropdown-container">
+                     <button 
+                       className="icon-btn-secondary" 
+                       title="Exportar"
+                       onClick={() => {
+                         const menu = document.getElementById('export-menu-billing');
+                         if (menu) menu.classList.toggle('active');
+                       }}
+                     >
+                       <FileText size={20} />
+                     </button>
+                     <div id="export-menu-billing" className="export-menu">
+                       <button onClick={() => handleExport('csv')}>CSV</button>
+                       <button onClick={() => handleExport('excel')}>Excel (.xlsx)</button>
+                       <button onClick={() => handleExport('pdf')}>PDF Profissional</button>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+
+               <ModernTable 
+                 data={[
+                   { id: 1, name: 'Fazenda Santa Maria', id_str: 'TN-001', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Stripe', status: 'pago', due: '15/10/2023' },
+                   { id: 2, name: 'Agropecuária Vale Verde', id_str: 'TN-002', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'pendente', due: '12/10/2023' },
+                   { id: 3, name: 'Haras Serra Azul', id_str: 'TN-003', plan: 'Starter Core', price: 'R$ 190', gateway: 'Stripe', status: 'atrasado', due: '05/10/2023' },
+                   { id: 4, name: 'Granja Novo Horizonte', id_str: 'TN-004', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Pagar.me', status: 'pago', due: '18/10/2023' },
+                   { id: 5, name: 'Fazenda Bela Vista', id_str: 'TN-005', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'processando', due: '14/10/2023' },
+                 ].filter(item => 
+                   item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                   item.id_str.toLowerCase().includes(searchQuery.toLowerCase())
+                 ).map(i => ({ ...i, id: i.id_str }))}
+                 columns={billingColumns}
+                 loading={false}
+                 hideHeader={true}
+                 actions={(sub) => (
+                   <div className="modern-actions">
+                     <button className="action-dot info" title="Logs">
+                       <History size={18} />
+                     </button>
+                     <button className="action-dot edit" title="Editar">
+                       <Edit2 size={18} />
+                     </button>
+                     <button className="action-dot delete" title="Suspender">
+                       <Shield size={18} />
+                     </button>
+                   </div>
+                 )}
+               />
+
+                {/* Strategic Actions Bar - Diamond Parity 5.0 (Relocated to Footer) */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  gap: '24px', 
+                  marginTop: '40px', 
+                  padding: '20px', 
+                  borderRadius: '16px', 
+                  border: '1px solid hsl(var(--border) / 0.6)', 
+                  background: 'linear-gradient(to right, hsl(var(--muted) / 0.3), hsl(var(--background)))',
+                  width: '100%'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingRight: '24px', borderRight: '1px solid hsl(var(--border))' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
+                      <div style={{ margin: 'auto' }}><Zap size={22} fill="#6366f1" /></div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{ margin: 0, fontSize: '12px', fontWeight: '900', color: 'hsl(var(--text-main))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ações de Governança</h4>
+                      <p style={{ margin: 0, fontSize: '10px', fontWeight: '700', color: '#6366f1', textTransform: 'uppercase', opacity: 0.8 }}>Hub Estratégico</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flex: 1, gap: '12px', alignItems: 'center' }}>
+                    {[
+                      { label: 'Reprocessar Falhas', icon: RefreshCw, color: '#10b981', action: handleReprocessFailures },
+                      { label: 'Relatório Fiscal Consolidado', icon: FileText, color: '#6366f1', action: handleFiscalReport },
+                      { label: 'Políticas de Retenção', icon: Shield, color: '#64748b', action: () => setIsRetentionModalOpen(true) }
+                    ].map((btn, idx) => (
+                      <button 
+                        key={idx}
+                        onClick={btn.action}
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '10px', 
+                          padding: '10px 18px', 
+                          borderRadius: '12px', 
+                          background: 'white', 
+                          border: '1px solid hsl(var(--border))',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.borderColor = btn.color;
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.borderColor = 'hsl(var(--border))';
+                          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
+                        }}
+                      >
+                        <btn.icon size={16} style={{ color: btn.color }} />
+                        <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--text-main))', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{btn.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Grid content follows */}
+             </motion.div>
+           )}
+
+           {activeTab === 'settings' && (
             <motion.div 
               key="settings"
               initial={{ opacity: 0, y: 10 }}
@@ -870,7 +1101,7 @@ export const SaaSAdminPanel: React.FC = () => {
                       </div>
                       <button 
                         onClick={() => updateGatewayField('stripe', 'is_active', !gatewaySettings.stripe.is_active)}
-                        className={`toggle-btn ${gatewaySettings.stripe.is_active ? 'active' : ''}`}
+                        className={`elite-tab-item ${gatewaySettings.stripe.is_active ? 'active' : ''}`}
                       >
                         {gatewaySettings.stripe.is_active ? 'DESATIVAR' : 'ATIVAR'}
                       </button>
@@ -921,7 +1152,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     <div className="card-header">
                       <div className="brand-group">
                         <div className="brand-icon asaas">
-                          <DollarSign size={20} />
+                          <Edit2 size={20} />
                         </div>
                         <div className="brand-details">
                           <h3>Asaas</h3>
@@ -932,7 +1163,7 @@ export const SaaSAdminPanel: React.FC = () => {
                       </div>
                       <button 
                         onClick={() => updateGatewayField('asaas', 'is_active', !gatewaySettings.asaas.is_active)}
-                        className={`toggle-btn ${gatewaySettings.asaas.is_active ? 'active' : ''}`}
+                        className={`elite-tab-item ${gatewaySettings.asaas.is_active ? 'active' : ''}`}
                       >
                         {gatewaySettings.asaas.is_active ? 'DESATIVAR' : 'ATIVAR'}
                       </button>
@@ -987,7 +1218,7 @@ export const SaaSAdminPanel: React.FC = () => {
                       </div>
                       <button 
                         onClick={() => updateGatewayField('pagarme', 'is_active', !gatewaySettings.pagarme.is_active)}
-                        className={`toggle-btn ${gatewaySettings.pagarme.is_active ? 'active' : ''}`}
+                        className={`elite-tab-item ${gatewaySettings.pagarme.is_active ? 'active' : ''}`}
                       >
                         {gatewaySettings.pagarme.is_active ? 'DESATIVAR' : 'ATIVAR'}
                       </button>
@@ -1112,6 +1343,153 @@ export const SaaSAdminPanel: React.FC = () => {
         />
 
         {/* Quick Audit Drawer */}
+        {createPortal(
+          <AnimatePresence>
+            {isRetentionModalOpen && (
+              <div style={{ 
+                position: 'fixed', 
+                top: 0, 
+                left: 0, 
+                right: 0, 
+                bottom: 0, 
+                zIndex: 99999, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                padding: '24px',
+                width: '100vw',
+                height: '100vh',
+                pointerEvents: 'auto'
+              }}>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsRetentionModalOpen(false)}
+                  style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(12px)' }}
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  style={{ 
+                    position: 'relative', 
+                    width: '100%', 
+                    maxWidth: '500px', 
+                    background: 'white', 
+                    borderRadius: '24px', 
+                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', 
+                    overflow: 'hidden',
+                    border: '1px solid #e2e8f0'
+                  }}
+                >
+                  <div style={{ padding: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+                      <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                        <Shield size={24} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Políticas de Retenção</h3>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Governança de Inadimplência & Suspensão</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
+                    {/* Visual Timeline Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginBottom: '10px' }}>
+                      <div style={{ position: 'absolute', top: '24px', left: '10%', right: '10%', height: '2px', background: '#f1f5f9', zIndex: 0 }} />
+                      {[
+                        { label: 'Alertas', icon: Activity },
+                        { label: 'Leitura', icon: Eye },
+                        { label: 'Pecuária', icon: Database },
+                        { label: 'Bloqueio', icon: Lock }
+                      ].map((step, i) => (
+                        <div key={i} style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', border: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                            <step.icon size={18} />
+                          </div>
+                          <span style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', uppercase: 'true', textTransform: 'uppercase' }}>{step.label}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Início de Alertas (D+)</label>
+                        <input 
+                          type="number" 
+                          value={retentionSettings.alertDays}
+                          onChange={(e) => setRetentionSettings({...retentionSettings, alertDays: parseInt(e.target.value)})}
+                          style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontWeight: '700' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Modo Leitura Global (D+)</label>
+                        <input 
+                          type="number" 
+                          value={retentionSettings.readOnlyDays}
+                          onChange={(e) => setRetentionSettings({...retentionSettings, readOnlyDays: parseInt(e.target.value)})}
+                          style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontWeight: '700' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Restrição Pecuária (D+)</label>
+                        <input 
+                          type="number" 
+                          value={retentionSettings.pecuariaOnlyDays}
+                          onChange={(e) => setRetentionSettings({...retentionSettings, pecuariaOnlyDays: parseInt(e.target.value)})}
+                          style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontWeight: '700' }}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Portal de Pagamento (D+)</label>
+                        <input 
+                          type="number" 
+                          value={retentionSettings.forcedPaymentDays}
+                          onChange={(e) => setRetentionSettings({...retentionSettings, forcedPaymentDays: parseInt(e.target.value)})}
+                          style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontWeight: '700' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '16px', background: '#fffbeb', borderRadius: '16px', border: '1px solid #fef3c7' }}>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#92400e', fontWeight: '600', lineHeight: '1.5' }}>
+                        * Na Fase 3, o usuário terá acesso apenas ao módulo Pecuária em modo leitura. 
+                        Na Fase 4, qualquer acesso será redirecionado para o gateway de pagamento.
+                      </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                      <button 
+                        onClick={() => setIsRetentionModalOpen(false)}
+                        style={{ flex: 1, padding: '14px', borderRadius: '14px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', cursor: 'pointer' }}
+                      >
+                        Cancelar
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          await logAudit({
+                            admin_id: user?.id,
+                            action: 'UPDATE_RETENTION_POLICY',
+                            metadata: retentionSettings
+                          });
+                          setIsRetentionModalOpen(false);
+                          alert('Políticas de retenção atualizadas com sucesso!');
+                        }}
+                        style={{ flex: 1, padding: '14px', borderRadius: '14px', border: 'none', background: '#0f172a', color: 'white', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', cursor: 'pointer' }}
+                      >
+                        Salvar Alterações
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
+
         <AnimatePresence>
           {isAuditDrawerOpen && (
             <>
@@ -1327,7 +1705,7 @@ export const SaaSAdminPanel: React.FC = () => {
           color: #94a3b8;
         }
 
-        .toggle-btn {
+        .elite-tab-item {
           font-size: 10px;
           font-weight: 900;
           padding: 8px 16px;
@@ -1339,13 +1717,13 @@ export const SaaSAdminPanel: React.FC = () => {
           transition: all 0.2s;
         }
 
-        .toggle-btn.active {
+        .elite-tab-item.active {
           background: #ecfdf5;
           border-color: #10b981;
           color: #059669;
         }
 
-        .toggle-btn:hover {
+        .elite-tab-item:hover {
           background: #f1f5f9;
         }
 
@@ -1470,6 +1848,126 @@ export const SaaSAdminPanel: React.FC = () => {
           100% { transform: scale(1); opacity: 1; }
         }
 
+        .billing-kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 24px;
+          margin-bottom: 40px;
+        }
+
+        .premium-table {
+          width: 100%;
+          border-collapse: separate;
+          border-spacing: 0;
+        }
+
+        .premium-table th {
+          padding: 20px 32px;
+          background: #f8fafc;
+          border-bottom: 2px solid hsl(var(--brand) / 0.1);
+          color: hsl(var(--brand));
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.15em;
+        }
+
+        .premium-table td {
+          padding: 24px 32px;
+          border-bottom: 1px solid #f8fafc;
+          vertical-align: middle;
+        }
+
+        .tenant-cell {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .tenant-name {
+          font-size: 14px;
+          font-weight: 900;
+          color: #0f172a;
+        }
+
+        .tenant-id {
+          font-size: 10px;
+          font-weight: 700;
+          color: #94a3b8;
+          text-transform: uppercase;
+        }
+
+        .plan-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .plan-price {
+          font-size: 12px;
+          font-weight: 800;
+          color: #10b981;
+        }
+
+        .gateway-badge {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 12px;
+          font-weight: 700;
+          color: #64748b;
+        }
+
+        .modern-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
+        .action-btn-square {
+          width: 38px;
+          height: 38px;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid transparent;
+        }
+
+        .action-btn-square.info { background: #eff6ff; color: #3b82f6; border-color: #dbeafe; }
+        .action-btn-square.success { background: #ecfdf5; color: #10b981; border-color: #d1fae5; }
+        .action-btn-square.danger { background: #fff1f2; color: #f43f5e; border-color: #ffe4e6; }
+
+        .action-btn-square:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          filter: brightness(0.95);
+        }
+
+        .status-badge-elite {
+          padding: 6px 14px;
+          border-radius: 99px;
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border: 1px solid transparent;
+        }
+
+        .status-badge-elite.pago { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
+        .status-badge-elite.pendente { background: #fffbeb; color: #d97706; border-color: #fef3c7; }
+        .status-badge-elite.atrasado { background: #fff1f2; color: #e11d48; border-color: #ffe4e6; }
+        .status-badge-elite.processando { background: #eff6ff; color: #2563eb; border-color: #dbeafe; }
+
+        @media (max-width: 1200px) {
+          .billing-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+          .billing-kpi-grid { grid-template-columns: 1fr; }
+        }
+
         .next-gen-kpi-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1478,7 +1976,7 @@ export const SaaSAdminPanel: React.FC = () => {
 
         .health-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          grid-template-columns: 1fr 1fr 1fr 1fr !important;
           gap: 20px;
         }
 

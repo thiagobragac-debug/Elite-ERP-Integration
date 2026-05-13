@@ -6,7 +6,8 @@ import {
   Activity, 
   Database,
   ArrowLeft,
-  Settings
+  Settings,
+  DollarSign
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import '../Sidebar/Sidebar.css'; // Reusing standard sidebar styles
@@ -19,6 +20,7 @@ interface NavItem {
 
 const saasMenuItems: NavItem[] = [
   { title: 'Visão Global', icon: Globe, href: '/saas' },
+  { title: 'Monitor de Assinaturas', icon: DollarSign, href: '/saas/billing' },
   { title: 'Gestão de Tenants', icon: Users, href: '/saas/tenants' },
   { title: 'Planos & Faturamento', icon: CreditCard, href: '/saas/plans' },
   { title: 'Saúde do Sistema', icon: Activity, href: '/saas/health' },

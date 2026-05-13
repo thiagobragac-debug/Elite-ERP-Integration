@@ -15,6 +15,7 @@ interface EliteStatCardProps {
   loading?: boolean;
   periodLabel?: string;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const EliteStatCard: React.FC<EliteStatCardProps> = ({
@@ -32,7 +33,8 @@ export const EliteStatCard: React.FC<EliteStatCardProps> = ({
   ],
   loading = false,
   periodLabel = 'Últimos 30 dias',
-  className = ''
+  className = '',
+  children
 }) => {
   if (loading) {
     return <div className="elite-kpi-card loading-skeleton" style={{ height: '220px' }}></div>;
@@ -76,7 +78,13 @@ export const EliteStatCard: React.FC<EliteStatCardProps> = ({
         </div>
       </div>
 
-      <div className="kpi-divider"></div>
+      {children && (
+        <div className="kpi-custom-content" style={{ margin: '12px 0', flex: 1 }}>
+          {children}
+        </div>
+      )}
+
+      {!children && <div className="kpi-divider"></div>}
 
       <div className="kpi-footer-elite">
         <div className="kpi-sparkline" style={{ color: color }}>
