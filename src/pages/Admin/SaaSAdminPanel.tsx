@@ -369,6 +369,45 @@ export const SaaSAdminPanel: React.FC = () => {
         </div>
       ),
       align: 'center' as const
+    },
+    {
+      header: 'Ações',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {[
+            { icon: History, color: '#3b82f6', bg: '#eff6ff', label: 'Log' },
+            { icon: Edit2, color: '#10b981', bg: '#f0fdf4', label: 'Editar' },
+            { icon: Shield, color: '#ef4444', bg: '#fef2f2', label: 'Bloquear' }
+          ].map((btn, i) => (
+            <button 
+              key={i}
+              onClick={() => {
+                if (btn.label === 'Editar') openEditTenant(item);
+                else if (btn.label === 'Bloquear') setIsRetentionModalOpen(true);
+                else setBillingSubTab('history');
+              }}
+              style={{ 
+                width: '32px', 
+                height: '32px', 
+                borderRadius: '10px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                background: btn.bg, 
+                color: btn.color, 
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              title={btn.label}
+              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <btn.icon size={14} />
+            </button>
+          ))}
+        </div>
+      )
     }
   ];
 
@@ -963,37 +1002,80 @@ export const SaaSAdminPanel: React.FC = () => {
                        <button onClick={() => handleExport('pdf')}>PDF Profissional</button>
                      </div>
                    </div>
-                 </div>
-               </div>
+                    </div>
+                  </div>
 
-               <ModernTable 
-                 data={[
-                   { id: 1, name: 'Fazenda Santa Maria', id_str: 'TN-001', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Stripe', status: 'pago', due: '15/10/2023' },
-                   { id: 2, name: 'Agropecuária Vale Verde', id_str: 'TN-002', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'pendente', due: '12/10/2023' },
-                   { id: 3, name: 'Haras Serra Azul', id_str: 'TN-003', plan: 'Starter Core', price: 'R$ 190', gateway: 'Stripe', status: 'atrasado', due: '05/10/2023' },
-                   { id: 4, name: 'Granja Novo Horizonte', id_str: 'TN-004', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Pagar.me', status: 'pago', due: '18/10/2023' },
-                   { id: 5, name: 'Fazenda Bela Vista', id_str: 'TN-005', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'processando', due: '14/10/2023' },
-                 ].filter(item => 
-                   item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                   item.id_str.toLowerCase().includes(searchQuery.toLowerCase())
-                 ).map(i => ({ ...i, id: i.id_str }))}
-                 columns={billingColumns}
-                 loading={false}
-                 hideHeader={true}
-                 actions={(sub) => (
-                   <div className="modern-actions">
-                     <button className="action-dot info" title="Logs">
-                       <History size={18} />
-                     </button>
-                     <button className="action-dot edit" title="Editar">
-                       <Edit2 size={18} />
-                     </button>
-                     <button className="action-dot delete" title="Suspender">
-                       <Shield size={18} />
-                     </button>
-                   </div>
-                 )}
-               />
+                {billingSubTab === 'history' && (
+                  <div style={{ padding: '40px', background: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <History size={32} />
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>Histórico de Auditoria SaaS</h3>
+                      <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#64748b' }}>Carregando trilha de transações e eventos do gateway...</p>
+                    </div>
+                    <div className="animate-pulse" style={{ width: '100%', maxWidth: '400px', height: '200px', background: '#f8fafc', borderRadius: '16px' }} />
+                  </div>
+                )}
+
+                {billingSubTab === 'monitor' && (
+                  <>
+                    <ModernTable 
+                      data={[
+                        { id: 1, name: 'Fazenda Santa Maria', id_str: 'TN-001', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Stripe', status: 'pago', due: '15/10/2023' },
+                        { id: 2, name: 'Agropecuária Vale Verde', id_str: 'TN-002', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'pendente', due: '12/10/2023' },
+                        { id: 3, name: 'Haras Serra Azul', id_str: 'TN-003', plan: 'Starter Core', price: 'R$ 190', gateway: 'Stripe', status: 'atrasado', due: '05/10/2023' },
+                        { id: 4, name: 'Granja Novo Horizonte', id_str: 'TN-004', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Pagar.me', status: 'pago', due: '18/10/2023' },
+                        { id: 5, name: 'Fazenda Bela Vista', id_str: 'TN-005', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'processando', due: '14/10/2023' },
+                      ].filter(item => 
+                        item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        item.id_str.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).map(i => ({ ...i, id: i.id_str }))}
+                      columns={billingColumns}
+                      loading={false}
+                      hideHeader={true}
+                    />
+
+
+                    <div style={{ marginTop: '24px', background: '#f8fafc', borderRadius: '24px', padding: '24px', border: '1px solid #f1f5f9' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Consumo de Recursos & Cotas</h4>
+                          <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Monitoramento de Infraestrutura por Tenant</p>
+                        </div>
+                        <div style={{ padding: '6px 12px', background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '10px', fontWeight: '800', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></div>
+                          SISTEMA NOMINAL
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                        {[
+                          { label: 'Database Storage', used: '4.2GB', total: '10GB', color: '#6366f1', icon: Database },
+                          { label: 'Cloud Attachments', used: '12.8GB', total: '50GB', color: '#10b981', icon: HardDrive },
+                          { label: 'API Throughput', used: '84k', total: '200k', color: '#f59e0b', icon: Activity }
+                        ].map((resource, idx) => (
+                          <div key={idx} style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ color: resource.color }}><resource.icon size={16} /></div>
+                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>{resource.label}</span>
+                              </div>
+                              <span style={{ fontSize: '10px', fontWeight: '900', color: resource.color }}>{Math.round((parseInt(resource.used) / parseInt(resource.total)) * 100)}%</span>
+                            </div>
+                            <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                              <div style={{ height: '100%', background: resource.color, width: `${(parseInt(resource.used) / parseInt(resource.total)) * 100}%`, borderRadius: '3px' }}></div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: '#64748b' }}>
+                              <span>{resource.used} usados</span>
+                              <span>limite: {resource.total}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Strategic Actions Bar - Diamond Parity 5.0 (Relocated to Footer) */}
                 <div style={{ 
@@ -1019,7 +1101,7 @@ export const SaaSAdminPanel: React.FC = () => {
 
                   <div style={{ display: 'flex', flex: 1, gap: '12px', alignItems: 'center' }}>
                     {[
-                      { label: 'Reprocessar Falhas', icon: RefreshCw, color: '#10b981', action: handleReprocessFailures },
+{ label: 'Reprocessar Falhas', icon: RefreshCw, color: '#10b981', action: handleReprocessFailures },
                       { label: 'Relatório Fiscal Consolidado', icon: FileText, color: '#6366f1', action: handleFiscalReport },
                       { label: 'Políticas de Retenção', icon: Shield, color: '#64748b', action: () => setIsRetentionModalOpen(true) }
                     ].map((btn, idx) => (
@@ -1054,7 +1136,6 @@ export const SaaSAdminPanel: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Grid content follows */}
              </motion.div>
            )}
 
