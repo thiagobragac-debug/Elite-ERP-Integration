@@ -8,9 +8,10 @@ interface TenantFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  availablePlans?: any[];
 }
 
-export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmit, initialData, availablePlans = [] }) => {
   const [formData, setFormData] = useState({
     name: '',
     cnpj: '',
@@ -126,15 +127,16 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
                 <div className="elite-input-grid">
                   <div className="elite-field-group">
                     <label className="elite-label"><CreditCard size={14} /> Plano Vinculado</label>
-                    <select 
-                      className="elite-input elite-select"
-                      value={formData.plan} 
-                      onChange={e => setFormData({...formData, plan: e.target.value})}
-                    >
-                      <option value="Starter">Starter</option>
-                      <option value="Pro">Pro</option>
-                      <option value="Enterprise">Enterprise</option>
-                    </select>
+                      <select 
+                        className="elite-input elite-select"
+                        value={formData.plan} 
+                        onChange={e => setFormData({...formData, plan: e.target.value})}
+                      >
+                        <option value="">Selecione um plano...</option>
+                        {availablePlans.map(p => (
+                          <option key={p.id || p.name} value={p.name}>{p.name}</option>
+                        ))}
+                      </select>
                   </div>
                   <div className="elite-field-group">
                     <label className="elite-label"><Lock size={14} /> Status da Conta</label>

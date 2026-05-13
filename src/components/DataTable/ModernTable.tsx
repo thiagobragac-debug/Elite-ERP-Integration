@@ -37,7 +37,7 @@ export function ModernTable<T extends { id: string | number }>({
   actions,
   searchPlaceholder = "Buscar registros...",
   loading = false,
-  hideHeader = false,
+  hideHeader = true,
   selectable = false,
   isSelectable = () => true,
   selectedItems = [],

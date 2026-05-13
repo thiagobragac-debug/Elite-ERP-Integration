@@ -15,6 +15,8 @@ import {
   MoreVertical,
   CheckCircle,
   XCircle,
+  X,
+  CheckSquare,
   ShieldCheck,
   RefreshCw,
   Plus,
@@ -30,7 +32,7 @@ import {
   List as ListIcon,
   Calendar,
   ChevronLeft,
-  ChevronRight
+  ChevronRight 
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -114,46 +116,192 @@ export const SaaSAdminPanel: React.FC = () => {
     }
   };
 
-  const [tenantsList, setTenantsList] = useState([
-    { id: 'T-001', name: 'Agropecuária Alvorada', plan: 'Enterprise', users: 45, storage: '450 GB', status: 'Ativo' },
-    { id: 'T-002', name: 'Fazenda Rio Grande', plan: 'Pro', users: 12, storage: '120 GB', status: 'Ativo' },
-    { id: 'T-003', name: 'Pecuária Boa Vista', plan: 'Starter', users: 3, storage: '15 GB', status: 'Bloqueado' },
-    { id: 'T-004', name: 'Grupo Santa Cruz', plan: 'Enterprise', users: 120, storage: '1.2 TB', status: 'Ativo' },
-  ]);
+  const [tenantsList, setTenantsList] = useState<any[]>([]);
+  const [tenantsLoading, setTenantsLoading] = useState(true);
 
-  const [plansList, setPlansList] = useState([
-    { name: 'Starter', price: 'R$ 499', features: ['Até 5 usuários', '10GB Storage', 'Suporte Email', 'Dashboard Básico'], users: 450, rev: 'R$ 224.550' },
-    { name: 'Pro', price: 'R$ 999', features: ['Até 20 usuários', '100GB Storage', 'Suporte WhatsApp', 'BI Avançado', 'API Access'], users: 680, rev: 'R$ 679.320' },
-    { name: 'Enterprise', price: 'Personalizado', features: ['Usuários Ilimitados', 'Storage Ilimitado', 'Suporte 24/7 Dedicado', 'On-Premise Option', 'SLA 99.9%'], users: 154, rev: 'R$ 1.54M+' }
-  ]);
+  const fetchTenants = async () => {
+    try {
+      setTenantsLoading(true);
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Map database fields to UI fields if necessary
+      const mappedData = data.map(t => ({
+        ...t,
+        plan: t.settings?.plan || 'Starter', // Fallback
+        users: t.settings?.users_count || 0,
+        storage: t.settings?.storage_usage || '0 GB'
+      }));
+      
+      setTenantsList(mappedData);
+    } catch (err) {
+      console.error('Error fetching tenants:', err);
+    } finally {
+      setTenantsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTenants();
+    fetchPlans();
+  }, []);
+
+  const [plansList, setPlansList] = useState<any[]>([]);
+  const [plansLoading, setPlansLoading] = useState(true);
+
+  const fetchPlans = async () => {
+    try {
+      setPlansLoading(true);
+      const { data, error } = await supabase
+        .from('saas_plans')
+        .select('*')
+        .order('price', { ascending: true });
+
+      if (error) throw error;
+      
+      const mappedData = data.map(p => ({
+        ...p,
+        price_formatted: p.price === 0 ? 'Grátis' : (typeof p.price === 'number' ? `R$ ${p.price.toLocaleString('pt-BR')}` : p.price),
+        users: 0,
+        rev: 'R$ 0'
+      }));
+      
+      setPlansList(mappedData);
+    } catch (err) {
+      console.error('Error fetching plans:', err);
+    } finally {
+      setPlansLoading(false);
+    }
+  };
 
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<any>(null);
   
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [kpis, setKpis] = useState({ mrr: 0, totalTenants: 0, totalUsers: 0, health: 99.9 });
+
+  useEffect(() => {
+    const totalTenants = tenantsList.length;
+    const totalUsers = tenantsList.reduce((acc, t) => acc + (Number(t.users) || 0), 0);
+    const mrr = tenantsList.reduce((acc, t) => {
+      const planName = t.plan || 'Starter';
+      const plan = plansList.find(p => p.name === planName);
+      return acc + (Number(plan?.price) || 0);
+    }, 0);
+    const activeTenants = tenantsList.filter(t => t.status === 'Ativo').length;
+    const health = totalTenants > 0 ? (activeTenants / totalTenants) * 100 : 100;
+    setKpis({ mrr, totalTenants, totalUsers, health: Number(health.toFixed(2)) });
+  }, [tenantsList, plansList]);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
   const [billingSubTab, setBillingSubTab] = useState('monitor');
   const [isBillingHistoryModalOpen, setIsBillingHistoryModalOpen] = useState(false);
   const [selectedHistoryTenant, setSelectedHistoryTenant] = useState<any>(null);
+  
+  const [isAuditLogModalOpen, setIsAuditLogModalOpen] = useState(false);
+  const [selectedAuditTenant, setSelectedAuditTenant] = useState<any>(null);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
 
-  const handleSaveTenant = (data: any) => {
-    if (selectedTenant) {
-      setTenantsList(prev => prev.map(t => t.id === selectedTenant.id ? { ...t, ...data } : t));
-    } else {
-      const newId = `T-00${tenantsList.length + 1}`;
-      setTenantsList(prev => [{ id: newId, users: 1, storage: '0 GB', ...data }, ...prev]);
+  const fetchAuditLogs = async (tenantId: string) => {
+    try {
+      setLogsLoading(true);
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setAuditLogs(data || []);
+    } catch (err) {
+      console.error('Error fetching audit logs:', err);
+    } finally {
+      setLogsLoading(false);
     }
-    setIsTenantModalOpen(false);
   };
 
-  const handleSavePlan = (data: any) => {
-    if (selectedPlan) {
-      setPlansList(prev => prev.map(p => p.name === selectedPlan.name ? { ...p, ...data } : p));
-    } else {
-      setPlansList(prev => [...prev, { users: 0, rev: 'R$ 0', ...data }]);
+  const openAuditLogs = (tenant: any) => {
+    setSelectedAuditTenant(tenant);
+    setIsAuditLogModalOpen(true);
+    fetchAuditLogs(tenant.id);
+  };
+
+  const handleSaveTenant = async (data: any) => {
+    try {
+      const tenantData = {
+        name: data.name,
+        status: data.status,
+        // settings: { ...selectedTenant?.settings, plan: data.plan }
+      };
+
+      if (selectedTenant) {
+        const { error } = await supabase
+          .from('tenants')
+          .update(tenantData)
+          .eq('id', selectedTenant.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('tenants')
+          .insert([tenantData]);
+        if (error) throw error;
+      }
+      
+      await fetchTenants();
+      setIsTenantModalOpen(false);
+      logAudit({
+        action: selectedTenant ? 'Update Tenant' : 'Create Tenant',
+        entity: 'Tenants',
+        details: `Tenant ${data.name} ${selectedTenant ? 'updated' : 'created'}`,
+        status: 'success'
+      });
+    } catch (err) {
+      console.error('Error saving tenant:', err);
+      alert('Erro ao salvar inquilino.');
     }
-    setIsPlanModalOpen(false);
+  };
+
+  const handleSavePlan = async (data: any) => {
+    try {
+      const planData = {
+        name: data.name,
+        price: parseFloat(data.price?.toString().replace(/[^0-9,]/g, '').replace(',', '.') || '0'),
+        users_limit: parseInt(data.usersLimit || '0'),
+        storage_gb: parseInt(data.storageLimit || '0'),
+        features: data.features || []
+      };
+
+      if (selectedPlan) {
+        const { error } = await supabase
+          .from('saas_plans')
+          .update(planData)
+          .eq('id', selectedPlan.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('saas_plans')
+          .insert([planData]);
+        if (error) throw error;
+      }
+      
+      await fetchPlans();
+      setIsPlanModalOpen(false);
+      logAudit({
+        action: selectedPlan ? 'Update Plan' : 'Create Plan',
+        entity: 'Plans',
+        details: `Plan ${data.name} ${selectedPlan ? 'updated' : 'created'}`,
+        status: 'success'
+      });
+    } catch (err) {
+      console.error('Error saving plan:', err);
+      alert('Erro ao salvar plano.');
+    }
   };
 
   const [gatewaySettings, setGatewaySettings] = useState<any>({
@@ -312,17 +460,36 @@ export const SaaSAdminPanel: React.FC = () => {
     {
       header: 'Fazenda / ID',
       accessor: (item: any) => (
-        <div className="flex items-center gap-3 py-1.5">
-          <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 shrink-0">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 0', minWidth: '240px' }}>
+          <div style={{ 
+            width: '36px', 
+            height: '36px', 
+            borderRadius: '10px', 
+            background: '#f8fafc', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            color: '#94a3b8',
+            border: '1px solid #f1f5f9',
+            flexShrink: 0
+          }}>
             <Globe size={18} />
           </div>
-          <div className="flex flex-col justify-center min-w-0">
-            <span className="text-[13px] font-bold text-slate-900 uppercase tracking-tight truncate leading-tight">
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+            <span style={{ 
+              fontSize: '13px', 
+              fontWeight: '900', 
+              color: '#0f172a', 
+              textTransform: 'uppercase', 
+              letterSpacing: '-0.02em',
+              whiteSpace: 'nowrap',
+              lineHeight: '1'
+            }}>
               {item.name}
             </span>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-[9px] font-black text-white bg-slate-400 px-1 rounded-sm tracking-tighter">ID</span>
-              <span className="text-[10px] font-bold text-slate-400 tabular-nums">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+              <span style={{ fontSize: '9px', fontWeight: '900', color: 'white', background: '#94a3b8', padding: '0 4px', borderRadius: '2px', lineHeight: '12px' }}>ID</span>
+              <span style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', fontFamily: 'monospace' }}>
                 {item.id_str || item.id}
               </span>
             </div>
@@ -333,13 +500,13 @@ export const SaaSAdminPanel: React.FC = () => {
     {
       header: 'Plano / Valor',
       accessor: (item: any) => (
-        <div className="flex flex-col gap-0.5 py-1">
-          <div className="flex items-center gap-2">
-            <Activity size={14} className="text-emerald-500 shrink-0" />
-            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight leading-none">{item.plan}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <Activity size={14} style={{ color: '#10b981', marginRight: '12px', flexShrink: 0 }} />
+            <span style={{ fontSize: '11px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase' }}>{item.plan}</span>
           </div>
-          <div className="pl-5">
-            <span className="text-[10px] font-bold text-slate-500 italic block">
+          <div style={{ paddingLeft: '26px' }}>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', fontStyle: 'italic' }}>
               {item.price} / mês
             </span>
           </div>
@@ -349,25 +516,25 @@ export const SaaSAdminPanel: React.FC = () => {
     {
       header: 'Gateway',
       accessor: (item: any) => (
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-slate-300" />
-          <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">{item.gateway}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#cbd5e1' }} />
+          <span style={{ fontSize: '11px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.gateway}</span>
         </div>
       )
     },
     {
       header: 'Vencimento',
       accessor: (item: any) => (
-        <div className="flex items-center gap-2 text-slate-500">
-          <Calendar size={14} className="shrink-0" />
-          <span className="text-[11px] font-black uppercase tracking-tighter">{item.due}</span>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Calendar size={14} style={{ color: '#64748b', marginRight: '12px', flexShrink: 0 }} />
+          <span style={{ fontSize: '11px', fontWeight: '900', color: '#64748b', textTransform: 'uppercase' }}>{item.due}</span>
         </div>
       )
     },
     {
       header: 'Status',
       accessor: (item: any) => (
-        <div className="flex justify-center">
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span className={`status-badge-elite ${item.status}`}>
             {item.status}
           </span>
@@ -405,8 +572,6 @@ export const SaaSAdminPanel: React.FC = () => {
                 transition: 'all 0.2s ease'
               }}
               title={btn.label}
-              onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-              onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
               <btn.icon size={14} />
             </button>
@@ -419,10 +584,35 @@ export const SaaSAdminPanel: React.FC = () => {
     {
       header: 'Tenant',
       accessor: (item: any) => (
-        <div className="table-cell-title flex items-center gap-2">
-          <span className="main-text">{item.name}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.id}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '6px 0', minWidth: '220px' }}>
+          <div style={{ 
+            width: '32px', 
+            height: '32px', 
+            borderRadius: '10px', 
+            background: '#f8fafc', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            color: '#6366f1',
+            border: '1px solid #e2e8f0',
+            flexShrink: 0
+          }}>
+            <Globe size={16} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+            <span style={{ 
+              fontSize: '13px', 
+              fontWeight: '900', 
+              color: '#0f172a', 
+              textTransform: 'uppercase', 
+              letterSpacing: '-0.01em',
+              whiteSpace: 'nowrap'
+            }}>
+              {item.name}
+            </span>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', fontFamily: 'monospace', marginTop: '2px' }}>
+              ID: {item.id}
+            </span>
           </div>
         </div>
       )
@@ -430,26 +620,77 @@ export const SaaSAdminPanel: React.FC = () => {
     {
       header: 'Plano',
       accessor: (item: any) => (
-        <span className={`plan-badge ${item.plan.toLowerCase()}`}>{item.plan}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <Activity size={14} style={{ color: '#10b981', flexShrink: 0 }} />
+          <span style={{ 
+            fontSize: '11px', 
+            fontWeight: '900', 
+            color: '#0f172a', 
+            textTransform: 'uppercase',
+            padding: '4px 8px',
+            background: '#f0fdf4',
+            borderRadius: '6px',
+            border: '1px solid #dcfce7'
+          }}>
+            {item.plan}
+          </span>
+        </div>
       )
     },
     {
-      header: 'Uso',
+      header: 'Uso de Recursos',
       accessor: (item: any) => (
-        <div className="flex flex-col gap-1 text-[12px] font-bold text-slate-500">
-          <span>{item.users} usuários ativos</span>
-          <span>{item.storage} de storage</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Users size={12} style={{ color: '#6366f1' }} />
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#475569' }}>{item.users} usuários</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Shield size={12} style={{ color: '#f59e0b' }} />
+            <span style={{ fontSize: '11px', fontWeight: '800', color: '#475569' }}>{item.storage} storage</span>
+          </div>
         </div>
       )
     },
     {
       header: 'Status',
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'Ativo' ? 'active' : 'stopped'}`}>
-          {item.status}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.status === 'Ativo' ? 'active' : 'stopped'}`}>
+            {item.status}
+          </span>
+        </div>
       ),
       align: 'center' as const
+    },
+    {
+      header: 'Ações',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          <button 
+            className="action-dot info" 
+            onClick={(e) => { e.stopPropagation(); openAuditLogs(item); }} 
+            title="Ver Auditoria"
+          >
+            <Eye size={18} />
+          </button>
+          <button 
+            className="action-dot success" 
+            onClick={(e) => { e.stopPropagation(); handleImpersonate(item.id); }} 
+            title="Acessar Instância"
+          >
+            <LogIn size={18} />
+          </button>
+          <button 
+            className="action-dot primary" 
+            onClick={(e) => { e.stopPropagation(); openEditTenant(item); }} 
+            title="Configurar"
+          >
+            <Edit2 size={18} />
+          </button>
+        </div>
+      ),
+      align: 'right' as const
     }
   ];
 
@@ -665,31 +906,17 @@ export const SaaSAdminPanel: React.FC = () => {
 
               {viewMode === 'list' ? (
                 <ModernTable 
-                  data={tenantsList.filter(t => {
-                    const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase());
-                    const matchesStatus = filterValues.status === 'all' || t.status === filterValues.status;
-                    const matchesPlan = filterValues.plan === 'all' || t.plan === filterValues.plan;
-                    const matchesUsers = t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers;
-                    return matchesSearch && matchesStatus && matchesPlan && matchesUsers;
-                  })}
-                  columns={tenantColumns}
-                  loading={false}
-                  hideHeader={true}
-                  searchPlaceholder="Buscar inquilinos, CNPJ ou ID..."
-                  actions={(item) => (
-                    <div className="modern-actions">
-                      <button className="action-dot success" onClick={() => handleImpersonate(item.id)} title="Acessar como Inquilino">
-                        <LogIn size={18} />
-                      </button>
-                      <button className="action-dot edit" onClick={() => openEditTenant(item)} title="Editar Tenant">
-                        <Edit2 size={18} />
-                      </button>
-                      <button className="action-dot info" title="Ver Detalhes">
-                        <Eye size={18} />
-                      </button>
-                    </div>
-                  )}
-                />
+                      data={tenantsList.filter(t => 
+                        t.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                        t.id.toLowerCase().includes(searchQuery.toLowerCase())
+                      )}
+                      columns={tenantColumns}
+                      loading={tenantsLoading}
+                      onRowClick={(item) => {
+                        setSelectedTenant(item);
+                        setIsTenantModalOpen(true);
+                      }}
+                    />
               ) : (
                 <div className="user-cards-grid">
                   {tenantsList
@@ -720,7 +947,7 @@ export const SaaSAdminPanel: React.FC = () => {
                             <div className="card-bottom-actions">
                               <button className="action-icon-btn" onClick={() => handleImpersonate(t.id)} title="Acessar Instância"><LogIn size={16} /></button>
                               <button className="action-icon-btn" onClick={() => openEditTenant(t)} title="Configurar"><Edit2 size={16} /></button>
-                              <button className="action-icon-btn" title="Logs"><Eye size={16} /></button>
+                              <button className="action-icon-btn" onClick={() => openAuditLogs(t)} title="Ver Auditoria"><Eye size={16} /></button>
                             </div>
                           </div>
 
@@ -734,15 +961,15 @@ export const SaaSAdminPanel: React.FC = () => {
 
                             <div className="card-meta-grid">
                               <div className="meta-item">
-                                <Users size={14} className="meta-icon" />
+                                <Users size={14} className="meta-icon" style={{ marginRight: "8px" }} />
                                 <span>{t.users} Assentos Ativos</span>
                               </div>
                               <div className="meta-item">
-                                <HardDrive size={14} className="meta-icon" />
+                                <HardDrive size={14} className="meta-icon" style={{ marginRight: "8px" }} />
                                 <span>{t.storage} Alocados</span>
                               </div>
                               <div className="meta-item">
-                                <Shield size={14} className="meta-icon" />
+                                <Shield size={14} className="meta-icon" style={{ marginRight: "8px" }} />
                                 <span>{t.id}</span>
                               </div>
                             </div>
@@ -823,12 +1050,54 @@ export const SaaSAdminPanel: React.FC = () => {
                 <ModernTable 
                   data={plansList.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))}
                   columns={[
-                    { header: 'Plano', accessor: (p: any) => <div className="table-cell-title flex items-center gap-2"><span className="main-text">{p.name}</span></div> },
-                    { header: 'Preço', accessor: (p: any) => <div className="table-cell-meta"><Edit2 size={14} />{p.price}</div> },
-                    { header: 'Tenants', accessor: (p: any) => <div className="table-cell-meta"><Users size={14} />{p.users} Clientes</div> },
-                    { header: 'MRR', accessor: (p: any) => <span className="status-pill active">{p.rev}</span> }
+                    { 
+                      header: 'Plano', 
+                      accessor: (p: any) => (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px' }}>
+                          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Zap size={20} />
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontWeight: '600', color: 'hsl(var(--foreground))', fontSize: '15px' }}>{p.name}</span>
+                            <span style={{ fontSize: '12px', color: 'hsl(var(--muted-foreground))' }}>{p.features?.length || 0} recursos ativos</span>
+                          </div>
+                        </div>
+                      ) 
+                    },
+                    { 
+                      header: 'Preço', 
+                      accessor: (p: any) => (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '140px', color: '#10b981' }}>
+                          <DollarSign size={16} />
+                          <span style={{ fontWeight: '600' }}>{p.price_formatted || p.price}</span>
+                        </div>
+                      ) 
+                    },
+                    { 
+                      header: 'Limites', 
+                      accessor: (p: any) => (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: '200px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'hsl(var(--muted-foreground))' }}>
+                            <Users size={14} />
+                            <span>{p.users_limit || '∞'} users</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'hsl(var(--muted-foreground))' }}>
+                            <HardDrive size={14} />
+                            <span>{p.storage_gb || '0'} GB</span>
+                          </div>
+                        </div>
+                      ) 
+                    },
+                    { 
+                      header: 'Status', 
+                      accessor: (p: any) => (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '120px' }}>
+                          <span className="status-pill active" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #d1fae5' }}>Ativo</span>
+                        </div>
+                      ) 
+                    }
                   ]}
-                  loading={false}
+                  loading={plansLoading}
                   hideHeader={true}
                   actions={(item) => (
                     <div className="modern-actions">
@@ -868,22 +1137,22 @@ export const SaaSAdminPanel: React.FC = () => {
                             <div className="card-header-info">
                               <h3>{plan.name}</h3>
                               <span className="card-role-badge" style={{ color: '#f59e0b', background: '#fffbeb' }}>
-                                {plan.price}
+                                {plan.price_formatted || plan.price}
                               </span>
                             </div>
 
                             <div className="card-meta-grid">
                               <div className="meta-item">
-                                <Users size={14} className="meta-icon" style={{ color: '#f59e0b' }} />
-                                <span>{plan.users} Clientes Ativos</span>
+                                <Users size={14} className="meta-icon" style={{ color: '#f59e0b', marginRight: '8px' }} />
+                                <span>Límit: {plan.users_limit || '∞'} Users</span>
                               </div>
                               <div className="meta-item">
-                                <Edit2 size={14} className="meta-icon" style={{ color: '#f59e0b' }} />
-                                <span>MRR: {plan.rev}</span>
+                                <HardDrive size={14} className="meta-icon" style={{ color: '#f59e0b', marginRight: '8px' }} />
+                                <span>Storage: {plan.storage_gb || '0'} GB</span>
                               </div>
                               <div className="meta-item">
-                                <CheckCircle size={14} className="meta-icon" style={{ color: '#f59e0b' }} />
-                                <span>{plan.features.length} Recursos inclusos</span>
+                                <CheckCircle size={14} className="meta-icon" style={{ color: '#f59e0b', marginRight: '8px' }} />
+                                <span>{plan.features?.length || 0} Recursos inclusos</span>
                               </div>
                             </div>
                           </div>
@@ -1009,23 +1278,18 @@ export const SaaSAdminPanel: React.FC = () => {
                 {billingSubTab === 'monitor' && (
                   <>
                     <ModernTable 
-                      data={[
-                        /* 
-                          Nota para Integração: A associação do Gateway e Cálculo de Vencimento 
-                          deve vir da tabela 'tenants' (billing_gateway, trial_end).
-                          Vencimento = trial_end + 30 dias (ou conforme ciclo).
-                        */
-                        { id: 1, name: 'Fazenda Santa Maria', id_str: 'TN-001', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Stripe', status: 'pago', due: '15/10/2023' },
-                        { id: 2, name: 'Agropecuária Vale Verde', id_str: 'TN-002', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'pendente', due: '12/10/2023' },
-                        { id: 3, name: 'Haras Serra Azul', id_str: 'TN-003', plan: 'Starter Core', price: 'R$ 190', gateway: 'Stripe', status: 'atrasado', due: '05/10/2023' },
-                        { id: 4, name: 'Granja Novo Horizonte', id_str: 'TN-004', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Pagar.me', status: 'pago', due: '18/10/2023' },
-                        { id: 5, name: 'Fazenda Bela Vista', id_str: 'TN-005', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'processando', due: '14/10/2023' },
-                      ].filter(item => 
+                      data={tenantsList.filter(item => 
                         item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        item.id_str.toLowerCase().includes(searchQuery.toLowerCase())
-                      ).map(i => ({ ...i, id: i.id_str }))}
+                        item.id.toLowerCase().includes(searchQuery.toLowerCase())
+                      ).map(t => ({
+                        ...t,
+                        id_str: t.id.substring(0, 8).toUpperCase(),
+                        price: t.settings?.billing_price || 'R$ 0',
+                        gateway: t.settings?.gateway || 'N/A',
+                        due: t.settings?.due_date || 'N/A'
+                      }))}
                       columns={billingColumns}
-                      loading={false}
+                      loading={tenantsLoading}
                       hideHeader={true}
                     />
 
@@ -1406,7 +1670,7 @@ export const SaaSAdminPanel: React.FC = () => {
           )}
         </AnimatePresence>
 
-        <TenantForm 
+        <TenantForm availablePlans={plansList} 
           isOpen={isTenantModalOpen} 
           onClose={() => setIsTenantModalOpen(false)}
           onSubmit={handleSaveTenant}
@@ -1697,6 +1961,147 @@ export const SaaSAdminPanel: React.FC = () => {
             </>
           )}
         </AnimatePresence>
+      {createPortal(
+        <AnimatePresence>
+          {isAuditLogModalOpen && (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsAuditLogModalOpen(false)}
+                style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(12px)' }}
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="elite-modal-container"
+                onClick={e => e.stopPropagation()}
+                style={{ position: 'relative', maxWidth: '800px', width: '100%', height: '90vh', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', overflow: 'hidden' }}
+              >
+                <div className="elite-modal-header" style={{ padding: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Shield size={20} />
+                    </div>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>Linha do Tempo de Auditoria</h3>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>{selectedAuditTenant?.name} • ID: {selectedAuditTenant?.id?.substring(0, 8)}</p>
+                    </div>
+                  </div>
+                  <button className="icon-btn-secondary" onClick={() => setIsAuditLogModalOpen(false)}>
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <div className="elite-modal-content" style={{ padding: '0', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <div className="stat-pill" style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px' }}>
+                          <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Total de Eventos</span>
+                          <span style={{ fontWeight: '800', fontSize: '16px' }}>{auditLogs.length}</span>
+                        </div>
+                        <div className="stat-pill" style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px' }}>
+                          <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Última Atividade</span>
+                          <span style={{ fontWeight: '800', fontSize: '16px' }}>{auditLogs[0] ? new Date(auditLogs[0].created_at).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                    </div>
+                  </div>
+
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
+                    {logsLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                        <Activity className="animate-spin" size={32} color="hsl(var(--brand))" />
+                      </div>
+                    ) : auditLogs.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
+                        <Shield size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
+                        <p>Nenhum registro de auditoria encontrado para este inquilino.</p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        {auditLogs.map((log, index) => (
+                          <div key={log.id} style={{ 
+                            display: 'flex', 
+                            gap: '16px', 
+                            padding: '16px', 
+                            background: 'white', 
+                            borderRadius: '12px', 
+                            border: '1px solid #f1f5f9',
+                            position: 'relative'
+                          }}>
+                            <div style={{ 
+                              width: '2px', 
+                              height: '100%', 
+                              background: '#e2e8f0', 
+                              position: 'absolute', 
+                              left: '27px', 
+                              top: '40px',
+                              display: index === auditLogs.length - 1 ? 'none' : 'block'
+                            }} />
+                            
+                            <div style={{ 
+                              width: '24px', 
+                              height: '24px', 
+                              borderRadius: '50%', 
+                              background: log.action === 'INSERT' ? '#ecfdf5' : (log.action === 'DELETE' ? '#fef2f2' : '#eff6ff'),
+                              color: log.action === 'INSERT' ? '#059669' : (log.action === 'DELETE' ? '#dc2626' : '#2563eb'),
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              zIndex: 1,
+                              flexShrink: 0
+                            }}>
+                              {log.action === 'INSERT' ? <CheckSquare size={12} /> : (log.action === 'DELETE' ? <X size={12} /> : <Activity size={12} />)}
+                            </div>
+
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                <span style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                                  {log.action} • {log.entity}
+                                </span>
+                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                  {new Date(log.created_at).toLocaleString('pt-BR')}
+                                </span>
+                              </div>
+                              <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 8px 0' }}>
+                                {log.description || `Alteração no registro ${log.entity_id}`}
+                              </p>
+                              {log.new_data && (
+                                <div style={{ 
+                                  background: '#f8fafc', 
+                                  padding: '10px', 
+                                  borderRadius: '8px', 
+                                  fontSize: '11px', 
+                                  fontFamily: 'monospace',
+                                  color: '#475569',
+                                  border: '1px solid #f1f5f9'
+                                }}>
+                                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                                    {JSON.stringify(log.new_data, null, 2)}
+                                  </pre>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="elite-modal-footer" style={{ padding: '32px', background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
+                  <button className="glass-btn secondary" onClick={() => setIsAuditLogModalOpen(false)}>Fechar Registro</button>
+                  <button className="primary-btn" style={{ background: '#0f172a' }}>Exportar Log Completo</button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
       </main>
 
       <style>{`
