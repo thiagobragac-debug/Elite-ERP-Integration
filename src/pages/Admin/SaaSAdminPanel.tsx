@@ -312,17 +312,20 @@ export const SaaSAdminPanel: React.FC = () => {
     {
       header: 'Fazenda / ID',
       accessor: (item: any) => (
-        <div className="flex items-center gap-3 py-1">
-          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
+        <div className="flex items-center gap-3 py-1.5">
+          <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 border border-slate-100 shrink-0">
             <Globe size={18} />
           </div>
-          <div className="flex flex-col leading-tight">
-            <span className="text-[13px] font-black text-slate-900 uppercase tracking-tighter block">
+          <div className="flex flex-col justify-center min-w-0">
+            <span className="text-[13px] font-bold text-slate-900 uppercase tracking-tight truncate leading-tight">
               {item.name}
             </span>
-            <span className="text-[10px] font-black text-slate-400 block mt-0.5">
-              ID: {item.id}
-            </span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[9px] font-black text-white bg-slate-400 px-1 rounded-sm tracking-tighter">ID</span>
+              <span className="text-[10px] font-bold text-slate-400 tabular-nums">
+                {item.id_str || item.id}
+              </span>
+            </div>
           </div>
         </div>
       )
@@ -330,13 +333,13 @@ export const SaaSAdminPanel: React.FC = () => {
     {
       header: 'Plano / Valor',
       accessor: (item: any) => (
-        <div className="flex flex-col gap-1 py-1">
+        <div className="flex flex-col gap-0.5 py-1">
           <div className="flex items-center gap-2">
             <Activity size={14} className="text-emerald-500 shrink-0" />
-            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight">{item.plan}</span>
+            <span className="text-[11px] font-black text-slate-900 uppercase tracking-tight leading-none">{item.plan}</span>
           </div>
           <div className="pl-5">
-            <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md italic">
+            <span className="text-[10px] font-bold text-slate-500 italic block">
               {item.price} / mês
             </span>
           </div>
@@ -412,7 +415,6 @@ export const SaaSAdminPanel: React.FC = () => {
       )
     }
   ];
-
   const tenantColumns = [
     {
       header: 'Tenant',
@@ -588,6 +590,7 @@ export const SaaSAdminPanel: React.FC = () => {
                 </div>
               </div>
             </motion.div>
+            
           )}
 
           {activeTab === 'tenants' && (
@@ -1007,6 +1010,11 @@ export const SaaSAdminPanel: React.FC = () => {
                   <>
                     <ModernTable 
                       data={[
+                        /* 
+                          Nota para Integração: A associação do Gateway e Cálculo de Vencimento 
+                          deve vir da tabela 'tenants' (billing_gateway, trial_end).
+                          Vencimento = trial_end + 30 dias (ou conforme ciclo).
+                        */
                         { id: 1, name: 'Fazenda Santa Maria', id_str: 'TN-001', plan: 'Enterprise Elite', price: 'R$ 1.200', gateway: 'Stripe', status: 'pago', due: '15/10/2023' },
                         { id: 2, name: 'Agropecuária Vale Verde', id_str: 'TN-002', plan: 'Professional Plus', price: 'R$ 450', gateway: 'Asaas', status: 'pendente', due: '12/10/2023' },
                         { id: 3, name: 'Haras Serra Azul', id_str: 'TN-003', plan: 'Starter Core', price: 'R$ 190', gateway: 'Stripe', status: 'atrasado', due: '05/10/2023' },
@@ -1022,43 +1030,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     />
 
 
-                    <div style={{ marginTop: '24px', background: '#f8fafc', borderRadius: '24px', padding: '24px', border: '1px solid #f1f5f9' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Consumo de Recursos & Cotas</h4>
-                          <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Monitoramento de Infraestrutura por Tenant</p>
-                        </div>
-                        <div style={{ padding: '6px 12px', background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '10px', fontWeight: '800', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></div>
-                          SISTEMA NOMINAL
-                        </div>
-                      </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                        {[
-                          { label: 'Database Storage', used: '4.2GB', total: '10GB', color: '#6366f1', icon: Database },
-                          { label: 'Cloud Attachments', used: '12.8GB', total: '50GB', color: '#10b981', icon: HardDrive },
-                          { label: 'API Throughput', used: '84k', total: '200k', color: '#f59e0b', icon: Activity }
-                        ].map((resource, idx) => (
-                          <div key={idx} style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ color: resource.color }}><resource.icon size={16} /></div>
-                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>{resource.label}</span>
-                              </div>
-                              <span style={{ fontSize: '10px', fontWeight: '900', color: resource.color }}>{Math.round((parseInt(resource.used) / parseInt(resource.total)) * 100)}%</span>
-                            </div>
-                            <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
-                              <div style={{ height: '100%', background: resource.color, width: `${(parseInt(resource.used) / parseInt(resource.total)) * 100}%`, borderRadius: '3px' }}></div>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: '#64748b' }}>
-                              <span>{resource.used} usados</span>
-                              <span>limite: {resource.total}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                   </>
                 )}
 
@@ -1339,6 +1311,45 @@ export const SaaSAdminPanel: React.FC = () => {
           )}
 
           {activeTab === 'health' && (
+            <><div style={{ marginTop: '24px', background: '#f8fafc', borderRadius: '24px', padding: '24px', border: '1px solid #f1f5f9' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Consumo de Recursos & Cotas</h4>
+                          <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Monitoramento de Infraestrutura por Tenant</p>
+                        </div>
+                        <div style={{ padding: '6px 12px', background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '10px', fontWeight: '800', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></div>
+                          SISTEMA NOMINAL
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                        {[
+                          { label: 'Database Storage', used: '4.2GB', total: '10GB', color: '#6366f1', icon: Database },
+                          { label: 'Cloud Attachments', used: '12.8GB', total: '50GB', color: '#10b981', icon: HardDrive },
+                          { label: 'API Throughput', used: '84k', total: '200k', color: '#f59e0b', icon: Activity }
+                        ].map((resource, idx) => (
+                          <div key={idx} style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                <div style={{ color: resource.color }}><resource.icon size={16} /></div>
+                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>{resource.label}</span>
+                              </div>
+                              <span style={{ fontSize: '10px', fontWeight: '900', color: resource.color }}>{Math.round((parseInt(resource.used) / parseInt(resource.total)) * 100)}%</span>
+                            </div>
+                            <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
+                              <div style={{ height: '100%', background: resource.color, width: `${(parseInt(resource.used) / parseInt(resource.total)) * 100}%`, borderRadius: '3px' }}></div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: '#64748b' }}>
+                              <span>{resource.used} usados</span>
+                              <span>limite: {resource.total}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                
             <motion.div 
               key="health"
               initial={{ opacity: 0, y: 10 }}
@@ -1378,7 +1389,7 @@ export const SaaSAdminPanel: React.FC = () => {
                       { name: 'Worker Node 01 (Jobs)', status: 'online', cpu: '85%', mem: '3.2GB' },
                       { name: 'App Node 03 (US-East)', status: 'offline', cpu: '-', mem: '-' }
                     ].map(node => (
-                      <div key={node.name} className="node-item">
+                                            <div key={node.name} className="node-item">
                         <div className={`node-status ${node.status}`}></div>
                         <div className="n-info">
                           <span className="n-name">{node.name}</span>
@@ -1391,6 +1402,7 @@ export const SaaSAdminPanel: React.FC = () => {
                 </section>
               </div>
             </motion.div>
+            </>
           )}
         </AnimatePresence>
 
