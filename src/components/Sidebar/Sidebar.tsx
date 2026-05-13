@@ -15,7 +15,8 @@ import {
   Server,
   FileText,
   Globe,
-  Building2
+  Building2,
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
@@ -30,7 +31,7 @@ interface NavItem {
 }
 
 const menuItems: NavItem[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, href: '/' },
+  { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
   { 
     title: 'Administração', 
     icon: Settings,
@@ -158,9 +159,12 @@ export const Sidebar: React.FC = () => {
           <div className="logo-icon" style={{ 
             background: isFleetRoute ? '#0f172a' : isPurchasingRoute ? '#4f46e5' : 'hsl(var(--brand))' 
           }}>
-            {isFleetRoute ? <Truck size={24} color="white" /> : isPurchasingRoute ? <ShoppingCart size={24} color="white" /> : <Activity size={24} color="white" />}
+            <Zap size={20} color="white" />
           </div>
-          <span className="logo-text">{isFleetRoute ? 'Elite Frota' : isPurchasingRoute ? 'Elite Compras' : 'Elite Pecuária'}</span>
+          <div className="logo-text-group">
+            <span className="logo-text">{isFleetRoute ? 'Elite Frota' : isPurchasingRoute ? 'Elite Compras' : 'Elite Pecuária'}</span>
+            <span className="logo-version">DIAMOND 5.0</span>
+          </div>
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, Command, ArrowRight, X, LayoutGrid, Users, DollarSign, Activity } from 'lucide-react';
+import { Search, Command, ArrowRight, X, LayoutGrid, Users, DollarSign, Activity, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,7 +10,8 @@ interface CommandPaletteProps {
 }
 
 const COMMANDS = [
-  { id: 'dashboard', title: 'Dashboard Executivo', icon: LayoutGrid, path: '/', category: 'Navegação' },
+  { id: 'home', title: 'Landing Page', icon: Globe, path: '/', category: 'Navegação' },
+  { id: 'dashboard', title: 'Dashboard Executivo', icon: LayoutGrid, path: '/dashboard', category: 'Navegação' },
   { id: 'animals', title: 'Gestão de Animais', icon: Activity, path: '/pecuaria/animais', category: 'Pecuária' },
   { id: 'lots', title: 'Gestão de Lotes', icon: LayoutGrid, path: '/pecuaria/lotes', category: 'Pecuária' },
   { id: 'cashflow', title: 'Fluxo de Caixa', icon: DollarSign, path: '/financeiro/fluxo-caixa', category: 'Financeiro' },

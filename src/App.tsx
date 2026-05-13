@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Loader2 } from 'lucide-react';
 import { TenantProvider } from './contexts/TenantContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Layout } from './components/Layout/Layout';
@@ -54,25 +55,15 @@ import { Invoices } from './pages/Sales/Invoices';
 import { SalesDashboard } from './pages/Sales/SalesDashboard';
 import { Reports } from './pages/Reports/Reports';
 import { Login } from './pages/Auth/Login';
-import { useAuth } from './contexts/AuthContext';
-
-const ModulePlaceholder: React.FC<{ title: string }> = ({ title }) => (
-  <div className="premium-card">
-    <h2 className="page-title">{title}</h2>
-    <p className="page-subtitle">Este módulo está sendo preparado para escala comercial.</p>
-    <div style={{ marginTop: '2rem', padding: '4rem', border: '2px dashed var(--border)', borderRadius: '1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-      Área em Desenvolvimento - Integração de Dados Multi-tenant
-    </div>
-  </div>
-);
+import { LandingPage } from './pages/LandingPage';
 
 import { CommandPalette } from './components/Navigation/CommandPalette';
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
-  const [isPaletteOpen, setIsPaletteOpen] = React.useState(false);
+  const { isAuthenticated, loading } = useAuth();
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
@@ -83,15 +74,21 @@ function AppContent() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  if (!isAuthenticated) {
-    return <Login />;
+  if (loading) {
+    return (
+      <div style={{ height: '100vh', width: '100vw', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#020617', color: 'white' }}>
+        <Loader2 className="animate-spin" size={48} />
+      </div>
+    );
   }
 
   return (
-    <Router>
+    <>
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
       <Routes>
-        {/* SaaS Admin Environment (Independent Layout) */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+
         <Route path="/saas/*" element={
           <SuperAdminGuard>
             <SaaSLayout>
@@ -108,107 +105,83 @@ function AppContent() {
           </SuperAdminGuard>
         } />
 
-        {/* Client Environment (Standard Layout) */}
         <Route path="/*" element={
-          <Layout>
-            <Routes>
-              <Route path="/" element={<ExecutiveDashboard />} />
-              
-              {/* Administrativo */}
-              <Route path="/admin/usuarios" element={<UserManagement />} />
-              <Route path="/admin/perfil" element={<ProfilePage />} />
-              <Route path="/admin/config" element={<CompanyManagement />} />
-              <Route path="/admin/intelligence" element={<AdminIntelligenceHub />} />
-              <Route path="/admin/configuracoes" element={<AdminSettings />} />
-              <Route path="/admin/bi" element={<AdminSettings />} />
-              <Route path="/admin/canvas" element={<AdminSettings />} />
-              <Route path="/admin/auditoria" element={<AuditLog />} />
-              
-              {/* Pecuária */}
-              <Route path="/pecuaria/dashboard" element={<LivestockDashboard />} />
-              <Route path="/pecuaria/animal" element={<AnimalManagement />} />
-              <Route path="/pecuaria/animal/:id" element={<AnimalDetail />} />
-              <Route path="/pecuaria/lote" element={<LotManagement />} />
-              <Route path="/pecuaria/pasto" element={<PastureManagement />} />
-              <Route path="/pecuaria/pesagem" element={<WeightManagement />} />
-              <Route path="/pecuaria/confinamento" element={<ConfinementManagement />} />
-              <Route path="/pecuaria/reproducao" element={<ReproductionManagement />} />
-              <Route path="/pecuaria/nutricao" element={<NutritionManagement />} />
-              <Route path="/pecuaria/sanidade" element={<HealthManagement />} />
-
-              {/* Plural Typos & Redirects for UX stability */}
-              <Route path="/pecuaria/animais" element={<Navigate to="/pecuaria/animal" replace />} />
-              <Route path="/pecuaria/lotes" element={<Navigate to="/pecuaria/lote" replace />} />
-              <Route path="/pecuaria/pesagens" element={<Navigate to="/pecuaria/pesagem" replace />} />
-              <Route path="/pecuaria/pastos" element={<Navigate to="/pecuaria/pasto" replace />} />
-              <Route path="/pecuaria/nutricoes" element={<Navigate to="/pecuaria/nutricao" replace />} />
-              <Route path="/admin/empresas" element={<Navigate to="/admin/config" replace />} />
-              
-              {/* Máquina & Frota */}
-              <Route path="/frota/dashboard" element={<FleetDashboard />} />
-              <Route path="/frota/maquina" element={<FleetManagement />} />
-              <Route path="/frota/veiculos" element={<Navigate to="/frota/maquina" replace />} />
-              <Route path="/frota/manutencao" element={<MaintenanceManagement />} />
-              <Route path="/frota/abastecimento" element={<FuelManagement />} />
-              <Route path="/frota" element={<Navigate to="/frota/dashboard" replace />} />
-              
-              {/* Compra & Cotação */}
-              <Route path="/compras/dashboard" element={<PurchasingDashboard />} />
-              <Route path="/compras/fornecedores" element={<SupplierManagement />} />
-              <Route path="/compras/solicitacao" element={<PurchaseRequest />} />
-              <Route path="/compras/cotacao" element={<QuotationMap />} />
-              <Route path="/compras/mapa" element={<PriceAnalysis />} />
-              <Route path="/compras/pedido" element={<PurchaseOrder />} />
-              <Route path="/compras/nota" element={<EntryInvoice />} />
-              <Route path="/compras" element={<Navigate to="/compras/dashboard" replace />} />
-              
-              {/* Venda & CRM */}
-              <Route path="/vendas/dashboard" element={<SalesDashboard />} />
-              <Route path="/vendas/clientes" element={<ClientManagement />} />
-              <Route path="/vendas/pedido" element={<SalesOrders />} />
-              <Route path="/vendas/contrato" element={<Contracts />} />
-              <Route path="/vendas/notas" element={<Invoices />} />
-              <Route path="/vendas" element={<Navigate to="/vendas/dashboard" replace />} />
-              
-              {/* Estoque */}
-              <Route path="/estoque/dashboard" element={<InventoryDashboard />} />
-              <Route path="/estoque/insumo" element={<InventoryManagement />} />
-              <Route path="/estoque/deposito" element={<WarehouseManagement />} />
-              <Route path="/estoque/movimentacao" element={<MovementManagement />} />
-              <Route path="/estoque/inventario" element={<AuditManagement />} />
-              <Route path="/estoque" element={<Navigate to="/estoque/dashboard" replace />} />
-              
-              {/* Financeiro */}
-              <Route path="/financeiro/contas" element={<BankAccounts />} />
-              <Route path="/financeiro/fluxo" element={<CashFlow />} />
-              <Route path="/financeiro/pagar" element={<AccountsPayable />} />
-              <Route path="/financeiro/receber" element={<AccountsReceivable />} />
-              <Route path="/financeiro/conciliacao" element={<BankReconciliation />} />
-              <Route path="/financeiro/intelligence" element={<FinanceIntelligenceHub />} />
-              
-              <Route path="/relatorios" element={<Reports />} />
-              <Route path="/bi" element={<ExecutiveDashboard />} />
-
-              {/* Catch-all route to prevent blank screens */}
-              <Route path="*" element={<ExecutiveDashboard />} />
-            </Routes>
-          </Layout>
+          isAuthenticated ? (
+            <Layout>
+              <Routes>
+                <Route path="/dashboard" element={<ExecutiveDashboard />} />
+                <Route path="/admin/usuarios" element={<UserManagement />} />
+                <Route path="/admin/perfil" element={<ProfilePage />} />
+                <Route path="/admin/config" element={<CompanyManagement />} />
+                <Route path="/admin/intelligence" element={<AdminIntelligenceHub />} />
+                <Route path="/admin/configuracoes" element={<AdminSettings />} />
+                <Route path="/admin/auditoria" element={<AuditLog />} />
+                
+                <Route path="/pecuaria/dashboard" element={<LivestockDashboard />} />
+                <Route path="/pecuaria/animal" element={<AnimalManagement />} />
+                <Route path="/pecuaria/animal/:id" element={<AnimalDetail />} />
+                <Route path="/pecuaria/lote" element={<LotManagement />} />
+                <Route path="/pecuaria/pasto" element={<PastureManagement />} />
+                <Route path="/pecuaria/pesagem" element={<WeightManagement />} />
+                <Route path="/pecuaria/confinamento" element={<ConfinementManagement />} />
+                <Route path="/pecuaria/reproducao" element={<ReproductionManagement />} />
+                <Route path="/pecuaria/nutricao" element={<NutritionManagement />} />
+                <Route path="/pecuaria/sanidade" element={<HealthManagement />} />
+                
+                <Route path="/frota/dashboard" element={<FleetDashboard />} />
+                <Route path="/frota/maquina" element={<FleetManagement />} />
+                <Route path="/frota/manutencao" element={<MaintenanceManagement />} />
+                <Route path="/frota/abastecimento" element={<FuelManagement />} />
+                
+                <Route path="/compras/dashboard" element={<PurchasingDashboard />} />
+                <Route path="/compras/fornecedores" element={<SupplierManagement />} />
+                <Route path="/compras/solicitacao" element={<PurchaseRequest />} />
+                <Route path="/compras/cotacao" element={<QuotationMap />} />
+                <Route path="/compras/pedido" element={<PurchaseOrder />} />
+                <Route path="/compras/nota" element={<EntryInvoice />} />
+                
+                <Route path="/vendas/dashboard" element={<SalesDashboard />} />
+                <Route path="/vendas/clientes" element={<ClientManagement />} />
+                <Route path="/vendas/pedido" element={<SalesOrders />} />
+                <Route path="/vendas/contrato" element={<Contracts />} />
+                <Route path="/vendas/notas" element={<Invoices />} />
+                
+                <Route path="/estoque/dashboard" element={<InventoryDashboard />} />
+                <Route path="/estoque/insumo" element={<InventoryManagement />} />
+                <Route path="/estoque/deposito" element={<WarehouseManagement />} />
+                <Route path="/estoque/movimentacao" element={<MovementManagement />} />
+                <Route path="/estoque/inventario" element={<AuditManagement />} />
+                
+                <Route path="/financeiro/contas" element={<BankAccounts />} />
+                <Route path="/financeiro/fluxo" element={<CashFlow />} />
+                <Route path="/financeiro/pagar" element={<AccountsPayable />} />
+                <Route path="/financeiro/receber" element={<AccountsReceivable />} />
+                <Route path="/financeiro/conciliacao" element={<BankReconciliation />} />
+                <Route path="/financeiro/intelligence" element={<FinanceIntelligenceHub />} />
+                
+                <Route path="/relatorios" element={<Reports />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Layout>
+          ) : (
+            <Navigate to="/login" replace />
+          )
         } />
       </Routes>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <ThemeProvider>
+        <AuthProvider>
+          <TenantProvider>
+            <AppContent />
+          </TenantProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   );
 }
-
-function App() {
-  return (
-    <ThemeProvider>
-      <AuthProvider>
-        <TenantProvider>
-          <AppContent />
-        </TenantProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  );
-}
-
-export default App;
