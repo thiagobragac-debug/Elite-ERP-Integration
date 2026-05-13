@@ -134,6 +134,8 @@ export const SaaSAdminPanel: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
   const [billingSubTab, setBillingSubTab] = useState('monitor');
+  const [isBillingHistoryModalOpen, setIsBillingHistoryModalOpen] = useState(false);
+  const [selectedHistoryTenant, setSelectedHistoryTenant] = useState<any>(null);
 
   const handleSaveTenant = (data: any) => {
     if (selectedTenant) {
@@ -384,7 +386,7 @@ export const SaaSAdminPanel: React.FC = () => {
               onClick={() => {
                 if (btn.label === 'Editar') openEditTenant(item);
                 else if (btn.label === 'Bloquear') setIsRetentionModalOpen(true);
-                else setBillingSubTab('history');
+                else { setSelectedHistoryTenant(item); setIsBillingHistoryModalOpen(true); }
               }}
               style={{ 
                 width: '32px', 
@@ -961,12 +963,7 @@ export const SaaSAdminPanel: React.FC = () => {
                    >
                      Monitor Global
                    </button>
-                   <button 
-                     className={`elite-tab-item ${billingSubTab === 'history' ? 'active' : ''}`}
-                     onClick={() => setBillingSubTab('history')}
-                   >
-                     HISTÓRICO
-                   </button>
+                   
                  </div>
 
                  <div className="elite-filter-group">
@@ -1005,18 +1002,6 @@ export const SaaSAdminPanel: React.FC = () => {
                     </div>
                   </div>
 
-                {billingSubTab === 'history' && (
-                  <div style={{ padding: '40px', background: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '20px', background: '#eff6ff', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <History size={32} />
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>Histórico de Auditoria SaaS</h3>
-                      <p style={{ margin: '8px 0 0', fontSize: '14px', color: '#64748b' }}>Carregando trilha de transações e eventos do gateway...</p>
-                    </div>
-                    <div className="animate-pulse" style={{ width: '100%', maxWidth: '400px', height: '200px', background: '#f8fafc', borderRadius: '16px' }} />
-                  </div>
-                )}
 
                 {billingSubTab === 'monitor' && (
                   <>
@@ -1569,9 +1554,81 @@ export const SaaSAdminPanel: React.FC = () => {
             )}
           </AnimatePresence>,
           document.body
+        )
+      }
+
+        {createPortal(
+          <AnimatePresence>
+            {isBillingHistoryModalOpen && (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsBillingHistoryModalOpen(false)}
+                  style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(12px)' }}
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  style={{ position: 'relative', width: '100%', maxWidth: '800px', background: 'white', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', overflow: 'hidden', border: '1px solid #e2e8f0' }}
+                >
+                  <div style={{ padding: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                      <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
+                        <History size={28} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Histórico de Auditoria: {selectedHistoryTenant?.name}</h3>
+                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Trilha Completa de Transações & Eventos SaaS</p>
+                      </div>
+                    </div>
+                    <button onClick={() => setIsBillingHistoryModalOpen(false)} style={{ background: '#f1f5f9', width: '40px', height: '40px', borderRadius: '12px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Plus size={24} style={{ transform: 'rotate(45deg)', color: '#64748b' }} />
+                    </button>
+                  </div>
+                  <div style={{ padding: '32px', maxHeight: '60vh', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {[
+                        { type: 'payment', title: 'Pagamento Confirmado', desc: 'Gateway Stripe confirmou recebimento via PIX.', time: 'Há 2 dias', amount: 'R$ 1.200,00', status: 'success' },
+                        { type: 'plan', title: 'Upgrade de Plano', desc: 'Migração do Professional para Enterprise Elite.', time: 'Há 15 dias', amount: '-', status: 'info' },
+                        { type: 'alert', title: 'Aviso de Vencimento', desc: 'Notificação automática enviada ao e-mail do tenant.', time: 'Há 18 dias', amount: '-', status: 'warning' },
+                        { type: 'payment', title: 'Fatura Gerada', desc: 'Ciclo mensal de faturamento iniciado.', time: 'Há 20 dias', amount: 'R$ 1.200,00', status: 'neutral' },
+                      ].map((log, i) => (
+                        <div key={i} style={{ padding: '20px', borderRadius: '20px', background: '#f8fafc', border: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: log.status === 'success' ? '#10b981' : log.status === 'warning' ? '#f59e0b' : log.status === 'info' ? '#3b82f6' : '#94a3b8' }} />
+                             <div>
+                               <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>{log.title}</h4>
+                               <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#64748b', fontWeight: '500' }}>{log.desc}</p>
+                             </div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span style={{ display: 'block', fontSize: '13px', fontWeight: '900', color: '#0f172a' }}>{log.amount}</span>
+                            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>{log.time}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ padding: '32px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button 
+                      onClick={() => setIsBillingHistoryModalOpen(false)}
+                      style={{ padding: '14px 28px', borderRadius: '14px', border: 'none', background: '#0f172a', color: 'white', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', cursor: 'pointer', boxShadow: '0 10px 15px -3px rgba(15, 23, 42, 0.3)' }}
+                    >
+                      Fechar Auditoria
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
 
         <AnimatePresence>
+                    
           {isAuditDrawerOpen && (
             <>
               <motion.div 
