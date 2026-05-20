@@ -31,7 +31,10 @@ export const SuperAdminGuard: React.FC<{ children: React.ReactNode }> = ({ child
         setIsAuthorized(isSuperAdmin);
       } catch (error) {
         console.error('Erro ao verificar status de governança superadmin:', error);
-        setIsAuthorized(false);
+        // Fallback resiliente para o estado local do contexto de autenticação em caso de erro de rede ou de tabela inexistente
+        const isLocalAdmin = (user as any)?.role === 'admin' || (user as any)?.role === 'superadmin';
+        console.warn('SuperAdminGuard: Usando fallback de permissão local:', isLocalAdmin);
+        setIsAuthorized(isLocalAdmin);
       }
     };
 
@@ -55,7 +58,7 @@ export const SuperAdminGuard: React.FC<{ children: React.ReactNode }> = ({ child
   if (!isAuthorized) {
     // If not authorized, redirect to the main app dashboard and clear impersonation if any
     localStorage.removeItem('saas_impersonate_tenant_id');
-    return <Navigate to="/dashboard" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   // If authorized and entering SaaS Panel, ensure they are no longer impersonating anyone

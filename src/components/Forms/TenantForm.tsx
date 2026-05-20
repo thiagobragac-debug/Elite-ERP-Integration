@@ -27,7 +27,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
     if (initialData) {
       setFormData({
         name: initialData.name || '',
-        cnpj: initialData.id || '',
+        cnpj: initialData.document || initialData.id || '',
         email: initialData.email || '',
         phone: initialData.phone || '',
         plan: initialData.plan || 'Starter',

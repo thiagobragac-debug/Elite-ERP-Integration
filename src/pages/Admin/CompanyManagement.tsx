@@ -140,23 +140,51 @@ export const CompanyManagement: React.FC = () => {
         }
       ]);
     } catch (err) {
-      console.warn("CompanyManagement: Network timeout or error. Using Mock Fallback.");
-      const mockUnits = [
-        { id: 'u1', nome: 'Matriz Elite - São Paulo', tipo: 'Matriz', documento: '00.000.000/0001-01', status: 'Ativa' },
-        { id: 'u2', nome: 'Filial MT - Sorriso', tipo: 'Filial', documento: '00.000.000/0002-02', status: 'Ativa' }
-      ];
-      const mockFarms = [
-        { id: 'f1', nome: 'Fazenda Rio Brilhante', area_total: 1200, localizacao: 'Sorriso/MT', status: 'Produção' },
-        { id: 'f2', nome: 'Fazenda Boa Esperança', area_total: 850, localizacao: 'Sinop/MT', status: 'Preparação' }
-      ];
-      setCompanies(mockUnits);
-      setFarms(mockFarms);
+      console.error("CompanyManagement: Error fetching data from database:", err);
+      setCompanies([]);
+      setFarms([]);
       
       setStats([
-        { label: 'Unidades Ativas', value: '4', icon: Building2, color: '#3b82f6', progress: 100, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação' },
-        { label: 'Área Consolidada', value: '2.050 ha', icon: Map, color: '#10b981', progress: 85, change: 'Total Estimado', periodLabel: 'Capacidade Produtiva' },
-        { label: 'Compliance Legal', value: '100%', icon: ShieldCheck, color: '#10b981', progress: 100, change: 'Status: OK', periodLabel: 'Documentação' },
-        { label: 'Governança', value: 'Nível 5', icon: Globe, color: '#8b5cf6', progress: 100, change: 'Elite Standard', periodLabel: 'Diamond Precision' },
+        { 
+          label: 'Unidades Ativas', 
+          value: 0, 
+          icon: Building2, 
+          color: '#ef4444', 
+          progress: 0, 
+          change: 'Erro de Conexão', 
+          periodLabel: 'Indisponível',
+          sparkline: []
+        },
+        { 
+          label: 'Área Consolidada', 
+          value: '0 ha', 
+          icon: Map, 
+          color: '#ef4444', 
+          progress: 0, 
+          change: 'Erro de Conexão', 
+          periodLabel: 'Indisponível',
+          sparkline: []
+        },
+        { 
+          label: 'Governança Fiscal', 
+          value: 'INDISPONÍVEL', 
+          icon: ShieldCheck, 
+          color: '#ef4444', 
+          progress: 0, 
+          change: 'Erro de Conexão', 
+          periodLabel: 'Indisponível',
+          sparkline: []
+        },
+        { 
+          label: 'Score Operacional', 
+          value: '0%', 
+          icon: Layout, 
+          color: '#ef4444', 
+          progress: 0, 
+          change: 'Erro de Conexão', 
+          periodLabel: 'Indisponível',
+          sparkline: []
+        }
       ]);
     } finally {
       setLoading(false);
@@ -244,14 +272,34 @@ export const CompanyManagement: React.FC = () => {
   const handleViewLogs = async (item: any) => {
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
-    // Simulating logs
-    setTimeout(() => {
-      setHistoryItems([
-        { id: '1', date: new Date().toISOString(), title: 'Atualização de Cadastro', subtitle: 'Alteração de endereço fiscal', status: 'info' },
-        { id: '2', date: new Date().toISOString(), title: 'Sincronização Fiscal', subtitle: 'Dados validados com a SEFAZ', status: 'success' },
-      ]);
+    try {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      if (data) {
+        setHistoryItems(data.map((log: any) => ({
+          id: log.id,
+          date: log.created_at,
+          title: log.action || 'Ação do Sistema',
+          subtitle: log.user_email || 'Usuário do Sistema',
+          value: log.details || log.entity_name,
+          status: log.action?.toLowerCase().includes('erro') || log.action?.toLowerCase().includes('falha') ? 'error' : 'success'
+        })));
+      } else {
+        setHistoryItems([]);
+      }
+    } catch (err) {
+      console.error('Error fetching company/farm audit logs:', err);
+      setHistoryItems([]);
+    } finally {
       setHistoryLoading(false);
-    }, 1000);
+    }
   };
 
   const syncWithTenant = async () => {

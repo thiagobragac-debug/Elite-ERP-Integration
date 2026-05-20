@@ -99,74 +99,94 @@ export const UserManagement: React.FC = () => {
     { id: 'maquinas', label: 'Gestão de Frota' },
     { id: 'compras', label: 'Módulo Compras' },
     { id: 'vendas', label: 'Módulo Vendas' },
-    { id: 'admin', label: 'Configurações Administrativas' },
+    { id: 'admin', label: 'Configurações Administrativas' }
   ];
 
-  const [liveLogs, setLiveLogs] = useState<any[]>([
-    { id: '1', date: new Date(Date.now() - 600000).toISOString(), type: 'INFO', msg: 'Sessão administrativa iniciada com sucesso.', user: 'admin@eliteerp.com', ip: '177.42.190.5' },
-    { id: '2', date: new Date(Date.now() - 500000).toISOString(), type: 'INFO', msg: 'Verificação periódica System Guard concluída. 0 ameaças.', user: 'SYSTEM', ip: '127.0.0.1' },
-    { id: '3', date: new Date(Date.now() - 350000).toISOString(), type: 'WARN', msg: 'Tentativa de alteração de política de senha por suporte@eliteerp.com.', user: 'suporte@eliteerp.com', ip: '189.12.90.12' },
-    { id: '4', date: new Date(Date.now() - 200000).toISOString(), type: 'CRITICAL', msg: 'Tentativa de login atípica bloqueada: IP listado em lista negra.', user: 'desconhecido', ip: '45.132.88.22' },
-    { id: '5', date: new Date(Date.now() - 80000).toISOString(), type: 'INFO', msg: 'Relatório financeiro exportado com sucesso.', user: 'cfo@eliteerp.com', ip: '177.42.190.9' },
-  ]);
+  const [liveLogs, setLiveLogs] = useState<any[]>([]);
   const [terminalSeverity, setTerminalSeverity] = useState<'ALL' | 'INFO' | 'WARN' | 'CRITICAL'>('ALL');
   const [isTerminalRunning, setIsTerminalRunning] = useState(true);
+  const [anomalies, setAnomalies] = useState<any[]>([]);
 
-  const [anomalies, setAnomalies] = useState<any[]>([
-    {
-      id: 'anom-1',
-      title: 'Login Concorrente de Geolocalizações Distintas',
-      desc: 'Sessão ativa em São Paulo (IP 177.42.190.5) e novo login em Frankfurt, Alemanha (IP 45.132.88.22) em menos de 5 minutos.',
-      severity: 'CRITICAL',
-      user: 'thiago@eliteerp.com',
-      date: new Date().toISOString(),
-      mitigated: false
-    },
-    {
-      id: 'anom-2',
-      title: 'Vazamento Potencial: Exportação Volumosa de Relatórios',
-      desc: 'O usuário claudia@eliteerp.com realizou a exportação de 15 relatórios de contas a pagar e clientes nos últimos 3 minutos (Média normal: 2 por hora).',
-      severity: 'WARN',
-      user: 'claudia@eliteerp.com',
-      date: new Date(Date.now() - 600000).toISOString(),
-      mitigated: false
-    },
-    {
-      id: 'anom-3',
-      title: 'Acesso Financeiro Fora do Horário Comercial',
-      desc: 'O usuário joao@eliteerp.com efetuou login e acessou o módulo de conciliação bancária às 03:42 da madrugada (Horário padrão: 08:00 às 18:00).',
-      severity: 'INFO',
-      user: 'joao@eliteerp.com',
-      date: new Date(Date.now() - 1200000).toISOString(),
-      mitigated: false
+  const fetchSecurityLogs = async () => {
+    if (!activeFarm) return;
+    setLogsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('tenant_id', activeFarm.tenantId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      
+      if (!error && data) {
+        setGlobalLogs(data.map(log => ({
+          id: log.id,
+          title: log.action,
+          date: log.created_at,
+          value: log.details || log.entity_name,
+          user: log.user_email
+        })));
+
+        const mappedLogs = data.map((log: any) => {
+          const act = (log.action || '').toUpperCase();
+          const details = (log.details || log.description || '').toUpperCase();
+          let type: 'INFO' | 'WARN' | 'CRITICAL' = 'INFO';
+          
+          if (act.includes('DELETE') || act.includes('ALERT') || act.includes('FAIL') || act.includes('SECURITY') || details.includes('BLOQUE') || details.includes('ERR')) {
+            type = 'CRITICAL';
+          } else if (act.includes('UPDATE') || act.includes('WARN') || details.includes('SESSÃO') || details.includes('ALTERAÇÃO')) {
+            type = 'WARN';
+          }
+          
+          return {
+            id: log.id,
+            date: log.created_at,
+            type,
+            msg: log.details || log.description || `${log.action} em ${log.entity_name || log.entity || 'sistema'}`,
+            user: log.user_email || 'SYSTEM',
+            ip: log.ip_address || '127.0.0.1'
+          };
+        });
+        setLiveLogs(mappedLogs);
+
+        const mappedAnomalies = data
+          .filter((log: any) => {
+            const act = (log.action || '').toUpperCase();
+            const details = (log.details || log.description || '').toUpperCase();
+            return act.includes('DELETE') || act.includes('ALERT') || act.includes('FAIL') || act.includes('SECURITY') || details.includes('FALHA') || details.includes('ERRO');
+          })
+          .map((log: any) => {
+            return {
+              id: log.id,
+              title: log.action || 'Alerta do Sistema',
+              desc: log.details || log.description || `${log.action} em ${log.entity_name || log.entity}`,
+              severity: 'CRITICAL' as const,
+              user: log.user_email || 'SYSTEM',
+              date: log.created_at,
+              mitigated: false
+            };
+          });
+        setAnomalies(mappedAnomalies);
+      }
+    } catch (err: any) {
+      console.warn("UserManagement: Error fetching security logs", err);
+    } finally {
+      setLogsLoading(false);
     }
-  ]);
+  };
 
-  // Terminal Real-Time Stream Simulator
+  // Real-Time Database Stream Polling
   useEffect(() => {
-    if (!isTerminalRunning) return;
+    if (!isTerminalRunning || !activeFarm) return;
 
-    const messages = [
-      { type: 'INFO', msg: 'Sessão validada com sucesso via token JWT.', user: 'operador@eliteerp.com', ip: '179.182.90.12' },
-      { type: 'INFO', msg: 'Mapeamento de pastos atualizado no Supabase.', user: 'gerente@eliteerp.com', ip: '177.42.190.5' },
-      { type: 'WARN', msg: 'Falha na validação de login (MFA inválido).', user: 'cfo@eliteerp.com', ip: '177.42.190.9' },
-      { type: 'CRITICAL', msg: 'Exportação bloqueada: Cotação de fornecedores excede limite de segurança.', user: 'operador@eliteerp.com', ip: '179.182.90.12' },
-      { type: 'INFO', msg: 'Backup automático de segurança do banco de dados concluído.', user: 'SYSTEM', ip: '127.0.0.1' },
-      { type: 'WARN', msg: 'Nova conexão estabelecida a partir de IP residencial não mapeado.', user: 'joao@eliteerp.com', ip: '191.22.40.85' },
-    ];
+    fetchSecurityLogs();
 
     const interval = setInterval(() => {
-      const randomMsg = messages[Math.floor(Math.random() * messages.length)];
-      const newLog = {
-        id: Math.random().toString(),
-        date: new Date().toISOString(),
-        ...randomMsg
-      };
-      setLiveLogs(prev => [newLog, ...prev].slice(0, 100));
-    }, 4500);
+      fetchSecurityLogs();
+    }, 5000);
 
     return () => clearInterval(interval);
-  }, [isTerminalRunning]);
+  }, [isTerminalRunning, activeFarm]);
 
   const handleToggleMatrixPermission = async (profileId: string, permissionId: string) => {
     const profile = profilesList.find(p => p.id === profileId);
@@ -246,32 +266,7 @@ export const UserManagement: React.FC = () => {
     }
   }, [activeTab, activeFarm, activeFarmId, isGlobalMode, activeTenantId]);
 
-  const fetchSecurityLogs = async () => {
-    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
-    setLogsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('tenant_id', activeFarm.tenantId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (!error && data) {
-        setGlobalLogs(data.map(log => ({
-          id: log.id,
-          title: log.action,
-          date: log.created_at,
-          value: log.details || log.entity_name,
-          user: log.user_email
-        })));
-      }
-    } catch (err: any) {
-      console.warn("UserManagement: Error fetching security logs", err);
-    } finally {
-      setLogsLoading(false);
-    }
-  };
+
 
   const toggleSecuritySetting = (key: keyof typeof securitySettings) => {
     setSecuritySettings(prev => ({ ...prev, [key]: !prev[key] }));
@@ -289,28 +284,25 @@ export const UserManagement: React.FC = () => {
 
     try {
       const fetchPromise = (async () => {
-        if (activeTab === 'users') {
-          const { data: usersData, error: usersError } = await supabase
-            .from('profiles_view')
-            .select('*, perfis_usuario(nome)')
-            .eq('tenant_id', activeTenantId);
-          
-          const { data: profilesData } = await supabase
-            .from('perfis_usuario')
-            .select('*').limit(500)
-            .eq('tenant_id', activeTenantId);
+        const { data: usersData, error: usersError } = await supabase
+          .from('profiles_view')
+          .select('*, perfis_usuario(nome)')
+          .eq('tenant_id', activeTenantId);
+        
+        const { data: profilesData } = await supabase
+          .from('perfis_usuario')
+          .select('*').limit(500)
+          .eq('tenant_id', activeTenantId);
 
-          if (usersError) throw usersError;
-          return { usersData, profilesData };
-        } else {
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('perfis_usuario')
-            .select('*').limit(500)
-            .eq('tenant_id', activeTenantId);
-            
-          if (profilesError) throw profilesError;
-          return { profilesData };
-        }
+        const todayStr = new Date().toISOString().split('T')[0];
+        const { data: activeLogs } = await supabase
+          .from('audit_logs')
+          .select('user_email')
+          .eq('tenant_id', activeTenantId)
+          .gte('created_at', todayStr);
+
+        if (usersError) throw usersError;
+        return { usersData, profilesData, activeLogs };
       })();
 
       const timeoutPromise = new Promise((_, reject) => 
@@ -318,98 +310,57 @@ export const UserManagement: React.FC = () => {
       );
 
       const result: any = await Promise.race([fetchPromise, timeoutPromise]);
+      const { usersData, profilesData, activeLogs } = result;
 
-      if (activeTab === 'users') {
-        const { usersData, profilesData } = result;
-        const processedProfiles = (profilesData || []).map((p: any) => ({
-          ...p,
-          userCount: (usersData || []).filter((u: any) => u.perfil_id === p.id).length
-        }));
-      
-        setUsersList((usersData || []).map((u: any) => {
-          const perfil = Array.isArray(u.perfis_usuario) ? u.perfis_usuario[0] : u.perfis_usuario;
-          return {
-            ...u,
-            name: u.full_name,
-            profile: perfil?.nome,
-            farm: u.unidade_nome,
-            status: u.status || 'active', // Default to active since status is not stored in DB
-            memberSince: u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '---'
-          };
-        }));
-        setProfilesList(processedProfiles);
-      } else {
-        const { profilesData } = result;
-        setProfilesList((profilesData || []).map((p: any) => ({
-          ...p,
-          name: p.nome,
-          description: p.descricao,
-          permissions: p.permissoes || []
-        })));
-      }
-    } catch (err: any) {
-      console.warn("UserManagement: Using mock data due to network error", err);
-      const mockUsers = [
-        { 
-          id: '11111111-1111-1111-1111-111111111111', 
-          full_name: 'Thiago Braga', 
-          name: 'Thiago Braga', 
-          email: 'thiagobraga.c@gmail.com', 
-          perfil_id: '10000000-0000-0000-0000-000000000001', 
-          profile: 'Administrador', 
-          status: 'active', 
-          mfa_enabled: true, 
-          created_at: new Date().toISOString(), 
-          memberSince: 'Mai 2024' 
-        },
-        { 
-          id: '22222222-2222-2222-2222-222222222222', 
-          full_name: 'Usuário Demo', 
-          name: 'Usuário Demo', 
-          email: 'demo@elite.com', 
-          perfil_id: '20000000-0000-0000-0000-000000000002', 
-          profile: 'Operador', 
-          status: 'active', 
-          mfa_enabled: false, 
-          created_at: new Date().toISOString(), 
-          memberSince: 'Jun 2024' 
-        }
-      ];
-      
-      setUsersList(mockUsers);
-      setProfilesList([
-        { id: '10000000-0000-0000-0000-000000000001', nome: 'Administrador', userCount: 1, name: 'Administrador', description: 'Acesso total', permissions: ['all'] },
-        { id: '20000000-0000-0000-0000-000000000002', nome: 'Operador', userCount: 1, name: 'Operador', description: 'Acesso limitado', permissions: ['read'] }
-      ]);
-      
-      // Calculate stats immediately with local data
-      const totalUsersCount = mockUsers.length;
-      const mfaCount = mockUsers.filter(u => u.mfa_enabled).length;
-      
+      const processedProfiles = (profilesData || []).map((p: any) => ({
+        ...p,
+        userCount: (usersData || []).filter((u: any) => u.perfil_id === p.id).length,
+        name: p.nome,
+        description: p.descricao,
+        permissions: p.permissoes || []
+      }));
+
+      const processedUsers = (usersData || []).map((u: any) => {
+        const perfil = Array.isArray(u.perfis_usuario) ? u.perfis_usuario[0] : u.perfis_usuario;
+        return {
+          ...u,
+          name: u.full_name,
+          profile: perfil?.nome,
+          farm: u.unidade_nome,
+          status: u.status || 'active', // Default to active since status is not stored in DB
+          memberSince: u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '---'
+        };
+      });
+
+      setUsersList(processedUsers);
+      setProfilesList(processedProfiles);
+
+      // Intelligence Calculations for Real Data
+      const totalUsers = processedUsers.length;
+      const activeEmails = new Set((activeLogs || []).map((l: any) => l.user_email).filter(Boolean));
+      const activeToday = Math.max(1, activeEmails.size);
+      const mfaCompliant = processedUsers.filter((u: any) => u.mfa_enabled).length;
+      const securityScore = Math.floor((mfaCompliant / (totalUsers || 1)) * 100);
+
       setStats([
-        { label: 'Licenças Ativas', value: `${totalUsersCount}/25`, icon: Users, color: '#10b981', progress: (totalUsersCount / 25) * 100, change: 'Plano Enterprise', periodLabel: 'Consumo de Seats', sparkline: [{ value: 10 }, { value: 15 }, { value: totalUsersCount }] },
-        { label: 'Acessos Hoje', value: totalUsersCount, icon: Monitor, color: '#3b82f6', progress: 100, change: '+12% vs ontem', periodLabel: 'Sessões Ativas', sparkline: [{ value: 5 }, { value: 12 }, { value: totalUsersCount }] },
-        { label: 'Compliance Segurança', value: '85%', icon: ShieldCheck, color: '#10b981', progress: 85, change: 'Excelente', periodLabel: 'Score de Governança', sparkline: [{ value: 60 }, { value: 75 }, { value: 85 }] },
-        { label: 'Proteção MFA', value: `${mfaCount} usuários`, icon: Lock, color: '#8b5cf6', progress: (mfaCount / (totalUsersCount || 1)) * 100, change: '2FA Habilitado', periodLabel: 'Autenticação Forte', sparkline: [{ value: 2 }, { value: 5 }, { value: mfaCount }] }
+        { label: 'Licenças Ativas', value: `${totalUsers}/25`, icon: Users, color: '#10b981', progress: (totalUsers / 25) * 100, change: 'Plano Enterprise', periodLabel: 'Consumo de Seats', sparkline: [{ value: totalUsers }] },
+        { label: 'Acessos Hoje', value: activeToday, icon: Monitor, color: '#3b82f6', progress: 100, change: 'Sessões Ativas', periodLabel: 'Sessões Ativas', sparkline: [{ value: activeToday }] },
+        { label: 'Compliance Segurança', value: `${securityScore}%`, icon: ShieldCheck, color: securityScore > 80 ? '#10b981' : '#f59e0b', progress: securityScore, change: securityScore > 80 ? 'Excelente' : 'Ação Requerida', periodLabel: 'Score de Governança', sparkline: [{ value: securityScore }] },
+        { label: 'Proteção MFA', value: `${mfaCompliant} usuários`, icon: Lock, color: '#8b5cf6', progress: (mfaCompliant / (totalUsers || 1)) * 100, change: '2FA Habilitado', periodLabel: 'Autenticação Forte', sparkline: [{ value: mfaCompliant }] }
       ]);
+    } catch (err: any) {
+      console.error("UserManagement: Error fetching data from database:", err);
+      setUsersList([]);
+      setProfilesList([]);
+      setStats([
+        { label: 'Licenças Ativas', value: '0/25', icon: Users, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Acessos Hoje', value: 0, icon: Monitor, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Compliance Segurança', value: '0%', icon: ShieldCheck, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Proteção MFA', value: '0 usuários', icon: Lock, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] }
+      ]);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    // Intelligence Calculations for Real Data
-    const totalUsers = usersList.length;
-    const activeToday = Math.floor(totalUsers * 0.4);
-    const mfaCompliant = usersList.filter(u => u.mfa_enabled).length;
-    const securityScore = Math.floor(((mfaCompliant / (totalUsers || 1)) * 50) + 35);
-
-    setStats([
-      { label: 'Licenças Ativas', value: `${totalUsers}/25`, icon: Users, color: '#10b981', progress: (totalUsers / 25) * 100, change: 'Plano Enterprise', periodLabel: 'Consumo de Seats', sparkline: [{ value: 10 }, { value: 15 }, { value: totalUsers }] },
-      { label: 'Acessos Hoje', value: activeToday, icon: Monitor, color: '#3b82f6', progress: 100, change: '+12% vs ontem', periodLabel: 'Sessões Ativas', sparkline: [{ value: 5 }, { value: 12 }, { value: activeToday }] },
-      { label: 'Compliance Segurança', value: `${securityScore}%`, icon: ShieldCheck, color: securityScore > 80 ? '#10b981' : '#f59e0b', progress: securityScore, change: securityScore > 80 ? 'Excelente' : 'Ação Requerida', periodLabel: 'Score de Governança', sparkline: [{ value: 60 }, { value: 75 }, { value: securityScore }] },
-      { label: 'Proteção MFA', value: `${mfaCompliant} usuários`, icon: Lock, color: '#8b5cf6', progress: (mfaCompliant / (totalUsers || 1)) * 100, change: '2FA Habilitado', periodLabel: 'Autenticação Forte', sparkline: [{ value: 2 }, { value: 5 }, { value: mfaCompliant }] }
-    ]);
-
-    setLoading(false);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -525,18 +476,37 @@ export const UserManagement: React.FC = () => {
     setIsUserModalOpen(true);
   };
 
-  const handleViewUserLogs = (user: any) => {
+  const handleViewUserLogs = async (user: any) => {
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
-    // Mocking logs for now
-    setTimeout(() => {
-      setHistoryItems([
-        { id: '1', date: new Date().toISOString(), title: 'Login efetuado', subtitle: 'Acesso via Web', value: 'IP: 189.x.x.x', status: 'success' },
-        { id: '2', date: new Date(Date.now() - 3600000).toISOString(), title: 'Alteração de Animal', subtitle: 'Brinco 1234', value: 'Status -> Ativo', status: 'info' },
-        { id: '3', date: new Date(Date.now() - 86400000).toISOString(), title: 'Criação de Lote', subtitle: 'LOTE-A1', value: 'Novo', status: 'success' },
-      ]);
+    try {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('user_email', user.email)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      if (data) {
+        setHistoryItems(data.map((log: any) => ({
+          id: log.id,
+          date: log.created_at,
+          title: log.action || 'Ação do Usuário',
+          subtitle: log.details || log.entity_name || 'Operação realizada',
+          value: log.ip_address ? `IP: ${log.ip_address}` : undefined,
+          status: log.action?.toLowerCase().includes('erro') || log.action?.toLowerCase().includes('falha') ? 'error' : 'success'
+        })));
+      } else {
+        setHistoryItems([]);
+      }
+    } catch (err) {
+      console.error('Error fetching user audit logs:', err);
+      setHistoryItems([]);
+    } finally {
       setHistoryLoading(false);
-    }, 800);
+    }
   };
 
   const userColumns = [

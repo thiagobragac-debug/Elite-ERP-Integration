@@ -2662,3 +2662,279 @@ input:focus, textarea:focus, select:focus {
   gap: 1rem !important;
 }
 
+/* Premium Plan Badges & SaaS Status Styles */
+.plan-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.plan-badge.starter {
+  background: hsl(var(--bg-main));
+  color: hsl(var(--text-muted));
+  border-color: hsl(var(--border));
+}
+
+.plan-badge.professional,
+.plan-badge.pro {
+  background: hsla(217, 91%, 60%, 0.1);
+  color: #3b82f6;
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.plan-badge.enterprise {
+  background: hsla(271, 91%, 65%, 0.1);
+  color: #a855f7;
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+.plan-badge.saas-master,
+.plan-badge.saas\ master {
+  background: hsla(43, 96%, 56%, 0.15);
+  color: #d97706;
+  border-color: rgba(217, 119, 6, 0.25);
+  box-shadow: 0 0 10px rgba(217, 119, 6, 0.1);
+}
+
+/* Enhancing Status Pills */
+.status-pill.trial {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.status-pill.suspenso {
+  background: #fee2e2;
+  color: #ef4444;
+  border: 1px solid #fca5a5;
+}
+
+/* Premium Card Left Indicators */
+.user-card-premium.trial::before {
+  background: #f59e0b;
+  box-shadow: 4px 0 15px rgba(245, 158, 11, 0.3);
+}
+
+.user-card-premium.stopped::before,
+.user-card-premium.suspenso::before {
+  background: #ef4444;
+  box-shadow: 4px 0 15px rgba(239, 68, 68, 0.3);
+}
+
+/* ==========================================================================
+   Tenant Card Premium - Fully Isolated Glassmorphism Layout
+   ========================================================================== */
+.tenant-card-premium {
+  background: hsl(var(--bg-card)) !important;
+  border-radius: 24px !important;
+  border: 1px solid hsl(var(--border)) !important;
+  display: flex !important;
+  flex-direction: row !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  min-height: 180px !important;
+  height: 180px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: var(--shadow-sm) !important;
+  position: relative !important;
+  text-align: left !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.tenant-card-premium::before {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 6px !important;
+  background: hsl(var(--border-strong) / 0.3) !important;
+  transition: 0.3s !important;
+  z-index: 2 !important;
+}
+
+.tenant-card-premium.active::before {
+  background: #10b981 !important;
+  box-shadow: 4px 0 15px rgba(16, 185, 129, 0.3) !important;
+}
+
+.tenant-card-premium.trial::before {
+  background: #f59e0b !important;
+  box-shadow: 4px 0 15px rgba(245, 158, 11, 0.3) !important;
+}
+
+.tenant-card-premium.suspenso::before {
+  background: #ef4444 !important;
+  box-shadow: 4px 0 15px rgba(239, 68, 68, 0.3) !important;
+}
+
+.tenant-card-premium.stopped::before {
+  background: #64748b !important;
+  box-shadow: 4px 0 15px rgba(100, 116, 139, 0.3) !important;
+}
+
+.tenant-card-premium:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: var(--shadow-xl) !important;
+  border-color: hsl(var(--brand) / 0.4) !important;
+}
+
+/* Left Section */
+.tenant-card-left-section {
+  width: 120px !important;
+  min-width: 120px !important;
+  max-width: 120px !important;
+  flex-shrink: 0 !important;
+  background: linear-gradient(to bottom, hsl(var(--bg-main) / 0.5), transparent) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-right: 1px solid hsl(var(--border) / 0.5) !important;
+  padding: 16px 8px !important;
+  box-sizing: border-box !important;
+  height: 100% !important;
+}
+
+.tenant-card-avatar {
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.06) !important;
+  border: 1px solid hsl(var(--border) / 0.3) !important;
+  margin-bottom: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+.tenant-card-bottom-actions {
+  display: flex !important;
+  gap: 6px !important;
+  flex-wrap: nowrap !important;
+  justify-content: center !important;
+  width: 100% !important;
+  flex-shrink: 0 !important;
+}
+
+.tenant-action-icon-btn {
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: 8px !important;
+  border: 1px solid hsl(var(--border)) !important;
+  background: hsl(var(--bg-card)) !important;
+  color: hsl(var(--text-muted)) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+}
+
+.tenant-action-icon-btn:hover {
+  background: hsl(var(--brand)) !important;
+  color: white !important;
+  border-color: hsl(var(--brand)) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Main Content */
+.tenant-card-main-content {
+  flex: 1 !important;
+  min-width: 0 !important;
+  padding: 18px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.tenant-card-header-info {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-bottom: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.tenant-card-header-info h3 {
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: hsl(var(--text-main)) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.tenant-plan-badge {
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 4px 10px !important;
+  border-radius: 9999px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border: 1px solid transparent !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Metadata Grid */
+.tenant-card-meta-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  flex: 1 !important;
+  justify-content: center !important;
+}
+
+.tenant-meta-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: hsl(var(--text-muted)) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+.tenant-meta-item span {
+  display: block !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.tenant-meta-icon {
+  flex-shrink: 0 !important;
+  color: hsl(var(--brand)) !important;
+  opacity: 0.8 !important;
+}
+
+

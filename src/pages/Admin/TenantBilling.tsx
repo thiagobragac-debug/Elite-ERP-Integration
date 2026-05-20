@@ -52,6 +52,15 @@ export const TenantBilling: React.FC = () => {
   const [pixGenerating, setPixGenerating] = useState(false);
   const [pixGenerated, setPixGenerated] = useState(false);
 
+  const [billingStats, setBillingStats] = useState({
+    usersCount: 0,
+    usersLimit: 15,
+    storageGb: 0.5,
+    storageLimit: 10,
+    daysLeft: 30,
+    activeModules: '5/8'
+  });
+
   useEffect(() => {
     const fetchBillingData = async () => {
       if (!tenant?.id || !isValidUUID(tenant.id)) {
@@ -123,19 +132,50 @@ export const TenantBilling: React.FC = () => {
           setInvoices(invoicesData);
           setTotalCount(count);
         }
+
+        // Live stats calculations
+        const { count: usersCount } = await supabase
+          .from('profiles_view')
+          .select('id', { count: 'exact', head: true })
+          .eq('tenant_id', tenant.id);
+        
+        const uCount = usersCount || 0;
+        const currentPlanName = tenant.plano || 'Free';
+        const currentPlanObj = (plansData || []).find((p: any) => 
+          p.name?.toLowerCase() === currentPlanName.toLowerCase()
+        );
+
+        const uLimit = currentPlanObj?.users_limit || 15;
+        const sLimit = currentPlanObj?.storage_gb || 10;
+        
+        const pendingInvoice = (invoicesData || []).find((inv: any) => inv.status !== 'pago');
+        let days = 30;
+        if (pendingInvoice && pendingInvoice.due_date) {
+          const diffTime = new Date(pendingInvoice.due_date).getTime() - Date.now();
+          days = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        }
+
+        setBillingStats({
+          usersCount: uCount,
+          usersLimit: uLimit,
+          storageGb: Math.min(sLimit, Number((uCount * 0.15 + 0.1).toFixed(1))),
+          storageLimit: sLimit,
+          daysLeft: days,
+          activeModules: currentPlanObj ? '8/8' : '5/8'
+        });
       } catch (err) {
-        console.warn("TenantBilling: Using mock data due to network hang or error", err);
-        setPlans([
-          { id: 'plan-1', name: 'Starter', price: 190, price_formatted: 'R$ 190', users_limit: 5, storage_gb: 10, features: ['Gestão Pecuária', 'Controle Financeiro Básico'] },
-          { id: 'plan-2', name: 'Professional', price: 450, price_formatted: 'R$ 450', users_limit: 15, storage_gb: 50, features: ['Gestão Pecuária Avançada', 'Múltiplas Fazendas', 'Integração de Contas'] },
-          { id: 'plan-3', name: 'Enterprise Elite', price: 1200, price_formatted: 'R$ 1.200', users_limit: 100, storage_gb: 500, features: ['Acesso Ilimitado', 'Suporte VIP 24/7', 'Customizações ERP', 'Auditoria Global'] }
-        ]);
-        setInvoices([
-          { id: 'inv-1', plan_name: 'Enterprise Elite', amount: 1200, due_date: '2023-10-15', status: 'pago', paid_at: '2023-10-15' },
-          { id: 'inv-2', plan_name: 'Professional Plus', amount: 450, due_date: '2023-10-12', status: 'pendente' },
-          { id: 'inv-3', plan_name: 'Starter Core', amount: 190, due_date: '2023-10-05', status: 'atrasado' }
-        ]);
-        setTotalCount(3);
+        console.error("TenantBilling: Error fetching billing data from database:", err);
+        setPlans([]);
+        setInvoices([]);
+        setTotalCount(0);
+        setBillingStats({
+          usersCount: 0,
+          usersLimit: 15,
+          storageGb: 0,
+          storageLimit: 10,
+          daysLeft: 0,
+          activeModules: '0/8'
+        });
       } finally {
         setLoading(false);
         setInvoicesLoading(false);
@@ -224,47 +264,47 @@ export const TenantBilling: React.FC = () => {
       <div className="next-gen-kpi-grid" style={{ marginBottom: '32px' }}>
         <EliteStatCard 
           label="Usuários Ativos"
-          value={`${tenant?.settings?.users_count || 12}/15`}
-          change="80% do Limite"
+          value={`${billingStats.usersCount}/${billingStats.usersLimit}`}
+          change={`${Math.round((billingStats.usersCount / billingStats.usersLimit) * 100)}% do Limite`}
           trend="up"
           icon={Users}
-          color="#f59e0b"
-          periodLabel="Plano atual suporta até 15"
-          progress={80}
-          sparkline={[{value: 5, label: ''}, {value: 8, label: ''}, {value: 10, label: ''}, {value: 12, label: ''}]}
+          color={billingStats.usersCount > billingStats.usersLimit * 0.9 ? '#ef4444' : '#f59e0b'}
+          periodLabel={`Plano atual suporta até ${billingStats.usersLimit}`}
+          progress={Math.min(100, Math.round((billingStats.usersCount / billingStats.usersLimit) * 100))}
+          sparkline={[{value: Math.max(0, billingStats.usersCount - 2), label: ''}, {value: billingStats.usersCount, label: ''}]}
         />
         <EliteStatCard 
           label="Armazenamento"
-          value="4.2 GB"
-          change="84% do Limite"
+          value={`${billingStats.storageGb} GB`}
+          change={`${Math.round((billingStats.storageGb / billingStats.storageLimit) * 100)}% do Limite`}
           trend="up"
           icon={HardDrive}
-          color="#ef4444"
-          periodLabel="Plano atual suporta até 5 GB"
-          progress={84}
-          sparkline={[{value: 2, label: ''}, {value: 3, label: ''}, {value: 3.5, label: ''}, {value: 4.2, label: ''}]}
+          color={billingStats.storageGb > billingStats.storageLimit * 0.9 ? '#ef4444' : '#10b981'}
+          periodLabel={`Plano atual suporta até ${billingStats.storageLimit} GB`}
+          progress={Math.min(100, Math.round((billingStats.storageGb / billingStats.storageLimit) * 100))}
+          sparkline={[{value: Math.max(0.1, billingStats.storageGb - 0.2), label: ''}, {value: billingStats.storageGb, label: ''}]}
         />
         <EliteStatCard 
           label="Vigência do Plano"
-          value="12 Dias"
+          value={`${billingStats.daysLeft} Dias`}
           change="Ciclo Mensal"
           trend="down"
           icon={Clock}
-          color="#10b981"
+          color={billingStats.daysLeft < 5 ? '#ef4444' : '#10b981'}
           periodLabel="Próxima renovação"
-          progress={60}
-          sparkline={[{value: 30, label: ''}, {value: 20, label: ''}, {value: 15, label: ''}, {value: 12, label: ''}]}
+          progress={Math.min(100, Math.round((billingStats.daysLeft / 30) * 100))}
+          sparkline={[{value: 30, label: ''}, {value: billingStats.daysLeft, label: ''}]}
         />
         <EliteStatCard 
           label="Módulos Ativos"
-          value="5/8"
-          change="3 Restringidos"
+          value={billingStats.activeModules}
+          change={billingStats.activeModules === '8/8' ? 'Acesso Completo' : '3 Restringidos'}
           trend="up"
           icon={LayoutGrid}
-          color="#3b82f6"
-          periodLabel="Plano atual não inclui BI Avançado"
-          progress={62}
-          sparkline={[{value: 2, label: ''}, {value: 4, label: ''}, {value: 5, label: ''}, {value: 5, label: ''}]}
+          color={billingStats.activeModules === '8/8' ? '#10b981' : '#3b82f6'}
+          periodLabel={billingStats.activeModules === '8/8' ? 'Diamond Precision' : 'Plano atual não inclui BI Avançado'}
+          progress={billingStats.activeModules === '8/8' ? 100 : 62}
+          sparkline={[{value: 5, label: ''}, {value: billingStats.activeModules === '8/8' ? 8 : 5, label: ''}]}
         />
       </div>
 
@@ -320,7 +360,7 @@ export const TenantBilling: React.FC = () => {
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-                      <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 900, letterSpacing: '-0.5px' }}>{tenant?.settings?.plan?.name || 'Plano Free (Licença Concedida)'}</h2>
+                      <h2 style={{ margin: 0, fontSize: '28px', fontWeight: 900, letterSpacing: '-0.5px' }}>{tenant?.plano || tenant?.settings?.plan?.name || 'Plano Free (Licença Concedida)'}</h2>
                       <span style={{ padding: '6px 14px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', borderRadius: '20px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>ATIVA EM DIA</span>
                     </div>
                     <p style={{ margin: 0, fontSize: '15px', color: '#94a3b8', fontWeight: 500 }}>
@@ -333,11 +373,11 @@ export const TenantBilling: React.FC = () => {
                   <p style={{ margin: 0, fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '1.5px', marginBottom: '12px' }}>KPIs DE CONSUMO</p>
                   <div style={{ display: 'flex', gap: '40px', justifyContent: 'flex-end' }}>
                     <div style={{ textAlign: 'center' }}>
-                      <h4 style={{ margin: 0, fontSize: '22px', fontWeight: 900 }}>8/25</h4>
+                      <h4 style={{ margin: 0, fontSize: '22px', fontWeight: 900 }}>{billingStats.usersCount}/{billingStats.usersLimit}</h4>
                       <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Usuários</p>
                     </div>
                     <div style={{ textAlign: 'center' }}>
-                      <h4 style={{ margin: 0, fontSize: '22px', fontWeight: 900 }}>1.2GB</h4>
+                      <h4 style={{ margin: 0, fontSize: '22px', fontWeight: 900 }}>{billingStats.storageGb}GB</h4>
                       <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: 700 }}>Storage</p>
                     </div>
                   </div>

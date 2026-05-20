@@ -138,6 +138,20 @@ function AppContent() {
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
           <Route path="/mfa-enroll" element={isAuthenticated ? <MFAEnroll /> : <Navigate to="/login" replace />} />
           
+          <Route path="/saas/*" element={
+            isAuthenticated ? (
+              <MFAGuard>
+                <SuperAdminGuard>
+                  <SaaSLayout>
+                    <React.Suspense fallback={<div>Carregando SaaS...</div>}>
+                      <SaaSAdminPanel />
+                    </React.Suspense>
+                  </SaaSLayout>
+                </SuperAdminGuard>
+              </MFAGuard>
+            ) : <Navigate to="/login" replace />
+          } />
+
           <Route path="/" element={isAuthenticated ? <MFAGuard><Layout /></MFAGuard> : <Navigate to="/login" replace />}>
             <Route index element={<ExecutiveDashboard />} />
             <Route path="admin/usuarios" element={<UserManagement />} />
@@ -193,20 +207,6 @@ function AppContent() {
             
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
-
-          <Route path="/saas/*" element={
-            isAuthenticated ? (
-              <MFAGuard>
-                <SuperAdminGuard>
-                  <SaaSLayout>
-                    <React.Suspense fallback={<div>Carregando SaaS...</div>}>
-                      <SaaSAdminPanel />
-                    </React.Suspense>
-                  </SaaSLayout>
-                </SuperAdminGuard>
-              </MFAGuard>
-            ) : <Navigate to="/login" replace />
-          } />
 
           <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
         </Routes>
