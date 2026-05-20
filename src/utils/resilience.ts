@@ -9,11 +9,11 @@ import type { ReportData } from '../types/reports';
 export const withTimeoutResilience = async (
   fetchPromise: Promise<ReportData>,
   mockFallback: ReportData,
-  timeoutMs: number = 3000
+  timeoutMs: number = 30000
 ): Promise<ReportData> => {
   const timeoutPromise = new Promise<ReportData>((_, reject) =>
     setTimeout(() => {
-      console.warn(`[Resilience] Timeout de ${timeoutMs}ms atingido. Ativando fallback resiliente.`);
+      console.warn(`[Resilience] Timeout de ${timeoutMs}ms atingido.`);
       reject(new Error('TIMEOUT'));
     }, timeoutMs)
   );
@@ -24,7 +24,7 @@ export const withTimeoutResilience = async (
     if (err.message === 'TIMEOUT') {
       return {
         ...mockFallback,
-        error: 'Conexão instável. Exibindo dados de contingência.'
+        error: 'O servidor demorou muito para responder. Por favor, tente novamente.'
       };
     }
     throw err;
@@ -34,12 +34,9 @@ export const withTimeoutResilience = async (
 export const getGenericMockData = (_reportId: string): ReportData => {
   return {
     data: [],
-    stats: [
-      { label: 'Status', value: 'Offline', change: '0%', trend: 'neutral', icon: AlertCircle, color: '#94a3b8' },
-      { label: 'Modo', value: 'Contingência', change: 'Ativo', trend: 'neutral', icon: AlertCircle, color: '#94a3b8' }
-    ],
+    stats: [],
     columns: [],
     loading: false,
-    error: 'Modo de contingência ativado.'
+    error: 'Não foi possível carregar os dados no tempo hábil.'
   };
 };

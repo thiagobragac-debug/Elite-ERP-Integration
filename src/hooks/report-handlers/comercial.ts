@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
   return Promise.race([
@@ -76,10 +76,7 @@ export const pedidosVenda: ReportHandler = async (tenantId, fazendaId) => {
         { label: 'Conversão Comercial', value: '92.4%', change: 'Real-time', trend: 'neutral' as const }
       ]
     };
-  } catch (error) {
-    console.warn('[PedidosVenda] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -136,8 +133,5 @@ export const clientes: ReportHandler = async (tenantId, fazendaId) => {
         { label: 'CSAT (Satisfação)', value: '98%', change: 'Excelente', trend: 'neutral' as const }
       ]
     };
-  } catch (error) {
-    console.warn('[Clientes] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };

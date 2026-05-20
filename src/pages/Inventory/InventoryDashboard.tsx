@@ -147,7 +147,7 @@ export const InventoryDashboard: React.FC = () => {
       }
 
     } catch (err) {
-      console.warn("InventoryDashboard: Using Emergency Mock Data.");
+      console.warn("InventoryDashboard: Using Emergency Mock Data.", err);
       setStats([
         { label: 'Patrimônio em Insumos', value: 'R$ 450.000,00', icon: DollarSign, color: '#10b981', progress: 85, change: 'MOCK ACTIVE' },
         { label: 'Ruptura de Estoque', value: '2', icon: AlertTriangle, color: '#ef4444', progress: 10, change: 'MOCK ACTIVE' },

@@ -129,7 +129,7 @@ export const SalesDashboard: React.FC = () => {
         setRecentOrders(enrichedOrders);
       }
     } catch (err) {
-      console.warn("SalesDashboard: Using Emergency Mock Data.");
+      console.warn("SalesDashboard: Using Emergency Mock Data.", err);
       setStats([
         { label: 'Faturamento Bruto', value: 'R$ 842.500,00', icon: DollarSign, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', trend: 'up', periodLabel: 'Modo Simulação' },
         { label: 'Pipeline Ativo', value: 'R$ 150.000,00', icon: Target, color: '#3b82f6', progress: 20, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação' },

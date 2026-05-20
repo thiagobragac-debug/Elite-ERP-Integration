@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
   return Promise.race([
@@ -47,56 +47,42 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
     
     const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
     
-    const [bankRes, payRes, recRes, statsPayRes, statsRecRes] = await Promise.all([
+    const [bankRes, payRes, recRes, flowStatsRes] = await Promise.all([
       supabase.rpc('get_banking_consolidated_balance', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
-      supabase.from('contas_pagar').select('*').match(scope).order('data_vencimento', { ascending: false }).range(from, to),
-      supabase.from('contas_receber').select('*').match(scope).order('data_vencimento', { ascending: false }).range(from, to),
-      supabase.from('contas_pagar').select('valor_total, status, data_vencimento').match(scope),
-      supabase.from('contas_receber').select('valor_total, status, data_vencimento').match(scope)
+      supabase.from('contas_pagar').select('*', { count: 'exact' }).match(scope).order('data_vencimento', { ascending: false }).range(from, to),
+      supabase.from('contas_receber').select('*', { count: 'exact' }).match(scope).order('data_vencimento', { ascending: false }).range(from, to),
+      supabase.rpc('calculate_cash_flow_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId })
     ]);
 
-    const totalBalance = bankRes.data?.saldo_total || 0;
-    
-    // CURRENT PAGE DATA (for table)
-    const pageTx: any[] = [
+    if (payRes.error) throw payRes.error;
+    if (recRes.error) throw recRes.error;
+
+    const totalBalance = Number(bankRes.data?.total_balance || 0);
+
+    const pageTx = [
       ...(payRes.data || []).map((p: any) => ({
-        id: p.id,
-        description: p.descricao,
-        category: p.categoria || 'Custo Operacional',
-        amount: -Number(p.valor_total),
+        ...p,
         date: p.data_vencimento,
+        amount: Number(p.valor_total || 0),
         type: 'outflow',
-        status: p.status === 'PAGO' ? 'paid' : 'pending',
+        category: p.categoria || 'Despesa Operacional',
+        description: p.descricao,
         entity: 'contas_pagar'
       })),
-      ...(recRes.data || []).map(r => ({
-        id: r.id,
-        description: r.descricao,
-        category: r.categoria || 'Receita de Venda',
-        amount: Number(r.valor_total),
+      ...(recRes.data || []).map((r: any) => ({
+        ...r,
         date: r.data_vencimento,
+        amount: Number(r.valor_total || 0),
         type: 'inflow',
-        status: r.status === 'PAGO' ? 'paid' : 'pending',
+        category: r.categoria || 'Receita Bruta',
+        description: r.descricao,
         entity: 'contas_receber'
       }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // GLOBAL KPI CALCULATION (all data)
-    const allPay = statsPayRes.data || [];
-    const allRec = statsRecRes.data || [];
-
-    // Current month filter
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    
-    const inMonth = allRec
-      .filter(r => r.status === 'PAGO' && r.data_vencimento && new Date(r.data_vencimento) >= firstDay)
-      .reduce((acc, r) => acc + Number(r.valor_total), 0);
-      
-    const outMonth = allPay
-      .filter(p => p.status === 'PAGO' && p.data_vencimento && new Date(p.data_vencimento) >= firstDay)
-      .reduce((acc, p) => acc + Number(p.valor_total), 0);
-
+    // GLOBAL KPI CALCULATION from DB RPC
+    const inMonth = Number(flowStatsRes.data?.inMonth || 0);
+    const outMonth = Number(flowStatsRes.data?.outMonth || 0);
     const netMonth = inMonth - outMonth;
     
     // Runway based on average monthly burn (last 3 months approx or current)
@@ -150,10 +136,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
       ],
       totalCount: (payRes.count || 0) + (recRes.count || 0)
     };
-  } catch (error) {
-    console.warn('[FluxoCaixa] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -253,10 +236,7 @@ export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, 
       ],
       totalCount: billsRes.count || 0
     };
-  } catch (error) {
-    console.warn('[ContasPagar] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -360,10 +340,7 @@ export const contasReceber: ReportHandler = async (tenantId, fazendaId, page = 1
       ],
       totalCount: billsRes.count || 0
     };
-  } catch (error) {
-    console.warn('[ContasReceber] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -429,10 +406,7 @@ export const extratoBancario: ReportHandler = async (tenantId, fazendaId, page =
       ],
       totalCount: contasRes.count || 0
     };
-  } catch (error) {
-    console.warn('[ExtratoBancario] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 /**
  * Financeiro: Intelligence Overview (KPIs + Insights)
@@ -457,15 +431,14 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
   };
 
   try {
-    const [bankRes, payRes, recRes] = await Promise.all([
+    const [bankRes, finStatsRes] = await Promise.all([
       supabase.rpc('get_banking_consolidated_balance', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
-      supabase.from('contas_pagar').select('valor_total').match(fazendaId ? { fazenda_id: fazendaId, status: 'PENDENTE' } : { tenant_id: tenantId, status: 'PENDENTE' }),
-      supabase.from('contas_receber').select('valor_total').match(fazendaId ? { fazenda_id: fazendaId, status: 'PENDENTE' } : { tenant_id: tenantId, status: 'PENDENTE' })
+      supabase.rpc('get_finance_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId })
     ]);
 
     const totalBalance = bankRes.data?.saldo_total || 0;
-    const totalPayable = (payRes.data || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total), 0) || 0;
-    const totalReceivable = (recRes.data || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total), 0) || 0;
+    const totalPayable = Number(finStatsRes.data?.total_payable || 0);
+    const totalReceivable = Number(finStatsRes.data?.total_receivable || 0);
 
     const currentRatio = totalPayable > 0 ? (totalBalance + totalReceivable) / totalPayable : 9.9;
     const runway = totalPayable > 0 ? (totalBalance / (totalPayable / 3)).toFixed(1) : '∞';

@@ -171,7 +171,7 @@ export const FleetDashboard: React.FC = () => {
       setRecentActivities(activities);
 
     } catch (err) {
-      console.warn("FleetDashboard: Using Emergency Mock Data.");
+      console.warn("FleetDashboard: Using Emergency Mock Data.", err);
       setStats([
         { label: 'Disponibilidade Real', value: '94.5%', icon: Truck, color: 'hsl(var(--brand))', progress: 94.5, change: 'MOCK ACTIVE' },
         { label: 'TCO Médio Frota', value: 'R$ 214.80/h', icon: DollarSign, color: '#ef4444', progress: 82, change: 'MOCK ACTIVE' },

@@ -2,7 +2,7 @@ import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 import { Shield, Activity, AlertCircle, CheckCircle2 } from 'lucide-react';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
   return Promise.race([
@@ -103,10 +103,7 @@ export const auditLogs: ReportHandler = async (tenantId, fazendaId, page = 1, pa
       ],
       totalCount: count || 0
     };
-  } catch (error) {
-    console.warn('[AuditLogs] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -155,10 +152,7 @@ export const perfisUsuario: ReportHandler = async (tenantId, fazendaId) => {
         { label: 'Grupos de Segurança', value: '3 perfis', change: 'Ativo', trend: 'neutral' as const }
       ]
     };
-  } catch (error) {
-    console.warn('[PerfisUsuario] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 /**
  * Governança: Admin Intelligence Overview

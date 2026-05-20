@@ -2,7 +2,7 @@ import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 import { Beef, Scale, Skull, TrendingUp, Activity, Map as MapIcon, Calendar } from 'lucide-react';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
   return Promise.race([
@@ -94,10 +94,7 @@ export const performancePonderal: ReportHandler = async (tenantId, fazendaId, pa
       ],
       totalCount: pesagensRes.count || 0
     };
-  } catch (error) {
-    console.warn('[PerformancePonderal] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -181,10 +178,7 @@ export const sanidadeAnimal: ReportHandler = async (tenantId, fazendaId, page = 
       ],
       totalCount: sanidadeRes.count || 0
     };
-  } catch (error) {
-    console.warn('[SanidadeAnimal] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -259,10 +253,7 @@ export const pastagens: ReportHandler = async (tenantId, fazendaId, page = 1, pa
       ],
       totalCount: pastosRes.count || 0
     };
-  } catch (error) {
-    console.warn('[Pastagens] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -333,10 +324,7 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
       ],
       totalCount: count || 0
     };
-  } catch (error) {
-    console.warn('[Confinamento] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -495,10 +483,7 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
       stats: mockData.stats, // Stats are static for now, could be improved with RPC
       totalCount: count || 0
     };
-  } catch (error) {
-    console.warn('[Dietas] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -544,18 +529,16 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
 
     const [dataRes, statsRes, sanidadeRes] = await Promise.all([
       withTimeout((query.order('created_at', { ascending: false }).range(from, to) as unknown) as Promise<any>) as any,
-      withTimeout((applyFilters(supabase.from('animais').select('status, peso_atual, peso_inicial'), tenantId, fazendaId) as unknown) as Promise<any>) as any,
+      withTimeout((supabase.rpc('get_animal_stats', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown) as Promise<any>) as any,
       withTimeout((sanidadeQuery as unknown) as Promise<any>) as any
     ]);
 
     if (dataRes.error) throw dataRes.error;
 
-    const allAnimals = statsRes.data || [];
     const totalAnimals = dataRes.count || 0;
-    const activeAnimals = allAnimals.filter((a: any) => a.status === 'Ativo').length;
-    const deadAnimals = allAnimals.filter((a: any) => a.status === 'Abatido').length;
-    const totalWeight = allAnimals.reduce((acc: number, a: any) => acc + (a.peso_atual || a.peso_inicial || 0), 0);
-    const avgWeight = totalAnimals > 0 ? totalWeight / totalAnimals : 0;
+    const activeAnimals = Number(statsRes.data?.active || 0);
+    const deadAnimals = Number(statsRes.data?.dead || 0);
+    const avgWeight = Number(statsRes.data?.avg_weight || 0);
 
     // Processar carências ativas (data_manejo + carencia_dias > hoje)
     const activeSanidades = (sanidadeRes?.data || []).filter((s: any) => {
@@ -583,10 +566,7 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
       ],
       totalCount: totalAnimals
     };
-  } catch (error) {
-    console.warn('[Animais] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -645,10 +625,7 @@ export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSi
       ],
       totalCount: count || 0
     };
-  } catch (error) {
-    console.warn('[Lotes] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -782,8 +759,5 @@ export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pag
       stats: mockData.stats,
       totalCount: count || 0
     };
-  } catch (error) {
-    console.warn('[Pesagens] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };

@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
   return Promise.race([
@@ -160,10 +160,7 @@ export const manutencoesFrota: ReportHandler = async (tenantId, fazendaId, page 
       ],
       totalCount: manutRes.count || 0
     };
-  } catch (error) {
-    console.warn('[ManutencoesFrota] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -242,10 +239,7 @@ export const suprimentosInventario: ReportHandler = async (tenantId, fazendaId, 
       ],
       totalCount: invRes.count || 0
     };
-  } catch (error) {
-    console.warn('[SuprimentosInventario] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -317,8 +311,5 @@ export const pedidosCompra: ReportHandler = async (tenantId, fazendaId, page = 1
       ],
       totalCount: comprasRes.count || 0
     };
-  } catch (error) {
-    console.warn('[PedidosCompra] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };

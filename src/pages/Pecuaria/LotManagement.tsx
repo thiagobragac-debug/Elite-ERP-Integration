@@ -563,14 +563,16 @@ export const LotManagement: React.FC = () => {
                   </div>
 
                   <div className="card-main-content">
-                    <div className="card-header-info">
-                      <div className="title-row">
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>{l.nome}</h3>
+                    <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                      <div className="title-row" style={{ width: '100%' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{l.nome}</h3>
+                      </div>
+                      <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span className={`status-pill mini ${badgeClass}`}>
                           {badgeText}
                         </span>
+                        <div className="card-type-meta">{l.finalidade || 'Manejo Geral'}</div>
                       </div>
-                      <div className="card-type-meta">{l.finalidade || 'Manejo Geral'}</div>
                     </div>
 
                     <div className="card-occupation-section">
@@ -738,23 +740,32 @@ export const LotManagement: React.FC = () => {
           justify-content: space-between;
         }
 
-        .card-header-info .title-row {
+        .lot-card-premium .card-header-info .title-row {
           display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
+          justify-content: flex-start;
+          align-items: center;
           margin-bottom: 4px;
+          gap: 8px;
+          min-width: 0;
         }
 
-        .card-header-info h3 {
+        .lot-card-premium .card-header-info h3 {
           font-size: 16px;
           font-weight: 900;
           letter-spacing: -0.02em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0;
+          flex: 0 1 auto;
         }
 
-        .status-pill.mini {
+        .lot-card-premium .status-pill.mini {
           font-size: 9px;
           padding: 3px 8px;
           border-radius: 6px;
+          flex-shrink: 0;
+          white-space: nowrap;
         }
 
         .card-type-meta {

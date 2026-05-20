@@ -265,31 +265,7 @@ export const Reports: React.FC = () => {
         </div>
       </header>
 
-      {/* Engine Status Bar */}
-      <div className="reporting-engine-bar">
-        <div className="engine-status">
-          <div className="status-indicator online"></div>
-          <span className="status-text">REPORTING ENGINE ACTIVE</span>
-        </div>
-        <div className="engine-metrics">
-          <div className="e-metric">
-            <span className="m-label">DATA FRESHNESS</span>
-            <span className="m-val">Tempo Real (Sync: 2m)</span>
-          </div>
-          <div className="e-metric">
-            <span className="m-label">LATÊNCIA MÉDIA</span>
-            <span className="m-val">840ms / geração</span>
-          </div>
-          <div className="e-metric">
-            <span className="m-label">ACURACIDADE</span>
-            <span className="m-val">99.98% Audited</span>
-          </div>
-          <div className="e-metric">
-            <span className="m-label">INTEGRIDADE</span>
-            <span className="m-val">SSL/AES-256 Active</span>
-          </div>
-        </div>
-      </div>
+
 
       <motion.div 
         key="main-content"

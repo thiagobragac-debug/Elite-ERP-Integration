@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
   return Promise.race([

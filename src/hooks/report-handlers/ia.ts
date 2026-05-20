@@ -1,7 +1,7 @@
 import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 
-const TIMEOUT_MS = 3000;
+const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
   return Promise.race([
@@ -104,10 +104,7 @@ export const monteCarlo: ReportHandler = async (tenantId, fazendaId) => {
         { label: 'Confiança Modelo', value: '95%', change: 'Real-time', trend: 'neutral' as const }
       ]
     };
-  } catch (error) {
-    console.warn('[MonteCarlo] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
 
 /**
@@ -185,8 +182,5 @@ export const suportePasto: ReportHandler = async (tenantId, fazendaId) => {
         { label: 'Área Monitorada', value: '320 ha', change: 'Satélite', trend: 'neutral' as const }
       ]
     };
-  } catch (error) {
-    console.warn('[SuportePasto] Resilience Pattern Engaged:', error);
-    return mockData;
-  }
+  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
