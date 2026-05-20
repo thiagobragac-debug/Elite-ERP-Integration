@@ -30,10 +30,10 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { QuotationFilterModal } from './components/QuotationFilterModal';
 
 export const QuotationMap: React.FC = () => {
+  const { activeTenantId } = useTenant();
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,14 +56,24 @@ export const QuotationMap: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchQuotations();
-  }, [activeFarmId, isGlobalMode]);
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+    if (isReady) {
+      fetchQuotations();
+    } else {
+      setLoading(false);
+      setStats([
+        { label: 'Mapas em Análise', value: 0, icon: BarChart2, color: '#10b981', progress: 0, change: 'Aguardando' },
+        { label: 'Saving Acumulado', value: 'R$ 0,00', icon: TrendingDown, color: '#3b82f6', progress: 0, change: 'Aguardando' },
+        { label: 'Densidade de Rede', value: '0 propostas', icon: Building2, color: '#f59e0b', progress: 0, change: 'Aguardando' },
+        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Aguardando' },
+      ]);
+    }
+  }, [activeFarmId, isGlobalMode, activeTenantId]);
 
   const fetchQuotations = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('mapas_cotacao').select('*').order('created_at', { ascending: false });
+      let query = supabase.from('mapas_cotacao').select('id, status, produto_id, quantidade, unidade, dados_fornecedores, fazenda_id, tenant_id, created_at').limit(500).order('created_at', { ascending: false });
       query = applyFarmFilter(query);
       const { data } = await query;
       
@@ -75,7 +85,7 @@ export const QuotationMap: React.FC = () => {
         let totalSaving = 0;
         let totalBids = 0;
         data.forEach(q => {
-          const bids = q.dados_fornecedores || q.suppliers || [];
+          const bids = (q.dados_fornecedores as any) || (q as any).suppliers || [];
           totalBids += bids.length;
           if (bids.length > 1) {
             const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
@@ -95,7 +105,13 @@ export const QuotationMap: React.FC = () => {
         ]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('[QuotationMap] Error:', err);
+      setStats([
+        { label: 'Mapas em Análise', value: 0, icon: BarChart2, color: '#10b981', progress: 0, change: 'Sem dados' },
+        { label: 'Saving Acumulado', value: 'R$ 0,00', icon: TrendingDown, color: '#3b82f6', progress: 0, change: 'Sem dados' },
+        { label: 'Densidade de Rede', value: '0 propostas', icon: Building2, color: '#f59e0b', progress: 0, change: 'Sem dados' },
+        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Sem dados' },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -202,20 +218,41 @@ export const QuotationMap: React.FC = () => {
 
   const tableColumns = [
     {
-      header: 'Item / Volume de Propostas',
+      header: 'Item / Código',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.produto_id || 'N/A'}
+          </span>
+          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            ID: {item.id?.slice(0, 8).toUpperCase()}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Quantidade Demandada',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#475569', fontWeight: 700, fontSize: '12px' }}>
+          <span>{item.quantidade} {item.unidade}</span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Participantes',
       accessor: (item: any) => {
         const bids = item.suppliers || item.dados_fornecedores || [];
         return (
-          <div className="table-cell-title">
-            <span className="main-text">{item.produto_id || `Cotação #${item.id?.slice(0,5) || 'N/A'}`}</span>
-            <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
-              <span>{item.quantidade} {item.unidade}</span>
-              <span className="text-slate-400">|</span>
-              <span className="text-blue-600">{bids.length} FORNECEDORES</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            <span className="status-pill info" style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 800 }}>
+              {bids.length} Propostas
+            </span>
           </div>
         );
-      }
+      },
+      align: 'center' as const
     },
     {
       header: 'Sugestão Vencedora',
@@ -223,61 +260,62 @@ export const QuotationMap: React.FC = () => {
         const suppliers = item.suppliers || item.dados_fornecedores || [];
         const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
         return winner ? (
-          <div className="flex flex-col">
-            <div className="table-cell-meta text-emerald-600 font-bold">
-              <CheckCircle2 size={14} />
-              <span>{winner.name || winner.fornecedor_nome}</span>
-            </div>
-            <span className="text-[10px] text-slate-400 uppercase font-bold">
-              Entrega: {winner.deliveryDays || winner.prazo_entrega || 0} dias
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <CheckCircle2 size={12} color="#059669"/> {winner.name || winner.fornecedor_nome}
+            </span>
+            <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+              Prazo: {winner.deliveryDays || winner.prazo_entrega || 0} dias
             </span>
           </div>
         ) : (
           <span className="sub-meta italic text-amber-600">Aguardando definição</span>
         );
-      }
+      },
+      align: 'left' as const
     },
     {
-      header: 'Economia / Melhor Preço',
+      header: 'Saving Real (%)',
       accessor: (item: any) => {
         const suppliers = item.suppliers || item.dados_fornecedores || [];
         const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
-        if (prices.length < 2) return (
-          <span className="main-text font-bold">
-            {prices.length > 0 ? prices[0].toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '--'}
-          </span>
-        );
+        if (prices.length < 2) return <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>Sem Histórico</span>;
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
         const savingPercent = ((maxPrice - minPrice) / (maxPrice || 1)) * 100;
-
         return (
-          <div className="flex flex-col items-end">
-            <span className="main-text font-bold text-emerald-600">
-              {minPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-            </span>
-            <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-1 rounded">
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <span className="status-pill active" style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 900, background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
               SAVING: {savingPercent.toFixed(1)}%
             </span>
           </div>
         );
       },
-      align: 'right' as const
+      align: 'center' as const
     },
     {
-      header: 'Status',
-      accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'closed' ? 'active' : 'warning'}`}>
-          {item.status === 'closed' ? 'Contratado' : 'Em Análise'}
-        </span>
-      ),
+      header: 'Melhor Preço / Status',
+      accessor: (item: any) => {
+        const suppliers = item.suppliers || item.dados_fornecedores || [];
+        const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
+        const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+            <span style={{ fontSize: '12px', fontWeight: 900, color: '#0f172a' }}>
+              {minPrice > 0 ? minPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '--'}
+            </span>
+            <span className={`status-pill ${item.status === 'closed' ? 'active' : 'warning'}`} style={{ fontSize: '8px', padding: '1px 5px' }}>
+              {item.status === 'closed' ? 'Contratado' : 'Em Análise'}
+            </span>
+          </div>
+        );
+      },
       align: 'center' as const
     }
   ];
 
   return (
     <div className="quotation-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -363,9 +401,9 @@ export const QuotationMap: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-quotation" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-quotation')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>

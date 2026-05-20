@@ -103,6 +103,8 @@
 
 .action-icon-btn.info { color: hsl(var(--brand)); background: hsl(var(--brand) / 0.1); }
 .action-icon-btn.edit { color: hsl(var(--text-muted)); background: hsl(var(--bg-main)); border-color: hsl(var(--border)); }
+.action-icon-btn.warning { color: #d97706; background: #fef3c7; }
+.action-icon-btn.success { color: #16a34a; background: #dcfce7; }
 .action-icon-btn.delete { color: #ef4444; background: #fee2e2; }
 
 .action-icon-btn:hover {

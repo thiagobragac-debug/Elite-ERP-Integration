@@ -20,7 +20,8 @@ import {
   List as ListIcon,
   DollarSign,
   Zap,
-  Clock
+  Clock,
+  Wrench as Tool
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -35,11 +36,10 @@ import { formatNumber } from '../../utils/format';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { FleetFilterModal } from './components/FleetFilterModal';
 
 export const FleetManagement: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -56,7 +56,7 @@ export const FleetManagement: React.FC = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
-    marcas: [],
+    marcas: [] as string[],
     minUsage: 0,
     maxUsage: 10000,
     minYear: '',
@@ -65,74 +65,88 @@ export const FleetManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
 
   useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchMachines();
-  }, [activeFarmId, isGlobalMode]);
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+    if (isReady) {
+      fetchMachines();
+    } else {
+      setLoading(false);
+    }
+  }, [activeFarmId, isGlobalMode, activeTenantId]);
 
   const fetchMachines = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('maquinas').select('*').order('nome', { ascending: true });
-      query = applyFarmFilter(query);
-      const { data } = await query;
+      let query = supabase
+        .from('maquinas')
+        .select('*');
       
-      if (data) {
-        setMachines(data);
-        const total = data.length;
-        const emManutencao = data.filter(m => m.status === 'maintenance').length;
-        const emOperacao = data.filter(m => m.status === 'active').length;
-        
-        const avgEfficiency = 14.2; // L/h
-        const avgTCO = 184.50; // R$/h
-
-        setStats([
-          { 
-            label: 'Frota Operacional', 
-            value: total, 
-            icon: Truck, 
-            color: 'hsl(var(--brand))', 
-            progress: 100,
-            change: `${total} ativos`,
-            periodLabel: 'Frota Geral',
-            sparkline: [{ value: 95 }, { value: 98 }, { value: 100 }]
-          },
-          { 
-            label: 'Custos Mecânicos', 
-            value: `R$ ${avgTCO.toFixed(2)}/h`, 
-            icon: DollarSign, 
-            color: '#ef4444', 
-            progress: 85,
-            trend: 'up',
-            change: '+1.2%',
-            periodLabel: 'TCO (Avg/h)',
-            sparkline: [{ value: 170 }, { value: 180 }, { value: 184.5 }]
-          },
-          { 
-            label: 'Eficiência Diesel', 
-            value: `${avgEfficiency} L/h`, 
-            icon: Activity, 
-            color: '#f59e0b', 
-            progress: 72,
-            trend: 'down',
-            change: '-2.5%',
-            periodLabel: 'Consumo Médio',
-            sparkline: [{ value: 15.5 }, { value: 14.8 }, { value: 14.2 }]
-          },
-          { 
-            label: 'Disponibilidade', 
-            value: `${((emOperacao / (total || 1)) * 100).toFixed(1)}%`, 
-            icon: AlertCircle, 
-            color: '#10b981', 
-            progress: (emOperacao / (total || 1)) * 100, 
-            trend: 'up',
-            change: 'Operacional',
-            periodLabel: 'Uptime Real',
-            sparkline: [{ value: 85 }, { value: 88 }, { value: 92 }]
-          },
-        ]);
-      }
+      query = applyFarmFilter(query);
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      
+      const finalData = data || [];
+      const transformedData = finalData.map(m => ({
+        ...m,
+        modelo: m.modelo || 'N/A',
+        categoria: m.tipo || 'Geral',
+        ano: m.ano || 'N/A',
+        status: m.status || 'active'
+      }));
+      
+      setMachines(transformedData);
+      const total = transformedData.length;
+      const emManutencao = transformedData.filter(m => m.status === 'maintenance').length;
+      const emOperacao = total - emManutencao;
+      const avgEfficiency = 14.2;
+      
+      setStats([
+        { 
+          label: 'Frota Operacional', 
+          value: total, 
+          icon: Truck, 
+          color: 'hsl(var(--brand))', 
+          progress: 100,
+          change: `${total} ativos`,
+          periodLabel: 'Frota Geral',
+          sparkline: [{ value: 95 }, { value: 98 }, { value: 100 }]
+        },
+        { 
+          label: 'Em Manutenção', 
+          value: emManutencao, 
+          icon: Tool, 
+          color: '#ef4444', 
+          progress: (emManutencao / (total || 1)) * 100,
+          change: 'Crítico',
+          periodLabel: 'Parada Técnica',
+          sparkline: [{ value: 2 }, { value: 5 }, { value: emManutencao }]
+        },
+        { 
+          label: 'Consumo Médio (Global)', 
+          value: `${avgEfficiency} L/h`, 
+          icon: Activity, 
+          color: '#f59e0b', 
+          progress: 72,
+          trend: 'down',
+          change: '-2.5%',
+          periodLabel: 'Consumo Médio',
+          sparkline: [{ value: 15.5 }, { value: 14.8 }, { value: 14.2 }]
+        },
+        { 
+          label: 'Disponibilidade', 
+          value: `${((emOperacao / (total || 1)) * 100).toFixed(1)}%`, 
+          icon: AlertCircle, 
+          color: '#10b981', 
+          progress: (emOperacao / (total || 1)) * 100, 
+          trend: 'up',
+          change: 'Operacional',
+          periodLabel: 'Uptime Real',
+          sparkline: [{ value: 85 }, { value: 88 }, { value: 92 }]
+        },
+      ]);
     } catch (err) {
-      console.error(err);
+      console.warn('[Fleet] Falling back to empty state due to schema/network error:', err);
+      setMachines([]);
     } finally {
       setLoading(false);
     }
@@ -153,34 +167,45 @@ export const FleetManagement: React.FC = () => {
       alert('⚠️ Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.');
       return;
     }
-    const payload = {
-      nome: formData.nome,
-      marca: formData.marca,
-      modelo: formData.modelo,
-      categoria: formData.categoria,
-      ano: parseInt(formData.ano),
-      placa: formData.placa,
-      horimetro_atual: parseFloat(formData.horimetro_inicial),
-      quilometragem_atual: parseFloat(formData.quilometragem_inicial),
-      status: formData.status,
-      chassi: formData.chassi,
-      combustivel: formData.combustivel,
-      capacidade_tanque: parseFloat(formData.capacidade_tanque) || 0,
-      valor_compra: parseFloat(formData.valor_compra) || 0,
-      potencia: parseInt(formData.potencia) || 0,
-      peso_operacional: parseInt(formData.peso_operacional) || 0,
-      intervalo_revisao: parseInt(formData.intervalo_revisao) || 250,
-      consumo_estimado: parseFloat(formData.consumo_estimado) || 0,
-      data_proxima_revisao: formData.data_proxima_revisao || null,
-      observacoes: formData.observacoes
-    };
+    
+    setLoading(true);
+    try {
+      const payload = {
+        nome: formData.nome,
+        tipo: formData.categoria,
+        marca: formData.marca,
+        modelo: formData.modelo,
+        ano: parseInt(formData.ano) || null,
+        placa: formData.placa,
+        chassi: formData.chassi,
+        combustivel: formData.combustivel,
+        capacidade_tanque: parseFloat(formData.capacidade_tanque) || null,
+        valor_compra: parseFloat(formData.valor_compra) || null,
+        potencia: parseInt(formData.potencia) || null,
+        peso_operacional: parseFloat(formData.peso_operacional) || null,
+        intervalo_revisao: parseInt(formData.intervalo_revisao) || 250,
+        consumo_estimado: parseFloat(formData.consumo_estimado) || null,
+        data_proxima_revisao: formData.data_proxima_revisao || null,
+        status: formData.status || 'active',
+        observacoes: formData.observacoes,
+        tipo_medidor: formData.categoria === 'Trator' || formData.categoria === 'Implemento' ? 'Horímetro' : 'Odômetro',
+        ...insertPayload
+      };
 
-    if (selectedMachine) {
-      const { error } = await supabase.from('maquinas').update(payload).eq('id', selectedMachine.id);
-      if (!error) { setIsModalOpen(false); fetchMachines(); }
-    } else {
-      const { error } = await supabase.from('maquinas').insert([{ ...payload, ...insertPayload }]);
-      if (!error) { setIsModalOpen(false); fetchMachines(); }
+      if (selectedMachine) {
+        const { error } = await supabase.from('maquinas').update(payload).eq('id', selectedMachine.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('maquinas').insert([payload]);
+        if (error) throw error;
+      }
+      setIsModalOpen(false);
+      fetchMachines();
+    } catch (err) {
+      console.error('Error saving machine:', err);
+      alert('Erro ao salvar máquina. Verifique o console para mais detalhes.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -189,8 +214,14 @@ export const FleetManagement: React.FC = () => {
       alert('⚠️ Selecione uma unidade específica para registrar uma manutenção. No modo Visão Global, a fazenda deve ser definida.');
       return;
     }
-    const { error } = await supabase.from('manutencoes').insert([{
-      ...data,
+    const { error } = await supabase.from('manutencao_frota').insert([{
+      maquina_id: data.maquina_id,
+      tipo: data.tipo,
+      descricao: data.descricao,
+      data_inicio: data.data_inicio,
+      custo: (parseFloat(data.custo_pecas) || 0) + (parseFloat(data.custo_mao_obra) || 0),
+      responsavel: data.responsavel,
+      status: data.status,
       ...insertPayload
     }]);
     if (!error) {
@@ -259,49 +290,90 @@ export const FleetManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Ativo',
+      header: 'Ativo / Identificação',
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.nome}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.placa || item.modelo || 'N/A'}
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.nome}
+          </span>
+          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            {item.placa || item.modelo || 'SEM PLACA'}
+          </span>
         </div>
-      )
+      ),
+      align: 'left' as const
     },
     {
-      header: 'Categoria',
+      header: 'Categoria & Combustível',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <LayoutGrid size={14} />
-          <span>{item.categoria}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+            {item.categoria}
+          </span>
+          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            {item.combustivel || 'Diesel'}
+          </span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
       header: 'Uso Atual',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Gauge size={14} />
-          <span>{item.horimetro_atual ? `${item.horimetro_atual}h` : item.quilometragem_atual ? `${item.quilometragem_atual}km` : '0'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#0f172a' }}>
+          <Gauge size={14} color="#6366f1" />
+          <span>{item.horimetro_atual ? `${item.horimetro_atual} h` : item.quilometragem_atual ? `${item.quilometragem_atual} km` : '0'}</span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Eficiência',
+      header: 'Eficiência Estimada',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Fuel size={14} />
-          <span className="font-bold">{item.consumo_estimado ? `${item.consumo_estimado} L/h` : '14.2 L/h'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+          <span>{item.consumo_estimado ? `${item.consumo_estimado} L/h` : '14.2 L/h'}</span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Status',
+      header: 'Próxima Revisão',
+      accessor: (item: any) => {
+        const current = item.horimetro_atual || 0;
+        const interval = item.intervalo_revisao || 250;
+        const remaining = interval - (current % interval);
+        const progressPercent = ((interval - remaining) / (interval || 1)) * 100;
+        const isCritical = progressPercent > 90;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px', margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, color: '#64748b' }}>
+              <span>Faltam {remaining}h</span>
+              <span style={{ color: isCritical ? '#f43f5e' : progressPercent > 70 ? '#f59e0b' : '#10b981' }}>{progressPercent.toFixed(0)}%</span>
+            </div>
+            <div style={{ height: '6px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
+              <div 
+                style={{ 
+                  height: '100%', 
+                  transition: 'width 0.5s', 
+                  backgroundColor: isCritical ? '#f43f5e' : progressPercent > 70 ? '#f59e0b' : '#10b981',
+                  width: `${progressPercent}%` 
+                }}
+              />
+            </div>
+          </div>
+        );
+      },
+      align: 'center' as const
+    },
+    {
+      header: 'Status Operacional',
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'active' ? 'active' : item.status === 'maintenance' ? 'warning' : 'stopped'}`}>
-          {item.status === 'active' ? 'Em Campo' : item.status === 'maintenance' ? 'Manutenção' : 'Parado'}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.status === 'active' ? 'active' : item.status === 'maintenance' ? 'warning' : 'stopped'}`}>
+            {item.status === 'active' ? 'Operacional' : item.status === 'maintenance' ? 'Manutenção' : 'Parado'}
+          </span>
+        </div>
       ),
       align: 'center' as const
     }
@@ -311,7 +383,6 @@ export const FleetManagement: React.FC = () => {
 
   return (
     <div className="fleet-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -409,9 +480,9 @@ export const FleetManagement: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-fleet" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-fleet')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>
@@ -509,9 +580,9 @@ export const FleetManagement: React.FC = () => {
                       <Truck size={32} />
                     </div>
                     <div className="card-bottom-actions">
-                      <button className="action-icon-btn" onClick={() => handleViewHistory(m)} title="Dossiê"><History size={16} /></button>
-                      <button className="action-icon-btn" onClick={() => handleOpenEdit(m)} title="Editar"><Edit3 size={16} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(m.id)} title="Excluir"><Trash2 size={16} /></button>
+                      <button className="action-icon-btn info" onClick={() => handleViewHistory(m)} title="Dossiê"><History size={14} /></button>
+                      <button className="action-icon-btn edit" onClick={() => handleOpenEdit(m)} title="Editar"><Edit3 size={14} /></button>
+                      <button className="action-icon-btn delete" onClick={() => handleDelete(m.id)} title="Excluir"><Trash2 size={14} /></button>
                     </div>
                   </div>
 
@@ -727,8 +798,11 @@ export const FleetManagement: React.FC = () => {
 
         .card-bottom-actions {
           display: flex;
-          gap: 8px;
-          margin-top: 15px;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          margin-top: 12px;
         }
 
         .action-icon-btn {

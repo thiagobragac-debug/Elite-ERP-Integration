@@ -30,11 +30,10 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { OutputInvoiceFilterModal } from './components/OutputInvoiceFilterModal';
 
 export const Invoices: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,14 +54,18 @@ export const Invoices: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchInvoices();
-  }, [activeFarmId, isGlobalMode]);
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+    if (isReady) {
+      fetchInvoices();
+    } else {
+      setLoading(false);
+    }
+  }, [activeFarmId, isGlobalMode, activeTenantId]);
 
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('notas_saida').select('*, clientes(nome)').order('created_at', { ascending: false });
+      let query = supabase.from('notas_saida').select('*, clientes(nome)').order('created_at', { ascending: false }).limit(500);
       query = applyFarmFilter(query);
       const { data } = await query;
       
@@ -193,27 +196,39 @@ export const Invoices: React.FC = () => {
     {
       header: 'Número / Série',
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">NF {item.numero_nota}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
+        <div className="table-cell-title text-left">
+          <span className="main-text font-bold text-slate-800">NF {item.numero_nota}</span>
+          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider text-slate-500">
             Série {item.serie}
           </div>
         </div>
-      )
+      ),
+      align: 'left' as const
     },
     {
       header: 'Cliente / CFOP',
       accessor: (item: any) => (
-        <div className="table-cell-title">
+        <div className="table-cell-title text-left">
           <div className="flex items-center gap-2">
             <Building2 size={14} className="text-slate-400" />
-            <span className="main-text font-bold">{item.clientes?.nome || 'N/A'}</span>
+            <span className="main-text font-bold text-slate-800">{item.clientes?.nome || 'N/A'}</span>
           </div>
           <div className="sub-meta uppercase font-black text-[9px] tracking-wider text-indigo-600 bg-indigo-50 px-1 rounded border border-indigo-100 w-fit">
             CFOP {item.cfop} • {item.natureza_operacao}
           </div>
         </div>
-      )
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Emissão',
+      accessor: (item: any) => (
+        <div className="table-cell-meta flex items-center justify-center gap-1 text-slate-600 font-semibold">
+          <Calendar size={14} />
+          <span>{new Date(item.data_emissao).toLocaleDateString('pt-BR')}</span>
+        </div>
+      ),
+      align: 'center' as const
     },
     {
       header: 'Faturamento / Imposto',
@@ -250,7 +265,6 @@ export const Invoices: React.FC = () => {
 
   return (
     <div className="invoice-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -332,12 +346,12 @@ export const Invoices: React.FC = () => {
                 if (menu) menu.classList.toggle('active');
               }}
             >
-              <Download size={20} />
+              <FileText size={20} />
             </button>
             <div id="export-menu-invoices" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-invoices')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-invoices')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-invoices')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-invoices')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-invoices')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>

@@ -52,7 +52,7 @@ export const AnimalDetail: React.FC = () => {
         // Fetch weight history
         const { data: weights } = await supabase
           .from('pesagens')
-          .select('*')
+          .select('*').limit(500)
           .eq('animal_id', id)
           .order('data_pesagem', { ascending: true });
         

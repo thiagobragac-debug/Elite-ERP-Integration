@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -13,6 +13,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  aal: 'aal1' | 'aal2' | null;
+  setAal: (level: 'aal1' | 'aal2' | null) => void;
   login: (email: string, password: string) => Promise<{ error: any }>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -22,6 +24,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [aal, setAal] = useState<'aal1' | 'aal2' | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +47,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             email: session.user.email || '',
             role: 'admin'
           });
+          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aalData) {
+            setAal(aalData.currentLevel);
+          } else {
+            setAal('aal1');
+          }
+        } else {
+          setAal(null);
         }
       } catch (err) {
         console.error('Unexpected auth error:', err);
@@ -63,8 +74,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           email: session.user.email || '',
           role: 'admin'
         });
+        
+        // Fetch AAL asynchronously without blocking the gotrue-js lock manager
+        supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data: aalData }) => {
+          if (aalData) {
+            setAal(aalData.currentLevel);
+          } else {
+            setAal('aal1');
+          }
+        }).catch(console.error);
+        
       } else {
         setUser(null);
+        setAal(null);
       }
       setLoading(false);
     });
@@ -86,7 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, aal, setAal, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

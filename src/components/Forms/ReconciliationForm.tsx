@@ -44,7 +44,10 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
         period: initialData.periodo || 'Mês Atual',
         file: null,
         initial_balance: initialData.saldo_inicial?.toString() || '',
-        final_balance: initialData.saldo_final?.toString() || ''
+        final_balance: initialData.saldo_final?.toString() || '',
+        data_inicio: initialData.data_inicio || '',
+        data_fim: initialData.data_fim || '',
+        observacoes: initialData.observacoes || ''
       });
     } else {
       setFormData({
@@ -52,7 +55,10 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
         period: 'Mês Atual',
         file: null,
         initial_balance: '',
-        final_balance: ''
+        final_balance: '',
+        data_inicio: '',
+        data_fim: '',
+        observacoes: ''
       });
     }
   }, [initialData, isOpen]);
@@ -64,7 +70,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
   }, [isOpen, activeFarm]);
 
   const fetchAccounts = async () => {
-    const { data } = await supabase.from('contas_bancarias').select('id, nome').eq('fazenda_id', activeFarm.id);
+    const { data } = await supabase.from('contas_bancarias').select('id, banco').eq('tenant_id', activeFarm?.tenantId || '');
     if (data) setAccounts(data);
   };
 
@@ -98,7 +104,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
         >
           <option value="">Selecione a conta...</option>
           {accounts.map(a => (
-            <option key={a.id} value={a.id}>{a.nome}</option>
+            <option key={a.id} value={a.id}>{a.banco}</option>
           ))}
         </select>
       </div>

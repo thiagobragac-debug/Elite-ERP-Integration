@@ -1,0 +1,1166 @@
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { 
+  Scale, 
+  X, 
+  Layers, 
+  Calendar, 
+  ChevronDown, 
+  CheckCircle2, 
+  AlertTriangle, 
+  TrendingUp, 
+  Activity, 
+  Loader2,
+  HelpCircle,
+  Award,
+  Download,
+  Upload
+} from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useTenant } from '../../contexts/TenantContext';
+
+interface BatchWeightModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSaveSuccess: () => void;
+}
+
+interface WeightRow {
+  animal_id: string;
+  brinco: string;
+  lastWeight: number;
+  lastDate: string | null;
+  newWeight: string;
+  evolucao: number;
+  gmd: number;
+  isTypoWarning: boolean;
+}
+
+export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onClose, onSaveSuccess }) => {
+  const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
+  const [lots, setLots] = useState<any[]>([]);
+  const [selectedLoteId, setSelectedLoteId] = useState<string>(''); // empty means "Todos"
+  const [defaultDate, setDefaultDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [defaultObservation, setDefaultObservation] = useState<string>('');
+  
+  const [rows, setRows] = useState<WeightRow[]>([]);
+  const [loadingLots, setLoadingLots] = useState(false);
+  const [loadingAnimals, setLoadingAnimals] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTab, setActiveTab] = useState<'manual' | 'planilha' | 'smart'>('manual');
+  
+  // Agricultural Smart Corral States
+  const [scaleConnected, setScaleConnected] = useState(false);
+  const [scaleBrand, setScaleBrand] = useState<string>('TRUTEST');
+  const [scaleType, setScaleType] = useState<string>('BLUETOOTH');
+  const [activeFocusedIndex, setActiveFocusedIndex] = useState<number | null>(null);
+  const [rfidSearch, setRfidSearch] = useState('');
+
+  useEffect(() => {
+    if (isOpen && activeTenantId) {
+      fetchLots();
+      fetchAnimals('');
+      
+      // Auto-detect global scale configuration from ScaleConfigModal
+      const globalConnected = localStorage.getItem('elite_scale_connected') === 'true';
+      if (globalConnected) {
+        setScaleConnected(true);
+        setActiveTab('smart'); // Automatically pre-select smart curral mode!
+        setScaleBrand(localStorage.getItem('elite_scale_brand') || 'TRUTEST');
+        setScaleType(localStorage.getItem('elite_scale_type') || 'BLUETOOTH');
+      } else {
+        setScaleConnected(false);
+        setActiveTab('manual');
+      }
+    } else {
+      setSelectedLoteId('');
+      setRows([]);
+    }
+  }, [isOpen, activeFarm, activeTenantId]);
+
+  const fetchLots = async () => {
+    setLoadingLots(true);
+    try {
+      let query = supabase
+        .from('lotes')
+        .select('id, nome')
+        .eq('tenant_id', activeTenantId)
+        .eq('status', 'ATIVO');
+
+      if (!isGlobalMode && activeFarm?.id) {
+        query = query.eq('fazenda_id', activeFarm.id);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setLots(data || []);
+    } catch (err) {
+      console.error('Error fetching lots for batch modal:', err);
+    } finally {
+      setLoadingLots(false);
+    }
+  };
+
+  const fetchAnimals = async (loteId: string) => {
+    setLoadingAnimals(true);
+    try {
+      let q = supabase
+        .from('animais')
+        .select('id, brinco, peso_atual, peso_inicial, lote_id')
+        .eq('tenant_id', activeTenantId)
+        .ilike('status', 'ativo');
+      
+      if (!isGlobalMode && activeFarm?.id) {
+        q = q.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
+      }
+      
+      if (loteId) {
+        q = q.eq('lote_id', loteId);
+      }
+      
+      const { data: animData, error: animErr } = await q;
+      if (animErr) throw animErr;
+      
+      if (animData && animData.length > 0) {
+        const animIds = animData.map(a => a.id);
+        
+        // Fetch last weighings
+        const { data: weighData, error: weighErr } = await supabase
+          .from('pesagens')
+          .select('animal_id, peso, data_pesagem')
+          .in('animal_id', animIds)
+          .order('data_pesagem', { ascending: false });
+        
+        if (weighErr) throw weighErr;
+        
+        // Group by animal_id to get the absolute latest weighing
+        const lastWeighingsMap: Record<string, any> = {};
+        weighData?.forEach(w => {
+          if (!lastWeighingsMap[w.animal_id]) {
+            lastWeighingsMap[w.animal_id] = w;
+          }
+        });
+        
+        const initialRows: WeightRow[] = animData.map(a => {
+          const lastW = lastWeighingsMap[a.id];
+          const lastWeight = lastW ? Number(lastW.peso) : (a.peso_atual ? Number(a.peso_atual) : Number(a.peso_inicial || 0));
+          const lastDate = lastW ? lastW.data_pesagem : null;
+          
+          return {
+            animal_id: a.id,
+            brinco: a.brinco,
+            lastWeight: lastWeight,
+            lastDate: lastDate,
+            newWeight: '',
+            evolucao: 0,
+            gmd: 0,
+            isTypoWarning: false
+          };
+        });
+        
+        // Sort rows by earring to keep a nice logical order
+        initialRows.sort((a, b) => a.brinco.localeCompare(b.brinco, undefined, { numeric: true }));
+        setRows(initialRows);
+      } else {
+        setRows([]);
+      }
+    } catch (err) {
+      console.error('Error fetching animals in batch:', err);
+    } finally {
+      setLoadingAnimals(false);
+    }
+  };
+
+  const handleLoteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setSelectedLoteId(val);
+    fetchAnimals(val);
+  };
+
+  const handleWeightChange = (index: number, val: string) => {
+    const newRows = [...rows];
+    const row = newRows[index];
+    row.newWeight = val;
+    
+    const newWeightVal = parseFloat(val);
+    if (!isNaN(newWeightVal) && row.lastWeight > 0) {
+      const diff = newWeightVal - row.lastWeight;
+      row.evolucao = diff;
+      
+      // Calculate GMD
+      const lastDate = row.lastDate ? new Date(row.lastDate) : null;
+      const currDate = new Date(defaultDate);
+      
+      let diffDays = 1;
+      if (lastDate) {
+        const diffTime = currDate.getTime() - lastDate.getTime();
+        diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+      }
+      
+      row.gmd = diff / diffDays;
+      
+      // Smart Typo Guard check: variance > 15%
+      const percentChange = (diff / row.lastWeight) * 100;
+      row.isTypoWarning = Math.abs(percentChange) > 15;
+    } else {
+      row.evolucao = 0;
+      row.gmd = 0;
+      row.isTypoWarning = false;
+    }
+    
+    setRows(newRows);
+  };
+
+  // Keyboard navigation (Excel mode)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextInput = document.getElementById(`weight-input-${index + 1}`) as HTMLInputElement | null;
+      if (nextInput) {
+        nextInput.focus();
+        nextInput.select();
+      }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevInput = document.getElementById(`weight-input-${index - 1}`) as HTMLInputElement | null;
+      if (prevInput) {
+        prevInput.focus();
+        prevInput.select();
+      }
+    }
+  };
+  
+  // Web Bluetooth / Smart Scale Simulator
+  const handleConnectScale = async () => {
+    if (scaleConnected) {
+      setScaleConnected(false);
+      localStorage.removeItem('elite_scale_connected');
+      localStorage.removeItem('elite_scale_brand');
+      localStorage.removeItem('elite_scale_type');
+      alert('🔌 Balança desconectada com sucesso.');
+      return;
+    }
+
+    try {
+      const activeBrand = localStorage.getItem('elite_scale_brand') || 'TRUTEST';
+      const activeType = localStorage.getItem('elite_scale_type') || 'BLUETOOTH';
+
+      if ((navigator as any).bluetooth && activeType === 'BLUETOOTH') {
+        alert(`🌐 Conectando via Web Bluetooth à balança ${activeBrand}...`);
+      } else {
+        alert(`💡 Modo Homologação Ativo: Ativando Simulador de Balança ${activeBrand} (${activeType})!`);
+      }
+      
+      setScaleConnected(true);
+      setScaleBrand(activeBrand);
+      setScaleType(activeType);
+      localStorage.setItem('elite_scale_connected', 'true');
+      localStorage.setItem('elite_scale_brand', activeBrand);
+      localStorage.setItem('elite_scale_type', activeType);
+    } catch (err: any) {
+      alert('❌ Falha ao conectar balança: ' + err.message);
+    }
+  };
+
+  // Simulate weights sent by stabilized scale
+  const handleScaleTriggerWeight = () => {
+    if (!scaleConnected) {
+      alert('⚠️ Conecte a Balança Eletrônica primeiro!');
+      return;
+    }
+    
+    if (activeFocusedIndex === null) {
+      alert('⚠️ Por favor, selecione (clique) no campo de peso de um animal na grade abaixo para receber a pesagem!');
+      return;
+    }
+
+    // Simulate weight stabilized (e.g. realistic average beef cattle)
+    const baseWeight = rows[activeFocusedIndex].lastWeight > 0 ? rows[activeFocusedIndex].lastWeight : 380;
+    const gain = 10 + Math.floor(Math.random() * 25);
+    const simulatedWeight = baseWeight + gain;
+    
+    handleWeightChange(activeFocusedIndex, simulatedWeight.toString());
+
+    // Auto-advance cursor to next row
+    setTimeout(() => {
+      const nextIndex = activeFocusedIndex + 1;
+      if (nextIndex < rows.length) {
+        const nextInput = document.getElementById(`weight-input-${nextIndex}`) as HTMLInputElement | null;
+        if (nextInput) {
+          nextInput.focus();
+          nextInput.select();
+        }
+      }
+    }, 150);
+  };
+
+  // RFID Wand Scan handler
+  const handleRfidScan = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rfidSearch.trim()) return;
+
+    const query = rfidSearch.trim().toLowerCase();
+    const foundIndex = rows.findIndex(r => r.brinco.toLowerCase() === query || r.brinco.toLowerCase().includes(query));
+
+    if (foundIndex !== -1) {
+      setActiveFocusedIndex(foundIndex);
+      setTimeout(() => {
+        const targetInput = document.getElementById(`weight-input-${foundIndex}`) as HTMLInputElement | null;
+        if (targetInput) {
+          targetInput.focus();
+          targetInput.select();
+          targetInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+      setRfidSearch('');
+    } else {
+      alert(`⚠️ Brinco RFID "${rfidSearch}" não encontrado neste lote.`);
+    }
+  };
+
+  const handleClearWeights = () => {
+    if (filledCount === 0) return;
+    const confirmClear = confirm('⚠️ Tem certeza que deseja limpar todos os novos pesos digitados nesta sessão?');
+    if (!confirmClear) return;
+    
+    const cleared = rows.map(r => ({
+      ...r,
+      newWeight: '',
+      evolucao: 0,
+      gmd: 0,
+      isTypoWarning: false
+    }));
+    setRows(cleared);
+  };
+
+  const handleCsvExport = () => {
+    if (rows.length === 0) {
+      alert('⚠️ Não há animais listados para exportação.');
+      return;
+    }
+
+    // Excel-compatible Portuguese header and Byte Order Mark (BOM)
+    let csvContent = 'ID do Animal;Brinco;Peso Anterior (kg);Novo Peso (kg);Data da Pesagem (AAAA-MM-DD)\n';
+    rows.forEach(r => {
+      csvContent += `"${r.animal_id}";"${r.brinco}";"${r.lastWeight.toFixed(2)}";"";"${defaultDate}"\n`;
+    });
+
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `manejo_pesagem_${selectedLoteId ? 'lote' : 'geral'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        if (!text) return;
+
+        const lines = text.split('\n');
+        const parsedMap: Record<string, { weight: string, date: string }> = {};
+
+        // Skip header
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          // Autodetect delimiter: semicolon vs comma
+          let delimiter = ';';
+          if (line.includes(',') && !line.includes(';')) {
+            delimiter = ',';
+          }
+
+          const cols = line.split(delimiter);
+          if (cols.length >= 4) {
+            const animalId = cols[0].replace(/"/g, '').trim();
+            const newWeight = cols[3].replace(/"/g, '').trim();
+            const date = cols[4] ? cols[4].replace(/"/g, '').trim() : defaultDate;
+
+            if (animalId && newWeight) {
+              parsedMap[animalId] = { weight: newWeight, date };
+            }
+          }
+        }
+
+        // Update rows state
+        const newRows = rows.map(r => {
+          const match = parsedMap[r.animal_id];
+          if (match) {
+            const newWeightVal = parseFloat(match.weight);
+            let diff = 0;
+            let gmdVal = 0;
+            let typo = false;
+
+            if (!isNaN(newWeightVal) && r.lastWeight > 0) {
+              diff = newWeightVal - r.lastWeight;
+              
+              const lastDate = r.lastDate ? new Date(r.lastDate) : null;
+              const currDate = new Date(match.date || defaultDate);
+              let diffDays = 1;
+              if (lastDate) {
+                const diffTime = currDate.getTime() - lastDate.getTime();
+                diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+              }
+              gmdVal = diff / diffDays;
+
+              const percentChange = (diff / r.lastWeight) * 100;
+              typo = Math.abs(percentChange) > 15;
+            }
+
+            return {
+              ...r,
+              newWeight: match.weight,
+              evolucao: diff,
+              gmd: gmdVal,
+              isTypoWarning: typo
+            };
+          }
+          return r;
+        });
+
+        setRows(newRows);
+        alert(`✅ Planilha carregada com sucesso! ${Object.keys(parsedMap).length} pesos carregados na grade para revisão.`);
+      } catch (err: any) {
+        alert('❌ Erro ao ler planilha CSV: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const rowsToInsert = rows.filter(r => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight)));
+    
+    if (rowsToInsert.length === 0) {
+      alert('⚠️ Digite o peso de pelo menos 1 animal.');
+      return;
+    }
+
+    const hasWarnings = rowsToInsert.some(r => r.isTypoWarning);
+    if (hasWarnings) {
+      const confirmSave = confirm('⚠️ Existem animais com variações de peso muito acentuadas (>15%). Deseja salvar as pesagens mesmo assim?');
+      if (!confirmSave) return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      // Build payloads
+      const payloads = rowsToInsert.map(r => ({
+        tenant_id: activeTenantId,
+        fazenda_id: activeFarm?.id || null,
+        animal_id: r.animal_id,
+        peso: parseFloat(r.newWeight),
+        data_pesagem: defaultDate,
+        observacao: defaultObservation || null
+      }));
+
+      // Insert all weighings in batch!
+      const { error: insertErr } = await supabase
+        .from('pesagens')
+        .insert(payloads);
+
+      if (insertErr) throw insertErr;
+
+      // Update animal's current weights in database
+      const updatePromises = rowsToInsert.map(r => 
+        supabase
+          .from('animais')
+          .update({ peso_atual: parseFloat(r.newWeight) })
+          .eq('id', r.animal_id)
+      );
+
+      await Promise.all(updatePromises);
+
+      onSaveSuccess();
+      onClose();
+    } catch (err: any) {
+      alert('❌ Erro ao salvar pesagens em lote: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const filledCount = rows.filter(r => r.newWeight.trim() !== '').length;
+  
+  const typedRows = rows.filter(r => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight)));
+  const avgNewWeight = typedRows.length > 0 ? typedRows.reduce((sum, r) => sum + parseFloat(r.newWeight), 0) / typedRows.length : 0;
+  const avgGmd = typedRows.length > 0 ? typedRows.reduce((sum, r) => sum + r.gmd, 0) / typedRows.length : 0;
+  const totalGain = typedRows.reduce((sum, r) => sum + r.evolucao, 0);
+
+  return createPortal(
+    <div className="elite-modal-overlay" onClick={onClose} style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(15, 23, 42, 0.75)',
+      backdropFilter: 'blur(8px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 99999,
+      padding: '20px',
+      boxSizing: 'border-box'
+    }}>
+      <div className="elite-modal-container animate-scale-up" onClick={e => e.stopPropagation()} style={{
+        background: 'linear-gradient(135deg, hsl(var(--bg-card)) 0%, hsl(var(--bg-main)) 100%)',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: '24px',
+        width: '95%',
+        maxWidth: '1180px',
+        maxHeight: '90vh',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* Header */}
+        <div className="modal-header" style={{
+          padding: '24px 30px',
+          borderBottom: '1px solid hsl(var(--border) / 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'hsl(var(--bg-card) / 0.3)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              background: 'linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand) / 0.8) 100%)',
+              color: '#fff',
+              padding: '10px',
+              borderRadius: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Scale size={20} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+                Lançamento Rápido em Massa (Modo Curral)
+              </h3>
+              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>
+                Selecione o lote ou todos os animais para inserir pesos em série usando navegação por teclado.
+              </p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: 'none',
+            border: 'none',
+            color: 'hsl(var(--text-muted))',
+            cursor: 'pointer',
+            padding: '4px',
+            borderRadius: '50%',
+            transition: 'all 0.2s'
+          }} className="hover-close-btn">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Filters and Config Row */}
+        <div className="config-row" style={{
+          padding: '20px 30px',
+          background: 'hsl(var(--bg-main) / 0.2)',
+          borderBottom: '1px solid hsl(var(--border) / 0.4)',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: '20px'
+        }}>
+          <div className="config-item">
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
+              <Layers size={11} style={{ marginRight: '4px' }} /> Filtrar Origem
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select 
+                value={selectedLoteId} 
+                onChange={handleLoteChange}
+                disabled={loadingLots}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'hsl(var(--bg-card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '12px',
+                  color: 'hsl(var(--text-main))',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  appearance: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">Todos os Animais Ativos</option>
+                {lots.map(l => (
+                  <option key={l.id} value={l.id}>Lote: {l.nome}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          <div className="config-item">
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
+              <TrendingUp size={11} style={{ marginRight: '4px' }} /> Método de Lançamento
+            </label>
+            <div style={{ position: 'relative' }}>
+              <select 
+                value={activeTab} 
+                onChange={(e) => setActiveTab(e.target.value as any)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'hsl(var(--bg-card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '12px',
+                  color: 'hsl(var(--text-main))',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  appearance: 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="manual">⌨️ Digitação Manual (Teclado)</option>
+                <option value="planilha">📊 Planilha de Manejo (CSV)</option>
+                <option value="smart">🔌 Curral Smart (Balança / RFID)</option>
+              </select>
+              <ChevronDown size={14} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }} />
+            </div>
+          </div>
+
+          <div className="config-item">
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
+              <Calendar size={11} style={{ marginRight: '4px' }} /> Data da Pesagem Padrão
+            </label>
+            <input 
+              type="date"
+              value={defaultDate}
+              onChange={(e) => setDefaultDate(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                background: 'hsl(var(--bg-card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '12px',
+                color: 'hsl(var(--text-main))',
+                fontSize: '13px',
+                fontWeight: 700
+              }}
+            />
+          </div>
+
+          <div className="config-item">
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
+              Observação Padrão (Opcional)
+            </label>
+            <input 
+              type="text"
+              placeholder="Ex: Pesagem geral, vacinação de aftosa, apartação..."
+              value={defaultObservation}
+              onChange={(e) => setDefaultObservation(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '9px 14px',
+                background: 'hsl(var(--bg-card))',
+                border: '1px solid hsl(var(--border))',
+                borderRadius: '12px',
+                color: 'hsl(var(--text-main))',
+                fontSize: '13px',
+                fontWeight: 600
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Smart Corral Integration Bar */}
+        {activeTab === 'smart' && (
+          <div className="smart-corral-bar" style={{
+            padding: '12px 30px',
+            background: 'hsl(var(--bg-main) / 0.3)',
+            borderBottom: '1px solid hsl(var(--border) / 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '15px'
+          }}>
+            {/* Bluetooth Scale section */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Scale size={12} /> Integração Balança:
+              </span>
+              <button
+                type="button"
+                onClick={handleConnectScale}
+                className="glass-btn"
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  border: scaleConnected ? '1px solid #10b981' : '1px solid hsl(var(--border))',
+                  background: scaleConnected ? 'rgba(16, 185, 129, 0.1)' : 'hsl(var(--bg-card))',
+                  color: scaleConnected ? '#10b981' : 'hsl(var(--text-main))',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {scaleConnected ? `🟢 Balança ${scaleBrand} - ${scaleType} Ativa` : '🔌 Conectar Balança Bluetooth'}
+              </button>
+
+              {scaleConnected && (
+                <button
+                  type="button"
+                  onClick={handleScaleTriggerWeight}
+                  className="primary-btn animate-pulse"
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    background: 'linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand) / 0.8) 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    boxShadow: '0 0 10px hsl(var(--brand) / 0.3)'
+                  }}
+                  title={activeFocusedIndex !== null ? 'Clique para simular o peso estabilizando na balança física!' : 'Selecione um animal na grade abaixo primeiro'}
+                >
+                  ⚖️ Pesar Animal {activeFocusedIndex !== null ? `#${rows[activeFocusedIndex].brinco}` : 'Ativo'}
+                </button>
+              )}
+            </div>
+
+            {/* RFID Scan section */}
+            <form onSubmit={handleRfidScan} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Award size={12} /> Bastão RFID (Simulador):
+              </span>
+              <input
+                type="text"
+                placeholder="Digite Brinco do animal e dê Enter"
+                value={rfidSearch}
+                onChange={(e) => setRfidSearch(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  width: '220px',
+                  background: 'hsl(var(--bg-card))',
+                  border: '1px solid hsl(var(--border))',
+                  color: 'hsl(var(--text-main))',
+                  outline: 'none'
+                }}
+              />
+            </form>
+          </div>
+        )}
+
+        {/* Planilhas Row */}
+        {activeTab === 'planilha' && (
+          <div className="sheet-tools-row" style={{
+            padding: '12px 30px',
+            background: 'hsl(var(--bg-main) / 0.4)',
+            borderBottom: '1px solid hsl(var(--border) / 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'nowrap',
+            gap: '20px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flexShrink: 1 }}>
+              <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                Manejo por Planilha:
+              </span>
+              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted) / 0.8)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                Exporte os animais deste lote para preenchimento no Excel e depois importe!
+              </span>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+              {filledCount > 0 && (
+                <button 
+                  type="button"
+                  onClick={handleClearWeights}
+                  className="glass-btn secondary"
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: 'pointer',
+                    borderColor: 'hsl(340 70% 50% / 0.3)',
+                    background: 'hsl(340 70% 50% / 0.05)',
+                    color: 'hsl(340 70% 50%)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  Limpar Lançamentos
+                </button>
+              )}
+
+              <button 
+                type="button"
+                onClick={handleCsvExport}
+                className="glass-btn secondary"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  borderColor: 'hsl(var(--border))',
+                  background: 'hsl(var(--bg-card))',
+                  color: 'hsl(var(--text-main))'
+                }}
+              >
+                <Download size={14} />
+                Exportar Modelo (CSV)
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => document.getElementById('batch-csv-upload')?.click()}
+                className="glass-btn secondary"
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                  borderColor: 'hsl(var(--brand) / 0.4)',
+                  background: 'hsl(var(--brand) / 0.08)',
+                  color: 'hsl(var(--brand))'
+                }}
+              >
+                <Upload size={14} />
+                Importar Planilha (CSV)
+              </button>
+              <input 
+                type="file" 
+                id="batch-csv-upload" 
+                accept=".csv" 
+                style={{ display: 'none' }} 
+                onChange={handleCsvImport} 
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Animals Grid */}
+        <div className="animals-grid-container" style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '24px 30px'
+        }}>
+          {loadingAnimals ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', gap: '12px' }}>
+              <Loader2 size={32} className="spin" color="hsl(var(--brand))" />
+              <span style={{ fontSize: '13px', color: 'hsl(var(--text-muted))', fontWeight: 700 }}>Buscando animais da fazenda...</span>
+            </div>
+          ) : rows.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', color: 'hsl(var(--text-muted))', gap: '8px' }}>
+              <Scale size={36} style={{ opacity: 0.4 }} />
+              <span style={{ fontSize: '13px', fontWeight: 700 }}>Nenhum animal ativo encontrado nesta seleção.</span>
+            </div>
+          ) : (
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              textAlign: 'left'
+            }}>
+              <thead>
+                <tr style={{
+                  borderBottom: '2px solid hsl(var(--border))',
+                  paddingBottom: '12px'
+                }}>
+                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Animal / Brinco</th>
+                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Peso Anterior (kg)</th>
+                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center', width: '180px' }}>Novo Peso (kg)</th>
+                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Evolução (kg)</th>
+                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>GMD Projetado</th>
+                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Status / Avisos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, index) => {
+                  const newW = parseFloat(row.newWeight);
+                  const isAbate = !isNaN(newW) && newW >= 450;
+                  
+                  return (
+                    <tr key={row.animal_id} style={{
+                      borderBottom: '1px solid hsl(var(--border) / 0.4)',
+                      transition: 'all 0.15s'
+                    }} className="batch-row-hover">
+                      {/* Brinco */}
+                      <td style={{ padding: '14px 16px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '12px', background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))', padding: '4px 10px', borderRadius: '8px' }}>
+                            #{row.brinco}
+                          </span>
+                        </span>
+                      </td>
+
+                      {/* Peso Anterior */}
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: 'hsl(var(--text-muted))', textAlign: 'center' }}>
+                        {row.lastWeight ? `${row.lastWeight.toFixed(2)} kg` : 'N/A'}
+                        {row.lastDate && (
+                          <div style={{ fontSize: '10px', fontWeight: 600, color: 'hsl(var(--text-muted) / 0.6)', marginTop: '2px' }}>
+                            {new Date(row.lastDate).toLocaleDateString()}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Novo Peso Input */}
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <input 
+                          type="number"
+                          step="0.1"
+                          id={`weight-input-${index}`}
+                          placeholder="0.00"
+                          value={row.newWeight}
+                          onChange={(e) => handleWeightChange(index, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, index)}
+                          onFocus={() => setActiveFocusedIndex(index)}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            background: 'hsl(var(--bg-card))',
+                            border: row.isTypoWarning 
+                              ? '1.5px solid hsl(38 92% 50%)' 
+                              : '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            color: 'hsl(var(--text-main))',
+                            fontSize: '14px',
+                            fontWeight: 800,
+                            textAlign: 'center',
+                            outline: 'none',
+                            boxShadow: row.isTypoWarning ? '0 0 0 3px hsl(38 92% 50% / 0.15)' : 'none'
+                          }}
+                        />
+                      </td>
+
+                      {/* Evolução */}
+                      <td style={{ padding: '14px 16px', fontWeight: 800, textAlign: 'center' }}>
+                        {row.newWeight ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <span style={{ color: row.evolucao >= 0 ? '#10b981' : '#ef4444' }}>
+                              {row.evolucao >= 0 ? `+${row.evolucao.toFixed(2)}` : row.evolucao.toFixed(2)} kg
+                            </span>
+                            <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted) / 0.8)', marginTop: '2px', fontWeight: 600 }}>
+                              {((parseFloat(row.newWeight) * 0.54) / 15).toFixed(1)} @ carcaça
+                            </span>
+                          </div>
+                        ) : (
+                          <span style={{ color: 'hsl(var(--text-muted) / 0.4)' }}>--</span>
+                        )}
+                      </td>
+
+                      {/* GMD */}
+                      <td style={{ padding: '14px 16px', fontWeight: 800, textAlign: 'center' }}>
+                        {row.newWeight ? (
+                          <span style={{ color: 'hsl(var(--text-main))' }}>
+                            {row.gmd.toFixed(2)} <span style={{ fontSize: '9px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>kg/dia</span>
+                          </span>
+                        ) : (
+                          <span style={{ color: 'hsl(var(--text-muted) / 0.4)' }}>--</span>
+                        )}
+                      </td>
+
+                      {/* Warnings / Status */}
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                          {row.isTypoWarning && (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: 'hsl(38 92% 50% / 0.1)',
+                              color: 'hsl(38 92% 50%)',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              textTransform: 'uppercase'
+                            }} title="Diferença em relação à última pesagem é muito grande (>15%)">
+                              <AlertTriangle size={10} />
+                              Alerta peso
+                            </span>
+                          )}
+                          {isAbate && (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: 'hsl(142 71% 45% / 0.1)',
+                              color: 'hsl(142 71% 45%)',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '9.5px',
+                              fontWeight: 900,
+                              textTransform: 'uppercase'
+                            }}>
+                              <Award size={10} />
+                              🏆 Abate
+                            </span>
+                          )}
+                          {row.newWeight !== '' && !isNaN(parseFloat(row.newWeight)) && (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              background: parseFloat(row.newWeight) < 350 
+                                ? 'hsl(210 100% 50% / 0.08)' 
+                                : parseFloat(row.newWeight) < 450 
+                                  ? 'hsl(270 100% 60% / 0.08)' 
+                                  : 'hsl(45 100% 50% / 0.1)',
+                              color: parseFloat(row.newWeight) < 350 
+                                ? 'hsl(210 100% 50%)' 
+                                : parseFloat(row.newWeight) < 450 
+                                  ? 'hsl(270 100% 60%)' 
+                                  : 'hsl(45 100% 50%)',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '9.5px',
+                              fontWeight: 800,
+                              border: parseFloat(row.newWeight) < 350 
+                                ? '1px solid hsl(210 100% 50% / 0.2)' 
+                                : parseFloat(row.newWeight) < 450 
+                                  ? '1px solid hsl(270 100% 60% / 0.2)' 
+                                  : '1px solid hsl(45 100% 50% / 0.2)',
+                              textTransform: 'uppercase'
+                            }}>
+                              {parseFloat(row.newWeight) < 350 
+                                ? '👉 P. Recria 07' 
+                                : parseFloat(row.newWeight) < 450 
+                                  ? '👉 P. Engorda 12' 
+                                  : '👉 Corr. Abate'}
+                            </span>
+                          )}
+                          {!row.isTypoWarning && !isAbate && row.newWeight !== '' && (
+                            <span style={{ color: '#10b981', display: 'flex', alignItems: 'center' }}>
+                              <CheckCircle2 size={16} />
+                            </span>
+                          )}
+                          {row.newWeight === '' && (
+                            <span style={{ color: 'hsl(var(--text-muted) / 0.4)', fontSize: '11px', fontWeight: 600 }}>Pendente</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="modal-footer" style={{
+          padding: '20px 30px',
+          borderTop: '1px solid hsl(var(--border) / 0.5)',
+          background: 'hsl(var(--bg-card) / 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', overflow: 'hidden' }}>
+            <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
+              Lote: <strong style={{ color: 'hsl(var(--text-main))' }}>{rows.length}</strong>
+            </span>
+            <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
+              Pesados: <strong style={{ color: 'hsl(var(--brand))' }}>{filledCount}</strong>
+            </span>
+            {filledCount > 0 && (
+              <>
+                <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', flexShrink: 0 }} />
+                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  Média: <strong style={{ color: 'hsl(var(--text-main))' }}>{avgNewWeight.toFixed(1)} kg <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted) / 0.7)', fontWeight: 600 }}>({(avgNewWeight * 0.54 / 15).toFixed(1)}@)</span></strong>
+                </span>
+                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  GMD: <strong style={{ color: avgGmd >= 0 ? '#10b981' : '#ef4444' }}>{avgGmd.toFixed(2)} kg/dia</strong>
+                </span>
+                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  Ganho: <strong style={{ color: totalGain >= 0 ? '#10b981' : '#ef4444' }}>{totalGain >= 0 ? `+${totalGain.toFixed(1)}` : totalGain.toFixed(1)} kg <span style={{ fontSize: '10px', color: totalGain >= 0 ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)', fontWeight: 600 }}>({(totalGain * 0.54 / 15).toFixed(1)}@)</span></strong>
+                </span>
+              </>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              type="button" 
+              onClick={onClose}
+              className="glass-btn secondary"
+              style={{
+                padding: '10px 20px',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              onClick={handleSubmit}
+              disabled={isSubmitting || filledCount === 0}
+              className="primary-btn"
+              style={{
+                padding: '10px 24px',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 900,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                opacity: (isSubmitting || filledCount === 0) ? 0.6 : 1
+              }}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="spin" />
+                  Salvando Pesagens...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={16} />
+                  Salvar {filledCount} Pesagens
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};

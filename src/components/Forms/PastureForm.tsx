@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Map, 
   Maximize,
   Tag,
   Trees,
   Activity,
-  Calendar
+  Calendar,
+  Sprout,
+  Shield,
+  Sun,
+  Flame
 } from 'lucide-react';
 import { FormModal } from './FormModal';
+import { supabase } from '../../lib/supabase';
 
 interface PastureFormProps {
   isOpen: boolean;
@@ -26,11 +31,34 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
     data_ultima_fertilizacao: '',
     topografia: 'Plano',
     tipo_solo: 'Argiloso',
-    agua: 'Natural',
-    observacoes: ''
+    agua: 'Natural (Rios/Nascentes)',
+    observacoes: '',
+    fazenda_id: '',
+    estado_cerca: 'Bom',
+    sombreamento: 'Natural',
+    plantas_daninhas: 'Baixa'
   });
 
-  React.useEffect(() => {
+  const [farms, setFarms] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchFarms();
+    }
+  }, [isOpen]);
+
+  const fetchFarms = async () => {
+    try {
+      const { data } = await supabase
+        .from('fazendas')
+        .select('id, nome');
+      if (data) setFarms(data);
+    } catch (err) {
+      console.error('Error fetching farms:', err);
+    }
+  };
+
+  useEffect(() => {
     if (initialData) {
       setFormData({
         nome: initialData.nome || '',
@@ -41,8 +69,12 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
         data_ultima_fertilizacao: initialData.data_ultima_fertilizacao || '',
         topografia: initialData.topografia || 'Plano',
         tipo_solo: initialData.tipo_solo || 'Argiloso',
-        agua: initialData.agua || 'Natural',
-        observacoes: initialData.observacoes || ''
+        agua: initialData.agua || 'Natural (Rios/Nascentes)',
+        observacoes: initialData.observacoes || '',
+        fazenda_id: initialData.fazenda_id || '',
+        estado_cerca: initialData.estado_cerca || 'Bom',
+        sombreamento: initialData.sombreamento || 'Natural',
+        plantas_daninhas: initialData.plantas_daninhas || 'Baixa'
       });
     } else {
       setFormData({
@@ -54,8 +86,12 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
         data_ultima_fertilizacao: '',
         topografia: 'Plano',
         tipo_solo: 'Argiloso',
-        agua: 'Natural',
-        observacoes: ''
+        agua: 'Natural (Rios/Nascentes)',
+        observacoes: '',
+        fazenda_id: '',
+        estado_cerca: 'Bom',
+        sombreamento: 'Natural',
+        plantas_daninhas: 'Baixa'
       });
     }
   }, [initialData, isOpen]);
@@ -64,6 +100,10 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.fazenda_id) {
+      alert('⚠️ Por favor, selecione uma fazenda para o pasto.');
+      return;
+    }
     setLoading(true);
     try {
       await onSubmit(formData);
@@ -83,7 +123,23 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Pasto"}
     >
-      <div className="form-group full-width">
+      <div className="form-group">
+        <label><Map size={14} /> Selecionar Fazenda / Unidade</label>
+        <select 
+          value={formData.fazenda_id}
+          onChange={(e) => setFormData({...formData, fazenda_id: e.target.value})}
+          required
+        >
+          <option value="">Selecione uma fazenda...</option>
+          {farms.map(f => (
+            <option key={f.id} value={f.id}>
+              {f.nome}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
         <label><Map size={14} /> Nome do Pasto</label>
         <input 
           type="text" 
@@ -129,6 +185,15 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
+      <div className="form-group">
+        <label><Calendar size={14} /> Data da Última Fertilização</label>
+        <input 
+          type="date" 
+          value={formData.data_ultima_fertilizacao}
+          onChange={(e) => setFormData({...formData, data_ultima_fertilizacao: e.target.value})}
+        />
+      </div>
+
       <div className="form-group full-width">
         <label><Tag size={14} /> Status da Área</label>
         <div className="elite-form-radio-group">
@@ -152,6 +217,13 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
           >
             <Activity size={16} />
             <span>Degradado</span>
+          </div>
+          <div 
+            className={`elite-form-radio-item ${formData.status === 'renovation' ? 'active' : ''}`}
+            onClick={() => setFormData({...formData, status: 'renovation'})}
+          >
+            <Sprout size={16} />
+            <span>Reforma</span>
           </div>
         </div>
       </div>
@@ -196,12 +268,42 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
       </div>
 
       <div className="form-group">
-        <label><Calendar size={14} /> Data da Última Fertilização</label>
-        <input 
-          type="date" 
-          value={formData.data_ultima_fertilizacao}
-          onChange={(e) => setFormData({...formData, data_ultima_fertilizacao: e.target.value})}
-        />
+        <label><Shield size={14} /> Estado da Cerca</label>
+        <select 
+          value={formData.estado_cerca}
+          onChange={(e) => setFormData({...formData, estado_cerca: e.target.value})}
+        >
+          <option>Bom</option>
+          <option>Regular</option>
+          <option>Ruim</option>
+          <option>Necessita Reparo</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label><Sun size={14} /> Sombreamento</label>
+        <select 
+          value={formData.sombreamento}
+          onChange={(e) => setFormData({...formData, sombreamento: e.target.value})}
+        >
+          <option>Natural (Árvores)</option>
+          <option>Artificial (Coberturas)</option>
+          <option>Misto</option>
+          <option>Inexistente</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label><Flame size={14} /> Plantas Daninhas / Invasoras</label>
+        <select 
+          value={formData.plantas_daninhas}
+          onChange={(e) => setFormData({...formData, plantas_daninhas: e.target.value})}
+        >
+          <option>Baixa Infestação</option>
+          <option>Média Infestação</option>
+          <option>Alta Infestação</option>
+          <option>Livre</option>
+        </select>
       </div>
 
       <div className="form-group full-width">

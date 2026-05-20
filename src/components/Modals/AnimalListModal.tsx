@@ -68,7 +68,7 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
       hideSubmit={true}
       size="large"
     >
-      <div style={{ gridColumn: 'span 2' }}>
+      <div style={{ gridColumn: 'span 4' }}>
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
           <div style={{ flex: 1, position: 'relative' }}>
             <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))' }} />
@@ -132,7 +132,7 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
                     <span style={{ fontSize: '12px', fontWeight: 600, opacity: 0.6 }}>{animal.raca}</span>
                     <span style={{ fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Scale size={12} />
-                      {animal.currentWeight} kg
+                      {typeof animal.currentWeight === 'number' ? animal.currentWeight.toFixed(1) : parseFloat(animal.currentWeight || '0').toFixed(1)} kg
                     </span>
                   </div>
                 </div>

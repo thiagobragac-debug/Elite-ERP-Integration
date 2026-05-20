@@ -6,10 +6,10 @@ import { NotificationCenter } from '../Notifications/NotificationCenter';
 import './Header.css';
 
 interface HeaderProps {
-  onOpenProfile: () => void;
+  onOpenProfile?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenProfile }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenProfile = () => {} }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();

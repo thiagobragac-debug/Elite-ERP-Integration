@@ -17,17 +17,20 @@ export const SuperAdminGuard: React.FC<{ children: React.ReactNode }> = ({ child
       }
 
       try {
-        // Here you would typically check a 'roles' table or user metadata
-        // For example:
-        // const { data } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single();
-        // setIsAuthorized(data?.role === 'superadmin');
+        // Busca a role real do usuário no banco para garantir acesso restrito ao painel SaaS global
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
 
-        // Mocking validation for now. In production, uncomment the DB check above.
-        // Assuming user.email contains 'admin' as a fallback mock check:
-        const isSuperAdmin = user.email?.includes('admin') || true; // Set to true to allow testing until DB is ready
+        if (error) throw error;
+        
+        // Apenas roles autorizadas ('admin' ou 'superadmin') podem gerenciar a infraestrutura global SaaS
+        const isSuperAdmin = data?.role === 'admin' || data?.role === 'superadmin';
         setIsAuthorized(isSuperAdmin);
       } catch (error) {
-        console.error('Error verifying superadmin status:', error);
+        console.error('Erro ao verificar status de governança superadmin:', error);
         setIsAuthorized(false);
       }
     };

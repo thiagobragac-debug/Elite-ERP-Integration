@@ -19,6 +19,7 @@ interface HealthFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  loading?: boolean;
 }
 
 export const HealthForm: React.FC<HealthFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {

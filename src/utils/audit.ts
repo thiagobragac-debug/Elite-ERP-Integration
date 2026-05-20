@@ -6,6 +6,7 @@ interface AuditLogOptions {
   action: string;
   entity: string;
   entity_id?: string;
+  description?: string;
   old_data?: any;
   new_data?: any;
 }
@@ -21,6 +22,7 @@ export const logAudit = async (options: AuditLogOptions) => {
           action: options.action,
           entity: options.entity,
           entity_id: options.entity_id,
+          description: options.description,
           old_data: options.old_data,
           new_data: options.new_data
         }
@@ -36,3 +38,4 @@ export const logAudit = async (options: AuditLogOptions) => {
     return false;
   }
 };
+

@@ -27,7 +27,7 @@ export const PriceAnalysis: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
     fetchPriceData();
   }, [activeFarm]);
 
@@ -41,7 +41,7 @@ export const PriceAnalysis: React.FC = () => {
         *,
         produtos(nome, categoria, unidade_medida)
       `)
-      .eq('fazenda_id', activeFarm.id)
+      .eq('fazenda_id', activeFarm?.id)
       .eq('tipo', 'ENTRADA')
       .order('data_movimentacao', { ascending: false });
 
@@ -100,56 +100,79 @@ export const PriceAnalysis: React.FC = () => {
 
   const tableColumns = [
     {
-      header: 'Item / Categoria',
+      header: 'Item / Código',
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.name}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.category} • {item.unit}
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.name}
+          </span>
+          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            ID: {item.id?.slice(0, 8).toUpperCase()}
+          </span>
         </div>
-      )
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Categoria / Unidade',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+            {item.category}
+          </span>
+          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            Unidade: {item.unit}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
     },
     {
       header: 'Último Preço',
       accessor: (item: any) => (
-        <div className="flex flex-col">
-          <span className="main-text font-bold">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 900, color: '#0f172a' }}>
             {item.lastPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </span>
-          <span className="sub-meta text-[10px]">
+          <span className="sub-meta" style={{ fontSize: '9px' }}>
             {new Date(item.lastDate).toLocaleDateString()}
           </span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
       header: 'Média Histórica',
       accessor: (item: any) => (
-        <span className="sub-meta font-bold">
-          {item.avgPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </span>
-      )
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+            {item.avgPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Melhor Preço (Min)',
+      header: 'Melhor Preço (Mín)',
       accessor: (item: any) => (
-        <span className="text-emerald-600 font-bold">
-          {item.minPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </span>
-      )
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 800, color: '#059669' }}>
+            {item.minPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
     },
     {
       header: 'Tendência',
       accessor: (item: any) => (
-        <div className={`flex items-center gap-1 font-bold ${item.variation === 'up' ? 'text-rose-500' : item.variation === 'down' ? 'text-emerald-500' : 'text-amber-500'}`}>
-          {item.variation === 'up' ? <TrendingUp size={14} /> : item.variation === 'down' ? <TrendingDown size={14} /> : <History size={14} />}
-          <span className="text-[12px]">
-            {item.diffPercent > 0 ? `+${item.diffPercent.toFixed(1)}%` : `${item.diffPercent.toFixed(1)}%`}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.variation === 'up' ? 'stopped' : item.variation === 'down' ? 'active' : 'warning'}`} style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 900 }}>
+            {item.variation === 'up' ? `▲ +${item.diffPercent.toFixed(1)}%` : item.variation === 'down' ? `▼ ${item.diffPercent.toFixed(1)}%` : 'ESTÁVEL'}
           </span>
         </div>
       ),
-      align: 'right' as const
+      align: 'center' as const
     }
   ];
 

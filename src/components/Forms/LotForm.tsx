@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Layers,
   FileText,
@@ -8,12 +8,14 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { FormModal } from './FormModal';
+import { supabase } from '../../lib/supabase';
 
 interface LotFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  loading?: boolean;
 }
 
 export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
@@ -25,12 +27,31 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
     data_inicio: new Date().toISOString().split('T')[0],
     data_fim_prevista: '',
     gmd_alvo: '',
-    peso_alvo: ''
+    peso_alvo: '',
+    pasto_id: ''
   });
 
+  const [pastures, setPastures] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (isOpen) {
+      fetchPastures();
+    }
+  }, [isOpen]);
+
+  const fetchPastures = async () => {
+    try {
+      const { data } = await supabase
+        .from('pastos')
+        .select('id, nome, fazendas(nome)');
+      if (data) setPastures(data);
+    } catch (err) {
+      console.error('Error fetching pastures:', err);
+    }
+  };
+
+  useEffect(() => {
     if (initialData) {
       setFormData({
         nome: initialData.nome || '',
@@ -40,7 +61,20 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
         data_inicio: initialData.data_inicio || new Date().toISOString().split('T')[0],
         data_fim_prevista: initialData.data_fim_prevista || '',
         gmd_alvo: initialData.gmd_alvo?.toString() || '',
-        peso_alvo: initialData.peso_alvo?.toString() || ''
+        peso_alvo: initialData.peso_alvo?.toString() || '',
+        pasto_id: initialData.pasto_id || ''
+      });
+    } else {
+      setFormData({
+        nome: '',
+        descricao: '',
+        status: 'ATIVO',
+        capacidade: '',
+        data_inicio: new Date().toISOString().split('T')[0],
+        data_fim_prevista: '',
+        gmd_alvo: '',
+        peso_alvo: '',
+        pasto_id: ''
       });
     }
   }, [initialData, isOpen]);
@@ -115,6 +149,21 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
           value={formData.peso_alvo}
           onChange={(e) => setFormData({...formData, peso_alvo: e.target.value})}
         />
+      </div>
+
+      <div className="form-group full-width">
+        <label><MapPin size={14} /> Pasto / Piquete Associado</label>
+        <select 
+          value={formData.pasto_id}
+          onChange={(e) => setFormData({...formData, pasto_id: e.target.value})}
+        >
+          <option value="">Sem pasto associado (Livre)</option>
+          {pastures.map(p => (
+            <option key={p.id} value={p.id}>
+              {p.nome} {p.fazendas?.nome ? `(${p.fazendas.nome})` : ''}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="form-group full-width">

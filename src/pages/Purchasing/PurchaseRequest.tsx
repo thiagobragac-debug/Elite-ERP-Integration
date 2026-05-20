@@ -30,10 +30,10 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { PurchaseRequestFilterModal } from './components/PurchaseRequestFilterModal';
 
 export const PurchaseRequest: React.FC = () => {
+  const { activeTenantId } = useTenant();
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,8 +48,8 @@ export const PurchaseRequest: React.FC = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
-    priorities: [],
-    departments: [],
+    priorities: [] as string[],
+    departments: [] as string[],
     maxAmount: 100000,
     dateStart: '',
     dateEnd: ''
@@ -58,14 +58,25 @@ export const PurchaseRequest: React.FC = () => {
   const [showOnlyUrgent, setShowOnlyUrgent] = useState(false);
 
   useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchRequests();
-  }, [activeFarmId, isGlobalMode]);
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+    if (isReady) {
+      fetchRequests();
+    } else {
+      setLoading(false);
+      // Initialize default stats while waiting for farm selection
+      setStats([
+        { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Aguardando' },
+        { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Aguardando' },
+        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA' },
+        { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade' },
+      ]);
+    }
+  }, [activeFarmId, isGlobalMode, activeTenantId]);
 
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('solicitacoes_compra').select('*').order('created_at', { ascending: false });
+      let query = supabase.from('solicitacoes_compra').select('id, titulo, departamento, prioridade, status, descricao, valor_estimado, solicitante, fazenda_id, tenant_id, created_at').limit(500).order('created_at', { ascending: false });
       query = applyFarmFilter(query);
       const { data } = await query;
       
@@ -85,7 +96,13 @@ export const PurchaseRequest: React.FC = () => {
         ]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('[PurchaseRequest] Error:', err);
+      setStats([
+        { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Sem dados' },
+        { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Sem dados' },
+        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA' },
+        { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade' },
+      ]);
     } finally {
       setLoading(false);
     }
@@ -177,70 +194,80 @@ export const PurchaseRequest: React.FC = () => {
 
   const tableColumns = [
     {
-      header: 'ID / Título',
-      accessor: (item: any) => {
-        const isUrgent = item.prioridade === 'high' || item.prioridade === 'urgent' || item.prioridade === 'Urgente';
-        const isHighValue = Number(item.valor_estimado) > 5000;
-        return (
-          <div className="table-cell-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="flex flex-col">
-              <span className="main-text">#{item.id?.slice(0, 8)?.toUpperCase() || 'N/A'}</span>
-              <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
-                <span>{item.titulo || 'SOLICITAÇÃO'}</span>
-                {isHighValue && <span className="text-amber-600 bg-amber-50 px-1 rounded border border-amber-200">NÍVEL EXECUTIVO</span>}
-              </div>
-            </div>
-            {isUrgent && (
-              <span style={{ 
-                fontSize: '8px', 
-                fontWeight: 900, 
-                color: '#ef4444', 
-                background: '#fef2f2', 
-                padding: '2px 6px', 
-                borderRadius: '4px',
-                border: '1px solid #fee2e2'
-              }}>
-                URGENTE
-              </span>
-            )}
-          </div>
-        );
-      }
+      header: 'Solicitação / Código',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.titulo || 'SOLICITAÇÃO'}
+          </span>
+          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            ID: {item.id?.slice(0, 8).toUpperCase()}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
     },
     {
-      header: 'Origem / Espera',
+      header: 'Departamento / Origem',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <User size={12} color="#94a3b8" />
+            {item.departamento}
+          </span>
+          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            Solicitante: {item.solicitante || 'N/A'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Prioridade',
+      accessor: (item: any) => {
+        const isUrgent = item.prioridade === 'high' || item.prioridade === 'urgent' || item.prioridade === 'Urgente';
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <span className={`status-pill ${isUrgent ? 'stopped' : 'info'}`} style={{ fontSize: '9px', padding: '2px 8px', fontWeight: 800 }}>
+              {isUrgent ? 'URGENTE' : 'NORMAL'}
+            </span>
+          </div>
+        );
+      },
+      align: 'center' as const
+    },
+    {
+      header: 'Dias em Espera',
       accessor: (item: any) => {
         const daysAgo = Math.floor((new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24));
         return (
-          <div className="table-cell-meta">
-            <div className="flex flex-col">
-              <div className="flex items-center gap-1">
-                <User size={14} />
-                <span>{item.departamento}</span>
-              </div>
-              <span className={`text-[10px] font-bold uppercase ${daysAgo > 3 ? 'text-red-500' : 'text-slate-400'}`}>
-                HA {daysAgo} DIAS EM AGUARDO
-              </span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: daysAgo > 3 ? '#ef4444' : '#475569', fontWeight: 700, fontSize: '12px' }}>
+            <Clock size={14} />
+            <span>{daysAgo} {daysAgo === 1 ? 'dia' : 'dias'}</span>
           </div>
         );
-      }
+      },
+      align: 'center' as const
     },
     {
-      header: 'Vlr Estimado',
+      header: 'Valor Estimado',
       accessor: (item: any) => (
-        <span className="main-text font-bold" style={{ color: 'hsl(var(--brand))' }}>
-          {Number(item.valor_estimado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669' }}>
+            {Number(item.valor_estimado).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+        </div>
       ),
-      align: 'right' as const
+      align: 'center' as const
     },
     {
-      header: 'Status',
+      header: 'Status Triagem',
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'approved' ? 'active' : item.status === 'pending' ? 'warning' : 'stopped'}`}>
-          {item.status === 'approved' ? 'Em Cotação' : item.status === 'pending' ? 'Triagem' : 'Rejeitado'}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.status === 'approved' ? 'active' : item.status === 'pending' ? 'warning' : 'stopped'}`}>
+            {item.status === 'approved' ? 'Em Cotação' : item.status === 'pending' ? 'Triagem' : 'Rejeitado'}
+          </span>
+        </div>
       ),
       align: 'center' as const
     }
@@ -248,7 +275,6 @@ export const PurchaseRequest: React.FC = () => {
 
   return (
     <div className="requests-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -343,9 +369,9 @@ export const PurchaseRequest: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-request" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-request')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-request')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-request')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-request')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-request')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>

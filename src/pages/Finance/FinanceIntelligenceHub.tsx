@@ -21,128 +21,36 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { useReportData } from '../../hooks/useReportData';
+
 
 export const FinanceIntelligenceHub: React.FC = () => {
-  const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any[]>([]);
-  const [insights, setInsights] = useState<any[]>([]);
-  const [healthScore, setHealthScore] = useState(85);
+  const { data: insights, stats, healthScore, loading, error, refresh } = useReportData('finance-overview');
 
-  useEffect(() => {
-    fetchIntelligenceData();
-  }, [activeFarm, activeTenantId, isGlobalMode]);
+  const fetchIntelligenceData = () => {
+    window.location.reload(); 
+  };
 
-  const fetchIntelligenceData = async () => {
-    const tenantId = activeTenantId || activeFarm?.tenantId;
-    if (!tenantId && !isGlobalMode) {
-      setLoading(false);
-      return;
-    }
+  if (error) {
+    console.error("[FinanceIntelligence] Hub Error:", error);
+  }
 
-    setLoading(true);
-    try {
-      // 1. Fetch data from multiple sources
-      const [bankAccounts, payables, receivables] = await Promise.all([
-        supabase.from('contas_bancarias').select('saldo_atual, limite_credito').eq('tenant_id', tenantId),
-        supabase.from('contas_pagar').select('*').eq('tenant_id', tenantId),
-        supabase.from('contas_receber').select('*').eq('tenant_id', tenantId)
-      ]);
+  // Mapeamento de ícones para KPIs
+  const getStatIcon = (label: string) => {
+    if (label.includes('Patrimônio')) return Activity;
+    if (label.includes('EBITDA')) return TrendingUp;
+    if (label.includes('Runway')) return Zap;
+    return ShieldCheck;
+  };
 
-      const totalBalance = bankAccounts.data?.reduce((acc, curr) => acc + Number(curr.saldo_atual), 0) || 0;
-      const totalLimit = bankAccounts.data?.reduce((acc, curr) => acc + Number(curr.limite_credito || 0), 0) || 0;
-      const totalReceivable = receivables.data?.reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0;
-      const totalPayable = payables.data?.reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0;
-      
-      const liquidity = totalBalance + totalLimit;
-      const netWorkingCapital = totalReceivable - totalPayable;
-      const currentRatio = totalPayable > 0 ? (totalBalance + totalReceivable) / totalPayable : 9.9;
-      
-      // Burn Rate (Simplified)
-      const avgMonthlyOutflow = totalPayable / 3; // Mock average
-      const runway = avgMonthlyOutflow > 0 ? (totalBalance / avgMonthlyOutflow).toFixed(1) : '∞';
-
-      setStats([
-        { 
-          label: 'Patrimônio Líquido Real', 
-          value: totalBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          icon: Activity, 
-          color: '#10b981', 
-          progress: 100,
-          change: '+4.2%',
-          trend: 'up',
-          periodLabel: 'Consolidado Elite'
-        },
-        { 
-          label: 'EBITDA Projetado', 
-          value: (totalReceivable * 0.22).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          icon: TrendingUp, 
-          color: '#3b82f6', 
-          progress: 75,
-          change: '+1.5%',
-          trend: 'up',
-          periodLabel: 'Margem Op. 22%'
-        },
-        { 
-          label: 'Runway (Fôlego)', 
-          value: `${runway} meses`, 
-          icon: Zap, 
-          color: '#8b5cf6', 
-          progress: Math.min(100, (parseFloat(runway) / 24) * 100),
-          change: 'Estável',
-          trend: 'up',
-          periodLabel: 'Autonomia de Caixa'
-        },
-        { 
-          label: 'Índice de Liquidez', 
-          value: currentRatio.toFixed(2), 
-          icon: ShieldCheck, 
-          color: '#f59e0b', 
-          progress: Math.min(100, (currentRatio / 3) * 100),
-          change: currentRatio > 1.5 ? 'Saudável' : 'Atenção',
-          trend: currentRatio > 1.5 ? 'up' : 'down',
-          periodLabel: 'Meta: > 1.50'
-        }
-      ]);
-
-      setInsights([
-        {
-          id: 1,
-          type: 'opportunity',
-          title: 'Otimização de Fluxo',
-          desc: `Você tem ${totalReceivable.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} a receber. Antecipar 20% deste volume pode reduzir custos de juros em 1.5% am.`,
-          impact: 'ALTO',
-          icon: Sparkles,
-          color: '#10b981'
-        },
-        {
-          id: 2,
-          type: 'warning',
-          title: 'Concentração de Vencimentos',
-          desc: 'Há um acúmulo de R$ 45k em pagamentos previstos para a próxima segunda-feira. Verifique a liquidez imediata.',
-          impact: 'MÉDIO',
-          icon: AlertTriangle,
-          color: '#f59e0b'
-        },
-        {
-          id: 3,
-          type: 'info',
-          title: 'Benchmark Setorial',
-          desc: 'Sua margem EBITDA de 22% está 4% acima da média regional para unidades de pecuária de corte.',
-          impact: 'ESTRATÉGICO',
-          icon: Brain,
-          color: '#3b82f6'
-        }
-      ]);
-
-      setHealthScore(Math.min(100, Math.floor(currentRatio * 30)));
-
-    } catch (err) {
-      console.error("Erro no Intelligence Hub:", err);
-    } finally {
-      setLoading(false);
+  // Mapeamento de ícones para Insights
+  const getInsightIcon = (type: string) => {
+    switch (type) {
+      case 'opportunity': return Sparkles;
+      case 'warning': return AlertTriangle;
+      default: return Brain;
     }
   };
 
@@ -158,7 +66,7 @@ export const FinanceIntelligenceHub: React.FC = () => {
           <p className="page-subtitle">Central de comando estratégico com visão preditiva e indicadores de alta fidelidade.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={fetchIntelligenceData}>
+          <button className="glass-btn secondary" onClick={refresh}>
             <RefreshCw size={18} />
             RECALCULAR
           </button>
@@ -172,17 +80,11 @@ export const FinanceIntelligenceHub: React.FC = () => {
       <div className="next-gen-kpi-grid">
         {loading ? (
           Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Activity} color="" />)
-        ) : stats.map((stat, idx) => (
+        ) : stats?.map((stat: any, idx: number) => (
           <EliteStatCard 
             key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            periodLabel={stat.periodLabel}
-            trend={stat.trend}
+            {...stat}
+            icon={getStatIcon(stat.label)}
           />
         ))}
       </div>
@@ -234,25 +136,28 @@ export const FinanceIntelligenceHub: React.FC = () => {
                 <span className="subtitle">Análise preditiva baseada em IA</span>
               </div>
               <div className="insights-list">
-                {insights.map(insight => (
-                  <motion.div 
-                    key={insight.id}
-                    className="insight-item"
-                    whileHover={{ x: 5 }}
-                  >
-                    <div className="insight-icon-box" style={{ background: insight.color + '22', color: insight.color }}>
-                      <insight.icon size={18} />
-                    </div>
-                    <div className="insight-content">
-                      <div className="insight-header">
-                        <h4>{insight.title}</h4>
-                        <span className="impact-badge">{insight.impact}</span>
+                {insights?.map((insight: any) => {
+                  const Icon = getInsightIcon(insight.type);
+                  return (
+                    <motion.div 
+                      key={insight.id}
+                      className="insight-item"
+                      whileHover={{ x: 5 }}
+                    >
+                      <div className="insight-icon-box" style={{ background: insight.color + '22', color: insight.color }}>
+                        <Icon size={18} />
                       </div>
-                      <p>{insight.desc}</p>
-                    </div>
-                    <ArrowRight size={14} className="text-muted" />
-                  </motion.div>
-                ))}
+                      <div className="insight-content">
+                        <div className="insight-header">
+                          <h4>{insight.title}</h4>
+                          <span className="impact-badge">{insight.impact}</span>
+                        </div>
+                        <p>{insight.desc}</p>
+                      </div>
+                      <ArrowRight size={14} className="text-muted" />
+                    </motion.div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -269,7 +174,7 @@ export const FinanceIntelligenceHub: React.FC = () => {
                   className="fill"
                   strokeDasharray="283"
                   initial={{ strokeDashoffset: 283 }}
-                  animate={{ strokeDashoffset: 283 - (283 * healthScore / 100) }}
+                  animate={{ strokeDashoffset: 283 - (283 * (healthScore || 0) / 100) }}
                   transition={{ duration: 2, ease: "easeOut" }}
                 />
               </svg>

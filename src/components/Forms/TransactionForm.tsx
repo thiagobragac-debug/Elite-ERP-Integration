@@ -23,7 +23,7 @@ interface TransactionFormProps {
 }
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, type, onSubmit, initialData }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, activeTenantId } = useTenant();
   const [formData, setFormData] = useState({
     description: '',
     value: '',
@@ -38,17 +38,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen && activeFarm) {
+    if (isOpen && activeTenantId) {
       fetchEntities();
     }
-  }, [isOpen, activeFarm]);
+  }, [isOpen, activeTenantId]);
 
   const fetchEntities = async () => {
     const table = type === 'payable' ? 'fornecedores' : 'clientes';
     const { data } = await supabase
       .from(table)
       .select('id, nome')
-      .eq('tenant_id', activeFarm?.tenantId);
+      .eq('tenant_id', activeTenantId);
     if (data) setEntities(data);
   };
 
@@ -87,7 +87,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, type: type === 'receivable' ? 'inflow' : 'outflow' });
     } finally {
       setLoading(false);
     }

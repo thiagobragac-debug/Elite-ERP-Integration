@@ -83,7 +83,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
   }, [isOpen, activeFarm]);
 
   const fetchClients = async () => {
-    const { data } = await supabase.from('clientes').select('id, nome').eq('tenant_id', activeFarm.tenantId);
+    const { data } = await supabase.from('clientes').select('id, nome').eq('tenant_id', activeFarm?.tenantId || '');
     if (data) setClients(data);
   };
 

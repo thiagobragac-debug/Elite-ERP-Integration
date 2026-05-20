@@ -15,8 +15,7 @@ import {
   Server,
   FileText,
   Globe,
-  Building2,
-  Zap
+  Building2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
@@ -31,7 +30,7 @@ interface NavItem {
 }
 
 const menuItems: NavItem[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
+  { title: 'Dashboard', icon: LayoutDashboard, href: '/' },
   { 
     title: 'Administração', 
     icon: Settings,
@@ -40,6 +39,7 @@ const menuItems: NavItem[] = [
       { title: 'Usuário', href: '/admin/usuarios' },
       { title: 'Empresa / Fazenda', href: '/admin/config' },
       { title: 'Configurações', href: '/admin/configuracoes' },
+      { title: 'Assinatura & Planos', href: '/admin/assinatura' },
       { title: 'Log de Auditoria', href: '/admin/auditoria' },
     ]
   },
@@ -159,12 +159,9 @@ export const Sidebar: React.FC = () => {
           <div className="logo-icon" style={{ 
             background: isFleetRoute ? '#0f172a' : isPurchasingRoute ? '#4f46e5' : 'hsl(var(--brand))' 
           }}>
-            <Zap size={20} color="white" />
+            {isFleetRoute ? <Truck size={24} color="white" /> : isPurchasingRoute ? <ShoppingCart size={24} color="white" /> : <Activity size={24} color="white" />}
           </div>
-          <div className="logo-text-group">
-            <span className="logo-text">{isFleetRoute ? 'Elite Frota' : isPurchasingRoute ? 'Elite Compras' : 'Elite Pecuária'}</span>
-            <span className="logo-version">DIAMOND 5.0</span>
-          </div>
+          <span className="logo-text">{isFleetRoute ? 'Elite Frota' : isPurchasingRoute ? 'Elite Compras' : 'Elite Pecuária'}</span>
         </div>
       </div>
 

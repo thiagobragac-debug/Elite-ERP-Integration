@@ -8,9 +8,10 @@ interface PlanFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  isSubmitting?: boolean;
 }
 
-export const PlanForm: React.FC<PlanFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const PlanForm: React.FC<PlanFormProps> = ({ isOpen, onClose, onSubmit, initialData, isSubmitting = false }) => {
   const [formData, setFormData] = useState({
     name: '',
     price: '',
@@ -299,14 +300,25 @@ export const PlanForm: React.FC<PlanFormProps> = ({ isOpen, onClose, onSubmit, i
             </div>
 
             <div className="elite-modal-footer">
-              <button className="glass-btn secondary" onClick={onClose}>Cancelar</button>
-              <button className="primary-btn" onClick={() => {
-                onSubmit({
-                  ...formData,
-                  features: formData.features.split('\n').filter(f => f.trim())
-                });
-              }}>
-                {initialData ? 'Salvar Alterações' : 'Criar Plano SaaS'}
+              <button className="glass-btn secondary" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+              <button 
+                className="primary-btn" 
+                disabled={isSubmitting}
+                onClick={() => {
+                  onSubmit({
+                    ...formData,
+                    features: formData.features.split('\n').filter(f => f.trim())
+                  });
+                }}
+              >
+                {isSubmitting ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className="elite-spinner-mini" />
+                    SALVANDO...
+                  </div>
+                ) : (
+                  initialData ? 'SALVAR ALTERAÇÕES' : 'CRIAR PLANO SAAS'
+                )}
               </button>
             </div>
           </motion.div>

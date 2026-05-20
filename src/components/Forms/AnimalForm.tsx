@@ -13,12 +13,16 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { FormModal } from './FormModal';
+import { supabase } from '../../lib/supabase';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { isValidUUID } from '../../utils/validation';
 
 interface AnimalFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  loading?: boolean;
 }
 
 export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
@@ -38,10 +42,13 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     categoria: 'Boi',
     finalidade: 'Corte'
   });
-
+  const { applyFarmFilter } = useFarmFilter();
+  const [lotes, setLotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingLotes, setLoadingLotes] = useState(false);
 
   React.useEffect(() => {
+    fetchLotes();
     if (initialData) {
       setFormData({
         brinco: initialData.brinco || '',
@@ -78,6 +85,19 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
       });
     }
   }, [initialData, isOpen]);
+
+  const fetchLotes = async () => {
+    setLoadingLotes(true);
+    try {
+      const { data, error } = await applyFarmFilter(supabase.from('lotes').select('id, nome')).order('nome');
+      if (error) throw error;
+      setLotes(data || []);
+    } catch (err) {
+      console.error('[AnimalForm] Erro ao buscar lotes:', err);
+    } finally {
+      setLoadingLotes(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,10 +183,12 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           value={formData.lote_id}
           onChange={(e) => setFormData({...formData, lote_id: e.target.value})}
           required
+          disabled={loadingLotes}
         >
-          <option value="">Selecionar Lote...</option>
-          <option value="1">LOTE-A1 (Engorda)</option>
-          <option value="2">LOTE-B2 (Recria)</option>
+          <option value="">{loadingLotes ? 'Carregando lotes...' : 'Selecionar Lote...'}</option>
+          {lotes.map(lote => (
+            <option key={lote.id} value={lote.id}>{lote.nome}</option>
+          ))}
         </select>
       </div>
 

@@ -28,6 +28,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { useSearchParams } from 'react-router-dom';
 import { ClientFilterModal } from './components/ClientFilterModal';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export const ClientManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
@@ -46,20 +47,23 @@ export const ClientManagement: React.FC = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
-    segments: [],
+    segments: [] as string[],
     minLtv: 0,
     maxLtv: 1000000,
     onlyChurnRisk: false,
     rating: 'all'
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
   useEffect(() => {
-    if (!activeTenantId && !activeFarm) {
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarm;
+    if (isReady) {
+      fetchClients();
+    } else {
       setLoading(false);
-      return;
     }
-    fetchClients();
-  }, [activeFarm, isGlobalMode, activeTenantId]);
+  }, [activeFarm, isGlobalMode, activeTenantId, debouncedSearch, filterValues, activeTab]);
 
   const [searchParams] = useSearchParams();
 
@@ -90,14 +94,14 @@ export const ClientManagement: React.FC = () => {
     // Fetch Clients
     const { data: clientData } = await supabase
       .from('clientes')
-      .select('*')
+      .select('*').limit(500)
       .eq('tenant_id', tenantId)
       .order('nome', { ascending: true });
     
     // Fetch Sales Data for Intelligence
     const { data: salesData } = await supabase
       .from('pedidos_venda')
-      .select('*')
+      .select('*').limit(500)
       .eq('tenant_id', tenantId);
 
     if (clientData) {
@@ -146,42 +150,55 @@ export const ClientManagement: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) return;
-    const payload = {
-      nome: formData.name,
-      documento: formData.cnpj,
-      tipo: formData.type,
-      email: formData.email,
-      telefone: formData.phone,
-      cep: formData.cep,
-      tipo_logradouro: formData.tipo_logradouro,
-      logradouro: formData.logradouro,
-      numero: formData.numero,
-      complemento: formData.complemento,
-      bairro: formData.bairro,
-      cidade: formData.cidade,
-      estado: formData.estado,
-      pais: formData.pais,
-      limite_credito: formData.creditLimit,
-      status: formData.status,
-      segmento: formData.segment
-    };
+    if (!activeFarm && !selectedClient) return;
+    
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        nome: formData.name,
+        documento: formData.cnpj,
+        tipo: formData.type,
+        email: formData.email,
+        telefone: formData.phone,
+        cep: formData.cep,
+        tipo_logradouro: formData.tipo_logradouro,
+        logradouro: formData.logradouro,
+        numero: formData.numero,
+        complemento: formData.complemento,
+        bairro: formData.bairro,
+        cidade: formData.cidade,
+        estado: formData.estado,
+        pais: formData.pais,
+        limite_credito: formData.creditLimit,
+        status: formData.status,
+        segmento: formData.segment
+      };
 
-    if (selectedClient) {
-      const { error } = await supabase.from('clientes').update({
-        ...payload,
-        is_global: formData.is_global,
-        fazendas_vinculadas: formData.fazendas_vinculadas
-      }).eq('id', selectedClient.id);
-      if (!error) { setIsModalOpen(false); fetchClients(); }
-    } else {
-      const { error } = await supabase.from('clientes').insert([{ 
-        ...payload, 
-        tenant_id: activeTenantId || activeFarm?.tenantId,
-        is_global: formData.is_global,
-        fazendas_vinculadas: formData.fazendas_vinculadas
-      }]);
-      if (!error) { setIsModalOpen(false); fetchClients(); }
+      if (selectedClient) {
+        const { error } = await supabase.from('clientes').update({
+          ...payload,
+          is_global: formData.is_global,
+          fazendas_vinculadas: formData.fazendas_vinculadas
+        }).eq('id', selectedClient.id);
+        if (error) throw error;
+        setIsModalOpen(false); 
+        fetchClients();
+      } else {
+        const { error } = await supabase.from('clientes').insert([{ 
+          ...payload, 
+          tenant_id: activeTenantId || activeFarm?.tenantId,
+          is_global: formData.is_global,
+          fazendas_vinculadas: formData.fazendas_vinculadas
+        }]);
+        if (error) throw error;
+        setIsModalOpen(false); 
+        fetchClients();
+      }
+    } catch (err: any) {
+      console.error('[ClientManagement] Erro ao salvar cliente:', err);
+      alert('❌ Erro ao salvar cliente: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -222,8 +239,13 @@ export const ClientManagement: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este cliente?')) return;
-    const { error } = await supabase.from('clientes').delete().eq('id', id);
-    if (!error) fetchClients();
+    try {
+      const { error } = await supabase.from('clientes').delete().eq('id', id);
+      if (error) throw error;
+      fetchClients();
+    } catch (err: any) {
+      alert('❌ Erro ao excluir cliente: ' + err.message);
+    }
   };
 
   const handleViewHistory = (client: any) => {
@@ -236,60 +258,77 @@ export const ClientManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Cliente',
-      accessor: (item: any) => {
-        return (
-          <div className="table-cell-title" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="flex flex-col">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="main-text">{item.nome}</span>
-                <span className={`px-1 rounded text-[8px] font-black border ${
-                  item.rating === 'AAA' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                  item.rating === 'AA' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
-                  'bg-slate-50 text-slate-400 border-slate-100'
-                }`}>
-                  RATING {item.rating}
-                </span>
-                {item.churnRisk && (
-                  <span className="bg-red-50 text-red-600 border border-red-100 px-1 rounded text-[8px] font-black animate-pulse">
-                    RISCO DE CHURN
-                  </span>
-                )}
-              </div>
-              <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-                {item.documento || 'Sem documento'} • {item.segmento || 'Prata'}
-              </div>
-            </div>
-          </div>
-        );
-      }
+      header: 'Cliente / Identificação',
+      accessor: (item: any) => (
+        <div className="table-cell-title text-left" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
+          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px' }}>
+            {item.documento || 'Sem Documento'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
     },
     {
-      header: 'LTV / Exposição',
+      header: 'Contato / E-mail',
       accessor: (item: any) => (
-        <div className="flex flex-col">
-          <span className="main-text font-bold">
+        <div className="table-cell-title text-left" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span className="main-text" style={{ fontSize: '13px', fontWeight: 600 }}>{item.telefone || 'Sem telefone'}</span>
+          <span className="sub-meta" style={{ fontSize: '11px', textTransform: 'lowercase', color: '#64748b' }}>{item.email || 'Sem e-mail'}</span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Segmento / Categoria',
+      accessor: (item: any) => (
+        <div className="table-cell-title text-left" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>{item.segmento || 'Prata'}</span>
+          <span className="sub-meta" style={{ fontSize: '10px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 700 }}>
+            {item.tipo || 'Cliente'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Faturamento (LTV)',
+      accessor: (item: any) => (
+        <div className="table-cell-title text-right" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+          <span className="main-text" style={{ color: 'hsl(var(--brand))', fontWeight: 800 }}>
             {Number(item.ltv || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
           </span>
-          <span className="text-[10px] text-slate-400 font-bold uppercase">Última Venda: {item.daysSinceLastSale > 365 ? 'NUNCA' : `${item.daysSinceLastSale.toFixed(0)}d atrás`}</span>
+          <span className="sub-meta" style={{ fontSize: '9px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 700 }}>
+            Última: {item.daysSinceLastSale > 365 ? 'NUNCA' : `${item.daysSinceLastSale.toFixed(0)}d atrás`}
+          </span>
         </div>
       ),
       align: 'right' as const
     },
     {
-      header: 'Tipo',
+      header: 'Rating / Risco',
       accessor: (item: any) => (
-        <span className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-          {item.tipo}
-        </span>
-      )
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+          <span className="status-pill info" style={{ fontSize: '9px', padding: '2px 8px', fontWeight: 900, borderRadius: '99px' }}>
+            RATING {item.rating || 'B'}
+          </span>
+          {item.churnRisk && (
+            <span className="status-pill danger" style={{ fontSize: '8px', padding: '2px 6px', fontWeight: 900, borderRadius: '99px' }}>
+              RISCO CHURN
+            </span>
+          )}
+        </div>
+      ),
+      align: 'center' as const
     },
     {
       header: 'Status',
       accessor: (item: any) => (
-        <span className={`status-pill ${(item.status || '').toUpperCase() === 'ATIVO' ? 'active' : 'warning'}`}>
-          {(item.status || 'Lead').toUpperCase()}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${(item.status || '').toUpperCase() === 'ATIVO' ? 'active' : 'warning'}`}>
+            {(item.status || 'Lead').toUpperCase()}
+          </span>
+        </div>
       ),
       align: 'center' as const
     }
@@ -420,9 +459,9 @@ export const ClientManagement: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-clients" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-clients')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-clients')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-clients')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-clients')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-clients')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>
@@ -501,9 +540,9 @@ export const ClientManagement: React.FC = () => {
                       {client.nome?.charAt(0) || 'C'}
                     </div>
                     <div className="card-bottom-actions">
-                      <button className="action-icon-btn" onClick={() => handleViewHistory(client)} title="Dossiê"><History size={16} /></button>
-                      <button className="action-icon-btn" onClick={() => handleOpenEdit(client)} title="Editar"><Edit3 size={16} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(client.id)} title="Excluir"><Trash2 size={16} /></button>
+                      <button className="action-icon-btn info" onClick={() => handleViewHistory(client)} title="Dossiê"><History size={14} /></button>
+                      <button className="action-icon-btn edit" onClick={() => handleOpenEdit(client)} title="Editar"><Edit3 size={14} /></button>
+                      <button className="action-icon-btn delete" onClick={() => handleDelete(client.id)} title="Excluir"><Trash2 size={14} /></button>
                     </div>
                   </div>
 
@@ -528,6 +567,12 @@ export const ClientManagement: React.FC = () => {
                       <div className="meta-item">
                         <Phone size={14} className="meta-icon" />
                         <span>{client.telefone || 'Sem telefone'}</span>
+                      </div>
+                    </div>
+                    <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '6px', marginTop: '12px' }}>
+                      <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
+                        <Target size={12} style={{ color: 'hsl(var(--brand))' }} />
+                        <span>Seg: {client.segmento || 'Geral'}</span>
                       </div>
                     </div>
                   </div>
@@ -691,13 +736,16 @@ export const ClientManagement: React.FC = () => {
 
         .card-bottom-actions {
           display: flex;
-          gap: 8px;
-          margin-top: 15px;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          margin-top: 12px;
         }
 
         .action-icon-btn {
-          width: 34px;
-          height: 34px;
+          width: 32px;
+          height: 32px;
           border-radius: 10px;
           border: 1px solid hsl(var(--border));
           background: hsl(var(--bg-card));

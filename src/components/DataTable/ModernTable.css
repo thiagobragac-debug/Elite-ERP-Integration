@@ -213,6 +213,27 @@
   width: 100px;
 }
 
+.align-left {
+  text-align: left !important;
+}
+.align-left > div {
+  justify-content: flex-start !important;
+}
+
+.align-center {
+  text-align: center !important;
+}
+.align-center > div {
+  justify-content: center !important;
+}
+
+.align-right {
+  text-align: right !important;
+}
+.align-right > div {
+  justify-content: flex-end !important;
+}
+
 .actions-wrapper {
   display: flex;
   justify-content: center;

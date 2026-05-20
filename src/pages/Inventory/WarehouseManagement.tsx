@@ -27,8 +27,6 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { FormModal } from '../../components/Forms/FormModal';
 import { WarehouseFilterModal } from './components/WarehouseFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
-
 export const WarehouseManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -42,16 +40,20 @@ export const WarehouseManagement: React.FC = () => {
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     occupation: 'all',
-    types: []
+    types: [] as string[]
   });
 
   const [farms, setFarms] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchWarehouses();
-    fetchFarms();
-  }, [activeFarmId, isGlobalMode]);
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+    if (isReady) {
+      fetchWarehouses();
+      fetchFarms();
+    } else {
+      setLoading(false);
+    }
+  }, [activeFarmId, activeTenantId, isGlobalMode]);
 
   const fetchFarms = async () => {
     let query = supabase.from('fazendas').select('id, nome');
@@ -109,13 +111,13 @@ export const WarehouseManagement: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canCreate && !selectedWarehouse) {
       alert('⚠️ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.');
       return;
     }
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
     const payload = {
       nome: formData.get('nome'),
       descricao: formData.get('descricao'),
@@ -207,58 +209,96 @@ export const WarehouseManagement: React.FC = () => {
     {
       header: 'Depósito / Estrutura',
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.nome}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
-            <span>{item.tipo}</span>
-            <span className="text-slate-400">• {item.localizacao_tecnica || 'Sede'}</span>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
+          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            ID: {item.id?.slice(0, 8).toUpperCase()}
+          </span>
         </div>
-      )
+      ),
+      align: 'left' as const
     },
     {
-      header: 'Ocupação',
+      header: 'Tipo & Localização',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+            {item.tipo}
+          </span>
+          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            Local: {item.localizacao_tecnica || 'Sede'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Capacidade Máxima',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569' }}>
+            {Number(item.capacidade_maxima || 0).toLocaleString('pt-BR')} {item.unidade_capacidade}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Ocupação Real',
       accessor: (item: any) => {
         const perc = item.capacidade_maxima > 0 ? (item.saldo_atual / item.capacidade_maxima) * 100 : 0;
+        const isOvercrowded = perc > 90;
         return (
-          <div className="flex flex-col gap-1 w-32">
-            <div className="flex justify-between text-[10px] font-bold">
-              <span>{Math.round(perc)}%</span>
-              <span className="text-slate-400">{item.saldo_atual} {item.unidade_capacidade}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '130px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, color: '#64748b' }}>
+              <span>OCUPAÇÃO</span>
+              <span style={{ color: isOvercrowded ? '#f43f5e' : '#6366f1' }}>{Math.round(perc)}%</span>
             </div>
-            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div style={{ height: '6px', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
               <div 
-                className={`h-full ${perc > 90 ? 'bg-red-500' : perc > 70 ? 'bg-amber-500' : 'bg-blue-500'}`}
-                style={{ width: `${Math.min(perc, 100)}%` }}
+                style={{ 
+                  height: '100%', 
+                  borderRadius: '99px', 
+                  backgroundColor: isOvercrowded ? '#f43f5e' : perc > 70 ? '#f59e0b' : '#6366f1',
+                  width: `${Math.min(perc, 100)}%` 
+                }} 
               />
             </div>
+            <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', marginTop: '2px' }}>
+              Saldo: {Number(item.saldo_atual || 0).toLocaleString('pt-BR')} {item.unidade_capacidade}
+            </span>
           </div>
         );
-      }
+      },
+      align: 'left' as const
     },
     {
       header: 'Patrimônio Armazenado',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: 800, color: '#0f172a' }}>
           <DollarSign size={14} className="text-emerald-500" />
-          <span className="font-bold">R$ {Number(item.valor_total || 0).toLocaleString('pt-BR')}</span>
+          <span>R$ {Number(item.valor_total || 0).toLocaleString('pt-BR')}</span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Status',
+      header: 'Status Operacional',
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'ativo' ? 'active' : ''}`}>
-          {item.status === 'ativo' ? 'Operacional' : 'Inativo'}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.status === 'ativo' ? 'active' : ''}`}>
+            {item.status === 'ativo' ? 'Operacional' : 'Inativo'}
+          </span>
+        </div>
       ),
       align: 'center' as const
     }
   ];
 
+  const totalStockValue = warehouses.reduce((acc, w) => acc + (w.valor_total || 0), 0);
+
   return (
     <div className="inventory-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -309,10 +349,10 @@ export const WarehouseManagement: React.FC = () => {
         />
         <EliteStatCard 
           label="Valor Total em Estoque" 
-          value="R$ 1.2M" 
+          value={`R$ ${Number(totalStockValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           icon={Package} 
           color="#10b981"
-          progress={85}
+          progress={totalStockValue > 0 ? 100 : 0}
           change="Patrimônio Armazenado"
           periodLabel="Avaliação em Tempo Real"
         />
@@ -379,9 +419,9 @@ export const WarehouseManagement: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-warehouse" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-warehouse')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
           <WarehouseFilterModal 
@@ -423,11 +463,11 @@ export const WarehouseManagement: React.FC = () => {
                     {w.tipo?.includes('Silo') ? <Boxes size={28} /> : <Layout size={28} />}
                   </div>
                   <div className="card-bottom-actions">
-                    <button className="action-icon-btn" onClick={() => {
+                    <button className="action-icon-btn edit" onClick={() => {
                       setSelectedWarehouse(w);
                       setIsModalOpen(true);
-                    }} title="Editar"><Edit3 size={16} /></button>
-                    <button className="action-icon-btn delete" onClick={() => handleDelete(w.id)} title="Excluir"><Trash2 size={16} /></button>
+                    }} title="Editar"><Edit3 size={14} /></button>
+                    <button className="action-icon-btn delete" onClick={() => handleDelete(w.id)} title="Excluir"><Trash2 size={14} /></button>
                   </div>
                 </div>
 
@@ -460,14 +500,16 @@ export const WarehouseManagement: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="card-footer-meta">
-                    <div className="meta-item">
-                      <Boxes size={12} />
-                      <span>{w.localizacao_tecnica || 'Sede'}</span>
-                    </div>
-                    <div className="meta-item">
-                      <Activity size={12} />
-                      <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Unidade')}</span>
+                  <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <div className="meta-item">
+                        <Boxes size={12} />
+                        <span>{w.localizacao_tecnica || 'Sede'}</span>
+                      </div>
+                      <div className="meta-item">
+                        <Activity size={12} />
+                        <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Unidade')}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -537,7 +579,7 @@ export const WarehouseManagement: React.FC = () => {
         }
 
         .card-left-section {
-          width: 110px;
+          width: 130px;
           background: hsl(var(--bg-main) / 0.5);
           display: flex;
           flex-direction: column;
@@ -686,7 +728,11 @@ export const WarehouseManagement: React.FC = () => {
 
         .card-bottom-actions {
           display: flex;
-          gap: 8px;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          margin-top: 12px;
         }
 
         .action-icon-btn {
@@ -744,7 +790,7 @@ export const WarehouseManagement: React.FC = () => {
         }}
         onSubmit={handleSubmit}
         title={selectedWarehouse ? "Editar Depósito" : "Novo Depósito"}
-        subtitle={`Vincule este almoxarifado à fazenda ${activeFarm?.nome || 'ativa'}`}
+        subtitle={`Vincule este almoxarifado à fazenda ${activeFarm?.name || 'ativa'}`}
         icon={Package}
         submitLabel={selectedWarehouse ? "Salvar Alterações" : "Confirmar Cadastro"}
         size="large"

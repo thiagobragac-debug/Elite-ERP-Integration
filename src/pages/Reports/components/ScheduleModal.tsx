@@ -45,7 +45,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
         reportTitle: report.title,
         frequency,
         format,
-        recipients: recipients.split(',').map(e => e.trim()),
+        recipients: recipients.split(',').map((e: string) => e.trim()),
         channels,
         active: true,
         createdAt: new Date().toISOString()

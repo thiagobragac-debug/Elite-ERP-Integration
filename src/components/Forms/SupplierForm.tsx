@@ -22,6 +22,7 @@ interface SupplierFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  loading?: boolean;
 }
 
 export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {

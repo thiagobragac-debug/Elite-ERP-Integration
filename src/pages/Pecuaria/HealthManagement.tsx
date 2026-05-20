@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   HeartPulse, 
   Plus, 
@@ -21,29 +21,27 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
-import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { useReportData } from '../../hooks/useReportData';
 import { HealthForm } from '../../components/Forms/HealthForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
-import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { HealthProtocolsModal } from './components/HealthProtocolsModal';
 import { HealthFilterModal } from './components/HealthFilterModal';
 import './HealthManagement.css';
 
 export const HealthManagement: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
-  const [events, setEvents] = useState<any[]>([]);
+  const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'MANEJOS' | 'PROTOCOLOS'>('MANEJOS');
-  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
-  const [stats, setStats] = useState<any[]>([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -54,127 +52,17 @@ export const HealthManagement: React.FC = () => {
     dateEnd: ''
   });
   const [isProtocolsModalOpen, setIsProtocolsModalOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
-  useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchEvents();
-  }, [activeFarmId, isGlobalMode]);
-
-  const fetchEvents = async () => {
-    setLoading(true);
-    try {
-      let query = supabase
-        .from('sanidade')
-        .select(`
-          *,
-          animais:animal_id (brinco),
-          lotes:lote_id (nome)
-        `)
-        .order('data_manejo', { ascending: false });
-      
-      query = applyFarmFilter(query);
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching health events:', error);
-        setLoading(false);
-        return;
-      }
-
-      const enrichedData = data.map(item => {
-        const dataManejo = item.data_manejo ? new Date(item.data_manejo) : new Date();
-        const dataLiberacao = new Date(dataManejo);
-        dataLiberacao.setDate(dataLiberacao.getDate() + (item.carencia_dias || 0));
-        
-        const now = new Date();
-        const diffTime = dataLiberacao.getTime() - now.getTime();
-        const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const isBlocked = diasRestantes > 0 && item.status === 'REALIZADO';
-
-        const animal = Array.isArray(item.animais) ? item.animais[0] : item.animais;
-        const lote = Array.isArray(item.lotes) ? item.lotes[0] : item.lotes;
-
-        return { 
-          ...item, 
-          dataLiberacao, 
-          diasRestantes, 
-          isBlocked,
-          targetName: animal?.brinco ? `#${animal.brinco}` : (lote?.nome || 'Manejo Geral'),
-          targetType: animal?.brinco ? 'Individual' : 'Lote'
-        };
-      });
-
-      setEvents(enrichedData);
-      
-      const totalManejos = enrichedData.length;
-      const emCarencia = enrichedData.filter(e => e.isBlocked).length;
-      const pendentes = enrichedData.filter(e => e.status === 'PENDENTE').length;
-      
-      setStats([
-        { 
-          label: 'Conformidade Sanitária', 
-          value: '94.5%', 
-          icon: ShieldCheck, 
-          color: '#10b981', 
-          progress: 94.5,
-          change: '+0.8%',
-          trend: 'up',
-          periodLabel: 'Nível de Governança',
-          sparkline: [
-            { value: 90, label: '90%' }, { value: 92, label: '92%' }, { value: 91, label: '91%' }, 
-            { value: 93, label: '93%' }, { value: 94, label: '94%' }, { value: 94.5, label: '94.5%' }
-          ]
-        },
-        { 
-          label: 'Alertas de Carência', 
-          value: emCarencia.toString(), 
-          icon: AlertCircle, 
-          color: emCarencia > 0 ? '#ef4444' : '#10b981', 
-          progress: Math.min((emCarencia / (totalManejos || 1)) * 100, 100), 
-          trend: emCarencia > 0 ? 'up' : 'down',
-          change: emCarencia > 0 ? 'Trava Ativa' : 'Seguro',
-          periodLabel: 'Bloqueio de Venda',
-          sparkline: [
-            { value: 5, label: '5' }, { value: 8, label: '8' }, { value: 4, label: '4' }, 
-            { value: 2, label: '2' }, { value: 1, label: '1' }, { value: emCarencia, label: emCarencia.toString() }
-          ]
-        },
-        { 
-          label: 'Agenda de Manejos', 
-          value: pendentes.toString(), 
-          icon: Calendar, 
-          color: '#3b82f6', 
-          progress: Math.min((pendentes / (totalManejos || 1)) * 100, 100),
-          change: 'Próximos 7d', 
-          trend: 'up', 
-          periodLabel: 'Execução Pendente',
-          sparkline: [
-            { value: 10, label: '10' }, { value: 15, label: '15' }, { value: 8, label: '8' }, 
-            { value: 12, label: '12' }, { value: 5, label: '5' }, { value: pendentes, label: pendentes.toString() }
-          ]
-        },
-        { 
-          label: 'Eficácia Sanit.', 
-          value: '94.5%', 
-          icon: FlaskConical, 
-          color: '#8b5cf6', 
-          progress: 94.5,
-          change: '+1.2%', 
-          trend: 'up', 
-          periodLabel: 'Controle de Patógenos',
-          sparkline: [
-            { value: 90, label: '90%' }, { value: 92, label: '92%' }, { value: 91, label: '91%' }, 
-            { value: 93, label: '93%' }, { value: 94, label: '94%' }, { value: 94.5, label: '94.5%' }
-          ]
-        }
-      ]);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { 
+    data: events, 
+    stats, 
+    loading, 
+    error, 
+    totalCount,
+    refresh 
+  } = useReportData('sanidade-animal', { page, pageSize });
 
   const handleOpenCreate = () => {
     setSelectedEvent(null);
@@ -188,8 +76,13 @@ export const HealthManagement: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este registro sanitário?')) return;
-    const { error } = await supabase.from('sanidade').delete().eq('id', id);
-    if (!error) fetchEvents();
+    try {
+      const { error } = await supabase.from('sanidade').delete().eq('id', id);
+      if (error) throw error;
+      refresh();
+    } catch (err: any) {
+      alert('❌ Erro ao excluir registro: ' + err.message);
+    }
   };
 
   const handleViewDetails = (event: any) => {
@@ -203,36 +96,69 @@ export const HealthManagement: React.FC = () => {
 
   const tableColumns = [
     { 
-      header: 'Alvo (Animal / Lote)', 
+      header: 'Fármaco / Manejo', 
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.targetName}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider text-slate-400">
-            {item.targetType}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.produto || item.titulo || 'Manejo Geral'}
+          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700, fontSize: '10px', color: '#64748b', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <HeartPulse size={12} color={item.tipo === 'VACINA' ? '#6366f1' : '#10b981'} />
+            {item.tipo} • {item.via_aplicacao || 'S/V'}
           </div>
         </div>
-      )
+      ),
+      align: 'left' as const
+    },
+    { 
+      header: 'Alvo (Animal / Lote)', 
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 700, color: '#334155' }}>{item.targetName}</span>
+          <span className="sub-meta" style={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '9px', letterSpacing: '0.05em', color: '#94a3b8' }}>
+            {item.targetType}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Dosagem & Local',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700, color: '#334155', fontSize: '12px' }}>
+            <FlaskConical size={14} color="#3b82f6" />
+            <span>{item.dose || 'N/A'}</span>
+          </div>
+          {item.local_aplicacao && (
+            <span style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
+              Local: {item.local_aplicacao}
+            </span>
+          )}
+        </div>
+      ),
+      align: 'left' as const
     },
     { 
       header: 'Segurança (Carência)', 
       accessor: (item: any) => {
         if (item.isBlocked) {
           return (
-            <div className="flex flex-col gap-1 min-w-[140px]">
-              <div className="flex items-center gap-1 text-[11px] font-extrabold text-red-600">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: '140px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 900, color: '#dc2626', marginBottom: '2px' }}>
                 <AlertCircle size={14} />
                 <span>BLOQUEADO ({item.diasRestantes}d)</span>
               </div>
-              <span className="text-[9px] font-bold text-slate-400 uppercase">
-                Liberação: {item.dataLiberacao instanceof Date && !isNaN(item.dataLiberacao.getTime()) 
-                  ? item.dataLiberacao.toLocaleDateString() 
+              <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Liberação: {item.dataLiberacao instanceof Date && !isNaN(new Date(item.dataLiberacao).getTime()) 
+                  ? new Date(item.dataLiberacao).toLocaleDateString() 
                   : '---'}
               </span>
             </div>
           );
         }
         return (
-          <div className="flex items-center gap-1 text-[11px] font-extrabold text-emerald-600">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 900, color: '#059669', justifyContent: 'center' }}>
             <CheckCircle2 size={14} />
             <span>LIBERADO</span>
           </div>
@@ -241,59 +167,79 @@ export const HealthManagement: React.FC = () => {
       align: 'center' as const
     },
     { 
-      header: 'Status', 
+      header: 'Data do Manejo', 
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'REALIZADO' ? 'success' : 'pending'}`}>
-          {item.status}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px' }}>
+          <Calendar size={14} />
+          <span>{item.data_manejo ? new Date(item.data_manejo).toLocaleDateString() : 'N/I'}</span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Status & Obs',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+          <span className={`status-pill ${item.status === 'REALIZADO' ? 'success' : 'pending'}`}>
+            {item.status}
+          </span>
+          {item.observacao && (
+            <span style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 600, maxWidth: '100px' }} className="truncate" title={item.observacao}>
+              {item.observacao}
+            </span>
+          )}
+        </div>
       ),
       align: 'center' as const
     }
   ];
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
-    const payload = {
-      tipo: data.tipo,
-      titulo: data.titulo,
-      animal_id: data.animal_id || null,
-      lote_id: data.lote_id || null,
-      data_manejo: data.data_manejo,
-      produto: data.produto,
-      dose: data.dose,
-      via_aplicacao: data.via_aplicacao,
-      local_aplicacao: data.local_aplicacao,
-      carencia_dias: parseInt(data.carencia_dias) || 0,
-      observacao: data.observacao,
-      status: data.status
-    };
+    if (!canCreate && !selectedEvent) {
+      alert('⚠️ Selecione uma unidade específica para registrar um novo manejo sanitário.');
+      return;
+    }
 
-    if (selectedEvent) {
-      const { error } = await supabase.from('sanidade').update(payload).eq('id', selectedEvent.id);
-      if (!error) { setIsModalOpen(false); fetchEvents(); }
-    } else {
-      const { error } = await supabase.from('sanidade').insert([{ ...payload, ...insertPayload }]);
-      if (!error) { setIsModalOpen(false); fetchEvents(); }
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        tipo: data.tipo,
+        titulo: data.titulo,
+        animal_id: data.animal_id || null,
+        lote_id: data.lote_id || null,
+        data_manejo: data.data_manejo,
+        produto: data.produto,
+        dose: data.dose,
+        via_aplicacao: data.via_aplicacao,
+        local_aplicacao: data.local_aplicacao,
+        carencia_dias: parseInt(data.carencia_dias) || 0,
+        observacao: data.observacao,
+        status: data.status
+      };
+
+      if (selectedEvent) {
+        const { error } = await supabase.from('sanidade').update(payload).eq('id', selectedEvent.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('sanidade').insert([{ ...payload, ...insertPayload }]);
+        if (error) throw error;
+      }
+
+      setIsModalOpen(false);
+      refresh();
+    } catch (err: any) {
+      alert('❌ Erro ao salvar registro sanitário: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = events.filter(e => {
-      const matchesSearch = (e.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (e.produto || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesTab = activeTab === 'MANEJOS' ? e.tipo === 'MANEJO' : e.tipo === 'PROTOCOLO';
-      const matchesStatus = filterValues.status === 'all' || e.status === filterValues.status;
-      const matchesDate = (!filterValues.dateStart || new Date(e.data_planejada) >= new Date(filterValues.dateStart)) &&
-                         (!filterValues.dateEnd || new Date(e.data_planejada) <= new Date(filterValues.dateEnd));
-      
-      return matchesSearch && matchesTab && matchesStatus && matchesDate;
-    });
-
-    const exportData = filteredData.map(item => ({
-      Data: new Date(item.data_planejada).toLocaleDateString(),
+    const exportData = events.map(item => ({
+      Data: item.data_manejo ? new Date(item.data_manejo).toLocaleDateString() : 'N/A',
       Titulo: item.titulo,
       Produto: item.produto,
-      Dosagem: item.dosagem,
+      Dosagem: item.dose,
       Status: item.status,
       Carencia: item.carencia_dias ? `${item.carencia_dias} dias` : 'N/A'
     }));
@@ -303,9 +249,24 @@ export const HealthManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'log_saude', 'Relatório de Manejo Sanitário');
   };
 
+  const filteredEvents = events.filter(e => {
+    const matchesSearch = (e.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         (e.targetName || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab = activeTab === 'MANEJOS' ? e.tipo !== 'PROTOCOLO' : e.tipo === 'PROTOCOLO';
+    
+    const matchesStatus = filterValues.status === 'all' || e.status === filterValues.status;
+    const matchesTipo = filterValues.tipo === 'all' || e.tipo === filterValues.tipo;
+    const matchesBlocked = !filterValues.onlyBlocked || e.isBlocked;
+    const matchesCarencia = (e.carencia_dias || 0) >= filterValues.minCarencia;
+
+    const matchesDate = (!filterValues.dateStart || new Date(e.data_manejo) >= new Date(filterValues.dateStart)) &&
+                       (!filterValues.dateEnd || new Date(e.data_manejo) <= new Date(filterValues.dateEnd));
+
+    return matchesSearch && matchesTab && matchesStatus && matchesTipo && matchesBlocked && matchesCarencia && matchesDate;
+  });
+
   return (
     <div className="health-mgmt-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
@@ -330,7 +291,7 @@ export const HealthManagement: React.FC = () => {
       <div className="next-gen-kpi-grid">
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats.map((stat, idx) => (
+        ) : stats?.map((stat: any, idx: number) => (
           <EliteStatCard 
             key={idx}
             {...stat}
@@ -386,9 +347,9 @@ export const HealthManagement: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-health" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-health')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-health')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-health')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-health')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-health')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>
@@ -412,23 +373,14 @@ export const HealthManagement: React.FC = () => {
           />
         ) : (
           <ModernTable 
-            data={events.filter(e => {
-              const matchesSearch = (e.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) || (e.targetName || '').toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesTab = activeTab === 'MANEJOS' ? e.tipo !== 'PROTOCOLO' : e.tipo === 'PROTOCOLO';
-              
-              const matchesStatus = filterValues.status === 'all' || e.status === filterValues.status;
-              const matchesTipo = filterValues.tipo === 'all' || e.tipo === filterValues.tipo;
-              const matchesBlocked = !filterValues.onlyBlocked || e.isBlocked;
-              const matchesCarencia = (e.carencia_dias || 0) >= filterValues.minCarencia;
-
-              const matchesDate = (!filterValues.dateStart || new Date(e.data_manejo) >= new Date(filterValues.dateStart)) &&
-                                 (!filterValues.dateEnd || new Date(e.data_manejo) <= new Date(filterValues.dateEnd));
-
-              return matchesSearch && matchesTab && matchesStatus && matchesTipo && matchesBlocked && matchesCarencia && matchesDate;
-            })}
+            data={filteredEvents}
             columns={tableColumns}
             loading={loading}
             hideHeader={true}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
             searchPlaceholder="Filtrar por protocolo ou fármaco..."
             actions={(item) => (
               <div className="modern-actions">
@@ -446,6 +398,7 @@ export const HealthManagement: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleSubmit}
         initialData={selectedEvent}
+        loading={isSubmitting}
       />
 
       <HistoryModal 
@@ -462,7 +415,7 @@ export const HealthManagement: React.FC = () => {
         onClose={() => setIsProtocolsModalOpen(false)}
         onApply={async (data) => {
           const { protocol, targetType, targetId, startDate } = data;
-          
+          setIsSubmitting(true);
           try {
             const start = new Date(startDate);
             const insertions = protocol.steps.map((step: any) => {
@@ -489,13 +442,15 @@ export const HealthManagement: React.FC = () => {
 
             if (error) throw error;
 
-            alert(`Protocolo ${protocol.name} aplicado com sucesso! ${insertions.length} manejos agendados.`);
-            fetchEvents();
-          } catch (err) {
+            alert(`✅ Protocolo ${protocol.name} aplicado com sucesso! ${insertions.length} manejos agendados.`);
+            refresh();
+          } catch (err: any) {
             console.error('Error applying protocol:', err);
-            alert('Erro ao aplicar protocolo');
+            alert('❌ Erro ao aplicar protocolo: ' + err.message);
+          } finally {
+            setIsSubmitting(false);
+            setIsProtocolsModalOpen(false);
           }
-          setIsProtocolsModalOpen(false);
         }}
       />
       <style>{`

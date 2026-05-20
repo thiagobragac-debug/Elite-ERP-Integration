@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { useReportData } from '../../hooks/useReportData';
 import { 
   Plus, 
   Tag, 
@@ -21,24 +23,18 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { AnimalForm } from '../../components/Forms/AnimalForm';
-import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { AnimalFilterModal } from './components/AnimalFilterModal';
 import { supabase } from '../../lib/supabase';
-import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
-import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
-import { formatNumber } from '../../utils/format';
-import { useSearchParams } from 'react-router-dom';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const AnimalManagement: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [animals, setAnimals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'TODOS' | 'ATIVO' | 'ABATIDO'>('TODOS');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -46,24 +42,31 @@ export const AnimalManagement: React.FC = () => {
     status: 'all',
     sexo: 'all',
     lote: 'all',
-    racas: [],
+    racas: [] as string[],
     minWeight: 0,
     sanidadeOk: true
   });
-  const [stats, setStats] = useState<any[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchAnimals();
-  }, [activeFarmId, isGlobalMode]);
+  const { 
+    data: animals = [], 
+    stats = [], 
+    loading = false, 
+    error = null, 
+    totalCount = 0,
+    refresh 
+  } = useReportData('animais', { page, pageSize });
 
   const [searchParams] = useSearchParams();
 
   // Deep Linking: Abre o animal automaticamente se vier com ?id=
   useEffect(() => {
     const id = searchParams.get('id');
-    if (id && animals.length > 0) {
+    if (id && animals?.length > 0) {
       const animal = animals.find(a => a.id === id);
       if (animal) {
         handleOpenEdit(animal);
@@ -71,86 +74,6 @@ export const AnimalManagement: React.FC = () => {
       }
     }
   }, [searchParams, animals]);
-
-  const fetchAnimals = async () => {
-    setLoading(true);
-    let query = supabase.from('animais').select('*').order('created_at', { ascending: false });
-    query = applyFarmFilter(query);
-    const { data } = await query;
-    
-    if (data) {
-      setAnimals(data);
-      
-      const totalAnimals = data.length;
-      const activeAnimals = data.filter(a => a.status === 'Ativo').length;
-      const avgWeight = data.reduce((acc, curr) => acc + (Number(curr.peso_atual || curr.peso_inicial) || 0), 0) / (totalAnimals || 1);
-      
-      const avgGmd = data.reduce((acc, curr) => {
-        const weightDiff = (curr.peso_atual || curr.peso_inicial) - curr.peso_inicial;
-        const days = Math.max(1, Math.floor((new Date().getTime() - new Date(curr.created_at).getTime()) / (1000 * 60 * 60 * 24)));
-        return acc + (weightDiff / days);
-      }, 0) / (totalAnimals || 1);
-      
-      setStats([
-        { 
-          label: 'Total Rebanho', 
-          value: String(totalAnimals), 
-          icon: Beef, 
-          color: '#10b981', 
-          progress: 100,
-          change: `${activeAnimals} ativos`,
-          periodLabel: 'Censo Atual',
-          sparkline: [
-            { value: 40, label: 'Jan' }, { value: 45, label: 'Fev' }, { value: 50, label: 'Mar' }, 
-            { value: 60, label: 'Abr' }, { value: 55, label: 'Mai' }, { value: 70, label: 'Jun' }, 
-            { value: 75, label: 'Jul' }, { value: 85, label: 'Hoje' }
-          ]
-        },
-        { 
-          label: 'Peso Médio', 
-          value: `${formatNumber(avgWeight)} kg`, 
-          icon: Scale, 
-          color: '#3b82f6', 
-          progress: 65,
-          change: '+2.4kg/mês',
-          periodLabel: 'Média do Plantel',
-          sparkline: [
-            { value: 30, label: '420kg' }, { value: 35, label: '425kg' }, { value: 40, label: '430kg' }, 
-            { value: 50, label: '440kg' }, { value: 55, label: '445kg' }, { value: 60, label: '450kg' }, 
-            { value: 65, label: '455kg' }, { value: 70, label: avgWeight.toFixed(0) + 'kg' }
-          ]
-        },
-        { 
-          label: 'GMD Médio', 
-          value: `${avgGmd.toFixed(3)} kg`, 
-          icon: TrendingUp, 
-          color: '#f59e0b', 
-          progress: 80,
-          change: 'Meta: 1.0kg',
-          periodLabel: 'Ganho Diário',
-          sparkline: [
-            { value: 60, label: '0.6kg' }, { value: 65, label: '0.65kg' }, { value: 70, label: '0.7kg' }, 
-            { value: 75, label: '0.75kg' }, { value: 80, label: '0.8kg' }, { value: 85, label: '0.85kg' }, 
-            { value: 82, label: '0.82kg' }, { value: 80, label: '0.8kg' }
-          ]
-        },
-        { 
-          label: 'Sanidade Ok', 
-          value: '100%', 
-          icon: Activity, 
-          color: '#166534', 
-          progress: 100,
-          periodLabel: 'Status Sanitário',
-          sparkline: [
-            { value: 100, label: 'OK' }, { value: 100, label: 'OK' }, { value: 100, label: 'OK' }, 
-            { value: 100, label: 'OK' }, { value: 100, label: 'OK' }, { value: 100, label: 'OK' }, 
-            { value: 100, label: 'OK' }, { value: 100, label: 'OK' }
-          ]
-        },
-      ]);
-    }
-    setLoading(false);
-  };
 
   const handleOpenCreate = () => {
     setSelectedAnimal(null);
@@ -163,72 +86,50 @@ export const AnimalManagement: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!canCreate && !selectedAnimal) {
-      alert('⚠️ Selecione uma unidade específica para registrar um novo animal. No modo Visão Global, a fazenda de origem deve ser definida.');
-      return;
-    }
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        brinco: formData.brinco,
+        raca: formData.raca,
+        sexo: formData.sexo,
+        data_nascimento: formData.data_nascimento,
+        lote_id: formData.lote_id || null,
+        status: formData.status || 'Ativo',
+        peso_inicial: parseFloat(formData.peso_inicial) || 0,
+        pelagem: formData.pelagem,
+        origem: formData.origem,
+        mae_brinco: formData.mae_brinco,
+        pai_brinco: formData.pai_brinco,
+        valor_compra: parseFloat(formData.valor_compra) || 0,
+        categoria: formData.categoria,
+        finalidade: formData.finalidade
+      };
 
-    const payload = {
-      brinco: formData.brinco,
-      raca: formData.raca,
-      sexo: formData.sexo,
-      data_nascimento: formData.data_nascimento,
-      lote_id: formData.lote_id,
-      status: formData.status || 'Ativo',
-      peso_inicial: parseFloat(formData.peso_inicial) || 0,
-      pelagem: formData.pelagem,
-      origem: formData.origem,
-      mae_brinco: formData.mae_brinco,
-      pai_brinco: formData.pai_brinco,
-      valor_compra: parseFloat(formData.valor_compra) || 0,
-      categoria: formData.categoria,
-      finalidade: formData.finalidade
-    };
-
-    if (selectedAnimal) {
-      const { error } = await supabase
-        .from('animais')
-        .update(payload)
-        .eq('id', selectedAnimal.id);
-      
-      if (!error) {
-        setIsModalOpen(false);
-        fetchAnimals();
+      if (selectedAnimal) {
+        const { error } = await supabase.from('animais').update(payload).eq('id', selectedAnimal.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('animais').insert([{ ...payload, ...insertPayload }]);
+        if (error) throw error;
       }
-    } else {
-      const { error } = await supabase.from('animais').insert([{
-        ...payload,
-        ...insertPayload
-      }]);
 
-      if (!error) {
-        setIsModalOpen(false);
-        fetchAnimals();
-      }
+      setIsModalOpen(false);
+      refresh();
+    } catch (err: any) {
+      alert('❌ Erro ao salvar animal: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredAnimals = animals.filter(animal => {
-      const matchesSearch = (animal.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (animal.raca || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesTab = activeTab === 'ATIVOS' ? animal.status === 'ATIVO' : animal.status === 'VENDIDO';
-      
-      const matchesStatus = filterValues.status === 'all' || animal.status === filterValues.status;
-      const matchesSex = filterValues.sexo === 'all' || animal.sexo === filterValues.sexo;
-      const matchesBreed = filterValues.racas.length === 0 || filterValues.racas.includes(animal.raca);
-      const matchesWeight = animal.peso_atual >= filterValues.minWeight;
-
-      return matchesSearch && matchesTab && matchesStatus && matchesSex && matchesBreed && matchesWeight;
-    });
-
-    const exportData = filteredAnimals.map(item => ({
+    const exportData = animals.map(item => ({
       Brinco: item.brinco,
       Raca: item.raca,
       Sexo: item.sexo,
       Peso_Atual: item.peso_atual,
       Status: item.status,
-      Lote: item.lote_nome || 'N/A'
+      Lote: item.lote || 'N/A'
     }));
 
     if (format === 'csv') exportToCSV(exportData, 'log_animais');
@@ -238,67 +139,144 @@ export const AnimalManagement: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir este animal?')) return;
-    const { error } = await supabase.from('animais').delete().eq('id', id);
-    if (!error) fetchAnimals();
+    try {
+      const { error } = await supabase.from('animais').delete().eq('id', id);
+      if (error) throw error;
+      refresh();
+    } catch (err: any) {
+      alert('❌ Erro ao excluir animal: ' + err.message);
+    }
   };
+
+  const filteredAnimals = (animals || []).filter(a => {
+    const matchesSearch = (a.brinco || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         (a.raca || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTab = activeTab === 'TODOS' ? true : (activeTab === 'ATIVO' ? a.status === 'Ativo' : a.status === 'Abatido');
+    
+    const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
+    const matchesSexo = filterValues.sexo === 'all' || a.sexo === filterValues.sexo;
+    const matchesRaca = filterValues.racas.length === 0 || filterValues.racas.includes(a.raca);
+    const matchesWeight = (a.peso_atual || a.peso_inicial || 0) >= filterValues.minWeight;
+
+    return matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesRaca && matchesWeight;
+  });
 
   const tableColumns = [
     { 
       header: 'Brinco / Identificação', 
+      accessor: (item: any) => {
+        let category = '';
+        const currentWeight = item.peso_atual || item.peso_inicial || 0;
+        if (currentWeight > 500) category = 'Boi Gordo';
+        else if (item.sexo === 'Macho') category = 'Garrote';
+        else category = 'Novilha';
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>#{item.brinco}</span>
+              {item.status === 'Ativo' && currentWeight > 500 && (
+                <span className="status-chip warning"><div className="dot"></div>PRONTO</span>
+              )}
+            </div>
+            <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+              {item.raca} • {category}
+            </span>
+          </div>
+        );
+      },
+      align: 'left' as const
+    },
+    {
+      header: 'Lote / Rastreabilidade',
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <div className="title-with-badge">
-            <span className="main-text">#{item.brinco}</span>
-            {item.status === 'Ativo' && (item.peso_atual || item.peso_inicial) > 550 && (
-              <span className="mini-badge warning">PRONTO</span>
-            )}
-          </div>
-          <div className="sub-meta">
-            <Tag size={12} />
-            <span>{item.raca} | {item.sexo}</span>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+            Lote: {item.lote || 'N/A'}
+          </span>
+          <span className="sub-meta" style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8' }}>
+            Origem: {item.origem || 'Interna'}
+          </span>
         </div>
-      )
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Idade & Ciclo',
+      accessor: (item: any) => {
+        let ageStr = 'N/I';
+        if (item.data_nascimento) {
+          const months = Math.floor((new Date().getTime() - new Date(item.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44));
+          ageStr = `${months} meses`;
+        }
+        let days = 0;
+        if (item.created_at) {
+          days = Math.floor((new Date().getTime() - new Date(item.created_at).getTime()) / (1000 * 3600 * 24));
+        }
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>{ageStr}</span>
+            <span className="sub-meta" style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8' }}>
+              {days} dias na fazenda
+            </span>
+          </div>
+        );
+      },
+      align: 'left' as const
     },
     { 
-      header: 'Performance', 
+      header: 'Peso Atual', 
+      accessor: (item: any) => {
+        const weight = item.peso_atual || item.peso_inicial || 0;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#1e293b', fontWeight: 800 }}>
+            <Scale size={14} color="#6366f1" />
+            <span>{weight} kg</span>
+          </div>
+        );
+      },
+      align: 'center' as const
+    },
+    {
+      header: 'Ganho de Peso',
       accessor: (item: any) => {
         const weight = item.peso_atual || item.peso_inicial || 0;
         const gain = weight - (item.peso_inicial || 0);
         return (
-          <div className="table-cell-meta">
-            <div className="meta-main">
-              <Scale size={16} color="hsl(var(--brand))" />
-              <span>{weight} kg</span>
-            </div>
-            <span className={`meta-sub ${gain >= 0 ? 'text-success' : 'text-danger'}`}>
-              {gain >= 0 ? '+' : ''}{gain}kg total
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <span style={{ 
+              padding: '2px 8px', 
+              borderRadius: '6px', 
+              fontSize: '11px', 
+              fontWeight: 800,
+              background: gain >= 0 ? '#ecfdf5' : '#fef2f2',
+              color: gain >= 0 ? '#10b981' : '#ef4444',
+              border: `1px solid ${gain >= 0 ? '#a7f3d0' : '#fecaca'}`
+            }}>
+              {gain >= 0 ? '+' : ''}{gain.toFixed(1)} kg
             </span>
           </div>
         );
-      }
+      },
+      align: 'center' as const
     },
     { 
-      header: 'Segurança', 
-      accessor: (item: any) => (
-        <div className="status-indicator-group">
-          <div className={`status-dot ${item.status === 'Ativo' ? 'success' : 'neutral'}`}></div>
-          <span className="status-text">{item.status.toUpperCase()}</span>
-          {/* Alerta de Carência Sanitária (Simulado) */}
-          {item.id.includes('7') && (
-            <div className="alert-icon-mini" title="Período de Carência Ativo">
-              <Activity size={14} color="#ef4444" />
-            </div>
-          )}
-        </div>
-      ),
+      header: 'Status Operacional', 
+      accessor: (item: any) => {
+         return (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <span className={`status-pill ${item.status === 'Ativo' ? 'active' : 'neutral'}`}>
+              {item.status.toUpperCase()}
+            </span>
+          </div>
+        );
+      },
       align: 'center' as const
     }
   ];
 
   return (
     <div className="animal-mgmt-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -322,18 +300,11 @@ export const AnimalManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Beef} color="" />)
-        ) : stats.map((stat, idx) => (
+          Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
+        ) : stats?.map((stat: any, idx: number) => (
           <EliteStatCard 
             key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            periodLabel={stat.periodLabel}
-            sparkline={stat.sparkline}
+            {...stat}
           />
         ))}
       </div>
@@ -342,19 +313,19 @@ export const AnimalManagement: React.FC = () => {
         <div className="elite-tab-group">
           <button 
             className={`elite-tab-item ${activeTab === 'TODOS' ? 'active' : ''}`}
-            onClick={() => setActiveTab('TODOS')}
+            onClick={() => { setActiveTab('TODOS'); setPage(1); }}
           >
             Todos Animais
           </button>
           <button 
             className={`elite-tab-item ${activeTab === 'ATIVO' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ATIVO')}
+            onClick={() => { setActiveTab('ATIVO'); setPage(1); }}
           >
             Ativos
           </button>
           <button 
             className={`elite-tab-item ${activeTab === 'ABATIDO' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ABATIDO')}
+            onClick={() => { setActiveTab('ABATIDO'); setPage(1); }}
           >
             Abatidos
           </button>
@@ -396,7 +367,6 @@ export const AnimalManagement: React.FC = () => {
           >
             <Filter size={20} />
           </button>
-          
           <div className="export-dropdown-container">
             <button 
               className="icon-btn-secondary" 
@@ -409,9 +379,9 @@ export const AnimalManagement: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-animals" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-animals')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>
@@ -425,26 +395,28 @@ export const AnimalManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {viewMode === 'list' ? (
+        {animals.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhum animal cadastrado"
+            description="Não há animais registrados para esta unidade. Inicie o controle do rebanho cadastrando o primeiro animal."
+            actionLabel="Novo Animal"
+            onAction={handleOpenCreate}
+            icon={Beef}
+          />
+        ) : viewMode === 'list' ? (
           <ModernTable 
-            data={animals.filter(a => {
-              const matchesSearch = (a.brinco || '').toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesTab = activeTab === 'TODOS' || a.status?.toUpperCase() === activeTab;
-              const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
-              const matchesSexo = filterValues.sexo === 'all' || a.sexo === filterValues.sexo;
-              const matchesLote = filterValues.lote === 'all' || (a.lotes?.nome || '').toLowerCase().includes(filterValues.lote.toLowerCase());
-              const matchesRaca = filterValues.racas.length === 0 || filterValues.racas.includes(a.raca);
-              const matchesWeight = (a.peso_atual || a.peso_inicial || 0) >= filterValues.minWeight;
-              
-              return matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesLote && matchesRaca && matchesWeight;
-            })}
+            data={filteredAnimals}
             columns={tableColumns}
             loading={loading}
             hideHeader={true}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
             searchPlaceholder="Filtrar por brinco, raça ou lote..."
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" onClick={() => navigate(`/pecuaria/animal/${item.id}`)} title="Detalhes & Histórico">
+                <button className="action-dot info" onClick={() => navigate(`/pecuaria/animal/${item.id}`)} title="Dossiê">
                   <Eye size={18} />
                 </button>
                 <button className="action-dot success" title="Manejos">
@@ -460,105 +432,161 @@ export const AnimalManagement: React.FC = () => {
             )}
           />
         ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="user-cards-grid"
-          >
-            {animals
-              .filter(a => {
-                const matchesSearch = (a.brinco || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesTab = activeTab === 'TODOS' || a.status?.toUpperCase() === activeTab;
-                const matchesStatus = filterValues.status === 'all' || a.status === filterValues.status;
-                const matchesSexo = filterValues.sexo === 'all' || a.sexo === filterValues.sexo;
-                const matchesLote = filterValues.lote === 'all' || (a.lotes?.nome || '').toLowerCase().includes(filterValues.lote.toLowerCase());
-                const matchesRaca = filterValues.racas.length === 0 || filterValues.racas.includes(a.raca);
-                const matchesWeight = (a.peso_atual || a.peso_inicial || 0) >= filterValues.minWeight;
-                
-                return matchesSearch && matchesTab && matchesStatus && matchesSexo && matchesLote && matchesRaca && matchesWeight;
-              })
-              .map(a => (
-                <motion.div 
+          <div className="animal-cards-grid animate-fade-in">
+            {filteredAnimals.map(a => {
+              const statusStr = a.status || 'Ativo';
+              let badgeClass = 'active'; // green
+              let badgeText = statusStr.toUpperCase();
+              let borderClass = 'active';
+              
+              if (a.isSanitaryBlocked) {
+                borderClass = 'warning-badge';
+              } else if (statusStr.toLowerCase() !== 'ativo') {
+                badgeClass = 'stopped';
+                badgeText = statusStr.toUpperCase();
+                borderClass = 'danger-badge';
+              }
+
+              // Calcular idade em meses
+              let ageText = 'Idade N/I';
+              if (a.data_nascimento) {
+                const months = Math.floor((new Date().getTime() - new Date(a.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44));
+                ageText = `${months}m`;
+              }
+
+              // Calcular performance (Ganho de peso)
+              const currentWeight = a.peso_atual || a.peso_inicial || 0;
+              const weightGain = currentWeight - (a.peso_inicial || 0);
+              const performanceText = weightGain >= 0 ? `+${weightGain.toFixed(1)} kg` : `${weightGain.toFixed(1)} kg`;
+              const isPositiveGain = weightGain >= 0;
+
+              // Cor da barra de progresso inteligente com base no peso
+              let progressGradient = 'linear-gradient(90deg, #f59e0b, #ef4444)'; // Bezerro/Leve (<350kg)
+              if (currentWeight >= 350 && currentWeight <= 450) {
+                progressGradient = 'linear-gradient(90deg, #6366f1, #3b82f6)'; // Recria
+              } else if (currentWeight > 450) {
+                progressGradient = 'linear-gradient(90deg, #10b981, #059669)'; // Engorda/Pronto
+              }
+
+              return (
+                <div 
                   key={a.id} 
-                  layout
-                  className={`user-card-premium ${a.status === 'Ativo' ? 'active' : ''}`}
+                  className={`animal-card-premium ${borderClass}`}
                 >
                   <div className="card-left-section">
                     <div className="card-avatar">
-                      <Beef size={32} />
+                      <Beef size={28} />
                     </div>
                     <div className="card-bottom-actions">
-                      <button className="action-icon-btn" onClick={() => navigate(`/pecuaria/animal/${a.id}`)} title="Dossiê"><Eye size={16} /></button>
-                      <button className="action-icon-btn" onClick={() => handleOpenEdit(a)} title="Editar"><Edit3 size={16} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(a.id)} title="Excluir"><Trash2 size={16} /></button>
+                      <button className="action-icon-btn info" onClick={() => navigate(`/pecuaria/animal/${a.id}`)} title="Dossiê"><Eye size={14} /></button>
+                      <button className="action-icon-btn edit" onClick={() => handleOpenEdit(a)} title="Editar"><Edit3 size={14} /></button>
+                      <button className="action-icon-btn delete" onClick={() => handleDelete(a.id)} title="Excluir"><Trash2 size={14} /></button>
                     </div>
                   </div>
 
                   <div className="card-main-content">
                     <div className="card-header-info">
-                      <h3>#{a.brinco}</h3>
-                      <span className="card-role-badge">{a.raca || 'Nelorado'}</span>
+                      <div className="title-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                            #{a.brinco}
+                            <span style={{ 
+                              fontSize: '9px', 
+                              padding: '2px 6px', 
+                              borderRadius: '6px', 
+                              background: a.sexo === 'M' ? 'rgba(59, 130, 246, 0.1)' : a.sexo === 'F' ? 'rgba(236, 72, 153, 0.1)' : 'rgba(148, 163, 184, 0.1)', 
+                              color: a.sexo === 'M' ? '#3b82f6' : a.sexo === 'F' ? '#ec4899' : '#64748b', 
+                              fontWeight: 800 
+                            }}>
+                              {a.sexo === 'M' ? 'Macho' : a.sexo === 'F' ? 'Fêmea' : 'N/I'}
+                            </span>
+                          </h3>
+                          <div className="card-type-meta" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>
+                            {a.raca || 'Nelore'} • {ageText} • <span style={{ color: 'hsl(var(--brand))' }}>{a.categoria || 'Recria'}</span>
+                          </div>
+                        </div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                          <span className={`status-pill mini ${badgeClass}`} style={{ fontSize: '8px', padding: '2px 6px', borderRadius: '5px' }}>
+                            {badgeText}
+                          </span>
+                          <span style={{ 
+                            fontSize: '9px', 
+                            fontWeight: 800, 
+                            color: isPositiveGain ? '#10b981' : '#ef4444', 
+                            background: isPositiveGain ? 'rgba(16, 185, 129, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+                            padding: '2px 6px',
+                            borderRadius: '5px',
+                            border: `1px solid ${isPositiveGain ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+                          }}>
+                            {performanceText}
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="card-meta-grid">
-                      <div className="meta-item">
-                        <Scale size={14} className="meta-icon" />
-                        <span>{a.peso_atual || a.peso_inicial || 0} kg</span>
+                    <div className="card-occupation-section" style={{ margin: '8px 0' }}>
+                      <div className="occ-header" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 800, color: '#64748b', marginBottom: '2px' }}>
+                        <span>PESO ATUAL</span>
+                        <span style={{ color: 'hsl(var(--text-main))', fontWeight: 900 }}>{currentWeight} kg</span>
                       </div>
-                      <div className="meta-item">
-                        <Activity size={14} className="meta-icon" />
-                        <span>Status: {a.status}</span>
+                      <div className="occ-bar-container" style={{ height: '6px', background: 'rgba(148, 163, 184, 0.1)', borderRadius: '3px', overflow: 'hidden', marginBottom: '2px' }}>
+                        <div 
+                          className="occ-bar-fill"
+                          style={{ width: `${Math.min((currentWeight / 700) * 100, 100)}%`, background: progressGradient }}
+                        />
                       </div>
-                      <div className="meta-item">
-                        <Calendar size={14} className="meta-icon" />
-                        <span>Sexo: {a.sexo === 'M' ? 'Macho' : 'Fêmea'}</span>
+                      <div className="occ-footer" style={{ fontSize: '9px', fontWeight: 800, color: a.isSanitaryBlocked ? '#ef4444' : '#10b981', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {a.isSanitaryBlocked ? '⚠️ Carência Sanitária Ativa' : '✅ Sanitário OK'}
+                      </div>
+                    </div>
+
+                    <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '6px' }}>
+                      <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
+                        <Activity size={12} />
+                        <span>Lote: {a.lote || 'N/A'}</span>
+                      </div>
+                      <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
+                        <TrendingUp size={12} />
+                        <span className="card-farm-meta" style={{ color: '#10b981', fontWeight: 800 }}>{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
                       </div>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-          </motion.div>
+                </div>
+              );
+            })}
+            <button className="add-animal-card-premium" onClick={handleOpenCreate}>
+              <Plus size={32} />
+              <span>NOVO ANIMAL</span>
+            </button>
+          </div>
         )}
       </div>
 
+      <AnimalForm 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSubmit={handleSubmit}
+        initialData={selectedAnimal}
+        loading={isSubmitting}
+      />
       <style>{`
-        .view-mode-toggle {
-          display: flex;
-          background: hsl(var(--bg-main));
-          padding: 4px;
-          border-radius: 12px;
-          gap: 4px;
-          margin: 0 16px;
-        }
-
-        .view-btn {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          border: none;
-          background: transparent;
-          color: hsl(var(--text-muted));
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .view-btn.active {
-          background: hsl(var(--bg-card));
-          color: hsl(var(--brand));
-          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        .user-cards-grid {
+        .animal-cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
           padding: 8px;
         }
 
-        .user-card-premium {
+        @media (max-width: 1400px) {
+          .animal-cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 900px) {
+          .animal-cards-grid { grid-template-columns: 1fr; }
+        }
+
+        .animal-card-premium {
           background: hsl(var(--bg-card));
           border-radius: 24px;
           border: 1px solid hsl(var(--border));
@@ -572,27 +600,65 @@ export const AnimalManagement: React.FC = () => {
           text-align: left;
         }
 
-        .user-card-premium::before {
+        .animal-card-premium::before {
           content: '';
           position: absolute;
           left: 0;
           top: 0;
           bottom: 0;
           width: 6px;
-          background: hsl(var(--border-strong));
+          background: #94a3b8;
           transition: 0.3s;
         }
 
-        .user-card-premium.active::before {
-          background: #16a34a;
-          box-shadow: 4px 0 15px rgba(22, 163, 74, 0.3);
+        .animal-card-premium.active::before {
+          background: #10b981;
+          box-shadow: 4px 0 15px rgba(16, 185, 129, 0.3);
         }
 
-        .user-card-premium:hover {
+        .animal-card-premium.info-badge::before {
+          background: #3b82f6;
+          box-shadow: 4px 0 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .animal-card-premium.warning-badge::before {
+          background: #f59e0b;
+          box-shadow: 4px 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .animal-card-premium.danger-badge::before {
+          background: #ef4444;
+          box-shadow: 4px 0 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .animal-card-premium:hover {
           transform: translateY(-8px);
           box-shadow: var(--shadow-lg);
           border-color: hsl(var(--brand) / 0.3);
         }
+
+        .add-animal-card-premium {
+          border: 2px dashed #e2e8f0;
+          border-radius: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          background: transparent;
+          cursor: pointer;
+          color: #94a3b8;
+          transition: 0.2s;
+          height: 180px;
+        }
+
+        .add-animal-card-premium:hover {
+          border-color: #10b981;
+          color: #10b981;
+          background: rgba(16, 185, 129, 0.02);
+        }
+
+        .add-animal-card-premium span { font-size: 11px; font-weight: 900; letter-spacing: 0.05em; }
 
         .card-left-section {
           width: 130px;
@@ -605,82 +671,123 @@ export const AnimalManagement: React.FC = () => {
         }
 
         .card-avatar {
-          width: 70px;
-          height: 70px;
-          background: hsl(var(--bg-main));
-          color: hsl(var(--text-main));
-          border-radius: 20px;
+          width: 56px;
+          height: 56px;
+          background: hsl(var(--bg-card));
+          color: hsl(var(--brand));
+          border-radius: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 28px;
-          font-weight: 900;
-          margin-bottom: 12px;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+          box-shadow: 0 8px 20px rgba(0,0,0,0.1);
           border: 1px solid hsl(var(--border));
+          margin-bottom: 12px;
         }
 
         .card-main-content {
           flex: 1;
-          padding: 20px;
+          padding: 16px 20px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
         }
 
-        .card-header-info h3 {
-          font-size: 19px;
-          font-weight: 900;
-          color: hsl(var(--text-main));
+        .card-header-info .title-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
           margin-bottom: 4px;
+        }
+
+        .card-header-info h3 {
+          font-size: 17px;
+          font-weight: 900;
           letter-spacing: -0.02em;
         }
 
-        .card-role-badge {
-          display: inline-block;
+        .status-pill.mini {
+          font-size: 9px;
+          padding: 3px 8px;
+          border-radius: 6px;
+        }
+
+        .card-type-meta {
           font-size: 10px;
           font-weight: 800;
-          color: hsl(var(--brand));
-          background: hsl(var(--brand) / 0.1);
-          padding: 4px 10px;
-          border-radius: 8px;
+          color: #94a3b8;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
 
-        .card-meta-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 8px;
-          margin-top: 12px;
+        .card-occupation-section {
+          margin: 10px 0;
+        }
+
+        .occ-header {
+          display: flex;
+          justify-content: space-between;
+          font-size: 10px;
+          font-weight: 800;
+          margin-bottom: 4px;
+          color: #64748b;
+        }
+
+        .occ-bar-container {
+          height: 6px;
+          background: #f1f5f9;
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 4px;
+        }
+
+        .occ-bar-fill {
+          height: 100%;
+          background: #3b82f6;
+          border-radius: 3px;
+          transition: 0.5s;
+        }
+
+        .occ-footer {
+          font-size: 10px;
+          font-weight: 600;
+          color: #94a3b8;
+        }
+
+        .card-footer-meta {
+          display: flex;
+          gap: 12px;
         }
 
         .meta-item {
           display: flex;
           align-items: center;
-          gap: 8px;
-          color: hsl(var(--text-muted));
-          font-size: 12px;
+          gap: 6px;
+          font-size: 11px;
           font-weight: 600;
+          color: #64748b;
         }
 
-        .meta-icon {
-          color: hsl(var(--brand));
+        .card-farm-meta {
+          color: #10b981;
+          font-weight: 800;
         }
 
         .card-bottom-actions {
           display: flex;
-          gap: 8px;
-          margin-top: 15px;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          margin-top: 12px;
         }
 
         .action-icon-btn {
-          width: 34px;
-          height: 34px;
+          width: 32px;
+          height: 32px;
           border-radius: 10px;
           border: 1px solid hsl(var(--border));
-          background: hsl(var(--bg-card));
-          color: hsl(var(--text-muted));
+          background: white;
+          color: #64748b;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -691,82 +798,41 @@ export const AnimalManagement: React.FC = () => {
         .action-icon-btn:hover {
           background: hsl(var(--brand));
           color: white;
-          transform: scale(1.1);
           border-color: hsl(var(--brand));
         }
 
-        .action-icon-btn.delete:hover {
-          background: #ef4444;
-          border-color: #ef4444;
-          color: white;
+        .action-icon-btn.delete:hover { background: #ef4444; border-color: #ef4444; }
+
+        [data-theme='dark'] .card-left-section {
+          background: hsl(var(--bg-card) / 0.3) !important;
+          border-color: hsl(var(--border)) !important;
         }
 
-        .title-with-badge {
-          display: flex;
-          align-items: center;
-          gap: 8px;
+        [data-theme='dark'] .card-avatar,
+        [data-theme='dark'] .action-icon-btn {
+          background: hsl(var(--bg-card)) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--text-main)) !important;
         }
 
-        .mini-badge {
-          font-size: 9px;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-weight: 800;
+        [data-theme='dark'] .action-icon-btn:hover {
+          background: hsl(var(--brand)) !important;
+          color: white !important;
         }
 
-        .mini-badge.warning {
-          background: #fef3c7;
-          color: #d97706;
-          border: 1px solid #fcd34d;
+        [data-theme='dark'] .action-icon-btn.delete:hover {
+          background: #ef4444 !important;
         }
 
-        .status-indicator-group {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          justify-content: center;
-        }
-
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
-
-        .status-dot.success { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
-        .status-dot.neutral { background: #94a3b8; }
-
-        .alert-icon-mini {
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0% { opacity: 1; }
-          50% { opacity: 0.5; }
-          100% { opacity: 1; }
-        }
-
-        .meta-main {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-weight: 700;
-          color: hsl(var(--text-main));
-        }
-
-        .meta-sub {
-          font-size: 11px;
-          font-weight: 600;
-          margin-left: 22px;
+        [data-theme='dark'] .animal-card-premium,
+        [data-theme='dark'] .add-animal-card-premium {
+          background: hsl(var(--bg-main)) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--text-main)) !important;
         }
       `}</style>
-
-      <AnimalForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSubmit={handleSubmit}
-        initialData={selectedAnimal}
-      />
     </div>
   );
 };
+
+export default AnimalManagement;

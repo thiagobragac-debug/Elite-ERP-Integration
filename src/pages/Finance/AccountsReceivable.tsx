@@ -32,22 +32,21 @@ import { BatchLiquidationModal } from '../../components/Modals/BatchLiquidationM
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { FinancialCalendarModal } from '../../components/Modals/FinancialCalendarModal';
 import { ReceivableFilterModal } from './components/ReceivableFilterModal';
 import './AccountsReceivable.css';
 
+import { useReportData } from '../../hooks/useReportData';
+import { useDebounce } from '../../hooks/useDebounce';
+
 export const AccountsReceivable: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
-  const [invoices, setInvoices] = useState<any[]>([]);
+  const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
   const [activeTab, setActiveTab] = useState<'TODAS' | 'PENDENTE' | 'RECEBIDO'>('TODAS');
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -60,75 +59,28 @@ export const AccountsReceivable: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchInvoices();
-  }, [activeFarmId, isGlobalMode]);
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
 
-  const fetchInvoices = async () => {
-    setLoading(true);
-    try {
-      let query = supabase.from('contas_receber').select('*, clientes(nome)').order('data_vencimento', { ascending: true });
-      query = applyFarmFilter(query);
-      const { data } = await query;
-      
-      if (data) {
-        setInvoices(data);
-        const now = new Date();
-        const totalAReceber = data.filter(i => i.status === 'PENDENTE').reduce((acc, curr) => acc + Number(curr.valor_total), 0);
-        const emAtraso = data.filter(i => i.status === 'PENDENTE' && new Date(i.data_vencimento) < now).reduce((acc, curr) => acc + Number(curr.valor_total), 0);
-        
-        const next30DaysDate = new Date();
-        next30DaysDate.setDate(now.getDate() + 30);
-        const proj30Dias = data.filter(i => i.status === 'PENDENTE' && new Date(i.data_vencimento) <= next30DaysDate).reduce((acc, curr) => acc + Number(curr.valor_total), 0);
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
-        setStats([
-          { 
-            label: 'Projeção de Receita', 
-            value: totalAReceber.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: HandCoins, 
-            color: '#10b981', 
-            progress: 100,
-            change: 'Consolidado',
-            periodLabel: 'Aberto Total'
-          },
-          { 
-            label: 'Inadimplência (Aging)', 
-            value: emAtraso.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: AlertTriangle, 
-            color: '#ef4444', 
-            progress: totalAReceber > 0 ? (emAtraso / totalAReceber) * 100 : 0,
-            trend: emAtraso > 0 ? 'up' : 'down',
-            change: `${((emAtraso / (totalAReceber || 1)) * 100).toFixed(1)}% do total`,
-            periodLabel: 'Títulos em Atraso'
-          },
-          { 
-            label: 'Previsão (30 Dias)', 
-            value: proj30Dias.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: Calendar, 
-            color: '#3b82f6', 
-            progress: 65,
-            change: 'Próximo Período',
-            periodLabel: 'Entrada Esperada'
-          },
-          { 
-            label: 'DSO (Médio)', 
-            value: '34 dias', 
-            icon: TrendingUp, 
-            color: '#f59e0b', 
-            progress: 80,
-            change: 'Tempo de Giro',
-            periodLabel: 'Ciclo de Caixa'
-          },
-        ]);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  const { data: rawInvoices, stats, totalCount, loading, error, refresh } = useReportData('contas-receber', {
+    page,
+    pageSize,
+    filters: {
+      ...filterValues,
+      status: activeTab,
+      search: debouncedSearch
     }
-  };
+  });
+
+  const invoices = rawInvoices || [];
+
+  if (error) {
+    console.error("[AccountsReceivable] Error:", error);
+  }
 
   const handleOpenCreate = () => {
     setSelectedInvoice(null);
@@ -146,35 +98,43 @@ export const AccountsReceivable: React.FC = () => {
       return;
     }
 
-    const payload = {
-      descricao: formData.description,
-      valor_total: parseFloat(formData.value),
-      data_vencimento: formData.dueDate,
-      categoria: formData.category,
-      cliente_id: formData.entityId,
-      metodo_recebimento: formData.paymentMethod,
-      status: formData.status
-    };
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        descricao: formData.description,
+        valor_total: parseFloat(formData.value),
+        data_vencimento: formData.dueDate,
+        categoria: formData.category,
+        cliente_id: formData.entityId,
+        metodo_recebimento: formData.paymentMethod,
+        status: formData.status
+      };
 
-    if (selectedInvoice) {
-      const { error } = await supabase
-        .from('contas_receber')
-        .update(payload)
-        .eq('id', selectedInvoice.id);
-      
-      if (!error) {
+      if (selectedInvoice) {
+        const { error } = await supabase
+          .from('contas_receber')
+          .update(payload)
+          .eq('id', selectedInvoice.id);
+        
+        if (error) throw error;
+        
         setIsModalOpen(false);
-        fetchInvoices();
-      }
-    } else {
-      const { error } = await supabase
-        .from('contas_receber')
-        .insert([{ ...payload, ...insertPayload }]);
+        refresh();
+      } else {
+        const { error } = await supabase
+          .from('contas_receber')
+          .insert([{ ...payload, ...insertPayload }]);
 
-      if (!error) {
+        if (error) throw error;
+        
         setIsModalOpen(false);
-        fetchInvoices();
+        refresh();
       }
+    } catch (err: any) {
+      console.error('[AccountsReceivable] Erro ao salvar:', err);
+      alert('❌ Erro ao salvar receita: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -207,8 +167,13 @@ export const AccountsReceivable: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
-    const { error } = await supabase.from('contas_receber').delete().eq('id', id);
-    if (!error) fetchInvoices();
+    try {
+      const { error } = await supabase.from('contas_receber').delete().eq('id', id);
+      if (error) throw error;
+      refresh();
+    } catch (err: any) {
+      alert('❌ Erro ao excluir receita: ' + err.message);
+    }
   };
 
   const handleMarkAsReceived = async (id: string) => {
@@ -227,7 +192,7 @@ export const AccountsReceivable: React.FC = () => {
 
   const columns = [
     {
-      header: 'Vencimento / Título',
+      header: 'Vencimento',
       accessor: (item: any) => {
         const dueDate = new Date(item.data_vencimento);
         const today = new Date();
@@ -237,55 +202,93 @@ export const AccountsReceivable: React.FC = () => {
         const isOverdue = diffDays < 0 && item.status === 'PENDENTE';
 
         return (
-          <div className="table-cell-title">
-            <span className={`main-text ${isOverdue ? 'text-red-600 font-black' : ''}`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+            <span style={{ color: isOverdue ? '#e11d48' : '#1e293b', fontWeight: 800, fontSize: '12px' }}>
               {dueDate.toLocaleDateString()}
-              {isOverdue && <AlertTriangle size={12} className="inline ml-1 text-red-600 animate-pulse" />}
             </span>
-            <div className="sub-meta flex items-center gap-1">
-              <FileText size={12} />
-              <span className="truncate max-w-[150px]">{item.descricao}</span>
-              {item.status === 'PENDENTE' && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black uppercase ${diffDays <= 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                  {diffDays === 0 ? 'HOJE' : diffDays < 0 ? `${Math.abs(diffDays)}d ATRASO` : `${diffDays}d REST`}
-                </span>
-              )}
-            </div>
+            {item.status === 'PENDENTE' && (
+              <span className={`status-pill ${diffDays <= 0 ? 'danger' : 'info'}`} style={{ fontSize: '9px', padding: '2px 4px', width: 'fit-content' }}>
+                {diffDays === 0 ? 'HOJE' : diffDays < 0 ? `${Math.abs(diffDays)}d ATRASO` : `${diffDays}d REST`}
+              </span>
+            )}
           </div>
         );
-      }
+      },
+      align: 'left' as const
     },
     {
-      header: 'Cliente',
+      header: 'Identificação Título',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Users size={14} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 700, color: '#1e293b' }}>
+            {item.descricao || 'Sem descrição'}
+          </span>
+          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            DOC: {item.id?.slice(0, 8).toUpperCase() || 'N/A'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Cliente / Pagador',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155', fontWeight: 600, fontSize: '12px' }}>
+          <Users size={14} color="#94a3b8" />
           <span>{item.clientes?.nome || item.cliente || 'Geral'}</span>
         </div>
-      )
+      ),
+      align: 'left' as const
     },
     {
-      header: 'Valor Bruto',
+      header: 'Categoria & Método',
       accessor: (item: any) => (
-        <span className="font-bold text-slate-900">
-          {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </span>
-      )
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', textTransform: 'uppercase' }}>
+            {item.categoria || 'Geral'}
+          </span>
+          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            {item.metodo_recebimento || 'Pix'}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Status',
+      header: 'Valor Bruto BRL',
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'RECEBIDO' ? 'paid' : item.status === 'ATRASADO' ? 'overdue' : 'pending'}`}>
-          {item.status}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 900, color: '#0f172a' }}>
+            {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Situação',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.status === 'RECEBIDO' ? 'active' : item.status === 'ATRASADO' ? 'danger' : 'warning'}`}>
+            {item.status}
+          </span>
+        </div>
       ),
       align: 'center' as const
     }
   ];
 
+  const getIcon = (label: string) => {
+    switch (label) {
+      case 'Ativo Circulante': return HandCoins;
+      case 'Total Recebido': return CheckCircle2;
+      case 'Volume de Títulos': return FileText;
+      default: return ZapIcon;
+    }
+  };
+
   return (
-    <div className="accounts-receivable-page animate-slide-up">
-      <GlobalModeBanner />
+    <div className="receivable-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -310,16 +313,16 @@ export const AccountsReceivable: React.FC = () => {
       <div className="next-gen-kpi-grid">
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats.map((stat, idx) => (
+        ) : (stats || []).map((stat, idx) => (
           <EliteStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
+            icon={stat.icon || getIcon(stat.label)}
+            color={stat.color || 'brand'}
             progress={stat.progress}
             change="+4.8%"
-            trend={stat.trend}
+            trend={stat.trend === 'neutral' ? undefined : stat.trend}
           />
         ))}
       </div>
@@ -328,19 +331,19 @@ export const AccountsReceivable: React.FC = () => {
         <div className="elite-tab-group">
           <button 
             className={`elite-tab-item ${activeTab === 'TODAS' ? 'active' : ''}`}
-            onClick={() => setActiveTab('TODAS')}
+            onClick={() => { setActiveTab('TODAS'); setPage(1); }}
           >
             Todas Receitas
           </button>
           <button 
             className={`elite-tab-item ${activeTab === 'PENDENTE' ? 'active' : ''}`}
-            onClick={() => setActiveTab('PENDENTE')}
+            onClick={() => { setActiveTab('PENDENTE'); setPage(1); }}
           >
             Pendentes
           </button>
           <button 
             className={`elite-tab-item ${activeTab === 'RECEBIDO' ? 'active' : ''}`}
-            onClick={() => setActiveTab('RECEBIDO')}
+            onClick={() => { setActiveTab('RECEBIDO'); setPage(1); }}
           >
             Recebidas
           </button>
@@ -377,9 +380,9 @@ export const AccountsReceivable: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-receivable" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-receivable')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-receivable')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-receivable')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-receivable')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-receivable')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>
@@ -403,21 +406,14 @@ export const AccountsReceivable: React.FC = () => {
           />
         ) : (
           <ModernTable 
-             data={invoices.filter(i => {
-              const matchesSearch = (i.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (i.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesTab = activeTab === 'TODAS' || i.status === activeTab;
-              
-              const matchesStatus = filterValues.status === 'all' || i.status === filterValues.status;
-              const amount = Number(i.valor_total);
-              const matchesAmount = amount >= (filterValues.minAmount || 0) && amount <= (filterValues.maxAmount || 1000000);
-              const matchesDate = (!filterValues.dateStart || new Date(i.data_vencimento) >= new Date(filterValues.dateStart)) &&
-                                 (!filterValues.dateEnd || new Date(i.data_vencimento) <= new Date(filterValues.dateEnd));
-
-              return matchesSearch && matchesTab && matchesStatus && matchesAmount && matchesDate;
-            })}
+            data={invoices}
             columns={columns}
             loading={loading}
             hideHeader={true}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
             selectable={true}
             isSelectable={(item) => item.status !== 'RECEBIDO'}
             selectedItems={selectedItems}
@@ -497,7 +493,7 @@ export const AccountsReceivable: React.FC = () => {
           setSelectedInvoice(null);
         }}
         onSuccess={() => {
-          fetchInvoices();
+          refresh();
           setSelectedItems([]);
         }}
         selectedIds={selectedInvoice ? [selectedInvoice.id] : selectedItems}

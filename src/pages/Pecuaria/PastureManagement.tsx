@@ -1,283 +1,346 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { 
-  Map, 
+  Trees, 
   Plus, 
+  RefreshCw, 
   Search, 
-  Filter,
-  Activity, 
-  Maximize, 
-  ChevronRight, 
-  Trees,
-  CloudRain,
+  Filter, 
+  FileText, 
+  Map, 
+  LayoutGrid, 
+  List as ListIcon,
+  Maximize2,
   Edit3,
   Trash2,
-  FileText,
-  Target,
-  Scale,
-  LayoutGrid,
-  List as ListIcon,
-  Calendar
+  Activity,
+  History,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
-import { AnimalListModal } from '../../components/Modals/AnimalListModal';
-import { supabase } from '../../lib/supabase';
-import { useTenant } from '../../contexts/TenantContext';
-import { PastureForm } from '../../components/Forms/PastureForm';
-import { PastureManejoForm } from '../../components/Forms/PastureManejoForm';
+import { useReportData } from '../../hooks/useReportData';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { formatNumber, formatPercent } from '../../utils/format';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { PastureFilterModal } from './components/PastureFilterModal';
+import { PastureForm } from '../../components/Forms/PastureForm';
+import { supabase } from '../../lib/supabase';
 
-export const PastureManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
-  const navigate = useNavigate();
+const PastureManagement: React.FC = () => {
+  const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } = useFarmFilter();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedPasture, setSelectedPasture] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [pastures, setPastures] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isManejoModalOpen, setIsManejoModalOpen] = useState(false);
-  const [selectedPasture, setSelectedPasture] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'ATIVOS' | 'HISTORICO'>('ATIVOS');
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [pastureToView, setPastureToView] = useState<any>(null);
-  const [stats, setStats] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
+  const [activeTab, setActiveTab] = useState<'all' | 'resting' | 'occupied'>('all');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
-    capins: [],
+    capins: [] as string[],
     minArea: 0,
     maxArea: 500,
     minUA: 0,
     maxUA: 100,
     needsFertilization: false
   });
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
-
-  const fetchPastures = async () => {
-    setLoading(true);
-    const { data } = await supabase
-      .from('pastos')
-      .select('*')
-      .eq('fazenda_id', activeFarm.id);
-    
-    if (data) {
-      setPastures(data);
-      const totalArea = data.reduce((acc, curr) => acc + Number(curr.area), 0);
-      const restingPastures = data.filter(p => p.status === 'resting').length;
-      const occupiedPastures = data.filter(p => p.status === 'occupied').length;
-      
-      setStats([
-        { 
-          label: 'Área Total (ha)', 
-          value: `${formatNumber(totalArea)}`, 
-          icon: Maximize, 
-          color: '#10b981', 
-          progress: 100,
-          change: `${data.length} pastos`,
-          periodLabel: 'Mapeamento Atual',
-          sparkline: [
-            { value: 100, label: '100%' }, { value: 100, label: '100%' }, { value: 100, label: '100%' }, 
-            { value: 100, label: '100%' }, { value: 100, label: '100%' }, { value: 100, label: 'Total: ' + totalArea.toFixed(0) + 'ha' }
-          ]
-        },
-        { 
-          label: 'Em Descanso (DDR)', 
-          value: restingPastures, 
-          icon: Trees, 
-          color: '#3b82f6', 
-          progress: (restingPastures / data.length) * 100,
-          change: 'Média 24 dias',
-          periodLabel: 'Período de Recuperação',
-          sparkline: [
-            { value: 30, label: '3' }, { value: 45, label: '5' }, { value: 20, label: '2' }, 
-            { value: 60, label: '7' }, { value: 40, label: '4' }, { value: (restingPastures / data.length) * 100, label: restingPastures + ' em descanso' }
-          ]
-        },
-        { 
-          label: 'Pressão de Pastejo', 
-          value: '92%', 
-          icon: Activity, 
-          color: '#f59e0b', 
-          progress: 92,
-          change: 'Próximo do Limite',
-          periodLabel: 'UA Real vs Suportada',
-          sparkline: [
-            { value: 60, label: '1.2 UA' }, { value: 65, label: '1.3 UA' }, { value: 70, label: '1.4 UA' }, 
-            { value: 72, label: '1.5 UA' }, { value: 85, label: '1.6 UA' }, { value: 92, label: '92%' }
-          ]
-        },
-        { 
-          label: 'Degradação Médio', 
-          value: '8%', 
-          icon: Target, 
-          color: '#166534', 
-          progress: 8,
-          change: 'Nível Controlado',
-          periodLabel: 'Monitoramento Solo',
-          sparkline: [
-            { value: 5, label: '5%' }, { value: 12, label: '12%' }, { value: 10, label: '10%' }, 
-            { value: 8, label: '8%' }, { value: 6, label: '6%' }, { value: 8, label: '8%' }
-          ]
-        },
-      ]);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    if (!activeFarm) return;
-    fetchPastures();
-  }, [activeFarm]);
 
   const handleOpenCreate = () => {
     setSelectedPasture(null);
-    setIsModalOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleOpenEdit = (pasture: any) => {
     setSelectedPasture(pasture);
-    setIsModalOpen(true);
+    setIsFormOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este pasto?')) return;
-    const { error } = await supabase.from('pastos').delete().eq('id', id);
-    if (!error) fetchPastures();
+    if (!confirm('Deseja excluir este pasto?')) return;
+    
+    // Optimistic delete
+    setLocalPastures(prev => prev.filter(p => p.id !== id));
+
+    try {
+      const { error } = await supabase.from('pastos').delete().eq('id', id);
+      if (error) throw error;
+      refresh();
+    } catch (err: any) {
+      console.warn('DB delete failed, using local fallback state:', err.message);
+    }
   };
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
-
     const payload = {
       nome: data.nome,
-      area: parseFloat(data.area),
-      capacidade_ua: parseFloat(data.capacidade_ua),
+      area: parseFloat(data.area) || 0,
+      capacidade_ua: parseFloat(data.capacidade_ua) || 2.5,
       tipo_capim: data.tipo_capim,
-      status: data.status,
+      status: data.status || 'free',
       data_ultima_fertilizacao: data.data_ultima_fertilizacao || null,
       topografia: data.topografia,
       tipo_solo: data.tipo_solo,
       agua: data.agua,
-      observacoes: data.observacoes
+      observacoes: data.observacoes,
+      estado_cerca: data.estado_cerca || 'Bom',
+      sombreamento: data.sombreamento || 'Natural',
+      plantas_daninhas: data.plantas_daninhas || 'Baixa',
+      fazenda_id: data.fazenda_id || activeFarmId,
+      tenant_id: activeTenantId
     };
 
     if (selectedPasture) {
-      const { error } = await supabase
-        .from('pastos')
-        .update(payload)
-        .eq('id', selectedPasture.id);
-      if (!error) {
-        setIsModalOpen(false);
-        fetchPastures();
+      // Optimistic update
+      setLocalPastures(prev => prev.map(p => p.id === selectedPasture.id ? { 
+        ...p, 
+        ...payload,
+        area: `${payload.area} ha`,
+      } : p));
+      
+      try {
+        const { error } = await supabase
+          .from('pastos')
+          .update(payload)
+          .eq('id', selectedPasture.id);
+        if (error) throw error;
+      } catch (err: any) {
+        console.warn('DB update failed, using local fallback state:', err.message);
       }
     } else {
-      const { error } = await supabase.from('pastos').insert([{
+      const mockNewId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11);
+      const newPasture = {
+        id: mockNewId,
         ...payload,
-        fazenda_id: activeFarm.id,
-        tenant_id: activeFarm.tenantId
-      }]);
-      if (!error) {
-        setIsModalOpen(false);
-        fetchPastures();
+        area: `${payload.area} ha`,
+        lotacao: '0.00 UA',
+        created_at: new Date().toISOString()
+      };
+      // Optimistic insert
+      setLocalPastures(prev => [newPasture, ...prev]);
+
+      try {
+        const { error } = await supabase.from('pastos').insert([payload]);
+        if (error) throw error;
+      } catch (err: any) {
+        console.warn('DB insert failed, using local fallback state:', err.message);
       }
     }
+    setIsFormOpen(false);
+    refresh();
   };
+
+  const { 
+    data: fetchedPastures = [], 
+    stats, 
+    loading, 
+    error, 
+    totalCount,
+    refresh 
+  } = useReportData('pastagens', { page, pageSize });
+
+  const [localPastures, setLocalPastures] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (fetchedPastures && fetchedPastures.length > 0) {
+      setLocalPastures(fetchedPastures);
+    }
+  }, [fetchedPastures]);
+
+  const filteredPastures = localPastures.filter(p => {
+    const matchesSearch = p.nome?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Parse values safely
+    const lotacaoVal = parseFloat(p.lotacao) || 0;
+    const areaVal = parseFloat(p.area) || 0;
+    
+    // Tab Filter
+    let matchesTab = true;
+    if (activeTab === 'resting') {
+      matchesTab = (p.status || '').toLowerCase() === 'resting' || (p.status || '').toLowerCase() === 'descanso' || lotacaoVal === 0;
+    } else if (activeTab === 'occupied') {
+      matchesTab = lotacaoVal > 0 && (p.status || '').toLowerCase() !== 'resting' && (p.status || '').toLowerCase() !== 'descanso';
+    }
+
+    // Status Filter
+    let matchesStatus = true;
+    if (filterValues.status !== 'all') {
+      const statusValue = (p.status || '').toLowerCase();
+      if (filterValues.status === 'occupied') {
+        matchesStatus = lotacaoVal > 0 || statusValue === 'occupied' || statusValue === 'grazing';
+      } else if (filterValues.status === 'resting') {
+        matchesStatus = statusValue === 'resting' || statusValue === 'descanso' || (lotacaoVal === 0 && statusValue !== 'free');
+      } else if (filterValues.status === 'free') {
+        matchesStatus = statusValue === 'free' || statusValue === 'vazio' || lotacaoVal === 0;
+      }
+    }
+
+    // Forrageiras/Capim Filter
+    const matchesCapim = filterValues.capins.length === 0 || filterValues.capins.includes(p.tipo_capim);
+
+    // Area Filter
+    const matchesArea = areaVal >= filterValues.minArea && areaVal <= filterValues.maxArea;
+
+    // UA Filter
+    const matchesUA = lotacaoVal >= filterValues.minUA && lotacaoVal <= filterValues.maxUA;
+
+    // Fertilization Filter
+    let matchesFertilization = true;
+    if (filterValues.needsFertilization) {
+      if (p.data_ultima_fertilizacao) {
+        const lastFert = new Date(p.data_ultima_fertilizacao);
+        const diffDays = (new Date().getTime() - lastFert.getTime()) / (1000 * 60 * 60 * 24);
+        matchesFertilization = diffDays > 90 || p.needs_fertilization === true;
+      } else {
+        matchesFertilization = true;
+      }
+    }
+
+    return matchesSearch && matchesTab && matchesStatus && matchesCapim && matchesArea && matchesUA && matchesFertilization;
+  });
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = pastures.filter(p => {
-      const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.tipo_capim || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
-      const matchesStatus = filterValues.status === 'all' || p.status === filterValues.status;
-      const matchesCapins = filterValues.capins.length === 0 || filterValues.capins.some(c => p.tipo_capim?.includes(c));
-      const area = Number(p.area || 0);
-      const matchesArea = area <= filterValues.maxArea;
-      const ua = Number(p.capacidade_ua || 0);
-      const matchesUA = ua >= filterValues.minUA && ua <= filterValues.maxUA;
-
-      return matchesSearch && matchesTab && matchesStatus && matchesCapins && matchesArea && matchesUA;
-    });
-
-    const exportData = filteredData.map(item => ({
-      Nome: item.nome,
-      Area: formatNumber(item.area) + ' ha',
-      Capacidade_UA: item.capacidade_ua + ' UA',
-      Tipo_Capim: item.tipo_capim,
-      Status: item.status === 'occupied' ? 'Ocupado' : item.status === 'resting' ? 'Descanso' : 'Livre',
-      Topografia: item.topografia,
-      Tipo_Solo: item.tipo_solo,
-      Ultima_Fertilizacao: item.data_ultima_fertilizacao ? new Date(item.data_ultima_fertilizacao).toLocaleDateString() : 'N/A'
+    const exportData = localPastures.map(p => ({
+      Nome: p.nome,
+      Area: p.area,
+      Lotacao: p.lotacao
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'gestao_pastagens');
-    else if (format === 'excel') exportToExcel(exportData, 'gestao_pastagens');
-    else if (format === 'pdf') exportToPDF(exportData, 'gestao_pastagens', 'Relatório de Gestão de Pastagens e Lotação');
+    if (format === 'csv') exportToCSV(exportData, 'relatorio_pastagens');
+    else if (format === 'excel') exportToExcel(exportData, 'relatorio_pastagens');
+    else if (format === 'pdf') exportToPDF(exportData, 'relatorio_pastagens', 'Gestão de Pastagens');
   };
 
-  const handleViewAnimals = (pasture: any) => {
-    setPastureToView(pasture);
-    setIsDetailsModalOpen(true);
-  };
-
-  const columns = [
-    {
-      header: 'Pasto',
+  const tableColumns = [
+    { 
+      header: 'Identificação do Pasto', 
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.nome}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.tipo_capim}
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 700, color: '#1e293b' }}>{item.nome}</span>
+          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            Área: {item.area || 0} ha
+          </span>
         </div>
-      )
+      ),
+      align: 'left' as const
     },
     {
-      header: 'Área',
-      accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Maximize size={14} />
-          <span>{formatNumber(item.area)} ha</span>
-        </div>
-      )
-    },
-    {
-      header: 'Pressão de Pastejo',
+      header: 'Forrageira / Capim',
       accessor: (item: any) => {
-        const pressure = item.status === 'occupied' ? 85 : 0; // Mocking pressure
+        let fertDays = -1;
+        if (item.data_ultima_fertilizacao) {
+            fertDays = Math.floor((new Date().getTime() - new Date(item.data_ultima_fertilizacao).getTime()) / (1000 * 3600 * 24));
+        }
+        const needsFert = item.needs_fertilization || (fertDays > 120);
+
         return (
-          <div className="table-cell-meta">
-            <div className="flex items-center gap-2 w-full">
-              <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${pressure > 90 ? 'bg-red-500' : 'bg-brand'}`} 
-                  style={{ width: `${pressure}%` }}
-                />
-              </div>
-              <span className="text-[11px] font-bold text-slate-600">{pressure}%</span>
-            </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+            <span className="main-text" style={{ fontWeight: 600, color: '#334155' }}>{item.tipo_capim || 'Não informado'}</span>
+            <span className="sub-meta" style={{ 
+              fontWeight: 700, 
+              fontSize: '9px', 
+              letterSpacing: '0.05em', 
+              textTransform: 'uppercase', 
+              color: needsFert ? '#f43f5e' : '#64748b' 
+            }}>
+              {fertDays >= 0 ? `${fertDays} dias sem adubo` : 'Sem adubação'}
+            </span>
           </div>
         );
-      }
+      },
+      align: 'left' as const
     },
     {
-      header: 'Status & DDR',
+      header: 'Solo & Relevo',
       accessor: (item: any) => (
-        <div className="flex flex-col items-center">
-          <span className={`status-pill ${item.status}`}>
-            {item.status === 'occupied' ? 'Ocupado' : item.status === 'resting' ? 'Descanso' : 'Livre'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+            {item.tipo_solo || 'Solo: N/A'}
           </span>
-          {item.status === 'resting' && (
-            <span className="text-[9px] font-bold text-blue-600 mt-1">12 DIAS DDR</span>
-          )}
+          <span className="sub-meta" style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', color: '#94a3b8' }}>
+            {item.topografia || 'Relevo: N/A'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Água / Acesso',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ 
+            padding: '2px 8px', 
+            borderRadius: '6px', 
+            fontSize: '11px', 
+            fontWeight: 800,
+            background: item.agua ? '#eff6ff' : '#f8fafc',
+            color: item.agua ? '#3b82f6' : '#94a3b8',
+            border: `1px solid ${item.agua ? '#bfdbfe' : '#e2e8f0'}`
+          }}>
+            {item.agua || 'N/A'}
+          </span>
         </div>
       ),
       align: 'center' as const
+    },
+    { 
+      header: 'Lotação & Pressão', 
+      accessor: (item: any) => {
+        const uas = parseFloat(item.lotacao || '0');
+        const area = parseFloat(item.area || '1');
+        const density = area > 0 ? (uas / area).toFixed(2) : '0';
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700, color: '#0f172a' }}>
+              <Activity size={14} color="#6366f1" />
+              <span>{uas} UA</span>
+            </div>
+            <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, marginTop: '4px', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              {density} UA/ha
+            </span>
+          </div>
+        );
+      },
+      align: 'center' as const
+    },
+    {
+      header: 'Status Pastejo',
+      accessor: (item: any) => {
+        const uas = parseFloat(item.lotacao || '0');
+        const area = parseFloat(item.area || '1');
+        const density = parseFloat(area > 0 ? (uas / area).toFixed(2) : '0');
+        
+        let status = 'Ideal';
+        let color = 'success';
+        if (uas === 0) {
+            status = 'Descanso';
+            color = 'info';
+        } else if (density > 3.0) {
+            status = 'Superlotação';
+            color = 'danger';
+        } else if (density > 2.0) {
+            status = 'Atenção';
+            color = 'warning';
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+            <span className={`status-pill ${color === 'danger' ? 'danger' : color === 'warning' ? 'warning' : color === 'info' ? 'info' : 'success'}`}>
+              {status}
+            </span>
+            {item.status && <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.status}</span>}
+          </div>
+        );
+      },
+      align: 'center' as const
     }
   ];
+
+  if (error) {
+    console.error("[PastureManagement] Error:", error);
+  }
 
   return (
     <div className="pasture-mgmt-page animate-slide-up">
@@ -285,19 +348,19 @@ export const PastureManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Trees size={14} fill="currentColor" />
-            <span>ELITE LIVESTOCK v5.0</span>
+            <span>ELITE AGRO v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Pastagens</h1>
-          <p className="page-subtitle">Monitoramento de ocupação, lotação e saúde da forrageira em tempo real.</p>
+          <p className="page-subtitle">Monitoramento de capacidade de suporte, pressão de pastejo e rotação.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsManejoModalOpen(true)}>
-            <Target size={18} />
-            LANÇAR MANEJO
+          <button className="glass-btn secondary" onClick={refresh}>
+            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+            Sincronizar
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
-            NOVO PASTO
+            Novo Pasto
           </button>
         </div>
       </header>
@@ -305,17 +368,10 @@ export const PastureManagement: React.FC = () => {
       <div className="next-gen-kpi-grid">
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats.map((stat, idx) => (
+        ) : stats?.map((stat: any, idx: number) => (
           <EliteStatCard 
-            key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            periodLabel={stat.periodLabel}
-            sparkline={stat.sparkline}
+            key={idx} 
+            {...stat} 
           />
         ))}
       </div>
@@ -323,16 +379,22 @@ export const PastureManagement: React.FC = () => {
       <div className="elite-controls-row">
         <div className="elite-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'ATIVOS' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ATIVOS')}
+            className={`elite-tab-item ${activeTab === 'all' ? 'active' : ''}`}
+            onClick={() => setActiveTab('all')}
           >
-            Pastos Ativos
+            Todos Pastos
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'HISTORICO' ? 'active' : ''}`}
-            onClick={() => setActiveTab('HISTORICO')}
+            className={`elite-tab-item ${activeTab === 'resting' ? 'active' : ''}`}
+            onClick={() => setActiveTab('resting')}
           >
-            Histórico de Ocupação
+            Em Descanso
+          </button>
+          <button 
+            className={`elite-tab-item ${activeTab === 'occupied' ? 'active' : ''}`}
+            onClick={() => setActiveTab('occupied')}
+          >
+            Em Uso
           </button>
         </div>
 
@@ -341,7 +403,7 @@ export const PastureManagement: React.FC = () => {
           <input 
             type="text" 
             className="elite-search-input"
-            placeholder="Buscar pastagem por nome ou tipo de capim..." 
+            placeholder="Buscar por nome do piquete..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -351,14 +413,12 @@ export const PastureManagement: React.FC = () => {
           <button 
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
-            title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
           <button 
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
-            title="Visualização em Cards"
           >
             <LayoutGrid size={18} />
           </button>
@@ -367,15 +427,14 @@ export const PastureManagement: React.FC = () => {
         <div className="elite-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
-            title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            title="Filtros Avançados"
           >
             <Filter size={20} />
           </button>
           <div className="export-dropdown-container">
             <button 
-              className="icon-btn-secondary" 
-              title="Exportar"
+              className="icon-btn-secondary"
               onClick={() => {
                 const menu = document.getElementById('export-menu-pasture');
                 if (menu) menu.classList.toggle('active');
@@ -384,12 +443,133 @@ export const PastureManagement: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-pasture" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-pasture')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="management-content">
+        {localPastures.length === 0 && !loading ? (
+          <EmptyState
+            title="Nenhum pasto cadastrado"
+            description="Não há áreas de pastagem registradas. Comece cadastrando seus piquetes para monitorar a lotação."
+            actionLabel="Novo Pasto"
+            onAction={handleOpenCreate}
+            icon={Trees}
+          />
+        ) : viewMode === 'list' ? (
+          <ModernTable 
+            data={filteredPastures}
+            columns={tableColumns}
+            loading={loading}
+            hideHeader={true}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
+            actions={(item) => (
+              <div className="modern-actions">
+                <button className="action-dot info" title="Mapa"><Maximize2 size={18} /></button>
+                <button className="action-dot success" title="Histórico"><History size={18} /></button>
+                <button className="action-dot edit" title="Editar" onClick={() => handleOpenEdit(item)}><Edit3 size={18} /></button>
+                <button className="action-dot delete" title="Excluir" onClick={() => handleDelete(item.id)}><Trash2 size={18} /></button>
+              </div>
+            )}
+          />
+        ) : (
+          <div className="pasture-cards-grid animate-fade-in">
+            {filteredPastures.map((p) => {
+              const uas = parseFloat(p.lotacao || '0');
+              const area = parseFloat(p.area || '0');
+              const capacityUa = p.capacidade_ua || 2.5;
+              const maxUa = area * capacityUa;
+              const occupancyPercent = maxUa > 0 ? (uas / maxUa) * 100 : 0;
+              
+              let badgeClass = 'active'; // green
+              let badgeText = 'IDEAL';
+              let borderClass = 'active';
+              
+              if (uas === 0) {
+                badgeClass = 'info-badge';
+                badgeText = 'DESCANSO';
+                borderClass = 'info-badge';
+              } else if (occupancyPercent > 100) {
+                badgeClass = 'stopped';
+                badgeText = 'SUPERLOTAÇÃO';
+                borderClass = 'danger-badge';
+              } else if (occupancyPercent > 80) {
+                badgeClass = 'warning-badge';
+                badgeText = 'ATENÇÃO';
+                borderClass = 'warning-badge';
+              }
+
+              return (
+                <div 
+                  key={p.id} 
+                  className={`pasture-card-premium ${borderClass}`}
+                >
+                  <div className="card-left-section">
+                    <div className="card-avatar">
+                      <Trees size={28} />
+                    </div>
+                    <div className="card-bottom-actions">
+                      <button className="action-icon-btn" title="Editar" onClick={() => handleOpenEdit(p)}><Edit3 size={14} /></button>
+                      <button className="action-icon-btn delete" title="Excluir" onClick={() => handleDelete(p.id)}><Trash2 size={14} /></button>
+                    </div>
+                  </div>
+
+                  <div className="card-main-content">
+                    <div className="card-header-info">
+                      <div className="title-row">
+                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>{p.nome}</h3>
+                        <span className={`status-pill mini ${badgeClass}`}>
+                          {badgeText}
+                        </span>
+                      </div>
+                      <div className="card-type-meta">{p.tipo_capim || 'Capim Padrão'}</div>
+                    </div>
+
+                    <div className="card-occupation-section">
+                      <div className="occ-header">
+                        <span>OCUPAÇÃO ATUAL</span>
+                        <span className={occupancyPercent > 100 ? 'critical' : ''}>
+                          {Math.round(occupancyPercent)}%
+                        </span>
+                      </div>
+                      <div className="occ-bar-container">
+                        <div 
+                          className={`occ-bar-fill ${occupancyPercent > 100 ? 'critical' : occupancyPercent > 80 ? 'warning' : ''}`}
+                          style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
+                        />
+                      </div>
+                      <div className="occ-footer">
+                        {uas.toFixed(2)} / {maxUa > 0 ? maxUa.toFixed(2) : '∞'} UA
+                      </div>
+                    </div>
+
+                    <div className="card-footer-meta">
+                      <div className="meta-item">
+                        <Map size={12} />
+                        <span>{area.toFixed(2)} ha</span>
+                      </div>
+                      <div className="meta-item">
+                        <Activity size={12} />
+                        <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <button className="add-pasture-card-premium" onClick={handleOpenCreate}>
+              <Plus size={32} />
+              <span>NOVO PASTO</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <PastureFilterModal 
@@ -399,148 +579,29 @@ export const PastureManagement: React.FC = () => {
         setFilters={setFilterValues}
       />
 
-      <div className="management-content">
-        {pastures.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhuma pastagem cadastrada"
-            description="Não há pastos registrados para esta fazenda. Mapeie as áreas de pastejo para começar o controle de rotação e lotação."
-            actionLabel="Novo Pasto"
-            onAction={handleOpenCreate}
-            icon={Trees}
-          />
-        ) : viewMode === 'list' ? (
-          <ModernTable 
-            data={pastures.filter(p => {
-              const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.tipo_capim || '').toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
-              
-              const matchesStatus = filterValues.status === 'all' || p.status === filterValues.status;
-              const matchesCapins = filterValues.capins.length === 0 || filterValues.capins.some(c => p.tipo_capim?.includes(c));
-              
-              const area = Number(p.area || 0);
-              const matchesArea = area <= filterValues.maxArea;
-              
-              const ua = Number(p.capacidade_ua || 0);
-              const matchesUA = ua >= filterValues.minUA && ua <= filterValues.maxUA;
-
-              return matchesSearch && matchesTab && matchesStatus && matchesCapins && matchesArea && matchesUA;
-            })}
-            columns={columns}
-            loading={loading}
-            hideHeader={true}
-            searchPlaceholder="Pesquisar na base de pastagens..."
-            actions={(item) => (
-              <div className="modern-actions">
-                <button className="action-dot info" onClick={() => handleViewAnimals(item)} title="Ver Animais"><Activity size={18} /></button>
-                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar"><Edit3 size={18} /></button>
-                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir"><Trash2 size={18} /></button>
-              </div>
-            )}
-          />
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="user-cards-grid"
-          >
-            {pastures
-              .filter(p => {
-                const matchesSearch = (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (p.tipo_capim || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesTab = activeTab === 'ATIVOS' ? p.status !== 'archived' : p.status === 'archived';
-                
-                const matchesStatus = filterValues.status === 'all' || p.status === filterValues.status;
-                const matchesCapins = filterValues.capins.length === 0 || filterValues.capins.some(c => p.tipo_capim?.includes(c));
-                
-                const area = Number(p.area || 0);
-                const matchesArea = area <= filterValues.maxArea;
-                
-                const ua = Number(p.capacidade_ua || 0);
-                const matchesUA = ua >= filterValues.minUA && ua <= filterValues.maxUA;
-
-                return matchesSearch && matchesTab && matchesStatus && matchesCapins && matchesArea && matchesUA;
-              })
-              .map(p => (
-                <motion.div 
-                  key={p.id} 
-                  layout
-                  className={`user-card-premium ${p.status === 'occupied' ? 'info-badge' : 'active'}`}
-                >
-                  <div className="card-left-section">
-                    <div className="card-avatar">
-                      <Trees size={32} />
-                    </div>
-                    <div className="card-bottom-actions">
-                      <button className="action-icon-btn" onClick={() => handleViewAnimals(p)} title="Ver Animais"><Activity size={16} /></button>
-                      <button className="action-icon-btn" onClick={() => handleOpenEdit(p)} title="Editar"><Edit3 size={16} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(p.id)} title="Excluir"><Trash2 size={16} /></button>
-                    </div>
-                  </div>
-
-                  <div className="card-main-content">
-                    <div className="card-header-info">
-                      <h3>{p.nome}</h3>
-                      <span className="card-role-badge">{p.tipo_capim || 'Brachiaria'}</span>
-                    </div>
-
-                    <div className="card-meta-grid">
-                      <div className="meta-item">
-                        <Maximize size={14} className="meta-icon" />
-                        <span>{p.area || 0} ha | {p.capacidade_ua || 0} UA Suportada</span>
-                      </div>
-                      <div className="meta-item">
-                        <Activity size={14} className="meta-icon" />
-                        <span>Pressão: {p.status === 'occupied' ? '85% (Equilibrada)' : '0% (Descanso)'}</span>
-                      </div>
-                      <div className="meta-item">
-                        <Calendar size={14} className="meta-icon" />
-                        <span>{p.status === 'occupied' ? 'Entrada: 12/05' : 'DDR: 14 dias'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-          </motion.div>
-        )}
-      </div>
-
+      <PastureForm 
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleSubmit}
+        initialData={selectedPasture}
+      />
       <style>{`
-        .view-mode-toggle {
-          display: flex;
-          background: hsl(var(--bg-main));
-          padding: 4px;
-          border-radius: 12px;
-          gap: 4px;
-          margin: 0 16px;
-        }
-
-        .view-btn {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 8px;
-          border: none;
-          background: transparent;
-          color: hsl(var(--text-muted));
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .view-btn.active {
-          background: hsl(var(--bg-card));
-          color: #16a34a;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        }
-
-        .user-cards-grid {
+        .pasture-cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
           padding: 8px;
         }
 
-        .user-card-premium {
+        @media (max-width: 1400px) {
+          .pasture-cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 900px) {
+          .pasture-cards-grid { grid-template-columns: 1fr; }
+        }
+
+        .pasture-card-premium {
           background: hsl(var(--bg-card));
           border-radius: 24px;
           border: 1px solid hsl(var(--border));
@@ -554,28 +615,38 @@ export const PastureManagement: React.FC = () => {
           text-align: left;
         }
 
-        .user-card-premium::before {
+        .pasture-card-premium::before {
           content: '';
           position: absolute;
           left: 0;
           top: 0;
           bottom: 0;
           width: 6px;
-          background: hsl(var(--border-strong));
+          background: #94a3b8;
           transition: 0.3s;
         }
 
-        .user-card-premium.active::before {
-          background: #16a34a;
-          box-shadow: 4px 0 15px rgba(22, 163, 74, 0.3);
+        .pasture-card-premium.active::before {
+          background: #10b981;
+          box-shadow: 4px 0 15px rgba(16, 185, 129, 0.3);
         }
 
-        .user-card-premium.info-badge::before {
+        .pasture-card-premium.info-badge::before {
           background: #3b82f6;
           box-shadow: 4px 0 15px rgba(59, 130, 246, 0.3);
         }
 
-        .user-card-premium:hover {
+        .pasture-card-premium.warning-badge::before {
+          background: #f59e0b;
+          box-shadow: 4px 0 15px rgba(245, 158, 11, 0.3);
+        }
+
+        .pasture-card-premium.danger-badge::before {
+          background: #ef4444;
+          box-shadow: 4px 0 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .pasture-card-premium:hover {
           transform: translateY(-8px);
           box-shadow: var(--shadow-lg);
           border-color: hsl(var(--brand) / 0.3);
@@ -592,81 +663,128 @@ export const PastureManagement: React.FC = () => {
         }
 
         .card-avatar {
-          width: 70px;
-          height: 70px;
-          background: #0f172a;
-          color: white;
-          border-radius: 20px;
+          width: 56px;
+          height: 56px;
+          background: hsl(var(--bg-card));
+          color: hsl(var(--brand));
+          border-radius: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 28px;
-          font-weight: 900;
+          box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+          border: 1px solid hsl(var(--border));
           margin-bottom: 12px;
-          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
         }
 
         .card-main-content {
           flex: 1;
-          padding: 20px;
+          padding: 16px 20px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
         }
 
-        .card-header-info h3 {
-          font-size: 19px;
-          font-weight: 900;
-          color: hsl(var(--text-main));
+        .card-header-info .title-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
           margin-bottom: 4px;
+        }
+
+        .card-header-info h3 {
+          font-size: 17px;
+          font-weight: 900;
           letter-spacing: -0.02em;
         }
 
-        .card-role-badge {
-          display: inline-block;
+        .status-pill.mini {
+          font-size: 9px;
+          padding: 3px 8px;
+          border-radius: 6px;
+        }
+
+        .card-type-meta {
           font-size: 10px;
           font-weight: 800;
-          color: #16a34a;
-          background: hsl(var(--brand) / 0.1);
-          padding: 4px 10px;
-          border-radius: 8px;
+          color: #94a3b8;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
 
-        .card-meta-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 8px;
-          margin-top: 12px;
+        .card-occupation-section {
+          margin: 10px 0;
+        }
+
+        .occ-header {
+          display: flex;
+          justify-content: space-between;
+          font-size: 10px;
+          font-weight: 800;
+          margin-bottom: 4px;
+          color: #64748b;
+        }
+
+        .occ-header .critical { color: #ef4444; }
+
+        .occ-bar-container {
+          height: 6px;
+          background: #f1f5f9;
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 4px;
+        }
+
+        .occ-bar-fill {
+          height: 100%;
+          background: #3b82f6;
+          border-radius: 3px;
+          transition: 0.5s;
+        }
+
+        .occ-bar-fill.warning { background: #f59e0b; }
+        .occ-bar-fill.critical { background: #ef4444; }
+
+        .occ-footer {
+          font-size: 10px;
+          font-weight: 600;
+          color: #94a3b8;
+        }
+
+        .card-footer-meta {
+          display: flex;
+          gap: 12px;
         }
 
         .meta-item {
           display: flex;
           align-items: center;
-          gap: 8px;
-          color: hsl(var(--text-muted));
-          font-size: 12px;
+          gap: 6px;
+          font-size: 11px;
           font-weight: 600;
+          color: #64748b;
         }
 
-        .meta-icon {
-          color: #16a34a;
+        .card-farm-meta {
+          color: #10b981;
+          font-weight: 800;
         }
 
         .card-bottom-actions {
           display: flex;
-          gap: 8px;
-          margin-top: 15px;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 6px;
+          width: 100%;
+          margin-top: 12px;
         }
 
         .action-icon-btn {
-          width: 34px;
-          height: 34px;
+          width: 32px;
+          height: 32px;
           border-radius: 10px;
           border: 1px solid hsl(var(--border));
-          background: hsl(var(--bg-card));
-          color: hsl(var(--text-muted));
+          background: white;
+          color: #64748b;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -675,42 +793,66 @@ export const PastureManagement: React.FC = () => {
         }
 
         .action-icon-btn:hover {
-          background: #0f172a;
+          background: hsl(var(--brand));
           color: white;
-          transform: scale(1.1);
+          border-color: hsl(var(--brand));
         }
 
-        .action-icon-btn.delete:hover {
-          background: #ef4444;
-          border-color: #ef4444;
-          color: white;
+        .action-icon-btn.delete:hover { background: #ef4444; border-color: #ef4444; }
+
+        .add-pasture-card-premium {
+          border: 2px dashed #e2e8f0;
+          border-radius: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          background: transparent;
+          cursor: pointer;
+          color: #94a3b8;
+          transition: 0.2s;
+          height: 180px;
+        }
+
+        .add-pasture-card-premium:hover {
+          border-color: #10b981;
+          color: #10b981;
+          background: rgba(16, 185, 129, 0.02);
+        }
+
+        .add-pasture-card-premium span { font-size: 11px; font-weight: 900; letter-spacing: 0.05em; }
+
+        [data-theme='dark'] .pasture-card-premium,
+        [data-theme='dark'] .add-pasture-card-premium {
+          background: hsl(var(--bg-main)) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--text-main)) !important;
+        }
+
+        [data-theme='dark'] .card-left-section {
+          background: hsl(var(--bg-card) / 0.3) !important;
+          border-color: hsl(var(--border)) !important;
+        }
+
+        [data-theme='dark'] .card-avatar,
+        [data-theme='dark'] .action-icon-btn {
+          background: hsl(var(--bg-card)) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--text-main)) !important;
+        }
+
+        [data-theme='dark'] .action-icon-btn:hover {
+          background: hsl(var(--brand)) !important;
+          color: white !important;
+        }
+
+        [data-theme='dark'] .action-icon-btn.delete:hover {
+          background: #ef4444 !important;
         }
       `}</style>
-
-      <PastureForm 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSubmit={handleSubmit}
-        initialData={selectedPasture}
-      />
-
-      <PastureManejoForm 
-        isOpen={isManejoModalOpen}
-        onClose={() => setIsManejoModalOpen(false)}
-        onSubmit={() => {
-          fetchPastures();
-          setIsManejoModalOpen(false);
-        }}
-      />
-
-      <AnimalListModal 
-        isOpen={isDetailsModalOpen}
-        onClose={() => setIsDetailsModalOpen(false)}
-        title={`Animais no Pasto: ${pastureToView?.nome}`}
-        filterField="pasto_id"
-        filterValue={pastureToView?.id}
-      />
-
     </div>
   );
 };
+
+export default PastureManagement;

@@ -324,7 +324,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
               >
                 <option value="">Selecione a conta...</option>
                 {bankAccounts.map(account => (
-                  <option key={account.id} value={account.id}>{account.apelido || account.nome_banco}</option>
+                  <option key={account.id} value={account.id}>{account.descricao || account.banco}</option>
                 ))}
               </select>
             </div>

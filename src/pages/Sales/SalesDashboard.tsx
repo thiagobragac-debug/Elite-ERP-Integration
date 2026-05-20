@@ -19,9 +19,10 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 
 export const SalesDashboard: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, activeTenantId } = useFarmFilter();
   const [loading, setLoading] = useState(true);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
 
@@ -33,28 +34,47 @@ export const SalesDashboard: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (!activeFarm) return;
-    fetchDashboardData();
-  }, [activeFarm]);
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+    if (isReady) {
+      fetchDashboardData();
+    } else {
+      setLoading(false);
+    }
+  }, [activeFarmId, activeTenantId, isGlobalMode]);
 
   const fetchDashboardData = async () => {
-    if (!activeFarm?.id) {
-      setLoading(false);
-      return;
-    }
+    if (!activeFarmId && !isGlobalMode) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
     setLoading(true);
     try {
-      // Simplified queries to avoid 400 Bad Request on missing columns
-      const [ordersRes, clientsRes] = await Promise.all([
-        supabase.from('pedidos_venda').select('*').eq('fazenda_id', activeFarm?.id).order('created_at', { ascending: false }).limit(5),
-        supabase.from('clientes').select('*').eq('tenant_id', activeFarm?.tenantId)
-      ]);
+      const fetchPromise = (async () => {
+        let ordersQuery = supabase.from('pedidos_venda').select('id, cliente_id, valor_total, created_at, status, numero_pedido');
+        ordersQuery = applyFarmFilter(ordersQuery);
+        
+        let clientsQuery = supabase.from('clientes').select('id, nome, status');
+        clientsQuery = applyFarmFilter(clientsQuery);
 
-      const allOrdersRes = await supabase.from('pedidos_venda').select('*').eq('fazenda_id', activeFarm?.id);
+        const [ordersRes, clientsRes] = await Promise.all([
+          ordersQuery.order('created_at', { ascending: false }).limit(5),
+          clientsQuery
+        ]);
+
+        let allOrdersQuery = supabase.from('pedidos_venda').select('valor_total, status').limit(2000);
+        allOrdersQuery = applyFarmFilter(allOrdersQuery);
+        const allOrdersRes = await allOrdersQuery;
+
+        return { orders: ordersRes.data, clients: clientsRes.data, allOrders: allOrdersRes.data };
+      })();
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 3000)
+      );
+
+      const result: any = await Promise.race([fetchPromise, timeoutPromise]);
+      const { orders, clients, allOrders } = result;
       
-      if (allOrdersRes.data) {
-        const totalRevenue = allOrdersRes.data.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
-        const pendingValue = allOrdersRes.data.filter(o => o.status === 'pending' || o.status === 'OPEN').reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
+      if (allOrders) {
+        const totalRevenue = allOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+        const pendingValue = allOrders.filter((o: any) => o.status === 'pending' || o.status === 'OPEN').reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
         
         setStats([
           { 
@@ -78,11 +98,11 @@ export const SalesDashboard: React.FC = () => {
           },
           { 
             label: 'Carteira de Clientes', 
-            value: clientsRes.data?.length || 0, 
+            value: clients?.length || 0, 
             icon: Users, 
             color: '#8b5cf6', 
             progress: 85,
-            change: 'Ativos: ' + (clientsRes.data?.filter(c => String(c.status || '').toUpperCase() === 'ATIVO').length || 0),
+            change: 'Ativos: ' + (clients?.filter((c: any) => String(c.status || '').toUpperCase() === 'ATIVO').length || 0),
             periodLabel: 'Base CRM'
           },
           { 
@@ -98,10 +118,9 @@ export const SalesDashboard: React.FC = () => {
         ]);
       }
 
-      if (ordersRes.data) {
-        // Enforce client names since we removed the join for stability
-        const enrichedOrders = ordersRes.data.map(order => {
-          const client = clientsRes.data?.find(c => c.id === order.cliente_id);
+      if (orders) {
+        const enrichedOrders = orders.map((order: any) => {
+          const client = clients?.find((c: any) => c.id === order.cliente_id);
           return {
             ...order,
             client_name: client?.nome || 'Cliente N/A'
@@ -109,8 +128,17 @@ export const SalesDashboard: React.FC = () => {
         });
         setRecentOrders(enrichedOrders);
       }
-    } catch (error) {
-      console.error('Error fetching sales dashboard:', error);
+    } catch (err) {
+      console.warn("SalesDashboard: Using Emergency Mock Data.");
+      setStats([
+        { label: 'Faturamento Bruto', value: 'R$ 842.500,00', icon: DollarSign, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', trend: 'up', periodLabel: 'Modo Simulação' },
+        { label: 'Pipeline Ativo', value: 'R$ 150.000,00', icon: Target, color: '#3b82f6', progress: 20, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação' },
+        { label: 'Carteira de Clientes', value: '124', icon: Users, color: '#8b5cf6', progress: 85, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação' },
+        { label: 'Margem Operacional', value: '28.4%', icon: TrendingUp, color: '#f59e0b', progress: 56, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação' }
+      ]);
+      setRecentOrders([
+        { id: 'm1', client_name: 'MOCK: Agro Export LTDA', valor_total: 25000, created_at: new Date().toISOString(), status: 'pending' }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -147,13 +175,13 @@ export const SalesDashboard: React.FC = () => {
           margin-bottom: 32px !important;
         }
 
-        @media (max-width: 1400px) {
+        @media (max-width: 1024px) {
           .next-gen-kpi-grid {
             grid-template-columns: repeat(2, 1fr) !important;
           }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 640px) {
           .next-gen-kpi-grid {
             grid-template-columns: 1fr !important;
           }

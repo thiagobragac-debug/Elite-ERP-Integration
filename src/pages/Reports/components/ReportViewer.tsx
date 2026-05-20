@@ -116,7 +116,15 @@ const ReportPrintLayout: React.FC<{
 
 export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) => {
   const { activeFarm, userProfile, refreshProfile } = useTenant();
-  const { data, stats, columns, loading, error } = useReportData(report?.id || null);
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const itemsPerPage = 15;
+  
+  const { data, stats, columns, totalCount, loading, error } = useReportData(
+    report?.id || null, 
+    currentPage, 
+    itemsPerPage
+  );
+  
   const pdfRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
   
@@ -266,14 +274,9 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
             <div className="analytics-card">
               <div className="card-header">
                 <h3>Detalhamento de Registros</h3>
-                <span className="subtitle">Últimos dados sincronizados em tempo real</span>
+                <span className="subtitle">Dados paginados em tempo real • Escala Comercial</span>
               </div>
-            {loading ? (
-              <div className="report-loading">
-                <div className="spinner"></div>
-                <span>Processando Inteligência de Dados...</span>
-              </div>
-            ) : error ? (
+            {error ? (
               <div className="report-error">
                 <span>Ocorreu um erro ao carregar os dados reais: {error}</span>
                 <button onClick={() => window.location.reload()}>Tentar Novamente</button>
@@ -284,6 +287,11 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
                 columns={columns}
                 hideHeader={false}
                 onExport={handleExportExcel}
+                loading={loading}
+                totalCount={totalCount}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
               />
             )}
             </div>

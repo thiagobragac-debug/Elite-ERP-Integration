@@ -27,12 +27,11 @@ import { ContractForm } from '../../components/Forms/ContractForm';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { HedgeSimulationModal } from './components/HedgeSimulationModal';
 import { ContractFilterModal } from './components/ContractFilterModal';
 
 export const Contracts: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,14 +50,18 @@ export const Contracts: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchContracts();
-  }, [activeFarmId, isGlobalMode]);
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+    if (isReady) {
+      fetchContracts();
+    } else {
+      setLoading(false);
+    }
+  }, [activeFarmId, isGlobalMode, activeTenantId]);
 
   const fetchContracts = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('contratos').select('*, clientes(nome)').order('created_at', { ascending: false });
+      let query = supabase.from('contratos').select('*, clientes(nome)').order('created_at', { ascending: false }).limit(500);
       query = applyFarmFilter(query);
       const { data, error } = await query;
       
@@ -169,53 +172,56 @@ export const Contracts: React.FC = () => {
     {
       header: 'Contrato / Contraparte',
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">#{item.id?.slice(0, 8).toUpperCase()}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
+        <div className="table-cell-title text-left" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span className="main-text font-bold text-slate-800">#{item.id?.slice(0, 8).toUpperCase()}</span>
+          <span className="sub-meta uppercase font-bold text-[10px] tracking-wider text-slate-500">
             {item.clientes?.nome || 'CLIENTE NÃO IDENTIFICADO'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Vigência / Prazo',
+      accessor: (item: any) => (
+        <div className="table-cell-meta flex flex-col items-center justify-center gap-1 font-semibold text-slate-600">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px' }}>
+            <Calendar size={12} />
+            <span>{new Date(item.data_inicio).toLocaleDateString()} - {new Date(item.data_fim).toLocaleDateString()}</span>
           </div>
+          <span className="sub-meta" style={{ fontSize: '9px', color: '#94a3b8', fontWeight: 700 }}>
+            Nº OS: {item.numero_contrato || 'N/A'}
+          </span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Vigência',
+      header: 'Fixação / Modalidade',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Calendar size={14} />
-          <span>{new Date(item.data_inicio).toLocaleDateString()} - {new Date(item.data_fim).toLocaleDateString()}</span>
-        </div>
-      )
-    },
-    {
-      header: 'Fixação / Mercado',
-      accessor: (item: any) => (
-        <div className="flex flex-col">
-          <span className={`text-[10px] font-black px-1 rounded border inline-block w-fit mb-1 ${
+        <div className="flex flex-col items-center gap-1">
+          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded border inline-block w-fit ${
             item.isFixed ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-amber-50 text-amber-600 border-amber-100'
           }`}>
             {item.priceType}
           </span>
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900">
-              {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          {item.isFixed && (
+            <span className={`text-[9px] font-bold ${Number(item.marketDelta) > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+              Delta: {Number(item.marketDelta) > 0 ? '↑' : '↓'} {Math.abs(Number(item.marketDelta))}%
             </span>
-            {item.isFixed && (
-              <span className={`text-[10px] font-bold ${Number(item.marketDelta) > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {Number(item.marketDelta) > 0 ? '↑' : '↓'} {Math.abs(Number(item.marketDelta))}%
-              </span>
-            )}
-          </div>
+          )}
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Execução',
+      header: 'Execução Física',
       accessor: (item: any) => {
         const progress = item.totalVolume ? ((item.deliveredVolume || 0) / item.totalVolume) * 100 : 0;
         return (
-          <div className="flex flex-col gap-1 min-w-[120px]">
-            <div className="flex justify-between text-[10px] font-black italic">
-              <span>FÍSICA</span>
+          <div className="flex flex-col gap-1 min-w-[140px] text-left">
+            <div className="flex justify-between text-[10px] font-black italic text-slate-500">
+              <span>ENTREGUE</span>
               <span>{progress.toFixed(0)}%</span>
             </div>
             <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -224,16 +230,36 @@ export const Contracts: React.FC = () => {
                 style={{ width: `${progress}%` }}
               />
             </div>
+            <span className="text-[9px] font-bold text-slate-400 mt-0.5">
+              {(item.deliveredVolume || 0).toLocaleString()} kg / {(item.totalVolume || 0).toLocaleString()} kg
+            </span>
           </div>
         );
-      }
+      },
+      align: 'left' as const
+    },
+    {
+      header: 'Valor Bloqueado',
+      accessor: (item: any) => (
+        <div className="flex flex-col items-end gap-1">
+          <span className="font-bold text-slate-900" style={{ fontSize: '13px' }}>
+            {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+          <span className="sub-meta" style={{ fontSize: '9px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 700 }}>
+            Valor Total
+          </span>
+        </div>
+      ),
+      align: 'right' as const
     },
     {
       header: 'Status',
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'active' ? 'active' : 'info'}`}>
-          {item.status === 'active' ? 'Vigente' : 'Concluído'}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.status === 'active' ? 'active' : 'info'}`}>
+            {item.status === 'active' ? 'Vigente' : 'Concluído'}
+          </span>
+        </div>
       ),
       align: 'center' as const
     }
@@ -241,7 +267,6 @@ export const Contracts: React.FC = () => {
 
   return (
     <div className="contract-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -327,9 +352,9 @@ export const Contracts: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-contracts" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-contracts')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-contracts')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-contracts')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-contracts')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-contracts')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>

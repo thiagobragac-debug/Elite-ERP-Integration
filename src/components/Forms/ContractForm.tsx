@@ -77,7 +77,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
 
   const fetchParties = async () => {
     const table = formData.party_type === 'client' ? 'clientes' : 'fornecedores';
-    const { data } = await supabase.from(table).select('id, nome').eq('fazenda_id', activeFarm.id);
+    const { data } = await supabase.from(table).select('id, nome').eq('fazenda_id', activeFarm?.id || '');
     if (data) setParties(data);
   };
 

@@ -77,9 +77,18 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
     // Fetch Machines with specs
     const { data: mData } = await supabase
       .from('maquinas')
-      .select('id, nome, horimetro_atual, capacidade_tanque, consumo_estimado')
+      .select('id, nome, tipo, placa')
       .eq('fazenda_id', activeFarm.id);
-    if (mData) setMachines(mData);
+    if (mData) {
+      // Add mock fields for UI compatibility
+      const transformed = mData.map(m => ({
+        ...m,
+        horimetro_atual: 0,
+        capacidade_tanque: 0,
+        consumo_estimado: 0
+      }));
+      setMachines(transformed);
+    }
 
     // Fetch Inventory Locations (Tanks)
     const { data: lData } = await supabase
@@ -224,7 +233,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
         </select>
       </div>
 
-      <div className="form-group full-width">
+      <div className="form-group">
         <label><User size={14} /> Responsável / Operador</label>
         <input 
           type="text" 

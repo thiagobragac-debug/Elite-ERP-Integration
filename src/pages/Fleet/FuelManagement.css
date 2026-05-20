@@ -187,7 +187,7 @@
   filter: brightness(0.95);
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1024px) {
   .next-gen-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }

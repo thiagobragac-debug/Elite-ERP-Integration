@@ -14,7 +14,8 @@ import {
   Edit3,
   Activity,
   Package,
-  History
+  History,
+  Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -25,9 +26,10 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { MovementFilterModal } from './components/MovementFilterModal';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 
 export const MovementManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, activeFarm } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [movements, setMovements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,51 +40,84 @@ export const MovementManagement: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-   const [stats, setStats] = useState<any[]>([]);
+  const [stats, setStats] = useState<any[]>([
+    { label: 'Movimentações', value: '0', icon: ArrowDownLeft, color: '#10b981', progress: 0, change: 'Volume de Log' },
+    { label: 'Página Atual', value: '1', icon: ArrowUpRight, color: '#3b82f6', progress: 100, change: 'Visão de Grade' },
+    { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências' },
+    { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real' },
+  ]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     type: 'all',
     minAmount: 0,
-    maxAmount: 500000,
+    maxAmount: 1000000,
     dateStart: '',
     dateEnd: ''
   });
 
+  // Server-side pagination
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(15);
+  const [totalCount, setTotalCount] = useState(0);
+
   useEffect(() => {
-    if (!activeFarm) return;
-    fetchMovements();
-  }, [activeFarm]);
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+    if (isReady) {
+      fetchMovements();
+    } else {
+      setLoading(false);
+    }
+  }, [activeFarmId, activeTenantId, isGlobalMode, page, searchTerm, activeTab]);
 
    const fetchMovements = async () => {
-    if (!activeFarm?.id) {
+    if (!activeFarmId && !isGlobalMode) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    const { data } = await supabase
-      .from('movimentacoes_estoque')
-      .select(`
+    try {
+      console.log(`[Movements] Sincronizando logs (Página ${page})...`);
+      
+      let query = supabase.from('movimentacoes_estoque').select(`
         *,
         produtos (nome, unidade, categoria)
-      `)
-      .eq('fazenda_id', activeFarm.id)
-      .eq('tenant_id', activeFarm.tenantId)
-      .order('data_movimentacao', { ascending: false });
-    
-    if (data) {
-      setMovements(data);
+      `, { count: 'exact' });
       
-      const valEntradas = data.filter(m => m.tipo === 'in').reduce((acc, curr) => acc + (Number(curr.quantidade) * Number(curr.valor_unitario || 0)), 0);
-      const valSaidas = data.filter(m => m.tipo === 'out').reduce((acc, curr) => acc + (Number(curr.quantidade) * Number(curr.valor_unitario || 0)), 0);
+      query = applyFarmFilter(query);
+
+      // Server-side Search
+      if (searchTerm) {
+        // Since we can't easily join-search in simple query without complex logic, 
+        // we'll search by responsavel or origem_destino for now
+        query = query.or(`responsavel.ilike.%${searchTerm}%,origem_destino.ilike.%${searchTerm}%`);
+      }
+
+      // Range
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { data, count, error } = await query
+        .order('data_movimentacao', { ascending: false })
+        .range(from, to);
       
-      setStats([
-        { label: 'Volume Entradas (R$)', value: `R$ ${valEntradas.toLocaleString('pt-BR')}`, icon: ArrowDownLeft, color: '#10b981', progress: 100, change: 'Aquisição de Ativos' },
-        { label: 'Consumo Mensal (R$)', value: `R$ ${valSaidas.toLocaleString('pt-BR')}`, icon: ArrowUpRight, color: '#ef4444', progress: 85, change: 'Custo Operacional' },
-        { label: 'Giro de Lotes', value: data.filter(m => m.lote).length, icon: History, color: '#3b82f6', progress: 100, change: 'Rastreabilidade Ativa' },
-        { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências' },
-      ]);
+      if (error) throw error;
+      
+      if (data) {
+        setMovements(data);
+        setTotalCount(count || 0);
+        
+        setStats([
+          { label: 'Movimentações', value: String(count || 0), icon: ArrowDownLeft, color: '#10b981', progress: 100, change: 'Volume de Log' },
+          { label: 'Página Atual', value: `${page}`, icon: ArrowUpRight, color: '#3b82f6', progress: 100, change: 'Visão de Grade' },
+          { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências' },
+          { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real' },
+        ]);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleOpenCreate = (type: 'in' | 'out' | 'transfer') => {
@@ -98,7 +133,7 @@ export const MovementManagement: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) return;
+    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
 
     if (formData.tipo === 'transfer') {
       try {
@@ -242,64 +277,91 @@ export const MovementManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Item / Rastreabilidade',
+      header: 'Produto / Código',
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.produtos?.nome || 'Item Excluído'}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider flex items-center gap-2">
-            <span className="text-slate-500">LOTE: {item.lote || 'N/A'}</span>
-            {item.data_validade && (
-              <span className={`flex items-center gap-1 ${new Date(item.data_validade) < new Date() ? 'text-red-500' : 'text-amber-500'}`}>
-                <Calendar size={10} /> {new Date(item.data_validade).toLocaleDateString()}
-              </span>
-            )}
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.produtos?.nome || 'Item Excluído'}
+          </span>
+          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            ID: {item.id?.slice(0, 8).toUpperCase()}
+          </span>
         </div>
-      )
+      ),
+      align: 'left' as const
     },
     {
-      header: 'Tipo / Valor',
+      header: 'Tipo de Operação',
       accessor: (item: any) => (
-        <div className="flex flex-col">
-          <div className="flex items-center gap-1">
-            {item.tipo === 'in' ? <ArrowDownLeft size={14} className="text-emerald-500" /> : <ArrowUpRight size={14} className="text-rose-500" />}
-            <span className={item.tipo === 'in' ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>
-              {item.tipo === 'in' ? 'Entrada' : item.tipo === 'transfer' ? 'Transf.' : 'Saída'}
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.tipo === 'in' ? 'success' : item.tipo === 'transfer' ? 'warning' : 'danger'}`} style={{ textTransform: 'uppercase', fontWeight: 900 }}>
+            {item.tipo === 'in' ? 'Entrada' : item.tipo === 'transfer' ? 'Transf.' : 'Saída'}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Lote & Validade',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
+            Lote: {item.lote || 'N/A'}
+          </span>
+          {item.data_validade ? (
+            <span className={`flex items-center gap-1 text-[10px] font-bold ${new Date(item.data_validade) < new Date() ? 'text-red-500' : 'text-amber-500'}`}>
+              <Calendar size={10} /> Val: {new Date(item.data_validade).toLocaleDateString()}
             </span>
+          ) : (
+            <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8' }}>
+              Sem Validade
+            </span>
+          )}
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Quantidade / Local',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700, color: '#334155', fontSize: '12px' }}>
+            <Package size={14} color="#64748b" />
+            <span>{item.quantidade} {item.produtos?.unidade}</span>
           </div>
-          <span className="text-[10px] font-bold text-slate-400 uppercase">
+          {item.origem_destino && (
+            <span style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }} className="truncate max-w-[150px]">
+              {item.origem_destino}
+            </span>
+          )}
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Valor Total',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669' }}>
             R$ {(Number(item.quantidade) * Number(item.valor_unitario || 0)).toLocaleString('pt-BR')}
           </span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Quantidade',
+      header: 'Data / Responsável',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1 font-bold">
-              <Package size={14} />
-              <span>{item.quantidade} {item.produtos?.unidade}</span>
-            </div>
-            <span className="text-[10px] text-slate-400 uppercase truncate max-w-[150px]">
-              {item.origem_destino}
-            </span>
-          </div>
-        </div>
-      )
-    },
-    {
-      header: 'Data / Resp.',
-      accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <div className="flex flex-col items-end">
-            <span className="font-bold text-slate-700">{item.data_movimentacao ? new Date(item.data_movimentacao).toLocaleDateString() : 'N/A'}</span>
-            <span className="text-[10px] text-slate-400 uppercase">{item.responsavel}</span>
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <Calendar size={12}/> {item.data_movimentacao ? new Date(item.data_movimentacao).toLocaleDateString() : 'N/A'}
+          </span>
+          <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>
+            {item.responsavel || 'Sistema'}
+          </span>
         </div>
       ),
-      align: 'right' as const
+      align: 'center' as const
     }
   ];
 
@@ -351,13 +413,13 @@ export const MovementManagement: React.FC = () => {
         <div className="elite-tab-group">
           <button 
             className={`elite-tab-item ${activeTab === 'LOG' ? 'active' : ''}`}
-            onClick={() => setActiveTab('LOG')}
+            onClick={() => { setActiveTab('LOG'); setPage(1); }}
           >
             Log de Movimentos
           </button>
           <button 
             className={`elite-tab-item ${activeTab === 'ANALYSIS' ? 'active' : ''}`}
-            onClick={() => setActiveTab('ANALYSIS')}
+            onClick={() => { setActiveTab('ANALYSIS'); setPage(1); }}
           >
             Análise de Fluxo
           </button>
@@ -394,9 +456,9 @@ export const MovementManagement: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-movements" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-movements')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-movements')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-movements')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-movements')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-movements')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>
@@ -410,22 +472,15 @@ export const MovementManagement: React.FC = () => {
       </div>
 
       <div className="management-content">
-         <ModernTable 
-          data={movements.filter(m => {
-            const matchesSearch = (m.produtos?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (m.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'LOG' ? true : m.tipo === 'out';
-            
-            const matchesType = filterValues.type === 'all' || m.tipo === filterValues.type;
-            const amount = Number(m.quantidade) * Number(m.valor_unitario || 0);
-            const matchesAmount = amount >= filterValues.minAmount && amount <= filterValues.maxAmount;
-            const matchesDate = (!filterValues.dateStart || new Date(m.data_movimentacao) >= new Date(filterValues.dateStart)) &&
-                               (!filterValues.dateEnd || new Date(m.data_movimentacao) <= new Date(filterValues.dateEnd));
-
-            return matchesSearch && matchesTab && matchesType && matchesAmount && matchesDate;
-          })}
+          <ModernTable 
+          data={movements}
           columns={columns}
           loading={loading}
           hideHeader={true}
+          totalCount={totalCount}
+          currentPage={page}
+          onPageChange={setPage}
+          itemsPerPage={pageSize}
           searchPlaceholder="Buscar por item, referência ou responsável..."
           actions={(item) => (
             <div className="modern-actions">

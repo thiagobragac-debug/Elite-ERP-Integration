@@ -16,96 +16,34 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { useReportData } from '../../hooks/useReportData';
 import { supabase } from '../../lib/supabase';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 
 export const AdminIntelligenceHub: React.FC = () => {
-  const { activeFarm } = useTenant();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any[]>([]);
-  const [activityData, setActivityData] = useState<any[]>([]);
+  const { stats: reportStats, data: auditLogs, loading, error, refresh } = useReportData('admin-overview');
 
-  useEffect(() => {
-    fetchAdminIntelligence();
-  }, [activeFarm]);
+  if (error) {
+    console.error("[AdminHub] Load Error:", error);
+  }
 
-  const fetchAdminIntelligence = async () => {
-    setLoading(true);
-    try {
-      // Simulation of administrative intelligence metrics
-      const tenantId = activeFarm?.tenantId;
-      
-      const { count: userCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      const { data: auditLogs } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      const criticalEvents = (auditLogs || []).filter(l => l.action === 'DELETE' || l.action === 'SECURITY_ALERT').length;
-      const securityScore = 88;
-      const operationalHealth = 94;
-
-      setStats([
-        {
-          label: 'Score de Governança',
-          value: securityScore + '%',
-          icon: Shield,
-          color: 'hsl(var(--brand))',
-          progress: securityScore,
-          change: 'Nível Institucional',
-          periodLabel: 'Compliance Global',
-          sparkline: [{ value: 80 }, { value: 85 }, { value: 82 }, { value: 88 }]
-        },
-        {
-          label: 'Licenças Ativas',
-          value: `${userCount || 0}/25`,
-          icon: Users,
-          color: '#3b82f6',
-          progress: ((userCount || 0) / 25) * 100,
-          change: 'Plano Enterprise',
-          periodLabel: 'Consumo de Seats',
-          sparkline: [{ value: 5 }, { value: 8 }, { value: 12 }, { value: userCount || 0 }]
-        },
-        {
-          label: 'Alertas de Segurança',
-          value: criticalEvents,
-          icon: Lock,
-          color: criticalEvents > 0 ? '#ef4444' : '#10b981',
-          progress: criticalEvents > 5 ? 30 : 100,
-          change: criticalEvents > 0 ? 'Ação Requerida' : 'Ambiente Seguro',
-          periodLabel: 'High Severity Logs',
-          sparkline: [{ value: 0 }, { value: 2 }, { value: 1 }, { value: criticalEvents }]
-        },
-        {
-          label: 'Saúde Operacional',
-          value: operationalHealth + '%',
-          icon: Cpu,
-          color: '#f59e0b',
-          progress: operationalHealth,
-          change: 'SLA de Instância',
-          periodLabel: 'Uso de Recursos',
-          sparkline: [{ value: 92 }, { value: 95 }, { value: 94 }, { value: 94 }]
-        }
-      ]);
-
-      setActivityData([
-        { label: '00:00', value: 5 }, { label: '04:00', value: 2 }, 
-        { label: '08:00', value: 45 }, { label: '12:00', value: 85 }, 
-        { label: '16:00', value: 65 }, { label: '20:00', value: 30 }
-      ]);
-
-    } catch (error) {
-      console.error('Error fetching admin intelligence:', error);
-    } finally {
-      setLoading(false);
+  const getStatIcon = (id: string) => {
+    switch (id) {
+      case 'governanca': return Shield;
+      case 'licencas': return Users;
+      case 'alertas': return Lock;
+      case 'saude': return Cpu;
+      default: return Activity;
     }
   };
+
+  const activityData = [
+    { label: '00:00', value: 5 }, { label: '04:00', value: 2 }, 
+    { label: '08:00', value: 45 }, { label: '12:00', value: 85 }, 
+    { label: '16:00', value: 65 }, { label: '20:00', value: 30 }
+  ];
 
   return (
     <div className="admin-intelligence-page animate-slide-up">
@@ -119,7 +57,7 @@ export const AdminIntelligenceHub: React.FC = () => {
           <p className="page-subtitle">Visão estratégica de governança, conformidade de segurança e saúde operacional do tenant.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={fetchAdminIntelligence}>
+          <button className="glass-btn secondary" onClick={refresh}>
             <Clock size={18} />
             ATUALIZAR DASHBOARD
           </button>
@@ -130,8 +68,8 @@ export const AdminIntelligenceHub: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : (
-          stats.map((s, i) => (
-            <EliteStatCard key={i} {...s} />
+          reportStats?.map((s: any, i: number) => (
+            <EliteStatCard key={i} {...s} icon={getStatIcon(s.id)} />
           ))
         )}
       </div>

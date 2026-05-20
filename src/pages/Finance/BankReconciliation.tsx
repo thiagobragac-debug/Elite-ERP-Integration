@@ -32,7 +32,7 @@ import { ReconFilterModal } from './components/ReconFilterModal';
 import { Filter } from 'lucide-react';
 
 export const BankReconciliation: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeBank, setActiveBank] = useState('Banco do Brasil');
   const [bankRecords, setBankRecords] = useState<any[]>([]);
@@ -61,9 +61,12 @@ export const BankReconciliation: React.FC = () => {
   });
 
   useEffect(() => {
-    if (!activeFarm) return;
+    if (!activeTenantId) { 
+      if (typeof setLoading !== 'undefined') setLoading(false); 
+      return; 
+    }
     fetchRecords();
-  }, [activeFarm]);
+  }, [activeFarm, activeTenantId]);
 
   const calculateMatchScore = (bankRec: any, internalRec: any) => {
     let score = 0;
@@ -93,16 +96,21 @@ export const BankReconciliation: React.FC = () => {
   };
 
   const fetchRecords = async () => {
-    if (!activeFarm?.id) return;
     setLoading(true);
     
     try {
-      const { data: dbRecons, error } = await supabase
+      let query = supabase
         .from('conciliacoes')
         .select('*')
-        .eq('fazenda_id', activeFarm.id)
-        .eq('tenant_id', activeFarm.tenantId)
-        .order('created_at', { ascending: false });
+        .limit(500);
+
+      if (activeFarm?.id) {
+        query = query.eq('fazenda_id', activeFarm.id);
+      } else {
+        query = query.eq('tenant_id', activeTenantId);
+      }
+
+      const { data: dbRecons, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       
@@ -324,7 +332,7 @@ export const BankReconciliation: React.FC = () => {
       <div className="next-gen-kpi-grid">
         {loading ? (
           Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={CheckCircle2} color="" />)
-        ) : stats.map((stat, idx) => (
+        ) : (stats || []).map((stat, idx) => (
           <EliteStatCard 
             key={idx}
             label={stat.label}
@@ -729,6 +737,25 @@ export const BankReconciliation: React.FC = () => {
       </FormModal>
 
       <style>{`
+        .next-gen-kpi-grid {
+          display: grid !important;
+          grid-template-columns: repeat(4, 1fr) !important;
+          gap: 20px !important;
+          margin-bottom: 32px !important;
+        }
+
+        @media (max-width: 1400px) {
+          .next-gen-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .next-gen-kpi-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+
         .recon-page { display: flex; flex-direction: column; gap: 16px; }
         .recon-workspace { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 16px; align-items: start; }
         .recon-column { display: flex; flex-direction: column; gap: 20px; }

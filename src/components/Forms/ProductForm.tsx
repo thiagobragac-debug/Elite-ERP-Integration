@@ -73,9 +73,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Item"}
     >
-      <div className="form-group full-width">
-        <label><Package size={14} /> Nome do Item</label>
+      <div className="elite-field-group">
+        <label className="elite-label"><Package size={14} /> Nome do Item</label>
         <input 
+          className="elite-input"
           type="text" 
           placeholder="Ex: Milho, NPK 04-14-08, Ivermectina..." 
           value={formData.nome}
@@ -84,29 +85,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="form-group">
-        <label><Hash size={14} /> Código de Barras (EAN)</label>
-        <input 
-          type="text" 
-          placeholder="789..." 
-          value={formData.ean}
-          onChange={(e) => setFormData({...formData, ean: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Hash size={14} /> NCM</label>
-        <input 
-          type="text" 
-          placeholder="Código Fiscal" 
-          value={formData.ncm}
-          onChange={(e) => setFormData({...formData, ncm: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Tag size={14} /> Categoria</label>
+      <div className="elite-field-group">
+        <label className="elite-label"><Tag size={14} /> Categoria</label>
         <select 
+          className="elite-input elite-select"
           value={formData.categoria}
           onChange={(e) => setFormData({...formData, categoria: e.target.value})}
           required
@@ -120,25 +102,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         </select>
       </div>
 
-      <div className="form-group">
-        <label><Layers size={14} /> Unidade de Medida</label>
-        <select 
-          value={formData.unidade}
-          onChange={(e) => setFormData({...formData, unidade: e.target.value})}
-          required
-        >
-          <option value="un">Unidade (un)</option>
-          <option value="kg">Quilo (kg)</option>
-          <option value="ton">Tonelada (ton)</option>
-          <option value="L">Litro (L)</option>
-          <option value="dose">Dose</option>
-          <option value="saco">Saco</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label><Tag size={14} /> Marca / Fabricante</label>
+      <div className="elite-field-group">
+        <label className="elite-label"><Tag size={14} /> Marca / Fabricante</label>
         <input 
+          className="elite-input"
           type="text" 
           placeholder="Ex: Bunge, Syngenta..." 
           value={formData.marca}
@@ -146,9 +113,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="form-group">
-        <label><Layers size={14} /> Localização (Almoxarifado)</label>
+      <div className="elite-field-group">
+        <label className="elite-label"><Layers size={14} /> Localização (Almoxarifado)</label>
         <input 
+          className="elite-input"
           type="text" 
           placeholder="Prateleira A, Galpão 01..." 
           value={formData.localizacao}
@@ -156,9 +124,32 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="form-group">
-        <label><Hash size={14} /> Estoque Atual</label>
+      <div className="elite-field-group">
+        <label className="elite-label"><Hash size={14} /> Código de Barras (EAN)</label>
         <input 
+          className="elite-input"
+          type="text" 
+          placeholder="789..." 
+          value={formData.ean}
+          onChange={(e) => setFormData({...formData, ean: e.target.value})}
+        />
+      </div>
+
+      <div className="elite-field-group">
+        <label className="elite-label"><Hash size={14} /> NCM</label>
+        <input 
+          className="elite-input"
+          type="text" 
+          placeholder="Código Fiscal" 
+          value={formData.ncm}
+          onChange={(e) => setFormData({...formData, ncm: e.target.value})}
+        />
+      </div>
+
+      <div className="elite-field-group">
+        <label className="elite-label"><Hash size={14} /> Est. Atual</label>
+        <input 
+          className="elite-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -168,9 +159,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="form-group">
-        <label><AlertTriangle size={14} /> Estoque Mínimo</label>
+      <div className="elite-field-group">
+        <label className="elite-label"><AlertTriangle size={14} /> Est. Mínimo</label>
         <input 
+          className="elite-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -180,9 +172,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="form-group">
-        <label><DollarSign size={14} /> Custo Médio (R$)</label>
+      <div className="elite-field-group">
+        <label className="elite-label"><Layers size={14} /> Unidade</label>
+        <select 
+          className="elite-input elite-select"
+          value={formData.unidade}
+          onChange={(e) => setFormData({...formData, unidade: e.target.value})}
+          required
+        >
+          <option value="un">un</option>
+          <option value="kg">kg</option>
+          <option value="ton">ton</option>
+          <option value="L">L</option>
+          <option value="dose">dose</option>
+          <option value="saco">saco</option>
+        </select>
+      </div>
+
+      <div className="elite-field-group">
+        <label className="elite-label"><DollarSign size={14} /> Custo (R$)</label>
         <input 
+          className="elite-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -192,13 +202,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Descrição / Notas</label>
+      <div className="elite-field-group full-width">
+        <label className="elite-label"><FileText size={14} /> Descrição / Notas</label>
         <textarea 
+          className="elite-input"
+          style={{ height: 'auto', minHeight: '80px', padding: '12px 16px', borderRadius: '14px' }}
           placeholder="Informações adicionais sobre o produto..." 
           value={formData.descricao}
           onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-          rows={3}
+          rows={2}
         />
       </div>
     </FormModal>

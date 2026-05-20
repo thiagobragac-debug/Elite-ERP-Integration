@@ -1,4 +1,5 @@
 import { useTenant } from '../contexts/TenantContext';
+import { isValidUUID } from '../utils/validation';
 
 /**
  * useFarmFilter — Elite ERP v5.0 query helper
@@ -19,9 +20,34 @@ export const useFarmFilter = () => {
    *   Specific → filter by fazenda_id
    */
   const applyFarmFilter = (query: any) => {
+    // Debug logging for troubleshooting UUID issues
+    if (import.meta.env.DEV) {
+      if (activeFarmId && !isValidUUID(activeFarmId)) {
+        console.warn(`[useFarmFilter] Invalid activeFarmId detected: "${activeFarmId}". Query might fail.`, {
+          isGlobalMode,
+          activeFarm
+        });
+      }
+    }
+
     if (isGlobalMode) {
+      if (!activeTenantId) return query.is('tenant_id', null); // Silent during load
+      if (!isValidUUID(activeTenantId)) {
+        console.error('[useFarmFilter] Invalid activeTenantId format', { activeTenantId });
+        return query.is('tenant_id', null);
+      }
       return query.eq('tenant_id', activeTenantId);
     }
+
+    if (!activeFarmId) return query.is('fazenda_id', null); // Silent during load
+    if (!isValidUUID(activeFarmId)) {
+      console.error('[useFarmFilter] Invalid activeFarmId format', { activeFarmId });
+      if (isValidUUID(activeTenantId)) {
+        return query.eq('tenant_id', activeTenantId);
+      }
+      return query.is('fazenda_id', null);
+    }
+
     return query.eq('fazenda_id', activeFarmId);
   };
 
@@ -30,6 +56,11 @@ export const useFarmFilter = () => {
    * These are already "global" by nature — always filter by tenant.
    */
   const applyTenantFilter = (query: any) => {
+    if (!activeTenantId) return query.is('tenant_id', null); // Silent during load
+    if (!isValidUUID(activeTenantId)) {
+      console.error('[useFarmFilter] Invalid activeTenantId format', { activeTenantId });
+      return query.is('tenant_id', null);
+    }
     return query.eq('tenant_id', activeTenantId);
   };
 
@@ -38,15 +69,15 @@ export const useFarmFilter = () => {
    * In global mode, we cannot insert without a specific farm.
    * Returns true if a cadastro (create) is safe to proceed.
    */
-  const canCreate = !isGlobalMode && !!activeFarmId;
+  const canCreate = !isGlobalMode && isValidUUID(activeFarmId);
 
   /**
    * For new records: the fazenda_id and tenant_id to insert.
    * Null in global mode — components must guard with canCreate.
    */
   const insertPayload = {
-    fazenda_id: activeFarmId,
-    tenant_id: activeTenantId,
+    fazenda_id: isValidUUID(activeFarmId) ? activeFarmId : null,
+    tenant_id: isValidUUID(activeTenantId) ? activeTenantId : null,
   };
 
   return {
@@ -61,3 +92,4 @@ export const useFarmFilter = () => {
     insertPayload,
   };
 };
+

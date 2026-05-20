@@ -18,6 +18,7 @@ interface ConfinementFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  loading?: boolean;
 }
 
 export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClose, onSubmit }) => {
@@ -45,8 +46,8 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
     const { data } = await supabase
       .from('lotes')
       .select('id, nome')
-      .eq('fazenda_id', activeFarm.id)
-      .eq('tenant_id', activeFarm.tenantId)
+      .eq('fazenda_id', activeFarm?.id || '')
+      .eq('tenant_id', activeFarm?.tenantId || '')
       .eq('status', 'ATIVO');
     
     if (data) setLots(data);

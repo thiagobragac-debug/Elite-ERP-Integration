@@ -17,6 +17,7 @@ interface ReproductionFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  loading?: boolean;
 }
 
 export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {

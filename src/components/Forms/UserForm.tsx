@@ -25,6 +25,12 @@ interface UserFormProps {
 export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm } = useTenant();
   const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    profile_id: '',
+    status: 'active',
+    company_id: ''
   });
   const [profiles, setProfiles] = useState<any[]>([]);
 

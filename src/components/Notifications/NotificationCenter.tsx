@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 
+import { isValidUUID } from '../../utils/validation';
+
 interface Notification {
   id: string;
   type: 'alert' | 'info' | 'success' | 'warning';
@@ -22,7 +24,7 @@ export const NotificationCenter: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (activeFarm?.id) fetchNotifications();
+    if (activeFarm?.id && isValidUUID(activeFarm.id)) fetchNotifications();
   }, [activeFarm]);
 
   useEffect(() => {

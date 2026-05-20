@@ -12,6 +12,8 @@ import {
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { logAudit } from '../../utils/audit';
 
 interface RelocateFormProps {
   isOpen: boolean;
@@ -21,7 +23,8 @@ interface RelocateFormProps {
 }
 
 export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onSubmit, initialSourceLotId }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, activeTenantId } = useTenant();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [lots, setLots] = useState<any[]>([]);
   const [animals, setAnimals] = useState<any[]>([]);
@@ -63,7 +66,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
       .from('animais')
       .select('id, brinco, raca, categoria')
       .eq('lote_id', lotId)
-      .eq('status', 'Ativo');
+      .in('status', ['ATIVO', 'Ativo', 'ativo']);
     if (data) setAnimals(data);
     setLoading(false);
   };
@@ -101,6 +104,42 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
         .in('id', selectedAnimals);
 
       if (!error) {
+        // Save history audit logs
+        const sourceLotName = lots.find(l => l.id === formData.sourceLotId)?.nome || 'Origem';
+        const targetLotName = lots.find(l => l.id === formData.targetLotId)?.nome || 'Destino';
+
+        if (activeTenantId) {
+          // 1. Log a batch summary entry
+          await logAudit({
+            tenant_id: activeTenantId,
+            user_id: user?.id,
+            action: 'TRANSFER_BATCH',
+            entity: 'Lote',
+            entity_id: formData.sourceLotId,
+            description: `Transferência de ${selectedAnimals.length} animais do lote "${sourceLotName}" para o lote "${targetLotName}"`,
+            old_data: { lot_id: formData.sourceLotId, animals_count: selectedAnimals.length },
+            new_data: { lot_id: formData.targetLotId }
+          });
+
+          // 2. Log individual entries for each animal for micro-traceability
+          await Promise.all(
+            selectedAnimals.map(animalId => {
+              const animObj = animals.find(a => a.id === animalId);
+              const earTag = animObj ? animObj.brinco : animalId;
+              return logAudit({
+                tenant_id: activeTenantId,
+                user_id: user?.id,
+                action: 'TRANSFER',
+                entity: 'Animal',
+                entity_id: animalId,
+                description: `Animal #${earTag} transferido do lote "${sourceLotName}" para o lote "${targetLotName}"`,
+                old_data: { lote_id: formData.sourceLotId },
+                new_data: { lote_id: formData.targetLotId }
+              });
+            })
+          );
+        }
+
         onSubmit({
           count: selectedAnimals.length,
           source: formData.sourceLotId,
@@ -179,7 +218,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
             <div className="picker-empty">Selecione um lote de origem com animais ativos.</div>
           ) : (
             <div className="picker-grid">
-              {animals.filter(a => a.brinco.includes(searchTerm)).map(animal => (
+              {animals.filter(a => a.brinco.toLowerCase().includes(searchTerm.toLowerCase())).map(animal => (
                 <div 
                   key={animal.id} 
                   className={`picker-item ${selectedAnimals.includes(animal.id) ? 'active' : ''}`}

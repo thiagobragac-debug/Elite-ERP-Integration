@@ -28,6 +28,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { FuelForm } from '../../components/Forms/FuelForm';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -35,7 +36,7 @@ import { FuelFilterModal } from './components/FuelFilterModal';
 import './FuelManagement.css';
 
 export const FuelManagement: React.FC = () => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +47,7 @@ export const FuelManagement: React.FC = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
-    fuelTypes: [],
+    fuelTypes: [] as string[],
     minLiters: 0,
     maxLiters: 1000,
     dateStart: '',
@@ -60,32 +61,41 @@ export const FuelManagement: React.FC = () => {
   ]);
 
   useEffect(() => {
-    if (!activeFarm) return;
-    fetchLogs();
-  }, [activeFarm]);
+    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarm;
+    if (isReady) {
+      fetchLogs();
+    } else {
+      setLoading(false);
+    }
+  }, [activeFarm, isGlobalMode, activeTenantId]);
 
   const fetchLogs = async () => {
-    if (!activeFarm?.id) {
+    if (!activeFarmId && !isGlobalMode) {
       setLoading(false);
       return;
     }
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from('abastecimentos')
-      .select(`
-        *,
-        maquinas:maquina_id (nome)
-      `)
-      .eq('fazenda_id', activeFarm.id)
-      .eq('tenant_id', activeFarm.tenantId)
-      .order('data', { ascending: false });
-    
-    if (error) {
-      console.error('Error fetching fuel logs:', error);
-      setLoading(false);
-      return;
-    }
+    try {
+      const fetchPromise = (async () => {
+        let query = supabase
+          .from('abastecimentos')
+          .select('*, maquinas:maquina_id(nome)')
+          .order('data', { ascending: false })
+          .limit(500);
+        
+        query = applyFarmFilter(query);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+      })();
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 3000)
+      );
+
+      const data = (await Promise.race([fetchPromise, timeoutPromise]) as any[]) || [];
+      
       setLogs(data);
       const totalLitros = data.reduce((acc, curr) => acc + Number(curr.litros || 0), 0);
       const gastoTotal = data.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
@@ -97,7 +107,18 @@ export const FuelManagement: React.FC = () => {
         { label: 'Eficiência de Frota', value: '92%', icon: Gauge, color: '#3b82f6', progress: 92 },
         { label: 'Preço Médio (L)', value: precoMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: BarChart3, color: '#f59e0b', progress: 45 },
       ]);
-    setLoading(false);
+    } catch (err) {
+      console.warn('[Fuel] Using mock fallback due to error or timeout:', err);
+      setLogs([]);
+      setStats([
+        { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0, change: 'OFFLINE' },
+        { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: 'OFFLINE' },
+        { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0, change: 'OFFLINE' },
+        { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0, change: 'OFFLINE' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenCreate = () => {
@@ -111,7 +132,7 @@ export const FuelManagement: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) return;
+    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
     const payload = {
       maquina_id: formData.machine_id,
       estoque_id: formData.estoque_id,
@@ -175,44 +196,74 @@ export const FuelManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Ativo / Data',
+      header: 'Ativo / Equipamento',
       accessor: (item: any) => (
-        <div className="table-cell-title">
-          <span className="main-text">{item.maquinas?.nome || 'Ativo'}</span>
-          <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.data ? new Date(item.data).toLocaleDateString() : 'N/A'}
-          </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
+            {item.maquinas?.nome || 'Ativo'}
+          </span>
+          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+            ID: {item.maquina_id?.slice(0, 8).toUpperCase() || 'N/A'}
+          </span>
         </div>
-      )
+      ),
+      align: 'left' as const
     },
     {
-      header: 'Consumo',
+      header: 'Data Abastecimento',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Droplets size={14} />
-          <span>{item.litros} L ({item.tipo_combustivel})</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px' }}>
+          <Calendar size={14} />
+          <span>{item.data ? new Date(item.data).toLocaleDateString() : 'N/A'}</span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Performance',
+      header: 'Combustível',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+            {item.tipo_combustivel || 'Diesel'}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Volume (Litros)',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px', fontWeight: 800, color: '#0f172a' }}>
+          <Droplets size={14} color="#3b82f6" />
+          <span>{item.litros} L</span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Custo Total BRL',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669' }}>
+            {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Performance Telemetria',
       accessor: (item: any) => {
-        // Delta calculation logic (would be more precise with previous row join)
-        const isEfficient = Math.random() > 0.3; // Mocking visual for demo
+        const isEfficient = (item.litros || 0) < 150;
         return (
-          <div className={`status-pill ${isEfficient ? 'active' : 'warning'}`} style={{ fontSize: '10px' }}>
-            {isEfficient ? 'Alta Eficiência' : 'Alto Consumo'}
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <span className={`status-pill ${isEfficient ? 'active' : 'warning'}`}>
+              {isEfficient ? 'Alta Eficiência' : 'Alto Consumo'}
+            </span>
           </div>
         );
-      }
-    },
-    {
-      header: 'Valor Total',
-      accessor: (item: any) => (
-        <span className="font-bold text-slate-900">
-          {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </span>
-      )
+      },
+      align: 'center' as const
     }
   ];
 
@@ -247,13 +298,13 @@ export const FuelManagement: React.FC = () => {
           margin-bottom: 32px !important;
         }
 
-        @media (max-width: 1400px) {
+        @media (max-width: 1024px) {
           .next-gen-kpi-grid {
             grid-template-columns: repeat(2, 1fr) !important;
           }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 640px) {
           .next-gen-kpi-grid {
             grid-template-columns: 1fr !important;
           }
@@ -324,9 +375,9 @@ export const FuelManagement: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-fuel" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-fuel')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-fuel')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-fuel')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-fuel')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-fuel')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>

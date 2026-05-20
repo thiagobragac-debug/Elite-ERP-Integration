@@ -19,7 +19,7 @@ interface MovementFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
-  defaultType?: 'in' | 'out';
+  defaultType?: 'in' | 'out' | 'transfer';
   initialData?: any;
 }
 

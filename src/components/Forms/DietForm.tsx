@@ -17,6 +17,7 @@ interface DietFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  loading?: boolean;
 }
 
 export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {

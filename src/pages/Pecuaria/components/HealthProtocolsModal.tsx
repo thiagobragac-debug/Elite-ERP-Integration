@@ -46,7 +46,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
     try {
       const { data, error } = await supabase
         .from('protocolos')
-        .select('*')
+        .select('*').limit(500)
         .eq('status', 'ativo')
         .order('nome', { ascending: true });
       
@@ -148,7 +148,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
       hideSubmit={!selectedProtocol && !isCreating}
       size="large"
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', height: '500px', gridColumn: 'span 2', overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', height: '500px', gridColumn: 'span 4', overflow: 'hidden' }}>
         <div style={{ borderRight: '1px solid hsl(var(--border))', paddingRight: '20px', display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
           <div style={{ padding: '4px 0', borderBottom: '1px solid hsl(var(--border))', marginBottom: '12px' }}>
             <button 
@@ -163,7 +163,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
           <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: 'hsl(var(--text-muted))', marginBottom: '8px' }}>Modelos Ativos</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
             {protocols.map(p => (
-              <div key={p.id} style={{ position: 'relative', group: 'true' }}>
+              <div key={p.id} style={{ position: 'relative' }} className="group">
                 <button 
                   type="button"
                   style={{ 

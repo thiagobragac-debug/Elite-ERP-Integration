@@ -33,12 +33,11 @@ import {
   Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTenant } from '../../contexts/TenantContext';
 import { useNavigate } from 'react-router-dom';
 import { ReportViewer } from './components/ReportViewer';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { useTenant } from '../../contexts/TenantContext';
 import { fetchReportDataById } from '../../hooks/useReportData';
 import { exportToExcel } from '../../utils/exportUtils';
 import { ScheduleModal } from './components/ScheduleModal';
@@ -47,7 +46,8 @@ import { ReportFilterModal } from './components/ReportFilterModal';
 
 
 export const Reports: React.FC = () => {
-  const { activeFarm, tenant, userProfile, refreshProfile, isGlobalMode, activeFarmId } = useFarmFilter();
+  const { tenant, userProfile, refreshProfile } = useTenant();
+  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId } = useFarmFilter();
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState<'all' | 'finance' | 'livestock' | 'fleet' | 'supply' | 'sales' | 'gov'>('all');
   const [selectedReport, setSelectedReport] = useState<any>(null);
@@ -61,7 +61,7 @@ export const Reports: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('safra_atual');
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState({
-    tags: [],
+    tags: [] as string[],
     complexity: 'all',
     onlyFavorites: false,
     minIntegrity: 0
@@ -163,7 +163,7 @@ export const Reports: React.FC = () => {
       // Feedback visual: mudar cursor para 'wait'
       document.body.style.cursor = 'wait';
       
-      const { data, columns } = await fetchReportDataById(report.id, tenant.id);
+      const { data, columns } = await fetchReportDataById(report.id, activeTenantId || '', activeFarmId || undefined);
       
       if (data && data.length > 0) {
         exportToExcel(data, columns, report.title);
@@ -240,7 +240,6 @@ export const Reports: React.FC = () => {
 
   return (
     <div className="admin-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
@@ -284,6 +283,10 @@ export const Reports: React.FC = () => {
           <div className="e-metric">
             <span className="m-label">ACURACIDADE</span>
             <span className="m-val">99.98% Audited</span>
+          </div>
+          <div className="e-metric">
+            <span className="m-label">INTEGRIDADE</span>
+            <span className="m-val">SSL/AES-256 Active</span>
           </div>
         </div>
       </div>

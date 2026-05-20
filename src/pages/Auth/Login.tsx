@@ -1,82 +1,79 @@
 import React, { useState } from 'react';
 import { 
-  Activity, 
   Mail, 
   Lock, 
   ArrowRight, 
-  ShieldCheck, 
-  Globe,
-  Loader2
+  Loader2,
+  Zap,
+  ShieldCheck,
+  Terminal
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
     
-    const { error } = await login(email, password);
-    
-    if (error) {
-      alert(error.message); // In a real app, use a toast
+    try {
+      const { error } = await login(email, password);
+      if (error) {
+        setErrorMessage(error.message);
+      }
+    } catch (err: any) {
+       console.error("Login error:", err);
+       setErrorMessage("Erro inesperado ao acessar o sistema.");
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
     <div className="login-page">
-      <div className="login-visual">
-        <div className="visual-content">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="visual-logo"
-          >
-            <Activity size={48} color="white" />
-          </motion.div>
-          <h1 className="visual-title">Elite Pecuária ERP</h1>
-          <p className="visual-subtitle">Tecnologia industrial para o agronegócio de alta performance.</p>
-          
-          <div className="visual-features">
-            <div className="feat-item">
-              <ShieldCheck size={20} />
-              <span>Isolamento Multi-tenant Nível Bancário</span>
-            </div>
-            <div className="feat-item">
-              <Globe size={20} />
-              <span>Acesso Global e Sincronização em Tempo Real</span>
-            </div>
-          </div>
-        </div>
-        <div className="visual-overlay"></div>
+      {/* Light Clean Background */}
+      <div className="login-bg">
+        <div className="glow-top"></div>
+        <div className="glow-bottom"></div>
+        <div className="grid-overlay"></div>
       </div>
 
-      <div className="login-form-container">
+      <div className="login-container">
         <motion.div 
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="login-box"
+          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="clean-card"
         >
           <div className="login-header">
-            <h2>Bem-vindo ao Futuro</h2>
-            <p>Entre com suas credenciais corporativas.</p>
+            <motion.div 
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.2, type: 'spring' }}
+              className="logo-wrapper"
+            >
+              <Zap size={28} className="logo-icon" />
+            </motion.div>
+            <h1 className="title">Elite ERP</h1>
+            <p className="subtitle">Autenticação de Nível Executivo</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="form-content">
+          <form onSubmit={handleSubmit} className="login-form">
             <div className="input-group">
               <label>E-mail Corporativo</label>
               <div className="input-wrapper">
-                <Mail size={18} className="input-icon" />
+                <Mail size={18} className="icon" />
                 <input 
                   type="email" 
-                  placeholder="exemplo@fazenda.com.br" 
+                  placeholder="admin@elite.com.br" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
@@ -90,7 +87,7 @@ export const Login: React.FC = () => {
                 <a href="#" className="forgot-link">Esqueceu a senha?</a>
               </div>
               <div className="input-wrapper">
-                <Lock size={18} className="input-icon" />
+                <Lock size={18} className="icon" />
                 <input 
                   type="password" 
                   placeholder="••••••••" 
@@ -101,133 +98,156 @@ export const Login: React.FC = () => {
               </div>
             </div>
 
-            <button type="submit" className="login-btn" disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 size={20} className="animate-spin" />
-              ) : (
-                <>
-                  Acessar Ecossistema
-                  <ArrowRight size={20} />
-                </>
-              )}
+            {errorMessage && (
+              <div style={{ padding: '12px', background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: '12px', color: '#dc2626', fontSize: '13px', fontWeight: 600, marginBottom: '16px', textAlign: 'center' }}>
+                {errorMessage}
+              </div>
+            )}
+
+            <button type="submit" className="btn-submit" disabled={isLoading}>
+              <span className="btn-content">
+                {isLoading ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <>
+                    <Terminal size={18} />
+                    Acessar Sistema
+                    <ArrowRight size={18} className="arrow" />
+                  </>
+                )}
+              </span>
             </button>
           </form>
 
           <div className="login-footer">
-            <p>Não tem uma conta? <a href="#">Solicitar demonstração</a></p>
+            <div className="security-badge">
+              <ShieldCheck size={14} />
+              <span>Conexão Segura AES-256</span>
+            </div>
+            
+            <Link to="/" className="back-link">
+              <ArrowRight size={14} className="back-arrow" />
+              Voltar para o site
+            </Link>
           </div>
         </motion.div>
       </div>
 
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@700;800;900&display=swap');
+
         .login-page {
-          display: grid;
-          grid-template-columns: 1.2fr 1fr;
-          height: 100vh;
+          min-height: 100vh;
           width: 100vw;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           position: fixed;
           top: 0;
           left: 0;
-          z-index: 9999;
-          background: white;
+          font-family: 'Inter', sans-serif;
+          background: #f8fafc;
+          overflow: hidden;
         }
 
-        .login-visual {
-          position: relative;
-          background: url('https://images.unsplash.com/photo-1544473244-f6895a69ad41?q=80&w=2070&auto=format&fit=crop') center/cover;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 80px;
-          color: white;
-        }
-
-        .visual-overlay {
+        /* --- Clean Light Background --- */
+        .login-bg {
           position: absolute;
           inset: 0;
-          background: linear-gradient(135deg, rgba(5, 46, 22, 0.95) 0%, rgba(5, 46, 22, 0.7) 100%);
+          z-index: 0;
+          background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
         }
 
-        .visual-content {
+        .glow-top {
+          position: absolute;
+          top: -20%;
+          left: -10%;
+          width: 60vw;
+          height: 60vw;
+          background: radial-gradient(circle, rgba(16, 185, 129, 0.08) 0%, transparent 60%);
+        }
+
+        .glow-bottom {
+          position: absolute;
+          bottom: -20%;
+          right: -10%;
+          width: 50vw;
+          height: 50vw;
+          background: radial-gradient(circle, rgba(52, 211, 153, 0.06) 0%, transparent 60%);
+        }
+
+        .grid-overlay {
+          position: absolute;
+          inset: 0;
+          background-image: 
+            linear-gradient(rgba(0, 0, 0, 0.02) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 0, 0, 0.02) 1px, transparent 1px);
+          background-size: 40px 40px;
+          mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+          -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+        }
+
+        /* --- Clean White Card --- */
+        .login-container {
           position: relative;
           z-index: 10;
-          max-width: 500px;
-        }
-
-        .visual-logo {
-          width: 80px;
-          height: 80px;
-          background: var(--primary);
-          border-radius: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 16px;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-        }
-
-        .visual-title {
-          font-size: 3rem;
-          font-weight: 900;
-          line-height: 1.1;
-          margin-bottom: 16px;
-          font-family: 'Outfit', sans-serif;
-        }
-
-        .visual-subtitle {
-          font-size: 1.25rem;
-          opacity: 0.8;
-          margin-bottom: 48px;
-        }
-
-        .visual-features {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .feat-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-size: 0.9375rem;
-          font-weight: 600;
-        }
-
-        .login-form-container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 24px;
-          background: #f8fafc;
-        }
-
-        .login-box {
           width: 100%;
           max-width: 440px;
-          padding: 48px;
-          background: white;
-          border-radius: 32px;
-          box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+          padding: 24px;
         }
 
-        .login-header h2 {
-          font-size: 1.75rem;
+        .clean-card {
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.04);
+          border-radius: 24px;
+          padding: 48px 40px;
+          box-shadow: 
+            0 10px 25px -5px rgba(0, 0, 0, 0.05),
+            0 20px 48px -12px rgba(0, 0, 0, 0.05),
+            0 0 0 1px rgba(0, 0, 0, 0.02);
+        }
+
+        .login-header {
+          text-align: center;
+          margin-bottom: 40px;
+        }
+
+        .logo-wrapper {
+          width: 56px;
+          height: 56px;
+          margin: 0 auto 20px;
+          background: #ebfdf5;
+          border: 1px solid rgba(16, 185, 129, 0.1);
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+        }
+
+        .logo-icon {
+          color: #10b981;
+        }
+
+        .title {
+          font-family: 'Outfit', sans-serif;
+          font-size: 2rem;
           font-weight: 800;
           color: #0f172a;
+          letter-spacing: -0.03em;
           margin-bottom: 8px;
         }
 
-        .login-header p {
+        .subtitle {
           color: #64748b;
-          font-size: 0.9375rem;
+          font-size: 0.95rem;
         }
 
-        .form-content {
-          margin-top: 40px;
+        /* --- Forms --- */
+        .login-form {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 20px;
         }
 
         .input-group {
@@ -237,8 +257,8 @@ export const Login: React.FC = () => {
         }
 
         .input-group label {
-          font-size: 0.875rem;
-          font-weight: 700;
+          font-size: 0.85rem;
+          font-weight: 600;
           color: #334155;
         }
 
@@ -249,82 +269,146 @@ export const Login: React.FC = () => {
         }
 
         .forgot-link {
-          font-size: 0.75rem;
-          font-weight: 700;
-          color: var(--primary);
+          font-size: 0.8rem;
+          color: #10b981;
+          font-weight: 600;
+          text-decoration: none;
+          transition: color 0.2s;
+        }
+
+        .forgot-link:hover {
+          color: #059669;
         }
 
         .input-wrapper {
           position: relative;
         }
 
-        .input-icon {
+        .icon {
           position: absolute;
           left: 16px;
           top: 50%;
           transform: translateY(-50%);
           color: #94a3b8;
+          transition: color 0.3s;
         }
 
         .input-wrapper input {
           width: 100%;
-          padding: 14px 16px 14px 48px;
-          background: #f1f5f9;
-          border: 2px solid transparent;
+          padding: 14px 16px 14px 44px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
           border-radius: 12px;
-          font-size: 0.9375rem;
+          font-size: 0.95rem;
+          color: #0f172a;
           transition: all 0.2s;
         }
 
         .input-wrapper input:focus {
-          background: white;
-          border-color: var(--primary);
-          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
           outline: none;
+          background: #ffffff;
+          border-color: #10b981;
+          box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
         }
 
-        .login-btn {
+        .input-wrapper input:focus ~ .icon {
+          color: #10b981;
+        }
+
+        .input-wrapper input::placeholder {
+          color: #94a3b8;
+        }
+
+        /* --- Submit Button --- */
+        .btn-submit {
           width: 100%;
-          background: var(--primary);
-          color: white;
           padding: 16px;
           border-radius: 12px;
+          border: none;
+          background: #10b981;
+          color: white;
           font-size: 1rem;
-          font-weight: 800;
+          font-weight: 700;
+          cursor: pointer;
+          margin-top: 12px;
+          transition: all 0.2s;
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-submit:hover {
+          background: #059669;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-content {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 12px;
-          transition: all 0.2s;
-          margin-top: 12px;
+          gap: 10px;
         }
 
-        .login-btn:hover {
-          background: #059669;
-          transform: translateY(-2px);
-          box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);
+        .arrow {
+          transition: transform 0.2s;
         }
 
-        .login-btn:disabled {
+        .btn-submit:hover .arrow {
+          transform: translateX(4px);
+        }
+
+        .btn-submit:disabled {
           opacity: 0.7;
           cursor: not-allowed;
+          transform: none;
         }
 
+        /* --- Footer --- */
         .login-footer {
-          margin-top: 16px;
-          text-align: center;
-          font-size: 0.875rem;
+          margin-top: 32px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .security-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          background: #f1f5f9;
+          border-radius: 100px;
+          font-size: 0.75rem;
+          color: #475569;
+          font-weight: 500;
+        }
+
+        .security-badge svg {
+          color: #10b981;
+        }
+
+        .back-link {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 0.85rem;
           color: #64748b;
+          text-decoration: none;
+          transition: color 0.2s;
+          font-weight: 500;
         }
 
-        .login-footer a {
-          font-weight: 700;
-          color: var(--primary);
+        .back-arrow {
+          transform: rotate(180deg);
         }
 
-        @media (max-width: 1024px) {
-          .login-page { grid-template-columns: 1fr; }
-          .login-visual { display: none; }
+        .back-link:hover {
+          color: #0f172a;
+        }
+
+        @media (max-width: 480px) {
+          .clean-card { padding: 32px 24px; }
+          .title { font-size: 1.8rem; }
         }
       `}</style>
     </div>

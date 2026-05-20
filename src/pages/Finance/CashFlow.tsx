@@ -34,7 +34,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { FinanceFilterModal } from './components/FinanceFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
+import { useReportData } from '../../hooks/useReportData';
 import './CashFlow.css';
 
 interface Transaction {
@@ -48,16 +48,10 @@ interface Transaction {
 }
 
 export const CashFlow: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
-  const navigate = useNavigate();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [stats, setStats] = useState<any[]>([
-    { label: 'Patrimônio Líquido', value: 'R$ 0,00', icon: Activity, color: '#10b981', progress: 0, change: 'Processando...' },
-    { label: 'Resultado Operacional', value: 'R$ 0,00', icon: TrendingUp, color: '#3b82f6', progress: 0, trend: 'stable', change: 'Analisando...' },
-    { label: 'Ponto de Equilíbrio', value: 'R$ 0,00', icon: Target, color: '#f59e0b', progress: 0, change: 'Calculando...' },
-    { label: 'Runway / Fôlego', value: '0 meses', icon: Zap, color: '#8b5cf6', progress: 0, change: 'Avaliando...' }
-  ]);
-  const [loading, setLoading] = useState(true);
+  const { canCreate, insertPayload } = useFarmFilter();
+  const { data: rawTransactions, stats: reportStats, loading, error, refresh } = useReportData('fluxo-caixa');
+  const transactions = rawTransactions || [];
+  
   const [activeTab, setActiveTab] = useState<'ALL' | 'INFLOW' | 'OUTFLOW'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID'>('ALL');
   const [viewMode, setViewMode] = useState<'operational' | 'analytical'>('operational');
@@ -71,133 +65,22 @@ export const CashFlow: React.FC = () => {
     type: 'all',
     dateStart: '',
     dateEnd: '',
-    categories: [],
+    categories: [] as string[],
     status: 'all'
   });
 
-  useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchCashFlowData();
-  }, [activeFarmId, isGlobalMode]);
-
-  const fetchCashFlowData = async () => {
-    setLoading(true);
-    try {
-      let bankQuery = supabase.from('contas_bancarias').select('saldo_atual');
-      bankQuery = applyTenantFilter(bankQuery);
-      const { data: bankAccounts } = await bankQuery;
-      
-      const totalBalance = bankAccounts?.reduce((acc, curr) => acc + Number(curr.saldo_atual), 0) || 0;
-
-      let payablesQuery = supabase.from('contas_pagar').select('*').order('data_vencimento', { ascending: false });
-      payablesQuery = applyFarmFilter(payablesQuery);
-
-      let receivablesQuery = supabase.from('contas_receber').select('*').order('data_vencimento', { ascending: false });
-      receivablesQuery = applyFarmFilter(receivablesQuery);
-
-      const [payables, receivables] = await Promise.all([
-        payablesQuery,
-        receivablesQuery
-      ]);
-
-      const inMonth = receivables.data?.filter(r => r.status === 'PAGO').reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0;
-      const outMonth = payables.data?.filter(p => p.status === 'PAGO').reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0;
-      const netMonth = inMonth - outMonth;
-      const projected = (receivables.data?.filter(r => r.status === 'PENDENTE').reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0) -
-                        (payables.data?.filter(p => p.status === 'PENDENTE').reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0);
-
-      // Advanced Financial Engineering
-      const last6Months = 6;
-      const avgOutflow = outMonth / 1; // Simplification for now, should use hist. average
-      const runwayMonths = avgOutflow > 0 ? Math.floor(totalBalance / avgOutflow) : 99;
-
-      setStats([
-        { 
-          label: 'Patrimônio Líquido', 
-          value: totalBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          icon: Activity, 
-          color: '#10b981', 
-          progress: 100,
-          change: 'Consolidado',
-          periodLabel: 'Liquidez Hoje',
-          sparkline: [
-            { value: 45, label: 'M-3' }, { value: 52, label: 'M-2' }, { value: 48, label: 'M-1' }, 
-            { value: 65, label: 'HOJE' }
-          ]
-        },
-        { 
-          label: 'Resultado Operacional', 
-          value: netMonth.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          icon: TrendingUp, 
-          color: '#3b82f6', 
-          progress: Math.min(100, Math.max(0, (inMonth / (outMonth || 1)) * 50)), 
-          trend: netMonth >= 0 ? 'up' : 'down',
-          change: 'Mês Atual',
-          periodLabel: 'EBITDA Est.',
-          sparkline: [
-            { value: 30, label: 'S1' }, { value: 45, label: 'S2' }, { value: 55, label: 'S3' }, 
-            { value: netMonth > 0 ? 80 : 20, label: 'S4' }
-          ]
-        },
-        { 
-          label: 'Ponto de Equilíbrio', 
-          value: (outMonth * 1.15).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          icon: Target, 
-          color: '#f59e0b', 
-          progress: Math.min(100, (inMonth / ((outMonth * 1.15) || 1)) * 100), 
-          change: 'Faturamento Alvo',
-          periodLabel: 'Segurança Financeira',
-          sparkline: [
-            { value: 50, label: 'Q1' }, { value: 60, label: 'Q2' }, { value: 75, label: 'Q3' }, 
-            { value: 90, label: 'Q4' }
-          ]
-        },
-        { 
-          label: 'Runway / Fôlego', 
-          value: `${runwayMonths} meses`, 
-          icon: Zap, 
-          color: '#8b5cf6', 
-          progress: Math.min(100, (runwayMonths / 24) * 100),
-          change: runwayMonths > 12 ? 'Excelente' : 'Atenção',
-          periodLabel: 'Vida Útil de Caixa',
-          sparkline: [
-            { value: 95, label: 'M1' }, { value: 85, label: 'M2' }, { value: 80, label: 'M3' }, 
-            { value: 75, label: 'M4' }
-          ]
-        },
-      ]);
-
-      const allTx: Transaction[] = [];
-      if (receivables.data) {
-        receivables.data.forEach(r => allTx.push({
-          id: r.id,
-          description: r.descricao,
-          category: r.categoria || 'Receita de Venda',
-          amount: Number(r.valor_total),
-          date: r.data_vencimento,
-          type: 'inflow',
-          status: r.status === 'PAGO' ? 'paid' : 'pending'
-        }));
-      }
-      if (payables.data) {
-        payables.data.forEach(p => allTx.push({
-          id: p.id,
-          description: p.descricao,
-          category: p.categoria || 'Custo Operacional',
-          amount: -Number(p.valor_total),
-          date: p.data_vencimento,
-          type: 'outflow',
-          status: p.status === 'PAGO' ? 'paid' : 'pending'
-        }));
-      }
-
-      setTransactions(allTx.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  const getStatIcon = (id: string) => {
+    switch (id) {
+      case 'patrimonio': return Activity;
+      case 'resultado': return TrendingUp;
+      case 'runway': return Zap;
+      default: return Target;
     }
   };
+
+  if (error) {
+    console.error("[CashFlow] Load Error:", error);
+  }
 
   const handleOpenCreate = () => {
     setSelectedTransaction(null);
@@ -228,7 +111,7 @@ export const CashFlow: React.FC = () => {
     const { error } = await supabase.from(table).insert([dbPayload]);
     if (!error) {
       setIsModalOpen(false);
-      fetchCashFlowData();
+      refresh();
     }
   };
 
@@ -273,40 +156,79 @@ export const CashFlow: React.FC = () => {
 
   const columns = [
     {
-      header: 'Data / Descrição',
+      header: 'Data Conciliação',
       accessor: (item: Transaction) => (
-        <div className="table-cell-title">
-          <span className="main-text">{new Date(item.date).toLocaleDateString()}</span>
-          <div className="sub-meta">
-            <FileText size={12} />
-            <span>{item.description}</span>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px' }}>
+          <Calendar size={14} />
+          <span>{item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Categoria',
+      header: 'Descrição Operação',
       accessor: (item: Transaction) => (
-        <span className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-          {item.category}
-        </span>
-      )
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 700, color: '#1e293b' }}>
+            {item.description || 'Lançamento sem descrição'}
+          </span>
+          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            DOC: {item.id?.slice(0, 8).toUpperCase() || 'PROVISIONADO'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
     },
     {
-      header: 'Montante',
+      header: 'Categoria DRE',
       accessor: (item: Transaction) => (
-        <div className={`flex items-center gap-2 font-bold ${item.type === 'inflow' ? 'text-emerald-600' : 'text-rose-600'}`}>
-          {item.type === 'inflow' ? <ArrowUpRight size={14} /> : <ArrowDownLeft size={14} />}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', textTransform: 'uppercase' }}>
+            {item.category}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Tipo Lançamento',
+      accessor: (item: Transaction) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ 
+            fontSize: '9px', 
+            fontWeight: 900, 
+            textTransform: 'uppercase', 
+            letterSpacing: '0.05em',
+            color: item.type === 'inflow' ? '#059669' : '#dc2626',
+            background: item.type === 'inflow' ? '#ecfdf5' : '#fef2f2',
+            padding: '2px 6px',
+            borderRadius: '4px',
+            width: 'fit-content'
+          }}>
+            {item.type === 'inflow' ? 'Entrada' : 'Saída'}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Valor Líquido BRL',
+      accessor: (item: Transaction) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: 800, color: item.type === 'inflow' ? '#059669' : '#e11d48' }}>
+          {item.type === 'inflow' ? <ArrowUpRight size={12} /> : <ArrowDownLeft size={12} />}
           <span>{Math.abs(item.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
         </div>
-      )
+      ),
+      align: 'center' as const
     },
     {
-      header: 'Status',
+      header: 'Situação',
       accessor: (item: Transaction) => (
-        <span className={`status-pill ${item.status === 'paid' ? 'active' : 'warning'}`}>
-          {item.status === 'paid' ? 'Efetivado' : 'Previsto'}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.status === 'paid' ? 'active' : 'warning'}`}>
+            {item.status === 'paid' ? 'Efetivado' : 'Previsto'}
+          </span>
+        </div>
       ),
       align: 'center' as const
     }
@@ -354,22 +276,21 @@ export const CashFlow: React.FC = () => {
     return acc;
   }, {});
 
-  const totalInflow = Object.values(inflowsByCategory).reduce((a: any, b: any) => a + b, 0) || 1;
-  const totalOutflow = Object.values(outflowsByCategory).reduce((a: any, b: any) => a + b, 0) || 1;
+  const totalInflow = (Object.values(inflowsByCategory).reduce((a: any, b: any) => a + b, 0) as number) || 1;
+  const totalOutflow = (Object.values(outflowsByCategory).reduce((a: any, b: any) => a + b, 0) as number) || 1;
 
   const topInflows = Object.entries(inflowsByCategory)
     .sort(([, a]: any, [, b]: any) => b - a)
     .slice(0, 3)
-    .map(([name, val]: any) => ({ name, percent: ((val / totalInflow) * 100).toFixed(0) }));
+    .map(([name, val]: any) => ({ name, percent: ((Number(val) / Number(totalInflow)) * 100).toFixed(0) }));
 
   const topOutflows = Object.entries(outflowsByCategory)
     .sort(([, a]: any, [, b]: any) => b - a)
     .slice(0, 3)
-    .map(([name, val]: any) => ({ name, percent: ((val / totalOutflow) * 100).toFixed(0) }));
+    .map(([name, val]: any) => ({ name, percent: ((Number(val) / Number(totalOutflow)) * 100).toFixed(0) }));
 
   return (
     <div className="cash-flow-page animate-slide-up">
-      <GlobalModeBanner />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge premium">
@@ -424,18 +345,11 @@ export const CashFlow: React.FC = () => {
       <div className="next-gen-kpi-grid">
         {loading ? (
           Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Wallet} color="" />)
-        ) : stats.map((stat, idx) => (
+        ) : reportStats?.map((stat: any, idx: number) => (
           <EliteStatCard 
             key={idx}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
-            progress={stat.progress}
-            change={stat.change}
-            periodLabel={stat.periodLabel}
-            sparkline={stat.sparkline}
-            trend={stat.trend}
+            {...stat}
+            icon={getStatIcon(stat.id)}
           />
         ))}
       </div>
@@ -492,7 +406,7 @@ export const CashFlow: React.FC = () => {
                   </div>
                   <div className="progress-item">
                     <span>Índice de Cobertura</span>
-                    <span>{((totalInflow / totalOutflow) * 100).toFixed(1)}%</span>
+                    <span>{((Number(totalInflow) / Number(totalOutflow)) * 100).toFixed(1)}%</span>
                   </div>
                   <div className="progress-item insight-warning">
                     <span>Concentração Risco</span>
@@ -561,12 +475,12 @@ export const CashFlow: React.FC = () => {
                       if (menu) menu.classList.toggle('active');
                     }}
                   >
-                    <Download size={20} />
+                    <FileText size={20} />
                   </button>
                   <div id="export-menu-cashflow" className="export-menu">
-                    <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-cashflow')?.classList.remove('active'); }}>CSV</button>
+                    <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-cashflow')?.classList.remove('active'); }}>Excel (.CSV)</button>
                     <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-cashflow')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-                    <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-cashflow')?.classList.remove('active'); }}>PDF Profissional</button>
+                    <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-cashflow')?.classList.remove('active'); }}>PDF</button>
                   </div>
                 </div>
               </div>
@@ -612,7 +526,7 @@ export const CashFlow: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <TransactionForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleSubmit} initialData={selectedTransaction} />
+      <TransactionForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} type={selectedTransaction?.type === 'inflow' ? 'receivable' : 'payable'} onSubmit={handleSubmit} initialData={selectedTransaction} />
       <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} title="Dossiê de Fluxo" subtitle="Rastreabilidade completa" items={historyItems} />
 
       <style>{`

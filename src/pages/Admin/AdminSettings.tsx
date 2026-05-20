@@ -84,7 +84,16 @@ export const AdminSettings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveScope, setSaveScope] = useState<'global' | 'personal'>('global');
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['gmd', 'lotacao', 'caixa']);
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(() => {
+    const savedLocal = localStorage.getItem('elite_selected_metrics');
+    if (savedLocal) {
+      try {
+        const parsed = JSON.parse(savedLocal);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) {}
+    }
+    return ['gmd', 'lotacao', 'caixa'];
+  });
   const [metricTargets, setMetricTargets] = useState<any>({
     gmd: { mode: 'auto', manualValue: 1.2, autoFormula: 'Média + 15%' },
     lotacao: { mode: 'manual', manualValue: 1.5, autoFormula: 'Capacidade Nominal' },
@@ -95,20 +104,10 @@ export const AdminSettings: React.FC = () => {
     if (location.pathname === '/admin/bi') setActiveTab('bi');
     if (location.pathname === '/admin/canvas') setActiveTab('canvas');
     
-    // Filtragem dinâmica baseada no Canvas Studio
-    // Prioridade: localStorage (Live) > Perfil Pessoal > Configuração Global da Fazenda
-    const savedLocal = localStorage.getItem('elite_selected_metrics');
-    let selectedIds = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
-    
-    if (savedLocal) {
-        try {
-          selectedIds = JSON.parse(savedLocal);
-        } catch (e) {
-          console.error("Erro ao carregar métricas salvas", e);
-        }
-    }
-    if (selectedIds) {
-      setSelectedMetrics(selectedIds);
+    // Sincronizar com o banco de dados se disponível e não houver cache local prioritário
+    const dbMetrics = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
+    if (dbMetrics && !localStorage.getItem('elite_selected_metrics')) {
+      setSelectedMetrics(dbMetrics);
     }
     
     if (tenant?.settings?.metric_targets) {
@@ -204,9 +203,7 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    localStorage.setItem('elite_selected_metrics', JSON.stringify(selectedMetrics));
-  }, [selectedMetrics]);
+  // O salvamento no localStorage agora é feito apenas no handleSave para evitar sobrescritas acidentais no mount
 
   const toggleMetric = (id: string) => {
     setSelectedMetrics(prev => 

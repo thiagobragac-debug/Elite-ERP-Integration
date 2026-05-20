@@ -24,6 +24,12 @@ interface ModernTableProps<T> {
   isSelectable?: (item: T) => boolean;
   selectedItems?: (string | number)[];
   onSelectionChange?: (selectedIds: (string | number)[]) => void;
+  // Server-side pagination support
+  totalCount?: number;
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  itemsPerPage?: number;
+  onlyPagination?: boolean;
 }
 
 import { formatNumber } from '../../utils/format';
@@ -41,16 +47,47 @@ export function ModernTable<T extends { id: string | number }>({
   selectable = false,
   isSelectable = () => true,
   selectedItems = [],
-  onSelectionChange
+  onSelectionChange,
+  totalCount,
+  currentPage: externalPage,
+  onPageChange,
+  itemsPerPage = 10,
+  onlyPagination = false
 }: ModernTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [internalPage, setInternalPage] = useState(1);
 
-  // Reset pagination when data changes to avoid empty pages
+  const currentPage = externalPage ?? internalPage;
+  const setCurrentPage = onPageChange ?? setInternalPage;
+
+  // Reset internal pagination when search term changes
   React.useEffect(() => {
-    setCurrentPage(1);
-  }, [data]);
+    if (!onPageChange) setInternalPage(1);
+  }, [searchTerm, onPageChange]);
+
+  const safeData = Array.isArray(data) ? data : [];
+  
+  // Only filter client-side if we are NOT using server-side pagination
+  const filteredData = React.useMemo(() => {
+    if (onPageChange) return safeData;
+    return safeData.filter(item => {
+      if (!item) return false;
+      const lowerSearch = searchTerm.toLowerCase();
+      return Object.values(item).some(val => 
+        val !== null && val !== undefined && String(val).toLowerCase().includes(lowerSearch)
+      );
+    });
+  }, [safeData, searchTerm, onPageChange]);
+
+  const effectiveTotal = totalCount ?? filteredData.length;
+  const totalPages = Math.ceil(effectiveTotal / itemsPerPage);
+  
+  const paginatedData = onPageChange 
+    ? filteredData 
+    : filteredData.slice(
+        (currentPage - 1) * itemsPerPage, 
+        currentPage * itemsPerPage
+      );
 
   const handleToggleAll = () => {
     if (!onSelectionChange) return;
@@ -70,32 +107,69 @@ export function ModernTable<T extends { id: string | number }>({
     onSelectionChange(newSelection);
   };
 
-  const safeData = Array.isArray(data) ? data : [];
-  const filteredData = safeData.filter(item => {
-    if (!item) return false;
-    return Object.values(item).some(val => 
-      val !== null && val !== undefined && String(val).toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice(
-    (currentPage - 1) * itemsPerPage, 
-    currentPage * itemsPerPage
-  );
-
   const renderValue = (item: T, col: Column<T>) => {
     const rawValue = typeof col.accessor === 'function' 
       ? col.accessor(item) 
       : (item[col.accessor] as any);
 
-    // If it's a number and not a special component, format it
     if (typeof rawValue === 'number') {
       return formatNumber(rawValue);
     }
-
     return rawValue;
   };
+
+  if (onlyPagination) {
+    return (
+      <div className="modern-table-container animate-slide-up" style={{ background: 'transparent', boxShadow: 'none', padding: 0, border: 'none' }}>
+        <div className="table-pagination" style={{ border: 'none', padding: 0 }}>
+          <span className="pagination-info">
+            Mostrando <b>{effectiveTotal > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b>-<b>{Math.min(effectiveTotal, currentPage * itemsPerPage)}</b> de <b>{effectiveTotal}</b>
+          </span>
+          <div className="pagination-controls">
+            <button 
+              className="pagination-btn"
+              disabled={currentPage === 1 || loading} 
+              onClick={() => setCurrentPage(currentPage - 1)}
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <div className="pages">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const p = i + 1;
+                return (
+                  <button 
+                    key={p} 
+                    className={`page-btn ${currentPage === p ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(p)}
+                    disabled={loading}
+                  >
+                    {p}
+                  </button>
+                );
+              })}
+              {totalPages > 5 && <span className="dots">...</span>}
+              {totalPages > 5 && (
+                 <button 
+                 className={`page-btn ${currentPage === totalPages ? 'active' : ''}`}
+                 onClick={() => setCurrentPage(totalPages)}
+                 disabled={loading}
+               >
+                 {totalPages}
+               </button>
+              )}
+            </div>
+            <button 
+              className="pagination-btn"
+              disabled={currentPage === totalPages || totalPages === 0 || loading} 
+              onClick={() => setCurrentPage(currentPage + 1)}
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modern-table-container animate-slide-up">
@@ -135,7 +209,7 @@ export function ModernTable<T extends { id: string | number }>({
                 </th>
               )}
               {columns.map((col, idx) => (
-                <th key={idx} style={{ width: col.width, textAlign: col.align || 'left' }}>
+                <th key={idx} className={`align-${col.align || 'left'}`} style={{ width: col.width }}>
                   {col.header}
                 </th>
               ))}
@@ -143,21 +217,16 @@ export function ModernTable<T extends { id: string | number }>({
             </tr>
           </thead>
           <tbody>
-            <AnimatePresence mode="popLayout">
               {loading ? (
-                Array(5).fill(0).map((_, i) => (
+                Array(itemsPerPage).fill(0).map((_, i) => (
                   <tr key={`skeleton-${i}`} className="skeleton-row">
                     {columns.map((_, j) => <td key={j}><div className="skeleton-line"></div></td>)}
                     {actions && <td><div className="skeleton-line"></div></td>}
                   </tr>
                 ))
               ) : paginatedData.map((item, idx) => (
-                <motion.tr 
+                <tr 
                   key={item.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ delay: idx * 0.02, duration: 0.2 }}
                   onClick={() => onRowClick?.(item)}
                   className={`${onRowClick ? 'clickable' : ''} ${selectedItems.includes(item.id) ? 'selected' : ''}`}
                 >
@@ -170,7 +239,7 @@ export function ModernTable<T extends { id: string | number }>({
                         <input 
                           type="checkbox" 
                           checked={selectedItems.includes(item.id)}
-                          onChange={() => {}} // Handled by td click
+                          onChange={() => {}} 
                         />
                       ) : (
                         <div style={{ width: '16px', height: '16px' }} />
@@ -178,7 +247,7 @@ export function ModernTable<T extends { id: string | number }>({
                     </td>
                   )}
                   {columns.map((col, j) => (
-                    <td key={j} style={{ textAlign: col.align || 'left' }}>
+                    <td key={j} className={`align-${col.align || 'left'}`}>
                       {renderValue(item, col)}
                     </td>
                   ))}
@@ -189,9 +258,8 @@ export function ModernTable<T extends { id: string | number }>({
                       </div>
                     </td>
                   )}
-                </motion.tr>
+                </tr>
               ))}
-            </AnimatePresence>
           </tbody>
         </table>
         
@@ -205,32 +273,46 @@ export function ModernTable<T extends { id: string | number }>({
 
       <div className="table-pagination">
         <span className="pagination-info">
-          Mostrando <b>{filteredData.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b>-<b>{Math.min(filteredData.length, currentPage * itemsPerPage)}</b> de <b>{filteredData.length}</b>
+          Mostrando <b>{effectiveTotal > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}</b>-<b>{Math.min(effectiveTotal, currentPage * itemsPerPage)}</b> de <b>{effectiveTotal}</b>
         </span>
         <div className="pagination-controls">
           <button 
             className="pagination-btn"
             disabled={currentPage === 1 || loading} 
-            onClick={() => setCurrentPage(p => p - 1)}
+            onClick={() => setCurrentPage(currentPage - 1)}
           >
             <ChevronLeft size={18} />
           </button>
           <div className="pages">
-            {Array.from({ length: Math.max(1, totalPages) }, (_, i) => i + 1).map(p => (
-              <button 
-                key={p} 
-                className={`page-btn ${currentPage === p ? 'active' : ''}`}
-                onClick={() => setCurrentPage(p)}
-                disabled={loading}
-              >
-                {p}
-              </button>
-            ))}
+            {/* Generate a limited page range if many pages exist */}
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const p = i + 1;
+              return (
+                <button 
+                  key={p} 
+                  className={`page-btn ${currentPage === p ? 'active' : ''}`}
+                  onClick={() => setCurrentPage(p)}
+                  disabled={loading}
+                >
+                  {p}
+                </button>
+              );
+            })}
+            {totalPages > 5 && <span className="dots">...</span>}
+            {totalPages > 5 && (
+               <button 
+               className={`page-btn ${currentPage === totalPages ? 'active' : ''}`}
+               onClick={() => setCurrentPage(totalPages)}
+               disabled={loading}
+             >
+               {totalPages}
+             </button>
+            )}
           </div>
           <button 
             className="pagination-btn"
             disabled={currentPage === totalPages || totalPages === 0 || loading} 
-            onClick={() => setCurrentPage(p => p + 1)}
+            onClick={() => setCurrentPage(currentPage + 1)}
           >
             <ChevronRight size={18} />
           </button>

@@ -38,22 +38,21 @@ import { BatchLiquidationModal } from '../../components/Modals/BatchLiquidationM
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { GlobalModeBanner } from '../../components/GlobalMode/GlobalModeBanner';
 import { FinancialCalendarModal } from '../../components/Modals/FinancialCalendarModal';
 import { PayableFilterModal } from './components/PayableFilterModal';
 import './AccountsPayable.css';
 
+import { useReportData } from '../../hooks/useReportData';
+import { useDebounce } from '../../hooks/useDebounce';
+
 export const AccountsPayable: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [bills, setBills] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'TODAS' | 'PENDENTE' | 'PAGO'>('TODAS');
-  const [loading, setLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({ 
@@ -66,11 +65,24 @@ export const AccountsPayable: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (!activeFarmId && !isGlobalMode) return;
-    fetchBills();
-  }, [activeFarmId, isGlobalMode]);
+  const [page, setPage] = useState(1);
+  const pageSize = 25;
+
+  const debouncedSearch = useDebounce(searchTerm, 500);
+
+  const { data: rawBills, stats, totalCount, loading, error, refresh } = useReportData('contas-pagar', {
+    page,
+    pageSize,
+    filters: {
+      ...filterValues,
+      status: activeTab,
+      search: debouncedSearch
+    }
+  });
+
+  const bills = rawBills || [];
 
   const [searchParams] = useSearchParams();
 
@@ -84,70 +96,6 @@ export const AccountsPayable: React.FC = () => {
       }
     }
   }, [searchParams, bills]);
-
-  const fetchBills = async () => {
-    setLoading(true);
-    try {
-      let query = supabase.from('contas_pagar').select('*, fornecedores(nome)').order('data_vencimento', { ascending: true });
-      query = applyFarmFilter(query);
-      const { data } = await query;
-      
-      if (data) {
-        setBills(data);
-        const now = new Date();
-        const totalAPagar = data.filter(b => b.status === 'PENDENTE').reduce((acc, curr) => acc + Number(curr.valor_total), 0);
-        const atrasado = data.filter(b => b.status === 'PENDENTE' && new Date(b.data_vencimento) < now).reduce((acc, curr) => acc + Number(curr.valor_total), 0);
-        
-        const next7DaysDate = new Date();
-        next7DaysDate.setDate(now.getDate() + 7);
-        const fluxo7Dias = data.filter(b => b.status === 'PENDENTE' && new Date(b.data_vencimento) <= next7DaysDate && new Date(b.data_vencimento) >= now).reduce((acc, curr) => acc + Number(curr.valor_total), 0);
-        
-        setStats([
-          { 
-            label: 'Passivo Circulante', 
-            value: totalAPagar.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: CreditCard, 
-            color: '#6366f1', 
-            progress: 100,
-            change: 'Aberto Total',
-            periodLabel: 'Exigível'
-          },
-          { 
-            label: 'Risco de Liquidez', 
-            value: atrasado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: AlertTriangle, 
-            color: '#ef4444', 
-            progress: totalAPagar > 0 ? (atrasado / totalAPagar) * 100 : 0, 
-            trend: atrasado > 0 ? 'up' : 'down',
-            change: `${((atrasado / (totalAPagar || 1)) * 100).toFixed(1)}% do total`,
-            periodLabel: 'Contas Atrasadas'
-          },
-          { 
-            label: 'Fluxo (7 Dias)', 
-            value: fluxo7Dias.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: Clock, 
-            color: '#f59e0b', 
-            progress: 60,
-            change: 'Próxima Semana',
-            periodLabel: 'Saída Prevista'
-          },
-          { 
-            label: 'DPO (Médio)', 
-            value: '28 dias', 
-            icon: RefreshCw, 
-            color: '#10b981', 
-            progress: 85,
-            change: 'Prazo Pagto',
-            periodLabel: 'Eficiência Financeira'
-          },
-        ]);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleOpenCreate = () => {
     setSelectedBill(null);
@@ -165,35 +113,43 @@ export const AccountsPayable: React.FC = () => {
       return;
     }
 
-    const payload = {
-      descricao: formData.description,
-      valor_total: parseFloat(formData.value),
-      data_vencimento: formData.dueDate,
-      categoria: formData.category,
-      fornecedor_id: formData.entityId,
-      metodo_pagamento: formData.paymentMethod,
-      status: formData.status
-    };
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        descricao: formData.description,
+        valor_total: parseFloat(formData.value),
+        data_vencimento: formData.dueDate,
+        categoria: formData.category,
+        fornecedor_id: formData.entityId,
+        metodo_pagamento: formData.paymentMethod,
+        status: formData.status
+      };
 
-    if (selectedBill) {
-      const { error } = await supabase
-        .from('contas_pagar')
-        .update(payload)
-        .eq('id', selectedBill.id);
-      
-      if (!error) {
+      if (selectedBill) {
+        const { error } = await supabase
+          .from('contas_pagar')
+          .update(payload)
+          .eq('id', selectedBill.id);
+        
+        if (error) throw error;
+        
         setIsModalOpen(false);
-        fetchBills();
-      }
-    } else {
-      const { error } = await supabase
-        .from('contas_pagar')
-        .insert([{ ...payload, ...insertPayload }]);
+        refresh();
+      } else {
+        const { error } = await supabase
+          .from('contas_pagar')
+          .insert([{ ...payload, ...insertPayload }]);
 
-      if (!error) {
+        if (error) throw error;
+        
         setIsModalOpen(false);
-        fetchBills();
+        refresh();
       }
+    } catch (err: any) {
+      console.error('[AccountsPayable] Erro ao salvar:', err);
+      alert('❌ Erro ao salvar título: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -226,8 +182,13 @@ export const AccountsPayable: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
-    const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
-    if (!error) fetchBills();
+    try {
+      const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
+      if (error) throw error;
+      refresh();
+    } catch (err: any) {
+      alert('❌ Erro ao excluir título: ' + err.message);
+    }
   };
 
   const handleMarkAsPaid = async (id: string) => {
@@ -246,7 +207,7 @@ export const AccountsPayable: React.FC = () => {
 
   const columns = [
     {
-      header: 'Vencimento / Título',
+      header: 'Vencimento',
       accessor: (item: any) => {
         const dueDate = new Date(item.data_vencimento);
         const today = new Date();
@@ -256,82 +217,93 @@ export const AccountsPayable: React.FC = () => {
         const isOverdue = diffDays < 0 && item.status === 'PENDENTE';
 
         return (
-          <div className="table-cell-title">
-            <span className={`main-text ${isOverdue ? 'text-red-600 font-black' : ''}`}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+            <span style={{ color: isOverdue ? '#e11d48' : '#1e293b', fontWeight: 800, fontSize: '12px' }}>
               {dueDate.toLocaleDateString()}
-              {isOverdue && <AlertTriangle size={12} className="inline ml-1 text-red-600 animate-pulse" />}
             </span>
-            <div className="sub-meta flex items-center gap-1">
-              <FileText size={12} />
-              <span className="truncate max-w-[150px]">{item.descricao}</span>
-              {item.status === 'PENDENTE' && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black uppercase ${diffDays <= 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
-                  {diffDays === 0 ? 'HOJE' : diffDays < 0 ? `${Math.abs(diffDays)}d ATRASO` : `${diffDays}d REST`}
-                </span>
-              )}
-            </div>
+            {item.status === 'PENDENTE' && (
+              <span className={`status-pill ${diffDays <= 0 ? 'danger' : 'info'}`} style={{ fontSize: '9px', padding: '2px 4px', width: 'fit-content' }}>
+                {diffDays === 0 ? 'HOJE' : diffDays < 0 ? `${Math.abs(diffDays)}d ATRASO` : `${diffDays}d REST`}
+              </span>
+            )}
           </div>
         );
-      }
+      },
+      align: 'left' as const
     },
     {
-      header: 'Fornecedor',
+      header: 'Identificação Título',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Building2 size={14} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+          <span className="main-text" style={{ fontWeight: 700, color: '#1e293b' }}>
+            {item.descricao || 'Sem descrição'}
+          </span>
+          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            DOC: {item.id?.slice(0, 8).toUpperCase() || 'N/A'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Fornecedor / Credor',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155', fontWeight: 600, fontSize: '12px' }}>
+          <Building2 size={14} color="#94a3b8" />
           <span>{item.fornecedores?.nome || item.fornecedor || 'Geral'}</span>
         </div>
-      )
+      ),
+      align: 'left' as const
     },
     {
-      header: 'Valor Total',
+      header: 'Categoria & Método',
       accessor: (item: any) => (
-        <span className="font-bold text-slate-900">
-          {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-        </span>
-      )
-    },
-    {
-      header: 'Prioridade',
-      accessor: (item: any) => {
-        const dueDate = new Date(item.data_vencimento);
-        const today = new Date();
-        const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        const amount = Number(item.valor_total);
-        
-        let priority = 'BAIXA';
-        let color = 'bg-slate-100 text-slate-600';
-        
-        if (diffDays < 0 || (diffDays <= 3 && amount > 5000)) {
-          priority = 'CRÍTICA';
-          color = 'bg-rose-100 text-rose-700 font-black';
-        } else if (diffDays <= 7) {
-          priority = 'MÉDIA';
-          color = 'bg-amber-100 text-amber-700';
-        }
-
-        return (
-          <span className={`text-[9px] px-2 py-0.5 rounded-md tracking-tighter ${color}`}>
-            {priority}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', textTransform: 'uppercase' }}>
+            {item.categoria || 'Geral'}
           </span>
-        );
-      },
+          <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
+            {item.metodo_pagamento || 'Boleto'}
+          </span>
+        </div>
+      ),
       align: 'center' as const
     },
     {
-      header: 'Status',
+      header: 'Valor Bruto BRL',
       accessor: (item: any) => (
-        <span className={`status-pill ${item.status === 'PAGO' ? 'active' : item.status === 'ATRASADO' ? 'danger' : 'warning'}`}>
-          {item.status}
-        </span>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span style={{ fontSize: '12px', fontWeight: 900, color: '#0f172a' }}>
+            {Number(item.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+        </div>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Situação',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <span className={`status-pill ${item.status === 'PAGO' ? 'active' : item.status === 'ATRASADO' ? 'danger' : 'warning'}`}>
+            {item.status}
+          </span>
+        </div>
       ),
       align: 'center' as const
     }
   ];
 
+  const getIcon = (label: string) => {
+    switch (label) {
+      case 'Passivo Circulante': return CreditCard;
+      case 'Total Liquidado': return CheckCircle2;
+      case 'Volume de Títulos': return FileText;
+      default: return ZapIcon;
+    }
+  };
+
   return (
-    <div className="accounts-payable-page animate-slide-up">
-      <GlobalModeBanner />
+    <div className="payable-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge">
@@ -356,16 +328,16 @@ export const AccountsPayable: React.FC = () => {
       <div className="next-gen-kpi-grid">
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
-        ) : stats.map((stat, idx) => (
+        ) : (stats || []).map((stat, idx) => (
           <EliteStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
-            icon={stat.icon}
-            color={stat.color}
+            icon={stat.icon || getIcon(stat.label)}
+            color={stat.color || 'brand'}
             progress={stat.progress}
             change="+2.1%"
-            trend={stat.trend}
+            trend={stat.trend === 'neutral' ? undefined : stat.trend}
           />
         ))}
       </div>
@@ -374,19 +346,19 @@ export const AccountsPayable: React.FC = () => {
         <div className="elite-tab-group">
           <button 
             className={`elite-tab-item ${activeTab === 'TODAS' ? 'active' : ''}`}
-            onClick={() => setActiveTab('TODAS')}
+            onClick={() => { setActiveTab('TODAS'); setPage(1); }}
           >
             Todas Contas
           </button>
           <button 
             className={`elite-tab-item ${activeTab === 'PENDENTE' ? 'active' : ''}`}
-            onClick={() => setActiveTab('PENDENTE')}
+            onClick={() => { setActiveTab('PENDENTE'); setPage(1); }}
           >
             Pendentes
           </button>
           <button 
             className={`elite-tab-item ${activeTab === 'PAGO' ? 'active' : ''}`}
-            onClick={() => setActiveTab('PAGO')}
+            onClick={() => { setActiveTab('PAGO'); setPage(1); }}
           >
             Pagas
           </button>
@@ -423,9 +395,9 @@ export const AccountsPayable: React.FC = () => {
               <FileText size={20} />
             </button>
             <div id="export-menu-payable" className="export-menu">
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-payable')?.classList.remove('active'); }}>CSV</button>
+              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-payable')?.classList.remove('active'); }}>Excel (.CSV)</button>
               <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-payable')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-payable')?.classList.remove('active'); }}>PDF Profissional</button>
+              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-payable')?.classList.remove('active'); }}>PDF</button>
             </div>
           </div>
         </div>
@@ -449,19 +421,14 @@ export const AccountsPayable: React.FC = () => {
           />
         ) : (
           <ModernTable 
-             data={bills.filter(b => {
-              const matchesSearch = (b.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesTab = activeTab === 'TODAS' || b.status === activeTab;
-              const matchesStatus = filterValues.status === 'all' || b.status === filterValues.status;
-              const amount = Number(b.valor_total);
-              const matchesAmount = amount >= (filterValues.minAmount || 0) && amount <= (filterValues.maxAmount || 1000000);
-              const matchesDate = (!filterValues.dateStart || new Date(b.data_vencimento) >= new Date(filterValues.dateStart)) &&
-                                 (!filterValues.dateEnd || new Date(b.data_vencimento) <= new Date(filterValues.dateEnd));
-              return matchesSearch && matchesTab && matchesStatus && matchesAmount && matchesDate;
-            })}
+             data={bills}
             columns={columns}
             loading={loading}
             hideHeader={true}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
             selectable={true}
             isSelectable={(item) => item.status !== 'PAGO'}
             selectedItems={selectedItems}
@@ -541,7 +508,7 @@ export const AccountsPayable: React.FC = () => {
           setSelectedBill(null);
         }}
         onSuccess={() => {
-          fetchBills();
+          refresh();
           setSelectedItems([]);
         }}
         selectedIds={selectedBill ? [selectedBill.id] : selectedItems}

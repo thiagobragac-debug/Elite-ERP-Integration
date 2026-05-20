@@ -62,7 +62,7 @@ export const EliteStatCard: React.FC<EliteStatCardProps> = ({
             />
           </svg>
           <div className="icon-center" style={{ color: color }}>
-            <Icon size={28} />
+            {Icon && <Icon size={28} />}
           </div>
         </div>
 

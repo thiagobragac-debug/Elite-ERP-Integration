@@ -78,16 +78,22 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClos
     // Fetch Machines
     const { data: mData } = await supabase
       .from('maquinas')
-      .select('id, nome, horimetro_atual')
+      .select('id, nome')
       .eq('fazenda_id', activeFarm?.id);
-    if (mData) setMachines(mData);
+    if (mData) {
+      const transformed = mData.map(m => ({ ...m, horimetro_atual: 0 }));
+      setMachines(transformed);
+    }
 
     // Fetch Inventory (Lubricants, Filters, Spare Parts)
     const { data: pData } = await supabase
       .from('produtos')
-      .select('id, nome, categoria, preco_venda')
+      .select('id, nome, categoria, preco_custo')
       .in('categoria', ['LUBRIFICANTES', 'PECAS', 'PNEUS', 'FILTROS']);
-    if (pData) setInventory(pData);
+    if (pData) {
+      const transformed = pData.map(p => ({ ...p, preco_venda: p.preco_custo || 0 }));
+      setInventory(transformed);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
