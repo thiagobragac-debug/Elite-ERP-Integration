@@ -26,7 +26,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { QuotationForm } from '../../components/Forms/QuotationForm';
-import { HistoryModal } from '../../components/Modals/HistoryModal';
+import { QuotationMatrixModal } from './components/QuotationMatrixModal';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
@@ -42,7 +42,8 @@ export const QuotationMap: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'OPEN' | 'CLOSED'>('OPEN');
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [selectedMatrixQuotation, setSelectedMatrixQuotation] = useState<any>(null);
+  const [isMatrixOpen, setIsMatrixOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -156,18 +157,45 @@ export const QuotationMap: React.FC = () => {
   };
 
   const handleViewDetails = (quot: any) => {
-    setIsHistoryModalOpen(true);
-    setHistoryLoading(true);
-    const suppliers = quot.suppliers || quot.dados_fornecedores || [];
-    setHistoryItems(suppliers.map((s: any, idx: number) => ({
-      id: idx.toString(),
-      date: quot.created_at || new Date().toISOString(),
-      title: s.name || s.fornecedor_nome || `Fornecedor ${idx+1}`,
-      subtitle: `Prazo: ${s.deliveryDays || s.prazo_entrega || 0} dias`,
-      value: Number(s.price || s.preco || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-      status: (s.isWinner || s.vencedor) ? 'success' : 'info'
-    })));
-    setHistoryLoading(false);
+    setSelectedMatrixQuotation(quot);
+    setIsMatrixOpen(true);
+  };
+
+  const handleApproveSupplier = async (quotationId: string, chosenSupplier: any) => {
+    const quot = quotations.find(q => q.id === quotationId);
+    if (!quot) return;
+
+    const rawSuppliers = quot.suppliers || quot.dados_fornecedores || [];
+    const updatedSuppliers = rawSuppliers.map((s: any) => {
+      const isMatch = (s.supplier_id && s.supplier_id === chosenSupplier.supplier_id) ||
+                      (s.name && s.name === chosenSupplier.name) ||
+                      (s.fornecedor_nome && s.fornecedor_nome === chosenSupplier.fornecedor_nome) ||
+                      (Number(s.price || s.preco) === Number(chosenSupplier.price || chosenSupplier.preco) &&
+                       Number(s.delivery_days || s.deliveryDays || s.prazo_entrega) === Number(chosenSupplier.delivery_days || chosenSupplier.deliveryDays || chosenSupplier.prazo_entrega));
+      
+      return {
+        ...s,
+        isWinner: isMatch,
+        vencedor: isMatch
+      };
+    });
+
+    const { error } = await supabase
+      .from('mapas_cotacao')
+      .update({
+        status: 'closed',
+        dados_fornecedores: updatedSuppliers
+      })
+      .eq('id', quotationId);
+
+    if (!error) {
+      setQuotations(prev => prev.map(q => q.id === quotationId ? { ...q, status: 'closed', dados_fornecedores: updatedSuppliers } : q));
+      setIsMatrixOpen(false);
+      fetchQuotations();
+    } else {
+      console.error('[QuotationMap] Error approving supplier:', error);
+      alert('❌ Erro ao aprovar fornecedor: ' + (error.message || 'Erro desconhecido'));
+    }
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -466,13 +494,11 @@ export const QuotationMap: React.FC = () => {
         initialData={selectedQuotation}
       />
 
-      <HistoryModal 
-        isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
-        title="Quadro Comparativo"
-        subtitle="Análise detalhada de ofertas e condições comerciais"
-        items={historyItems}
-        loading={historyLoading}
+      <QuotationMatrixModal 
+        isOpen={isMatrixOpen}
+        onClose={() => setIsMatrixOpen(false)}
+        quotation={selectedMatrixQuotation}
+        onApprove={handleApproveSupplier}
       />
 
     </div>

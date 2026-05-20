@@ -549,7 +549,8 @@ export const WarehouseManagement: React.FC = () => {
           display: flex;
           overflow: hidden;
           padding: 0;
-          height: 180px;
+          min-height: 180px;
+          height: auto;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 4px 15px rgba(0,0,0,0.03);
           position: relative;
@@ -573,13 +574,14 @@ export const WarehouseManagement: React.FC = () => {
         }
 
         .warehouse-card-premium:hover {
-          transform: translateY(-8px);
+          transform: translateY(-6px);
           box-shadow: var(--shadow-lg);
-          border-color: hsl(var(--brand) / 0.3);
+          border-color: hsl(var(--brand) / 0.35);
         }
 
         .card-left-section {
           width: 130px;
+          flex-shrink: 0;
           background: hsl(var(--bg-main) / 0.5);
           display: flex;
           flex-direction: column;
@@ -599,29 +601,33 @@ export const WarehouseManagement: React.FC = () => {
           justify-content: center;
           box-shadow: 0 8px 20px rgba(0,0,0,0.1);
           border: 1px solid hsl(var(--border));
-          margin-bottom: 12px;
+          margin-bottom: 8px;
         }
 
         .card-main-content {
           flex: 1;
-          padding: 16px 20px;
+          padding: 12px 16px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          min-width: 0;
         }
 
         .card-header-info .title-row {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 4px;
+          margin-bottom: 2px;
         }
 
         .card-header-info h3 {
-          font-size: 17px;
+          font-size: 16px;
           font-weight: 900;
           color: #0f172a;
           letter-spacing: -0.02em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .status-pill.mini {
@@ -639,7 +645,7 @@ export const WarehouseManagement: React.FC = () => {
         }
 
         .card-occupation-section {
-          margin: 10px 0;
+          margin: 4px 0;
         }
 
         .occ-header {
@@ -728,11 +734,11 @@ export const WarehouseManagement: React.FC = () => {
 
         .card-bottom-actions {
           display: flex;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           justify-content: center;
           gap: 6px;
           width: 100%;
-          margin-top: 12px;
+          margin-top: 8px;
         }
 
         .action-icon-btn {
@@ -769,7 +775,8 @@ export const WarehouseManagement: React.FC = () => {
           cursor: pointer;
           color: #94a3b8;
           transition: 0.2s;
-          height: 180px;
+          min-height: 180px;
+          height: 100%;
         }
 
         .add-warehouse-card-premium:hover {

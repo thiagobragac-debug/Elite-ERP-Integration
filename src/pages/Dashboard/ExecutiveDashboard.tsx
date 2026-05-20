@@ -183,12 +183,12 @@ export const ExecutiveDashboard: React.FC = () => {
           applyFarmFilter(supabase.from('pesagens').select('created_at, observacao, animais(brinco)').order('created_at', { ascending: false }).limit(4)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
           
           // RPCs de cálculo real
-          supabase.rpc('calculate_herd_gmd', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId }).then((r: any) => r).catch((e: any) => ({ data: 0.842, error: e })),
-          supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId }).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
-          supabase.rpc('get_reproductive_stats', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId }).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
-          supabase.rpc('calculate_fleet_consumption', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId }).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
-          supabase.rpc('get_finance_summary', { p_table_name: 'contas_pagar', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId }).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
-          supabase.rpc('get_finance_summary', { p_table_name: 'contas_receber', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId }).then((r: any) => r).catch((e: any) => ({ data: [], error: e }))
+          Promise.resolve(supabase.rpc('calculate_herd_gmd', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: 0.842, error: e })),
+          Promise.resolve(supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
+          Promise.resolve(supabase.rpc('get_reproductive_stats', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
+          Promise.resolve(supabase.rpc('calculate_fleet_consumption', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
+          Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_pagar', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+          Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_receber', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e }))
         ];
 
         const [

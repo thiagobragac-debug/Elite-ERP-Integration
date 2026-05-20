@@ -23,7 +23,8 @@ import {
   LayoutGrid,
   List as ListIcon,
   CheckCircle2,
-  X
+  X,
+  ShoppingCart
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -64,6 +65,8 @@ export const InventoryManagement: React.FC = () => {
     maxPrice: 1000000
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requestedProducts, setRequestedProducts] = useState<Record<string, boolean>>({});
+  const [requestLoading, setRequestLoading] = useState<Record<string, boolean>>({});
 
   // Server-side pagination
   const [page, setPage] = useState(1);
@@ -259,6 +262,48 @@ export const InventoryManagement: React.FC = () => {
       fetchProducts();
     } catch (err: any) {
       alert('❌ Erro ao excluir produto: ' + err.message);
+    }
+  };
+
+  const handleAutoPurchaseRequest = async (product: any) => {
+    const farmId = activeFarmId || activeFarm?.id;
+    const tenantId = activeTenantId || activeFarm?.tenantId;
+
+    if (!farmId || !tenantId) {
+      alert('⚠️ Selecione uma fazenda específica para solicitar a compra.');
+      return;
+    }
+
+    setRequestLoading(prev => ({ ...prev, [product.id]: true }));
+
+    try {
+      const diff = Math.max(1, Number(product.estoque_minimo || 0) - Number(product.estoque_atual || 0));
+      const valorEstimado = Math.max(100, diff * Number(product.custo_medio || 0));
+
+      const payload = {
+        titulo: `Reposição de Insumo: ${product.nome}`,
+        departamento: 'Estoque',
+        prioridade: 'high',
+        valor_estimado: valorEstimado,
+        descricao: `Solicitação automática de reposição gerada pelo Módulo de Estoque devido a nível crítico de saldo físico. Saldo Atual: ${product.estoque_atual} ${product.unidade} | Nível Mínimo Exigido: ${product.estoque_minimo} ${product.unidade}.`,
+        status: 'pending',
+        solicitante: 'Sistema de Estoque (Auto)',
+        fazenda_id: farmId,
+        tenant_id: tenantId
+      };
+
+      const { error } = await supabase
+        .from('solicitacoes_compra')
+        .insert([payload]);
+
+      if (error) throw error;
+
+      setRequestedProducts(prev => ({ ...prev, [product.id]: true }));
+    } catch (err: any) {
+      console.error('[Inventory] Erro ao solicitar compra:', err);
+      alert('❌ Erro ao solicitar compra: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setRequestLoading(prev => ({ ...prev, [product.id]: false }));
     }
   };
 
@@ -580,19 +625,57 @@ export const InventoryManagement: React.FC = () => {
             onPageChange={setPage}
             itemsPerPage={pageSize}
             searchPlaceholder="Filtrar base de insumos..."
-            actions={(item) => (
-              <div className="modern-actions">
-                <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Logs">
-                  <ArrowRightLeft size={18} />
-                </button>
-                <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                  <Edit3 size={18} />
-                </button>
-                <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            )}
+            actions={(item) => {
+              const isCritical = Number(item.estoque_atual || 0) <= Number(item.estoque_minimo || 0);
+              const isRequested = requestedProducts[item.id];
+              const isLoading = requestLoading[item.id];
+
+              return (
+                <div className="modern-actions">
+                  {isCritical && (
+                    <button 
+                      className={`action-dot ${isRequested ? 'success' : 'warning'}`} 
+                      onClick={() => !isRequested && !isLoading && handleAutoPurchaseRequest(item)}
+                      title={isRequested ? "Compra Solicitada" : "Solicitar Compra"}
+                      disabled={isRequested || isLoading}
+                      style={{
+                        borderColor: isRequested ? '#10b981' : '#f59e0b',
+                        color: isRequested ? '#10b981' : '#f59e0b',
+                        background: isRequested ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                        cursor: isRequested ? 'default' : 'pointer'
+                      }}
+                    >
+                      {isLoading ? (
+                        <motion.div 
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, ease: "linear", duration: 1 }}
+                          style={{
+                            width: '14px',
+                            height: '14px',
+                            border: '2px solid currentColor',
+                            borderTopColor: 'transparent',
+                            borderRadius: '50%'
+                          }}
+                        />
+                      ) : isRequested ? (
+                        <CheckCircle2 size={18} />
+                      ) : (
+                        <ShoppingCart size={18} />
+                      )}
+                    </button>
+                  )}
+                  <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Logs">
+                    <ArrowRightLeft size={18} />
+                  </button>
+                  <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                    <Edit3 size={18} />
+                  </button>
+                  <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              );
+            }}
           />
         ) : (
           <motion.div 
@@ -617,7 +700,7 @@ export const InventoryManagement: React.FC = () => {
                     layout
                     className={`user-card-premium ${isCritical ? 'stopped-badge' : 'active'}`}
                   >
-                    <div className="card-left-section" style={{ padding: '16px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="card-left-section">
                       <div className="card-avatar">
                         {getIcon(p.categoria)}
                       </div>
@@ -625,11 +708,43 @@ export const InventoryManagement: React.FC = () => {
                         <button className="action-icon-btn info" onClick={() => handleViewHistory(p)} title="Dossiê"><ArrowRightLeft size={14} /></button>
                         <button className="action-icon-btn edit" onClick={() => handleOpenEdit(p)} title="Editar"><Edit3 size={14} /></button>
                         <button className="action-icon-btn delete" onClick={() => handleDelete(p.id)} title="Excluir"><Trash2 size={14} /></button>
+                        {isCritical && (
+                          <button 
+                            className={`action-icon-btn ${requestedProducts[p.id] ? 'success' : 'warning'}`} 
+                            onClick={() => !requestedProducts[p.id] && !requestLoading[p.id] && handleAutoPurchaseRequest(p)}
+                            title={requestedProducts[p.id] ? "Compra Solicitada" : "Solicitar Compra"}
+                            disabled={requestedProducts[p.id] || requestLoading[p.id]}
+                            style={{
+                              borderColor: requestedProducts[p.id] ? '#10b981' : '#f59e0b',
+                              color: requestedProducts[p.id] ? '#10b981' : '#f59e0b',
+                              background: requestedProducts[p.id] ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                              cursor: requestedProducts[p.id] ? 'default' : 'pointer'
+                            }}
+                          >
+                            {requestLoading[p.id] ? (
+                              <motion.div 
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, ease: "linear", duration: 1 }}
+                                style={{
+                                  width: '12px',
+                                  height: '12px',
+                                  border: '2px solid currentColor',
+                                  borderTopColor: 'transparent',
+                                  borderRadius: '50%'
+                                }}
+                              />
+                            ) : requestedProducts[p.id] ? (
+                              <CheckCircle2 size={14} />
+                            ) : (
+                              <ShoppingCart size={14} />
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
 
                     <div className="card-main-content">
-                      <div className="card-header-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%' }}>
+                      <div className="card-header-info">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>{p.nome}</h3>
                           <span className="card-role-badge" style={{ marginTop: '4px' }}>{p.categoria || 'INSUMO'}</span>
@@ -734,7 +849,8 @@ export const InventoryManagement: React.FC = () => {
           display: flex;
           overflow: hidden;
           padding: 0;
-          height: 180px;
+          min-height: 180px;
+          height: auto;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 4px 15px rgba(0,0,0,0.03);
           position: relative;
@@ -763,13 +879,14 @@ export const InventoryManagement: React.FC = () => {
         }
 
         .user-card-premium:hover {
-          transform: translateY(-8px);
+          transform: translateY(-6px);
           box-shadow: var(--shadow-lg);
-          border-color: hsl(var(--brand) / 0.3);
+          border-color: hsl(var(--brand) / 0.35);
         }
 
         .card-left-section {
           width: 130px;
+          flex-shrink: 0;
           background: hsl(var(--bg-main) / 0.5);
           display: flex;
           flex-direction: column;
@@ -789,33 +906,37 @@ export const InventoryManagement: React.FC = () => {
           justify-content: center;
           box-shadow: 0 8px 20px rgba(0,0,0,0.1);
           border: 1px solid hsl(var(--border));
-          margin-bottom: 12px;
+          margin-bottom: 8px;
         }
 
         .card-main-content {
           flex: 1;
-          padding: 16px 20px;
+          padding: 12px 16px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          min-width: 0;
         }
 
         .card-header-info h3 {
-          font-size: 19px;
+          font-size: 16px;
           font-weight: 900;
           color: hsl(var(--text-main));
-          margin-bottom: 4px;
+          margin-bottom: 2px;
           letter-spacing: -0.02em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .card-role-badge {
           display: inline-block;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 800;
           color: hsl(var(--brand));
           background: hsl(var(--brand) / 0.1);
-          padding: 4px 10px;
-          border-radius: 8px;
+          padding: 3px 8px;
+          border-radius: 6px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -823,30 +944,34 @@ export const InventoryManagement: React.FC = () => {
         .card-meta-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 8px;
-          margin-top: 12px;
+          gap: 4px;
+          margin-top: 6px;
         }
 
         .meta-item {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           color: hsl(var(--text-muted));
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .meta-icon {
           color: hsl(var(--brand));
+          flex-shrink: 0;
         }
 
         .card-bottom-actions {
           display: flex;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           justify-content: center;
           gap: 6px;
           width: 100%;
-          margin-top: 12px;
+          margin-top: 8px;
         }
 
         .action-icon-btn {
@@ -892,8 +1017,8 @@ export const InventoryManagement: React.FC = () => {
           cursor: pointer;
           color: #94a3b8;
           transition: 0.2s;
-          height: auto;
           min-height: 180px;
+          height: 100%;
         }
 
         .add-product-card-premium:hover {

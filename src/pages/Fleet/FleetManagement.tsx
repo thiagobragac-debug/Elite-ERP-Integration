@@ -593,13 +593,15 @@ export const FleetManagement: React.FC = () => {
                     </div>
 
                     <div className="card-meta-grid">
-                      <div className="meta-item">
-                        <FileText size={14} className="meta-icon" />
-                        <span>{m.placa || m.modelo || 'Sem placa'}</span>
-                      </div>
-                      <div className="meta-item">
-                        <Gauge size={14} className="meta-icon" />
-                        <span>{m.horimetro_atual ? `${m.horimetro_atual}h` : m.quilometragem_atual ? `${m.quilometragem_atual}km` : '0'}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+                        <div className="meta-item">
+                          <FileText size={14} className="meta-icon" />
+                          <span>{m.placa || m.modelo || 'Sem placa'}</span>
+                        </div>
+                        <div className="meta-item">
+                          <Gauge size={14} className="meta-icon" />
+                          <span>{m.horimetro_atual ? `${m.horimetro_atual}h` : m.quilometragem_atual ? `${m.quilometragem_atual}km` : '0'}</span>
+                        </div>
                       </div>
                       <div className="meta-item">
                         <Zap size={14} className="meta-icon" style={{ color: '#8b5cf6' }} />
@@ -683,8 +685,8 @@ export const FleetManagement: React.FC = () => {
           display: flex;
           overflow: hidden;
           padding: 0;
+          min-height: 180px;
           height: auto;
-          min-height: 200px;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: var(--shadow-sm);
           position: relative;
@@ -718,13 +720,14 @@ export const FleetManagement: React.FC = () => {
         }
 
         .user-card-premium:hover {
-          transform: translateX(8px);
-          box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-          border-color: #16a34a33;
+          transform: translateY(-6px);
+          box-shadow: 0 16px 32px rgba(0,0,0,0.08);
+          border-color: hsl(var(--brand) / 0.35);
         }
 
         .card-left-section {
           width: 130px;
+          flex-shrink: 0;
           background: hsl(var(--bg-main) / 0.5);
           display: flex;
           flex-direction: column;
@@ -734,44 +737,48 @@ export const FleetManagement: React.FC = () => {
         }
 
         .card-avatar {
-          width: 70px;
-          height: 70px;
+          width: 56px;
+          height: 56px;
           background: #0f172a;
           color: white;
-          border-radius: 20px;
+          border-radius: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 28px;
+          font-size: 24px;
           font-weight: 900;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
           box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
         }
 
         .card-main-content {
           flex: 1;
-          padding: 20px;
+          padding: 12px 16px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          min-width: 0;
         }
 
         .card-header-info h3 {
-          font-size: 19px;
+          font-size: 16px;
           font-weight: 900;
           color: hsl(var(--text-main));
-          margin-bottom: 4px;
+          margin-bottom: 2px;
           letter-spacing: -0.02em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .card-role-badge {
           display: inline-block;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 800;
           color: hsl(var(--brand));
           background: hsl(var(--brand) / 0.1);
-          padding: 4px 10px;
-          border-radius: 8px;
+          padding: 3px 8px;
+          border-radius: 6px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
@@ -779,35 +786,39 @@ export const FleetManagement: React.FC = () => {
         .card-meta-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 8px;
-          margin-top: 12px;
+          gap: 4px;
+          margin-top: 6px;
         }
 
         .meta-item {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           color: hsl(var(--text-muted));
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .meta-icon {
           color: #16a34a;
+          flex-shrink: 0;
         }
 
         .card-bottom-actions {
           display: flex;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           justify-content: center;
           gap: 6px;
           width: 100%;
-          margin-top: 12px;
+          margin-top: 8px;
         }
 
         .action-icon-btn {
-          width: 34px;
-          height: 34px;
+          width: 32px;
+          height: 32px;
           border-radius: 10px;
           border: 1px solid hsl(var(--border));
           background: hsl(var(--bg-card));
@@ -832,10 +843,10 @@ export const FleetManagement: React.FC = () => {
         }
 
         .maintenance-countdown-elite {
-          margin-top: 12px;
-          padding: 12px;
+          margin-top: 6px;
+          padding: 6px 12px;
           background: hsl(var(--bg-main));
-          border-radius: 12px;
+          border-radius: 10px;
           border: 1px solid hsl(var(--border));
         }
 
@@ -843,18 +854,18 @@ export const FleetManagement: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 6px;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 800;
           color: hsl(var(--text-muted));
           text-transform: uppercase;
           letter-spacing: 0.05em;
-          margin-bottom: 8px;
+          margin-bottom: 4px;
         }
 
         .countdown-progress-wrapper {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px;
         }
 
         .progress-bar-bg {

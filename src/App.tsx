@@ -200,10 +200,7 @@ function AppContent() {
                 <SuperAdminGuard>
                   <SaaSLayout>
                     <React.Suspense fallback={<div>Carregando SaaS...</div>}>
-                      <Routes>
-                        <Route path="/" element={<SaaSAdminPanel />} />
-                        <Route path="*" element={<Navigate to="/saas" replace />} />
-                      </Routes>
+                      <SaaSAdminPanel />
                     </React.Suspense>
                   </SaaSLayout>
                 </SuperAdminGuard>

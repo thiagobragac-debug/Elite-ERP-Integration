@@ -19,7 +19,10 @@ import {
   FileText,
   Edit3,
   X,
-  Package
+  Package,
+  List as ListIcon,
+  LayoutGrid,
+  ArrowRight
 } from 'lucide-react';
 import { FormModal } from '../../components/Forms/FormModal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -56,6 +59,8 @@ export const MaintenanceManagement: React.FC = () => {
     onlyHighCost: false
   });
   const [stats, setStats] = useState<any[]>([]);
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
+  const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const isReady = isGlobalMode ? !!activeTenantId : !!activeFarm;
@@ -194,6 +199,28 @@ export const MaintenanceManagement: React.FC = () => {
     } else {
       const { error } = await supabase.from('manutencao_frota').insert([payload]);
       if (!error) { setIsModalOpen(false); fetchOrders(); }
+    }
+  };
+
+  const handleStatusTransition = async (orderId: string, nextStatus: string) => {
+    setUpdatingStatus(prev => ({ ...prev, [orderId]: true }));
+    try {
+      const { error } = await supabase
+        .from('manutencao_frota')
+        .update({ status: nextStatus })
+        .eq('id', orderId);
+      
+      if (error) throw error;
+      
+      // Update local state directly for responsive optimistic UI
+      setOrders(prevOrders => 
+        prevOrders.map(o => o.id === orderId ? { ...o, status: nextStatus } : o)
+      );
+    } catch (err: any) {
+      console.error('[Maintenance] Erro ao transicionar status da OS:', err);
+      alert('❌ Erro ao atualizar status: ' + (err.message || 'Erro desconhecido'));
+    } finally {
+      setUpdatingStatus(prev => ({ ...prev, [orderId]: false }));
     }
   };
 
@@ -386,6 +413,53 @@ export const MaintenanceManagement: React.FC = () => {
           />
         </div>
 
+        <div className="view-mode-toggle" style={{ display: 'flex', background: 'hsl(var(--bg-main))', padding: '4px', borderRadius: '12px', gap: '4px', margin: '0 16px' }}>
+          <button 
+            type="button"
+            className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+            title="Visualização em Lista"
+            style={{
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '8px',
+              border: 'none',
+              background: viewMode === 'list' ? 'hsl(var(--bg-card))' : 'transparent',
+              color: viewMode === 'list' ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
+              cursor: 'pointer',
+              boxShadow: viewMode === 'list' ? '0 4px 10px rgba(0,0,0,0.1)' : 'none',
+              transition: '0.2s'
+            }}
+          >
+            <ListIcon size={18} />
+          </button>
+          <button 
+            type="button"
+            className={`view-btn ${viewMode === 'kanban' ? 'active' : ''}`}
+            onClick={() => setViewMode('kanban')}
+            title="Quadro Kanban"
+            style={{
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '8px',
+              border: 'none',
+              background: viewMode === 'kanban' ? 'hsl(var(--bg-card))' : 'transparent',
+              color: viewMode === 'kanban' ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
+              cursor: 'pointer',
+              boxShadow: viewMode === 'kanban' ? '0 4px 10px rgba(0,0,0,0.1)' : 'none',
+              transition: '0.2s'
+            }}
+          >
+            <LayoutGrid size={18} />
+          </button>
+        </div>
+
         <div className="elite-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
@@ -465,6 +539,208 @@ export const MaintenanceManagement: React.FC = () => {
               <Plus size={32} />
               <span>CRIAR NOVO PLANO</span>
             </button>
+          </div>
+        ) : viewMode === 'kanban' ? (
+          <div className="kanban-board animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'start' }}>
+            {[
+              {
+                title: '📌 Pendente',
+                statusKeys: ['open', 'ABERTA', 'pending'],
+                nextStatus: 'oficina',
+                btnText: 'Iniciar Trabalho',
+                color: '#f59e0b',
+                bg: 'rgba(245, 158, 11, 0.05)'
+              },
+              {
+                title: '🛠️ Em Oficina',
+                statusKeys: ['oficina', 'in_progress'],
+                nextStatus: 'completed',
+                btnText: 'Finalizar OS',
+                color: '#3b82f6',
+                bg: 'rgba(59, 130, 246, 0.05)'
+              },
+              {
+                title: '✅ Concluída',
+                statusKeys: ['completed', 'CONCLUIDA', 'finalizada'],
+                nextStatus: null,
+                btnText: null,
+                color: '#10b981',
+                bg: 'rgba(16, 185, 129, 0.05)'
+              }
+            ].map(col => {
+              const colOrders = orders.filter(o => {
+                const matchesSearch = (o.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesTypes = filterValues.types.length === 0 || filterValues.types.includes(o.tipo);
+                const totalCost = Number(o.custo_pecas || 0) + Number(o.custo_mao_obra || 0);
+                const matchesCost = totalCost <= filterValues.maxCost;
+                const matchesDate = (!filterValues.dateStart || new Date(o.data_inicio) >= new Date(filterValues.dateStart)) &&
+                                   (!filterValues.dateEnd || new Date(o.data_inicio) <= new Date(filterValues.dateEnd));
+
+                const currentStatus = o.status?.toLowerCase() || 'open';
+                const matchesStatus = col.statusKeys.map(k => k.toLowerCase()).includes(currentStatus);
+
+                return matchesSearch && matchesTypes && matchesCost && matchesDate && matchesStatus;
+              });
+
+              return (
+                <div 
+                  key={col.title} 
+                  className="kanban-column"
+                  style={{
+                    background: 'hsl(var(--bg-card) / 0.4)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '24px',
+                    padding: '20px',
+                    minHeight: '400px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `2px solid ${col.color}`, paddingBottom: '10px' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0, color: 'hsl(var(--text-main))' }}>{col.title}</h3>
+                    <span style={{ fontSize: '11px', fontWeight: 900, background: col.color, color: 'white', padding: '2px 8px', borderRadius: '8px' }}>
+                      {colOrders.length}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '600px', overflowY: 'auto', paddingRight: '4px' }}>
+                    <AnimatePresence>
+                      {colOrders.length === 0 ? (
+                        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'hsl(var(--text-muted))', fontSize: '12px', border: '1px dashed hsl(var(--border))', borderRadius: '16px' }}>
+                          Nenhuma OS aqui
+                        </div>
+                      ) : (
+                        colOrders.map(o => {
+                          const totalCost = Number(o.custo_pecas || 0) + Number(o.custo_mao_obra || 0);
+                          const isUpdating = updatingStatus[o.id];
+
+                          return (
+                            <motion.div
+                              key={o.id}
+                              layout
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, scale: 0.95 }}
+                              transition={{ duration: 0.2 }}
+                              style={{
+                                background: 'hsl(var(--bg-card))',
+                                border: '1px solid hsl(var(--border))',
+                                borderRadius: '18px',
+                                padding: '16px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '12px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                                transition: 'all 0.2s',
+                                position: 'relative'
+                              }}
+                              className="kanban-card"
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <span style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))' }}>
+                                  {o.maquinas?.nome || 'Equipamento'}
+                                </span>
+                                <span style={{
+                                  fontSize: '8px',
+                                  fontWeight: 900,
+                                  textTransform: 'uppercase',
+                                  color: o.tipo === 'preventiva' ? '#059669' : '#dc2626',
+                                  background: o.tipo === 'preventiva' ? '#ecfdf5' : '#fef2f2',
+                                  padding: '2px 6px',
+                                  borderRadius: '6px'
+                                }}>
+                                  {o.tipo}
+                                </span>
+                              </div>
+
+                              <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', margin: 0, fontWeight: 500, lineHeight: '1.4' }}>
+                                {o.descricao || 'Sem descrição'}
+                              </p>
+
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'hsl(var(--text-muted))', borderTop: '1px dashed hsl(var(--border))', paddingTop: '8px', marginTop: '4px' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                                  <Calendar size={12} />
+                                  {o.data_inicio ? new Date(o.data_inicio).toLocaleDateString() : 'N/A'}
+                                </span>
+                                <span style={{ fontWeight: 800, color: '#059669' }}>
+                                  {totalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </span>
+                              </div>
+
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid hsl(var(--border) / 0.5)', paddingTop: '10px', marginTop: '4px' }}>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button className="action-icon-btn info" style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => handleViewDetails(o)} title="Dossiê">
+                                    <History size={12} />
+                                  </button>
+                                  <button className="action-icon-btn edit" style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => handleOpenEdit(o)} title="Editar">
+                                    <Edit3 size={12} />
+                                  </button>
+                                  <button className="action-icon-btn delete" style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => handleDelete(o.id)} title="Excluir">
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+
+                                {col.nextStatus && (
+                                  <button
+                                    className="primary-btn"
+                                    style={{
+                                      padding: '6px 12px',
+                                      borderRadius: '10px',
+                                      fontSize: '10px',
+                                      fontWeight: 800,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      background: col.title.includes('Pendente') ? '#f59e0b' : '#3b82f6',
+                                      borderColor: col.title.includes('Pendente') ? '#f59e0b' : '#3b82f6',
+                                      boxShadow: 'none',
+                                      height: '28px',
+                                      color: 'white',
+                                      cursor: 'pointer',
+                                      border: 'none'
+                                    }}
+                                    disabled={isUpdating}
+                                    onClick={() => handleStatusTransition(o.id, col.nextStatus!)}
+                                  >
+                                    {isUpdating ? (
+                                      <motion.div 
+                                        animate={{ rotate: 360 }}
+                                        transition={{ repeat: Infinity, ease: "linear", duration: 1 }}
+                                        style={{
+                                          width: '10px',
+                                          height: '10px',
+                                          border: '2px solid white',
+                                          borderTopColor: 'transparent',
+                                          borderRadius: '50%'
+                                        }}
+                                      />
+                                    ) : (
+                                      <>
+                                        <span>{col.btnText}</span>
+                                        <ArrowRight size={10} />
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+
+                                {!col.nextStatus && (
+                                  <span style={{ fontSize: '10px', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                    <CheckCircle2 size={12} />
+                                    Pronto
+                                  </span>
+                                )}
+                              </div>
+                            </motion.div>
+                          );
+                        })
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <ModernTable 

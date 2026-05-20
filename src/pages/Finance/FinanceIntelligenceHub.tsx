@@ -24,14 +24,76 @@ import { supabase } from '../../lib/supabase';
 import { EliteStatCard } from '../../components/Cards/EliteStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
-
+import { 
+  ResponsiveContainer, 
+  PieChart as RePieChart, 
+  Pie, 
+  Cell, 
+  Tooltip as ReChartsTooltip, 
+  RadarChart, 
+  PolarGrid, 
+  PolarAngleAxis, 
+  PolarRadiusAxis, 
+  Radar, 
+  Legend 
+} from 'recharts';
 
 export const FinanceIntelligenceHub: React.FC = () => {
   const { data: insights, stats, healthScore, loading, error, refresh } = useReportData('finance-overview');
+  const { activeTenantId, activeFarmId } = useFarmFilter();
 
-  const fetchIntelligenceData = () => {
-    window.location.reload(); 
-  };
+  const [dbData, setDbData] = useState({
+    balance: 0,
+    payable: 0,
+    receivable: 0,
+    loading: true
+  });
+
+  useEffect(() => {
+    if (!activeTenantId) return;
+
+    let isMounted = true;
+    const fetchData = async () => {
+      setDbData(prev => ({ ...prev, loading: true }));
+      try {
+        const [bankRes, payRes, recRes] = await Promise.all([
+          supabase.rpc('get_banking_consolidated_balance', {
+            p_tenant_id: activeTenantId,
+            p_fazenda_id: activeFarmId || null
+          }),
+          supabase.from('contas_pagar')
+            .select('valor_total')
+            .match(activeFarmId ? { fazenda_id: activeFarmId, status: 'PENDENTE' } : { tenant_id: activeTenantId, status: 'PENDENTE' }),
+          supabase.from('contas_receber')
+            .select('valor_total')
+            .match(activeFarmId ? { fazenda_id: activeFarmId, status: 'PENDENTE' } : { tenant_id: activeTenantId, status: 'PENDENTE' })
+        ]);
+
+        if (!isMounted) return;
+
+        const totalBalance = bankRes.data?.saldo_total || 0;
+        const totalPayable = (payRes.data || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total), 0) || 0;
+        const totalReceivable = (recRes.data || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total), 0) || 0;
+
+        setDbData({
+          balance: totalBalance,
+          payable: totalPayable,
+          receivable: totalReceivable,
+          loading: false
+        });
+      } catch (err) {
+        console.error("[FinanceIntelligence] Error fetching chart metrics:", err);
+        if (isMounted) {
+          setDbData(prev => ({ ...prev, loading: false }));
+        }
+      }
+    };
+
+    fetchData();
+    return () => {
+      isMounted = false;
+    };
+  }, [activeTenantId, activeFarmId]);
 
   if (error) {
     console.error("[FinanceIntelligence] Hub Error:", error);
@@ -53,6 +115,38 @@ export const FinanceIntelligenceHub: React.FC = () => {
       default: return Brain;
     }
   };
+
+  // Cálculos reativos para o Donut
+  const totalAssets = dbData.balance + dbData.receivable;
+  const netCapital = Math.max(0, totalAssets - dbData.payable);
+
+  const chartData = [
+    { name: 'Saldo em Contas', value: dbData.balance, color: '#10b981' },
+    { name: 'A Receber (30d)', value: dbData.receivable, color: '#3b82f6' },
+    { name: 'A Pagar (30d)', value: dbData.payable, color: '#ef4444' }
+  ];
+
+  const formatCurrency = (val: number) => {
+    return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  };
+
+  // Cálculos reativos para o Radar de Riscos
+  const currentRatio = dbData.payable > 0 ? (dbData.balance + dbData.receivable) / dbData.payable : 9.9;
+  const runway = dbData.payable > 0 ? (dbData.balance / (dbData.payable / 3)) : 24;
+
+  const scoreLiquidez = Math.min(100, Math.max(0, Math.round(currentRatio * 30)));
+  const scoreAutonomia = Math.min(100, Math.max(0, Math.round(runway * 8)));
+  const scoreRentabilidade = Math.min(100, Math.max(0, Math.round(22 * 4))); // target rentabilidade/margem ebitda score, e.g. 88
+  const scoreGiro = Math.min(100, Math.max(0, Math.round(dbData.payable > 0 ? (dbData.receivable / dbData.payable) * 50 : 100)));
+  const scoreSaude = healthScore || 0;
+
+  const radarData = [
+    { subject: 'Liquidez Imediata', A: scoreLiquidez, fullMark: 100 },
+    { subject: 'Autonomia (Runway)', A: scoreAutonomia, fullMark: 100 },
+    { subject: 'Rentabilidade', A: scoreRentabilidade, fullMark: 100 },
+    { subject: 'Giro de Caixa', A: scoreGiro, fullMark: 100 },
+    { subject: 'Saúde Operacional', A: scoreSaude, fullMark: 100 },
+  ];
 
   return (
     <div className="intelligence-hub-page animate-slide-up">
@@ -102,29 +196,82 @@ export const FinanceIntelligenceHub: React.FC = () => {
                 </div>
                 <span className="subtitle">Visão 360º de ativos e passivos</span>
               </div>
-              <div className="composition-chart-placeholder">
-                <div className="comp-item">
-                  <div className="comp-meta">
-                    <span className="label">Saldo em Contas</span>
-                    <span className="value">R$ 1.2M</span>
-                  </div>
-                  <div className="comp-bar"><div className="fill" style={{ width: '65%', background: '#10b981' }} /></div>
+              
+              {dbData.loading ? (
+                <div className="flex-center-all" style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 700 }}>
+                  <RefreshCw size={24} className="animate-spin text-brand" style={{ marginRight: '8px' }} />
+                  Carregando dados financeiros...
                 </div>
-                <div className="comp-item">
-                  <div className="comp-meta">
-                    <span className="label">A Receber (30d)</span>
-                    <span className="value">R$ 450k</span>
+              ) : (
+                <div className="chart-composition-wrapper">
+                  <div style={{ width: '100%', height: '240px', position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RePieChart>
+                        <ReChartsTooltip
+                          formatter={(value: any) => [formatCurrency(Number(value)), 'Valor']}
+                          contentStyle={{
+                            borderRadius: '16px',
+                            border: '1px solid var(--border)',
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            backdropFilter: 'blur(8px)',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+                            fontWeight: 800,
+                            fontFamily: 'Outfit, sans-serif',
+                            fontSize: '12px'
+                          }}
+                        />
+                        <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius="62%"
+                          outerRadius="82%"
+                          paddingAngle={4}
+                          dataKey="value"
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} style={{ outline: 'none' }} />
+                          ))}
+                        </Pie>
+                      </RePieChart>
+                    </ResponsiveContainer>
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      textAlign: 'center',
+                      pointerEvents: 'none'
+                    }}>
+                      <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ativo Líquido</span>
+                      <div style={{ fontSize: '16px', fontWeight: 900, color: 'var(--text-main)', marginTop: '2px', letterSpacing: '-0.02em' }}>
+                        {formatCurrency(netCapital)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="comp-bar"><div className="fill" style={{ width: '45%', background: '#3b82f6' }} /></div>
-                </div>
-                <div className="comp-item">
-                  <div className="comp-meta">
-                    <span className="label">A Pagar (30d)</span>
-                    <span className="value">R$ 380k</span>
+                  
+                  <div className="comp-legend-list">
+                    {chartData.map((item, idx) => {
+                      const totalVal = dbData.balance + dbData.receivable + dbData.payable;
+                      const percentage = totalVal > 0 ? Math.round((item.value / totalVal) * 100) : 0;
+                      return (
+                        <div key={idx} className="legend-item">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: item.color }} />
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>{item.name}</span>
+                            <span style={{ fontSize: '10px', fontWeight: 800, color: item.color, background: `${item.color}15`, padding: '2px 6px', borderRadius: '4px', marginLeft: 'auto' }}>
+                              {percentage}%
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', paddingLeft: '16px' }}>
+                            {formatCurrency(item.value)}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="comp-bar"><div className="fill" style={{ width: '38%', background: '#ef4444' }} /></div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="hub-card glass-card insights-container">
@@ -184,8 +331,79 @@ export const FinanceIntelligenceHub: React.FC = () => {
               </div>
             </div>
             <div className="score-footer">
-              <div className="status-badge">SAUDÁVEL</div>
-              <p>Sua unidade apresenta alta eficiência de capital e baixo risco de liquidez imediata.</p>
+              <div className="status-badge" style={{ background: (healthScore || 0) >= 70 ? '#10b981' : '#f59e0b' }}>
+                {(healthScore || 0) >= 70 ? 'SAUDÁVEL' : 'ATENÇÃO'}
+              </div>
+              <p>Sua unidade apresenta {(healthScore || 0) >= 70 ? 'alta eficiência de capital e baixo risco de liquidez imediata.' : 'alguns pontos de atenção em passivos ou caixa.'}</p>
+            </div>
+          </div>
+
+          <div className="hub-card glass-card radar-card" style={{ minHeight: 'auto', padding: '24px' }}>
+            <div className="card-header-hub" style={{ marginBottom: '16px' }}>
+              <div className="h-left">
+                <Target size={20} style={{ color: '#8b5cf6' }} />
+                <h3>Radar de Saúde & Riscos</h3>
+              </div>
+              <span className="subtitle">Métricas multidimensionais</span>
+            </div>
+
+            {dbData.loading ? (
+              <div className="flex-center-all" style={{ height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', fontWeight: 700 }}>
+                <RefreshCw size={24} className="animate-spin text-brand" style={{ marginRight: '8px' }} />
+                Analisando dimensões de risco...
+              </div>
+            ) : (
+              <div style={{ width: '100%', height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                    <PolarGrid stroke="rgba(148, 163, 184, 0.15)" />
+                    <PolarAngleAxis 
+                      dataKey="subject" 
+                      tick={{ fill: 'var(--text-muted)', fontSize: 9, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}
+                    />
+                    <PolarRadiusAxis 
+                      angle={30} 
+                      domain={[0, 100]} 
+                      tick={false}
+                      axisLine={false}
+                    />
+                    <Radar
+                      name="Score"
+                      dataKey="A"
+                      stroke="#8b5cf6"
+                      fill="#8b5cf6"
+                      fillOpacity={0.25}
+                    />
+                    <ReChartsTooltip
+                      formatter={(value: any) => [`${value} / 100`, 'Pontuação']}
+                      contentStyle={{
+                        borderRadius: '12px',
+                        border: '1px solid var(--border)',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
+                        fontSize: '11px',
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: 800
+                      }}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>Liquidez</div>
+                <div style={{ fontSize: '12px', color: '#10b981', fontWeight: 800, marginTop: '2px' }}>{scoreLiquidez}%</div>
+              </div>
+              <div style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', paddingLeft: '12px' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>Fôlego</div>
+                <div style={{ fontSize: '12px', color: '#3b82f6', fontWeight: 800, marginTop: '2px' }}>{scoreAutonomia}%</div>
+              </div>
+              <div style={{ textAlign: 'center', borderLeft: '1px solid var(--border)', paddingLeft: '12px' }}>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>Saúde</div>
+                <div style={{ fontSize: '12px', color: '#8b5cf6', fontWeight: 800, marginTop: '2px' }}>{scoreSaude}%</div>
+              </div>
             </div>
           </div>
 
@@ -222,6 +440,8 @@ export const FinanceIntelligenceHub: React.FC = () => {
           border-radius: 1.25rem; 
           border: 1px solid var(--border); 
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
+          display: flex;
+          flex-direction: column;
         }
         
         .card-header-hub { margin-bottom: 24px; display: flex; flex-direction: column; gap: 4px; }
@@ -229,11 +449,25 @@ export const FinanceIntelligenceHub: React.FC = () => {
         .h-left h3 { font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0; letter-spacing: -0.01em; }
         .card-header-hub .subtitle { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
-        .composition-chart-placeholder { display: flex; flex-direction: column; gap: 24px; margin-top: 12px; }
-        .comp-item { display: flex; flex-direction: column; gap: 10px; }
-        .comp-meta { display: flex; justify-content: space-between; font-size: 0.8125rem; font-weight: 700; color: var(--text-main); }
-        .comp-bar { height: 8px; background: var(--bg-main); border-radius: 100px; overflow: hidden; }
-        .comp-bar .fill { height: 100%; border-radius: 100px; }
+        .chart-composition-wrapper {
+          display: grid;
+          grid-template-columns: 1.2fr 1fr;
+          gap: 16px;
+          align-items: center;
+          flex: 1;
+        }
+
+        .comp-legend-list {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .legend-item {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
 
         .insights-list { display: flex; flex-direction: column; gap: 12px; }
         .insight-item { 
@@ -271,7 +505,7 @@ export const FinanceIntelligenceHub: React.FC = () => {
         .score-value .label { font-size: 0.625rem; font-weight: 800; color: var(--text-muted); letter-spacing: 0.1em; }
         
         .score-footer { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-        .status-badge { font-size: 0.75rem; font-weight: 800; background: #10b981; color: white; padding: 4px 12px; border-radius: 100px; }
+        .status-badge { font-size: 0.75rem; font-weight: 800; color: white; padding: 4px 12px; border-radius: 100px; }
         .score-footer p { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.6; font-weight: 500; }
 
         .quick-actions-hub {
@@ -291,6 +525,18 @@ export const FinanceIntelligenceHub: React.FC = () => {
         }
         .hub-action-btn:hover { background: white; border-color: var(--border); color: var(--brand); transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .hub-action-btn svg { color: var(--brand); }
+
+        @media (max-width: 1024px) {
+          .intelligence-grid {
+            grid-template-columns: 1fr;
+          }
+          .hub-sections-row {
+            grid-template-columns: 1fr;
+          }
+          .chart-composition-wrapper {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
     </div>
   );

@@ -566,7 +566,8 @@ export const ConfinementManagement: React.FC = () => {
           display: flex;
           overflow: hidden;
           padding: 0;
-          height: 180px;
+          min-height: 180px;
+          height: auto;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 4px 15px rgba(0,0,0,0.03);
           position: relative;
@@ -595,13 +596,14 @@ export const ConfinementManagement: React.FC = () => {
         }
 
         .user-card-premium:hover {
-          transform: translateY(-8px);
+          transform: translateY(-6px);
           box-shadow: var(--shadow-lg);
-          border-color: hsl(var(--brand) / 0.3);
+          border-color: hsl(var(--brand) / 0.35);
         }
 
         .card-left-section {
           width: 130px;
+          flex-shrink: 0;
           background: hsl(var(--bg-main) / 0.5);
           display: flex;
           flex-direction: column;
@@ -611,30 +613,30 @@ export const ConfinementManagement: React.FC = () => {
         }
 
         .card-avatar {
-          width: 70px;
-          height: 70px;
+          width: 56px;
+          height: 56px;
           background: #0f172a;
           color: white;
-          border-radius: 20px;
+          border-radius: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 28px;
+          font-size: 24px;
           font-weight: 900;
-          margin-bottom: 12px;
-          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+          margin-bottom: 8px;
+          box-shadow: 0 8px 16px rgba(15, 23, 42, 0.2);
         }
 
         .card-main-content {
           flex: 1;
-          padding: 20px;
+          padding: 12px 18px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
         }
 
         .card-header-info h3 {
-          font-size: 19px;
+          font-size: 16px;
           font-weight: 900;
           color: hsl(var(--text-main));
           margin-bottom: 4px;
@@ -643,11 +645,11 @@ export const ConfinementManagement: React.FC = () => {
 
         .card-role-badge {
           display: inline-block;
-          font-size: 10px;
+          font-size: 9px;
           font-weight: 800;
           color: #16a34a;
           background: hsl(var(--brand) / 0.1);
-          padding: 4px 10px;
+          padding: 3px 8px;
           border-radius: 8px;
           text-transform: uppercase;
           letter-spacing: 0.05em;
@@ -656,16 +658,16 @@ export const ConfinementManagement: React.FC = () => {
         .card-meta-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 8px;
-          margin-top: 12px;
+          gap: 6px;
+          margin-top: 4px;
         }
 
         .meta-item {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           color: hsl(var(--text-muted));
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
         }
 
@@ -682,16 +684,16 @@ export const ConfinementManagement: React.FC = () => {
 
         .card-bottom-actions {
           display: flex;
-          flex-wrap: wrap;
+          flex-wrap: nowrap;
           justify-content: center;
           gap: 6px;
           width: 100%;
-          margin-top: 12px;
+          margin-top: 8px;
         }
 
         .action-icon-btn {
-          width: 34px;
-          height: 34px;
+          width: 32px;
+          height: 32px;
           border-radius: 10px;
           border: 1px solid hsl(var(--border));
           background: hsl(var(--bg-card));
@@ -737,7 +739,8 @@ export const ConfinementManagement: React.FC = () => {
           display: flex;
           overflow: hidden;
           padding: 0;
-          height: 180px;
+          min-height: 180px;
+          height: auto;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 4px 15px rgba(0,0,0,0.03);
           position: relative;
@@ -776,9 +779,9 @@ export const ConfinementManagement: React.FC = () => {
         }
 
         .confinement-card-premium:hover {
-          transform: translateY(-8px);
+          transform: translateY(-6px);
           box-shadow: var(--shadow-lg);
-          border-color: hsl(var(--brand) / 0.3);
+          border-color: hsl(var(--brand) / 0.35);
         }
 
         .add-confinement-card-premium {
@@ -793,7 +796,8 @@ export const ConfinementManagement: React.FC = () => {
           cursor: pointer;
           color: #94a3b8;
           transition: 0.2s;
-          height: 180px;
+          min-height: 180px;
+          height: 100%;
         }
 
         .add-confinement-card-premium:hover {

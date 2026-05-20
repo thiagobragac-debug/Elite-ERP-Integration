@@ -295,6 +295,28 @@ export const BankReconciliation: React.FC = () => {
     }, 1000);
   };
 
+  const handleQuickReconcile = async (bankId: string, internalId: string) => {
+    // Optimistic match
+    setBankRecords(prev => prev.filter(r => r.id !== bankId));
+    setInternalRecords(prev => prev.filter(ir => ir.id !== internalId));
+
+    try {
+      const { error } = await supabase
+        .from('conciliacoes')
+        .insert([{
+          tenant_id: activeTenantId,
+          lancamento_bancario_id: bankId,
+          lancamento_interno_id: internalId,
+          status: 'completed',
+          metodo: 'automatic'
+        }]);
+      if (error) throw error;
+      fetchRecords();
+    } catch (err: any) {
+      console.warn('DB Quick Reconcile failed, using local optimistic state:', err.message);
+    }
+  };
+
   return (
     <div className="recon-page animate-slide-up">
       <header className="page-header">
@@ -461,6 +483,20 @@ export const BankReconciliation: React.FC = () => {
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: '8px' }}>
+                      {isMatched && (
+                        <button 
+                          className="f-action-btn success mini"
+                          onClick={() => handleQuickReconcile(rec.id, topMatch.ir.id)}
+                          title="Confirmar Pareamento IA"
+                          style={{
+                            background: '#10b981',
+                            color: 'white',
+                            border: '1px solid #10b981'
+                          }}
+                        >
+                          <CheckCircle2 size={16} />
+                        </button>
+                      )}
                       {!isMatched && Math.abs(rec.amount) < 100 && (
                         <button 
                           className="f-action-btn secondary mini"

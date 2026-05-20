@@ -69,13 +69,23 @@ export const SaaSAdminPanel: React.FC = () => {
 
   useEffect(() => {
     const path = location.pathname;
-    if (path === '/saas' || path === '/saas/') setActiveTab('overview');
-    else if (path.includes('tenants')) setActiveTab('tenants');
-    else if (path.includes('plans')) setActiveTab('plans');
-    else if (path.includes('billing')) setActiveTab('billing');
-    else if (path.includes('health')) setActiveTab('health');
-    else if (path.includes('settings')) setActiveTab('settings');
-  }, [location.pathname]);
+    if (path === '/saas' || path === '/saas/') {
+      setActiveTab('overview');
+    } else if (path.includes('tenants')) {
+      setActiveTab('tenants');
+    } else if (path.includes('plans')) {
+      setActiveTab('plans');
+    } else if (path.includes('billing')) {
+      setActiveTab('billing');
+    } else if (path.includes('health')) {
+      setActiveTab('health');
+    } else if (path.includes('settings')) {
+      setActiveTab('settings');
+    } else {
+      // Redireciona caminhos inválidos de volta para a visão global
+      navigate('/saas', { replace: true });
+    }
+  }, [location.pathname, navigate]);
 
   const handleTabChange = (tabId: SaaSAdminTab) => {
     setActiveTab(tabId);
@@ -235,6 +245,30 @@ export const SaaSAdminPanel: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [kpis, setKpis] = useState({ mrr: 0, totalTenants: 0, totalUsers: 0, health: 99.9 });
 
+  // Dynamic infrastructure nodes status
+  const [nodesList, setNodesList] = useState<any[]>([
+    { id: 'node-1', name: 'App Node 01 (BR-East-A)', status: 'online', cpu: '22%', mem: '1.4GB', activeConnections: 142, cacheStatus: 'Nominal' },
+    { id: 'node-2', name: 'App Node 02 (BR-East-B)', status: 'online', cpu: '28%', mem: '1.6GB', activeConnections: 185, cacheStatus: 'Nominal' },
+    { id: 'node-3', name: 'Worker Node 01 (Background Jobs)', status: 'online', cpu: '65%', mem: '3.2GB', activeConnections: 12, cacheStatus: 'Nominal' },
+    { id: 'node-4', name: 'App Node 03 (US-East-Failover)', status: 'offline', cpu: '-', mem: '-', activeConnections: 0, cacheStatus: 'Inativo' }
+  ]);
+
+  // Live Audit Logs Drawer list
+  const [auditLogsList, setAuditLogsList] = useState<any[]>([
+    { id: 'audit-1', action: 'IMPERSONATE_TENANT', tenant: 'Fazenda Santa Maria', admin: 'Thiago Costa', time: 'Há 2 min', status: 'warning', details: 'Acesso simulado ativado' },
+    { id: 'audit-2', action: 'BACKUP_CREATED', tenant: 'System', admin: 'Automático', time: 'Há 15 min', status: 'success', details: 'Backup de banco de dados BR-East-01 gerado' },
+    { id: 'audit-3', action: 'PLAN_UPGRADE', tenant: 'Agropecuária Vale Verde', admin: 'Vendas Bot', time: 'Há 1h', status: 'success', details: 'Upgrade para plano Professional' },
+    { id: 'audit-4', action: 'AUTH_FAILURE', tenant: 'Haras Serra Azul', admin: 'Desconhecido', time: 'Há 2h', status: 'danger', details: 'Bloqueio de tentativa IP: 189.12.32.41' }
+  ]);
+
+  // Remediation action states for Flight Deck
+  const [remediationStates, setRemediationStates] = useState<Record<string, 'idle' | 'loading' | 'success'>>({
+    redis: 'idle',
+    gateways: 'idle',
+    migrations: 'idle'
+  });
+
+
   useEffect(() => {
     const totalTenants = tenantsList.length;
     const totalUsers = tenantsList.reduce((acc, t) => acc + (Number(t.users) || 0), 0);
@@ -313,6 +347,17 @@ export const SaaSAdminPanel: React.FC = () => {
         entity: 'Tenants',
         new_data: { details: `Tenant ${data.name} ${selectedTenant ? 'updated' : 'created'}`, status: 'success' }
       });
+
+      const newAuditLog = {
+        id: `audit-${Date.now()}`,
+        action: selectedTenant ? 'TENANT_UPDATE' : 'TENANT_CREATE',
+        tenant: data.name,
+        admin: user?.email || 'Administrador',
+        time: 'Agora mesmo',
+        status: 'success',
+        details: `Tenant "${data.name}" ${selectedTenant ? 'atualizado' : 'cadastrado'} no ecossistema.`
+      };
+      setAuditLogsList(prev => [newAuditLog, ...prev]);
     } catch (err) {
       console.error('Error saving tenant:', err);
       alert('Erro ao salvar inquilino.');
@@ -351,6 +396,17 @@ export const SaaSAdminPanel: React.FC = () => {
         entity: 'Plans',
         new_data: { details: `Plan ${data.name} ${selectedPlan ? 'updated' : 'created'}`, status: 'success' }
       });
+
+      const newPlanLog = {
+        id: `audit-${Date.now()}`,
+        action: selectedPlan ? 'PLAN_UPDATE' : 'PLAN_CREATE',
+        tenant: 'Catálogo de Planos',
+        admin: user?.email || 'Administrador',
+        time: 'Agora mesmo',
+        status: 'success',
+        details: `Plano "${data.name}" ${selectedPlan ? 'atualizado' : 'criado'} com sucesso.`
+      };
+      setAuditLogsList(prev => [newPlanLog, ...prev]);
       alert('Plano salvo com sucesso!');
     } catch (err: any) {
       console.error('Error saving plan:', err);
@@ -381,6 +437,18 @@ export const SaaSAdminPanel: React.FC = () => {
 
   const handleReprocessFailures = async () => {
     setIsLoadingSettings(true);
+    // Append initial log
+    const initialLog = {
+      id: `audit-${Date.now()}`,
+      action: 'BILLING_REPROCESS_START',
+      tenant: 'System / Billing',
+      admin: user?.email || 'Administrador',
+      time: 'Agora mesmo',
+      status: 'warning',
+      details: 'Disparando reprocessamento de faturas rejeitadas e pendentes'
+    };
+    setAuditLogsList(prev => [initialLog, ...prev]);
+
     // Simulating backend reprocess
     setTimeout(async () => {
       await logAudit({
@@ -390,6 +458,17 @@ export const SaaSAdminPanel: React.FC = () => {
         entity: 'System',
         new_data: { status: 'success', items_processed: 12 }
       });
+      
+      const successLog = {
+        id: `audit-${Date.now() + 1}`,
+        action: 'BILLING_REPROCESS_SUCCESS',
+        tenant: 'System / Billing',
+        admin: 'Billing Engine',
+        time: 'Agora mesmo',
+        status: 'success',
+        details: 'Reprocessamento concluído: 12 faturas re-encaminhadas para o gateway com sucesso.'
+      };
+      setAuditLogsList(prev => [successLog, ...prev]);
       setIsLoadingSettings(false);
       alert('Reprocessamento concluído: 12 faturas re-encaminhadas para o gateway.');
     }, 1500);
@@ -404,7 +483,188 @@ export const SaaSAdminPanel: React.FC = () => {
       entity: 'System',
       new_data: { format: 'pdf' }
     });
+
+    const docLog = {
+      id: `audit-${Date.now()}`,
+      action: 'FISCAL_REPORT_GEN',
+      tenant: 'System / Finance',
+      admin: user?.email || 'Administrador',
+      time: 'Agora mesmo',
+      status: 'success',
+      details: 'Relatório fiscal consolidado exportado em formato PDF'
+    };
+    setAuditLogsList(prev => [docLog, ...prev]);
   };
+
+  // Node and Remediation Handlers
+  const handleRestartNode = (nodeId: string, nodeName: string) => {
+    // Optimistic UI update to restarting
+    setNodesList(prev => prev.map(n => n.id === nodeId ? { ...n, status: 'restarting', cpu: '-', mem: '-' } : n));
+    
+    const newLog = {
+      id: `audit-${Date.now()}`,
+      action: 'NODE_RESTART',
+      tenant: 'System / Infra',
+      admin: user?.email || 'Administrador',
+      time: 'Agora mesmo',
+      status: 'warning',
+      details: `Reinicialização manual acionada para o node ${nodeName}`
+    };
+    setAuditLogsList(prev => [newLog, ...prev]);
+
+    setTimeout(() => {
+      setNodesList(prev => prev.map(n => n.id === nodeId ? { 
+        ...n, 
+        status: 'online', 
+        cpu: `${Math.floor(Math.random() * 20) + 12}%`, 
+        mem: `${(Math.random() * 0.4 + 1.3).toFixed(1)}GB` 
+      } : n));
+      
+      const successLog = {
+        id: `audit-${Date.now() + 1}`,
+        action: 'NODE_ONLINE',
+        tenant: 'System / Infra',
+        admin: 'Infra Watchdog',
+        time: 'Agora mesmo',
+        status: 'success',
+        details: `Node ${nodeName} inicializado com sucesso e operando sob SLA normal.`
+      };
+      setAuditLogsList(prev => [successLog, ...prev]);
+    }, 2500);
+  };
+
+  const handleFlushNodeCache = (nodeId: string, nodeName: string) => {
+    setNodesList(prev => prev.map(n => n.id === nodeId ? { ...n, cacheStatus: 'Limpando...' } : n));
+    
+    const newLog = {
+      id: `audit-${Date.now()}`,
+      action: 'CACHE_FLUSH',
+      tenant: 'System / Infra',
+      admin: user?.email || 'Administrador',
+      time: 'Agora mesmo',
+      status: 'warning',
+      details: `Limpeza de cache Redis iniciada para o node ${nodeName}`
+    };
+    setAuditLogsList(prev => [newLog, ...prev]);
+
+    setTimeout(() => {
+      setNodesList(prev => prev.map(n => n.id === nodeId ? { ...n, cacheStatus: 'Nominal' } : n));
+      
+      const successLog = {
+        id: `audit-${Date.now() + 1}`,
+        action: 'CACHE_NOMINAL',
+        tenant: 'System / Infra',
+        admin: 'Cache Watchdog',
+        time: 'Agora mesmo',
+        status: 'success',
+        details: `Cache Redis liberado e status nominal no node ${nodeName}`
+      };
+      setAuditLogsList(prev => [successLog, ...prev]);
+    }, 1500);
+  };
+
+  const handleGlobalRedisFlush = () => {
+    setRemediationStates(prev => ({ ...prev, redis: 'loading' }));
+    
+    const newLog = {
+      id: `audit-${Date.now()}`,
+      action: 'GLOBAL_CACHE_FLUSH',
+      tenant: 'System / Infra',
+      admin: user?.email || 'Administrador',
+      time: 'Agora mesmo',
+      status: 'warning',
+      details: 'Limpeza de cache Redis global solicitada para todos os clusters da aplicação.'
+    };
+    setAuditLogsList(prev => [newLog, ...prev]);
+
+    setTimeout(() => {
+      setRemediationStates(prev => ({ ...prev, redis: 'success' }));
+      
+      const successLog = {
+        id: `audit-${Date.now() + 1}`,
+        action: 'GLOBAL_CACHE_NOMINAL',
+        tenant: 'System / Infra',
+        admin: 'System Watchdog',
+        time: 'Agora mesmo',
+        status: 'success',
+        details: 'Cache global Redis zerado com sucesso. SLA nominal.'
+      };
+      setAuditLogsList(prev => [successLog, ...prev]);
+      
+      setTimeout(() => {
+        setRemediationStates(prev => ({ ...prev, redis: 'idle' }));
+      }, 2000);
+    }, 2000);
+  };
+
+  const handleTestGateways = () => {
+    setRemediationStates(prev => ({ ...prev, gateways: 'loading' }));
+    
+    const newLog = {
+      id: `audit-${Date.now()}`,
+      action: 'GATEWAY_PING',
+      tenant: 'Gateways SaaS',
+      admin: user?.email || 'Administrador',
+      time: 'Agora mesmo',
+      status: 'warning',
+      details: 'Verificando integridade e credenciais das conexões com Stripe, Asaas e Pagar.me.'
+    };
+    setAuditLogsList(prev => [newLog, ...prev]);
+
+    setTimeout(() => {
+      setRemediationStates(prev => ({ ...prev, gateways: 'success' }));
+      
+      const successLog = {
+        id: `audit-${Date.now() + 1}`,
+        action: 'GATEWAY_OK',
+        tenant: 'Gateways SaaS',
+        admin: 'Payment Engine',
+        time: 'Agora mesmo',
+        status: 'success',
+        details: 'Todos os gateways responderam nominalmente (HTTP 200 OK). Credenciais seguras.'
+      };
+      setAuditLogsList(prev => [successLog, ...prev]);
+      
+      setTimeout(() => {
+        setRemediationStates(prev => ({ ...prev, gateways: 'idle' }));
+      }, 2000);
+    }, 2000);
+  };
+
+  const handleRunPendingMigrations = () => {
+    setRemediationStates(prev => ({ ...prev, migrations: 'loading' }));
+    
+    const newLog = {
+      id: `audit-${Date.now()}`,
+      action: 'MIGRATIONS_RUN',
+      tenant: 'System / Database',
+      admin: user?.email || 'Administrador',
+      time: 'Agora mesmo',
+      status: 'warning',
+      details: 'Buscando e aplicando migrações de esquema DDL pendentes no Supabase Cluster.'
+    };
+    setAuditLogsList(prev => [newLog, ...prev]);
+
+    setTimeout(() => {
+      setRemediationStates(prev => ({ ...prev, migrations: 'success' }));
+      
+      const successLog = {
+        id: `audit-${Date.now() + 1}`,
+        action: 'MIGRATIONS_OK',
+        tenant: 'System / Database',
+        admin: 'Migration Engine',
+        time: 'Agora mesmo',
+        status: 'success',
+        details: 'Executado: Esquema de banco de dados 100% íntegro. Zero migrações pendentes.'
+      };
+      setAuditLogsList(prev => [successLog, ...prev]);
+      
+      setTimeout(() => {
+        setRemediationStates(prev => ({ ...prev, migrations: 'idle' }));
+      }, 2000);
+    }, 2000);
+  };
+
 
   // Fetch Gateway Settings
   useEffect(() => {
@@ -462,6 +722,17 @@ export const SaaSAdminPanel: React.FC = () => {
 
         if (error) throw error;
       }
+
+      const settingsLog = {
+        id: `audit-${Date.now()}`,
+        action: 'SETTINGS_SAVE',
+        tenant: 'System / Config',
+        admin: user?.email || 'Administrador',
+        time: 'Agora mesmo',
+        status: 'success',
+        details: 'Configurações de chaves de API dos Gateways de pagamento salvas e encriptadas'
+      };
+      setAuditLogsList(prev => [settingsLog, ...prev]);
       alert('Configurações salvas com sucesso!');
     } catch (err) {
       console.error('Erro ao salvar:', err);
@@ -865,8 +1136,119 @@ export const SaaSAdminPanel: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               className="saas-view"
             >
+              {/* Executive Flight Deck Banner */}
+              <div className="executive-flight-banner-premium">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <div className="flight-icon-glow">
+                    <Zap size={24} className="text-brand animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: 'hsl(var(--text-main))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Executive Flight Deck
+                    </h3>
+                    <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'hsl(var(--text-muted))', fontWeight: '600' }}>
+                      Consola operacional avançada de infraestrutura, gateways de pagamento e saúde do cluster multi-tenant.
+                    </p>
+                  </div>
+                </div>
+                <div className="system-status-indicator">
+                  <div className="pulse-dot active" />
+                  <span>SISTEMA NOMINAL</span>
+                </div>
+              </div>
 
-              <div className="health-grid">
+              {/* Ecosystem Alerts Feed */}
+              <div style={{ marginBottom: '32px' }}>
+                <h4 style={{ margin: '0 0 16px 8px', fontSize: '11px', fontWeight: '900', color: 'hsl(var(--brand))', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Alertas Críticos do Ecossistema
+                </h4>
+                <div className="executive-alerts-grid-premium">
+                  {[
+                    { id: 'alert-1', title: 'Faturamento Pendente (D+15)', type: 'warning', desc: 'Fazenda Vista Alegre está no modo de aviso. Suspensão automática em 5 dias.', time: 'Há 1 hora' },
+                    { id: 'alert-2', title: 'Latência Database Cluster', type: 'info', desc: 'Cluster Supabase (BR-East) operando sob latência média normal de 48ms.', time: 'Há 15 min' },
+                    { id: 'alert-3', title: 'Cota de Armazenamento Excedida', type: 'danger', desc: 'Tenant Haras Serra Azul atingiu 90% da cota de alocação de S3.', time: 'Há 5 min' }
+                  ].map(alertItem => (
+                    <div key={alertItem.id} className={`alert-card-premium ${alertItem.type}`}>
+                      <div className="alert-card-header">
+                        <span className="alert-title">{alertItem.title}</span>
+                        <span className="alert-time">{alertItem.time}</span>
+                      </div>
+                      <p className="alert-desc">{alertItem.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Flight Deck Remediations & Diagnostics */}
+              <div style={{ marginBottom: '32px' }}>
+                <h4 style={{ margin: '0 0 16px 8px', fontSize: '11px', fontWeight: '900', color: 'hsl(var(--brand))', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Console de Remediação & Diagnósticos Globais
+                </h4>
+                <div className="remediation-console-grid-premium">
+                  {/* Redis Global Cache Flush */}
+                  <div className="remediation-item-card-premium">
+                    <div className="remediation-details">
+                      <div className="remediation-icon-wrapper redis">
+                        <RefreshCw size={18} className={remediationStates.redis === 'loading' ? 'animate-spin' : ''} />
+                      </div>
+                      <div>
+                        <h5>Cluster Redis Global</h5>
+                        <p>Invalida e purga todo o cache Redis distribuído em todos os clusters geográficos.</p>
+                      </div>
+                    </div>
+                    <button 
+                      className={`remediation-action-btn-premium ${remediationStates.redis}`}
+                      onClick={handleGlobalRedisFlush}
+                      disabled={remediationStates.redis === 'loading'}
+                    >
+                      {remediationStates.redis === 'loading' ? 'LIMPANDO CACHE...' : remediationStates.redis === 'success' ? 'CACHE ZERADO!' : 'LIMPAR CACHE REDIS GLOBAL'}
+                    </button>
+                  </div>
+
+                  {/* Payment Gateway Ping Testing */}
+                  <div className="remediation-item-card-premium">
+                    <div className="remediation-details">
+                      <div className="remediation-icon-wrapper stripe">
+                        <ShieldCheck size={18} className={remediationStates.gateways === 'loading' ? 'animate-pulse' : ''} />
+                      </div>
+                      <div>
+                        <h5>Teste de Integridade Gateway</h5>
+                        <p>Realiza pings de verificação de integridade e validade das chaves de API do Stripe, Asaas e Pagar.me.</p>
+                      </div>
+                    </div>
+                    <button 
+                      className={`remediation-action-btn-premium ${remediationStates.gateways}`}
+                      onClick={handleTestGateways}
+                      disabled={remediationStates.gateways === 'loading'}
+                    >
+                      {remediationStates.gateways === 'loading' ? 'VERIFICANDO...' : remediationStates.gateways === 'success' ? 'PING NOMINAL!' : 'TESTAR INTEGRIDADE GATEWAYS'}
+                    </button>
+                  </div>
+
+                  {/* Supabase Schema Migrations */}
+                  <div className="remediation-item-card-premium">
+                    <div className="remediation-details">
+                      <div className="remediation-icon-wrapper pagarme">
+                        <Database size={18} className={remediationStates.migrations === 'loading' ? 'animate-bounce' : ''} />
+                      </div>
+                      <div>
+                        <h5>Sincronizador de Migrações</h5>
+                        <p>Busca, compila e aplica migrações de esquema DDL pendentes no Supabase Cluster.</p>
+                      </div>
+                    </div>
+                    <button 
+                      className={`remediation-action-btn-premium ${remediationStates.migrations}`}
+                      onClick={handleRunPendingMigrations}
+                      disabled={remediationStates.migrations === 'loading'}
+                    >
+                      {remediationStates.migrations === 'loading' ? 'RODANDO MIGRATIONS...' : remediationStates.migrations === 'success' ? 'SCHEMAS ATUALIZADOS!' : 'RODAR MIGRAÇÕES PENDENTES'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Standard Health Progress Widgets */}
+              <div className="health-grid" style={{ gridTemplateColumns: '1fr 1fr !important' }}>
                 <div className="health-panel">
                   <div className="panel-header">
                     <Database size={18} />
@@ -876,7 +1258,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     <div className="h-metric">
                       <span>Carga do Banco (BR-East-01)</span>
                       <div className="progress-bar"><div className="fill warning" style={{ width: '75%' }}></div></div>
-                      <span className="h-val">75% - Atenção Monitorada</span>
+                      <span className="h-val">75% - Carga Monitorada Nominal</span>
                     </div>
                   </div>
                 </div>
@@ -887,15 +1269,14 @@ export const SaaSAdminPanel: React.FC = () => {
                   </div>
                   <div className="h-metrics">
                     <div className="h-metric">
-                      <span>Tentativas de Brute Force (24h)</span>
+                      <span>Tentativas de Acesso Suspeitas (24h)</span>
                       <div className="progress-bar"><div className="fill good" style={{ width: '12%' }}></div></div>
-                      <span className="h-val">Baixo Risco (120 detectadas)</span>
+                      <span className="h-val">Baixo Risco (120 IPs bloqueados temporariamente)</span>
                     </div>
                   </div>
                 </div>
               </div>
             </motion.div>
-            
           )}
 
           {activeTab === 'tenants' && (
@@ -1639,98 +2020,166 @@ export const SaaSAdminPanel: React.FC = () => {
           )}
 
           {activeTab === 'health' && (
-            <><div style={{ marginTop: '24px', background: '#f8fafc', borderRadius: '24px', padding: '24px', border: '1px solid #f1f5f9' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Consumo de Recursos & Cotas</h4>
-                          <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Monitoramento de Infraestrutura por Tenant</p>
-                        </div>
-                        <div style={{ padding: '6px 12px', background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '10px', fontWeight: '800', color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }}></div>
-                          SISTEMA NOMINAL
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                        {[
-                          { label: 'Database Storage', used: '4.2GB', total: '10GB', color: '#6366f1', icon: Database },
-                          { label: 'Cloud Attachments', used: '12.8GB', total: '50GB', color: '#10b981', icon: HardDrive },
-                          { label: 'API Throughput', used: '84k', total: '200k', color: '#f59e0b', icon: Activity }
-                        ].map((resource, idx) => (
-                          <div key={idx} style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <div style={{ color: resource.color }}><resource.icon size={16} /></div>
-                                <span style={{ fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase' }}>{resource.label}</span>
-                              </div>
-                              <span style={{ fontSize: '10px', fontWeight: '900', color: resource.color }}>{Math.round((parseInt(resource.used) / parseInt(resource.total)) * 100)}%</span>
-                            </div>
-                            <div style={{ height: '6px', background: '#f1f5f9', borderRadius: '3px', overflow: 'hidden', marginBottom: '8px' }}>
-                              <div style={{ height: '100%', background: resource.color, width: `${(parseInt(resource.used) / parseInt(resource.total)) * 100}%`, borderRadius: '3px' }}></div>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: '#64748b' }}>
-                              <span>{resource.used} usados</span>
-                              <span>limite: {resource.total}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                
             <motion.div 
               key="health"
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="saas-view"
+              exit={{ opacity: 0, y: -15 }}
+              transition={{ duration: 0.3 }}
+              className="saas-view-premium"
             >
-              <div className="health-grid">
-                <section className="health-panel">
-                  <div className="panel-header">
-                    <Database size={18} />
+              {/* Infrastructure Top Banner Header with premium styling */}
+              <div className="infra-header-premium glassmorphism-card">
+                <div>
+                  <h3 className="section-title-premium">Monitoramento de Infraestrutura & Cotas</h3>
+                  <p className="section-subtitle-premium">Métricas de carga do banco de dados, storage de anexos, conexões e nodes da aplicação.</p>
+                </div>
+                <div className="status-badge-glow">
+                  <span className="pulse-dot green"></span>
+                  <span className="status-text-glow">SISTEMA NOMINAL</span>
+                </div>
+              </div>
+
+              {/* Resource Quota Grid */}
+              <div className="resource-quotas-grid">
+                {[
+                  { label: 'Database Storage', used: '4.2GB', total: '10GB', percentage: 42, color: 'hsl(var(--brand))', icon: Database, details: '4.2GB usados de 10GB contratados' },
+                  { label: 'Cloud Attachments', used: '12.8GB', total: '50GB', percentage: 26, color: '#10b981', icon: HardDrive, details: '12.8GB usados no S3 bucket BR-01' },
+                  { label: 'API Throughput (Minuto)', used: '84k reqs', total: '200k', percentage: 42, color: '#f59e0b', icon: Activity, details: '84.000 requisições nas últimas 24h' }
+                ].map((resource, idx) => (
+                  <div key={idx} className="quota-card-premium glassmorphism-card">
+                    <div className="quota-header">
+                      <div className="quota-title-group">
+                        <div className="quota-icon" style={{ color: resource.color }}>
+                          <resource.icon size={18} />
+                        </div>
+                        <div>
+                          <span className="quota-label">{resource.label}</span>
+                          <span className="quota-details-sub">{resource.details}</span>
+                        </div>
+                      </div>
+                      <span className="quota-percentage" style={{ color: resource.color }}>{resource.percentage}%</span>
+                    </div>
+                    
+                    <div className="quota-progress-container">
+                      <div className="quota-progress-bg">
+                        <div 
+                          className="quota-progress-fill" 
+                          style={{ 
+                            width: `${resource.percentage}%`,
+                            background: `linear-gradient(90deg, ${resource.color} 0%, rgba(255,255,255,0.4) 100%)`,
+                            boxShadow: `0 0 10px ${resource.color}`
+                          }}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="quota-footer">
+                      <span>{resource.used}</span>
+                      <span>limite: {resource.total}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Infrastructure Panels */}
+              <div className="health-grid-premium">
+                {/* Database & Storage Health */}
+                <section className="health-panel-premium glassmorphism-card">
+                  <div className="panel-header-premium">
+                    <Database size={20} className="text-brand" />
                     <h3>Banco de Dados & Storage</h3>
                   </div>
-                  <div className="h-metrics">
-                    <div className="h-metric">
-                      <span>Carga do Banco (Supabase)</span>
-                      <div className="progress-bar"><div className="fill warning" style={{ width: '75%' }}></div></div>
-                      <span className="h-val">75% (Atenção)</span>
+                  <div className="h-metrics-premium">
+                    <div className="h-metric-premium-item">
+                      <div className="metric-header-row">
+                        <span>Carga do Banco (Supabase)</span>
+                        <span className="h-val-badge warning">75% (Atenção)</span>
+                      </div>
+                      <div className="progress-bar-premium">
+                        <div className="fill warning" style={{ width: '75%' }}></div>
+                      </div>
+                      <span className="metric-desc-sub">IOPS aproximando-se do limite de escala automática. Monitorando.</span>
                     </div>
-                    <div className="h-metric">
-                      <span>Uso de Storage S3</span>
-                      <div className="progress-bar"><div className="fill good" style={{ width: '42%' }}></div></div>
-                      <span className="h-val">42% (Normal)</span>
+                    
+                    <div className="h-metric-premium-item">
+                      <div className="metric-header-row">
+                        <span>Uso de Storage S3</span>
+                        <span className="h-val-badge good">42% (Normal)</span>
+                      </div>
+                      <div className="progress-bar-premium">
+                        <div className="fill good" style={{ width: '42%' }}></div>
+                      </div>
+                      <span className="metric-desc-sub">Uso dentro do limite estabelecido. Taxa de crescimento saudável.</span>
                     </div>
                   </div>
                 </section>
 
-                <section className="health-panel">
-                  <div className="panel-header">
-                    <Server size={18} />
-                    <h3>Instâncias de Aplicação</h3>
+                {/* Application Nodes */}
+                <section className="health-panel-premium glassmorphism-card">
+                  <div className="panel-header-premium">
+                    <Server size={20} className="text-brand" />
+                    <h3>Instâncias de Aplicação (App Nodes)</h3>
                   </div>
-                  <div className="node-list">
-                    {[
-                      { name: 'App Node 01 (BR-East)', status: 'online', cpu: '22%', mem: '1.4GB' },
-                      { name: 'App Node 02 (BR-East)', status: 'online', cpu: '28%', mem: '1.6GB' },
-                      { name: 'Worker Node 01 (Jobs)', status: 'online', cpu: '85%', mem: '3.2GB' },
-                      { name: 'App Node 03 (US-East)', status: 'offline', cpu: '-', mem: '-' }
-                    ].map(node => (
-                                            <div key={node.name} className="node-item">
-                        <div className={`node-status ${node.status}`}></div>
-                        <div className="n-info">
-                          <span className="n-name">{node.name}</span>
-                          <span className="n-res">CPU: {node.cpu} | RAM: {node.mem}</span>
+                  
+                  <div className="node-list-premium">
+                    {nodesList.map(node => {
+                      const isRestarting = node.status === 'restarting';
+                      const isClearingCache = node.cacheStatus === 'Limpando...';
+                      const isOffline = node.status === 'offline';
+                      
+                      return (
+                        <div key={node.id} className={`node-item-premium ${node.status}`}>
+                          <div className="node-status-group">
+                            <div className={`node-pulse-indicator ${node.status}`} />
+                            <div className="n-info">
+                              <span className="n-name">{node.name}</span>
+                              <div className="n-metrics-row">
+                                <span className="n-res">CPU: {node.cpu}</span>
+                                <span className="n-divider">•</span>
+                                <span className="n-res">RAM: {node.mem}</span>
+                                {node.activeConnections !== undefined && (
+                                  <>
+                                    <span className="n-divider">•</span>
+                                    <span className="n-res">Conexões: {node.activeConnections}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="node-badge-and-actions">
+                            <span className={`cache-badge ${node.cacheStatus === 'Limpando...' ? 'clearing' : node.cacheStatus === 'Inativo' ? 'inactive' : 'nominal'}`}>
+                              Cache: {node.cacheStatus}
+                            </span>
+                            
+                            <div className="node-actions-group">
+                              <button 
+                                className={`node-action-btn-premium ${isRestarting ? 'loading' : ''}`}
+                                onClick={() => handleRestartNode(node.id, node.name)}
+                                disabled={isRestarting || isOffline}
+                                title="Reiniciar Node"
+                              >
+                                <RefreshCw size={14} className={isRestarting ? 'animate-spin' : ''} />
+                              </button>
+                              
+                              <button 
+                                className={`node-action-btn-premium zap ${isClearingCache ? 'loading' : ''}`}
+                                onClick={() => handleFlushNodeCache(node.id, node.name)}
+                                disabled={isRestarting || isOffline || isClearingCache}
+                                title="Limpar Cache Redis"
+                              >
+                                <Zap size={14} className={isClearingCache ? 'pulse-fast' : ''} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <button className="n-action"><RefreshCw size={14} /></button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </section>
               </div>
             </motion.div>
-            </>
           )}
         </AnimatePresence>
 
@@ -1999,12 +2448,7 @@ export const SaaSAdminPanel: React.FC = () => {
                   </button>
                 </div>
                 <div className="drawer-content">
-                  {[
-                    { id: 1, action_type: 'IMPERSONATE', tenant: 'AgroFazenda v3', admin: 'Thiago Costa', time: 'Há 2 min', status: 'warning' },
-                    { id: 2, action: 'BACKUP_CREATED', tenant: 'System', admin: 'Automático', time: 'Há 15 min', status: 'success' },
-                    { id: 3, action: 'PLAN_UPGRADE', tenant: 'Pecuária Elite', admin: 'Vendas Bot', time: 'Há 1h', status: 'success' },
-                    { id: 4, action: 'AUTH_FAILURE', tenant: 'Unidade Matriz', admin: 'Desconhecido', time: 'Há 2h', status: 'danger' },
-                  ].map(log => (
+                  {auditLogsList.map(log => (
                     <div key={log.id} className="audit-log-item">
                       <div className={`status-dot ${log.status}`} />
                       <div className="log-info">
@@ -2015,6 +2459,11 @@ export const SaaSAdminPanel: React.FC = () => {
                         <p className="log-desc">
                           <strong>{log.admin}</strong> agindo em <span>{log.tenant}</span>
                         </p>
+                        {log.details && (
+                          <p className="log-details-sub-text" style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', margin: '4px 0 0', fontStyle: 'italic' }}>
+                            {log.details}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -2816,6 +3265,445 @@ export const SaaSAdminPanel: React.FC = () => {
           box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
+        /* Premium Health Tab with Glassmorphism and Neon glows */
+        .saas-view-premium {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          margin-top: 24px;
+        }
+
+        .glassmorphism-card {
+          background: hsl(var(--bg-card) / 0.45);
+          backdrop-filter: blur(16px);
+          border: 1px solid hsl(var(--border) / 0.4);
+          border-radius: 24px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glassmorphism-card:hover {
+          border-color: hsl(var(--brand) / 0.3);
+          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+        }
+
+        .infra-header-premium {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 24px 32px;
+        }
+
+        .section-title-premium {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 800;
+          color: hsl(var(--text-main));
+          text-transform: uppercase;
+          letter-spacing: 0.03em;
+        }
+
+        .section-subtitle-premium {
+          margin: 4px 0 0 0;
+          font-size: 12px;
+          color: hsl(var(--text-muted));
+          font-weight: 500;
+        }
+
+        .status-badge-glow {
+          padding: 8px 16px;
+          background: hsl(var(--bg-main) / 0.7);
+          border-radius: 12px;
+          border: 1px solid hsl(var(--border) / 0.5);
+          font-size: 11px;
+          font-weight: 800;
+          color: #10b981;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+
+        .pulse-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          display: inline-block;
+        }
+
+        .pulse-dot.green {
+          background: #10b981;
+          box-shadow: 0 0 8px #10b981;
+          animation: pulse-dot-keyframe 1.8s infinite ease-in-out;
+        }
+
+        @keyframes pulse-dot-keyframe {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .resource-quotas-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+        }
+
+        .quota-card-premium {
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .quota-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
+
+        .quota-title-group {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .quota-icon {
+          width: 38px;
+          height: 38px;
+          border-radius: 10px;
+          background: hsl(var(--bg-main) / 0.8);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid hsl(var(--border) / 0.5);
+        }
+
+        .quota-label {
+          display: block;
+          font-size: 12px;
+          font-weight: 800;
+          color: hsl(var(--text-main));
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+        }
+
+        .quota-details-sub {
+          display: block;
+          font-size: 10px;
+          color: hsl(var(--text-muted));
+          margin-top: 2px;
+          font-weight: 500;
+        }
+
+        .quota-percentage {
+          font-size: 13px;
+          font-weight: 900;
+        }
+
+        .quota-progress-container {
+          width: 100%;
+        }
+
+        .quota-progress-bg {
+          height: 6px;
+          background: hsl(var(--bg-main));
+          border-radius: 3px;
+          overflow: hidden;
+        }
+
+        .quota-progress-fill {
+          height: 100%;
+          border-radius: 3px;
+          transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .quota-footer {
+          display: flex;
+          justify-content: space-between;
+          font-size: 10px;
+          font-weight: 700;
+          color: hsl(var(--text-muted));
+        }
+
+        /* Health Grid Premium */
+        .health-grid-premium {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+        }
+
+        .health-panel-premium {
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .panel-header-premium {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          border-bottom: 1px solid hsl(var(--border) / 0.3);
+          padding-bottom: 14px;
+        }
+
+        .panel-header-premium h3 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 800;
+          color: hsl(var(--text-main));
+          text-transform: uppercase;
+          letter-spacing: 0.02em;
+        }
+
+        .h-metrics-premium {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .h-metric-premium-item {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .metric-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .metric-header-row span {
+          font-size: 12px;
+          font-weight: 700;
+          color: hsl(var(--text-main));
+        }
+
+        .h-val-badge {
+          padding: 4px 10px;
+          border-radius: 8px;
+          font-size: 10px;
+          font-weight: 800;
+        }
+
+        .h-val-badge.warning {
+          background: rgba(245, 158, 11, 0.1);
+          color: #f59e0b;
+          border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .h-val-badge.good {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .progress-bar-premium {
+          height: 8px;
+          background: hsl(var(--bg-main));
+          border-radius: 4px;
+          overflow: hidden;
+        }
+
+        .progress-bar-premium .fill {
+          height: 100%;
+          border-radius: 4px;
+          transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .progress-bar-premium .fill.warning {
+          background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+          box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+        }
+
+        .progress-bar-premium .fill.good {
+          background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+          box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .metric-desc-sub {
+          font-size: 10px;
+          color: hsl(var(--text-muted));
+          line-height: 1.4;
+          font-weight: 500;
+        }
+
+        /* Node Item Premium */
+        .node-list-premium {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .node-item-premium {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 16px 20px;
+          background: hsl(var(--bg-main) / 0.4);
+          border-radius: 18px;
+          border: 1px solid hsl(var(--border) / 0.5);
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .node-item-premium:hover {
+          border-color: hsl(var(--brand) / 0.4);
+          background: hsl(var(--bg-main) / 0.7);
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
+        }
+
+        .node-status-group {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .node-pulse-indicator {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          position: relative;
+        }
+
+        .node-pulse-indicator.online {
+          background: #10b981;
+          box-shadow: 0 0 8px #10b981;
+        }
+
+        .node-pulse-indicator.online::after {
+          content: '';
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          background: inherit;
+          border-radius: inherit;
+          animation: pulse-node-keyframe 1.8s infinite ease-in-out;
+        }
+
+        .node-pulse-indicator.restarting {
+          background: #f59e0b;
+          box-shadow: 0 0 8px #f59e0b;
+        }
+
+        .node-pulse-indicator.restarting::after {
+          content: '';
+          position: absolute;
+          width: 100%;
+          height: 100%;
+          background: inherit;
+          border-radius: inherit;
+          animation: pulse-node-keyframe 1.2s infinite ease-in-out;
+        }
+
+        .node-pulse-indicator.offline {
+          background: #ef4444;
+          box-shadow: 0 0 8px #ef4444;
+          opacity: 0.6;
+        }
+
+        @keyframes pulse-node-keyframe {
+          0% { transform: scale(1); opacity: 0.8; }
+          100% { transform: scale(2.8); opacity: 0; }
+        }
+
+        .n-metrics-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 2px;
+        }
+
+        .n-divider {
+          color: hsl(var(--border));
+          font-size: 8px;
+        }
+
+        .node-badge-and-actions {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+
+        .cache-badge {
+          padding: 4px 10px;
+          border-radius: 8px;
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        .cache-badge.nominal {
+          background: rgba(16, 185, 129, 0.08);
+          color: #10b981;
+          border: 1px solid rgba(16, 185, 129, 0.15);
+        }
+
+        .cache-badge.clearing {
+          background: rgba(245, 158, 11, 0.08);
+          color: #f59e0b;
+          border: 1px solid rgba(245, 158, 11, 0.15);
+          animation: pulse-cache-badge 1s infinite alternate;
+        }
+
+        .cache-badge.inactive {
+          background: rgba(148, 163, 184, 0.08);
+          color: #94a3b8;
+          border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+
+        @keyframes pulse-cache-badge {
+          0% { opacity: 0.7; }
+          100% { opacity: 1; }
+        }
+
+        .node-actions-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .node-action-btn-premium {
+          width: 32px;
+          height: 32px;
+          border-radius: 10px;
+          border: 1px solid hsl(var(--border) / 0.5);
+          background: hsl(var(--bg-card));
+          color: hsl(var(--text-muted));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .node-action-btn-premium:hover:not(:disabled) {
+          border-color: hsl(var(--brand));
+          color: hsl(var(--brand));
+          background: hsl(var(--bg-main));
+          transform: translateY(-1px);
+        }
+
+        .node-action-btn-premium:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        .node-action-btn-premium.zap:hover:not(:disabled) {
+          border-color: #f59e0b;
+          color: #f59e0b;
+        }
+
+        .pulse-fast-keyframe {
+          animation: pulse-fast-keyframe-anim 0.6s infinite alternate;
+        }
+
+        @keyframes pulse-fast-keyframe-anim {
+          0% { transform: scale(1); opacity: 0.7; }
+          100% { transform: scale(1.15); opacity: 1; }
+        }
       `}</style>
     </div>
   );

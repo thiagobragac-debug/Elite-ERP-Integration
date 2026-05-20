@@ -759,7 +759,8 @@ export const CompanyManagement: React.FC = () => {
           display: flex;
           overflow: hidden;
           padding: 0;
-          height: 180px;
+          min-height: 180px;
+          height: auto;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: var(--shadow-sm);
           position: relative;
@@ -788,13 +789,14 @@ export const CompanyManagement: React.FC = () => {
         }
 
         .user-card-premium:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-md);
+          transform: translateY(-6px);
+          box-shadow: var(--shadow-lg);
           border-color: hsl(var(--brand) / 0.3);
         }
 
         .card-left-section {
-          width: 130px;
+          width: 110px;
+          flex-shrink: 0;
           background: hsl(var(--bg-main) / 0.5);
           display: flex;
           flex-direction: column;
@@ -821,19 +823,78 @@ export const CompanyManagement: React.FC = () => {
           color: white;
           box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
         }
-        .card-main-content { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 24px; }
-        .card-header-info h3 { font-size: 1rem; font-weight: 900; color: var(--text-main); margin: 0; letter-spacing: -0.01em; }
-        .card-role-badge { font-size: 0.625rem; font-weight: 800; color: var(--brand); background: rgba(var(--brand-rgb), 0.1); padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+        .card-main-content {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 12px 16px;
+          min-width: 0;
+        }
+        .card-header-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .card-header-info h3 {
+          font-size: 16px;
+          font-weight: 900;
+          color: var(--text-main);
+          margin: 0;
+          letter-spacing: -0.01em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .card-role-badge {
+          align-self: flex-start;
+          font-size: 0.625rem;
+          font-weight: 800;
+          color: var(--brand);
+          background: rgba(var(--brand-rgb), 0.1);
+          padding: 2px 8px;
+          border-radius: 4px;
+          text-transform: uppercase;
+        }
         
-        .card-meta-grid { display: grid; grid-template-columns: 1fr; gap: 6px; }
-        .meta-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: var(--text-muted); font-weight: 500; }
-        .meta-icon { color: var(--brand); opacity: 0.7; }
+        .card-meta-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 4px;
+          margin-top: 4px;
+        }
+        .meta-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.75rem;
+          color: var(--text-muted);
+          font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .meta-icon {
+          color: var(--brand);
+          opacity: 0.7;
+          flex-shrink: 0;
+        }
         
-        .card-bottom-actions { display: flex; gap: 8px; margin-top: auto; }
+        .card-bottom-actions {
+          display: flex;
+          flex-wrap: nowrap;
+          gap: 6px;
+          margin-top: 4px;
+        }
         .action-icon-btn { 
-          width: 32px; height: 32px; border-radius: 8px; 
-          background: var(--bg-main); color: var(--text-muted); 
-          display: flex; align-items: center; justify-content: center; 
+          width: 28px;
+          height: 28px;
+          border-radius: 8px; 
+          background: var(--bg-main);
+          color: var(--text-muted); 
+          display: flex;
+          align-items: center;
+          justify-content: center; 
           transition: 0.2s; 
           cursor: pointer;
         }
