@@ -16,15 +16,22 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
 export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
   const mockData = {
     data: [
-      { id: 'm1', type: 'SISTEMA', desc: 'MOCK: Conexão limitada. Exibindo dados de segurança.', time: 'Agora', status: 'warning', entity: 'N/A' }
+      { id: 'm1', type: 'SISTEMA', desc: 'MOCK: Conexão limitada. Exibindo dados de segurança.', time: 'Agora', status: 'warning', entity: 'N/A' },
+      { id: 'm2', type: 'IA', desc: 'MOCK: IA sugere suplementação nutricional no Lote 04', time: 'Amanhã', status: 'info', entity: 'N/A' }
+    ],
+    columns: [
+      { header: 'Tipo', accessor: 'type' },
+      { header: 'Atividade', accessor: 'desc' },
+      { header: 'Tempo', accessor: 'time' },
+      { header: 'Status', accessor: (row: any) => row.status === 'critical' ? '🔴 Crítico' : row.status === 'warning' ? '🟡 Alerta' : '🔵 Info' }
     ],
     stats: [
       { id: 'gmd', label: 'Evolução de GMD', value: '0.842 kg', change: '+4.2%', trend: 'up' as const, color: '#10b981', progress: 85 },
       { id: 'caixa', label: 'Fluxo de Caixa', value: 'R$ 1.2M', change: '+12%', trend: 'up' as const, color: '#f59e0b', progress: 65 },
-      { id: 'ebitda', label: 'EBITDA Projetado', value: '24.2%', change: '+0.8%', trend: 'up' as const, color: '#8b5cf6', progress: 92 }
+      { id: 'ebitda', label: 'EBITDA Projetado', value: '24.2%', change: '+0.8%', trend: 'up' as const, color: '#8b5cf6', progress: 92 },
+      { id: 'lotacao', label: 'Taxa de Lotação', value: '1.8 UA/ha', change: 'Ideal: 2.1', trend: 'neutral' as const, color: '#8b5cf6', progress: 86 }
     ],
-    columns: [],
-    totalCount: 1
+    totalCount: 2
   };
 
   try {
@@ -52,13 +59,14 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
     // Injetar sugestões de IA se houver pouca atividade real
     if (activities.length < 3) {
       activities.push(
-        { id: 'ia1', type: 'PROJETADO', desc: 'IA: Sugestão de suplementação nutricional Lote 04', time: 'Amanhã', status: 'info', entity: 'N/A',  },
-        { id: 'ia2', type: 'PROJETADO', desc: 'IA: Risco de ruptura de estoque - Milho', time: 'Em 2 dias', status: 'warning', entity: 'N/A',  }
+        { id: 'ia1', type: 'PROJETADO', desc: 'IA: Sugestão de suplementação nutricional Lote 04', time: 'Amanhã', status: 'info', entity: 'N/A' },
+        { id: 'ia2', type: 'PROJETADO', desc: 'IA: Risco de ruptura de estoque - Milho', time: 'Em 2 dias', status: 'warning', entity: 'N/A' }
       );
     }
 
     return {
       data: activities,
+      columns: mockData.columns,
       stats: [
         { 
           id: 'gmd', 
@@ -101,7 +109,6 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
           sparkline: [{value: 1.2}, {value: 1.5}, {value: 1.8}]
         }
       ],
-      columns: [],
       totalCount: activities.length
     };
   } catch (error) {

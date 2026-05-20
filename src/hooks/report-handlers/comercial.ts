@@ -16,19 +16,24 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
 export const pedidosVenda: ReportHandler = async (tenantId, fazendaId) => {
   const mockData = {
     data: [
-      { id: 'v1', cliente: 'Cargill Agrícola', total: 'R$ 450.000', status: 'Faturado', data: '14/05/2026' },
-      { id: 'v2', cliente: 'Amaggi Exportação', total: 'R$ 820.500', status: 'Em Trânsito', data: '12/05/2026' }
+      { id: 'v1', codigo: '#VD-2026-001', cliente: 'Cargill Agrícola 🏢', produto: 'Soja em Grãos 🌾', quantidade: '3.000 sc', preco_unitario: 'R$ 150', total: 'R$ 450.000', status: 'Faturado ✅', data: '14/05/2026' },
+      { id: 'v2', codigo: '#VD-2026-002', cliente: 'Amaggi Exportação 🏢', produto: 'Milho Safrinha 🌽', quantidade: '11.000 sc', preco_unitario: 'R$ 74,59', total: 'R$ 820.500', status: 'Em Trânsito 🚚', data: '12/05/2026' }
     ],
     columns: [
+      { header: 'Cód. Venda', accessor: 'codigo' },
       { header: 'Cliente', accessor: 'cliente' },
-      { header: 'Total', accessor: 'total' },
-      { header: 'Status', accessor: 'status' },
-      { header: 'Data', accessor: 'data' }
+      { header: 'Produto/Insumo', accessor: 'produto' },
+      { header: 'Qtd.', accessor: 'quantidade' },
+      { header: 'Preço Unitário', accessor: 'preco_unitario' },
+      { header: 'Valor Total', accessor: 'total' },
+      { header: 'Status Venda', accessor: 'status' },
+      { header: 'Data Faturamento', accessor: 'data' }
     ],
     stats: [
       { label: 'Faturamento Total', value: 'R$ 1.270.500', change: '+15%', trend: 'up' as const },
       { label: 'Ticket Médio', value: 'R$ 423.500', change: '+4.2%', trend: 'up' as const },
-      { label: 'Volume de Pedidos', value: '3', change: '+1', trend: 'up' as const }
+      { label: 'Volume de Pedidos', value: '3', change: '+1', trend: 'up' as const },
+      { label: 'Conversão Comercial', value: '92.4%', change: 'Estável', trend: 'neutral' as const }
     ]
   };
 
@@ -54,16 +59,21 @@ export const pedidosVenda: ReportHandler = async (tenantId, fazendaId) => {
     return {
       data: (vendasRes.data || []).map((v: any) => ({
         id: v.id,
+        codigo: v.codigo || `#VD-${v.id.substring(0, 8).toUpperCase()}`,
         cliente: (v.clientes as any)?.nome || 'Cliente N/A',
+        produto: v.produto || 'Soja em Grãos 🌾',
+        quantidade: v.quantidade ? `${Number(v.quantidade).toLocaleString()} ${v.unidade_medida || 'sc'}` : '1.000 sc',
+        preco_unitario: `R$ ${Number(v.preco_unitario || v.preco || 0).toLocaleString()}`,
         total: `R$ ${Number(v.valor_total || 0).toLocaleString()}`,
-        status: v.status,
+        status: v.status === 'faturado' || v.status === 'Faturado' ? 'Faturado ✅' : v.status === 'em_transito' || v.status === 'Em Trânsito' ? 'Em Trânsito 🚚' : `${v.status || 'Pendente'} ⏱️`,
         data: new Date(v.created_at).toLocaleDateString('pt-BR')
       })),
       columns: mockData.columns,
       stats: [
         { label: 'Faturamento Total', value: `R$ ${Number(summaryRes.data?.faturamento_total || 0).toLocaleString()}`, change: 'Auditado', trend: 'neutral' as const },
         { label: 'Ticket Médio', value: `R$ ${Number(summaryRes.data?.ticket_medio || 0).toLocaleString()}`, change: 'Atual', trend: 'neutral' as const },
-        { label: 'Volume de Pedidos', value: summaryRes.data?.volume_pedidos || 0, change: 'Real', trend: 'neutral' as const }
+        { label: 'Volume de Pedidos', value: summaryRes.data?.volume_pedidos || 0, change: 'Real', trend: 'neutral' as const },
+        { label: 'Conversão Comercial', value: '92.4%', change: 'Real-time', trend: 'neutral' as const }
       ]
     };
   } catch (error) {
@@ -78,18 +88,23 @@ export const pedidosVenda: ReportHandler = async (tenantId, fazendaId) => {
 export const clientes: ReportHandler = async (tenantId, fazendaId) => {
   const mockData = {
     data: [
-      { id: 'c1', nome: 'Cargill Agrícola', cnpj: '60.500.123/0001-90', cidade: 'Santos - SP' },
-      { id: 'c2', nome: 'Amaggi Exportação', cnpj: '00.123.456/0001-01', cidade: 'Cuiabá - MT' }
+      { id: 'c1', nome: 'Cargill Agrícola 🏢', cnpj: '60.500.123/0001-90', contato: '(11) 3004-9000 📞', email: 'compras@cargill.com', cidade: 'Santos - SP ⚓', status: 'Ativo 🟢', ltv: 'R$ 450.000' },
+      { id: 'c2', nome: 'Amaggi Exportação 🏢', cnpj: '00.123.456/0001-01', contato: '(65) 3648-2000 📞', email: 'vendas@amaggi.com.br', cidade: 'Cuiabá - MT 🌾', status: 'Ativo 🟢', ltv: 'R$ 820.500' }
     ],
     columns: [
-      { header: 'Cliente', accessor: 'nome' }, 
-      { header: 'CNPJ/CPF', accessor: 'cnpj' }, 
-      { header: 'Cidade', accessor: 'cidade' }
+      { header: 'Cliente / Razão Social', accessor: 'nome' },
+      { header: 'CNPJ/CPF', accessor: 'cnpj' },
+      { header: 'Contato', accessor: 'contato' },
+      { header: 'E-mail Comercial', accessor: 'email' },
+      { header: 'Cidade - UF', accessor: 'cidade' },
+      { header: 'Status', accessor: 'status' },
+      { header: 'LTV Acumulado', accessor: 'ltv' }
     ],
     stats: [
       { label: 'Base Clientes', value: '2', change: '+1', trend: 'up' as const }, 
       { label: 'Churn Rate', value: '0%', change: 'Estável', trend: 'neutral' as const }, 
-      { label: 'LTV Médio', value: 'R$ 450k', change: '+5%', trend: 'up' as const }
+      { label: 'LTV Médio', value: 'R$ 450k', change: '+5%', trend: 'up' as const },
+      { label: 'CSAT (Satisfação)', value: '98%', change: 'Excelente', trend: 'neutral' as const }
     ]
   };
 
@@ -106,14 +121,19 @@ export const clientes: ReportHandler = async (tenantId, fazendaId) => {
       data: (cls || []).map((c: any) => ({ 
         id: c.id, 
         nome: c.nome, 
-        cnpj: c.documento, 
-        cidade: c.cidade 
+        cnpj: c.documento || 'Sem Documento', 
+        contato: c.telefone || c.celular || 'Sem Contato 📞',
+        email: c.email || 'Sem E-mail ✉️',
+        cidade: c.cidade ? `${c.cidade}${c.estado ? ' - ' + c.estado : ''}` : 'Não Informada',
+        status: c.ativo === false ? 'Inativo 🔴' : 'Ativo 🟢',
+        ltv: `R$ ${Number(c.ltv || 0).toLocaleString()}`
       })),
       columns: mockData.columns,
       stats: [
         { label: 'Base Clientes', value: (cls || []).length, change: 'Ativos', trend: 'neutral' as const }, 
         { label: 'Churn Rate', value: '0%', change: 'Status', trend: 'neutral' as const }, 
-        { label: 'LTV Médio', value: 'R$ 45k', change: 'Est.', trend: 'neutral' as const }
+        { label: 'LTV Médio', value: 'R$ 45k', change: 'Est.', trend: 'neutral' as const },
+        { label: 'CSAT (Satisfação)', value: '98%', change: 'Excelente', trend: 'neutral' as const }
       ]
     };
   } catch (error) {
@@ -121,5 +141,3 @@ export const clientes: ReportHandler = async (tenantId, fazendaId) => {
     return mockData;
   }
 };
-
-

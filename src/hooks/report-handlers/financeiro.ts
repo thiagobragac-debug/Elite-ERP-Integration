@@ -19,12 +19,20 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
       { id: 'f1', description: 'MOCK: Venda de Soja', category: 'RECEITA', amount: 150000, date: new Date().toISOString(), type: 'inflow', status: 'pending' },
       { id: 'f2', description: 'MOCK: Adubo NPK', category: 'CUSTO', amount: -45000, date: new Date().toISOString(), type: 'outflow', status: 'paid' }
     ],
-    stats: [
-      { label: 'Patrimônio Líquido', value: 'R$ 2.450.000', change: 'MOCK', trend: 'neutral' as const, color: '#10b981', progress: 100 },
-      { label: 'Resultado Operacional', value: 'R$ 105.000', change: 'MOCK', trend: 'up' as const, color: '#3b82f6', progress: 85 },
-      { label: 'Runway / Fôlego', value: '18 meses', change: 'MOCK', trend: 'up' as const, color: '#8b5cf6', progress: 75 }
+    columns: [
+      { header: 'Descrição', accessor: 'description' },
+      { header: 'Categoria', accessor: 'category' },
+      { header: 'Valor', accessor: (row: any) => row.amount ? row.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00' },
+      { header: 'Vencimento / Data', accessor: (row: any) => row.date ? new Date(row.date).toLocaleDateString('pt-BR') : 'N/A' },
+      { header: 'Tipo', accessor: (row: any) => row.type === 'inflow' ? '🟢 Entrada' : '🔴 Saída' },
+      { header: 'Status', accessor: (row: any) => row.status === 'paid' ? '✅ Liquidado' : '⏳ Pendente' }
     ],
-    columns: [],
+    stats: [
+      { id: 'patrimonio', label: 'Patrimônio Líquido', value: 'R$ 2.450.000', change: 'MOCK', trend: 'neutral' as const, color: '#10b981', progress: 100 },
+      { id: 'resultado', label: 'Resultado Operacional', value: 'R$ 105.000', change: 'MOCK', trend: 'up' as const, color: '#3b82f6', progress: 85 },
+      { id: 'runway', label: 'Runway / Fôlego', value: '18 meses', change: 'MOCK', trend: 'up' as const, color: '#8b5cf6', progress: 75 },
+      { id: 'entradas', label: 'Entradas (Mês)', value: 'R$ 150.000', change: 'MOCK', trend: 'up' as const, color: '#10b981', progress: 100 }
+    ],
     totalCount: 2
   };
 
@@ -97,6 +105,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
 
     return {
       data: pageTx,
+      columns: mockData.columns,
       stats: [
         { 
           id: 'patrimonio',
@@ -139,7 +148,6 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
           sparkline: [{value: 10}, {value: 30}, {value: 50}, {value: inMonth}]
         }
       ],
-      columns: [],
       totalCount: (payRes.count || 0) + (recRes.count || 0)
     };
   } catch (error) {
@@ -153,12 +161,24 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
  */
 export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 25, filters: any = {}) => {
   const mockData = {
-    data: [],
-    stats: [
-      { label: 'Passivo Circulante', value: 'R$ 0,00', color: '#6366f1', progress: 100, change: 'Sem dados', trend: 'neutral' as const, periodLabel: 'Exigível' },
-      { label: 'Volume de Títulos', value: '0', color: '#ef4444', progress: 100, change: 'Sem dados', trend: 'neutral' as const, periodLabel: 'Total' }
+    data: [
+      { id: 'p1', descricao: 'MOCK: Compra de Calcário', valor_total: 12500, data_vencimento: new Date().toISOString(), status: 'PENDENTE', fornecedores: { nome: 'Calcário Centro-Oeste' } },
+      { id: 'p2', descricao: 'MOCK: Patrulha Mecanizada', valor_total: 8900, data_vencimento: new Date().toISOString(), status: 'PAGO', fornecedores: { nome: 'Agro Mecânica' } }
     ],
-    totalCount: 0
+    columns: [
+      { header: 'Descrição', accessor: 'descricao' },
+      { header: 'Fornecedor', accessor: (row: any) => row.fornecedores?.nome || 'N/A' },
+      { header: 'Valor Total', accessor: (row: any) => row.valor_total ? Number(row.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00' },
+      { header: 'Vencimento', accessor: (row: any) => row.data_vencimento ? new Date(row.data_vencimento).toLocaleDateString('pt-BR') : 'N/A' },
+      { header: 'Status', accessor: (row: any) => row.status === 'PAGO' ? '✅ Pago' : '⏳ Pendente' }
+    ],
+    stats: [
+      { label: 'Passivo Circulante', value: 'R$ 12.500,00', color: '#6366f1', progress: 100, change: '1 título pendente', trend: 'neutral' as const, periodLabel: 'Exigível' },
+      { label: 'Total Liquidado', value: 'R$ 8.900,00', color: '#10b981', progress: 100, change: 'Sincronizado', periodLabel: 'Histórico', trend: 'up' as const },
+      { label: 'Volume de Títulos', value: '2', color: '#ef4444', progress: 100, change: 'Sem dados', trend: 'neutral' as const, periodLabel: 'Total' },
+      { label: 'Eficiência Financeira', value: 'Habilitada', color: '#f59e0b', progress: 100, change: 'Escala Comercial', periodLabel: 'Elite Sync', trend: 'neutral' as const }
+    ],
+    totalCount: 2
   };
 
   try {
@@ -205,6 +225,7 @@ export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, 
 
     return {
       data: bills,
+      columns: mockData.columns,
       stats: [
         { 
           label: 'Passivo Circulante', 
@@ -243,12 +264,24 @@ export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, 
  */
 export const contasReceber: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 25, filters: any = {}) => {
   const mockData = {
-    data: [],
-    stats: [
-      { label: 'Ativo Circulante', value: 'R$ 0,00', color: '#10b981', progress: 100, change: 'Estável', trend: 'neutral' as const, periodLabel: 'A Receber' },
-      { label: 'Volume de Títulos', value: '0', color: '#3b82f6', progress: 100, change: 'Sem dados', trend: 'neutral' as const, periodLabel: 'Total' }
+    data: [
+      { id: 'r1', descricao: 'MOCK: Venda de Bezerros', valor_total: 45000, data_vencimento: new Date().toISOString(), status: 'PENDENTE', clientes: { nome: 'Recria Agropecuária' } },
+      { id: 'r2', descricao: 'MOCK: Venda de Milho', valor_total: 62000, data_vencimento: new Date().toISOString(), status: 'PAGO', clientes: { nome: 'Cooperativa Sul' } }
     ],
-    totalCount: 0
+    columns: [
+      { header: 'Descrição', accessor: 'descricao' },
+      { header: 'Cliente', accessor: (row: any) => row.clientes?.nome || 'N/A' },
+      { header: 'Valor Total', accessor: (row: any) => row.valor_total ? Number(row.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'R$ 0,00' },
+      { header: 'Vencimento', accessor: (row: any) => row.data_vencimento ? new Date(row.data_vencimento).toLocaleDateString('pt-BR') : 'N/A' },
+      { header: 'Status', accessor: (row: any) => row.status === 'PAGO' ? '✅ Recebido' : '⏳ Pendente' }
+    ],
+    stats: [
+      { label: 'Ativo Circulante', value: 'R$ 45.000,00', color: '#10b981', progress: 100, change: '1 título pendente', trend: 'neutral' as const, periodLabel: 'A Receber' },
+      { label: 'Total Recebido', value: 'R$ 62.000,00', color: '#3b82f6', progress: 100, change: 'Sincronizado', periodLabel: 'Histórico', trend: 'up' as const },
+      { label: 'Volume de Títulos', value: '2', color: '#6366f1', progress: 100, change: 'Auditado', periodLabel: 'Total', trend: 'neutral' as const },
+      { label: 'Eficiência de Cobrança', value: '94%', color: '#8b5cf6', progress: 94, change: 'Acima da média', trend: 'neutral' as const, periodLabel: 'Inadimplência Foco' }
+    ],
+    totalCount: 2
   };
 
   try {
@@ -290,10 +323,11 @@ export const contasReceber: ReportHandler = async (tenantId, fazendaId, page = 1
     
     const totalPendente = Number(summaryData?.find((s: any) => s.status === 'PENDENTE')?.total_value || 0);
     const totalRecebido = Number(summaryData?.find((s: any) => s.status === 'PAGO')?.total_value || 0);
-    const overdueCount = 0; // Simplified for performance, can be improved later with date-aware RPC
+    const overdueCount = 0; // Simplified for performance, can be improved later with RPC
 
     return {
       data: bills,
+      columns: mockData.columns,
       stats: [
         { 
           label: 'Ativo Circulante', 
@@ -350,7 +384,8 @@ export const extratoBancario: ReportHandler = async (tenantId, fazendaId, page =
     stats: [
       { label: 'Saldo Consolidado', value: 'R$ 1.700.000', change: '+1.2%', trend: 'up' as const },
       { label: 'Contas Ativas', value: '2', change: 'Ref. Geral', trend: 'neutral' as const },
-      { label: 'Liquidez Imediata', value: 'R$ 1.250.000', change: 'Real', trend: 'neutral' as const }
+      { label: 'Liquidez Imediata', value: 'R$ 1.250.000', change: 'Real', trend: 'neutral' as const },
+      { label: 'Bancos Conectados', value: '2', change: 'Sincronizado', trend: 'neutral' as const }
     ],
     totalCount: 2
   };
@@ -389,7 +424,8 @@ export const extratoBancario: ReportHandler = async (tenantId, fazendaId, page =
       stats: [
         { label: 'Saldo Consolidado', value: `R$ ${Number(summaryRes.data?.saldo_total || 0).toLocaleString()}`, change: 'Auditado', trend: 'neutral' as const },
         { label: 'Contas Ativas', value: summaryRes.data?.contas_ativas || 0, change: 'Status', trend: 'neutral' as const },
-        { label: 'Liquidez Imediata', value: `R$ ${Number(summaryRes.data?.saldo_total || 0).toLocaleString()}`, change: 'Real', trend: 'neutral' as const }
+        { label: 'Liquidez Imediata', value: `R$ ${Number(summaryRes.data?.saldo_total || 0).toLocaleString()}`, change: 'Real', trend: 'neutral' as const },
+        { label: 'Bancos Conectados', value: summaryRes.data?.contas_ativas || 0, change: 'Sincronizado', trend: 'neutral' as const }
       ],
       totalCount: contasRes.count || 0
     };
@@ -404,7 +440,12 @@ export const extratoBancario: ReportHandler = async (tenantId, fazendaId, page =
 export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
   const mockData = {
     data: [
-      { id: 1, type: 'info', title: 'MOCK ACTIVE', desc: 'Dados temporários exibidos devido a latência.', impact: 'INFO', color: '#3b82f6' }
+      { id: 1, type: 'opportunity', title: 'Otimização de Fluxo (MOCK)', desc: 'Você tem contas a receber em aberto. Considere antecipar recebíveis para reforçar caixa.', impact: 'ALTO', color: '#10b981' }
+    ],
+    columns: [
+      { header: 'Insight / Oportunidade', accessor: 'title' },
+      { header: 'Detalhes', accessor: 'desc' },
+      { header: 'Impacto', accessor: (row: any) => row.impact || 'MÉDIO' }
     ],
     stats: [
       { label: 'Patrimônio Líquido', value: 'R$ 2.450.000', change: 'MOCK', trend: 'neutral' as const, color: '#10b981', progress: 100 },
@@ -412,7 +453,6 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
       { label: 'Runway (Fôlego)', value: '18 meses', change: 'MOCK', trend: 'up' as const, color: '#8b5cf6', progress: 75 },
       { label: 'Índice de Liquidez', value: '2.45', change: 'MOCK', trend: 'up' as const, color: '#f59e0b', progress: 100 }
     ],
-    columns: [],
     totalCount: 1
   };
 
@@ -493,7 +533,7 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
           periodLabel: 'Meta: > 1.50'
         }
       ],
-      columns: [],
+      columns: mockData.columns,
       totalCount: insights.length,
       healthScore: Math.min(100, Math.floor(currentRatio * 30))
     };

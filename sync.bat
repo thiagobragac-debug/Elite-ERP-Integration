@@ -1,5 +1,8 @@
 @echo off
+:: Elite ERP - Sincronizacao GitHub
+:: Use standard Windows-1252 code page and safe ASCII characters to avoid cmd.exe parsing bugs with UTF-8/emojis
 setlocal enabledelayedexpansion
+chcp 1252 > nul
 
 echo ========================================
 echo   Elite ERP - Sincronizacao GitHub
@@ -26,7 +29,7 @@ git commit -m "!commit_msg!"
 echo [3/3] Enviando para o GitHub (main)...
 git push origin main
 
-if %errorlevel% eq 0 (
+if %errorlevel% equ 0 (
     echo.
     echo ========================================
     echo   [SUCESSO] Projeto sincronizado!

@@ -16,15 +16,24 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
  */
 export const auditLogs: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 25, filters: any = {}) => {
   const mockData = {
-    data: [],
+    data: [
+      { id: '1', table_name: 'animais', action: 'INSERT', timestamp: new Date().toISOString(), user_name: 'Thiago Costa', description: 'Inserido animal BR 4520 no lote LT 01' },
+      { id: '2', table_name: 'pesagens', action: 'INSERT', timestamp: new Date().toISOString(), user_name: 'João Silva', description: 'Lançado peso 540 kg para o animal BR 4520' }
+    ],
+    columns: [
+      { header: 'Módulo', accessor: 'table_name' },
+      { header: 'Ação', accessor: 'action' },
+      { header: 'Data / Hora', accessor: (row: any) => row.timestamp ? new Date(row.timestamp).toLocaleString('pt-BR') : 'N/A' },
+      { header: 'Operador', accessor: 'user_name' },
+      { header: 'Descrição', accessor: 'description' }
+    ],
     stats: [
       { label: 'Integridade Audit', value: '100%', icon: Shield, color: 'hsl(var(--brand))', progress: 100, change: 'Nível Institucional', trend: 'neutral' as const, periodLabel: 'Fidelity Score' },
-      { label: 'Atividade (24h)', value: '0', icon: Activity, color: '#3b82f6', progress: 0, change: '0 novos registros', trend: 'neutral' as const, periodLabel: 'Logs Processados' },
+      { label: 'Atividade (24h)', value: '2', icon: Activity, color: '#3b82f6', progress: 100, change: '2 novos registros', trend: 'neutral' as const, periodLabel: 'Logs Processados' },
       { label: 'Alertas Críticos', value: '0', icon: AlertCircle, color: '#ef4444', progress: 0, change: 'Estável', trend: 'neutral' as const, periodLabel: 'High Severity' },
       { label: 'Cobertura Global', value: '100%', icon: CheckCircle2, color: '#10b981', progress: 100, change: 'Todos os módulos ativos', trend: 'neutral' as const, periodLabel: 'Real-time Sync' }
     ],
-    columns: [],
-    totalCount: 0
+    totalCount: 2
   };
 
   try {
@@ -65,6 +74,7 @@ export const auditLogs: ReportHandler = async (tenantId, fazendaId, page = 1, pa
         new_data: l.new_data,
         entity_id: l.entity_id
       })),
+      columns: mockData.columns,
       stats: [
         {
           label: 'Integridade Audit', value: integrity + '%',
@@ -116,7 +126,8 @@ export const perfisUsuario: ReportHandler = async (tenantId, fazendaId) => {
     stats: [
       { label: 'Total Equipe', value: '12', change: 'Ativos', trend: 'neutral' as const },
       { label: 'Acessos Hoje', value: '8', change: '+2', trend: 'up' as const },
-      { label: 'Licenças Ativas', value: '12/15', change: 'Disponível', trend: 'neutral' as const }
+      { label: 'Licenças Ativas', value: '12/15', change: 'Disponível', trend: 'neutral' as const },
+      { label: 'Grupos de Segurança', value: '3 perfis', change: 'Ativo', trend: 'neutral' as const }
     ]
   };
 
@@ -140,7 +151,8 @@ export const perfisUsuario: ReportHandler = async (tenantId, fazendaId) => {
       stats: [
         { label: 'Total Equipe', value: (users || []).length, change: 'Status', trend: 'neutral' as const },
         { label: 'Acessos Hoje', value: '4', change: 'Real', trend: 'neutral' as const },
-        { label: 'Licenças Ativas', value: 'SaaS Connect', change: 'Ativo', trend: 'neutral' as const }
+        { label: 'Licenças Ativas', value: 'SaaS Connect', change: 'Ativo', trend: 'neutral' as const },
+        { label: 'Grupos de Segurança', value: '3 perfis', change: 'Ativo', trend: 'neutral' as const }
       ]
     };
   } catch (error) {
@@ -153,14 +165,23 @@ export const perfisUsuario: ReportHandler = async (tenantId, fazendaId) => {
  */
 export const adminOverview: ReportHandler = async (tenantId, fazendaId) => {
   const mockData = {
-    data: [],
+    data: [
+      { id: '1', action: 'INSERT', entity: 'animais', description: 'MOCK: Inserido animal BR 4520', created_at: new Date().toISOString() },
+      { id: '2', action: 'DELETE', entity: 'lotes', description: 'MOCK: Excluído lote LT 03 legado', created_at: new Date().toISOString() }
+    ],
+    columns: [
+      { header: 'Ação', accessor: 'action' },
+      { header: 'Tabela', accessor: 'entity' },
+      { header: 'Descrição', accessor: 'description' },
+      { header: 'Data / Hora', accessor: (row: any) => row.created_at ? new Date(row.created_at).toLocaleString('pt-BR') : 'N/A' }
+    ],
     stats: [
       { id: 'governanca', label: 'Score de Governança', value: '88%', change: 'Nível Institucional', trend: 'neutral' as const, color: 'hsl(var(--brand))', progress: 88 },
       { id: 'licencas', label: 'Licenças Ativas', value: '12/25', change: 'Plano Enterprise', trend: 'neutral' as const, color: '#3b82f6', progress: 48 },
-      { id: 'alertas', label: 'Alertas de Segurança', value: '0', change: 'Ambiente Seguro', trend: 'neutral' as const, color: '#10b981', progress: 100 }
+      { id: 'alertas', label: 'Alertas de Segurança', value: '0', change: 'Ambiente Seguro', trend: 'neutral' as const, color: '#10b981', progress: 100 },
+      { id: 'saude', label: 'Saúde Operacional', value: '94%', change: 'SLA de Instância', trend: 'neutral' as const, color: '#f59e0b', progress: 94 }
     ],
-    columns: [],
-    totalCount: 0
+    totalCount: 2
   };
 
   try {
@@ -216,7 +237,7 @@ export const adminOverview: ReportHandler = async (tenantId, fazendaId) => {
           sparkline: [{ value: 92 }, { value: 95 }, { value: 94 }, { value: 94 }]
         }
       ],
-      columns: [],
+      columns: mockData.columns,
       totalCount: (logsRes.data || []).length
     };
   } catch (error) {
