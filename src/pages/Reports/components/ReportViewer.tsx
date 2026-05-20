@@ -77,18 +77,20 @@ const ReportPrintLayout: React.FC<{
 
     <div className="viewer-content print-viewer-content">
       <div className="next-gen-kpi-grid">
-        {stats.map((s, idx) => (
+        {(stats || []).map((s, idx) => {
+           const Icon = s.icon || (s.trend === 'down' ? TrendingDown : TrendingUp);
+           return (
            <div key={idx} className="print-stat-card">
              <div className="stat-header">
                <span className="stat-label">{s.label}</span>
-               <s.icon size={16} color={s.trend === 'down' ? "#ef4444" : "#10b981"} />
+               <Icon size={16} color={s.trend === 'down' ? "#ef4444" : "#10b981"} />
              </div>
              <div className="stat-value" style={{ color: '#0f172a' }}>{s.value}</div>
              <div className={`stat-trend ${s.trend}`}>
                {s.change} vs mês ant.
              </div>
            </div>
-        ))}
+        )})}
       </div>
 
       <div className="print-data-full export-visible">
@@ -96,13 +98,13 @@ const ReportPrintLayout: React.FC<{
           <table className="full-print-table">
             <thead>
               <tr>
-                {columns.map((col: any, i: number) => <th key={i}>{col.header}</th>)}
+                {(columns || []).map((col: any, i: number) => <th key={i}>{col.header}</th>)}
               </tr>
             </thead>
             <tbody>
-              {data.map((item: any, i: number) => (
+              {(data || []).map((item: any, i: number) => (
                 <tr key={i} className={i % 2 === 0 ? 'even-row' : 'odd-row'}>
-                  {columns.map((col: any, j: number) => {
+                  {(columns || []).map((col: any, j: number) => {
                     const isNumeric = col.header.toLowerCase().includes('valor') || 
                                      col.header.toLowerCase().includes('gmd') || 
                                      col.header.toLowerCase().includes('total') ||
@@ -159,6 +161,30 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
   const pdfRef = useRef<HTMLDivElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
   const [fullData, setFullData] = React.useState<any[] | null>(null);
+  const [isSharing, setIsSharing] = React.useState(false);
+
+  const handleShare = async () => {
+    const shareText = `Confira o relatório Analítico de Precisão: "${report.title}" - ${activeFarm?.name || 'Fazenda'}.`;
+    const shareUrl = window.location.href;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Elite ERP: ${report.title}`,
+          text: shareText,
+          url: shareUrl,
+        });
+      } else {
+        await navigator.clipboard.writeText(`${shareText}\nAcesse pelo Elite ERP: ${shareUrl}`);
+        setIsSharing(true);
+        setTimeout(() => setIsSharing(false), 2000);
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Erro ao compartilhar:', err);
+      }
+    }
+  };
   
   const updateGenerationHistory = async () => {
     if (!userProfile?.id) return;
@@ -303,7 +329,9 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
             >
               {isExporting ? <div className="mini-spinner" /> : <Printer size={18} />}
             </button>
-            <button className="icon-btn" title="Compartilhar"><Share2 size={18} /></button>
+            <button className="icon-btn" title={isSharing ? "Copiado!" : "Compartilhar"} onClick={handleShare}>
+              {isSharing ? <CheckCircle2 size={18} color="#10b981" /> : <Share2 size={18} />}
+            </button>
             <div className="v-sep"></div>
             <button className="close-btn-premium" onClick={onClose}>
               <X size={20} />
@@ -313,7 +341,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
 
         <div className="viewer-content">
           <div className="next-gen-kpi-grid">
-            {stats.length > 0 ? stats.map((s, idx) => (
+            {stats && stats.length > 0 ? stats.map((s, idx) => (
                <EliteStatCard 
                key={idx}
                label={s.label}
@@ -346,8 +374,8 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
               </div>
             ) : (
               <ModernTable 
-                data={data}
-                columns={columns}
+                data={data || []}
+                columns={columns || []}
                 hideHeader={false}
                 onExport={handleExportExcel}
                 loading={loading}

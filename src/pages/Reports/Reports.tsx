@@ -324,27 +324,6 @@ export const Reports: React.FC = () => {
         </div>
       </div>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="ai-insight-strip"
-      >
-        <div className="ai-icon">
-          <Brain size={20} />
-        </div>
-        <div className="ai-content">
-          <span className="ai-tag">COPILOT INSIGHT</span>
-          {activeCategory === 'finance' ? (
-            <p>O relatório <strong>"Custo p/ @ Produzida"</strong> teve um aumento de 12% na geração esta semana. Recomendamos revisar as margens de fechamento.</p>
-          ) : activeCategory === 'livestock' ? (
-            <p>A taxa de lotação no <strong>"Heatmap de Ocupação"</strong> indica sobrecarga em 3 piquetes. Considere remanejar o lote 42.</p>
-          ) : (
-            <p>Seus relatórios de <strong>{activeCategory === 'all' ? 'Performance' : activeCategory.toUpperCase()}</strong> estão sincronizados. Deseja gerar um resumo executivo?</p>
-          )}
-        </div>
-        <button className="ai-action-btn" onClick={() => navigate('/bi')}>ANALISAR AGORA</button>
-      </motion.div>
-
 
             <div className="report-hub-layout">
               {/* Sidebar de Navegação */}
@@ -619,46 +598,7 @@ export const Reports: React.FC = () => {
           color: #e2e8f0;
         }
 
-        .ai-insight-strip {
-          background: linear-gradient(90deg, #f0fdf4 0%, #ffffff 100%);
-          border: 1px solid #dcfce7;
-          border-radius: 16px;
-          padding: 12px 20px;
-          margin: 24px 0;
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
 
-        .ai-icon {
-          width: 40px;
-          height: 40px;
-          background: #10b981;
-          color: white;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
-        }
-
-        .ai-content {
-          flex: 1;
-        }
-
-        .ai-tag {
-          font-size: 9px;
-          font-weight: 900;
-          color: #10b981;
-          letter-spacing: 0.1em;
-        }
-
-        .ai-content p {
-          font-size: 13px;
-          color: #1e293b;
-          margin: 2px 0 0;
-          font-weight: 500;
-        }
 
         .icon-btn-secondary {
           width: 38px;
@@ -687,22 +627,6 @@ export const Reports: React.FC = () => {
           box-shadow: 0 0 10px hsl(var(--brand) / 0.1);
         }
 
-        .ai-action-btn {
-          padding: 8px 16px;
-          background: white;
-          border: 1px solid #dcfce7;
-          border-radius: 10px;
-          font-size: 11px;
-          font-weight: 800;
-          color: #10b981;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .ai-action-btn:hover {
-          background: #10b981;
-          color: white;
-        }
 
         .view-mode-toggle {
           display: flex;
