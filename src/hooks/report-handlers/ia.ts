@@ -45,8 +45,9 @@ export const monteCarlo: ReportHandler = async (tenantId, fazendaId) => {
     
     if (error) throw error;
 
-    const baseProfit = summary?.base_profit || 1700000;
-    const baseReceita = baseProfit * 2.5;
+    const baseProfit = Number(summary?.base_profit || 0);
+    const baseReceita = Number(summary?.total_receitas || 0);
+    const baseDespesas = Number(summary?.total_despesas || 0);
 
     return {
       data: [
@@ -135,10 +136,14 @@ export const suportePasto: ReportHandler = async (tenantId, fazendaId) => {
   };
 
   try {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
     const fetchPastos = supabase
       .from('pastos')
-      .select('*')
-      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId });
+      .select('*', { count: 'exact' })
+      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
+      .range(from, to);
 
     const fetchSummary = supabase.rpc('get_paddock_support_capacity', { p_tenant_id: tenantId, p_fazenda_id: fazendaId });
 

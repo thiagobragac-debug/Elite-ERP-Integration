@@ -82,7 +82,7 @@ export const consumoFrotas: ReportHandler = async (tenantId, fazendaId, page = 1
     };
   } catch (error) {
     console.warn('[ConsumoFrotas] Resilience Pattern Engaged. Reason:', error instanceof Error ? error.message : 'Unknown');
-    return mockData;
+    return { data: [], stats: mockData.stats, columns: mockData.columns, totalCount: 0 };
   }
 };
 
@@ -124,22 +124,19 @@ export const manutencoesFrota: ReportHandler = async (tenantId, fazendaId, page 
       .order('data_inicio', { ascending: false })
       .range(from, to);
 
-    const statsQuery = supabase
-      .from('manutencao_frota')
-      .select('custo')
-      .match(scope);
+    const fetchStats = supabase.rpc('get_manutencao_stats', { p_tenant_id: tenantId, p_fazenda_id: fazendaId });
 
     const [manutRes, statsRes] = await Promise.all([
       withTimeout((fetchManut as unknown) as Promise<any>) as any,
-      withTimeout((statsQuery as unknown) as Promise<any>) as any
+      withTimeout((fetchStats as unknown) as Promise<any>) as any
     ]);
 
     if (manutRes.error) throw manutRes.error;
-    if (statsRes.error) throw statsRes.error;
 
     const manut = manutRes.data || [];
-    const allManutForStats = statsRes.data || [];
-    const totalManut = allManutForStats.reduce((acc: any, curr: any) => acc + (Number(curr.custo) || 0), 0);
+    const totalManut = Number(statsRes.data?.total_custo || 0);
+    const totalIntervencoes = Number(statsRes.data?.total_intervencoes || 0);
+    const custoMedio = Number(statsRes.data?.custo_medio || 0);
 
     return {
       data: manut.map((m: any) => ({
@@ -154,8 +151,8 @@ export const manutencoesFrota: ReportHandler = async (tenantId, fazendaId, page 
       columns: mockData.columns,
       stats: [
         { label: 'Investimento Oficina', value: `R$ ${totalManut.toLocaleString()}`, change: 'Total Período', trend: 'neutral' as const },
-        { label: 'Intervenções', value: allManutForStats.length.toString(), change: 'Status: OK', trend: 'neutral' as const },
-        { label: 'Custo Médio / Máq', value: `R$ ${(totalManut / (allManutForStats.length || 1)).toLocaleString()}`, change: 'Elite Sync', trend: 'neutral' as const },
+        { label: 'Intervenções', value: totalIntervencoes.toString(), change: 'Status: OK', trend: 'neutral' as const },
+        { label: 'Custo Médio / Máq', value: `R$ ${custoMedio.toLocaleString()}`, change: 'Elite Sync', trend: 'neutral' as const },
         { label: 'Disponibilidade Frota', value: '94%', change: 'SLA Ideal', trend: 'neutral' as const }
       ],
       totalCount: manutRes.count || 0

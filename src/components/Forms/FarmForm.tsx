@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Map, 
+import React from 'react';
+import {
+  Map,
   Maximize,
   MapPin,
   Building2,
   FileText,
-  Trees
+  Hash
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 import { useTenant } from '../../contexts/TenantContext';
@@ -22,8 +22,11 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
   const [formData, setFormData] = React.useState({
     name: '',
     registrationNumber: '',
+    nirf: '',
     totalArea: '',
     location: '',
+    municipio: '',
+    uf: '',
     companyId: '',
     description: ''
   });
@@ -33,21 +36,20 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
   React.useEffect(() => {
     if (initialData) {
       setFormData({
-        name: initialData.name || '',
-        registrationNumber: initialData.registrationNumber || '',
-        totalArea: initialData.totalArea?.toString() || '',
-        location: initialData.location || '',
-        companyId: initialData.companyId || '',
+        name: initialData.nome || initialData.name || '',
+        registrationNumber: initialData.ie_produtor || initialData.registrationNumber || '',
+        nirf: initialData.nirf || '',
+        totalArea: (initialData.area_total || initialData.totalArea)?.toString() || '',
+        location: initialData.localizacao || initialData.location || '',
+        municipio: initialData.municipio || '',
+        uf: initialData.uf || '',
+        companyId: initialData.unidade_id || initialData.companyId || '',
         description: initialData.description || ''
       });
     } else {
       setFormData({
-        name: '',
-        registrationNumber: '',
-        totalArea: '',
-        location: '',
-        companyId: '',
-        description: ''
+        name: '', registrationNumber: '', nirf: '', totalArea: '',
+        location: '', municipio: '', uf: '', companyId: '', description: ''
       });
     }
   }, [initialData, isOpen]);
@@ -56,9 +58,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
     e.preventDefault();
     setLoading(true);
     try {
-      console.log('Submitting farm data:', formData);
       await onSubmit(formData);
-      console.log('Submission complete');
     } catch (err) {
       console.error('Error in FarmForm handleSubmit:', err);
     } finally {
@@ -71,30 +71,23 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title={initialData ? "Editar Fazenda" : "Cadastrar Nova Fazenda"}
-      subtitle={initialData ? "Atualize os dados da sua unidade produtiva." : "Adicione uma unidade produtiva e vincule a uma empresa."}
+      title={initialData ? 'Editar Fazenda' : 'Cadastrar Nova Fazenda'}
+      subtitle={initialData ? 'Atualize os dados da sua unidade produtiva.' : 'Adicione uma unidade produtiva e vincule a uma empresa.'}
       icon={Map}
       loading={loading}
-      submitLabel={initialData ? "Salvar Alterações" : "Salvar Fazenda"}
+      submitLabel={initialData ? 'Salvar Alterações' : 'Salvar Fazenda'}
     >
       <div className="form-group full-width">
         <label><Map size={14} /> Nome da Fazenda / Unidade</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Fazenda Santa Maria, Unidade Sul..." 
+        <input type="text" placeholder="Ex: Fazenda Santa Maria, Unidade Sul..."
           value={formData.name}
-          onChange={(e) => setFormData({...formData, name: e.target.value})}
-          required 
-        />
+          onChange={(e) => setFormData({...formData, name: e.target.value})} required />
       </div>
 
       <div className="form-group">
         <label><Building2 size={14} /> Empresa Responsável</label>
-        <select 
-          value={formData.companyId}
-          onChange={(e) => setFormData({...formData, companyId: e.target.value})}
-          required
-        >
+        <select value={formData.companyId}
+          onChange={(e) => setFormData({...formData, companyId: e.target.value})} required>
           <option value="">Selecione a empresa...</option>
           {companies.map(c => (
             <option key={c.id} value={c.id}>{c.name}</option>
@@ -103,48 +96,74 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
       </div>
 
       <div className="form-group">
-        <label><FileText size={14} /> Inscrição Estadual</label>
-        <input 
-          type="text" 
-          placeholder="Número da IE..." 
+        <label><FileText size={14} /> Inscrição Estadual (IE)</label>
+        <input type="text" placeholder="Número da IE..."
           value={formData.registrationNumber}
-          onChange={(e) => setFormData({...formData, registrationNumber: e.target.value})}
-          required
-        />
+          onChange={(e) => setFormData({...formData, registrationNumber: e.target.value})} />
+      </div>
+
+      {/* NIRF — Número do Imóvel na Receita Federal */}
+      <div className="form-group">
+        <label>
+          <Hash size={14} /> NIRF
+          <span className="nirf-badge">Receita Federal</span>
+        </label>
+        <input type="text" placeholder="Ex: 1234567-8"
+          value={formData.nirf}
+          onChange={(e) => setFormData({...formData, nirf: e.target.value})} />
+        <small className="field-hint">Número do Imóvel na Receita Federal — obrigatório para o LCDPR</small>
       </div>
 
       <div className="form-group">
         <label><Maximize size={14} /> Área Total (ha)</label>
-        <input 
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
+        <input type="number" step="0.01" placeholder="0.00"
           value={formData.totalArea}
-          onChange={(e) => setFormData({...formData, totalArea: e.target.value})}
-          required
-        />
+          onChange={(e) => setFormData({...formData, totalArea: e.target.value})} required />
+      </div>
+
+      {/* Localização detalhada */}
+      <div className="form-section-title full-width">
+        <MapPin size={16} /><span>Localização</span>
+      </div>
+
+      <div className="form-group" style={{flex: '2 1 200px'}}>
+        <label>Município</label>
+        <input type="text" placeholder="Ex: Jataí" value={formData.municipio}
+          onChange={(e) => setFormData({...formData, municipio: e.target.value})} />
       </div>
 
       <div className="form-group">
-        <label><MapPin size={14} /> Localização (Cidade/UF)</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Jataí - GO" 
-          value={formData.location}
-          onChange={(e) => setFormData({...formData, location: e.target.value})}
-          required
-        />
+        <label>UF</label>
+        <input type="text" placeholder="GO" maxLength={2} value={formData.uf}
+          onChange={(e) => setFormData({...formData, uf: e.target.value.toUpperCase()})} />
+      </div>
+
+      <div className="form-group full-width">
+        <label><MapPin size={14} /> Localização (Cidade/UF — exibição)</label>
+        <input type="text" placeholder="Ex: Jataí - GO" value={formData.location}
+          onChange={(e) => setFormData({...formData, location: e.target.value})} />
       </div>
 
       <div className="form-group full-width">
         <label><FileText size={14} /> Observações / Descrição</label>
-        <textarea 
-          placeholder="Breve descrição da atividade principal da unidade..." 
+        <textarea placeholder="Breve descrição da atividade principal da unidade..."
           value={formData.description}
-          onChange={(e) => setFormData({...formData, description: e.target.value})}
-          rows={3}
-        />
+          onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} />
       </div>
+
+      <style>{`
+        .nirf-badge {
+          margin-left: 6px; font-size: 9px; font-weight: 800;
+          padding: 1px 6px; border-radius: 5px;
+          background: hsl(var(--brand) / 0.12); color: hsl(var(--brand));
+          border: 1px solid hsl(var(--brand) / 0.25);
+          letter-spacing: 0.06em; text-transform: uppercase; vertical-align: middle;
+        }
+        .field-hint {
+          display: block; margin-top: 4px; font-size: 11px;
+          color: hsl(var(--text-muted)); font-style: italic;
+        }
+      `}</style>
     </FormModal>
   );
 };

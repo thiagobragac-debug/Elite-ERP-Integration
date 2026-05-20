@@ -42,6 +42,7 @@ const menuItems: NavItem[] = [
       { title: 'Assinatura & Planos', href: '/admin/assinatura' },
       { title: 'Log de Auditoria', href: '/admin/auditoria' },
     ]
+
   },
   { 
     title: 'Pecuária', 
@@ -112,42 +113,60 @@ const menuItems: NavItem[] = [
       { title: 'Conta a Pagar', href: '/financeiro/pagar' },
       { title: 'Conta a Receber', href: '/financeiro/receber' },
       { title: 'Conciliação Bancária', href: '/financeiro/conciliacao' },
+      { title: 'LCDPR', href: '/financeiro/lcdpr' },
     ]
   },
   { title: 'Relatórios', icon: FileText, href: '/relatorios' },
 ];
 
+/** Maps URL prefix → sidebar module title */
+const routeToModule: Record<string, string> = {
+  '/admin':      'Administração',
+  '/pecuaria':   'Pecuária',
+  '/frota':      'Máquina & Frota',
+  '/compras':    'Compra & Cotação',
+  '/vendas':     'Venda & CRM',
+  '/estoque':    'Estoque',
+  '/financeiro': 'Financeiro & Banco',
+};
+
+/** Returns the module title that matches the current pathname, or empty string */
+const getModuleFromPath = (pathname: string): string => {
+  const match = Object.entries(routeToModule).find(([prefix]) =>
+    pathname.startsWith(prefix)
+  );
+  return match ? match[1] : '';
+};
+
 export const Sidebar: React.FC = () => {
-  const [openMenus, setOpenMenus] = useState<string[]>(['Pecuária', 'Administração', 'Compra & Cotação', 'Financeiro & Banco']);
+  const location = useLocation();
+
+  // On first render, open only the module that matches the current URL.
+  // This makes F5 / direct navigation behave correctly.
+  const [openMenus, setOpenMenus] = useState<string[]>(() => {
+    const active = getModuleFromPath(location.pathname);
+    return active ? [active] : [];
+  });
+
   const [isFarmSelectorOpen, setIsFarmSelectorOpen] = useState(false);
   const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode } = useTenant();
-  const location = useLocation();
+
+  // When the user navigates to a new module section, automatically open it
+  // (but don't close others — let the user manage that with clicks).
+  useEffect(() => {
+    const active = getModuleFromPath(location.pathname);
+    if (active) {
+      setOpenMenus(prev =>
+        prev.includes(active) ? prev : [...prev, active]
+      );
+    }
+  }, [location.pathname]);
+
   const isFleetRoute = location.pathname.startsWith('/frota');
   const isPurchasingRoute = location.pathname.startsWith('/compras');
 
-  useEffect(() => {
-    if (isFleetRoute) {
-      setOpenMenus(prev => {
-        const next = prev.filter(m => m !== 'Pecuária');
-        if (!next.includes('Máquina & Frota')) {
-          next.push('Máquina & Frota');
-        }
-        return next;
-      });
-    }
-    if (isPurchasingRoute) {
-      setOpenMenus(prev => {
-        const next = prev.filter(m => m !== 'Pecuária');
-        if (!next.includes('Compra & Cotação')) {
-          next.push('Compra & Cotação');
-        }
-        return next;
-      });
-    }
-  }, [isFleetRoute, isPurchasingRoute]);
-
   const toggleMenu = (title: string) => {
-    setOpenMenus(prev => 
+    setOpenMenus(prev =>
       prev.includes(title) ? prev.filter(t => t !== title) : [...prev, title]
     );
   };

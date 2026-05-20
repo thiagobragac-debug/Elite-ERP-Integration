@@ -205,7 +205,7 @@
   display: block;
 }
 
-.user-profile-wrapper:hover .user-dropdown {
+.user-dropdown.open {
   opacity: 1;
   visibility: visible;
   transform: translateY(0);

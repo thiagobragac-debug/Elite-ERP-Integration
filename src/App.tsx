@@ -36,6 +36,7 @@ const AccountsReceivable = React.lazy(() => import('./pages/Finance/AccountsRece
 const BankAccounts = React.lazy(() => import('./pages/Finance/BankAccounts').then(m => ({ default: m.BankAccounts })));
 const BankReconciliation = React.lazy(() => import('./pages/Finance/BankReconciliation').then(m => ({ default: m.BankReconciliation })));
 const FinanceIntelligenceHub = React.lazy(() => import('./pages/Finance/FinanceIntelligenceHub').then(m => ({ default: m.FinanceIntelligenceHub })));
+const LCDPRPage = React.lazy(() => import('./pages/Finance/LCDPR/LCDPRPage').then(m => ({ default: m.LCDPRPage })));
 const FleetDashboard = React.lazy(() => import('./pages/Fleet/FleetDashboard').then(m => ({ default: m.FleetDashboard })));
 const FleetManagement = React.lazy(() => import('./pages/Fleet/FleetManagement').then(m => ({ default: m.FleetManagement })));
 const MaintenanceManagement = React.lazy(() => import('./pages/Fleet/MaintenanceManagement').then(m => ({ default: m.MaintenanceManagement })));
@@ -179,6 +180,7 @@ function AppContent() {
             <Route path="financeiro/pagar" element={<AccountsPayable />} />
             <Route path="financeiro/receber" element={<AccountsReceivable />} />
             <Route path="financeiro/conciliacao" element={<BankReconciliation />} />
+            <Route path="financeiro/lcdpr" element={<LCDPRPage />} />
             
             <Route path="frota/dashboard" element={<FleetDashboard />} />
             <Route path="frota/maquina" element={<FleetManagement />} />

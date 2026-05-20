@@ -14,6 +14,7 @@ import {
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { ToggleSwitch } from '../UI/ToggleSwitch';
 
 interface UserFormProps {
   isOpen: boolean;
@@ -162,22 +163,35 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
       </div>
 
       <div className="form-group full-width">
-        <label><Activity size={14} /> Status Inicial</label>
-        <div className="elite-form-radio-group">
-          <div 
-            className={`elite-form-radio-item ${formData.status === 'active' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, status: 'active'})}
-          >
-            <CheckCircle2 size={16} />
-            <span>Ativo</span>
+        <label><Activity size={14} /> Status do Usuário</label>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 18px',
+          borderRadius: 12,
+          border: `2px solid ${formData.status === 'active' ? '#10b98130' : '#ef444430'}`,
+          background: formData.status === 'active' ? '#10b98108' : '#ef444408',
+          transition: 'all 0.25s ease'
+        }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--text-main))' }}>
+              {formData.status === 'active' ? 'Conta Ativa' : 'Conta Bloqueada'}
+            </div>
+            <div style={{ fontSize: 11, color: 'hsl(var(--text-muted))', marginTop: 2 }}>
+              {formData.status === 'active'
+                ? 'Usuário pode acessar o sistema normalmente'
+                : 'Login bloqueado — usuário não consegue entrar'}
+            </div>
           </div>
-          <div 
-            className={`elite-form-radio-item ${formData.status === 'inactive' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, status: 'inactive'})}
-          >
-            <Shield size={16} />
-            <span>Bloqueado</span>
-          </div>
+          <ToggleSwitch
+            checked={formData.status === 'active'}
+            onChange={(val) => setFormData({ ...formData, status: val ? 'active' : 'inactive' })}
+            size="lg"
+            labelOn="Ativo"
+            labelOff="Inativo"
+            showStatus={false}
+          />
         </div>
       </div>
     </FormModal>

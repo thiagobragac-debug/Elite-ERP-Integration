@@ -512,6 +512,6 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
     };
   } catch (error) {
     console.error('[FinanceOverview] Critical Failure:', error);
-    return mockData;
+    return { data: [], stats: mockData.stats, columns: mockData.columns, totalCount: 0 };
   }
 };

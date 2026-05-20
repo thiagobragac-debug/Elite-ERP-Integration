@@ -13,7 +13,7 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
 /**
  * Comercial: Pedidos de Venda
  */
-export const pedidosVenda: ReportHandler = async (tenantId, fazendaId) => {
+export const pedidosVenda: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 15) => {
   const mockData = {
     data: [
       { id: 'v1', codigo: '#VD-2026-001', cliente: 'Cargill Agrícola 🏢', produto: 'Soja em Grãos 🌾', quantidade: '3.000 sc', preco_unitario: 'R$ 150', total: 'R$ 450.000', status: 'Faturado ✅', data: '14/05/2026' },
@@ -38,11 +38,15 @@ export const pedidosVenda: ReportHandler = async (tenantId, fazendaId) => {
   };
 
   try {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
     const fetchVendas = supabase
       .from('pedidos_venda')
-      .select('*, clientes(nome)')
+      .select('*, clientes(nome)', { count: 'exact' })
       .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(from, to);
 
     const fetchSummary = supabase.rpc('get_sales_performance', { 
       p_tenant_id: tenantId, 
@@ -74,7 +78,8 @@ export const pedidosVenda: ReportHandler = async (tenantId, fazendaId) => {
         { label: 'Ticket Médio', value: `R$ ${Number(summaryRes.data?.ticket_medio || 0).toLocaleString()}`, change: 'Atual', trend: 'neutral' as const },
         { label: 'Volume de Pedidos', value: summaryRes.data?.volume_pedidos || 0, change: 'Real', trend: 'neutral' as const },
         { label: 'Conversão Comercial', value: '92.4%', change: 'Real-time', trend: 'neutral' as const }
-      ]
+      ],
+      totalCount: vendasRes.count || 0
     };
   } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
@@ -106,12 +111,16 @@ export const clientes: ReportHandler = async (tenantId, fazendaId) => {
   };
 
   try {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
     const fetchCls = supabase
       .from('clientes')
-      .select('*')
-      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId });
+      .select('*', { count: 'exact' })
+      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
+      .range(from, to);
 
-    const { data: cls, error } = await withTimeout((fetchCls as unknown) as Promise<any>) as any;
+    const { data: cls, count, error } = await withTimeout((fetchCls as unknown) as Promise<any>) as any;
     if (error) throw error;
 
     return {
@@ -126,8 +135,9 @@ export const clientes: ReportHandler = async (tenantId, fazendaId) => {
         ltv: `R$ ${Number(c.ltv || 0).toLocaleString()}`
       })),
       columns: mockData.columns,
+      totalCount: count || 0,
       stats: [
-        { label: 'Base Clientes', value: (cls || []).length, change: 'Ativos', trend: 'neutral' as const }, 
+        { label: 'Base Clientes', value: count || 0, change: 'Ativos', trend: 'neutral' as const }, 
         { label: 'Churn Rate', value: '0%', change: 'Status', trend: 'neutral' as const }, 
         { label: 'LTV Médio', value: 'R$ 45k', change: 'Est.', trend: 'neutral' as const },
         { label: 'CSAT (Satisfação)', value: '98%', change: 'Excelente', trend: 'neutral' as const }

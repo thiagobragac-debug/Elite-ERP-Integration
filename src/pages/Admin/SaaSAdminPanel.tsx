@@ -46,6 +46,7 @@ import { logAudit } from '../../utils/audit';
 import { supabase } from '../../lib/supabase';
 import { SaaSFilterModal } from './components/SaaSFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
+import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 
 type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'billing' | 'health' | 'settings';
 
@@ -132,17 +133,11 @@ export const SaaSAdminPanel: React.FC = () => {
   const fetchTenants = async () => {
     try {
       setTenantsLoading(true);
-      
-      const fetchPromise = supabase
+      const { data, error }: any = await supabase
         .from('tenants')
-        .select('*').limit(500)
+        .select('*')
+        .limit(500)
         .order('created_at', { ascending: false });
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const { data, error }: any = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (error) throw error;
       
@@ -178,16 +173,10 @@ export const SaaSAdminPanel: React.FC = () => {
   const fetchInvoices = async () => {
     try {
       setInvoicesLoading(true);
-      const fetchPromise = supabase
+      const { data, error }: any = await supabase
         .from('saas_invoices')
         .select('*, tenants(nome)')
         .order('created_at', { ascending: false });
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const { data, error }: any = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (error) throw error;
       
@@ -221,16 +210,11 @@ export const SaaSAdminPanel: React.FC = () => {
   const fetchPlans = async () => {
     try {
       setPlansLoading(true);
-      const fetchPromise = supabase
+      const { data, error }: any = await supabase
         .from('saas_plans')
-        .select('*').limit(500)
+        .select('*')
+        .limit(500)
         .order('price', { ascending: true });
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const { data, error }: any = await Promise.race([fetchPromise, timeoutPromise]);
 
       if (error) throw error;
       
@@ -359,6 +343,22 @@ export const SaaSAdminPanel: React.FC = () => {
     setKpis({ mrr, totalTenants, totalUsers, health: Number(health.toFixed(2)) });
     checkServicesStatus(totalTenants, invoicesList.length);
   }, [tenantsList, plansList, invoicesList]);
+
+  // Toggle tenant active/inactive — blocks all users of that tenant immediately
+  const handleToggleTenant = async (tenant: any, active: boolean) => {
+    const newStatus = active ? 'Ativo' : 'Suspenso';
+    setTenantsList(prev => prev.map(t => t.id === tenant.id ? { ...t, status: newStatus } : t));
+    try {
+      await supabase.from('tenants').update({ status: newStatus }).eq('id', tenant.id);
+      await supabase.rpc('admin_set_tenant_ban', { target_tenant_id: tenant.id, banned: !active }).catch(() => {
+        console.warn('[ToggleTenant] admin_set_tenant_ban RPC not available');
+      });
+      await logAudit({ action: `TENANT_${active ? 'ATIVADO' : 'SUSPENSO'}`, entity: 'tenants', entityId: tenant.id, details: `Status alterado para ${newStatus}` });
+    } catch (err) {
+      setTenantsList(prev => prev.map(t => t.id === tenant.id ? { ...t, status: active ? 'Suspenso' : 'Ativo' } : t));
+      console.error('[ToggleTenant] Error:', err);
+    }
+  };
 
   const totalFaturamento = React.useMemo(() => {
     return invoicesList
@@ -1279,11 +1279,14 @@ export const SaaSAdminPanel: React.FC = () => {
     {
       header: 'Status',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span className={`status-pill ${(item.status || 'Ativo').toLowerCase() === 'ativo' ? 'active' : ((item.status || '').toLowerCase() === 'trial' ? 'trial' : ((item.status || '').toLowerCase() === 'suspenso' ? 'suspenso' : 'stopped'))}`}>
-            {item.status}
-          </span>
-        </div>
+        <ToggleSwitch
+          checked={(item.status || 'Ativo').toLowerCase() === 'ativo'}
+          onChange={(val) => handleToggleTenant(item, val)}
+          size="sm"
+          labelOn="Ativo"
+          labelOff="Suspenso"
+          showStatus
+        />
       ),
       align: 'center' as const
     },
@@ -2167,9 +2170,16 @@ export const SaaSAdminPanel: React.FC = () => {
                                 <HardDrive size={14} className="tenant-meta-icon" style={{ marginRight: "8px" }} />
                                 <span>{t.storage} Alocados</span>
                               </div>
-                              <div className="tenant-meta-item" title={t.id}>
-                                <Shield size={14} className="tenant-meta-icon" style={{ marginRight: "8px" }} />
-                                <span>{t.id}</span>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTop: '1px solid hsl(var(--border) / 0.5)' }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</span>
+                                <ToggleSwitch
+                                  checked={(t.status || 'Ativo').toLowerCase() === 'ativo'}
+                                  onChange={(val) => handleToggleTenant(t, val)}
+                                  size="sm"
+                                  labelOn="Ativo"
+                                  labelOff="Suspenso"
+                                  showStatus
+                                />
                               </div>
                             </div>
                           </div>
@@ -2595,17 +2605,17 @@ export const SaaSAdminPanel: React.FC = () => {
                         </div>
                         <div className="brand-details">
                           <h3>Stripe</h3>
-                          <span className={`status-tag ${gatewaySettings.stripe.is_active ? 'active' : 'inactive'}`}>
-                            {gatewaySettings.stripe.is_active ? 'ATIVO' : 'INATIVO'}
-                          </span>
+                          <ToggleSwitch
+                            checked={gatewaySettings.stripe.is_active}
+                            onChange={(val) => updateGatewayField('stripe', 'is_active', val)}
+                            size="sm"
+                            labelOn="ATIVO"
+                            labelOff="INATIVO"
+                            showStatus
+                          />
                         </div>
                       </div>
-                      <button 
-                        onClick={() => updateGatewayField('stripe', 'is_active', !gatewaySettings.stripe.is_active)}
-                        className={`elite-tab-item ${gatewaySettings.stripe.is_active ? 'active' : ''}`}
-                      >
-                        {gatewaySettings.stripe.is_active ? 'DESATIVAR' : 'ATIVAR'}
-                      </button>
+                      {/* Remove old button — toggle replaces it */}
                     </div>
 
                     <div className="card-body">
@@ -2657,17 +2667,17 @@ export const SaaSAdminPanel: React.FC = () => {
                         </div>
                         <div className="brand-details">
                           <h3>Asaas</h3>
-                          <span className={`status-tag ${gatewaySettings.asaas.is_active ? 'active' : 'inactive'}`}>
-                            {gatewaySettings.asaas.is_active ? 'ATIVO' : 'INATIVO'}
-                          </span>
+                          <ToggleSwitch
+                            checked={gatewaySettings.asaas.is_active}
+                            onChange={(val) => updateGatewayField('asaas', 'is_active', val)}
+                            size="sm"
+                            labelOn="ATIVO"
+                            labelOff="INATIVO"
+                            showStatus
+                          />
                         </div>
                       </div>
-                      <button 
-                        onClick={() => updateGatewayField('asaas', 'is_active', !gatewaySettings.asaas.is_active)}
-                        className={`elite-tab-item ${gatewaySettings.asaas.is_active ? 'active' : ''}`}
-                      >
-                        {gatewaySettings.asaas.is_active ? 'DESATIVAR' : 'ATIVAR'}
-                      </button>
+                      {/* Remove old button — toggle replaces it */}
                     </div>
 
                     <div className="card-body">
@@ -2712,17 +2722,17 @@ export const SaaSAdminPanel: React.FC = () => {
                         </div>
                         <div className="brand-details">
                           <h3>Pagar.me</h3>
-                          <span className={`status-tag ${gatewaySettings.pagarme.is_active ? 'active' : 'inactive'}`}>
-                            {gatewaySettings.pagarme.is_active ? 'ATIVO' : 'INATIVO'}
-                          </span>
+                          <ToggleSwitch
+                            checked={gatewaySettings.pagarme.is_active}
+                            onChange={(val) => updateGatewayField('pagarme', 'is_active', val)}
+                            size="sm"
+                            labelOn="ATIVO"
+                            labelOff="INATIVO"
+                            showStatus
+                          />
                         </div>
                       </div>
-                      <button 
-                        onClick={() => updateGatewayField('pagarme', 'is_active', !gatewaySettings.pagarme.is_active)}
-                        className={`elite-tab-item ${gatewaySettings.pagarme.is_active ? 'active' : ''}`}
-                      >
-                        {gatewaySettings.pagarme.is_active ? 'DESATIVAR' : 'ATIVAR'}
-                      </button>
+                      {/* Remove old button — toggle replaces it */}
                     </div>
 
                     <div className="card-body">

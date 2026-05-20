@@ -68,25 +68,10 @@ export const CompanyManagement: React.FC = () => {
     if (!tenant?.id) return;
     setLoading(true);
     try {
-      const fetchPromise = (async () => {
-        const { data: unitsData } = await supabase
-          .from('unidades')
-          .select('*').limit(500)
-          .eq('tenant_id', tenant.id);
-        
-        const { data: farmsData } = await supabase
-          .from('fazendas')
-          .select('*').limit(500)
-          .eq('tenant_id', tenant.id);
-        
-        return { unitsData, farmsData };
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const { unitsData, farmsData }: any = await Promise.race([fetchPromise, timeoutPromise]);
+      const [{ data: unitsData }, { data: farmsData }] = await Promise.all([
+        supabase.from('unidades').select('*').limit(500).eq('tenant_id', tenant.id),
+        supabase.from('fazendas').select('*').limit(500).eq('tenant_id', tenant.id)
+      ]);
 
       if (unitsData) setCompanies(unitsData);
       if (farmsData) setFarms(farmsData);
@@ -195,7 +180,10 @@ export const CompanyManagement: React.FC = () => {
     try {
       const payload = {
         razao_social: formData.name,
+        nome: formData.name,
         cnpj: formData.document,
+        documento: formData.document,
+        tipo_documento: formData.tipo_documento,
         tipo: formData.type,
         email: formData.email,
         telefone: formData.phone,
@@ -208,8 +196,14 @@ export const CompanyManagement: React.FC = () => {
         cidade: formData.cidade,
         estado: formData.estado,
         pais: formData.pais,
-        nome: formData.name,
-        documento: formData.document
+        // LCDPR — Sócio (apenas CNPJ)
+        socio_cpf: formData.socio_cpf || null,
+        socio_nome: formData.socio_nome || null,
+        socio_ind_sit_esp: formData.socio_ind_sit_esp ?? 0,
+        // LCDPR — Contador (apenas Matriz)
+        contador_cpf: formData.contador_cpf || null,
+        contador_nome: formData.contador_nome || null,
+        contador_crc: formData.contador_crc || null,
       };
 
       if (editingItem) {
@@ -230,8 +224,11 @@ export const CompanyManagement: React.FC = () => {
       const payload = {
         nome: formData.name,
         ie_produtor: formData.registrationNumber,
+        nirf: formData.nirf || null,
         area_total: formData.totalArea,
         localizacao: formData.location,
+        municipio: formData.municipio || null,
+        uf: formData.uf || null,
         unidade_id: formData.companyId
       };
 

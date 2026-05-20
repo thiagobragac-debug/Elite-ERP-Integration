@@ -36,11 +36,12 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
 
   try {
     // Queries paralelas para máxima performance (Diamond Precision)
-    const [gmdRes, bankRes, logsRes, animalRes] = await Promise.all([
+    const [gmdRes, bankRes, logsRes, animalRes, lotacaoRes] = await Promise.all([
       supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
       supabase.rpc('get_banking_consolidated_balance', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
-      supabase.from('audit_logs').select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(6),
-      supabase.from('animais').select('*', { count: 'exact', head: true }).match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
+      supabase.from('audit_logs').select('id, action, entity, description, created_at').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(6),
+      supabase.from('animais').select('id', { count: 'exact', head: true }).match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId }),
+      supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId })
     ]);
 
     const totalBalance = bankRes.data?.saldo_total || 0;
@@ -101,19 +102,19 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
         { 
           id: 'lotacao', 
           label: 'Taxa de Lotação', 
-          value: '1.8 UA/ha', 
-          change: 'Ideal: 2.1', 
+          value: `${Number(lotacaoRes.data?.media_lotacao || 0).toFixed(2)} UA/ha`, 
+          change: `Área: ${Number(lotacaoRes.data?.area_total || 0).toFixed(0)} ha`, 
           trend: 'neutral' as const, 
           color: '#8b5cf6', 
-          progress: 86,
-          sparkline: [{value: 1.2}, {value: 1.5}, {value: 1.8}]
+          progress: Math.min(100, Number(lotacaoRes.data?.taxa_ocupacao || 0)),
+          sparkline: [{value: 1.2}, {value: 1.5}, {value: Number(lotacaoRes.data?.media_lotacao || 1.8)}]
         }
       ],
       totalCount: activities.length
     };
   } catch (error) {
     console.error('[PanoramaOverview] Critical Failure:', error);
-    return mockData;
+    return { data: [], stats: mockData.stats, columns: mockData.columns, totalCount: 0 };
   }
 };
 

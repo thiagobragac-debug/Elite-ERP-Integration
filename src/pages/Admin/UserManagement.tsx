@@ -45,6 +45,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useSearchParams } from 'react-router-dom';
 import { UserFilterModal } from './components/UserFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 
 export const UserManagement: React.FC = () => {
   const { activeFarm, userProfile, refreshProfile } = useTenant();
@@ -283,34 +284,11 @@ export const UserManagement: React.FC = () => {
     }
 
     try {
-      const fetchPromise = (async () => {
-        const { data: usersData, error: usersError } = await supabase
-          .from('profiles_view')
-          .select('*, perfis_usuario(nome)')
-          .eq('tenant_id', activeTenantId);
-        
-        const { data: profilesData } = await supabase
-          .from('perfis_usuario')
-          .select('*').limit(500)
-          .eq('tenant_id', activeTenantId);
-
-        const todayStr = new Date().toISOString().split('T')[0];
-        const { data: activeLogs } = await supabase
-          .from('audit_logs')
-          .select('user_email')
-          .eq('tenant_id', activeTenantId)
-          .gte('created_at', todayStr);
-
-        if (usersError) throw usersError;
-        return { usersData, profilesData, activeLogs };
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const result: any = await Promise.race([fetchPromise, timeoutPromise]);
-      const { usersData, profilesData, activeLogs } = result;
+      const [{ data: usersData, error: usersError }, { data: profilesData }, { data: activeLogs }] = await Promise.all([
+        supabase.from('profiles_view').select('*, perfis_usuario(nome)').eq('tenant_id', activeTenantId),
+        supabase.from('perfis_usuario').select('*').limit(500).eq('tenant_id', activeTenantId),
+        supabase.from('audit_logs').select('user_email').eq('tenant_id', activeTenantId).gte('created_at', new Date().toISOString().split('T')[0])
+      ]);
 
       const processedProfiles = (profilesData || []).map((p: any) => ({
         ...p,
@@ -398,21 +376,38 @@ export const UserManagement: React.FC = () => {
   };
 
   const handleAddUser = async (data: any) => {
-    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
-    
-    // In a real scenario, this would be an invite. 
-    // For now, we insert into profiles as a mock invitation.
-    const { error } = await supabase.from('profiles').insert([{
+    if (!activeFarm) return;
+
+    const payload: any = {
       full_name: data.name,
       email: data.email,
       tenant_id: activeFarm.tenantId,
       perfil_id: data.profile_id,
+      status: data.status || 'active',
       role: 'USER'
-    }]);
+    };
 
-    if (!error) {
-      setIsUserModalOpen(false);
-      fetchData();
+    if (selectedUser) {
+      // Edit existing user
+      const { error } = await supabase.from('profiles').update(payload).eq('id', selectedUser.id);
+      if (!error) {
+        // Apply/remove Auth ban based on status
+        await supabase.rpc('admin_set_user_ban', {
+          target_user_id: selectedUser.id,
+          banned: data.status === 'inactive'
+        }).catch(() => console.warn('[handleAddUser] admin_set_user_ban RPC not available'));
+        setIsUserModalOpen(false);
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 2000);
+        fetchData();
+      }
+    } else {
+      // New user invite
+      const { error } = await supabase.from('profiles').insert([payload]);
+      if (!error) {
+        setIsUserModalOpen(false);
+        fetchData();
+      }
     }
   };
 

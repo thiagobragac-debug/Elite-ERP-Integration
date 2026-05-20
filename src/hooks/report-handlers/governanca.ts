@@ -129,12 +129,16 @@ export const perfisUsuario: ReportHandler = async (tenantId, fazendaId) => {
   };
 
   try {
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+
     const fetchUsers = supabase
       .from('perfis_usuario')
-      .select('*')
-      .eq('tenant_id', tenantId);
+      .select('*', { count: 'exact' })
+      .eq('tenant_id', tenantId)
+      .range(from, to);
     
-    const { data: users, error } = await withTimeout((fetchUsers as unknown) as Promise<any>) as any;
+    const { data: users, count, error } = await withTimeout((fetchUsers as unknown) as Promise<any>) as any;
     if (error) throw error;
 
     return {
@@ -145,8 +149,9 @@ export const perfisUsuario: ReportHandler = async (tenantId, fazendaId) => {
         status: u.ativo ? 'Ativo' : 'Inativo' 
       })),
       columns: mockData.columns,
+      totalCount: count || 0,
       stats: [
-        { label: 'Total Equipe', value: (users || []).length, change: 'Status', trend: 'neutral' as const },
+        { label: 'Total Equipe', value: count || 0, change: 'Status', trend: 'neutral' as const },
         { label: 'Acessos Hoje', value: '4', change: 'Real', trend: 'neutral' as const },
         { label: 'Licenças Ativas', value: 'SaaS Connect', change: 'Ativo', trend: 'neutral' as const },
         { label: 'Grupos de Segurança', value: '3 perfis', change: 'Ativo', trend: 'neutral' as const }
@@ -180,8 +185,8 @@ export const adminOverview: ReportHandler = async (tenantId, fazendaId) => {
 
   try {
     const [userRes, logsRes] = await Promise.all([
-      supabase.from('profiles').select('*', { count: 'exact', head: true }),
-      supabase.from('audit_logs').select('*').eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(50)
+      supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      supabase.from('audit_logs').select('id, action, entity, description, created_at', { count: 'exact' }).eq('tenant_id', tenantId).order('created_at', { ascending: false }).limit(20)
     ]);
 
     const userCount = userRes.count || 0;
@@ -236,6 +241,6 @@ export const adminOverview: ReportHandler = async (tenantId, fazendaId) => {
     };
   } catch (error) {
     console.error('[AdminOverview] Critical Failure:', error);
-    return mockData;
+    return { data: [], stats: mockData.stats, columns: mockData.columns, totalCount: 0 };
   }
 };

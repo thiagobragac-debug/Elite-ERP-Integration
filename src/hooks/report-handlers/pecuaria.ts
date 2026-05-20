@@ -351,12 +351,12 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
     // Queries paralelas com o padrão Diamond Precision
-    const [animalCount, gmdRes, weightRes, healthRes, pastosRes] = await Promise.all([
-      applyFilters(supabase.from('animais').select('*', { count: 'exact', head: true }), tenantId, fazendaId),
+    const [animalCount, gmdRes, weightRes, healthRes, lotacaoRes] = await Promise.all([
+      applyFilters(supabase.from('animais').select('id', { count: 'exact', head: true }), tenantId, fazendaId),
       supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
       supabase.rpc('get_herd_total_weight', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
       applyFilters(supabase.from('sanidade').select('data_manejo, carencia_dias').eq('status', 'REALIZADO').gte('data_manejo', sixtyDaysAgo.toISOString().split('T')[0]), tenantId, fazendaId),
-      applyFilters(supabase.from('pastos').select('area, animais(count)'), tenantId, fazendaId)
+      supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId })
     ]);
 
     // Cálculo de Segurança Sanitária (Carência)
@@ -366,14 +366,8 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
       return releaseDate > new Date();
     }).length;
 
-    // Cálculo de Lotação Média
-    let totalUA = 0;
-    let totalArea = 0;
-    (pastosRes.data || []).forEach((p: any) => {
-      totalArea += Number(p.area) || 0;
-      totalUA += (p.animais?.[0]?.count || 0); // Simplificado: 1 animal = 1 UA para dashboard rápido
-    });
-    const avgLotation = totalArea > 0 ? (totalUA / totalArea).toFixed(2) : '0.00';
+    // Lotação média vem da RPC (dados reais)
+    const avgLotation = Number(lotacaoRes.data?.media_lotacao || 0).toFixed(2);
 
     return {
       data: [
@@ -432,7 +426,7 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
     };
   } catch (error) {
     console.error('[dashboardOverview] Critical Failure:', error);
-    return mockData;
+    return { data: [], stats: mockData.stats, columns: mockData.columns, totalCount: 0 };
   }
 };
 
@@ -560,7 +554,7 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
       columns: mockData.columns,
       stats: [
         { label: 'Total Rebanho', value: String(totalAnimals), change: `${activeAnimals} ativos`, trend: 'neutral' as const, icon: Beef, color: 'hsl(var(--brand))' },
-        { label: 'Peso Médio', value: `${avgWeight.toFixed(1)} kg`, change: `${(totalWeight / 1000).toFixed(1)} ton total`, trend: 'up' as const, icon: Scale, color: 'hsl(var(--warning))' },
+        { label: 'Peso Médio', value: `${avgWeight.toFixed(1)} kg`, change: `${((avgWeight * totalAnimals) / 1000).toFixed(1)} ton total`, trend: 'up' as const, icon: Scale, color: 'hsl(var(--warning))' },
         { label: 'Abatidos', value: String(deadAnimals), change: 'Histórico', trend: 'neutral' as const, icon: Skull, color: 'hsl(var(--danger))' },
         { label: 'GMD Médio', value: '0.0 kg', change: 'Mês Atual', trend: 'neutral' as const, icon: TrendingUp, color: 'hsl(var(--success))' }
       ],

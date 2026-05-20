@@ -1,3 +1,4 @@
+import React from 'react';
 import { Search, Bell, HelpCircle, LogOut, Sun, Moon, GitBranch, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,6 +15,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenProfile = () => {} }) => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const isFleetRoute = location.pathname.startsWith('/frota');
 
@@ -45,10 +60,10 @@ export const Header: React.FC<HeaderProps> = ({ onOpenProfile = () => {} }) => {
           <HelpCircle size={20} />
         </button>
         
-        <div className="user-profile-wrapper">
+        <div className="user-profile-wrapper" ref={dropdownRef}>
           <div 
             className="user-profile" 
-            onClick={onOpenProfile}
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             style={{ cursor: 'pointer' }}
           >
             <div className="user-info">
@@ -73,12 +88,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenProfile = () => {} }) => {
             </div>
           </div>
           
-          <div className="user-dropdown">
-            <button className="dropdown-item" onClick={() => navigate('/admin/perfil')}>
+          <div className={`user-dropdown ${isDropdownOpen ? 'open' : ''}`}>
+            <button className="dropdown-item" onClick={() => { setIsDropdownOpen(false); navigate('/admin/perfil'); }}>
               <User size={16} />
               <span>Meu Perfil</span>
             </button>
-            <button className="dropdown-item logout" onClick={logout}>
+            <button className="dropdown-item logout" onClick={() => { setIsDropdownOpen(false); logout(); }}>
               <LogOut size={16} />
               <span>Sair do Sistema</span>
             </button>
