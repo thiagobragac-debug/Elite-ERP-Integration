@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -92,7 +92,7 @@ export const InventoryManagement: React.FC = () => {
 
         let query = supabase
           .from('produtos')
-          .select('id, nome, categoria, unidade, estoque_atual, estoque_minimo, custo_medio', { count: 'exact' })
+          .select('id, nome, categoria, unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao', { count: 'exact' })
           .order('nome', { ascending: true })
           .range(from, to);
         
@@ -138,13 +138,16 @@ export const InventoryManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleOpenEdit = (product: any) => {
+  const handleOpenEdit = async (product: any) => {
     setSelectedProduct(product);
     setIsModalOpen(true);
+    
+    // Asynchronously check for history to disable the is_storable toggle
+    const { count } = await supabase.from('estoque_movimentacao').select('*', { count: 'exact', head: true }).eq('produto_id', product.id);
+    setSelectedProduct((prev: any) => ({ ...prev, hasHistory: count ? count > 0 : false }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (data: any) => {
     if (!canCreate && !selectedProduct) {
       alert('⚠️ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.');
       return;
@@ -152,14 +155,21 @@ export const InventoryManagement: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const formData = new FormData(e.currentTarget);
       const payload = {
-        nome: formData.get('nome'),
-        categoria: formData.get('categoria'),
-        unidade: formData.get('unidade'),
-        estoque_minimo: Number(formData.get('estoque_minimo')),
-        estoque_atual: Number(formData.get('estoque_atual')),
-        custo_medio: Number(formData.get('custo_medio')),
+        nome: data.nome,
+        categoria: data.categoria,
+        unidade: data.unidade,
+        estoque_minimo: Number(data.estoque_minimo),
+        estoque_atual: Number(data.estoque_atual),
+        custo_medio: Number(data.custo_medio),
+        is_purchasable: data.is_purchasable,
+        is_sellable: data.is_sellable,
+        is_storable: data.is_storable,
+        descricao: data.descricao,
+        marca: data.marca,
+        localizacao: data.localizacao,
+        ean: data.ean,
+        ncm: data.ncm,
         ...insertPayload
       };
 
@@ -254,14 +264,32 @@ export const InventoryManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'inventario_produtos', 'Relatório de Inventário de Insumos');
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este produto?')) return;
+  const handleDelete = async (item: any) => {
     try {
-      const { error } = await supabase.from('produtos').delete().eq('id', id);
-      if (error) throw error;
-      fetchProducts();
+      // Check if item has history
+      const { count } = await supabase.from('estoque_movimentacao').select('*', { count: 'exact', head: true }).eq('produto_id', item.id);
+      const hasHistory = count ? count > 0 : false;
+
+      if (!hasHistory) {
+        // Hard delete
+        if (!confirm(`Tem certeza que deseja excluir permanentemente o item "${item.nome}"?`)) return;
+        const { error } = await supabase.from('produtos').delete().eq('id', item.id);
+        if (error) throw error;
+        fetchProducts();
+      } else {
+        // Soft delete
+        if (item.is_storable && Number(item.estoque_atual || 0) > 0) {
+          alert(`❌ Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`);
+          return;
+        }
+        if (!confirm(`O item "${item.nome}" possui histórico no sistema e não pode ser excluído. Deseja inativá-lo para que não apareça mais nas rotinas?`)) return;
+        
+        const { error } = await supabase.from('produtos').update({ is_active: false }).eq('id', item.id);
+        if (error) throw error;
+        fetchProducts();
+      }
     } catch (err: any) {
-      alert('❌ Erro ao excluir produto: ' + err.message);
+      alert('❌ Erro na operação: ' + err.message);
     }
   };
 
@@ -670,7 +698,7 @@ export const InventoryManagement: React.FC = () => {
                   <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
                     <Edit3 size={18} />
                   </button>
-                  <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                  <button className="action-dot delete" onClick={() => handleDelete(item)} title="Excluir/Inativar">
                     <Trash2 size={18} />
                   </button>
                 </div>
@@ -707,7 +735,7 @@ export const InventoryManagement: React.FC = () => {
                       <div className="card-bottom-actions">
                         <button className="action-icon-btn info" onClick={() => handleViewHistory(p)} title="Dossiê"><ArrowRightLeft size={14} /></button>
                         <button className="action-icon-btn edit" onClick={() => handleOpenEdit(p)} title="Editar"><Edit3 size={14} /></button>
-                        <button className="action-icon-btn delete" onClick={() => handleDelete(p.id)} title="Excluir"><Trash2 size={14} /></button>
+                        <button className="action-icon-btn delete" onClick={() => handleDelete(p)} title="Excluir/Inativar"><Trash2 size={14} /></button>
                         {isCritical && (
                           <button 
                             className={`action-icon-btn ${requestedProducts[p.id] ? 'success' : 'warning'}`} 

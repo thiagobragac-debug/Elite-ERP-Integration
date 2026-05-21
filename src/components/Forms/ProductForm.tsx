@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Package, 
   Tag,
@@ -15,9 +15,10 @@ interface ProductFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  hasHistory?: boolean;
 }
 
-export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSubmit, initialData, hasHistory = false }) => {
   const [formData, setFormData] = useState({
     nome: '',
     categoria: 'Outros',
@@ -29,7 +30,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
     ean: '',
     ncm: '',
     marca: '',
-    localizacao: ''
+    localizacao: '',
+    is_purchasable: true,
+    is_sellable: false,
+    is_storable: true
   });
 
   const [loading, setLoading] = useState(false);
@@ -47,7 +51,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         ean: initialData.ean || '',
         ncm: initialData.ncm || '',
         marca: initialData.marca || '',
-        localizacao: initialData.localizacao || ''
+        localizacao: initialData.localizacao || '',
+        is_purchasable: initialData.is_purchasable !== undefined ? initialData.is_purchasable : true,
+        is_sellable: initialData.is_sellable !== undefined ? initialData.is_sellable : false,
+        is_storable: initialData.is_storable !== undefined ? initialData.is_storable : true
       });
     }
   }, [initialData, isOpen]);
@@ -212,6 +219,54 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
           onChange={(e) => setFormData({...formData, descricao: e.target.value})}
           rows={2}
         />
+      </div>
+
+      {/* NEW SECTION: Item Classification Flags */}
+      <div className="tauze-field-group full-width" style={{ marginTop: '16px', marginBottom: '16px', background: 'hsl(var(--bg-body))', padding: '16px', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+        <h4 style={{ margin: '0 0 16px 0', fontSize: '14px', color: 'hsl(var(--text-main))' }}>Comportamento do Item (Regras de ERP)</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+          
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>
+            <input 
+              type="checkbox" 
+              checked={formData.is_purchasable}
+              onChange={(e) => setFormData({...formData, is_purchasable: e.target.checked})}
+              style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', flexShrink: 0 }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span>Item de Compra</span>
+              <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}>Mód. Compras</span>
+            </div>
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>
+            <input 
+              type="checkbox" 
+              checked={formData.is_sellable}
+              onChange={(e) => setFormData({...formData, is_sellable: e.target.checked})}
+              style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', flexShrink: 0 }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span>Item de Venda</span>
+              <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}>Mód. Vendas</span>
+            </div>
+          </label>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: hasHistory ? 'not-allowed' : 'pointer', fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))', opacity: hasHistory ? 0.6 : 1 }}>
+            <input 
+              type="checkbox" 
+              checked={formData.is_storable}
+              onChange={(e) => setFormData({...formData, is_storable: e.target.checked})}
+              disabled={hasHistory}
+              style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: hasHistory ? 'not-allowed' : 'pointer' }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <span>Estoque Físico</span>
+              <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}>Gera Kardex</span>
+            </div>
+          </label>
+
+        </div>
       </div>
     </FormModal>
   );
