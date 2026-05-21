@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Beef, 
   Hash, 
@@ -120,10 +120,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Animal"}
     >
-      <div className="elite-field-group">
-        <label className="elite-label"><Hash size={14} /> Número do Brinco</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Hash size={14} /> Número do Brinco</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Ex: 1234-A" 
           value={formData.brinco}
@@ -132,10 +132,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Tag size={14} /> Raça</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Tag size={14} /> Raça</label>
         <select 
-          className="elite-input elite-select"
+          className="tauze-input tauze-select"
           value={formData.raca}
           onChange={(e) => setFormData({...formData, raca: e.target.value})}
         >
@@ -146,18 +146,18 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         </select>
       </div>
 
-      <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-        <label className="elite-label"><User size={14} /> Sexo</label>
-        <div className="elite-form-radio-group">
+      <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+        <label className="tauze-label"><User size={14} /> Sexo</label>
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.sexo === 'M' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.sexo === 'M' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, sexo: 'M'})}
           >
             <User size={16} />
             <span>Macho</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.sexo === 'F' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.sexo === 'F' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, sexo: 'F'})}
           >
             <User size={16} />
@@ -166,20 +166,20 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         </div>
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Calendar size={14} /> Data de Nascimento</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Calendar size={14} /> Data de Nascimento</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="date" 
           value={formData.data_nascimento}
           onChange={(e) => setFormData({...formData, data_nascimento: e.target.value})}
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Layers size={14} /> Lote de Destino</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Layers size={14} /> Lote de Destino</label>
         <select 
-          className="elite-input elite-select"
+          className="tauze-input tauze-select"
           value={formData.lote_id}
           onChange={(e) => setFormData({...formData, lote_id: e.target.value})}
           required
@@ -192,10 +192,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         </select>
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Info size={14} /> Pelagem</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Info size={14} /> Pelagem</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Ex: Branco, Manchado" 
           value={formData.pelagem}
@@ -203,17 +203,17 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         />
       </div>
 
-      <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-        <label className="elite-label"><Users size={14} /> Origem do Animal</label>
-        <div className="elite-form-radio-group">
+      <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+        <label className="tauze-label"><Users size={14} /> Origem do Animal</label>
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.origem === 'Nascido' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.origem === 'Nascido' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, origem: 'Nascido'})}
           >
             <span>Nascido na Fazenda</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.origem === 'Comprado' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.origem === 'Comprado' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, origem: 'Comprado'})}
           >
             <span>Comprado (Entrada)</span>
@@ -221,10 +221,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         </div>
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Users size={14} /> Brinco da Mãe</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Users size={14} /> Brinco da Mãe</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Brinco da Matriz" 
           value={formData.mae_brinco}
@@ -232,10 +232,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Users size={14} /> Brinco do Pai</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Users size={14} /> Brinco do Pai</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Brinco do Reprodutor" 
           value={formData.pai_brinco}
@@ -243,10 +243,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><DollarSign size={14} /> Valor de Compra (R$)</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><DollarSign size={14} /> Valor de Compra (R$)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -256,10 +256,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Info size={14} /> Peso de Entrada (kg)</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Info size={14} /> Peso de Entrada (kg)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           placeholder="0.0" 
           value={formData.peso_inicial}
@@ -267,10 +267,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Beef size={14} /> Categoria</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Beef size={14} /> Categoria</label>
         <select 
-          className="elite-input elite-select"
+          className="tauze-input tauze-select"
           value={formData.categoria}
           onChange={(e) => setFormData({...formData, categoria: e.target.value})}
         >
@@ -283,10 +283,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         </select>
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><TrendingUp size={14} /> Finalidade</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><TrendingUp size={14} /> Finalidade</label>
         <select 
-          className="elite-input elite-select"
+          className="tauze-input tauze-select"
           value={formData.finalidade}
           onChange={(e) => setFormData({...formData, finalidade: e.target.value})}
         >

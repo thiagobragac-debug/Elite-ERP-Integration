@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Building2, 
   Phone, 
@@ -161,7 +161,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
 
       <div className="form-group">
         <label><FileText size={14} /> CNPJ / CPF</label>
-        <div className="elite-input-with-action">
+        <div className="tauze-input-with-action">
           <input 
             type="text" 
             placeholder="00.000.000/0000-00" 
@@ -182,13 +182,13 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
       </div>
 
       <style>{`
-        .elite-input-with-action {
+        .tauze-input-with-action {
           position: relative;
           display: flex;
           align-items: center;
         }
 
-        .elite-input-with-action input {
+        .tauze-input-with-action input {
           width: 100%;
           padding-right: 46px !important;
         }
@@ -379,10 +379,10 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
 
       <div className="form-group full-width">
         <div 
-          className="elite-toggle-row"
+          className="tauze-toggle-row"
           onClick={() => setFormData({ ...formData, is_global: !formData.is_global })}
         >
-          <div className={`elite-toggle-switch ${formData.is_global ? 'active' : ''}`} />
+          <div className={`tauze-toggle-switch ${formData.is_global ? 'active' : ''}`} />
           <div className="toggle-label-group">
             <span className="toggle-title">Habilitar em todas as fazendas (Global)</span>
             <span className="toggle-desc">Este fornecedor estará visível em todas as unidades do grupo.</span>
@@ -393,9 +393,9 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
       {!formData.is_global && (
         <div className="form-group full-width">
           <label>Vincular a Fazendas Específicas</label>
-          <div className="elite-multi-select-container">
+          <div className="tauze-multi-select-container">
             <div 
-              className="elite-multi-select-trigger"
+              className="tauze-multi-select-trigger"
               onClick={() => setIsFarmDropdownOpen(!isFarmDropdownOpen)}
             >
               <div className="selected-chips">
@@ -405,7 +405,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
                   formData.fazendas_vinculadas.map(fid => {
                     const farm = farms.find(f => f.id === fid);
                     return (
-                      <span key={fid} className="elite-chip">
+                      <span key={fid} className="tauze-chip">
                         {farm?.name || 'Fazenda'}
                         <button 
                           type="button"
@@ -428,7 +428,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
             </div>
 
             {isFarmDropdownOpen && (
-              <div className="elite-multi-select-dropdown">
+              <div className="tauze-multi-select-dropdown">
                 {farms.map(farm => (
                   <div 
                     key={farm.id}
@@ -456,7 +456,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
       )}
 
       <style>{`
-        .elite-toggle-row {
+        .tauze-toggle-row {
           display: flex;
           align-items: center;
           gap: 16px;
@@ -468,12 +468,12 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           transition: 0.2s;
         }
 
-        .elite-toggle-row:hover {
+        .tauze-toggle-row:hover {
           border-color: hsl(var(--brand) / 0.5);
           background: hsl(var(--bg-main) / 0.5);
         }
 
-        .elite-toggle-switch {
+        .tauze-toggle-switch {
           width: 44px;
           height: 24px;
           background: #cbd5e1;
@@ -482,7 +482,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .elite-toggle-switch::after {
+        .tauze-toggle-switch::after {
           content: '';
           position: absolute;
           left: 3px;
@@ -495,11 +495,11 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .elite-toggle-switch.active {
+        .tauze-toggle-switch.active {
           background: #10b981;
         }
 
-        .elite-toggle-switch.active::after {
+        .tauze-toggle-switch.active::after {
           left: calc(100% - 21px);
         }
 
@@ -521,12 +521,12 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           font-weight: 500;
         }
 
-        .elite-multi-select-container {
+        .tauze-multi-select-container {
           position: relative;
           width: 100%;
         }
 
-        .elite-multi-select-trigger {
+        .tauze-multi-select-trigger {
           min-height: 48px;
           padding: 8px 16px;
           background: hsl(var(--bg-card));
@@ -539,7 +539,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           transition: 0.2s;
         }
 
-        .elite-multi-select-trigger:hover {
+        .tauze-multi-select-trigger:hover {
           border-color: hsl(var(--brand) / 0.5);
         }
 
@@ -549,7 +549,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           gap: 6px;
         }
 
-        .elite-chip {
+        .tauze-chip {
           display: flex;
           align-items: center;
           gap: 6px;
@@ -562,7 +562,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           text-transform: uppercase;
         }
 
-        .elite-chip button {
+        .tauze-chip button {
           border: none;
           background: transparent;
           color: inherit;
@@ -586,7 +586,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           transform: rotate(180deg);
         }
 
-        .elite-multi-select-dropdown {
+        .tauze-multi-select-dropdown {
           position: absolute;
           top: calc(100% + 4px);
           left: 0;

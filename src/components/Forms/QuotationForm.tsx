@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   BarChart2, 
   Package,
@@ -156,7 +156,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
         
         <div className="suppliers-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {formData.suppliers.map((sup, idx) => (
-            <div key={idx} className="elite-form-info-box" style={{ 
+            <div key={idx} className="tauze-form-info-box" style={{ 
               display: 'grid', 
               gridTemplateColumns: '2fr 1fr 1fr 40px', 
               gap: '12px', 

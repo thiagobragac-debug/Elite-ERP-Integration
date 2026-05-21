@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
   Users, 
@@ -19,7 +19,7 @@ import { motion } from 'framer-motion';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { supabase } from '../../lib/supabase';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 
 export const AdminIntelligenceHub: React.FC = () => {
@@ -69,14 +69,14 @@ export const AdminIntelligenceHub: React.FC = () => {
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : (
           reportStats?.map((s: any, i: number) => (
-            <EliteStatCard key={i} {...s} icon={getStatIcon(s.id)} />
+            <TauzeStatCard key={i} {...s} icon={getStatIcon(s.id)} />
           ))
         )}
       </div>
 
       <div className="admin-intelligence-grid">
         <section className="intelligence-panel premium-card main-chart">
-          <div className="panel-header-elite">
+          <div className="panel-header-tauze">
             <div className="title-info">
               <Monitor size={20} className="text-brand" />
               <div>
@@ -88,7 +88,7 @@ export const AdminIntelligenceHub: React.FC = () => {
               <span className="live-pulse">LIVE</span>
             </div>
           </div>
-          <div className="chart-container-elite">
+          <div className="chart-container-tauze">
             {activityData.map((d, i) => (
               <div key={i} className="chart-column">
                 <div className="bar-wrapper">
@@ -105,7 +105,7 @@ export const AdminIntelligenceHub: React.FC = () => {
         </section>
 
         <section className="intelligence-panel premium-card">
-          <div className="panel-header-elite">
+          <div className="panel-header-tauze">
             <div className="title-info">
               <Lock size={20} className="text-brand" />
               <div>
@@ -136,7 +136,7 @@ export const AdminIntelligenceHub: React.FC = () => {
         </section>
 
         <section className="intelligence-panel premium-card">
-          <div className="panel-header-elite">
+          <div className="panel-header-tauze">
             <div className="title-info">
               <History size={20} className="text-brand" />
               <div>
@@ -188,19 +188,19 @@ export const AdminIntelligenceHub: React.FC = () => {
           gap: 20px;
         }
 
-        .panel-header-elite {
+        .panel-header-tauze {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
         }
 
-        .panel-header-elite .title-info {
+        .panel-header-tauze .title-info {
           display: flex;
           gap: 12px;
           align-items: center;
         }
 
-        .panel-header-elite h3 {
+        .panel-header-tauze h3 {
           font-size: 14px;
           font-weight: 800;
           color: #0f172a;
@@ -209,14 +209,14 @@ export const AdminIntelligenceHub: React.FC = () => {
           letter-spacing: 0.05em;
         }
 
-        .panel-header-elite p {
+        .panel-header-tauze p {
           font-size: 11px;
           color: #64748b;
           margin: 2px 0 0;
           font-weight: 500;
         }
 
-        .chart-container-elite {
+        .chart-container-tauze {
           height: 200px;
           display: flex;
           align-items: flex-end;

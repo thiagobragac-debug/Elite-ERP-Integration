@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   User,
@@ -130,16 +130,16 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
 
       <div className="form-group full-width">
         <label><Users size={14} /> Tipo de Participante</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.party_type === 'client' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.party_type === 'client' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, party_type: 'client'})}
           >
             <User size={16} />
             <span>Cliente</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.party_type === 'supplier' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.party_type === 'supplier' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, party_type: 'supplier'})}
           >
             <Building2 size={16} />

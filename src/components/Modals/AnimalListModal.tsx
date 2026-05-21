@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { X, Search, Beef, Scale } from 'lucide-react';
 import { FormModal } from '../Forms/FormModal';
 import { supabase } from '../../lib/supabase';
@@ -74,7 +74,7 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
             <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))' }} />
             <input 
               type="text" 
-              className="elite-input"
+              className="tauze-input"
               style={{ paddingLeft: '48px' }}
               placeholder="Filtrar por brinco ou raça..." 
               value={searchTerm}

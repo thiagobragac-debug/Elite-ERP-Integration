@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ArrowRightLeft, 
   Plus, 
@@ -23,7 +23,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { MovementForm } from '../../components/Forms/MovementForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { MovementFilterModal } from './components/MovementFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
@@ -371,7 +371,7 @@ export const MovementManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <ArrowRightLeft size={14} fill="currentColor" />
-            <span>ELITE INVENTORY v5.0</span>
+            <span>TAUZE INVENTORY v5.0</span>
           </div>
           <h1 className="page-title">Movimentação de Estoque</h1>
           <p className="page-subtitle">Rastreabilidade total de entradas, saídas e transferências de insumos em tempo real.</p>
@@ -394,9 +394,9 @@ export const MovementManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Package} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Package} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -409,34 +409,34 @@ export const MovementManagement: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'LOG' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'LOG' ? 'active' : ''}`}
             onClick={() => { setActiveTab('LOG'); setPage(1); }}
           >
             Log de Movimentos
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'ANALYSIS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'ANALYSIS' ? 'active' : ''}`}
             onClick={() => { setActiveTab('ANALYSIS'); setPage(1); }}
           >
             Análise de Fluxo
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por item, referência ou responsável..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-         <div className="elite-filter-group">
+         <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
             title="Filtros Avançados"

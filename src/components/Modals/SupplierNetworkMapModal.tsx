@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, 
@@ -47,15 +47,15 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
   }, {});
 
   return createPortal(
-    <div className="elite-modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
+    <div className="tauze-modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.9, y: 30 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="elite-modal-container xlarge"
+        className="tauze-modal-container xlarge"
         style={{ maxWidth: '1200px', width: '95%', padding: 0 }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-modal-header" style={{ borderBottom: '1px solid #e2e8f0', background: 'white' }}>
+        <div className="tauze-modal-header" style={{ borderBottom: '1px solid #e2e8f0', background: 'white' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper" style={{ 
               background: 'hsl(var(--brand) / 0.1)', 
@@ -77,7 +77,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
             </div>
           </div>
           <button 
-            className="elite-close-x-btn" 
+            className="tauze-close-x-btn" 
             onClick={onClose} 
             style={{ 
               color: '#64748b', 
@@ -250,7 +250,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
           </div>
         </div>
 
-        <div className="elite-modal-footer" style={{ background: 'white', borderTop: '1px solid #e2e8f0', padding: '16px 32px' }}>
+        <div className="tauze-modal-footer" style={{ background: 'white', borderTop: '1px solid #e2e8f0', padding: '16px 32px' }}>
           <button type="button" className="glass-btn secondary" onClick={onClose} style={{ marginLeft: 'auto', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569' }}>
             FECHAR MAPA
           </button>
@@ -265,7 +265,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
           background: #f8fafc;
         }
 
-        .elite-close-x-btn:hover {
+        .tauze-close-x-btn:hover {
           background: #ef4444 !important;
           color: white !important;
           transform: rotate(90deg);

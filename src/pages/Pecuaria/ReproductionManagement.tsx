@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Heart, 
   Plus, 
@@ -25,7 +25,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { ReproductionForm } from '../../components/Forms/ReproductionForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { BatchReproModal } from './components/BatchReproModal';
 import { ReproductionFilterModal } from './components/ReproductionFilterModal';
@@ -309,7 +309,7 @@ export const ReproductionManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Heart size={14} fill="currentColor" />
-            <span>ELITE LIVESTOCK v5.0</span>
+            <span>TAUZE LIVESTOCK v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Reprodução</h1>
           <p className="page-subtitle">Controle de biotecnologias, diagnóstico de gestação e monitoramento de parição em tempo real.</p>
@@ -330,41 +330,41 @@ export const ReproductionManagement: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
           />
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'ESTACAO' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'ESTACAO' ? 'active' : ''}`}
             onClick={() => setActiveTab('ESTACAO')}
           >
             Estação de Monta
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'PARTOS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'PARTOS' ? 'active' : ''}`}
             onClick={() => setActiveTab('PARTOS')}
           >
             Previsão de Partos
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por animal ou tipo de evento..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

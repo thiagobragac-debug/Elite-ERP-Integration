@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
+﻿import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
@@ -53,12 +53,12 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isGlobalMode, setIsGlobalMode] = useState<boolean>(() => {
-    return localStorage.getItem('elite_global_mode') === 'true';
+    return localStorage.getItem('tauze_global_mode') === 'true';
   });
 
   const setGlobalMode = (global: boolean) => {
     setIsGlobalMode(global);
-    localStorage.setItem('elite_global_mode', String(global));
+    localStorage.setItem('tauze_global_mode', String(global));
     if (global) {
       setActiveFarmState(null);
     }

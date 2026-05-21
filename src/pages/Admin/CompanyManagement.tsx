@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Plus, 
@@ -27,7 +27,7 @@ import { CompanyForm } from '../../components/Forms/CompanyForm';
 import { FarmForm } from '../../components/Forms/FarmForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { CompanyFilterModal } from './components/CompanyFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -449,7 +449,7 @@ export const CompanyManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <Building2 size={14} fill="currentColor" />
-            <span>ELITE ADMIN v5.0</span>
+            <span>TAUZE ADMIN v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Unidades & Matrizes</h1>
           <p className="page-subtitle">Governança organizacional de instâncias produtivas, matrizes e filiais do ecossistema.</p>
@@ -469,7 +469,7 @@ export const CompanyManagement: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard
+          <TauzeStatCard
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -483,27 +483,27 @@ export const CompanyManagement: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'companies' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'companies' ? 'active' : ''}`}
             onClick={() => setActiveTab('companies')}
           >
             Empresas (Matriz/Filial)
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'farms' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'farms' ? 'active' : ''}`}
             onClick={() => setActiveTab('farms')}
           >
             Fazendas & Unidades
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder={activeTab === 'companies' ? "Buscar por razão social ou CNPJ..." : "Buscar fazenda por nome..."} 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -527,7 +527,7 @@ export const CompanyManagement: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

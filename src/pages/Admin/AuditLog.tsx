@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Shield, Clock, Edit3, Trash2, User,
   Beef, Scale, CreditCard, DollarSign,
@@ -14,7 +14,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useReportData } from '../../hooks/useReportData';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -251,7 +251,7 @@ export const AuditLog: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <Shield size={14} fill="currentColor" />
-            <span>ELITE AUDIT v5.0</span>
+            <span>TAUZE AUDIT v5.0</span>
           </div>
           <h1 className="page-title">Rastreabilidade & Auditoria</h1>
           <p className="page-subtitle">
@@ -271,7 +271,7 @@ export const AuditLog: React.FC = () => {
         {loading
           ? Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
           : stats.map((s: any, i) => (
-            <EliteStatCard
+            <TauzeStatCard
               key={i}
               label={s.label}
               value={s.value}
@@ -288,12 +288,12 @@ export const AuditLog: React.FC = () => {
       </div>
 
       {/* ── Controls Row padrão ── */}
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           {(['ALL', 'INSERT', 'UPDATE', 'DELETE'] as const).map(f => (
             <button
               key={f}
-              className={`elite-tab-item ${filterValues.action === f ? 'active' : ''}`}
+              className={`tauze-tab-item ${filterValues.action === f ? 'active' : ''}`}
               onClick={() => setFilterValues(prev => ({ ...prev, action: f }))}
             >
               {f === 'ALL' ? 'Todos os Eventos' : ACTION_CONFIG[f].label + 's'}
@@ -301,18 +301,18 @@ export const AuditLog: React.FC = () => {
           ))}
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input
             type="text"
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por módulo, usuário ou descrição..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button
             className={`icon-btn-secondary ${showFilters ? 'active' : ''}`}
             title="Filtros Avançados"
@@ -1218,7 +1218,7 @@ export const AuditLog: React.FC = () => {
               
               if (typeof val === 'boolean') {
                 return (
-                  <div key={key} className="elite-input-group" style={{ display: 'flex', alignItems: 'center', gap: '10px', gridColumn: 'span 1' }}>
+                  <div key={key} className="tauze-input-group" style={{ display: 'flex', alignItems: 'center', gap: '10px', gridColumn: 'span 1' }}>
                     <input
                       type="checkbox"
                       id={`dyn-${key}`}
@@ -1236,7 +1236,7 @@ export const AuditLog: React.FC = () => {
               const isDate = key.includes('data') || key.includes('vencimento') || key.includes('nascimento');
               
               return (
-                <div key={key} className="elite-input-group">
+                <div key={key} className="tauze-input-group">
                   <label style={{ fontWeight: 600, fontSize: '12px', color: 'hsl(var(--text-muted))', marginBottom: '6px', display: 'block' }}>
                     {label}
                   </label>
@@ -1250,7 +1250,7 @@ export const AuditLog: React.FC = () => {
                         [key]: typeof val === 'number' ? parseFloat(inputVal) || 0 : inputVal
                       });
                     }}
-                    className="elite-input"
+                    className="tauze-input"
                     style={{ width: '100%' }}
                   />
                 </div>

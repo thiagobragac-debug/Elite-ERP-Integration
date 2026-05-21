@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Hash, 
   Calendar, 
@@ -147,7 +147,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className="form-group full-width">
         <label><Building2 size={14} /> Empresa / Unidade Compradora</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.company_id}
           onChange={(e) => setFormData({...formData, company_id: e.target.value})}
           required
@@ -162,7 +162,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className="form-group span-1">
         <label><Hash size={14} /> Número do Pedido (OC)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Ex: OC-2024-001..." 
           value={formData.order_number}
@@ -174,7 +174,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className="form-group span-3">
         <label><Building2 size={14} /> Fornecedor</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.supplier_id}
           onChange={(e) => setFormData({...formData, supplier_id: e.target.value})}
           required
@@ -189,7 +189,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className="form-group span-1">
         <label><Calendar size={14} /> Data</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="date" 
           value={formData.date}
           onChange={(e) => setFormData({...formData, date: e.target.value})}
@@ -200,7 +200,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className="form-group span-1">
         <label><Truck size={14} /> Previsão</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="date" 
           value={formData.delivery_date}
           onChange={(e) => setFormData({...formData, delivery_date: e.target.value})}
@@ -211,7 +211,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className="form-group span-1">
         <label><DollarSign size={14} /> Valor Total (R$)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -236,7 +236,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className="form-group span-1">
         <label><Banknote size={14} /> Condição</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.payment_condition}
           onChange={(e) => setFormData({...formData, payment_condition: e.target.value})}
           required
@@ -249,7 +249,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className="form-group span-1">
         <label><CreditCard size={14} /> Meio de Pagamento</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.payment_method}
           onChange={(e) => setFormData({...formData, payment_method: e.target.value})}
           required
@@ -266,7 +266,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
         <div className="form-group span-1">
           <label><Hash size={14} /> N° de Parcelas</label>
           <input 
-            className="elite-input"
+            className="tauze-input"
             type="number" 
             min="1"
             max="48"
@@ -280,7 +280,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className={formData.payment_condition === 'prazo' ? "form-group span-1" : "form-group span-2"}>
         <label><Wallet size={14} /> Conta Bancária / Caixa</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.bank_account_id}
           onChange={(e) => setFormData({...formData, bank_account_id: e.target.value})}
           required
@@ -317,7 +317,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                   <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--brand))', width: '30px' }}>{index + 1}ª</span>
                   <input 
                     type="date" 
-                    className="elite-input" 
+                    className="tauze-input" 
                     style={{ height: '32px', padding: '0 8px', fontSize: '12px', flex: 1 }}
                     value={inst.dueDate}
                     onChange={(e) => updateInstallment(inst.id, 'dueDate', e.target.value)}
@@ -326,7 +326,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                     <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: '800', color: 'hsl(var(--text-muted))' }}>R$</span>
                     <input 
                       type="number" 
-                      className="elite-input" 
+                      className="tauze-input" 
                       style={{ height: '32px', padding: '0 8px 0 24px', fontSize: '12px', width: '100%' }}
                       value={inst.value}
                       onChange={(e) => updateInstallment(inst.id, 'value', parseFloat(e.target.value) || 0)}
@@ -348,7 +348,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <div className="form-group full-width">
         <label><FileText size={14} /> Observações Adicionais</label>
         <textarea 
-          className="elite-input"
+          className="tauze-input"
           placeholder="Condições especiais de frete, observações de descarga, etc..." 
           value={formData.description}
           onChange={(e) => setFormData({...formData, description: e.target.value})}

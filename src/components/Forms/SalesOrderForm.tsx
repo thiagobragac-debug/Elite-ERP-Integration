@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Hash, 
@@ -152,7 +152,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group full-width">
         <label><Building2 size={14} /> Empresa / Unidade Vendedora</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.company_id}
           onChange={(e) => setFormData({...formData, company_id: e.target.value})}
           required
@@ -167,7 +167,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-1">
         <label><Hash size={14} /> Número do Pedido (PV)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Ex: PV-001..." 
           value={formData.orderNumber}
@@ -179,7 +179,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-3">
         <label><User size={14} /> Cliente / Comprador</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.clientId}
           onChange={(e) => setFormData({...formData, clientId: e.target.value})}
           required
@@ -194,7 +194,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-1">
         <label><Calendar size={14} /> Data do Pedido</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="date" 
           value={formData.date}
           onChange={(e) => setFormData({...formData, date: e.target.value})}
@@ -205,7 +205,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-1">
         <label><Activity size={14} /> Status</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.status}
           onChange={(e) => setFormData({...formData, status: e.target.value})}
           required
@@ -220,7 +220,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-1">
         <label><DollarSign size={14} /> Valor Total (R$)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -233,7 +233,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-2">
         <label><Truck size={14} /> Transportadora</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Nome da empresa..." 
           value={formData.transportadora}
@@ -244,7 +244,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-1">
         <label><Activity size={14} /> Placa</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="ABC-1234" 
           value={formData.placa_veiculo}
@@ -255,7 +255,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-1">
         <label><FileText size={14} /> GTA</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Número GTA" 
           value={formData.numero_gta}
@@ -266,7 +266,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-1">
         <label><TrendingUp size={14} /> Comissão (%)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           step="0.1"
           placeholder="0.0" 
@@ -290,7 +290,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-1">
         <label><Banknote size={14} /> Condição</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.payment_condition}
           onChange={(e) => setFormData({...formData, payment_condition: e.target.value})}
           required
@@ -303,7 +303,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group span-1">
         <label><CreditCard size={14} /> Meio de Recebimento</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.payment_method}
           onChange={(e) => setFormData({...formData, payment_method: e.target.value})}
           required
@@ -320,7 +320,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
         <div className="form-group span-1">
           <label><Hash size={14} /> N° de Parcelas</label>
           <input 
-            className="elite-input"
+            className="tauze-input"
             type="number" 
             min="1"
             max="48"
@@ -334,7 +334,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className={formData.payment_condition === 'prazo' ? "form-group span-1" : "form-group span-2"}>
         <label><Wallet size={14} /> Conta de Destino</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.bank_account_id}
           onChange={(e) => setFormData({...formData, bank_account_id: e.target.value})}
           required
@@ -371,7 +371,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
                   <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--brand))', width: '30px' }}>{index + 1}ª</span>
                   <input 
                     type="date" 
-                    className="elite-input" 
+                    className="tauze-input" 
                     style={{ height: '32px', padding: '0 8px', fontSize: '12px', flex: 1 }}
                     value={inst.dueDate}
                     onChange={(e) => updateInstallment(inst.id, 'dueDate', e.target.value)}
@@ -380,7 +380,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
                     <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: '800', color: 'hsl(var(--text-muted))' }}>R$</span>
                     <input 
                       type="number" 
-                      className="elite-input" 
+                      className="tauze-input" 
                       style={{ height: '32px', padding: '0 8px 0 24px', fontSize: '12px', width: '100%' }}
                       value={inst.value}
                       onChange={(e) => updateInstallment(inst.id, 'value', parseFloat(e.target.value) || 0)}
@@ -402,7 +402,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       <div className="form-group full-width">
         <label><FileText size={14} /> Observações do Pedido</label>
         <textarea 
-          className="elite-input"
+          className="tauze-input"
           placeholder="Detalhes sobre a entrega, local de embarque ou condições especiais..." 
           value={formData.description}
           onChange={(e) => setFormData({...formData, description: e.target.value})}

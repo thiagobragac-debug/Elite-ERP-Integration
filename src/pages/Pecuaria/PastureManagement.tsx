@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Trees, 
   Plus, 
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReportData } from '../../hooks/useReportData';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -373,7 +373,7 @@ const PastureManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Trees size={14} fill="currentColor" />
-            <span>ELITE AGRO v5.0</span>
+            <span>TAUZE AGRO v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Pastagens</h1>
           <p className="page-subtitle">Monitoramento de capacidade de suporte, pressão de pastejo e rotação.</p>
@@ -394,40 +394,40 @@ const PastureManagement: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx} 
             {...stat} 
           />
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'all' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'all' ? 'active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
             Todos Pastos
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'resting' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'resting' ? 'active' : ''}`}
             onClick={() => setActiveTab('resting')}
           >
             Em Descanso
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'occupied' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'occupied' ? 'active' : ''}`}
             onClick={() => setActiveTab('occupied')}
           >
             Em Uso
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por nome do piquete..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -449,7 +449,7 @@ const PastureManagement: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}

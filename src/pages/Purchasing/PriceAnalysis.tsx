@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 
 export const PriceAnalysis: React.FC = () => {
@@ -182,7 +182,7 @@ export const PriceAnalysis: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <TrendingUp size={14} fill="currentColor" />
-            <span>ELITE INTELLIGENCE v5.0</span>
+            <span>TAUZE INTELLIGENCE v5.0</span>
           </div>
           <h1 className="page-title">Análise de Preço</h1>
           <p className="page-subtitle">Monitoramento de variações de custo, tendências de mercado e inteligência de compra baseada em dados históricos.</p>
@@ -197,9 +197,9 @@ export const PriceAnalysis: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={BarChart2} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={BarChart2} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -211,19 +211,19 @@ export const PriceAnalysis: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-search-wrapper">
+      <div className="tauze-controls-row">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por insumo ou categoria..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button className="icon-btn-secondary" title="Filtrar por Categoria">
             <Filter size={20} />
           </button>

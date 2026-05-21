@@ -1,4 +1,4 @@
-.payable-page {
+﻿.payable-page {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -8,7 +8,7 @@
   margin-bottom: 16px !important;
 }
 
-.payable-page .elite-controls-row {
+.payable-page .tauze-controls-row {
   margin-bottom: 16px !important;
 }
 
@@ -128,7 +128,7 @@
 }
 
 /* Batch Actions Bar */
-.elite-batch-actions-bar {
+.tauze-batch-actions-bar {
   position: sticky;
   bottom: 24px;
   margin: 0 auto 24px auto;
@@ -146,7 +146,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.kiosk-mode .elite-batch-actions-bar {
+.kiosk-mode .tauze-batch-actions-bar {
   /* No special logic needed for sticky in kiosk mode */
 }
 

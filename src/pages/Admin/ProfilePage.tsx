@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   User, 
   Mail, 
@@ -32,7 +32,7 @@ export const ProfilePage: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <User size={14} fill="currentColor" />
-            <span>ELITE PROFILE v5.0</span>
+            <span>TAUZE PROFILE v5.0</span>
           </div>
           <h1 className="page-title">Minha Identidade Digital</h1>
           <p className="page-subtitle">Gerencie suas informações pessoais, preferências de interface e histórico de segurança.</p>
@@ -88,19 +88,19 @@ export const ProfilePage: React.FC = () => {
               </div>
               
               <div className="fields-grid">
-                <div className="elite-field">
+                <div className="tauze-field">
                   <label>Nome Completo</label>
                   <input type="text" defaultValue={userProfile?.full_name} />
                 </div>
-                <div className="elite-field">
+                <div className="tauze-field">
                   <label>E-mail (Principal)</label>
                   <input type="email" defaultValue={userProfile?.email} disabled />
                 </div>
-                <div className="elite-field">
+                <div className="tauze-field">
                   <label>Telefone / WhatsApp</label>
                   <input type="text" placeholder="(00) 00000-0000" />
                 </div>
-                <div className="elite-field">
+                <div className="tauze-field">
                   <label>Cargo / Função</label>
                   <input type="text" defaultValue={userProfile?.role} disabled />
                 </div>
@@ -278,8 +278,8 @@ export const ProfilePage: React.FC = () => {
           gap: 24px;
         }
 
-        .elite-field label { display: block; font-size: 11px; font-weight: 800; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; }
-        .elite-field input {
+        .tauze-field label { display: block; font-size: 11px; font-weight: 800; color: #94a3b8; margin-bottom: 10px; text-transform: uppercase; }
+        .tauze-field input {
           width: 100%;
           padding: 14px 20px;
           background: #f8fafc;
@@ -291,8 +291,8 @@ export const ProfilePage: React.FC = () => {
           outline: none;
           transition: 0.2s;
         }
-        .elite-field input:focus { border-color: #16a34a; background: white; }
-        .elite-field input:disabled { opacity: 0.5; cursor: not-allowed; }
+        .tauze-field input:focus { border-color: #16a34a; background: white; }
+        .tauze-field input:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .panel-footer { margin-top: auto; padding-top: 40px; border-top: 1px solid #f1f5f9; }
 

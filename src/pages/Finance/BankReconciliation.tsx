@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ArrowRightLeft, 
   CheckCircle2, 
@@ -25,7 +25,7 @@ import {
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { FormModal } from '../../components/Forms/FormModal';
 import { ReconFilterModal } from './components/ReconFilterModal';
@@ -142,7 +142,7 @@ export const BankReconciliation: React.FC = () => {
           color: '#8b5cf6', 
           progress: 85,
           change: '+12.5%',
-          periodLabel: 'Eficiência Elite IA',
+          periodLabel: 'Eficiência Tauze IA',
           sparkline: [{ value: 60, label: '60' }, { value: 85, label: '85' }]
         },
         { 
@@ -213,7 +213,7 @@ export const BankReconciliation: React.FC = () => {
       { 
         id: '1', 
         date: rec.date, 
-        title: 'Conciliação Automática Elite IA', 
+        title: 'Conciliação Automática Tauze IA', 
         subtitle: 'Lançamento bancário pareado com sucesso', 
         value: rec.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
         status: 'success' 
@@ -323,7 +323,7 @@ export const BankReconciliation: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <RefreshCw size={14} fill="currentColor" />
-            <span>ELITE RECON v5.0</span>
+            <span>TAUZE RECON v5.0</span>
           </div>
           <h1 className="page-title">Conciliação Bancária</h1>
           <p className="page-subtitle">Verifique se os lançamentos do banco coincidem com o seu controle interno em tempo real.</p>
@@ -342,7 +342,7 @@ export const BankReconciliation: React.FC = () => {
             <div className="ai-scanner-line"></div>
             <Activity size={48} className="text-brand mb-4 animate-bounce" />
             <h3>Processando Extrato Bancário</h3>
-            <p>Mapeando lançamentos com IA Inteligente Elite...</p>
+            <p>Mapeando lançamentos com IA Inteligente Tauze...</p>
             <div className="progress-bar-container">
               <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }}></div>
             </div>
@@ -353,9 +353,9 @@ export const BankReconciliation: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={CheckCircle2} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={CheckCircle2} color="" />)
         ) : (stats || []).map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -370,18 +370,18 @@ export const BankReconciliation: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-search-wrapper">
+      <div className="tauze-controls-row">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por lote, valor ou histórico..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="elite-filter-group" style={{ display: 'flex', gap: '12px' }}>
+        <div className="tauze-filter-group" style={{ display: 'flex', gap: '12px' }}>
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
@@ -410,7 +410,7 @@ export const BankReconciliation: React.FC = () => {
 
       <div className="recon-workspace">
         <div className="recon-column">
-          <div className="column-header-elite">
+          <div className="column-header-tauze">
             <div className="h-group">
               <Banknote size={20} className="text-brand" />
               <h3>Extrato Bancário</h3>
@@ -418,7 +418,7 @@ export const BankReconciliation: React.FC = () => {
             <span className="bank-tag">{activeBank}</span>
           </div>
 
-          <div className="records-grid-elite">
+          <div className="records-grid-tauze">
             {bankRecords.filter(rec => {
               const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
               
@@ -444,7 +444,7 @@ export const BankReconciliation: React.FC = () => {
               return (
                 <motion.div 
                   key={rec.id} 
-                  className={`elite-report-card mini ${isMatched ? 'success' : 'warning'}`}
+                  className={`tauze-report-card mini ${isMatched ? 'success' : 'warning'}`}
                   whileHover={{ y: -4 }}
                 >
                   <div className="rec-row-main">
@@ -470,11 +470,11 @@ export const BankReconciliation: React.FC = () => {
                       {rec.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </span>
                   </div>
-                  <div className="rec-footer-elite">
+                  <div className="rec-footer-tauze">
                     {isMatched ? (
                       <div className="status-pill active">
                         <Zap size={12} fill="currentColor" />
-                        PAREAMENTO ELITE IA
+                        PAREAMENTO TAUZE IA
                       </div>
                     ) : (
                       <div className="status-pill warning">
@@ -526,15 +526,15 @@ export const BankReconciliation: React.FC = () => {
         </div>
 
         <div className="recon-column">
-          <div className="column-header-elite">
+          <div className="column-header-tauze">
             <div className="h-group">
               <FileText size={20} className="text-brand" />
               <h3>Lançamentos Internos</h3>
             </div>
-            <span className="bank-tag">ELITE ERP</span>
+            <span className="bank-tag">TAUZE ERP</span>
           </div>
 
-          <div className="records-grid-elite">
+          <div className="records-grid-tauze">
             {internalRecords.filter(rec => {
               const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
               const matchesAmount = Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount;
@@ -545,7 +545,7 @@ export const BankReconciliation: React.FC = () => {
             }).map((rec) => (
               <motion.div 
                 key={rec.id} 
-                className="elite-report-card mini success"
+                className="tauze-report-card mini success"
                 whileHover={{ y: -4 }}
               >
                 <div className="rec-row-main">
@@ -557,7 +557,7 @@ export const BankReconciliation: React.FC = () => {
                     {rec.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </span>
                 </div>
-                <div className="rec-footer-elite">
+                <div className="rec-footer-tauze">
                   <div className="status-pill active">
                     <CheckCircle2 size={12} />
                     CONCILIADO
@@ -688,7 +688,7 @@ export const BankReconciliation: React.FC = () => {
         size="large"
       >
         <div style={{ gridColumn: 'span 2' }}>
-          <table className="elite-batch-table">
+          <table className="tauze-batch-table">
             <thead>
               <tr>
                 <th style={{ width: '130px' }}>Tipo</th>
@@ -703,7 +703,7 @@ export const BankReconciliation: React.FC = () => {
                 <tr key={row.id}>
                   <td>
                     <select 
-                      className="elite-table-select"
+                      className="tauze-table-select"
                       value={row.type}
                       onChange={(e) => handleUpdateRow(row.id, 'type', e.target.value)}
                       style={{ 
@@ -718,7 +718,7 @@ export const BankReconciliation: React.FC = () => {
                   <td>
                     <input 
                       type="date" 
-                      className="elite-table-input"
+                      className="tauze-table-input"
                       value={row.date}
                       onChange={(e) => handleUpdateRow(row.id, 'date', e.target.value)}
                       required
@@ -727,7 +727,7 @@ export const BankReconciliation: React.FC = () => {
                   <td>
                     <input 
                       type="text" 
-                      className="elite-table-input"
+                      className="tauze-table-input"
                       placeholder="Ex: TARIFA BANCARIA..."
                       value={row.description}
                       onChange={(e) => handleUpdateRow(row.id, 'description', e.target.value)}
@@ -738,7 +738,7 @@ export const BankReconciliation: React.FC = () => {
                     <input 
                       type="number" 
                       step="0.01"
-                      className="elite-table-input"
+                      className="tauze-table-input"
                       placeholder="0.00"
                       value={row.amount}
                       onChange={(e) => handleUpdateRow(row.id, 'amount', e.target.value)}
@@ -795,14 +795,14 @@ export const BankReconciliation: React.FC = () => {
         .recon-page { display: flex; flex-direction: column; gap: 16px; }
         .recon-workspace { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 16px; align-items: start; }
         .recon-column { display: flex; flex-direction: column; gap: 20px; }
-        .column-header-elite { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.25rem; }
+        .column-header-tauze { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.25rem; }
         .h-group { display: flex; align-items: center; gap: 12px; }
         .h-group h3 { font-size: 1.125rem; font-weight: 900; letter-spacing: -0.02em; color: var(--text-main); }
         .bank-tag { font-size: 0.7rem; font-weight: 900; color: var(--brand); background: var(--brand-alpha); padding: 4px 10px; border-radius: 6px; letter-spacing: 0.05em; }
-        .records-grid-elite { display: flex; flex-direction: column; gap: 16px; }
-        .elite-report-card.mini { padding: 1.25rem; border-left: 4px solid var(--border); }
-        .elite-report-card.mini.success { border-left-color: #10b981; }
-        .elite-report-card.mini.warning { border-left-color: #f59e0b; }
+        .records-grid-tauze { display: flex; flex-direction: column; gap: 16px; }
+        .tauze-report-card.mini { padding: 1.25rem; border-left: 4px solid var(--border); }
+        .tauze-report-card.mini.success { border-left-color: #10b981; }
+        .tauze-report-card.mini.warning { border-left-color: #f59e0b; }
         .rec-row-main { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem; }
         .rec-info { display: flex; flex-direction: column; gap: 4px; }
         .rec-date { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
@@ -810,7 +810,7 @@ export const BankReconciliation: React.FC = () => {
         .rec-amount { font-size: 1.125rem; font-weight: 900; letter-spacing: -0.01em; }
         .rec-amount.pos { color: #10b981; }
         .rec-amount.neg { color: var(--text-main); }
-        .rec-footer-elite { display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border); }
+        .rec-footer-tauze { display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--border); }
         .recon-divider { display: flex; align-items: center; justify-content: center; height: 100%; padding-top: 100px; }
 
         .upload-overlay {
@@ -872,14 +872,14 @@ export const BankReconciliation: React.FC = () => {
 
         .progress-txt { font-size: 0.75rem; font-weight: 800; color: var(--text-muted); }
 
-        .elite-batch-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-        .elite-batch-table th { text-align: left; padding: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 1px solid var(--border); }
-        .elite-batch-table td { padding: 8px; border-bottom: 1px solid var(--border-light); }
-        .elite-table-input { width: 100%; background: transparent; border: 1px solid transparent; padding: 8px; border-radius: 8px; font-size: 13px; font-weight: 700; transition: all 0.2s; }
-        .elite-table-input:hover { background: hsl(var(--bg-main)/0.4); border-color: var(--border); }
-        .elite-table-input:focus { background: white; border-color: var(--brand); outline: none; box-shadow: 0 0 0 3px hsl(var(--brand)/0.1); }
-        .elite-table-select { width: 100%; background: transparent; border: 1px solid transparent; padding: 6px; border-radius: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer; transition: all 0.2s; }
-        .elite-table-select:hover { background: hsl(var(--bg-main)/0.4); }
+        .tauze-batch-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .tauze-batch-table th { text-align: left; padding: 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .tauze-batch-table td { padding: 8px; border-bottom: 1px solid var(--border-light); }
+        .tauze-table-input { width: 100%; background: transparent; border: 1px solid transparent; padding: 8px; border-radius: 8px; font-size: 13px; font-weight: 700; transition: all 0.2s; }
+        .tauze-table-input:hover { background: hsl(var(--bg-main)/0.4); border-color: var(--border); }
+        .tauze-table-input:focus { background: white; border-color: var(--brand); outline: none; box-shadow: 0 0 0 3px hsl(var(--brand)/0.1); }
+        .tauze-table-select { width: 100%; background: transparent; border: 1px solid transparent; padding: 6px; border-radius: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer; transition: all 0.2s; }
+        .tauze-table-select:hover { background: hsl(var(--bg-main)/0.4); }
       `}</style>
     </div>
   );

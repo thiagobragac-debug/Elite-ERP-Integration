@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Truck, 
   Settings, 
@@ -20,7 +20,7 @@ import {
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 
@@ -212,7 +212,7 @@ export const FleetDashboard: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -302,7 +302,7 @@ export const FleetDashboard: React.FC = () => {
 
           <div className="activity-list">
             {recentActivities.map((act, i) => (
-              <div key={i} className="activity-item-elite">
+              <div key={i} className="activity-item-tauze">
                 <div className={`act-icon-wrapper ${act.type}`}>
                   {act.type === 'fuel' ? <Droplets size={16} /> : <Wrench size={16} />}
                 </div>
@@ -523,14 +523,14 @@ export const FleetDashboard: React.FC = () => {
           gap: 16px;
         }
 
-        .activity-item-elite {
+        .activity-item-tauze {
           display: flex;
           gap: 16px;
           padding-bottom: 16px;
           border-bottom: 1px solid hsl(var(--border));
         }
 
-        .activity-item-elite:last-child {
+        .activity-item-tauze:last-child {
           border-bottom: none;
         }
 

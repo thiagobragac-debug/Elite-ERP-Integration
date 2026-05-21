@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Tag, Scale, Activity, Beef } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -40,16 +40,16 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'hsl(var(--brand) / 0.1)', padding: '10px', borderRadius: '12px', color: 'hsl(var(--brand))' }}>
               <Filter size={20} />
@@ -68,9 +68,9 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Status Sanitário <Activity size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Status Sanitário <Activity size={14} /></label>
             <label className="checkbox-item-premium">
               <input 
                 type="checkbox" 
@@ -84,8 +84,8 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
             </label>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Peso Mínimo (kg) <Scale size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Peso Mínimo (kg) <Scale size={14} /></label>
             <div className="integrity-slider-container">
               <div className="slider-header">
                 <span className="slider-value">{filters.minWeight}kg</span>
@@ -98,18 +98,18 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
                 step="50"
                 value={filters.minWeight}
                 onChange={e => setFilters({ ...filters, minWeight: parseInt(e.target.value) })}
-                className="elite-range-slider"
+                className="tauze-range-slider"
               />
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Raças Predominantes <Beef size={14} /></label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Raças Predominantes <Beef size={14} /></label>
+            <div className="tauze-tag-cloud">
               {racas.map(raca => (
                 <button 
                   key={raca}
-                  className={`elite-tag-chip ${filters.racas.includes(raca) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.racas.includes(raca) ? 'active' : ''}`}
                   onClick={() => toggleRaca(raca)}
                 >
                   {raca}
@@ -119,9 +119,9 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Sexo <Tag size={14} /></label>
-            <div className="elite-segmented-control">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Sexo <Tag size={14} /></label>
+            <div className="tauze-segmented-control">
               <button 
                 className={`segment-item ${filters.sexo === 'all' ? 'active' : ''}`}
                 onClick={() => setFilters({ ...filters, sexo: 'all' })}
@@ -141,7 +141,7 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1 }} onClick={onClose}>FILTRAR REBANHO</button>
         </div>
@@ -223,7 +223,7 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
           letter-spacing: 0.05em;
         }
 
-        .elite-range-slider {
+        .tauze-range-slider {
           -webkit-appearance: none;
           width: 100%;
           height: 8px;
@@ -234,7 +234,7 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
           margin: 0;
         }
 
-        .elite-range-slider::-webkit-slider-thumb {
+        .tauze-range-slider::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
           width: 24px;
@@ -247,12 +247,12 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
           transition: 0.2s;
         }
 
-        .elite-range-slider::-webkit-slider-thumb:hover {
+        .tauze-range-slider::-webkit-slider-thumb:hover {
           transform: scale(1.1);
           box-shadow: 0 0 0 8px hsl(var(--brand) / 0.1);
         }
 
-        .elite-segmented-control {
+        .tauze-segmented-control {
           display: flex;
           background: hsl(var(--bg-main));
           padding: 6px;

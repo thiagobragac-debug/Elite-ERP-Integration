@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Shield, Zap, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -38,16 +38,16 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '12px', color: '#10b981' }}>
               <Filter size={20} />
@@ -65,9 +65,9 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Preferências <Star size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Preferências <Star size={14} /></label>
             <div className="filter-options">
               <label className="checkbox-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1.5px solid transparent' }}>
                 <input 
@@ -81,8 +81,8 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Integridade de Dados <Shield size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Integridade de Dados <Shield size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '28px', fontWeight: 900, color: '#10b981' }}>{filters.minIntegrity}%</span>
@@ -105,13 +105,13 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Tags Técnicas</label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Tags Técnicas</label>
+            <div className="tauze-tag-cloud">
               {tags.map(tag => (
                 <button 
                   key={tag}
-                  className={`elite-tag-chip ${filters.tags.includes(tag) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.tags.includes(tag) ? 'active' : ''}`}
                   onClick={() => toggleTag(tag)}
                 >
                   {tag}
@@ -121,8 +121,8 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Carga do Motor (Latency) <Zap size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Carga do Motor (Latency) <Zap size={14} /></label>
             <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               <button 
                 style={{ flex: 1, padding: '12px 8px', fontSize: '11px', fontWeight: 800, color: filters.complexity === 'all' ? '#10b981' : '#64748b', background: filters.complexity === 'all' ? 'white' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer', boxShadow: filters.complexity === 'all' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}
@@ -143,7 +143,7 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR TUDO</button>
           <button className="primary-btn" style={{ flex: 1 }} onClick={onClose}>APLICAR FILTROS</button>
         </div>

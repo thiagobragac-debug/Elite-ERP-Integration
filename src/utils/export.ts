@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+﻿import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -77,7 +77,7 @@ export const exportToPDF = (data: any[], filename: string, title: string) => {
   
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(22);
-  doc.text('ELITE ERP v5.0', 14, 18);
+  doc.text('TAUZE ERP v5.0', 14, 18);
   
   doc.setFontSize(10);
   doc.text(`RELATÓRIO: ${title.toUpperCase()}`, 14, 28);

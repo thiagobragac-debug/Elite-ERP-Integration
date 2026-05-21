@@ -1,4 +1,4 @@
-.cash-flow-page {
+﻿.cash-flow-page {
   padding: 24px;
   display: flex;
   flex-direction: column;
@@ -190,7 +190,7 @@
   font-size: 14px;
 }
 
-.elite-insight-box {
+.tauze-insight-box {
   background: linear-gradient(145deg, hsl(var(--brand) / 0.05), white);
   border-color: hsl(var(--brand) / 0.2);
 }

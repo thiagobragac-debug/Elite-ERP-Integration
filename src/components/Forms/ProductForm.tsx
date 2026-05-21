@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Package, 
   Tag,
@@ -73,10 +73,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Item"}
     >
-      <div className="elite-field-group">
-        <label className="elite-label"><Package size={14} /> Nome do Item</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Package size={14} /> Nome do Item</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Ex: Milho, NPK 04-14-08, Ivermectina..." 
           value={formData.nome}
@@ -85,10 +85,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Tag size={14} /> Categoria</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Tag size={14} /> Categoria</label>
         <select 
-          className="elite-input elite-select"
+          className="tauze-input tauze-select"
           value={formData.categoria}
           onChange={(e) => setFormData({...formData, categoria: e.target.value})}
           required
@@ -102,10 +102,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         </select>
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Tag size={14} /> Marca / Fabricante</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Tag size={14} /> Marca / Fabricante</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Ex: Bunge, Syngenta..." 
           value={formData.marca}
@@ -113,10 +113,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Layers size={14} /> Localização (Almoxarifado)</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Layers size={14} /> Localização (Almoxarifado)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Prateleira A, Galpão 01..." 
           value={formData.localizacao}
@@ -124,10 +124,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Hash size={14} /> Código de Barras (EAN)</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Hash size={14} /> Código de Barras (EAN)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="789..." 
           value={formData.ean}
@@ -135,10 +135,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Hash size={14} /> NCM</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Hash size={14} /> NCM</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Código Fiscal" 
           value={formData.ncm}
@@ -146,10 +146,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Hash size={14} /> Est. Atual</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Hash size={14} /> Est. Atual</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -159,10 +159,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><AlertTriangle size={14} /> Est. Mínimo</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><AlertTriangle size={14} /> Est. Mínimo</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -172,10 +172,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Layers size={14} /> Unidade</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Layers size={14} /> Unidade</label>
         <select 
-          className="elite-input elite-select"
+          className="tauze-input tauze-select"
           value={formData.unidade}
           onChange={(e) => setFormData({...formData, unidade: e.target.value})}
           required
@@ -189,10 +189,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         </select>
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><DollarSign size={14} /> Custo (R$)</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><DollarSign size={14} /> Custo (R$)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -202,10 +202,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         />
       </div>
 
-      <div className="elite-field-group full-width">
-        <label className="elite-label"><FileText size={14} /> Descrição / Notas</label>
+      <div className="tauze-field-group full-width">
+        <label className="tauze-label"><FileText size={14} /> Descrição / Notas</label>
         <textarea 
-          className="elite-input"
+          className="tauze-input"
           style={{ height: 'auto', minHeight: '80px', padding: '12px 16px', borderRadius: '14px' }}
           placeholder="Informações adicionais sobre o produto..." 
           value={formData.descricao}

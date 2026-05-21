@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Globe, 
   Activity, 
@@ -38,7 +38,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TenantForm } from '../../components/Forms/TenantForm';
 import { PlanForm } from '../../components/Forms/PlanForm';
 import { useAuth } from '../../contexts/AuthContext';
@@ -1159,7 +1159,7 @@ export const SaaSAdminPanel: React.FC = () => {
       header: 'Status',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span className={`status-badge-elite ${item.status}`}>
+          <span className={`status-badge-tauze ${item.status}`}>
             {item.status}
           </span>
         </div>
@@ -1847,7 +1847,7 @@ export const SaaSAdminPanel: React.FC = () => {
       `}</style>
 
       <div className="next-gen-kpi-grid" style={{ padding: '0 8px' }}>
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Receita Mensal (MRR)" 
           value={`R$ ${kpis.mrr.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} 
           icon={Edit2} 
@@ -1856,7 +1856,7 @@ export const SaaSAdminPanel: React.FC = () => {
           change="+12.4%" 
           sparkline={[{value: 30, label: ''}, {value: 45, label: ''}, {value: 60, label: ''}, {value: 85, label: ''}]}
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Total de Inquilinos" 
           value={kpis.totalTenants.toString()} 
           icon={Globe} 
@@ -1865,7 +1865,7 @@ export const SaaSAdminPanel: React.FC = () => {
           change="+82 este mês" 
           sparkline={[{value: 20, label: ''}, {value: 30, label: ''}, {value: 50, label: ''}, {value: 70, label: ''}]}
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Usuários Ativos" 
           value={kpis.totalUsers.toString()} 
           icon={Users} 
@@ -1874,7 +1874,7 @@ export const SaaSAdminPanel: React.FC = () => {
           change="+5.2%" 
           sparkline={[{value: 40, label: ''}, {value: 55, label: ''}, {value: 65, label: ''}, {value: 80, label: ''}]}
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Saúde da Rede" 
           value={`${kpis.health}%`} 
           icon={Activity} 
@@ -2042,11 +2042,11 @@ export const SaaSAdminPanel: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               className="saas-view"
             >
-              <div className="elite-controls-row">
-                <div className="elite-search-wrapper">
+              <div className="tauze-controls-row">
+                <div className="tauze-search-wrapper">
                   <Search size={18} className="s-icon" />
                   <input 
-                    className="elite-search-input"
+                    className="tauze-search-input"
                     type="text" 
                     placeholder="Filtrar por nome, CNPJ ou ID de instância..." 
                     value={searchQuery}
@@ -2054,16 +2054,16 @@ export const SaaSAdminPanel: React.FC = () => {
                   />
                 </div>
 
-                <div className="elite-filter-group">
-                  <div className="elite-tab-group">
+                <div className="tauze-filter-group">
+                  <div className="tauze-tab-group">
                     <button 
-                      className={`elite-tab-item ${viewMode === 'list' ? 'active' : ''}`}
+                      className={`tauze-tab-item ${viewMode === 'list' ? 'active' : ''}`}
                       onClick={() => setViewMode('list')}
                     >
                       <ListIcon size={18} />
                     </button>
                     <button 
-                      className={`elite-tab-item ${viewMode === 'grid' ? 'active' : ''}`}
+                      className={`tauze-tab-item ${viewMode === 'grid' ? 'active' : ''}`}
                       onClick={() => setViewMode('grid')}
                     >
                       <LayoutGrid size={18} />
@@ -2199,11 +2199,11 @@ export const SaaSAdminPanel: React.FC = () => {
               exit={{ opacity: 0, y: -10 }}
               className="saas-view"
             >
-              <div className="elite-controls-row">
-                <div className="elite-search-wrapper">
+              <div className="tauze-controls-row">
+                <div className="tauze-search-wrapper">
                   <Search size={18} className="s-icon" />
                   <input 
-                    className="elite-search-input"
+                    className="tauze-search-input"
                     type="text" 
                     placeholder="Filtrar catálogo de planos..." 
                     value={searchQuery}
@@ -2211,7 +2211,7 @@ export const SaaSAdminPanel: React.FC = () => {
                   />
                 </div>
 
-                <div className="elite-filter-group">
+                <div className="tauze-filter-group">
                   <div className="view-mode-toggle">
                     <button 
                       className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
@@ -2389,7 +2389,7 @@ export const SaaSAdminPanel: React.FC = () => {
                   marginBottom: '48px',
                   marginTop: '10px'
                 }}>
-                  <EliteStatCard 
+                  <TauzeStatCard 
                     label="Métricas de Faturamento"
                     value={`R$ ${totalFaturamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     change="+4.2%"
@@ -2400,7 +2400,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     sparkline={[{value: 30, label: '1'}, {value: 50, label: '2'}, {value: 45, label: '3'}, {value: 80, label: '4'}]}
                   />
 
-                  <EliteStatCard 
+                  <TauzeStatCard 
                     label="Inadimplência (30d)"
                     value={`R$ ${totalInadimplencia.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     change="-12%"
@@ -2411,7 +2411,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     sparkline={[{value: 60, label: '1'}, {value: 40, label: '2'}, {value: 55, label: '3'}, {value: 30, label: '4'}]}
                   />
 
-                  <EliteStatCard 
+                  <TauzeStatCard 
                     label="Previsão de Receita"
                     value={`R$ ${totalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     change="+11.5%"
@@ -2422,7 +2422,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     sparkline={[{value: 40, label: '1'}, {value: 60, label: '2'}, {value: 75, label: '3'}, {value: 90, label: '4'}]}
                   />
 
-                  <EliteStatCard 
+                  <TauzeStatCard 
                     label="Taxa de Churn"
                     value={`${churnRate.toFixed(1)}%`}
                     change="-0.4%"
@@ -2436,10 +2436,10 @@ export const SaaSAdminPanel: React.FC = () => {
                 </div>
 
 
-                <div className="elite-controls-row" style={{ marginTop: '20px' }}>
-                 <div className="elite-tab-group">
+                <div className="tauze-controls-row" style={{ marginTop: '20px' }}>
+                 <div className="tauze-tab-group">
                    <button 
-                     className={`elite-tab-item ${billingSubTab === 'monitor' ? 'active' : ''}`}
+                     className={`tauze-tab-item ${billingSubTab === 'monitor' ? 'active' : ''}`}
                      onClick={() => setBillingSubTab('monitor')}
                    >
                      Monitor Global
@@ -2447,11 +2447,11 @@ export const SaaSAdminPanel: React.FC = () => {
                    
                  </div>
 
-                 <div className="elite-filter-group">
-                   <div className="elite-search-wrapper" style={{ width: '300px' }}>
+                 <div className="tauze-filter-group">
+                   <div className="tauze-search-wrapper" style={{ width: '300px' }}>
                      <Search size={18} className="s-icon" />
                      <input 
-                       className="elite-search-input"
+                       className="tauze-search-input"
                        type="text" 
                        placeholder="Buscar por tenant ou ID..." 
                        value={searchQuery}
@@ -3186,11 +3186,11 @@ export const SaaSAdminPanel: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="elite-modal-container"
+                className="tauze-modal-container"
                 onClick={e => e.stopPropagation()}
                 style={{ position: 'relative', maxWidth: '800px', width: '100%', height: '90vh', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', overflow: 'hidden' }}
               >
-                <div className="elite-modal-header" style={{ padding: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid #f1f5f9' }}>
+                <div className="tauze-modal-header" style={{ padding: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid #f1f5f9' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Shield size={20} />
@@ -3205,7 +3205,7 @@ export const SaaSAdminPanel: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="elite-modal-content" style={{ padding: '0', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div className="tauze-modal-content" style={{ padding: '0', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <div className="stat-pill" style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px' }}>
@@ -3301,7 +3301,7 @@ export const SaaSAdminPanel: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="elite-modal-footer" style={{ padding: '32px', background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
+                <div className="tauze-modal-footer" style={{ padding: '32px', background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
                   <button className="glass-btn secondary" onClick={() => setIsAuditLogModalOpen(false)}>Fechar Registro</button>
                   <button className="primary-btn" style={{ background: '#0f172a' }}>Exportar Log Completo</button>
                 </div>
@@ -3510,7 +3510,7 @@ export const SaaSAdminPanel: React.FC = () => {
           color: #94a3b8;
         }
 
-        .elite-tab-item {
+        .tauze-tab-item {
           font-size: 10px;
           font-weight: 900;
           padding: 8px 16px;
@@ -3522,13 +3522,13 @@ export const SaaSAdminPanel: React.FC = () => {
           transition: all 0.2s;
         }
 
-        .elite-tab-item.active {
+        .tauze-tab-item.active {
           background: #ecfdf5;
           border-color: #10b981;
           color: #059669;
         }
 
-        .elite-tab-item:hover {
+        .tauze-tab-item:hover {
           background: #f1f5f9;
         }
 
@@ -3750,7 +3750,7 @@ export const SaaSAdminPanel: React.FC = () => {
           filter: brightness(0.95);
         }
 
-        .status-badge-elite {
+        .status-badge-tauze {
           padding: 6px 14px;
           border-radius: 99px;
           font-size: 10px;
@@ -3760,10 +3760,10 @@ export const SaaSAdminPanel: React.FC = () => {
           border: 1px solid transparent;
         }
 
-        .status-badge-elite.pago { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
-        .status-badge-elite.pendente { background: #fffbeb; color: #d97706; border-color: #fef3c7; }
-        .status-badge-elite.atrasado { background: #fff1f2; color: #e11d48; border-color: #ffe4e6; }
-        .status-badge-elite.processando { background: #eff6ff; color: #2563eb; border-color: #dbeafe; }
+        .status-badge-tauze.pago { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
+        .status-badge-tauze.pendente { background: #fffbeb; color: #d97706; border-color: #fef3c7; }
+        .status-badge-tauze.atrasado { background: #fff1f2; color: #e11d48; border-color: #ffe4e6; }
+        .status-badge-tauze.processando { background: #eff6ff; color: #2563eb; border-color: #dbeafe; }
 
         @media (max-width: 1200px) {
           .billing-kpi-grid { grid-template-columns: repeat(2, 1fr); }

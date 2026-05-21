@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Wrench, 
   Plus, 
@@ -31,7 +31,7 @@ import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { MaintenanceForm } from '../../components/Forms/MaintenanceForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { MaintenanceFilterModal } from './components/MaintenanceFilterModal';
 
@@ -346,7 +346,7 @@ export const MaintenanceManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Wrench size={14} fill="currentColor" />
-            <span>ELITE FLEET v5.0</span>
+            <span>TAUZE FLEET v5.0</span>
           </div>
           <h1 className="page-title">Manutenção de Frota</h1>
           <p className="page-subtitle">Rastreabilidade completa de intervenções mecânicas, revisões preventivas e custos em tempo real.</p>
@@ -365,9 +365,9 @@ export const MaintenanceManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Wrench} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wrench} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -380,33 +380,33 @@ export const MaintenanceManagement: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'ACTIVE' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'ACTIVE' ? 'active' : ''}`}
             onClick={() => setActiveTab('ACTIVE')}
           >
             OS Ativas
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'HISTORY' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'HISTORY' ? 'active' : ''}`}
             onClick={() => setActiveTab('HISTORY')}
           >
             Histórico Mecânico
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'PLANS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'PLANS' ? 'active' : ''}`}
             onClick={() => setActiveTab('PLANS')}
           >
             Planos Preventivos
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por máquina, descrição ou responsável..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -460,7 +460,7 @@ export const MaintenanceManagement: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
@@ -812,17 +812,17 @@ export const MaintenanceManagement: React.FC = () => {
         icon={Settings}
         submitLabel="Finalizar e Gerar OS"
       >
-        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="elite-label">Selecione o Ativo</label>
-          <select className="elite-input elite-select">
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="tauze-label">Selecione o Ativo</label>
+          <select className="tauze-input tauze-select">
             <option value="">Selecione uma máquina...</option>
             <option value="1">Trator John Deere 7230</option>
             <option value="2">Colheitadeira Case IH 9250</option>
           </select>
         </div>
 
-        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="elite-label">Itens de Verificação</label>
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="tauze-label">Itens de Verificação</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: 'hsl(var(--bg-main)/0.5)', padding: '20px', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
             {[
               'Troca de óleo do motor (15W40)',
@@ -856,30 +856,30 @@ export const MaintenanceManagement: React.FC = () => {
         icon={Settings}
         submitLabel="Salvar Plano e Aplicar"
       >
-        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="elite-label">Nome do Plano</label>
-          <input type="text" className="elite-input" placeholder="Ex: Revisão 250 Horas" defaultValue={selectedPlan?.title} />
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="tauze-label">Nome do Plano</label>
+          <input type="text" className="tauze-input" placeholder="Ex: Revisão 250 Horas" defaultValue={selectedPlan?.title} />
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">Frequência</label>
-          <input type="text" className="elite-input" placeholder="Ex: 250" defaultValue={selectedPlan?.freq} />
+        <div className="tauze-field-group">
+          <label className="tauze-label">Frequência</label>
+          <input type="text" className="tauze-input" placeholder="Ex: 250" defaultValue={selectedPlan?.freq} />
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">Unidade</label>
-          <select className="elite-input elite-select" defaultValue={selectedPlan?.unit}>
+        <div className="tauze-field-group">
+          <label className="tauze-label">Unidade</label>
+          <select className="tauze-input tauze-select" defaultValue={selectedPlan?.unit}>
             <option value="H">Horas (H)</option>
             <option value="KM">Quilômetros (KM)</option>
           </select>
         </div>
 
-        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="elite-label">Checklist Técnico</label>
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="tauze-label">Checklist Técnico</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {(selectedPlan?.items || ['Troca de Óleo', 'Troca de Filtro']).map((item: string, i: number) => (
               <div key={i} style={{ display: 'flex', gap: '8px' }}>
-                <input type="text" className="elite-input" style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }} defaultValue={item} />
+                <input type="text" className="tauze-input" style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }} defaultValue={item} />
                 <button type="button" className="action-dot delete" style={{ width: '36px', height: '36px' }}><Trash2 size={14} /></button>
               </div>
             ))}
@@ -887,8 +887,8 @@ export const MaintenanceManagement: React.FC = () => {
           </div>
         </div>
 
-        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="elite-label">Ativos Vinculados</label>
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="tauze-label">Ativos Vinculados</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             {['John Deere 7230', 'Patriot 350', 'Ford Cargo'].map(asset => (
               <label key={asset} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '10px', fontSize: '12px', fontWeight: 600 }}>

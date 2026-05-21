@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   DollarSign, 
@@ -18,7 +18,7 @@ import {
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { isValidUUID } from '../../utils/validation';
 import { BillingFilterModal } from './components/BillingFilterModal';
@@ -262,7 +262,7 @@ export const TenantBilling: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid" style={{ marginBottom: '32px' }}>
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Usuários Ativos"
           value={`${billingStats.usersCount}/${billingStats.usersLimit}`}
           change={`${Math.round((billingStats.usersCount / billingStats.usersLimit) * 100)}% do Limite`}
@@ -273,7 +273,7 @@ export const TenantBilling: React.FC = () => {
           progress={Math.min(100, Math.round((billingStats.usersCount / billingStats.usersLimit) * 100))}
           sparkline={[{value: Math.max(0, billingStats.usersCount - 2), label: ''}, {value: billingStats.usersCount, label: ''}]}
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Armazenamento"
           value={`${billingStats.storageGb} GB`}
           change={`${Math.round((billingStats.storageGb / billingStats.storageLimit) * 100)}% do Limite`}
@@ -284,7 +284,7 @@ export const TenantBilling: React.FC = () => {
           progress={Math.min(100, Math.round((billingStats.storageGb / billingStats.storageLimit) * 100))}
           sparkline={[{value: Math.max(0.1, billingStats.storageGb - 0.2), label: ''}, {value: billingStats.storageGb, label: ''}]}
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Vigência do Plano"
           value={`${billingStats.daysLeft} Dias`}
           change="Ciclo Mensal"
@@ -295,7 +295,7 @@ export const TenantBilling: React.FC = () => {
           progress={Math.min(100, Math.round((billingStats.daysLeft / 30) * 100))}
           sparkline={[{value: 30, label: ''}, {value: billingStats.daysLeft, label: ''}]}
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Módulos Ativos"
           value={billingStats.activeModules}
           change={billingStats.activeModules === '8/8' ? 'Acesso Completo' : '3 Restringidos'}
@@ -308,16 +308,16 @@ export const TenantBilling: React.FC = () => {
         />
       </div>
 
-      <div className="elite-controls-row" style={{ marginBottom: '32px' }}>
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row" style={{ marginBottom: '32px' }}>
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'plan' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'plan' ? 'active' : ''}`}
             onClick={() => setActiveTab('plan')}
           >
             Plano & Upgrade
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'invoices' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'invoices' ? 'active' : ''}`}
             onClick={() => setActiveTab('invoices')}
           >
             Histórico de Faturas
@@ -392,7 +392,7 @@ export const TenantBilling: React.FC = () => {
               
               {loading ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-                  {[1, 2].map(i => <div key={i} className="elite-card-skeleton" style={{ height: '400px' }} />)}
+                  {[1, 2].map(i => <div key={i} className="tauze-card-skeleton" style={{ height: '400px' }} />)}
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
@@ -477,40 +477,40 @@ export const TenantBilling: React.FC = () => {
               <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Carregando faturas...</div>
             ) : (
               <>
-                <div className="elite-controls-row" style={{ marginBottom: '24px' }}>
-                <div className="elite-tab-group">
+                <div className="tauze-controls-row" style={{ marginBottom: '24px' }}>
+                <div className="tauze-tab-group">
                   <button 
-                    className={`elite-tab-item ${statusFilter === 'all' ? 'active' : ''}`}
+                    className={`tauze-tab-item ${statusFilter === 'all' ? 'active' : ''}`}
                     onClick={() => setStatusFilter('all')}
                   >
                     Todas Faturas
                   </button>
                   <button 
-                    className={`elite-tab-item ${statusFilter === 'pendente' ? 'active' : ''}`}
+                    className={`tauze-tab-item ${statusFilter === 'pendente' ? 'active' : ''}`}
                     onClick={() => setStatusFilter('pendente')}
                   >
                     Pendentes
                   </button>
                   <button 
-                    className={`elite-tab-item ${statusFilter === 'pago' ? 'active' : ''}`}
+                    className={`tauze-tab-item ${statusFilter === 'pago' ? 'active' : ''}`}
                     onClick={() => setStatusFilter('pago')}
                   >
                     Pagas
                   </button>
                 </div>
 
-                <div className="elite-search-wrapper">
+                <div className="tauze-search-wrapper">
                   <Search size={18} className="s-icon" />
                   <input 
                     type="text" 
-                    className="elite-search-input"
+                    className="tauze-search-input"
                     placeholder="Buscar por descrição..." 
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
 
-                <div className="elite-filter-group">
+                <div className="tauze-filter-group">
                   <button 
                     className={`icon-btn-secondary ${isFilterOpen ? 'active' : ''}`} 
                     title="Filtros Avançados"

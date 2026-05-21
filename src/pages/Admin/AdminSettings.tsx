@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
   PieChart, 
@@ -85,7 +85,7 @@ export const AdminSettings: React.FC = () => {
   const [saveScope, setSaveScope] = useState<'global' | 'personal'>('global');
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(() => {
-    const savedLocal = localStorage.getItem('elite_selected_metrics');
+    const savedLocal = localStorage.getItem('tauze_selected_metrics');
     if (savedLocal) {
       try {
         const parsed = JSON.parse(savedLocal);
@@ -106,7 +106,7 @@ export const AdminSettings: React.FC = () => {
     
     // Sincronizar com o banco de dados se disponível e não houver cache local prioritário
     const dbMetrics = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
-    if (dbMetrics && !localStorage.getItem('elite_selected_metrics')) {
+    if (dbMetrics && !localStorage.getItem('tauze_selected_metrics')) {
       setSelectedMetrics(dbMetrics);
     }
     
@@ -119,7 +119,7 @@ export const AdminSettings: React.FC = () => {
     setIsSaving(true);
     setSaveSuccess(false);
     
-    localStorage.setItem('elite_selected_metrics', JSON.stringify(selectedMetrics));
+    localStorage.setItem('tauze_selected_metrics', JSON.stringify(selectedMetrics));
 
     if (tenant?.id) {
       const table = saveScope === 'global' ? 'tenants' : 'profiles';
@@ -227,7 +227,7 @@ export const AdminSettings: React.FC = () => {
             <span>CENTRAL DE GOVERNANÇA v5.0</span>
           </div>
           <h1 className="page-title">Configurações do Ecossistema</h1>
-          <p className="page-subtitle">Gestão estratégica de parâmetros, métricas e interface do ecossistema Elite.</p>
+          <p className="page-subtitle">Gestão estratégica de parâmetros, métricas e interface do ecossistema Tauze.</p>
         </div>
         <div className="page-actions">
           <AnimatePresence>
@@ -236,7 +236,7 @@ export const AdminSettings: React.FC = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
-                className="save-toast-elite"
+                className="save-toast-tauze"
               >
                 <Check size={16} />
                 <span>Alterações Sincronizadas</span>
@@ -250,12 +250,12 @@ export const AdminSettings: React.FC = () => {
         </div>
       </header>
 
-      <div className="elite-controls-row" style={{ marginTop: '24px' }}>
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row" style={{ marginTop: '24px' }}>
+        <div className="tauze-tab-group">
           {tabs.map(tab => (
             <button 
               key={tab.id}
-              className={`elite-tab-item ${activeTab === tab.id ? 'active' : ''}`}
+              className={`tauze-tab-item ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id as SettingTab)}
             >
               <tab.icon size={16} />
@@ -265,7 +265,7 @@ export const AdminSettings: React.FC = () => {
         </div>
       </div>
       
-      <div className="elite-separator" style={{ margin: '24px 0' }}></div>
+      <div className="tauze-separator" style={{ margin: '24px 0' }}></div>
 
       <main className="hub-content">
         <AnimatePresence mode="wait">
@@ -284,11 +284,11 @@ export const AdminSettings: React.FC = () => {
                     <h3>Identidade & Regional</h3>
                   </div>
                   <div className="field-group">
-                    <div className="elite-field">
+                    <div className="tauze-field">
                       <label>Nome da Organização</label>
-                      <input type="text" defaultValue="Elite Agropecuária Ltda" />
+                      <input type="text" defaultValue="Tauze Agropecuária Ltda" />
                     </div>
-                    <div className="elite-field">
+                    <div className="tauze-field">
                       <label>Fuso Horário Padrão</label>
                       <select defaultValue="BR"><option>Brasília (GMT-3)</option></select>
                     </div>
@@ -324,7 +324,7 @@ export const AdminSettings: React.FC = () => {
                     <h3>Visual da Interface</h3>
                   </div>
                   <div className="appearance-grid">
-                    <div className="theme-card active">Modo Claro (Elite)</div>
+                    <div className="theme-card active">Modo Claro (Tauze)</div>
                     <div className="theme-card">Modo Escuro (Diamond)</div>
                   </div>
                 </section>
@@ -370,7 +370,7 @@ export const AdminSettings: React.FC = () => {
                     <h3>Políticas Financeiras</h3>
                   </div>
                   <div className="field-group">
-                    <div className="elite-field">
+                    <div className="tauze-field">
                       <label>Alçada de Aprovação (R$)</label>
                       <input type="number" defaultValue="5000" />
                     </div>
@@ -390,11 +390,11 @@ export const AdminSettings: React.FC = () => {
                     <h3>Regras Operacionais</h3>
                   </div>
                   <div className="field-group">
-                    <div className="elite-field">
+                    <div className="tauze-field">
                       <label>Buffer de Estoque Global (%)</label>
                       <input type="number" defaultValue="10" />
                     </div>
-                    <div className="elite-field">
+                    <div className="tauze-field">
                       <label>Tolerância de Pesagem (%)</label>
                       <input type="number" defaultValue="2" />
                     </div>
@@ -689,7 +689,7 @@ export const AdminSettings: React.FC = () => {
           gap: 16px;
         }
 
-        .save-toast-elite {
+        .save-toast-tauze {
           display: flex;
           align-items: center;
           gap: 8px;
@@ -767,9 +767,9 @@ export const AdminSettings: React.FC = () => {
         }
 
         .field-group { display: flex; flex-direction: column; gap: 20px; }
-        .elite-field { display: flex; flex-direction: column; gap: 8px; max-width: 480px; }
-        .elite-field label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
-        .elite-field input, .elite-field select {
+        .tauze-field { display: flex; flex-direction: column; gap: 8px; max-width: 480px; }
+        .tauze-field label { font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+        .tauze-field input, .tauze-field select {
           padding: 14px 18px;
           border-radius: 14px;
           border: 1px solid hsl(var(--border));
@@ -779,7 +779,7 @@ export const AdminSettings: React.FC = () => {
           color: hsl(var(--text-main));
           transition: all 0.2s;
         }
-        .elite-field input:focus, .elite-field select:focus {
+        .tauze-field input:focus, .tauze-field select:focus {
           border-color: hsl(var(--brand));
           box-shadow: 0 0 0 4px hsl(var(--brand) / 0.1);
           outline: none;

@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { NotificationCenter } from '../Notifications/NotificationCenter';
+import { CepeaBadge } from '../Market/CepeaBadge';
 import './Header.css';
 
 interface HeaderProps {
@@ -42,9 +43,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenProfile = () => {} }) => {
         />
       </div>
 
+      <CepeaBadge />
+
       <div className="header-actions">
         {(location.pathname.startsWith('/admin') || location.pathname.startsWith('/saas')) && (
-          <div className="sync-status" title="GitHub Sincronizado (Elite v5.0 Cloud)">
+          <div className="sync-status" title="GitHub Sincronizado (Tauze v5.0 Cloud)">
             <GitBranch size={18} />
             <div className="status-dot-pulse"></div>
           </div>

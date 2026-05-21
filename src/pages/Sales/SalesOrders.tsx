@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Plus, 
@@ -24,7 +24,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SalesOrderForm } from '../../components/Forms/SalesOrderForm';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -576,7 +576,7 @@ export const SalesOrders: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Tag size={14} fill="currentColor" />
-            <span>ELITE COMMERCE v5.0</span>
+            <span>TAUZE COMMERCE v5.0</span>
           </div>
           <h1 className="page-title">Pedidos de Venda</h1>
           <p className="page-subtitle">Monitoramento do fluxo comercial, desde a emissão da ordem até a entrega final ao cliente.</p>
@@ -606,7 +606,7 @@ export const SalesOrders: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -621,27 +621,27 @@ export const SalesOrders: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'OPEN' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'OPEN' ? 'active' : ''}`}
             onClick={() => setActiveTab('OPEN')}
           >
             Mapas Ativos
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'CLOSED' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'CLOSED' ? 'active' : ''}`}
             onClick={() => setActiveTab('CLOSED')}
           >
             Encerrados
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Pesquisar por número do pedido ou cliente..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -695,7 +695,7 @@ export const SalesOrders: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

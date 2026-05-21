@@ -1,8 +1,8 @@
-import { useTenant } from '../contexts/TenantContext';
+﻿import { useTenant } from '../contexts/TenantContext';
 import { isValidUUID } from '../utils/validation';
 
 /**
- * useFarmFilter — Elite ERP v5.0 query helper
+ * useFarmFilter — Tauze ERP v5.0 query helper
  *
  * Applies the correct Supabase filter depending on whether
  * the user is in "Visão Global" (all farms) or single-farm mode.

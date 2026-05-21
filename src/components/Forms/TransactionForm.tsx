@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   DollarSign, 
   Calendar, 
@@ -184,16 +184,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
 
       <div className="form-group full-width">
         <label><Activity size={14} /> Situação do Lançamento</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.status === 'PENDENTE' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.status === 'PENDENTE' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, status: 'PENDENTE'})}
           >
             <Calendar size={16} />
             <span>Pendente</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.status === 'PAGO' || formData.status === 'RECEBIDO' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.status === 'PAGO' || formData.status === 'RECEBIDO' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, status: type === 'payable' ? 'PAGO' : 'RECEBIDO'})}
           >
             <CheckCircle2 size={16} />

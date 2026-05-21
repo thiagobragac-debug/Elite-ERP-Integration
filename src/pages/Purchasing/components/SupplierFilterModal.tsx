@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Star, Building2, Briefcase, DollarSign, MapPin, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -39,16 +39,16 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#3b82f6' }}>
               <Building2 size={20} />
@@ -66,9 +66,9 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Rating Mínimo <Star size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Rating Mínimo <Star size={14} /></label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {ratingOptions.map(r => (
                 <button 
@@ -98,13 +98,13 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Categorias de Serviço <Briefcase size={14} /></label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Categorias de Serviço <Briefcase size={14} /></label>
+            <div className="tauze-tag-cloud">
               {categories.map(cat => (
                 <button 
                   key={cat}
-                  className={`elite-tag-chip ${filters.categories?.includes(cat) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.categories?.includes(cat) ? 'active' : ''}`}
                   onClick={() => toggleCategory(cat)}
                   style={{ 
                     borderColor: filters.categories?.includes(cat) ? '#3b82f6' : '#e2e8f0', 
@@ -118,8 +118,8 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Volume de Transação (R$) <DollarSign size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Volume de Transação (R$) <DollarSign size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxSpend.toLocaleString('pt-BR')}</span>
@@ -137,8 +137,8 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Status do Parceiro <Check size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Status do Parceiro <Check size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {['ATIVO', 'INATIVO'].map(s => (
                 <button 
@@ -163,7 +163,7 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#3b82f6' }} onClick={onClose}>APLICAR</button>
         </div>

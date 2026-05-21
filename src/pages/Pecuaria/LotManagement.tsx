@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
@@ -31,7 +31,7 @@ import { LotForm } from '../../components/Forms/LotForm';
 import { RelocateForm } from '../../components/Forms/RelocateForm';
 import { AnimalListModal } from '../../components/Modals/AnimalListModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { LotFilterModal } from './components/LotFilterModal';
@@ -372,7 +372,7 @@ export const LotManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Layers size={14} fill="currentColor" />
-            <span>ELITE LIVESTOCK v5.0</span>
+            <span>TAUZE LIVESTOCK v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Lotes</h1>
           <p className="page-subtitle">Organização do rebanho, rastreabilidade por grupo e controle de lotação em tempo real.</p>
@@ -393,34 +393,34 @@ export const LotManagement: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
           />
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'ATIVO' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'ATIVO' ? 'active' : ''}`}
             onClick={() => setActiveTab('ATIVO')}
           >
             Lotes Ativos
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'ARQUIVADO' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'ARQUIVADO' ? 'active' : ''}`}
             onClick={() => setActiveTab('ARQUIVADO')}
           >
             Arquivados
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Filtrar por nome do lote..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -444,7 +444,7 @@ export const LotManagement: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

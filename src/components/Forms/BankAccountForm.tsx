@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Building2, 
   CreditCard,
@@ -113,30 +113,30 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
 
       <div className="form-group full-width">
         <label><Activity size={14} /> Tipo de Conta</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'CORRENTE' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'CORRENTE' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'CORRENTE'})}
           >
             <CreditCard size={16} />
             <span>Corrente</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'POUPANCA' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'POUPANCA' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'POUPANCA'})}
           >
             <Building2 size={16} />
             <span>Poupança</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'INVESTIMENTO' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'INVESTIMENTO' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'INVESTIMENTO'})}
           >
             <Activity size={16} />
             <span>Invest.</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'CAIXA' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'CAIXA' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'CAIXA'})}
           >
             <Hash size={16} />
@@ -171,7 +171,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
       <div className="form-group">
         <label><TrendingUp size={14} /> Benchmark Rendimento</label>
         <select 
-          className="elite-select"
+          className="tauze-select"
           value={formData.benchmark_rendimento}
           onChange={(e) => setFormData({...formData, benchmark_rendimento: e.target.value})}
         >

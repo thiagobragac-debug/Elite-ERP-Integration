@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import {
   Building2,
   FileText,
@@ -168,7 +168,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
 
       <div className="form-group">
         <label><FileText size={14} /> {formData.tipo_documento}</label>
-        <div className="elite-input-with-action">
+        <div className="tauze-input-with-action">
           <input type="text"
             placeholder={formData.tipo_documento === 'CNPJ' ? '00.000.000/0000-00' : '000.000.000-00'}
             value={formData.document}
@@ -185,9 +185,9 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
 
       <div className="form-group full-width">
         <label><ShieldCheck size={14} /> Tipo de Unidade</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           {['matriz', 'filial', 'parceiro'].map(t => (
-            <div key={t} className={`elite-form-radio-item ${formData.type === t ? 'active' : ''}`}
+            <div key={t} className={`tauze-form-radio-item ${formData.type === t ? 'active' : ''}`}
               onClick={() => setFormData({...formData, type: t})}>
               {t === 'matriz' ? <Building2 size={16} /> : t === 'filial' ? <Map size={16} /> : <Users size={16} />}
               <span style={{textTransform: 'capitalize'}}>{t}</span>
@@ -333,8 +333,8 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
       )}
 
       <style>{`
-        .elite-input-with-action { position: relative; display: flex; align-items: center; }
-        .elite-input-with-action input { width: 100%; padding-right: 46px !important; }
+        .tauze-input-with-action { position: relative; display: flex; align-items: center; }
+        .tauze-input-with-action input { width: 100%; padding-right: 46px !important; }
         .action-trigger-btn {
           position: absolute; right: 8px; width: 32px; height: 32px;
           border-radius: 8px; border: none; background: hsl(var(--bg-main));

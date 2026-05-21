@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 
 interface SkeletonProps {
   width?: string | number;
@@ -40,7 +40,7 @@ export const TableSkeleton: React.FC = () => (
 );
 
 export const KPISkeleton: React.FC = () => (
-  <div className="elite-kpi-card">
+  <div className="tauze-kpi-card">
     <div className="kpi-main-content">
       <Skeleton width={80} height={80} circle />
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>

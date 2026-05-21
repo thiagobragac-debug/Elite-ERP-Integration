@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Scale, 
   Plus, 
@@ -21,7 +21,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { WeightForm } from '../../components/Forms/WeightForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
@@ -533,7 +533,7 @@ export const WeightManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Scale size={14} fill="currentColor" />
-            <span>ELITE LIVESTOCK v5.0</span>
+            <span>TAUZE LIVESTOCK v5.0</span>
           </div>
           <h1 className="page-title">Controle de Pesagem</h1>
           <p className="page-subtitle">Monitoramento de ganho de peso individual e performance do lote em tempo real.</p>
@@ -567,23 +567,23 @@ export const WeightManagement: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
           />
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'RECENT' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'RECENT' ? 'active' : ''}`}
             onClick={() => setActiveTab('RECENT')}
           >
             Últimas Pesagens
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'PERFORMANCE' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'PERFORMANCE' ? 'active' : ''}`}
             onClick={() => setActiveTab('PERFORMANCE')}
           >
             Performance do Lote
@@ -616,18 +616,18 @@ export const WeightManagement: React.FC = () => {
           </select>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Pesquisar por brinco..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

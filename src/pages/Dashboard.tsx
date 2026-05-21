@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -22,7 +22,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useFarmFilter } from '../hooks/useFarmFilter';
 import { useReportData } from '../hooks/useReportData';
-import { EliteStatCard } from '../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../components/Cards/TauzeStatCard';
 import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
@@ -66,9 +66,9 @@ export const Dashboard: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <LayoutGrid size={14} fill="currentColor" />
-            <span>ELITE PANORAMA v5.0</span>
+            <span>TAUZE PANORAMA v5.0</span>
           </div>
-          <h1 className="page-title">Panorama Elite</h1>
+          <h1 className="page-title">Panorama Tauze</h1>
           <p className="page-subtitle">Visão consolidada da operação agropecuária na unidade {activeFarm?.name || 'Global'} em tempo real.</p>
         </div>
         <div className="page-actions">
@@ -85,9 +85,9 @@ export const Dashboard: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Activity} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Activity} color="" />)
         ) : (statsData && statsData.length > 0) ? statsData.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
             icon={getStatIcon(stat?.id)}
@@ -99,7 +99,7 @@ export const Dashboard: React.FC = () => {
         )}
       </div>
 
-      <div className="elite-separator"></div>
+      <div className="tauze-separator"></div>
 
       <div className="dashboard-content-grid">
         <motion.div 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   Scale, 
@@ -62,12 +62,12 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       fetchAnimals('');
       
       // Auto-detect global scale configuration from ScaleConfigModal
-      const globalConnected = localStorage.getItem('elite_scale_connected') === 'true';
+      const globalConnected = localStorage.getItem('tauze_scale_connected') === 'true';
       if (globalConnected) {
         setScaleConnected(true);
         setActiveTab('smart'); // Automatically pre-select smart curral mode!
-        setScaleBrand(localStorage.getItem('elite_scale_brand') || 'TRUTEST');
-        setScaleType(localStorage.getItem('elite_scale_type') || 'BLUETOOTH');
+        setScaleBrand(localStorage.getItem('tauze_scale_brand') || 'TRUTEST');
+        setScaleType(localStorage.getItem('tauze_scale_type') || 'BLUETOOTH');
       } else {
         setScaleConnected(false);
         setActiveTab('manual');
@@ -234,16 +234,16 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   const handleConnectScale = async () => {
     if (scaleConnected) {
       setScaleConnected(false);
-      localStorage.removeItem('elite_scale_connected');
-      localStorage.removeItem('elite_scale_brand');
-      localStorage.removeItem('elite_scale_type');
+      localStorage.removeItem('tauze_scale_connected');
+      localStorage.removeItem('tauze_scale_brand');
+      localStorage.removeItem('tauze_scale_type');
       alert('🔌 Balança desconectada com sucesso.');
       return;
     }
 
     try {
-      const activeBrand = localStorage.getItem('elite_scale_brand') || 'TRUTEST';
-      const activeType = localStorage.getItem('elite_scale_type') || 'BLUETOOTH';
+      const activeBrand = localStorage.getItem('tauze_scale_brand') || 'TRUTEST';
+      const activeType = localStorage.getItem('tauze_scale_type') || 'BLUETOOTH';
 
       if ((navigator as any).bluetooth && activeType === 'BLUETOOTH') {
         alert(`🌐 Conectando via Web Bluetooth à balança ${activeBrand}...`);
@@ -254,9 +254,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       setScaleConnected(true);
       setScaleBrand(activeBrand);
       setScaleType(activeType);
-      localStorage.setItem('elite_scale_connected', 'true');
-      localStorage.setItem('elite_scale_brand', activeBrand);
-      localStorage.setItem('elite_scale_type', activeType);
+      localStorage.setItem('tauze_scale_connected', 'true');
+      localStorage.setItem('tauze_scale_brand', activeBrand);
+      localStorage.setItem('tauze_scale_type', activeType);
     } catch (err: any) {
       alert('❌ Falha ao conectar balança: ' + err.message);
     }
@@ -500,7 +500,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   const totalGain = typedRows.reduce((sum, r) => sum + r.evolucao, 0);
 
   return createPortal(
-    <div className="elite-modal-overlay" onClick={onClose} style={{
+    <div className="tauze-modal-overlay" onClick={onClose} style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -515,7 +515,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       padding: '20px',
       boxSizing: 'border-box'
     }}>
-      <div className="elite-modal-container animate-scale-up" onClick={e => e.stopPropagation()} style={{
+      <div className="tauze-modal-container animate-scale-up" onClick={e => e.stopPropagation()} style={{
         background: 'linear-gradient(135deg, hsl(var(--bg-card)) 0%, hsl(var(--bg-main)) 100%)',
         border: '1px solid hsl(var(--border))',
         borderRadius: '24px',

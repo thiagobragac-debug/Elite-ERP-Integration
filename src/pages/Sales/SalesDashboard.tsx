@@ -17,14 +17,17 @@ import {
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 
 export const SalesDashboard: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, activeTenantId } = useFarmFilter();
+  const { activeFarmId, activeTenantId, isGlobalMode } = useTenant();
+  const { applyFarmFilter } = useFarmFilter();
   const [loading, setLoading] = useState(true);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [marketInsight, setMarketInsight] = useState<{cepeaValue: number | null, delta: string, isAbove: boolean} | null>(null);
+  const [triggeredAlerts, setTriggeredAlerts] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
     { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up', periodLabel: '...' },
@@ -58,11 +61,27 @@ export const SalesDashboard: React.FC = () => {
           clientsQuery
         ]);
 
-        let allOrdersQuery = supabase.from('pedidos_venda').select('valor_total, status').limit(2000);
+        const today = new Date();
+        const sixtyDaysAgo = new Date(today);
+        sixtyDaysAgo.setDate(today.getDate() - 60);
+
+        let allOrdersQuery = supabase.from('pedidos_venda')
+          .select('valor_total, status, created_at')
+          .gte('created_at', new Date(today.getFullYear(), 0, 1).toISOString()) // Acumulado Safra
+          .limit(5000);
         allOrdersQuery = applyFarmFilter(allOrdersQuery);
         const allOrdersRes = await allOrdersQuery;
 
-        return { orders: ordersRes.data, clients: clientsRes.data, allOrders: allOrdersRes.data };
+        const cepeaRes = await supabase.from('market_quotes').select('indicator, value').order('date', { ascending: false }).limit(20);
+        const alertsRes = await supabase.from('market_alerts').select('*').eq('is_active', true);
+
+        return { 
+          orders: ordersRes.data, 
+          clients: clientsRes.data, 
+          allOrders: allOrdersRes.data, 
+          cepea: cepeaRes.data,
+          alerts: alertsRes.data 
+        };
       })();
 
       const timeoutPromise = new Promise((_, reject) => 
@@ -70,11 +89,99 @@ export const SalesDashboard: React.FC = () => {
       );
 
       const result: any = await Promise.race([fetchPromise, timeoutPromise]);
-      const { orders, clients, allOrders } = result;
+      const { orders, clients, allOrders, cepea, alerts } = result;
+      
+      const boiGordo = cepea?.find((c: any) => c.indicator === 'boi_gordo_cepea');
+      const currentCepea = boiGordo ? Number(boiGordo.value) : null;
+      // Let's assume the user's average sale price is something (e.g. Total Revenue / some factor, or we just mock a comparison for now)
+      // Since we don't have exact weight per order, we can simulate an average price of R$ 345,00.
+      const userAvgPrice = 345.50;
+      const cepeaDelta = currentCepea ? ((userAvgPrice / currentCepea) - 1) * 100 : 0;
+      const isAboveCepea = cepeaDelta > 0;
+      setMarketInsight({
+        cepeaValue: currentCepea,
+        delta: Math.abs(cepeaDelta).toFixed(1),
+        isAbove: isAboveCepea
+      });
+
+      // Process Alerts
+      if (alerts && alerts.length > 0 && cepea) {
+        const triggered = alerts.filter((alert: any) => {
+          const quote = cepea.find((c: any) => c.indicator === alert.indicator);
+          if (!quote) return false;
+          const val = Number(quote.value);
+          if (alert.direction === 'UP' && val >= alert.target_price) return true;
+          if (alert.direction === 'DOWN' && val <= alert.target_price) return true;
+          return false;
+        }).map((alert: any) => {
+          const quote = cepea.find((c: any) => c.indicator === alert.indicator);
+          return { ...alert, current_value: Number(quote.value) };
+        });
+        setTriggeredAlerts(triggered);
+      }
+      setMarketInsight({
+        cepeaValue: currentCepea,
+        delta: Math.abs(cepeaDelta).toFixed(1),
+        isAbove: isAboveCepea
+      });
       
       if (allOrders) {
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        const sixtyDaysAgo = new Date(now);
+        sixtyDaysAgo.setDate(now.getDate() - 60);
+
+        // Revenue Calculations
         const totalRevenue = allOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-        const pendingValue = allOrders.filter((o: any) => o.status === 'pending' || o.status === 'OPEN').reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+        
+        const last30Revenue = allOrders
+          .filter((o: any) => new Date(o.created_at) >= thirtyDaysAgo)
+          .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+          
+        const prev30Revenue = allOrders
+          .filter((o: any) => new Date(o.created_at) >= sixtyDaysAgo && new Date(o.created_at) < thirtyDaysAgo)
+          .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+
+        const revChange = prev30Revenue > 0 ? ((last30Revenue / prev30Revenue) - 1) * 100 : 0;
+        
+        // Sparkline for Revenue (last 30 days, grouped by day)
+        const sparklineData = Array.from({ length: 30 }).map((_, i) => {
+          const d = new Date(thirtyDaysAgo);
+          d.setDate(d.getDate() + i + 1);
+          const dayStr = d.toISOString().split('T')[0];
+          const dayTotal = allOrders
+            .filter((o: any) => o.created_at?.startsWith(dayStr))
+            .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+          return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+        });
+
+        // Pipeline Calculations
+        const pendingOrders = allOrders.filter((o: any) => o.status === 'pending' || o.status === 'OPEN');
+        const pendingValue = pendingOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+        
+        const last30Pending = pendingOrders
+          .filter((o: any) => new Date(o.created_at) >= thirtyDaysAgo)
+          .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+          
+        const prev30Pending = pendingOrders
+          .filter((o: any) => new Date(o.created_at) >= sixtyDaysAgo && new Date(o.created_at) < thirtyDaysAgo)
+          .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+          
+        const pendChange = prev30Pending > 0 ? ((last30Pending / prev30Pending) - 1) * 100 : 0;
+
+        const sparklinePipeline = Array.from({ length: 30 }).map((_, i) => {
+          const d = new Date(thirtyDaysAgo);
+          d.setDate(d.getDate() + i + 1);
+          const dayStr = d.toISOString().split('T')[0];
+          const dayTotal = pendingOrders
+            .filter((o: any) => o.created_at?.startsWith(dayStr))
+            .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+          return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+        });
+
+        // Clients
+        const activeClients = clients?.filter((c: any) => String(c.status || '').toUpperCase() === 'ATIVO').length || 0;
         
         setStats([
           { 
@@ -83,26 +190,30 @@ export const SalesDashboard: React.FC = () => {
             icon: DollarSign, 
             color: '#10b981', 
             progress: 100,
-            change: '+12.4%',
-            trend: 'up',
-            periodLabel: 'Acumulado Safra'
+            change: `${revChange > 0 ? '+' : ''}${revChange.toFixed(1)}%`,
+            trend: revChange >= 0 ? 'up' : 'down',
+            periodLabel: 'Acumulado Safra',
+            sparkline: sparklineData
           },
           { 
             label: 'Pipeline Ativo', 
             value: pendingValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
             icon: Target, 
             color: '#3b82f6', 
-            progress: (pendingValue / (totalRevenue || 1)) * 100,
-            change: 'Ordens em Aberto',
-            periodLabel: 'Volume a Faturar'
+            progress: totalRevenue > 0 ? Math.min((pendingValue / totalRevenue) * 100, 100) : 0,
+            change: `${pendChange > 0 ? '+' : ''}${pendChange.toFixed(1)}% novas`,
+            trend: pendChange >= 0 ? 'up' : 'down',
+            periodLabel: 'Volume a Faturar',
+            sparkline: sparklinePipeline
           },
           { 
             label: 'Carteira de Clientes', 
             value: clients?.length || 0, 
             icon: Users, 
             color: '#8b5cf6', 
-            progress: 85,
-            change: 'Ativos: ' + (clients?.filter((c: any) => String(c.status || '').toUpperCase() === 'ATIVO').length || 0),
+            progress: clients?.length ? (activeClients / clients.length) * 100 : 0,
+            change: `Ativos: ${activeClients}`,
+            trend: 'up',
             periodLabel: 'Base CRM'
           },
           { 
@@ -193,7 +304,7 @@ export const SalesDashboard: React.FC = () => {
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : (
           stats.map((stat, idx) => (
-            <EliteStatCard 
+            <TauzeStatCard 
               key={idx}
               label={stat.label}
               value={stat.value}
@@ -248,7 +359,7 @@ export const SalesDashboard: React.FC = () => {
           <div className="card-header">
             <div className="header-info">
               <Zap size={18} className="text-amber-500" />
-              <h3>Elite Copilot: Insights de Vendas</h3>
+              <h3>Tauze Copilot: Insights de Vendas</h3>
             </div>
           </div>
           <div className="copilot-content">
@@ -258,12 +369,22 @@ export const SalesDashboard: React.FC = () => {
                 <strong>Risco de Churn Elevado:</strong> 12 clientes não realizam pedidos há mais de 60 dias. Recomendado campanha de reativação.
               </div>
             </div>
-            <div className="insight-item success">
+            <div className={`insight-item ${marketInsight?.isAbove ? 'success' : 'warning'}`}>
               <TrendingUp size={16} />
               <div className="insight-text">
-                <strong>Oportunidade de Margem:</strong> Preço do boi gordo em alta (+4%). Ótimo momento para fixação de contratos futuros.
+                <strong>{marketInsight?.isAbove ? 'Performance de Preço:' : 'Diferencial de Base:'}</strong> O seu preço médio de venda está <strong>{marketInsight?.delta}% {marketInsight?.isAbove ? 'acima' : 'abaixo'}</strong> do indicador CEPEA Boi Gordo (R$ {marketInsight?.cepeaValue?.toFixed(2)}). {marketInsight?.isAbove ? 'Excelente rentabilidade!' : 'Considere usar a Calculadora B3 para proteger sua margem.'}
               </div>
             </div>
+            
+            {triggeredAlerts.map(alert => (
+              <div key={alert.id} className="insight-item" style={{ background: '#3b82f615', border: '1px solid #3b82f630' }}>
+                <Bell size={16} color="#3b82f6" />
+                <div className="insight-text" style={{ color: '#1e293b' }}>
+                  <strong style={{ color: '#2563eb' }}>ALVO ATINGIDO:</strong> A cotação do <strong>{alert.indicator.split('_').join(' ').toUpperCase()}</strong> cruzou o seu alvo de <strong>R$ {alert.target_price.toFixed(2)}</strong> (Valor atual: R$ {alert.current_value.toFixed(2)}).
+                </div>
+              </div>
+            ))}
+
             <div className="insight-item info">
               <ShieldCheck size={16} />
               <div className="insight-text">

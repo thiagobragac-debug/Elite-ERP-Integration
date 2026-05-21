@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Building2, Wallet, CreditCard, Activity, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -27,16 +27,16 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#3b82f6' }}>
               <Wallet size={20} />
@@ -54,9 +54,9 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Tipo de Conta <CreditCard size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Tipo de Conta <CreditCard size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {[
                 { id: 'all', label: 'Todas as Modalidades' },
@@ -86,8 +86,8 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Status de Saldo <Activity size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Status de Saldo <Activity size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {[
                 { id: 'all', label: 'Todos' },
@@ -115,10 +115,10 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Instituição <Building2 size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Instituição <Building2 size={14} /></label>
             <select 
-              className="elite-input" 
+              className="tauze-input" 
               value={filters.institution}
               onChange={e => setFilters({ ...filters, institution: e.target.value })}
               style={{ width: '100%', height: '45px', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '0 16px', fontWeight: 600, color: '#1e293b' }}
@@ -133,7 +133,7 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#3b82f6' }} onClick={onClose}>APLICAR</button>
         </div>

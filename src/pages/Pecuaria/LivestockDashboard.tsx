@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Beef, 
   TrendingUp, 
@@ -25,8 +25,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
-import { EliteMainChart } from '../../components/Charts/EliteMainChart';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
+import { TauzeMainChart } from '../../components/Charts/TauzeMainChart';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
@@ -181,7 +181,7 @@ export const LivestockDashboard: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Zap size={14} fill="currentColor" />
-            <span>ELITE LIVESTOCK INTELLIGENCE</span>
+            <span>TAUZE LIVESTOCK INTELLIGENCE</span>
           </div>
           <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Visão 360º da performance biológica, sanitária e nutricional do rebanho.</p>
@@ -202,7 +202,7 @@ export const LivestockDashboard: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx} 
             {...stat} 
             icon={getIcon(stat.label)}
@@ -223,7 +223,7 @@ export const LivestockDashboard: React.FC = () => {
             </div>
           </div>
           <div className="chart-container">
-            <EliteMainChart 
+            <TauzeMainChart 
               data={performanceData} 
               color="#10b981" 
               height={320}

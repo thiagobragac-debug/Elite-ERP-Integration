@@ -1,5 +1,5 @@
-/**
- * Pagar.me Integration Utility - Elite ERP SaaS v5.0
+﻿/**
+ * Pagar.me Integration Utility - Tauze ERP SaaS v5.0
  * Handles Brazilian-specific payments, subscriptions, and postbacks (webhooks).
  */
 

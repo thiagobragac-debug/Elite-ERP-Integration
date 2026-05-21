@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Truck, Settings, Wrench, AlertCircle, Gauge, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -44,16 +44,16 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(15, 23, 42, 0.1)', padding: '10px', borderRadius: '12px', color: '#0f172a' }}>
               <Settings size={20} />
@@ -71,9 +71,9 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Status Operacional <Truck size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Status Operacional <Truck size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {statusOptions.map(s => (
                 <button 
@@ -101,13 +101,13 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Marcas Predominantes <Check size={14} /></label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Marcas Predominantes <Check size={14} /></label>
+            <div className="tauze-tag-cloud">
               {marcas.map(m => (
                 <button 
                   key={m}
-                  className={`elite-tag-chip ${filters.marcas?.includes(m) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.marcas?.includes(m) ? 'active' : ''}`}
                   onClick={() => toggleMarca(m)}
                   style={{ 
                     borderColor: filters.marcas?.includes(m) ? '#0f172a' : '#e2e8f0', 
@@ -121,8 +121,8 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Uso do Ativo (h/km) <Gauge size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Uso do Ativo (h/km) <Gauge size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a' }}>{filters.maxUsage}</span>
@@ -140,11 +140,11 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Ano de Fabricação <Calendar size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Ano de Fabricação <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <select 
-                className="elite-input elite-select"
+                className="tauze-input tauze-select"
                 value={filters.minYear || ''}
                 onChange={e => setFilters({ ...filters, minYear: e.target.value })}
               >
@@ -155,7 +155,7 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
                 })}
               </select>
               <select 
-                className="elite-input elite-select"
+                className="tauze-input tauze-select"
                 value={filters.maxYear || ''}
                 onChange={e => setFilters({ ...filters, maxYear: e.target.value })}
               >
@@ -169,7 +169,7 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#0f172a' }} onClick={onClose}>APLICAR</button>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -35,7 +35,7 @@ import { MovementForm } from '../../components/Forms/MovementForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useDebounce } from '../../hooks/useDebounce';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { InventoryFilterModal } from './components/InventoryFilterModal';
 import { formatNumber } from '../../utils/format';
@@ -490,7 +490,7 @@ export const InventoryManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Package size={14} fill="currentColor" />
-            <span>ELITE INVENTORY v5.0</span>
+            <span>TAUZE INVENTORY v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Insumos</h1>
           <p className="page-subtitle">Rastreabilidade de estoque, custo médio e predição de suprimentos em tempo real.</p>
@@ -509,9 +509,9 @@ export const InventoryManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Package} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Package} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -526,12 +526,12 @@ export const InventoryManagement: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           {['All', 'Suplemento', 'Vacina', 'Combustível', 'Semente'].map((cat) => (
             <button 
               key={cat}
-              className={`elite-tab-item ${filterValues.categoria === (cat === 'All' ? 'all' : cat) ? 'active' : ''}`} 
+              className={`tauze-tab-item ${filterValues.categoria === (cat === 'All' ? 'all' : cat) ? 'active' : ''}`} 
               onClick={() => {
                 setFilterValues({...filterValues, categoria: cat === 'All' ? 'all' : cat});
                 setPage(1);
@@ -542,11 +542,11 @@ export const InventoryManagement: React.FC = () => {
           ))}
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Pesquisar insumos por nome ou categoria..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -570,7 +570,7 @@ export const InventoryManagement: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
@@ -1001,9 +1001,9 @@ export const InventoryManagement: React.FC = () => {
           color: white;
         }
 
-        .elite-label { display: block; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .elite-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 14px; transition: 0.2s; background: #f8fafc; color: #1e293b; font-weight: 600; }
-        .elite-input:focus { border-color: #3b82f6; background: white; outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .tauze-label { display: block; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .tauze-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 14px; transition: 0.2s; background: #f8fafc; color: #1e293b; font-weight: 600; }
+        .tauze-input:focus { border-color: #3b82f6; background: white; outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
 
         .add-product-card-premium {
           border: 2px dashed #e2e8f0;

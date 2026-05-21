@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Zap, 
@@ -35,7 +35,7 @@ export const LandingPage: React.FC = () => {
           <div className="logo-v8">
             <div className="logo-icon-v8"><Zap size={18} fill="currentColor" /></div>
             <div className="logo-text-v8">
-              <span className="brand">ELITE ERP</span>
+              <span className="brand">TAUZE ERP</span>
               <span className="version">DIAMOND 5.0</span>
             </div>
           </div>
@@ -77,7 +77,7 @@ export const LandingPage: React.FC = () => {
               <span>para a Pecuária.</span>
             </h1>
             <p>
-              O sistema de gestão mais avançado para produtores de elite. 
+              O sistema de gestão mais avançado para produtores de tauze. 
               Clareza total, dados em tempo real e eficiência absoluta.
             </p>
             
@@ -113,7 +113,7 @@ export const LandingPage: React.FC = () => {
             <div className="showcase-container-v20">
               {/* Square Dashboard (1:1 Aspect Ratio) */}
               <div className="dashboard-v20">
-                <img src="/dashboard-v20.png" alt="Painel Elite ERP" />
+                <img src="/dashboard-v20.png" alt="Painel Tauze ERP" />
                 <div className="dashboard-overlay-v11"></div>
               </div>
 
@@ -125,7 +125,7 @@ export const LandingPage: React.FC = () => {
                 className="ai-badge-v20"
               >
                 <div className="ai-status-dot"></div>
-                <span>Elite Copilot <strong className="text-emerald-400">Ativo</strong></span>
+                <span>Tauze Copilot <strong className="text-emerald-400">Ativo</strong></span>
               </motion.div>
 
               {/* Integrated Cattle Visual */}
@@ -162,7 +162,7 @@ export const LandingPage: React.FC = () => {
       <section className="features-v8" id="solucoes">
         <div className="container-v8">
           <div className="header-v8">
-            <span className="label-v8">MÓDULOS DE ELITE</span>
+            <span className="label-v8">MÓDULOS DE TAUZE</span>
             <h2>O Centro de Comando da sua Fazenda</h2>
           </div>
 
@@ -229,10 +229,10 @@ export const LandingPage: React.FC = () => {
           <div className="footer-wrap-v8">
             <div className="f-logo-v8">
               <Zap size={20} fill="currentColor" />
-              <span>ELITE ERP</span>
+              <span>TAUZE ERP</span>
             </div>
             <div className="f-meta-v8">
-              <span>&copy; 2026 Elite Intelligence</span>
+              <span>&copy; 2026 Tauze Intelligence</span>
               <div className="divider-v8"></div>
               <span className="v-tag-v8">DIAMOND 5.0</span>
             </div>

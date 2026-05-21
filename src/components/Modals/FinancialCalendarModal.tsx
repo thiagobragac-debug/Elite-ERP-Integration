@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, 
@@ -77,15 +77,15 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
   }
 
   return createPortal(
-    <div className="elite-modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
+    <div className="tauze-modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.9, y: 30 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="elite-modal-container xlarge"
+        className="tauze-modal-container xlarge"
         style={{ maxWidth: '1100px', width: '95%', padding: 0 }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-modal-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="tauze-modal-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper" style={{ 
               background: 'rgba(255,255,255,0.1)', 
@@ -129,7 +129,7 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-calendar-grid">
+          <div className="tauze-calendar-grid">
             <div className="grid-header">DOM</div>
             <div className="grid-header">SEG</div>
             <div className="grid-header">TER</div>
@@ -141,7 +141,7 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-modal-footer">
+        <div className="tauze-modal-footer">
           <button type="button" className="glass-btn secondary" onClick={onClose} style={{ marginLeft: 'auto' }}>
             FECHAR VISUALIZAÇÃO
           </button>
@@ -218,7 +218,7 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
         .dot.warning { background: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
         .dot.success { background: #10b981; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
 
-        .elite-calendar-grid {
+        .tauze-calendar-grid {
           display: grid;
           grid-template-columns: repeat(7, 1fr);
           gap: 1px;

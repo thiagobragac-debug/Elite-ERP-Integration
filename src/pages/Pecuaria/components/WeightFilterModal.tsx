@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Scale, TrendingUp, Calendar, AlertCircle, Target, History } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -38,16 +38,16 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#3b82f6' }}>
               <Scale size={20} />
@@ -65,9 +65,9 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Nível de Performance (GMD) <TrendingUp size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Nível de Performance (GMD) <TrendingUp size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {performanceLevels.map(level => (
                 <button 
@@ -95,8 +95,8 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Faixa de Peso (@ ou kg) <Target size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Faixa de Peso (@ ou kg) <Target size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
                 <label style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso Mínimo</label>
@@ -132,26 +132,26 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Período da Pesagem <Calendar size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Período da Pesagem <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateEnd}
                 onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
               />
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Check-up de Manejo <History size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Check-up de Manejo <History size={14} /></label>
             <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>Dias sem pesar</span>
@@ -170,7 +170,7 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#3b82f6' }} onClick={onClose}>APLICAR</button>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Building2, CreditCard, Mail, Phone, Lock } from 'lucide-react';
@@ -43,15 +43,15 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="elite-modal-overlay" onClick={onClose} style={{ zIndex: 99999 }}>
+        <div className="tauze-modal-overlay" onClick={onClose} style={{ zIndex: 99999 }}>
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="elite-modal-container"
+            className="tauze-modal-container"
             onClick={e => e.stopPropagation()}
           >
-            <div className="elite-modal-header">
+            <div className="tauze-modal-header">
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <Building2 size={20} color="#38bdf8" />
                 <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>
@@ -63,29 +63,29 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
               </button>
             </div>
 
-            <div className="elite-modal-content">
+            <div className="tauze-modal-content">
               
-              <section className="elite-form-section">
-                <div className="elite-section-header">
-                  <div className="elite-section-badge">PASSO 01</div>
-                  <h4 className="elite-section-title">Dados da Empresa</h4>
+              <section className="tauze-form-section">
+                <div className="tauze-section-header">
+                  <div className="tauze-section-badge">PASSO 01</div>
+                  <h4 className="tauze-section-title">Dados da Empresa</h4>
                 </div>
 
-                <div className="elite-input-grid">
-                  <div className="elite-field-group">
-                    <label className="elite-label">Razão Social / Nome da Fazenda</label>
+                <div className="tauze-input-grid">
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">Razão Social / Nome da Fazenda</label>
                     <input 
-                      className="elite-input"
+                      className="tauze-input"
                       type="text" 
                       value={formData.name} 
                       onChange={e => setFormData({...formData, name: e.target.value})} 
                       placeholder="Agropecuária XYZ" 
                     />
                   </div>
-                  <div className="elite-field-group">
-                    <label className="elite-label">CNPJ / ID</label>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">CNPJ / ID</label>
                     <input 
-                      className="elite-input"
+                      className="tauze-input"
                       type="text" 
                       value={formData.cnpj} 
                       onChange={e => setFormData({...formData, cnpj: e.target.value})} 
@@ -94,21 +94,21 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
                   </div>
                 </div>
 
-                <div className="elite-input-grid">
-                  <div className="elite-field-group">
-                    <label className="elite-label"><Mail size={14} /> Email Comercial</label>
+                <div className="tauze-input-grid">
+                  <div className="tauze-field-group">
+                    <label className="tauze-label"><Mail size={14} /> Email Comercial</label>
                     <input 
-                      className="elite-input"
+                      className="tauze-input"
                       type="email" 
                       value={formData.email} 
                       onChange={e => setFormData({...formData, email: e.target.value})} 
                       placeholder="contato@empresa.com" 
                     />
                   </div>
-                  <div className="elite-field-group">
-                    <label className="elite-label"><Phone size={14} /> Telefone</label>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label"><Phone size={14} /> Telefone</label>
                     <input 
-                      className="elite-input"
+                      className="tauze-input"
                       type="text" 
                       value={formData.phone} 
                       onChange={e => setFormData({...formData, phone: e.target.value})} 
@@ -118,17 +118,17 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
                 </div>
               </section>
 
-              <section className="elite-form-section">
-                <div className="elite-section-header">
-                  <div className="elite-section-badge">PASSO 02</div>
-                  <h4 className="elite-section-title">Assinatura & Status</h4>
+              <section className="tauze-form-section">
+                <div className="tauze-section-header">
+                  <div className="tauze-section-badge">PASSO 02</div>
+                  <h4 className="tauze-section-title">Assinatura & Status</h4>
                 </div>
 
-                <div className="elite-input-grid">
-                  <div className="elite-field-group">
-                    <label className="elite-label"><CreditCard size={14} /> Plano Vinculado</label>
+                <div className="tauze-input-grid">
+                  <div className="tauze-field-group">
+                    <label className="tauze-label"><CreditCard size={14} /> Plano Vinculado</label>
                       <select 
-                        className="elite-input elite-select"
+                        className="tauze-input tauze-select"
                         value={formData.plan} 
                         onChange={e => setFormData({...formData, plan: e.target.value})}
                       >
@@ -138,10 +138,10 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
                         ))}
                       </select>
                   </div>
-                  <div className="elite-field-group">
-                    <label className="elite-label"><Lock size={14} /> Status da Conta</label>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label"><Lock size={14} /> Status da Conta</label>
                     <select 
-                      className="elite-input elite-select"
+                      className="tauze-input tauze-select"
                       value={formData.status} 
                       onChange={e => setFormData({...formData, status: e.target.value})}
                     >
@@ -154,27 +154,27 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
               </section>
 
               {!initialData && (
-                <section className="elite-form-section">
-                  <div className="elite-section-header">
-                    <div className="elite-section-badge">PASSO 03</div>
-                    <h4 className="elite-section-title">Conta Master (Administrador)</h4>
+                <section className="tauze-form-section">
+                  <div className="tauze-section-header">
+                    <div className="tauze-section-badge">PASSO 03</div>
+                    <h4 className="tauze-section-title">Conta Master (Administrador)</h4>
                   </div>
 
-                  <div className="elite-input-grid">
-                    <div className="elite-field-group">
-                      <label className="elite-label">Nome do Gestor</label>
+                  <div className="tauze-input-grid">
+                    <div className="tauze-field-group">
+                      <label className="tauze-label">Nome do Gestor</label>
                       <input 
-                        className="elite-input"
+                        className="tauze-input"
                         type="text" 
                         value={formData.adminName} 
                         onChange={e => setFormData({...formData, adminName: e.target.value})} 
                         placeholder="Nome Completo" 
                       />
                     </div>
-                    <div className="elite-field-group">
-                      <label className="elite-label">Email de Acesso (Login)</label>
+                    <div className="tauze-field-group">
+                      <label className="tauze-label">Email de Acesso (Login)</label>
                       <input 
-                        className="elite-input"
+                        className="tauze-input"
                         type="email" 
                         value={formData.adminEmail} 
                         onChange={e => setFormData({...formData, adminEmail: e.target.value})} 
@@ -188,7 +188,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
 
             </div>
 
-            <div className="elite-modal-footer">
+            <div className="tauze-modal-footer">
               <button className="glass-btn secondary" onClick={onClose}>Cancelar</button>
               <button className="primary-btn" onClick={() => onSubmit(formData)} style={{ boxShadow: '0 8px 20px hsl(var(--brand) / 0.2)' }}>
                 {initialData ? 'Salvar Alterações' : 'Provisionar Inquilino'}

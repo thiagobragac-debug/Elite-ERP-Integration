@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Fuel, 
   Truck,
@@ -142,7 +142,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
           ))}
         </select>
         {selectedMachine && (
-          <div className="elite-field-hint" style={{ color: 'hsl(var(--brand))', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
+          <div className="tauze-field-hint" style={{ color: 'hsl(var(--brand))', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
             Último Horímetro: {selectedMachine.horimetro_atual}h | Cap. Tanque: {selectedMachine.capacidade_tanque}L
           </div>
         )}
@@ -182,7 +182,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
           required
         />
         {selectedMachine && Number(formData.meter_value) < selectedMachine.horimetro_atual && (
-          <div className="elite-field-error" style={{ color: '#ef4444', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
+          <div className="tauze-field-error" style={{ color: '#ef4444', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
             <Activity size={10} /> Valor menor que o último registro!
           </div>
         )}
@@ -199,7 +199,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
           required
         />
         {selectedMachine && Number(formData.liters) > selectedMachine.capacidade_tanque && (
-          <div className="elite-field-error" style={{ color: '#f59e0b', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
+          <div className="tauze-field-error" style={{ color: '#f59e0b', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
             <Activity size={10} /> Volume acima da cap. do tanque!
           </div>
         )}

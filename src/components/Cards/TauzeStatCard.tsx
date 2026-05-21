@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-interface EliteStatCardProps {
+interface TauzeStatCardProps {
   label: string;
   value: string | number;
   icon: LucideIcon;
@@ -18,7 +18,7 @@ interface EliteStatCardProps {
   children?: React.ReactNode;
 }
 
-export const EliteStatCard: React.FC<EliteStatCardProps> = ({
+export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
   label,
   value,
   icon: Icon,
@@ -26,25 +26,21 @@ export const EliteStatCard: React.FC<EliteStatCardProps> = ({
   change,
   trend,
   progress = 70,
-  sparkline = [
-    { value: 40, label: '40' }, { value: 50, label: '50' }, { value: 45, label: '45' }, 
-    { value: 60, label: '60' }, { value: 55, label: '55' }, { value: 70, label: '70' }, 
-    { value: 65, label: '65' }, { value: 80, label: '80' }
-  ],
+  sparkline = [],
   loading = false,
   periodLabel = 'Últimos 30 dias',
   className = '',
   children
 }) => {
   if (loading) {
-    return <div className="elite-kpi-card loading-skeleton" style={{ height: '220px' }}></div>;
+    return <div className="tauze-kpi-card loading-skeleton" style={{ height: '220px' }}></div>;
   }
 
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`elite-kpi-card ${className}`}
+      className={`tauze-kpi-card ${className}`}
     >
       <div className="kpi-main-content">
         <div className="viz-circle-wrapper">
@@ -67,10 +63,10 @@ export const EliteStatCard: React.FC<EliteStatCardProps> = ({
         </div>
 
         <div className="kpi-text-info">
-          <span className="kpi-label-elite">{label}</span>
-          <span className="kpi-value-elite">{value}</span>
+          <span className="kpi-label-tauze">{label}</span>
+          <span className="kpi-value-tauze">{value}</span>
           {change && (
-            <div className={`kpi-trend-elite ${trend || 'up'}`}>
+            <div className={`kpi-trend-tauze ${trend || 'up'}`}>
               {trend === 'down' ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
               <span>{change} vs mês ant.</span>
             </div>
@@ -86,20 +82,22 @@ export const EliteStatCard: React.FC<EliteStatCardProps> = ({
 
       {!children && <div className="kpi-divider"></div>}
 
-      <div className="kpi-footer-elite">
+      <div className="kpi-footer-tauze">
         <div className="kpi-sparkline" style={{ color: color }}>
           {(() => {
-            const maxVal = Math.max(...sparkline.map(s => s.value), 1);
-            return sparkline.map((item, i) => (
+            const hasData = sparkline.length > 0;
+            const dataToRender = hasData ? sparkline : Array(12).fill({ value: 0, label: 'Sem Histórico' });
+            const maxVal = Math.max(...dataToRender.map(s => s.value), 1);
+            return dataToRender.map((item, i) => (
               <motion.div 
                 key={i}
                 initial={{ height: 0 }}
-                animate={{ height: `${(item.value / maxVal) * 100}%` }}
+                animate={{ height: hasData ? `${(item.value / maxVal) * 100}%` : '15%' }}
                 transition={{ delay: 0.2 + (i * 0.05) }}
                 className="spark-bar"
                 style={{ 
                   backgroundColor: color,
-                  opacity: 0.2 + (item.value / maxVal) * 0.8
+                  opacity: hasData ? 0.2 + (item.value / maxVal) * 0.8 : 0.3
                 }}
                 whileHover={{ opacity: 1, scaleY: 1.1 }}
               >
@@ -108,7 +106,7 @@ export const EliteStatCard: React.FC<EliteStatCardProps> = ({
             ));
           })()}
         </div>
-        <span className="period-badge-elite">{periodLabel}</span>
+        <span className="period-badge-tauze">{periodLabel}</span>
       </div>
     </motion.div>
   );

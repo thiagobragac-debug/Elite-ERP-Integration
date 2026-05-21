@@ -32,12 +32,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
-import { EliteMainChart } from '../../components/Charts/EliteMainChart';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
+import { TauzeMainChart } from '../../components/Charts/TauzeMainChart';
 import { KPISkeleton, TableSkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { isValidUUID } from '../../utils/validation';
+import { CepeaPanel } from '../../components/Market/CepeaPanel';
 import './ExecutiveDashboard.css';
 
 export const ExecutiveDashboard: React.FC = () => {
@@ -60,7 +61,7 @@ export const ExecutiveDashboard: React.FC = () => {
   const [chartMode, setChartMode] = useState<'line' | 'bar'>('line');
   const [targetValue, setTargetValue] = useState<number>(1.2);
   const [chatHistory, setChatHistory] = useState<any[]>([
-    { type: 'system', text: 'Olá! Sou o Elite Copilot. Como posso ajudar na sua gestão hoje?' }
+    { type: 'system', text: 'Olá! Sou o Tauze Copilot. Como posso ajudar na sua gestão hoje?' }
   ]);
   const navigate = useNavigate();
 
@@ -115,7 +116,7 @@ export const ExecutiveDashboard: React.FC = () => {
   // Sincronização em tempo real com o Canvas Studio
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'elite_selected_metrics') {
+      if (e.key === 'tauze_selected_metrics') {
         console.log('[Dashboard] Mudança detectada no Canvas. Atualizando...');
         fetchExecutiveStats();
       }
@@ -419,29 +420,29 @@ export const ExecutiveDashboard: React.FC = () => {
             { value: 85, label: '92%' }, { value: 88, label: '93%' }, { value: 90, label: '93.5%' }, { value: 92, label: '94%' }, { value: 93, label: '94.1%' }, { value: 94, label: '94.2%' }, { value: 94, label: '94.2%' }, { value: 94, label: 'Hoje: 94.2%' }
           ]
         },
-        { id: 'conversao_alim', label: 'Conversão Alimentar', value: '6.2:1', icon: Activity, color: '#10b981', progress: 85, trend: 'up', change: '-2.1%', periodLabel: 'Nutrição', sparkline: [{value: 80}, {value: 82}, {value: 85}] },
-        { id: 'produtividade_ha', label: 'Produtividade (@/ha)', value: '18.4 @', icon: TrendingUp, color: '#16a34a', progress: 75, trend: 'up', change: '+5.2%', periodLabel: 'Performance', sparkline: [{value: 60}, {value: 70}, {value: 75}] },
-        { id: 'ciclo_engorda', label: 'Ciclo de Engorda', value: '94 dias', icon: Clock, color: '#3b82f6', progress: 90, trend: 'up', change: '-4d', periodLabel: 'Pecuária', sparkline: [{value: 95}, {value: 92}, {value: 90}] },
-        { id: 'saving_compras', label: 'Saving de Compras', value: '12.4%', icon: DollarSign, color: '#10b981', progress: 88, trend: 'up', change: '+1.5%', periodLabel: 'Suprimentos', sparkline: [{value: 70}, {value: 80}, {value: 88}] },
-        { id: 'lead_time', label: 'Lead Time Médio', value: '4.2 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up', change: '-0.5d', periodLabel: 'Suprimentos', sparkline: [{value: 90}, {value: 88}, {value: 85}] },
-        { id: 'acuracidade_est', label: 'Acuracidade Estoque', value: '98.8%', icon: Settings, color: '#10b981', progress: 98, trend: 'up', change: '+0.5%', periodLabel: 'Estoque', sparkline: [{value: 95}, {value: 97}, {value: 98}] },
-        { id: 'ruptura_est', label: 'Índice de Ruptura', value: '1.2%', icon: AlertCircle, color: '#ef4444', progress: 95, trend: 'up', change: '-0.8%', periodLabel: 'Estoque', sparkline: [{value: 20}, {value: 15}, {value: 10}] },
-        { id: 'manutencao_hora', label: 'Custo Manutenção/h', icon: Settings, color: '#3b82f6', value: 'R$ 42,10', trend: 'down', change: '-2.5%', periodLabel: 'Frota', sparkline: [{value: 85}, {value: 80}, {value: 78}] },
-        { id: 'disponibilidade_frota', label: 'Disp. de Frota', icon: Monitor, color: '#10b981', value: '92.4%', trend: 'up', change: '+2.1%', periodLabel: 'Frota', sparkline: [{value: 85}, {value: 90}, {value: 92}] },
-        { id: 'margem_contribuicao', label: 'Margem Contrib.', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 1.2k', trend: 'up', change: '+8.4%', periodLabel: 'Financeiro', sparkline: [{value: 60}, {value: 75}, {value: 84}] },
-        { id: 'break_even', label: 'Break-even (@)', icon: Target, color: '#16a34a', value: 'R$ 172,40', trend: 'up', change: '-1.2%', periodLabel: 'Financeiro', sparkline: [{value: 95}, {value: 93}, {value: 92}] },
-        { id: 'ticket_venda', label: 'Ticket Médio Venda', icon: DollarSign, color: '#f59e0b', value: 'R$ 4.2k', trend: 'up', change: '+2.5%', periodLabel: 'Vendas', sparkline: [{value: 70}, {value: 78}, {value: 82}] },
-        { id: 'ebitda_operacional', label: 'EBITDA Operacional', icon: Zap, color: '#8b5cf6', value: 'R$ 152k', trend: 'up', change: '+4.5%', periodLabel: 'Financeiro', sparkline: [{value: 40}, {value: 60}, {value: 85}] },
-        { id: 'burn_rate', label: 'Burn Rate / Runway', icon: Activity, color: '#f59e0b', value: '14 meses', trend: 'up', change: 'Estável', periodLabel: 'Estratégico', sparkline: [{value: 90}, {value: 85}, {value: 92}] },
-        { id: 'ponto_equilibrio', label: 'Ponto de Equilíbrio', icon: Target, color: '#3b82f6', value: 'R$ 280k', trend: 'down', change: '-2.1%', periodLabel: 'Financeiro', sparkline: [{value: 50}, {value: 65}, {value: 75}] },
-        { id: 'checklist_logistico', label: 'Checklist Logístico', icon: Check, color: '#10b981', value: '94%', trend: 'up', change: '+2.0%', periodLabel: 'Logística', sparkline: [{value: 80}, {value: 90}, {value: 94}] },
-        { id: 'divergencia_log', label: 'Divergência de Frete', icon: AlertCircle, color: '#ef4444', value: '1.2%', trend: 'down', change: '-0.5%', periodLabel: 'Logística', sparkline: [{value: 20}, {value: 15}, {value: 12}] },
-        { id: 'carbono_estoque', label: 'Estoque de Carbono', icon: Globe, color: '#059669', value: '2.4t/ha', trend: 'up', change: '+0.8', periodLabel: 'ESG', sparkline: [{value: 40}, {value: 55}, {value: 70}] },
-        { id: 'compliance_amb', label: 'Compliance Amb.', icon: Shield, color: '#10b981', value: '100%', trend: 'up', change: 'Total', periodLabel: 'ESG', sparkline: [{value: 95}, {value: 100}, {value: 100}] },
-        { id: 'preco_arroba', label: 'Cotação da @ (B3)', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 242,50', trend: 'up', change: '+1.2%', periodLabel: 'Mercado', sparkline: [{value: 60}, {value: 75}, {value: 85}] }
+        { id: 'conversao_alim', label: 'Conversão Alimentar', value: '6.2:1', icon: Activity, color: '#10b981', progress: 85, trend: 'up', change: '-2.1%', periodLabel: 'Nutrição' },
+        { id: 'produtividade_ha', label: 'Produtividade (@/ha)', value: '18.4 @', icon: TrendingUp, color: '#16a34a', progress: 75, trend: 'up', change: '+5.2%', periodLabel: 'Performance' },
+        { id: 'ciclo_engorda', label: 'Ciclo de Engorda', value: '94 dias', icon: Clock, color: '#3b82f6', progress: 90, trend: 'up', change: '-4d', periodLabel: 'Pecuária' },
+        { id: 'saving_compras', label: 'Saving de Compras', value: '12.4%', icon: DollarSign, color: '#10b981', progress: 88, trend: 'up', change: '+1.5%', periodLabel: 'Suprimentos' },
+        { id: 'lead_time', label: 'Lead Time Médio', value: '4.2 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up', change: '-0.5d', periodLabel: 'Suprimentos' },
+        { id: 'acuracidade_est', label: 'Acuracidade Estoque', value: '98.8%', icon: Settings, color: '#10b981', progress: 98, trend: 'up', change: '+0.5%', periodLabel: 'Estoque' },
+        { id: 'ruptura_est', label: 'Índice de Ruptura', value: '1.2%', icon: AlertCircle, color: '#ef4444', progress: 95, trend: 'up', change: '-0.8%', periodLabel: 'Estoque' },
+        { id: 'manutencao_hora', label: 'Custo Manutenção/h', icon: Settings, color: '#3b82f6', value: 'R$ 42,10', trend: 'down', change: '-2.5%', periodLabel: 'Frota' },
+        { id: 'disponibilidade_frota', label: 'Disp. de Frota', icon: Monitor, color: '#10b981', value: '92.4%', trend: 'up', change: '+2.1%', periodLabel: 'Frota' },
+        { id: 'margem_contribuicao', label: 'Margem Contrib.', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 1.2k', trend: 'up', change: '+8.4%', periodLabel: 'Financeiro' },
+        { id: 'break_even', label: 'Break-even (@)', icon: Target, color: '#16a34a', value: 'R$ 172,40', trend: 'up', change: '-1.2%', periodLabel: 'Financeiro' },
+        { id: 'ticket_venda', label: 'Ticket Médio Venda', icon: DollarSign, color: '#f59e0b', value: 'R$ 4.2k', trend: 'up', change: '+2.5%', periodLabel: 'Vendas' },
+        { id: 'ebitda_operacional', label: 'EBITDA Operacional', icon: Zap, color: '#8b5cf6', value: 'R$ 152k', trend: 'up', change: '+4.5%', periodLabel: 'Financeiro' },
+        { id: 'burn_rate', label: 'Burn Rate / Runway', icon: Activity, color: '#f59e0b', value: '14 meses', trend: 'up', change: 'Estável', periodLabel: 'Estratégico' },
+        { id: 'ponto_equilibrio', label: 'Ponto de Equilíbrio', icon: Target, color: '#3b82f6', value: 'R$ 280k', trend: 'down', change: '-2.1%', periodLabel: 'Financeiro' },
+        { id: 'checklist_logistico', label: 'Checklist Logístico', icon: Check, color: '#10b981', value: '94%', trend: 'up', change: '+2.0%', periodLabel: 'Logística' },
+        { id: 'divergencia_log', label: 'Divergência de Frete', icon: AlertCircle, color: '#ef4444', value: '1.2%', trend: 'down', change: '-0.5%', periodLabel: 'Logística' },
+        { id: 'carbono_estoque', label: 'Estoque de Carbono', icon: Globe, color: '#059669', value: '2.4t/ha', trend: 'up', change: '+0.8', periodLabel: 'ESG' },
+        { id: 'compliance_amb', label: 'Compliance Amb.', icon: Shield, color: '#10b981', value: '100%', trend: 'up', change: 'Total', periodLabel: 'ESG' },
+        { id: 'preco_arroba', label: 'Cotação da @ (B3)', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 242,50', trend: 'up', change: '+1.2%', periodLabel: 'Mercado' }
       ];
       
-      const savedLocal = localStorage.getItem('elite_selected_metrics');
+      const savedLocal = localStorage.getItem('tauze_selected_metrics');
       let selectedIds = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
       
       if (savedLocal) {
@@ -497,7 +498,7 @@ export const ExecutiveDashboard: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Zap size={14} fill="currentColor" />
-            <span>ELITE INTELLIGENCE v5.0</span>
+            <span>TAUZE INTELLIGENCE v5.0</span>
           </div>
           <h1 className="page-title">{isGlobalMode ? 'Centro de Comando Global' : 'Centro de Comando'}</h1>
           <p className="page-subtitle">Visão analítica consolidada do patrimônio e performance produtiva. <span style={{color: 'var(--brand)', fontWeight: 800}}>(SISTEMA ATIVO)</span></p>
@@ -524,7 +525,7 @@ export const ExecutiveDashboard: React.FC = () => {
             <KPISkeleton key={i} />
           ))
         ) : kpiData.map((kpi, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={kpi.id || idx}
             label={kpi.label}
             value={kpi.value}
@@ -537,6 +538,9 @@ export const ExecutiveDashboard: React.FC = () => {
           />
         ))}
       </div>
+
+      {/* Painel de Mercado CEPEA */}
+      <CepeaPanel />
 
       <div className="dashboard-grid-layout">
         <div className="analytics-canvas animate-slide-up" style={{ animationDelay: '0.2s' }}>
@@ -570,7 +574,7 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
           
           <div className="chart-visual-wrapper">
-            <EliteMainChart 
+            <TauzeMainChart 
               data={chartData}
               color={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'}
               height={320}
@@ -685,12 +689,12 @@ export const ExecutiveDashboard: React.FC = () => {
 
       <AnimatePresence>
         {isHistoryModalOpen && (
-          <div className="elite-modal-overlay" onClick={() => setIsHistoryModalOpen(false)}>
+          <div className="tauze-modal-overlay" onClick={() => setIsHistoryModalOpen(false)}>
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="elite-history-modal"
+              className="tauze-history-modal"
               onClick={e => e.stopPropagation()}
             >
               <div className="modal-header-premium">
@@ -744,12 +748,12 @@ export const ExecutiveDashboard: React.FC = () => {
             initial={{ opacity: 0, y: 100, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 100, scale: 0.9 }}
-            className="elite-copilot-overlay"
+            className="tauze-copilot-overlay"
           >
             <div className="copilot-header">
               <div className="c-info">
                 <Sparkles size={18} />
-                <span>ELITE COPILOT AI</span>
+                <span>TAUZE COPILOT AI</span>
               </div>
               <button className="close-copilot-btn" onClick={() => setIsCopilotOpen(false)}>
                 <X size={18} />
@@ -784,7 +788,7 @@ export const ExecutiveDashboard: React.FC = () => {
 
       <button className="copilot-floating-btn" onClick={() => setIsCopilotOpen(true)}>
         <Sparkles size={24} />
-        <span>Elite Copilot</span>
+        <span>Tauze Copilot</span>
       </button>
 
       <style>{`
@@ -847,17 +851,17 @@ export const ExecutiveDashboard: React.FC = () => {
         }
 
         /* TV Mode Card Overrides */
-        .tv-mode .elite-kpi-card {
+        .tv-mode .tauze-kpi-card {
           background: #0f172a !important;
           border-color: #1e293b !important;
           box-shadow: 0 20px 50px rgba(0,0,0,0.5) !important;
         }
 
-        .tv-mode .kpi-value-elite { color: white !important; font-size: 2.4rem !important; }
-        .tv-mode .kpi-label-elite { color: #94a3b8 !important; font-size: 0.9rem !important; }
+        .tv-mode .kpi-value-tauze { color: white !important; font-size: 2.4rem !important; }
+        .tv-mode .kpi-label-tauze { color: #94a3b8 !important; font-size: 0.9rem !important; }
         .tv-mode .ring-bg { stroke: #1e293b !important; }
         .tv-mode .kpi-divider { background: #1e293b !important; }
-        .tv-mode .period-badge-elite { color: #64748b !important; }
+        .tv-mode .period-badge-tauze { color: #64748b !important; }
 
         .tv-mode .analytics-canvas { 
           background: #0f172a !important; 
@@ -932,7 +936,7 @@ export const ExecutiveDashboard: React.FC = () => {
           max-height: calc(100vh - 160px);
         }
 
-        .elite-copilot-overlay {
+        .tauze-copilot-overlay {
           position: fixed;
           bottom: 120px;
           right: 40px;
@@ -977,7 +981,7 @@ export const ExecutiveDashboard: React.FC = () => {
         .copilot-input input { flex: 1; border: 1px solid hsl(var(--border)); background: hsl(var(--bg-main)); padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; outline: none; color: hsl(var(--text-main)); }
         .send-btn { background: #16a34a; color: white; border: none; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
-        .elite-modal-overlay {
+        .tauze-modal-overlay {
           position: fixed !important;
           top: 0 !important;
           left: 0 !important;
@@ -993,7 +997,7 @@ export const ExecutiveDashboard: React.FC = () => {
           margin: 0 !important;
         }
 
-        .elite-history-modal {
+        .tauze-history-modal {
           background: hsl(var(--bg-card)) !important;
           width: 90% !important;
           max-width: 650px !important;

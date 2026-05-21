@@ -351,12 +351,13 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
     // Queries paralelas com o padrão Diamond Precision
-    const [animalCount, gmdRes, weightRes, healthRes, lotacaoRes] = await Promise.all([
+    const [animalCount, gmdRes, weightRes, healthRes, lotacaoRes, pesagensRes] = await Promise.all([
       applyFilters(supabase.from('animais').select('id', { count: 'exact', head: true }), tenantId, fazendaId),
       supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
       supabase.rpc('get_herd_total_weight', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
       applyFilters(supabase.from('sanidade').select('data_manejo, carencia_dias').eq('status', 'REALIZADO').gte('data_manejo', sixtyDaysAgo.toISOString().split('T')[0]), tenantId, fazendaId),
-      supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId })
+      supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
+      applyFilters(supabase.from('pesagens').select('peso, data_pesagem').gte('data_pesagem', sixtyDaysAgo.toISOString().split('T')[0]), tenantId, fazendaId)
     ]);
 
     // Cálculo de Segurança Sanitária (Carência)
@@ -368,6 +369,17 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
 
     // Lotação média vem da RPC (dados reais)
     const avgLotation = Number(lotacaoRes.data?.media_lotacao || 0).toFixed(2);
+    
+    // Sparkline Real para GMD (volume de pesagens nos últimos 30 dias)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sparklineGMD = Array.from({ length: 30 }).map((_, i) => {
+      const d = new Date(thirtyDaysAgo);
+      d.setDate(d.getDate() + i + 1);
+      const dayStr = d.toISOString().split('T')[0];
+      const count = (pesagensRes.data || []).filter((p: any) => p.data_pesagem?.startsWith(dayStr)).length;
+      return { value: count, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    });
 
     return {
       data: [
@@ -384,19 +396,18 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
           icon: Beef,
           color: '#10b981',
           progress: 100,
-          periodLabel: 'Total em Pátio',
-          sparkline: [{value: 400}, {value: 410}, {value: 425}]
+          periodLabel: 'Total em Pátio'
         },
         { 
           label: 'GMD Médio (30d)', 
-          value: `${Number(gmdRes.data || 0.842).toFixed(3)} kg`, 
-          change: '+4.2%', 
+          value: `${Number(gmdRes.data || 0).toFixed(3)} kg`, 
+          change: 'Performance Global', 
           trend: 'up' as const,
           icon: TrendingUp,
           color: '#3b82f6',
           progress: 85,
-          periodLabel: 'Performance Global',
-          sparkline: [{value: 0.72}, {value: 0.84}]
+          periodLabel: 'Vol. Pesagens (30d)',
+          sparkline: sparklineGMD
         },
         { 
           label: 'Taxa de Lotação', 
@@ -406,8 +417,7 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
           icon: MapIcon,
           color: '#f59e0b',
           progress: 86,
-          periodLabel: 'Capacidade Suporte',
-          sparkline: [{value: 1.5}, {value: 1.82}]
+          periodLabel: 'Capacidade Suporte'
         },
         { 
           label: 'Segurança Sanitária', 
@@ -417,8 +427,7 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
           icon: Activity,
           color: activeWithdrawals > 0 ? '#ef4444' : '#10b981',
           progress: activeWithdrawals > 0 ? 30 : 100,
-          periodLabel: 'Alertas de Carência',
-          sparkline: [{value: 0}, {value: activeWithdrawals}]
+          periodLabel: 'Alertas de Carência'
         }
       ],
       columns: [],

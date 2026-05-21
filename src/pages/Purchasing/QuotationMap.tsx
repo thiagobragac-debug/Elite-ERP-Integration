@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BarChart2, 
@@ -27,7 +27,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { QuotationForm } from '../../components/Forms/QuotationForm';
 import { QuotationMatrixModal } from './components/QuotationMatrixModal';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { QuotationFilterModal } from './components/QuotationFilterModal';
@@ -348,7 +348,7 @@ export const QuotationMap: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <BarChart2 size={14} fill="currentColor" />
-            <span>ELITE PROCUREMENT v5.0</span>
+            <span>TAUZE PROCUREMENT v5.0</span>
           </div>
           <h1 className="page-title">Mapa de Cotação</h1>
           <p className="page-subtitle">Análise comparativa de mercado, saving de suprimentos e tomada de decisão estratégica em tempo real.</p>
@@ -367,9 +367,9 @@ export const QuotationMap: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={BarChart2} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={BarChart2} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -382,34 +382,34 @@ export const QuotationMap: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'OPEN' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'OPEN' ? 'active' : ''}`}
             onClick={() => setActiveTab('OPEN')}
           >
             Mapas Ativos
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'CLOSED' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'CLOSED' ? 'active' : ''}`}
             onClick={() => setActiveTab('CLOSED')}
           >
             Encerrados
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por item ou fornecedor..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

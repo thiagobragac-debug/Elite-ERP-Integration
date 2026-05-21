@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Globe, 
   Activity, 
@@ -38,7 +38,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TenantForm } from '../../components/Forms/TenantForm';
 import { PlanForm } from '../../components/Forms/PlanForm';
 import { useAuth } from '../../contexts/AuthContext';

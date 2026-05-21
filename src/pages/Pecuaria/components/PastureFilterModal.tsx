@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Trees, Maximize, Activity, Calendar, Target, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -47,16 +47,16 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(22, 163, 74, 0.1)', padding: '10px', borderRadius: '12px', color: '#16a34a' }}>
               <Trees size={20} />
@@ -74,9 +74,9 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Status de Manejo <Activity size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Status de Manejo <Activity size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {statusOptions.map(s => (
                 <button 
@@ -104,13 +104,13 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Variedades de Forrageiras <Zap size={14} /></label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Variedades de Forrageiras <Zap size={14} /></label>
+            <div className="tauze-tag-cloud">
               {capins.map(c => (
                 <button 
                   key={c}
-                  className={`elite-tag-chip ${filters.capins?.includes(c) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.capins?.includes(c) ? 'active' : ''}`}
                   onClick={() => toggleCapim(c)}
                   style={{ 
                     borderColor: filters.capins?.includes(c) ? '#16a34a' : '#e2e8f0', 
@@ -124,8 +124,8 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Área da Divisão (ha) <Maximize size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Área da Divisão (ha) <Maximize size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#16a34a' }}>{filters.maxArea}ha</span>
@@ -143,23 +143,23 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Capacidade de Suporte (UA/ha) <Target size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Capacidade de Suporte (UA/ha) <Target size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="filter-field">
-                <label className="elite-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Min UA</label>
+                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Min UA</label>
                 <input 
                   type="number" 
-                  className="elite-input" 
+                  className="tauze-input" 
                   value={filters.minUA}
                   onChange={e => setFilters({ ...filters, minUA: parseFloat(e.target.value) })}
                 />
               </div>
               <div className="filter-field">
-                <label className="elite-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Max UA</label>
+                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Max UA</label>
                 <input 
                   type="number" 
-                  className="elite-input" 
+                  className="tauze-input" 
                   value={filters.maxUA}
                   onChange={e => setFilters({ ...filters, maxUA: parseFloat(e.target.value) })}
                 />
@@ -167,7 +167,7 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section" style={{ background: 'rgba(245, 158, 11, 0.05)', padding: '16px', borderRadius: '16px' }}>
+          <div className="tauze-filter-section" style={{ background: 'rgba(245, 158, 11, 0.05)', padding: '16px', borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ color: '#f59e0b' }}>
@@ -185,7 +185,7 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#16a34a' }} onClick={onClose}>APLICAR</button>
         </div>

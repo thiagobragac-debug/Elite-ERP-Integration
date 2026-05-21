@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Fuel, 
   Plus, 
@@ -29,7 +29,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { FuelForm } from '../../components/Forms/FuelForm';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { FuelFilterModal } from './components/FuelFilterModal';
@@ -273,7 +273,7 @@ export const FuelManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Fuel size={14} fill="currentColor" />
-            <span>ELITE FLEET v5.0</span>
+            <span>TAUZE FLEET v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Abastecimento</h1>
           <p className="page-subtitle">Telemetria de consumo, análise de autonomia e controle rigoroso de custos energéticos.</p>
@@ -313,9 +313,9 @@ export const FuelManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Droplets} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Droplets} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -328,34 +328,34 @@ export const FuelManagement: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'LOG' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'LOG' ? 'active' : ''}`}
             onClick={() => setActiveTab('LOG')}
           >
             Log de Abastecimento
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'ANALYSIS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'ANALYSIS' ? 'active' : ''}`}
             onClick={() => setActiveTab('ANALYSIS')}
           >
             Análise por Ativo
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por máquina, combustível ou responsável..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
@@ -442,7 +442,7 @@ export const FuelManagement: React.FC = () => {
         submitLabel="Fechar Relatório"
         hideSubmit={true}
       >
-        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             {Object.entries(
               logs.reduce((acc: any, log: any) => {

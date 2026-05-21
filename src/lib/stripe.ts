@@ -1,5 +1,5 @@
-/**
- * Stripe Integration Utility - Elite ERP SaaS v5.0
+﻿/**
+ * Stripe Integration Utility - Tauze ERP SaaS v5.0
  * Handles subscription creation, usage reporting (metered billing), and webhook processing.
  */
 

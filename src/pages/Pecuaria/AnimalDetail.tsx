@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
-import { EliteMainChart } from '../../components/Charts/EliteMainChart';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
+import { TauzeMainChart } from '../../components/Charts/TauzeMainChart';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { formatNumber } from '../../utils/format';
 import './AnimalDetail.css';
@@ -147,7 +147,7 @@ export const AnimalDetail: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Peso Atual" 
           value={`${currentWeight} kg`} 
           icon={Scale} 
@@ -157,7 +157,7 @@ export const AnimalDetail: React.FC = () => {
           trend="up"
           periodLabel="Última Pesagem"
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="GMD Médio Real" 
           value={`${realGmd.toFixed(3)} kg`} 
           icon={TrendingUp} 
@@ -167,7 +167,7 @@ export const AnimalDetail: React.FC = () => {
           trend={realGmd > 0.7 ? "up" : "down"}
           periodLabel="Desde a Entrada"
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Previsão de Abate" 
           value={estimatedDate ? estimatedDate.toLocaleDateString() : 'Sem Dados'} 
           icon={Calendar} 
@@ -177,7 +177,7 @@ export const AnimalDetail: React.FC = () => {
           trend="up"
           periodLabel="Meta: 600kg (20@)"
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Segurança Sanitária" 
           value={isUnderGracePeriod ? "BLOQUEADO" : "LIBERADO"} 
           icon={ShieldCheck} 
@@ -196,9 +196,9 @@ export const AnimalDetail: React.FC = () => {
               <button className="text-btn">Ciclo Completo</button>
             </div>
           </div>
-          <div className="chart-container-elite" style={{ padding: '0 24px 24px' }}>
+          <div className="chart-container-tauze" style={{ padding: '0 24px 24px' }}>
             {weightHistory.length > 0 ? (
-              <EliteMainChart data={weightHistory} color="#3b82f6" height={350} />
+              <TauzeMainChart data={weightHistory} color="#3b82f6" height={350} />
             ) : (
               <div className="empty-chart-placeholder">
                 <p>Nenhuma pesagem registrada para este animal.</p>

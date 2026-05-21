@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Package, 
   Plus, 
@@ -155,7 +155,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
                       <div className="insumo-search-input-wrapper">
                         <input 
                           type="text"
-                          className="elite-table-input"
+                          className="tauze-table-input"
                           placeholder="Buscar produto..."
                           value={isSearching === item.id ? searchTerm : item.nome}
                           onChange={(e) => {
@@ -200,7 +200,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
                 </td>
                 <td>
                   <select 
-                    className="elite-table-input"
+                    className="tauze-table-input"
                     value={item.deposito_id}
                     onChange={(e) => handleUpdateItem(item.id, { deposito_id: e.target.value })}
                     disabled={isReadOnly}
@@ -215,7 +215,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
                 <td>
                   <input 
                     type="number"
-                    className="elite-table-input centered"
+                    className="tauze-table-input centered"
                     value={item.quantidade || ''}
                     onChange={(e) => handleUpdateItem(item.id, { quantidade: parseFloat(e.target.value) || 0 })}
                     disabled={isReadOnly}
@@ -225,7 +225,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
                 <td>
                   <input 
                     type="text"
-                    className="elite-table-input centered uppercase"
+                    className="tauze-table-input centered uppercase"
                     value={item.unidade}
                     readOnly
                     disabled
@@ -238,7 +238,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
                     <input 
                       type="number"
                       step="0.01"
-                      className="elite-table-input"
+                      className="tauze-table-input"
                       value={item.preco_unitario || ''}
                       onChange={(e) => handleUpdateItem(item.id, { preco_unitario: parseFloat(e.target.value) || 0 })}
                       disabled={isReadOnly}
@@ -252,7 +252,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
                     <input 
                       type="number"
                       step="0.01"
-                      className="elite-table-input"
+                      className="tauze-table-input"
                       style={{ color: 'hsl(var(--brand))' }}
                       value={item.despesa_adicional || ''}
                       onChange={(e) => handleUpdateItem(item.id, { despesa_adicional: parseFloat(e.target.value) || 0 })}
@@ -267,7 +267,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
                     <input 
                       type="number"
                       step="0.01"
-                      className="elite-table-input"
+                      className="tauze-table-input"
                       style={{ color: '#ef4444' }}
                       value={item.desconto || ''}
                       onChange={(e) => handleUpdateItem(item.id, { desconto: parseFloat(e.target.value) || 0 })}
@@ -391,7 +391,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
           color: hsl(var(--text-muted));
           pointer-events: none;
         }
-        .elite-table-input {
+        .tauze-table-input {
           width: 100%;
           background: hsl(var(--bg-main));
           border: 1px solid hsl(var(--border));
@@ -402,8 +402,8 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
           color: hsl(var(--text-main));
           transition: all 0.2s;
         }
-        .elite-table-input.centered { text-align: center; padding: 8px 4px; }
-        .elite-table-input:focus {
+        .tauze-table-input.centered { text-align: center; padding: 8px 4px; }
+        .tauze-table-input:focus {
           border-color: hsl(var(--brand));
           outline: none;
           background: white;
@@ -415,7 +415,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
           align-items: center;
           width: 100%;
         }
-        .price-input-wrapper .elite-table-input {
+        .price-input-wrapper .tauze-table-input {
           padding-left: 35px;
           text-align: left;
         }

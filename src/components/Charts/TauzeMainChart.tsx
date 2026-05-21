@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DataPoint {
@@ -6,14 +6,14 @@ interface DataPoint {
   value: number;
 }
 
-interface EliteMainChartProps {
+interface TauzeMainChartProps {
   data: DataPoint[];
   color?: string;
   height?: number;
   mode?: 'line' | 'bar';
 }
 
-export const EliteMainChart: React.FC<EliteMainChartProps> = ({ 
+export const TauzeMainChart: React.FC<TauzeMainChartProps> = ({ 
   data, 
   color = '#10b981', 
   height = 400,
@@ -51,7 +51,7 @@ export const EliteMainChart: React.FC<EliteMainChartProps> = ({
   };
 
   return (
-    <div className="elite-premium-chart" style={{ height: `${height}px`, width: '100%', position: 'relative', padding: '0px' }}>
+    <div className="tauze-premium-chart" style={{ height: `${height}px`, width: '100%', position: 'relative', padding: '0px' }}>
       <svg viewBox="-12 -5 122 120" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
         <defs>
           <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Mail, 
   Lock, 
@@ -62,7 +62,7 @@ export const Login: React.FC = () => {
             >
               <Zap size={28} className="logo-icon" />
             </motion.div>
-            <h1 className="title">Elite ERP</h1>
+            <h1 className="title">Tauze ERP</h1>
             <p className="subtitle">Autenticação de Nível Executivo</p>
           </div>
 
@@ -73,7 +73,7 @@ export const Login: React.FC = () => {
                 <Mail size={18} className="icon" />
                 <input 
                   type="email" 
-                  placeholder="admin@elite.com.br" 
+                  placeholder="admin@tauze.com.br" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 

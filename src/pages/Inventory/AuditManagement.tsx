@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ClipboardCheck, 
   Plus, 
@@ -26,7 +26,7 @@ import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { AuditForm } from '../../components/Forms/AuditForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { AuditFilterModal } from './components/AuditFilterModal';
 
@@ -295,7 +295,7 @@ export const AuditManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <ClipboardCheck size={14} fill="currentColor" />
-            <span>ELITE AUDIT v5.0</span>
+            <span>TAUZE AUDIT v5.0</span>
           </div>
           <h1 className="page-title">Inventário & Auditoria</h1>
           <p className="page-subtitle">Reconciliação física vs. contábil, análise de divergências e controle rigoroso de perdas.</p>
@@ -311,9 +311,9 @@ export const AuditManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={ClipboardCheck} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ClipboardCheck} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -326,34 +326,34 @@ export const AuditManagement: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'HISTORY' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'HISTORY' ? 'active' : ''}`}
             onClick={() => setActiveTab('HISTORY')}
           >
             Histórico de Auditorias
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'CRITICAL' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'CRITICAL' ? 'active' : ''}`}
             onClick={() => setActiveTab('CRITICAL')}
           >
             Itens Críticos
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar auditoria por título ou responsável..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-         <div className="elite-filter-group">
+         <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
             title="Filtros Avançados"

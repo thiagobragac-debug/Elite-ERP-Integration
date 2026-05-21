@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Building2, 
   Plus, 
@@ -30,7 +30,7 @@ import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { ConfinementForm } from '../../components/Forms/ConfinementForm';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { CheckOutModal } from './components/CheckOutModal';
 import { ConfinementFilterModal } from './components/ConfinementFilterModal';
@@ -275,7 +275,7 @@ export const ConfinementManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Building2 size={14} fill="currentColor" />
-            <span>ELITE LIVESTOCK v5.0</span>
+            <span>TAUZE LIVESTOCK v5.0</span>
           </div>
           <h1 className="page-title">Módulo Confinamento</h1>
           <p className="page-subtitle">Terminação intensiva, controle de DOF e projeção de performance em tempo real.</p>
@@ -317,34 +317,34 @@ export const ConfinementManagement: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
           />
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'ATIVOS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'ATIVOS' ? 'active' : ''}`}
             onClick={() => setActiveTab('ATIVOS')}
           >
             Currais Ativos
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'HISTORICO' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'HISTORICO' ? 'active' : ''}`}
             onClick={() => setActiveTab('HISTORICO')}
           >
             Histórico de Ciclos
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por curral ou lote..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -368,7 +368,7 @@ export const ConfinementManagement: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

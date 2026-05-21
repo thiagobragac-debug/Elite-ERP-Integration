@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, 
@@ -27,7 +27,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { PurchaseRequestForm } from '../../components/Forms/PurchaseRequestForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { PurchaseRequestFilterModal } from './components/PurchaseRequestFilterModal';
@@ -279,7 +279,7 @@ export const PurchaseRequest: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <ShoppingCart size={14} fill="currentColor" />
-            <span>ELITE PROCUREMENT v5.0</span>
+            <span>TAUZE PROCUREMENT v5.0</span>
           </div>
           <h1 className="page-title">Solicitação de Compra</h1>
           <p className="page-subtitle">Fluxo interno de requisições de materiais, serviços e reposição de ativos em tempo real.</p>
@@ -307,9 +307,9 @@ export const PurchaseRequest: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={ShoppingCart} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ShoppingCart} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -322,34 +322,34 @@ export const PurchaseRequest: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'PENDING' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'PENDING' ? 'active' : ''}`}
             onClick={() => setActiveTab('PENDING')}
           >
             Aguardando Triagem
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'QUOTING' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'QUOTING' ? 'active' : ''}`}
             onClick={() => setActiveTab('QUOTING')}
           >
             Em Cotação
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Pesquisar por título, solicitante ou departamento..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

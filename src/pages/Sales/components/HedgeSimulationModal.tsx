@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   BarChart2, 
   TrendingUp, 
@@ -74,7 +74,7 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '32px', gridColumn: 'span 2' }}>
         {/* Parâmetros */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div className="elite-input-field">
+          <div className="tauze-input-field">
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Zap size={14} color="hsl(var(--brand))" />
               Volume (Arrobas/Ton)
@@ -87,7 +87,7 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
             />
           </div>
 
-          <div className="elite-input-field">
+          <div className="tauze-input-field">
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <DollarSign size={14} color="hsl(var(--brand))" />
               Preço Atual (Mercado)
@@ -103,7 +103,7 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
             </div>
           </div>
 
-          <div className="elite-input-field">
+          <div className="tauze-input-field">
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Target size={14} color="hsl(var(--brand))" />
               Preço Alvo (Hedge)
@@ -119,7 +119,7 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
             </div>
           </div>
 
-          <div className="elite-input-field">
+          <div className="tauze-input-field">
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Shield size={14} color="hsl(var(--brand))" />
               Custo da Operação (Unid)
@@ -138,7 +138,7 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
           <div style={{ padding: '16px', borderRadius: '16px', background: 'hsl(var(--brand)/0.05)', border: '1px solid hsl(var(--brand)/0.2)', marginTop: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--brand))', fontSize: '12px', fontWeight: 800, marginBottom: '8px' }}>
               <Info size={14} />
-              DICA ELITE
+              DICA TAUZE
             </div>
             <p style={{ margin: 0, fontSize: '11px', lineHeight: '1.5', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>
               Considere a volatilidade do mercado físico vs B3 para uma simulação mais precisa.

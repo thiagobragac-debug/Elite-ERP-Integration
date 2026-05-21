@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Zap, 
   TrendingUp, 
@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { 
@@ -154,7 +154,7 @@ export const FinanceIntelligenceHub: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge premium">
             <Brain size={14} fill="currentColor" />
-            <span>ELITE INTELLIGENCE v5.0</span>
+            <span>TAUZE INTELLIGENCE v5.0</span>
           </div>
           <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Central de comando estratégico com visão preditiva e indicadores de alta fidelidade.</p>
@@ -173,9 +173,9 @@ export const FinanceIntelligenceHub: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Activity} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Activity} color="" />)
         ) : stats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
             icon={getStatIcon(stat.label)}
@@ -278,7 +278,7 @@ export const FinanceIntelligenceHub: React.FC = () => {
               <div className="card-header-hub">
                 <div className="h-left">
                   <Sparkles size={20} className="text-amber-500" />
-                  <h3>Elite Copilot Insights</h3>
+                  <h3>Tauze Copilot Insights</h3>
                 </div>
                 <span className="subtitle">Análise preditiva baseada em IA</span>
               </div>

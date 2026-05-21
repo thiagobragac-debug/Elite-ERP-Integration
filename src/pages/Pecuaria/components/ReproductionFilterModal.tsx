@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Heart, Baby, Thermometer, Calendar, TrendingUp, Zap, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -49,16 +49,16 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(236, 72, 153, 0.1)', padding: '10px', borderRadius: '12px', color: '#ec4899' }}>
               <Heart size={20} />
@@ -76,9 +76,9 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Ação Reprodutiva <Zap size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Ação Reprodutiva <Zap size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {eventTypes.map(t => (
                 <button 
@@ -106,13 +106,13 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Diagnóstico de Gestação <Thermometer size={14} /></label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Diagnóstico de Gestação <Thermometer size={14} /></label>
+            <div className="tauze-tag-cloud">
               {results.map(res => (
                 <button 
                   key={res}
-                  className={`elite-tag-chip ${filters.results?.includes(res) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.results?.includes(res) ? 'active' : ''}`}
                   onClick={() => toggleResult(res)}
                   style={{ 
                     borderColor: filters.results?.includes(res) ? '#ec4899' : '#e2e8f0', 
@@ -126,8 +126,8 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Escore Corporal (ECC) <TrendingUp size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Escore Corporal (ECC) <TrendingUp size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#ec4899' }}>{filters.minECC} a {filters.maxECC}</span>
@@ -145,25 +145,25 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Período do Evento <Calendar size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Período do Evento <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateEnd}
                 onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
               />
             </div>
           </div>
 
-          <div className="elite-filter-section" style={{ background: 'rgba(236, 72, 153, 0.05)', padding: '16px', borderRadius: '16px' }}>
+          <div className="tauze-filter-section" style={{ background: 'rgba(236, 72, 153, 0.05)', padding: '16px', borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ color: '#ec4899' }}>
@@ -181,7 +181,7 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#ec4899' }} onClick={onClose}>APLICAR</button>
         </div>

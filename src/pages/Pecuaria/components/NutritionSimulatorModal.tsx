@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Scale, 
@@ -47,10 +47,10 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
         submitLabel="Exportar Relatório"
         iconSubmit={FileText}
       >
-        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="elite-label">Configuração da Dieta</label>
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="tauze-label">Configuração da Dieta</label>
           <select 
-            className="elite-input elite-select"
+            className="tauze-input tauze-select"
             value={selectedDietId}
             onChange={e => setSelectedDietId(e.target.value)}
           >
@@ -61,34 +61,34 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
           </select>
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">N° de Animais</label>
+        <div className="tauze-field-group">
+          <label className="tauze-label">N° de Animais</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Beef size={14} style={{ color: 'hsl(var(--text-muted))' }} />
             <input 
               type="number" 
-              className="elite-input" 
+              className="tauze-input" 
               value={animalCount}
               onChange={e => setAnimalCount(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">Consumo (kg/dia)</label>
+        <div className="tauze-field-group">
+          <label className="tauze-label">Consumo (kg/dia)</label>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Utensils size={14} style={{ color: 'hsl(var(--text-muted))' }} />
             <input 
               type="number" 
-              className="elite-input" 
+              className="tauze-input" 
               value={dailyConsumption}
               onChange={e => setDailyConsumption(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="elite-label">Resultados da Simulação</label>
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="tauze-label">Resultados da Simulação</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
               <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Consumo Total Diário</div>
@@ -109,7 +109,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
           </div>
         </div>
 
-        <div className="elite-field-group" style={{ gridColumn: 'span 2', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '16px', border: '1px dashed hsl(var(--brand)/0.3)' }}>
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '16px', border: '1px dashed hsl(var(--brand)/0.3)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Conversão Alimentar</div>
@@ -127,7 +127,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
           <div className="print-report-container">
             <div className="print-header">
               <div className="farm-info">
-                <div className="print-logo">ELITE LIVESTOCK v5.0</div>
+                <div className="print-logo">TAUZE LIVESTOCK v5.0</div>
                 <h1>Relatório de Simulação Nutricional</h1>
               </div>
               <div className="report-date">Emissão: {new Date().toLocaleDateString()}</div>
@@ -205,7 +205,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
             </div>
 
             <div className="print-footer">
-              <p>Relatório gerado pelo módulo de Nutrição de Precisão do Elite ERP.</p>
+              <p>Relatório gerado pelo módulo de Nutrição de Precisão do Tauze ERP.</p>
               <p>Este documento é uma projeção técnica e pode variar conforme as condições de campo.</p>
             </div>
           </div>
@@ -219,7 +219,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
               @page { size: A4; margin: 1.5cm; }
               
               /* Esconder o App e UI do Modal */
-              #root, .sidebar, .header, .page-header, .elite-controls-row, .management-content, .next-gen-kpi-grid,
+              #root, .sidebar, .header, .page-header, .tauze-controls-row, .management-content, .next-gen-kpi-grid,
               .simulator-header, .simulator-body, .simulator-footer, .close-btn { 
                 display: none !important; 
               }

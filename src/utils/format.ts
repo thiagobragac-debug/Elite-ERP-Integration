@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Diamond Precision 5.0 - Number Formatting Utility
- * Standardizes decimal precision across the Elite ERP suite.
+ * Standardizes decimal precision across the Tauze ERP suite.
  */
 
 export const formatNumber = (value: number | string | undefined | null, decimals: number = 2): string => {

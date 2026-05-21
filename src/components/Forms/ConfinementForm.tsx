@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Building, 
   Users,
@@ -74,10 +74,10 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
       loading={loading}
       submitLabel="Iniciar Ciclo"
     >
-      <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-        <label className="elite-label"><Building size={14} /> Nome do Curral / Piquete</label>
+      <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+        <label className="tauze-label"><Building size={14} /> Nome do Curral / Piquete</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Ex: CURRAL-01, Terminação A..." 
           value={formData.nome_curral}
@@ -86,10 +86,10 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Users size={14} /> Capacidade (Animais)</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Users size={14} /> Capacidade (Animais)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           placeholder="100" 
           value={formData.capacidade_animais}
@@ -98,10 +98,10 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Scale size={14} /> Peso Médio Entrada (kg)</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Scale size={14} /> Peso Médio Entrada (kg)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           placeholder="420.0" 
           value={formData.peso_entrada}
@@ -110,10 +110,10 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Clock size={14} /> DOF Alvo (Dias)</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Clock size={14} /> DOF Alvo (Dias)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           placeholder="90" 
           value={formData.dof_alvo}
@@ -122,10 +122,10 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Calendar size={14} /> Data de Início</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Calendar size={14} /> Data de Início</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="date" 
           value={formData.data_inicio}
           onChange={(e) => setFormData({...formData, data_inicio: e.target.value})}
@@ -133,10 +133,10 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
         />
       </div>
 
-      <div className="elite-field-group">
-        <label className="elite-label"><Layers size={14} /> Lote Vinculado</label>
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Layers size={14} /> Lote Vinculado</label>
         <select 
-          className="elite-input elite-select"
+          className="tauze-input tauze-select"
           value={formData.lote_id}
           onChange={(e) => setFormData({...formData, lote_id: e.target.value})}
         >
@@ -147,10 +147,10 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
         </select>
       </div>
 
-      <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-        <label className="elite-label"><FileText size={14} /> Observações do Check-in</label>
+      <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+        <label className="tauze-label"><FileText size={14} /> Observações do Check-in</label>
         <textarea 
-          className="elite-input elite-textarea"
+          className="tauze-input tauze-textarea"
           placeholder="Notas sobre o estado dos animais na entrada..." 
           value={formData.status}
           onChange={(e) => setFormData({...formData, status: e.target.value})}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { FormModal } from '../../components/Forms/FormModal';
 import { WarehouseFilterModal } from './components/WarehouseFilterModal';
@@ -303,7 +303,7 @@ export const WarehouseManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Layout size={14} fill="currentColor" />
-            <span>ELITE WAREHOUSE v5.0</span>
+            <span>TAUZE WAREHOUSE v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Depósitos</h1>
           <p className="page-subtitle">Configuração de almoxarifados, silos e centros de distribuição vinculados à unidade.</p>
@@ -320,7 +320,7 @@ export const WarehouseManagement: React.FC = () => {
       </header>
 
       <div className="next-gen-kpi-grid">
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Depósitos Ativos" 
           value={warehouses.length} 
           icon={Layout} 
@@ -329,7 +329,7 @@ export const WarehouseManagement: React.FC = () => {
           change="Unidades de Armazenagem"
           periodLabel="Estrutura Atual"
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Capacidade Utilizada" 
           value={`${warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) : 0), 0) / (warehouses.filter(w => w.capacidade_maxima > 0).length || 1) * 100 > 0 ? Math.round(warehouses.reduce((acc, w) => acc + (w.capacidade_maxima > 0 ? (w.saldo_atual / w.capacidade_maxima) : 0), 0) / (warehouses.filter(w => w.capacidade_maxima > 0).length || 1) * 100) : 0}%`} 
           icon={Boxes} 
@@ -338,7 +338,7 @@ export const WarehouseManagement: React.FC = () => {
           change="Média Global"
           periodLabel="Ocupação Real"
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Alertas de Manutenção" 
           value="2" 
           icon={AlertTriangle} 
@@ -347,7 +347,7 @@ export const WarehouseManagement: React.FC = () => {
           change="Estrutura Física"
           periodLabel="Checklists Pendentes"
         />
-        <EliteStatCard 
+        <TauzeStatCard 
           label="Valor Total em Estoque" 
           value={`R$ ${Number(totalStockValue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           icon={Package} 
@@ -358,12 +358,12 @@ export const WarehouseManagement: React.FC = () => {
         />
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           {['Todos', 'Galpão', 'Silo', 'Tanque', 'Outros'].map((type) => (
             <button 
               key={type}
-              className={`elite-tab-item ${activeTab === type ? 'active' : ''}`} 
+              className={`tauze-tab-item ${activeTab === type ? 'active' : ''}`} 
               onClick={() => setActiveTab(type)}
             >
               {type === 'Todos' ? 'Consolidado' : type}
@@ -371,11 +371,11 @@ export const WarehouseManagement: React.FC = () => {
           ))}
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Pesquisar depósitos por nome ou descrição..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -399,7 +399,7 @@ export const WarehouseManagement: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
@@ -810,18 +810,18 @@ export const WarehouseManagement: React.FC = () => {
         submitLabel={selectedWarehouse ? "Salvar Alterações" : "Confirmar Cadastro"}
         size="large"
       >
-        <div className="elite-field-group">
-          <label className="elite-label">
+        <div className="tauze-field-group">
+          <label className="tauze-label">
             <Plus size={14} /> NOME DO DEPÓSITO
           </label>
-          <input name="nome" type="text" className="elite-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
+          <input name="nome" type="text" className="tauze-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">
+        <div className="tauze-field-group">
+          <label className="tauze-label">
             <Layout size={14} /> TIPO DE ESTRUTURA
           </label>
-          <select name="tipo" className="elite-input" defaultValue={selectedWarehouse?.tipo || 'Galpão'}>
+          <select name="tipo" className="tauze-input" defaultValue={selectedWarehouse?.tipo || 'Galpão'}>
             <option value="Galpão">Galpão Geral</option>
             <option value="Silo">Silo de Grãos/Sementes</option>
             <option value="Câmara Fria">Câmara Fria</option>
@@ -830,20 +830,20 @@ export const WarehouseManagement: React.FC = () => {
           </select>
         </div>
 
-        <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="elite-label">
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <label className="tauze-label">
             <FileText size={14} /> DESCRIÇÃO / FINALIDADE
           </label>
-          <textarea name="descricao" className="elite-input" style={{ height: '50px', resize: 'none' }} placeholder="Detalhes estratégicos..." defaultValue={selectedWarehouse?.descricao}></textarea>
+          <textarea name="descricao" className="tauze-input" style={{ height: '50px', resize: 'none' }} placeholder="Detalhes estratégicos..." defaultValue={selectedWarehouse?.descricao}></textarea>
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">
+        <div className="tauze-field-group">
+          <label className="tauze-label">
             <Scale size={14} /> CAPACIDADE MÁXIMA
           </label>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <input name="capacidade_maxima" type="number" className="elite-input" style={{ flex: 1 }} placeholder="0.00" defaultValue={selectedWarehouse?.capacidade_maxima} />
-            <select name="unidade_capacidade" className="elite-input" style={{ width: '75px' }} defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}>
+            <input name="capacidade_maxima" type="number" className="tauze-input" style={{ flex: 1 }} placeholder="0.00" defaultValue={selectedWarehouse?.capacidade_maxima} />
+            <select name="unidade_capacidade" className="tauze-input" style={{ width: '75px' }} defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}>
               <option value="un">un</option>
               <option value="kg">kg</option>
               <option value="ton">ton</option>
@@ -853,18 +853,18 @@ export const WarehouseManagement: React.FC = () => {
           </div>
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">
+        <div className="tauze-field-group">
+          <label className="tauze-label">
             <Plus size={14} /> LOCALIZAÇÃO TÉCNICA / GPS
           </label>
-          <input name="localizacao_tecnica" type="text" className="elite-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
+          <input name="localizacao_tecnica" type="text" className="tauze-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">
+        <div className="tauze-field-group">
+          <label className="tauze-label">
             <Layout size={14} /> FAZENDA VINCULADA
           </label>
-          <select name="fazenda_id" className="elite-input" defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id} required>
+          <select name="fazenda_id" className="tauze-input" defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id} required>
             <option value="">Selecione...</option>
             {farms.map(f => (
               <option key={f.id} value={f.id}>{f.nome}</option>
@@ -872,18 +872,18 @@ export const WarehouseManagement: React.FC = () => {
           </select>
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">
+        <div className="tauze-field-group">
+          <label className="tauze-label">
             <Activity size={14} /> STATUS DO ATIVO
           </label>
-          <div className="elite-form-radio-group">
+          <div className="tauze-form-radio-group">
             <input type="hidden" name="status" value={selectedWarehouse?.status || 'ativo'} />
             <div 
-              className={`elite-form-radio-item ${(selectedWarehouse?.status || 'ativo') === 'ativo' ? 'active' : ''}`}
+              className={`tauze-form-radio-item ${(selectedWarehouse?.status || 'ativo') === 'ativo' ? 'active' : ''}`}
               onClick={(e) => {
                 const hiddenInput = e.currentTarget.parentElement?.querySelector('input[name="status"]') as HTMLInputElement;
                 if (hiddenInput) hiddenInput.value = 'ativo';
-                const items = e.currentTarget.parentElement?.querySelectorAll('.elite-form-radio-item');
+                const items = e.currentTarget.parentElement?.querySelectorAll('.tauze-form-radio-item');
                 items?.forEach(i => i.classList.remove('active'));
                 e.currentTarget.classList.add('active');
               }}
@@ -891,11 +891,11 @@ export const WarehouseManagement: React.FC = () => {
               <CheckCircle2 size={16} /> OPERACIONAL
             </div>
             <div 
-              className={`elite-form-radio-item ${(selectedWarehouse?.status || 'ativo') === 'inativo' ? 'active' : ''}`}
+              className={`tauze-form-radio-item ${(selectedWarehouse?.status || 'ativo') === 'inativo' ? 'active' : ''}`}
               onClick={(e) => {
                 const hiddenInput = e.currentTarget.parentElement?.querySelector('input[name="status"]') as HTMLInputElement;
                 if (hiddenInput) hiddenInput.value = 'inativo';
-                const items = e.currentTarget.parentElement?.querySelectorAll('.elite-form-radio-item');
+                const items = e.currentTarget.parentElement?.querySelectorAll('.tauze-form-radio-item');
                 items?.forEach(i => i.classList.remove('active'));
                 e.currentTarget.classList.add('active');
               }}

@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -73,7 +73,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
                   <button className="edit-badge"><Edit2 size={12} /></button>
                 </div>
                 <div className="hero-meta">
-                  <h3>{userProfile?.full_name || 'Usuário Elite'}</h3>
+                  <h3>{userProfile?.full_name || 'Usuário Tauze'}</h3>
                   <span className="role-pill">{userProfile?.role || 'Administrador'}</span>
                   <p>{userProfile?.email}</p>
                 </div>

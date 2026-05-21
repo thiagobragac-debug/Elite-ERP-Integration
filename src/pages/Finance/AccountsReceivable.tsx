@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   HandCoins, 
   Plus, 
@@ -27,7 +27,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { TransactionForm } from '../../components/Forms/TransactionForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { BatchLiquidationModal } from '../../components/Modals/BatchLiquidationModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -293,7 +293,7 @@ export const AccountsReceivable: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <HandCoins size={14} fill="currentColor" />
-            <span>ELITE RECEIVABLES v5.0</span>
+            <span>TAUZE RECEIVABLES v5.0</span>
           </div>
           <h1 className="page-title">Contas a Receber</h1>
           <p className="page-subtitle">Rastreabilidade de receitas, liquidação de faturas e saúde do crédito em tempo real.</p>
@@ -314,7 +314,7 @@ export const AccountsReceivable: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : (stats || []).map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -327,40 +327,40 @@ export const AccountsReceivable: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'TODAS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'TODAS' ? 'active' : ''}`}
             onClick={() => { setActiveTab('TODAS'); setPage(1); }}
           >
             Todas Receitas
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'PENDENTE' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'PENDENTE' ? 'active' : ''}`}
             onClick={() => { setActiveTab('PENDENTE'); setPage(1); }}
           >
             Pendentes
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'RECEBIDO' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'RECEBIDO' ? 'active' : ''}`}
             onClick={() => { setActiveTab('RECEBIDO'); setPage(1); }}
           >
             Recebidas
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Filtrar por descrição ou cliente..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-         <div className="elite-filter-group">
+         <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
@@ -450,7 +450,7 @@ export const AccountsReceivable: React.FC = () => {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="elite-batch-actions-bar"
+            className="tauze-batch-actions-bar"
           >
             <div className="batch-info">
               <div className="batch-count">{selectedItems.length}</div>

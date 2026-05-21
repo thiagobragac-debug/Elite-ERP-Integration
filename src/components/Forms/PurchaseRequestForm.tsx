@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   FileText, 
   User, 
@@ -68,7 +68,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
       <div className="form-group full-width">
         <label><Building2 size={14} /> Empresa / Unidade Solicitante</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.company_id}
           onChange={(e) => setFormData({...formData, company_id: e.target.value})}
           required
@@ -83,7 +83,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
       <div className="form-group full-width">
         <label><FileText size={14} /> Título da Solicitação</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Ex: Compra de Fertilizantes para Safra..." 
           value={formData.title}
@@ -95,7 +95,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
       <div className="form-group span-2">
         <label><User size={14} /> Requerente</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           value={formData.requester}
           onChange={(e) => setFormData({...formData, requester: e.target.value})}
@@ -106,7 +106,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
       <div className="form-group span-2">
         <label><Building2 size={14} /> Departamento</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.department}
           onChange={(e) => setFormData({...formData, department: e.target.value})}
           required
@@ -122,7 +122,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
       <div className="form-group span-1">
         <label><Calendar size={14} /> Data</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="date" 
           value={formData.date}
           onChange={(e) => setFormData({...formData, date: e.target.value})}
@@ -133,7 +133,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
       <div className="form-group span-1">
         <label><AlertCircle size={14} /> Prioridade</label>
         <select 
-          className="elite-input"
+          className="tauze-input"
           value={formData.priority}
           onChange={(e) => setFormData({...formData, priority: e.target.value})}
           required
@@ -148,7 +148,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
       <div className="form-group span-1">
         <label><DollarSign size={14} /> Valor Estimado (R$)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 

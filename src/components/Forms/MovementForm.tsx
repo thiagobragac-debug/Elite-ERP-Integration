@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ArrowRightLeft, 
   Package,
@@ -167,30 +167,30 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
 
       <div className="form-group full-width">
         <label><ArrowRightLeft size={14} /> Tipo de Movimento</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'in' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'in' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'in'})}
           >
             <ArrowDownLeft size={16} />
             <span>Entrada (+)</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'out' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'out' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'out'})}
           >
             <ArrowUpRight size={16} />
             <span>Saída (-)</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'transfer' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'transfer' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'transfer'})}
           >
             <ArrowRightLeft size={16} />
             <span>Transf.</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'adjust' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'adjust' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'adjust'})}
           >
             <Settings size={16} />

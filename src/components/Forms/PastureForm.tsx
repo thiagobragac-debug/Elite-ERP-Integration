@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Map, 
   Maximize,
@@ -196,30 +196,30 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
 
       <div className="form-group full-width">
         <label><Tag size={14} /> Status da Área</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.status === 'grazing' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.status === 'grazing' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, status: 'grazing'})}
           >
             <Trees size={16} />
             <span>Pastejo</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.status === 'resting' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.status === 'resting' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, status: 'resting'})}
           >
             <Calendar size={16} />
             <span>Descanso</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.status === 'degraded' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.status === 'degraded' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, status: 'degraded'})}
           >
             <Activity size={16} />
             <span>Degradado</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.status === 'renovation' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.status === 'renovation' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, status: 'renovation'})}
           >
             <Sprout size={16} />

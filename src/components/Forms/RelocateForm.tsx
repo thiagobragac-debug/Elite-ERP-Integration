@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ArrowRightLeft, 
   Layers, 
@@ -194,7 +194,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
       </div>
 
       <div className="form-group full-width">
-        <div className="elite-selection-header">
+        <div className="tauze-selection-header">
           <label><Users size={14} /> Selecionar Animais ({selectedAnimals.length}/{animals.length})</label>
           <button type="button" className="text-btn-sm" onClick={selectAll}>
             {selectedAnimals.length === animals.length && animals.length > 0 ? 'DESMARCAR TODOS' : 'MARCAR TODOS'}
@@ -211,7 +211,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
           />
         </div>
 
-        <div className="elite-animal-picker">
+        <div className="tauze-animal-picker">
           {loading ? (
             <div className="picker-loading">Buscando efetivo...</div>
           ) : animals.length === 0 ? (
@@ -239,9 +239,9 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
       </div>
 
       <style>{`
-        .elite-selection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .tauze-selection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .text-btn-sm { background: none; border: none; font-size: 10px; font-weight: 800; color: hsl(var(--brand)); cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; }
-        .elite-animal-picker { max-height: 240px; overflow-y: auto; background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 12px; }
+        .tauze-animal-picker { max-height: 240px; overflow-y: auto; background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 12px; }
         .picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
         .picker-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: white; border: 1px solid hsl(var(--border)); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
         .picker-item:hover { border-color: hsl(var(--brand)); transform: translateY(-1px); }

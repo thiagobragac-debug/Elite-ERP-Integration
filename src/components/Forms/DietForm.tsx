@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Wheat, 
   Tag,
@@ -104,30 +104,30 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
 
       <div className="form-group full-width">
         <label><Wheat size={14} /> Tipo de Formulação</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'Concentrado' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'Concentrado' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'Concentrado'})}
           >
             <Layers size={16} />
             <span>Concentrado</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'Sal Mineral' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'Sal Mineral' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'Sal Mineral'})}
           >
             <Activity size={16} />
             <span>Sal Mineral</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'Total Mix' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'Total Mix' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'Total Mix'})}
           >
             <Utensils size={16} />
             <span>Total Mix</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.tipo === 'Volumoso' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.tipo === 'Volumoso' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'Volumoso'})}
           >
             <Wheat size={16} />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Beef, 
   Plus, 
@@ -21,7 +21,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
 import { DietForm } from '../../components/Forms/DietForm';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { NutritionSimulatorModal } from './components/NutritionSimulatorModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
@@ -253,7 +253,7 @@ export const NutritionManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Utensils size={14} fill="currentColor" />
-            <span>ELITE LIVESTOCK v5.0</span>
+            <span>TAUZE LIVESTOCK v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Nutrição</h1>
           <p className="page-subtitle">Formulações de precisão, controle de custos e monitoramento de conversão alimentar em tempo real.</p>
@@ -274,41 +274,41 @@ export const NutritionManagement: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
           />
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'DIETAS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'DIETAS' ? 'active' : ''}`}
             onClick={() => setActiveTab('DIETAS')}
           >
             Dietas Ativas
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'INSUMOS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'INSUMOS' ? 'active' : ''}`}
             onClick={() => setActiveTab('INSUMOS')}
           >
             Matérias Primas
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar formulação pelo nome..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

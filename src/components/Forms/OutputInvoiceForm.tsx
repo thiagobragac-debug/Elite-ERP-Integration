@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   User,
@@ -109,10 +109,10 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
       submitLabel={initialData ? "Salvar Alterações" : "Transmitir NF-e"}
       size="xlarge"
     >
-      <div className="elite-field-group span-1">
-        <label className="elite-label"><Hash size={14} /> Número da Nota</label>
+      <div className="tauze-field-group span-1">
+        <label className="tauze-label"><Hash size={14} /> Número da Nota</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Ex: 123456..." 
           value={formData.invoice_number}
@@ -121,10 +121,10 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         />
       </div>
 
-      <div className="elite-field-group span-1">
-        <label className="elite-label"><Layers size={14} /> Série</label>
+      <div className="tauze-field-group span-1">
+        <label className="tauze-label"><Layers size={14} /> Série</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           value={formData.series}
           onChange={(e) => setFormData({...formData, series: e.target.value})}
@@ -132,10 +132,10 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         />
       </div>
 
-      <div className="elite-field-group span-2">
-        <label className="elite-label"><User size={14} /> Cliente / Destinatário</label>
+      <div className="tauze-field-group span-2">
+        <label className="tauze-label"><User size={14} /> Cliente / Destinatário</label>
         <select 
-          className="elite-input elite-select"
+          className="tauze-input tauze-select"
           value={formData.client_id}
           onChange={(e) => setFormData({...formData, client_id: e.target.value})}
           required
@@ -147,10 +147,10 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         </select>
       </div>
 
-      <div className="elite-field-group span-2">
-        <label className="elite-label"><Settings size={14} /> Natureza da Operação</label>
+      <div className="tauze-field-group span-2">
+        <label className="tauze-label"><Settings size={14} /> Natureza da Operação</label>
         <select 
-          className="elite-input elite-select"
+          className="tauze-input tauze-select"
           value={formData.nature_of_operation}
           onChange={(e) => setFormData({...formData, nature_of_operation: e.target.value})}
           required
@@ -163,10 +163,10 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         </select>
       </div>
 
-      <div className="elite-field-group span-1">
-        <label className="elite-label"><Calendar size={14} /> Data de Emissão</label>
+      <div className="tauze-field-group span-1">
+        <label className="tauze-label"><Calendar size={14} /> Data de Emissão</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="date" 
           value={formData.date}
           onChange={(e) => setFormData({...formData, date: e.target.value})}
@@ -174,10 +174,10 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         />
       </div>
 
-      <div className="elite-field-group span-1">
-        <label className="elite-label"><DollarSign size={14} /> Valor Total (R$)</label>
+      <div className="tauze-field-group span-1">
+        <label className="tauze-label"><DollarSign size={14} /> Valor Total (R$)</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="number" 
           step="0.01"
           placeholder="0.00" 
@@ -187,10 +187,10 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         />
       </div>
 
-      <div className="elite-field-group span-2">
-        <label className="elite-label"><Truck size={14} /> Transportadora</label>
+      <div className="tauze-field-group span-2">
+        <label className="tauze-label"><Truck size={14} /> Transportadora</label>
         <input 
-          className="elite-input"
+          className="tauze-input"
           type="text" 
           placeholder="Nome da transportadora ou frete próprio..." 
           value={formData.transport_company}
@@ -205,10 +205,10 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         />
       </div>
 
-      <div className="elite-field-group span-2">
-        <label className="elite-label"><FileText size={14} /> Dados Adicionais</label>
+      <div className="tauze-field-group span-2">
+        <label className="tauze-label"><FileText size={14} /> Dados Adicionais</label>
         <textarea 
-          className="elite-input elite-textarea"
+          className="tauze-input tauze-textarea"
           placeholder="Informações complementares..." 
           value={formData.description}
           onChange={(e) => setFormData({...formData, description: e.target.value})}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   RefreshCcw, 
   CreditCard,
@@ -147,7 +147,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
 
       <div className="form-group full-width">
         <label><FileText size={14} /> Importar Arquivo (OFX, CSV ou Excel)</label>
-        <div className="elite-form-info-box" style={{ justifyContent: 'center', flexDirection: 'column', padding: '32px', borderStyle: 'dashed', cursor: 'pointer' }}>
+        <div className="tauze-form-info-box" style={{ justifyContent: 'center', flexDirection: 'column', padding: '32px', borderStyle: 'dashed', cursor: 'pointer' }}>
           <p style={{ textAlign: 'center' }}>
             Clique ou arraste o arquivo aqui para upload.
           </p>
@@ -189,7 +189,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
         />
       </div>
 
-      <div className="form-group full-width elite-form-info-box">
+      <div className="form-group full-width tauze-form-info-box">
         <CheckCircle2 size={24} style={{ color: 'hsl(var(--brand))' }} />
         <p>
           <strong>IA Automática:</strong> Nosso motor de IA tentará identificar e sugerir conciliações baseadas no histórico de transações.

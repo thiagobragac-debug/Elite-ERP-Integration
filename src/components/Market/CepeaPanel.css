@@ -1,0 +1,252 @@
+/* ==============================
+   CEPEA Panel — Dashboard completo
+   ============================== */
+
+.cepea-panel {
+  background: hsl(var(--bg-card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.cepea-panel:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  border-color: hsl(var(--brand) / 0.25);
+}
+
+/* Header do painel */
+.cepea-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid hsl(var(--border));
+  background: hsl(var(--bg-main) / 0.4);
+}
+
+.cepea-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cepea-panel-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: hsl(var(--brand) / 0.1);
+  border: 1px solid hsl(var(--brand) / 0.2);
+  color: hsl(var(--brand));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cepea-panel-label {
+  font-size: 0.6rem;
+  font-weight: 900;
+  color: hsl(var(--brand));
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.cepea-panel-title h3 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: hsl(var(--text-main));
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.cepea-panel-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cepea-update-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+}
+
+.cepea-link-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: hsl(var(--bg-main));
+  border: 1px solid hsl(var(--border));
+  color: hsl(var(--text-muted));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.cepea-link-btn:hover {
+  color: hsl(var(--brand));
+  border-color: hsl(var(--brand) / 0.3);
+  background: hsl(var(--brand) / 0.05);
+}
+
+/* Área do widget */
+.cepea-widget-wrapper {
+  padding: 16px 20px;
+  min-height: 80px;
+}
+
+.cepea-widget-inner {
+  width: 100%;
+  transition: opacity 0.4s ease;
+}
+
+.cepea-widget-inner.hidden {
+  opacity: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.cepea-widget-inner.visible {
+  opacity: 1;
+}
+
+/* Override agressivo dos estilos do widget CEPEA */
+.cepea-widget-inner table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background: transparent !important;
+  font-family: inherit !important;
+}
+
+.cepea-widget-inner table td,
+.cepea-widget-inner table th {
+  background: transparent !important;
+  color: hsl(var(--text-main)) !important;
+  font-family: inherit !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  padding: 8px 12px !important;
+  border-color: hsl(var(--border)) !important;
+  border-width: 1px !important;
+}
+
+.cepea-widget-inner table tr:first-child td,
+.cepea-widget-inner table tr:first-child th {
+  background: hsl(var(--brand) / 0.08) !important;
+  color: hsl(var(--brand)) !important;
+  font-weight: 900 !important;
+  font-size: 0.7rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}
+
+.cepea-widget-inner table tr:not(:first-child):hover td {
+  background: hsl(var(--bg-main) / 0.6) !important;
+}
+
+.cepea-widget-inner a {
+  display: none !important;
+}
+
+/* Tabs */
+.cepea-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px 0;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.cepea-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: hsl(var(--text-muted));
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -1px;
+}
+
+.cepea-tab:hover {
+  color: hsl(var(--text-main));
+}
+
+.cepea-tab.active {
+  color: hsl(var(--brand));
+  border-bottom-color: hsl(var(--brand));
+}
+
+/* Skeleton loader */
+.cepea-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cepea-skel-row {
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--border) / 0.5) 0%,
+    hsl(var(--border) / 0.2) 50%,
+    hsl(var(--border) / 0.5) 100%
+  );
+  background-size: 200% 100%;
+  animation: cepea-shimmer 1.5s infinite;
+}
+
+.cepea-skel-row.header {
+  height: 38px;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--brand) / 0.12) 0%,
+    hsl(var(--brand) / 0.05) 50%,
+    hsl(var(--brand) / 0.12) 100%
+  );
+  background-size: 200% 100%;
+  animation: cepea-shimmer 1.5s infinite;
+}
+
+@keyframes cepea-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes cepea-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: cepea-spin 1s linear infinite;
+}
+
+/* Rodapé do painel */
+.cepea-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  border-top: 1px solid hsl(var(--border));
+  background: hsl(var(--bg-main) / 0.3);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+  letter-spacing: 0.02em;
+}

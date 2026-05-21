@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Package, AlertTriangle, FlaskConical, Wheat, Zap, Boxes, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -44,16 +44,16 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '12px', color: '#10b981' }}>
               <Package size={20} />
@@ -71,9 +71,9 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Status de Suprimento <AlertTriangle size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Status de Suprimento <AlertTriangle size={14} /></label>
             <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               {statusOptions.map(s => (
                 <button 
@@ -102,13 +102,13 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Categorias de Insumos <Boxes size={14} /></label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Categorias de Insumos <Boxes size={14} /></label>
+            <div className="tauze-tag-cloud">
               {categorias.map(cat => (
                 <button 
                   key={cat}
-                  className={`elite-tag-chip ${filters.categorias?.includes(cat) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.categorias?.includes(cat) ? 'active' : ''}`}
                   onClick={() => toggleCategoria(cat)}
                   style={{ 
                     borderColor: filters.categorias?.includes(cat) ? '#10b981' : '#e2e8f0', 
@@ -122,8 +122,8 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Volume em Estoque <Package size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Volume em Estoque <Package size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10b981' }}>{filters.maxStock}</span>
@@ -141,24 +141,24 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Faixa de Custo Médio <DollarSign size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Faixa de Custo Médio <DollarSign size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="filter-field">
-                <label className="elite-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Min (R$)</label>
+                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Min (R$)</label>
                 <input 
                   type="number" 
-                  className="elite-input" 
+                  className="tauze-input" 
                   placeholder="0,00"
                   value={filters.minPrice}
                   onChange={e => setFilters({ ...filters, minPrice: parseFloat(e.target.value) })}
                 />
               </div>
               <div className="filter-field">
-                <label className="elite-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Max (R$)</label>
+                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Max (R$)</label>
                 <input 
                   type="number" 
-                  className="elite-input" 
+                  className="tauze-input" 
                   placeholder="10.000,00"
                   value={filters.maxPrice}
                   onChange={e => setFilters({ ...filters, maxPrice: parseFloat(e.target.value) })}
@@ -168,7 +168,7 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#10b981' }} onClick={onClose}>APLICAR</button>
         </div>

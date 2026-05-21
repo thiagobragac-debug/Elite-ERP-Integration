@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
   Lock,
@@ -103,12 +103,12 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSub
 
       <div className="form-group full-width">
         <label><Lock size={14} /> Permissões de Acesso</label>
-        <div className="elite-permissions-grid">
+        <div className="tauze-permissions-grid">
           {availablePermissions.map(perm => (
             <div 
               key={perm.id} 
               onClick={() => togglePermission(perm.id)}
-              className={`elite-permission-item ${formData.permissoes.includes(perm.id) ? 'active' : ''}`}
+              className={`tauze-permission-item ${formData.permissoes.includes(perm.id) ? 'active' : ''}`}
             >
               {formData.permissoes.includes(perm.id) ? <CheckCircle2 size={16} /> : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '1px solid var(--border)' }}></div>}
               {perm.label}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Smartphone, 
@@ -95,7 +95,7 @@ export const MFAEnroll: React.FC = () => {
       // but keeping it recognizable for the user's authenticator app.
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        issuer: 'Elite ERP',
+        issuer: 'Tauze ERP',
         friendlyName: `${user?.email || 'User Account'} (${new Date().toLocaleDateString('pt-BR')})`
       });
 
@@ -107,7 +107,7 @@ export const MFAEnroll: React.FC = () => {
         if (error.message?.includes('already exists')) {
           const retry = await supabase.auth.mfa.enroll({
             factorType: 'totp',
-            issuer: 'Elite ERP',
+            issuer: 'Tauze ERP',
             friendlyName: `${user?.email || 'User'} [${Math.floor(Date.now() / 1000)}]`
           });
           if (retry.error) throw retry.error;
@@ -200,7 +200,7 @@ export const MFAEnroll: React.FC = () => {
                 <ShieldCheck size={32} />
               </div>
               <h1>Segurança Administrativa</h1>
-              <p>O Elite ERP exige autenticação multifatorial para todas as contas com privilégios de administrador. Proteja o acesso à infraestrutura agora.</p>
+              <p>O Tauze ERP exige autenticação multifatorial para todas as contas com privilégios de administrador. Proteja o acesso à infraestrutura agora.</p>
               
               <div className="feature-list">
                 <div className="feature-item">
@@ -289,7 +289,7 @@ export const MFAEnroll: React.FC = () => {
                 </button>
               </div>
               
-              <p className="mfa-hint">Dica: Se o código for rejeitado, remova contas antigas do "Elite ERP" no seu app e escaneie o QR Code novamente.</p>
+              <p className="mfa-hint">Dica: Se o código for rejeitado, remova contas antigas do "Tauze ERP" no seu app e escaneie o QR Code novamente.</p>
             </motion.div>
           )}
 

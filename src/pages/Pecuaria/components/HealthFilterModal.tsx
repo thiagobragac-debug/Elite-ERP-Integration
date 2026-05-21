@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, ShieldCheck, AlertCircle, Calendar, FlaskConical, Clock, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -38,16 +38,16 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(16, 163, 74, 0.1)', padding: '10px', borderRadius: '12px', color: '#10a34a' }}>
               <ShieldCheck size={20} />
@@ -65,9 +65,9 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Tipo de Manejo <FlaskConical size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Tipo de Manejo <FlaskConical size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {typeOptions.map(t => (
                 <button 
@@ -95,13 +95,13 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Status de Execução <Activity size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Status de Execução <Activity size={14} /></label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {['all', 'PENDENTE', 'REALIZADO'].map(status => (
                 <button 
                   key={status}
-                  className={`elite-tag-chip ${filters.status === status ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.status === status ? 'active' : ''}`}
                   onClick={() => setFilters({ ...filters, status })}
                   style={{ 
                     flex: 1,
@@ -116,7 +116,7 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section" style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '16px', borderRadius: '16px' }}>
+          <div className="tauze-filter-section" style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '16px', borderRadius: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ color: '#ef4444' }}>
@@ -134,26 +134,26 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
             <p style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>Filtra animais em período de carência ativa que não podem ser destinados ao abate ou venda.</p>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Intervalo de Manejo <Calendar size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Intervalo de Manejo <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateEnd}
                 onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
               />
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Duração da Carência (Dias) <Clock size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Duração da Carência (Dias) <Clock size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.minCarencia} d</span>
@@ -172,7 +172,7 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#10a34a' }} onClick={onClose}>APLICAR</button>
         </div>

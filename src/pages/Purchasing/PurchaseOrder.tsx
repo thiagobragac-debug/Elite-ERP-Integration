@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -26,7 +26,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useDebounce } from '../../hooks/useDebounce';
 import { PurchaseOrderForm } from '../../components/Forms/PurchaseOrderForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -332,7 +332,7 @@ export const PurchaseOrder: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <ShoppingCart size={14} fill="currentColor" />
-            <span>ELITE PROCUREMENT v5.0</span>
+            <span>TAUZE PROCUREMENT v5.0</span>
           </div>
           <h1 className="page-title">Ordens de Compra (OC)</h1>
           <p className="page-subtitle">Gestão de suprimentos, negociações com fornecedores e controle de recebimento físico.</p>
@@ -347,9 +347,9 @@ export const PurchaseOrder: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={ShoppingCart} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ShoppingCart} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -362,34 +362,34 @@ export const PurchaseOrder: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'OPEN' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'OPEN' ? 'active' : ''}`}
             onClick={() => { setActiveTab('OPEN'); setPage(1); }}
           >
             Ordens em Aberto
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'HISTORY' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'HISTORY' ? 'active' : ''}`}
             onClick={() => { setActiveTab('HISTORY'); setPage(1); }}
           >
             Histórico de Compras
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Pesquisar por número da OC ou fornecedor..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

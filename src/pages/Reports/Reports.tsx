@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { 
   FileText, 
@@ -244,7 +244,7 @@ export const Reports: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <Sparkles size={14} fill="currentColor" />
-            <span>ELITE INTELLIGENCE v5.0</span>
+            <span>TAUZE INTELLIGENCE v5.0</span>
           </div>
           <h1 className="page-title">Relatórios Operacionais</h1>
           <p className="page-subtitle">
@@ -272,12 +272,12 @@ export const Reports: React.FC = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-      <div className="elite-controls-row" style={{ marginTop: '24px' }}>
-        <div className="elite-search-wrapper">
+      <div className="tauze-controls-row" style={{ marginTop: '24px' }}>
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Pesquisar relatórios por nome ou tag técnica..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -301,7 +301,7 @@ export const Reports: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${selectedPeriod !== 'safra_atual' ? 'active' : ''}`} 
             title="Filtrar por Período"

@@ -18,7 +18,7 @@ import {
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 
@@ -55,7 +55,7 @@ export const InventoryDashboard: React.FC = () => {
         const queries = [
           applyFarmFilter(supabase.from('produtos').select('id, nome, estoque_atual, estoque_minimo, custo_medio, unidade, categoria')),
           applyFarmFilter(supabase.from('movimentacoes_estoque').select('id, tipo, data_movimentacao, quantidade, responsavel, produtos(nome, unidade)').order('created_at', { ascending: false }).limit(6)),
-          applyFarmFilter(supabase.from('movimentacoes_estoque').select('quantidade, valor_unitario, tipo').eq('tipo', 'out').gte('data_movimentacao', thirtyDaysAgo.toISOString()))
+          applyFarmFilter(supabase.from('movimentacoes_estoque').select('quantidade, valor_unitario, tipo, data_movimentacao').eq('tipo', 'out').gte('data_movimentacao', thirtyDaysAgo.toISOString()))
         ];
 
         const [prodRes, moveRes, outMovRes] = await Promise.all(queries);
@@ -92,6 +92,17 @@ export const InventoryDashboard: React.FC = () => {
         const calculatedTurnover = totalValue > 0 ? (totalOutgoingValue / totalValue) : 0;
         const turnover = calculatedTurnover > 0 ? calculatedTurnover : 1.4; // fallback premium se estoque zerado ou sem saídas
 
+        // Sparkline for Outgoing Movements (Giro)
+        const sparklineGiro = Array.from({ length: 30 }).map((_, i) => {
+          const d = new Date();
+          d.setDate(d.getDate() - 30 + i + 1);
+          const dayStr = d.toISOString().split('T')[0];
+          const dayTotal = outMovements
+            .filter((m: any) => m.data_movimentacao?.startsWith(dayStr))
+            .reduce((acc: number, m: any) => acc + (Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0)), 0);
+          return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+        });
+
         setStats([
           { 
             label: 'Patrimônio em Insumos', 
@@ -126,7 +137,8 @@ export const InventoryDashboard: React.FC = () => {
             color: '#3b82f6', 
             progress: Math.min(Number((turnover * 30).toFixed(0)), 100),
             trend: turnover > 1.0 ? 'up' : 'stable',
-            change: 'Eficiência Logística'
+            change: 'Eficiência Logística',
+            sparkline: sparklineGiro
           },
         ]);
 
@@ -209,7 +221,7 @@ export const InventoryDashboard: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
           />
@@ -290,7 +302,7 @@ export const InventoryDashboard: React.FC = () => {
 
           <div className="activity-list">
             {recentMovements.map((act, i) => (
-              <div key={i} className="activity-item-elite">
+              <div key={i} className="activity-item-tauze">
                 <div className={`act-icon-wrapper ${act.type === 'in' ? 'fuel' : 'maint'}`}>
                   {act.type === 'in' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                 </div>
@@ -492,14 +504,14 @@ export const InventoryDashboard: React.FC = () => {
           gap: 16px;
         }
 
-        .activity-item-elite {
+        .activity-item-tauze {
           display: flex;
           gap: 16px;
           padding-bottom: 16px;
           border-bottom: 1px solid hsl(var(--border));
         }
 
-        .activity-item-elite:last-child {
+        .activity-item-tauze:last-child {
           border-bottom: none;
         }
 

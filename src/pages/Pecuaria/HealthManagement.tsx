@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   HeartPulse, 
   Plus, 
@@ -26,7 +26,7 @@ import { useReportData } from '../../hooks/useReportData';
 import { HealthForm } from '../../components/Forms/HealthForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { HealthProtocolsModal } from './components/HealthProtocolsModal';
@@ -271,7 +271,7 @@ export const HealthManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <ShieldCheck size={14} fill="currentColor" />
-            <span>ELITE LIVESTOCK v5.0</span>
+            <span>TAUZE LIVESTOCK v5.0</span>
           </div>
           <h1 className="page-title">Gestão Sanitária</h1>
           <p className="page-subtitle">Rastreabilidade de vacinas, tratamentos e controle de carência medicamentosa em tempo real.</p>
@@ -292,41 +292,41 @@ export const HealthManagement: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
           />
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'MANEJOS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'MANEJOS' ? 'active' : ''}`}
             onClick={() => setActiveTab('MANEJOS')}
           >
             Manejos Sanitários
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'PROTOCOLOS' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'PROTOCOLOS' ? 'active' : ''}`}
             onClick={() => setActiveTab('PROTOCOLOS')}
           >
             Protocolos Ativos
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Filtrar por protocolo ou fármaco..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

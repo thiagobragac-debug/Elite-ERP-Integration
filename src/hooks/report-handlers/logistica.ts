@@ -1,4 +1,4 @@
-import { supabase } from '../../lib/supabase';
+﻿import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 
 const TIMEOUT_MS = 30000;
@@ -152,7 +152,7 @@ export const manutencoesFrota: ReportHandler = async (tenantId, fazendaId, page 
       stats: [
         { label: 'Investimento Oficina', value: `R$ ${totalManut.toLocaleString()}`, change: 'Total Período', trend: 'neutral' as const },
         { label: 'Intervenções', value: totalIntervencoes.toString(), change: 'Status: OK', trend: 'neutral' as const },
-        { label: 'Custo Médio / Máq', value: `R$ ${custoMedio.toLocaleString()}`, change: 'Elite Sync', trend: 'neutral' as const },
+        { label: 'Custo Médio / Máq', value: `R$ ${custoMedio.toLocaleString()}`, change: 'Tauze Sync', trend: 'neutral' as const },
         { label: 'Disponibilidade Frota', value: '94%', change: 'SLA Ideal', trend: 'neutral' as const }
       ],
       totalCount: manutRes.count || 0

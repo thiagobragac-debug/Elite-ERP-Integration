@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, 
   TrendingUp, 
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 
 import { 
@@ -184,7 +184,7 @@ export const PurchasingDashboard: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: '#6366f115', color: '#6366f1', border: '1px solid #6366f120' }}>
             <ShoppingCart size={12} fill="currentColor" />
-            <span>ELITE PROCUREMENT INTELLIGENCE v5.0</span>
+            <span>TAUZE PROCUREMENT INTELLIGENCE v5.0</span>
           </div>
           <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Centro de comando estratégico para gestão de suprimentos e eficiência logística.</p>
@@ -226,7 +226,7 @@ export const PurchasingDashboard: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <div key={i} className="skeleton-card" style={{ height: '140px', background: 'hsl(var(--bg-card))', borderRadius: '24px' }} />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard key={idx} {...stat} />
+          <TauzeStatCard key={idx} {...stat} />
         ))}
       </div>
 
@@ -285,7 +285,7 @@ export const PurchasingDashboard: React.FC = () => {
             </div>
 
             <div className="recent-grid-wrapper">
-              <table className="elite-data-table">
+              <table className="tauze-data-table">
                 <thead>
                   <tr>
                     <th>Requisição / Depto</th>
@@ -452,12 +452,12 @@ export const PurchasingDashboard: React.FC = () => {
           color: hsl(var(--text-main));
         }
 
-        .elite-data-table {
+        .tauze-data-table {
           width: 100%;
           border-collapse: collapse;
         }
 
-        .elite-data-table th {
+        .tauze-data-table th {
           text-align: left;
           font-size: 10px;
           font-weight: 800;
@@ -467,7 +467,7 @@ export const PurchasingDashboard: React.FC = () => {
           border-bottom: 1px solid hsl(var(--border));
         }
 
-        .elite-data-table td {
+        .tauze-data-table td {
           padding: 16px 0;
           border-bottom: 1px solid hsl(var(--bg-main));
         }

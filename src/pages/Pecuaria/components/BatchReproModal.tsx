@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ClipboardCheck, 
   Layers, 
@@ -109,7 +109,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div key="step1" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
-              <label className="elite-label" style={{ marginBottom: '16px', display: 'block' }}>Selecione o Lote de Matrizes</label>
+              <label className="tauze-label" style={{ marginBottom: '16px', display: 'block' }}>Selecione o Lote de Matrizes</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
                 {lots.map(lot => (
                   <button 
@@ -147,8 +147,8 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="elite-label">Tipo de Manejo</label>
+                <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="tauze-label">Tipo de Manejo</label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                     {['IATF', 'Palpação', 'Parto', 'Secagem'].map(type => (
                       <button 
@@ -168,14 +168,14 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                   </div>
                 </div>
 
-                <div className="elite-field-group">
-                  <label className="elite-label">Data do Evento</label>
-                  <input type="date" className="elite-input" value={eventDate} onChange={e => setEventDate(e.target.value)} />
+                <div className="tauze-field-group">
+                  <label className="tauze-label">Data do Evento</label>
+                  <input type="date" className="tauze-input" value={eventDate} onChange={e => setEventDate(e.target.value)} />
                 </div>
 
-                <div className="elite-field-group">
-                  <label className="elite-label">Resultado Geral</label>
-                  <select className="elite-input elite-select" value={result} onChange={e => setResult(e.target.value)}>
+                <div className="tauze-field-group">
+                  <label className="tauze-label">Resultado Geral</label>
+                  <select className="tauze-input tauze-select" value={result} onChange={e => setResult(e.target.value)}>
                     <option value="Pendente">Pendente</option>
                     <option value="Prenha">Prenha</option>
                     <option value="Vazia">Vazia</option>

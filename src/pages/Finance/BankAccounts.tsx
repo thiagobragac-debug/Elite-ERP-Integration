@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Plus, 
@@ -28,7 +28,7 @@ import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { BankAccountForm } from '../../components/Forms/BankAccountForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { BankAccountFilterModal } from './components/BankAccountFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -391,7 +391,7 @@ export const BankAccounts: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <ShieldCheck size={14} fill="currentColor" />
-            <span>ELITE TREASURY v5.0</span>
+            <span>TAUZE TREASURY v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Tesouraria</h1>
           <p className="page-subtitle">Centralização de saldos bancários, monitoramento de custódia e controle de liquidez.</p>
@@ -410,9 +410,9 @@ export const BankAccounts: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Wallet} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wallet} color="" />)
         ) : (stats || []).map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -425,27 +425,27 @@ export const BankAccounts: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'BALANCES' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'BALANCES' ? 'active' : ''}`}
             onClick={() => setActiveTab('BALANCES')}
           >
             Saldos Consolidados
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'CASHFLOW' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'CASHFLOW' ? 'active' : ''}`}
             onClick={() => setActiveTab('CASHFLOW')}
           >
             Fluxo de Caixa
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Pesquisar por banco, agência ou conta..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -469,7 +469,7 @@ export const BankAccounts: React.FC = () => {
           </button>
         </div>
 
-         <div className="elite-filter-group">
+         <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
             title="Filtros Avançados"

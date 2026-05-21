@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   X, 
   Clock, 
@@ -176,7 +176,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
 
           <div className="ai-optimization-tip">
             <Sparkles size={16} className="sparkle" />
-            <p><strong>Dica Elite IA:</strong> Agendamentos semanais (Segunda-feira 06:00) têm 40% mais taxa de abertura por gestores.</p>
+            <p><strong>Dica Tauze IA:</strong> Agendamentos semanais (Segunda-feira 06:00) têm 40% mais taxa de abertura por gestores.</p>
           </div>
         </div>
 

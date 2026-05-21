@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -40,7 +40,7 @@ import { ProfileForm } from '../../components/Forms/ProfileForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useSearchParams } from 'react-router-dom';
 import { UserFilterModal } from './components/UserFilterModal';
@@ -595,7 +595,7 @@ export const UserManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <Lock size={14} fill="currentColor" />
-            <span>ELITE ACCESS v5.0</span>
+            <span>TAUZE ACCESS v5.0</span>
           </div>
           <h1 className="page-title">Governança & Segurança de Acesso</h1>
           <p className="page-subtitle">Gestão estratégica de identidades, perfis de permissão e políticas críticas de segurança.</p>
@@ -617,7 +617,7 @@ export const UserManagement: React.FC = () => {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="save-toast-elite"
+                className="save-toast-tauze"
                 style={{ background: 'hsl(161 64% 39%)', color: 'white', border: 'none' }}
               >
                 <CheckCircle2 size={16} />
@@ -632,7 +632,7 @@ export const UserManagement: React.FC = () => {
         {loading ? (
           Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard
+          <TauzeStatCard
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -646,23 +646,23 @@ export const UserManagement: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'users' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'users' ? 'active' : ''}`}
             onClick={() => setActiveTab('users')}
           >
             Usuários
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'profiles' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'profiles' ? 'active' : ''}`}
             onClick={() => setActiveTab('profiles')}
           >
             Perfis de Acesso
           </button>
           {isAdmin && (
             <button 
-              className={`elite-tab-item ${activeTab === 'seguranca' ? 'active' : ''}`}
+              className={`tauze-tab-item ${activeTab === 'seguranca' ? 'active' : ''}`}
               onClick={() => setActiveTab('seguranca')}
             >
               Segurança de Acesso
@@ -670,11 +670,11 @@ export const UserManagement: React.FC = () => {
           )}
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder={
               activeTab === 'users' ? "Buscar por nome, email..." : 
               activeTab === 'profiles' ? "Buscar perfil ou cargo..." : 
@@ -704,7 +704,7 @@ export const UserManagement: React.FC = () => {
           </div>
         )}
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"
@@ -1027,7 +1027,7 @@ export const UserManagement: React.FC = () => {
                   ].map(opt => (
                     <div key={opt.key} className="option-row" onClick={() => toggleSecuritySetting(opt.key as any)}>
                       <span>{opt.label}</span>
-                      <div className={`elite-toggle ${securitySettings[opt.key as keyof typeof securitySettings] ? 'active' : ''}`}>
+                      <div className={`tauze-toggle ${securitySettings[opt.key as keyof typeof securitySettings] ? 'active' : ''}`}>
                         <div className="toggle-dot"></div>
                       </div>
                     </div>
@@ -1051,7 +1051,7 @@ export const UserManagement: React.FC = () => {
                   ].map(opt => (
                     <div key={opt.key} className="option-row" onClick={() => toggleSecuritySetting(opt.key as any)}>
                       <span>{opt.label}</span>
-                      <div className={`elite-toggle ${securitySettings[opt.key as keyof typeof securitySettings] ? 'active' : ''}`}>
+                      <div className={`tauze-toggle ${securitySettings[opt.key as keyof typeof securitySettings] ? 'active' : ''}`}>
                         <div className="toggle-dot"></div>
                       </div>
                     </div>
@@ -1070,7 +1070,7 @@ export const UserManagement: React.FC = () => {
                 <div className="security-options">
                   <div className="option-row" onClick={() => toggleSecuritySetting('block3Attempts')}>
                     <span>Bloqueio (3 falhas)</span>
-                    <div className={`elite-toggle ${securitySettings.block3Attempts ? 'active' : ''}`}>
+                    <div className={`tauze-toggle ${securitySettings.block3Attempts ? 'active' : ''}`}>
                       <div className="toggle-dot"></div>
                     </div>
                   </div>
@@ -1587,7 +1587,7 @@ export const UserManagement: React.FC = () => {
         }
         .option-row:hover { border-color: var(--border); background: white; transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
-        .elite-toggle {
+        .tauze-toggle {
           width: 36px;
           height: 20px;
           background: #e2e8f0;
@@ -1596,7 +1596,7 @@ export const UserManagement: React.FC = () => {
           transition: 0.3s;
           position: relative;
         }
-        .elite-toggle.active { background: #10b981; }
+        .tauze-toggle.active { background: #10b981; }
         .toggle-dot {
           width: 16px;
           height: 16px;
@@ -1605,7 +1605,7 @@ export const UserManagement: React.FC = () => {
           transition: 0.3s;
           box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
-        .elite-toggle.active .toggle-dot { transform: translateX(16px); }
+        .tauze-toggle.active .toggle-dot { transform: translateX(16px); }
 
         .maintenance-btn {
           width: 100%;
@@ -1859,7 +1859,7 @@ export const UserManagement: React.FC = () => {
           box-shadow: 0 15px 35px rgba(22, 163, 74, 0.3);
         }
 
-        .elite-controls-row {
+        .tauze-controls-row {
           background: white;
           padding: 12px 16px;
           border-radius: 20px;

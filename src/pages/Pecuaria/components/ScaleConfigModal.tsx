@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Wifi, 
   Bluetooth, 
@@ -21,14 +21,14 @@ type ScaleBrand = 'TRUTEST' | 'GALLAGHER' | 'COIMMA' | 'DIGISTAR' | 'OUTRO';
 
 export const ScaleConfigModal: React.FC<ScaleConfigModalProps> = ({ isOpen, onClose }) => {
   const [connectionType, setConnectionType] = useState<ConnectionType>(
-    (localStorage.getItem('elite_scale_type') as ConnectionType) || 'BLUETOOTH'
+    (localStorage.getItem('tauze_scale_type') as ConnectionType) || 'BLUETOOTH'
   );
   const [brand, setBrand] = useState<ScaleBrand>(
-    (localStorage.getItem('elite_scale_brand') as ScaleBrand) || 'TRUTEST'
+    (localStorage.getItem('tauze_scale_brand') as ScaleBrand) || 'TRUTEST'
   );
   const [isConnecting, setIsConnecting] = useState(false);
   const [status, setStatus] = useState<'IDLE' | 'CONNECTED' | 'ERROR'>(
-    localStorage.getItem('elite_scale_connected') === 'true' ? 'CONNECTED' : 'IDLE'
+    localStorage.getItem('tauze_scale_connected') === 'true' ? 'CONNECTED' : 'IDLE'
   );
 
   const handleConnect = () => {
@@ -39,17 +39,17 @@ export const ScaleConfigModal: React.FC<ScaleConfigModalProps> = ({ isOpen, onCl
     setTimeout(() => {
       setIsConnecting(false);
       setStatus('CONNECTED');
-      localStorage.setItem('elite_scale_connected', 'true');
-      localStorage.setItem('elite_scale_brand', brand);
-      localStorage.setItem('elite_scale_type', connectionType);
+      localStorage.setItem('tauze_scale_connected', 'true');
+      localStorage.setItem('tauze_scale_brand', brand);
+      localStorage.setItem('tauze_scale_type', connectionType);
     }, 2000);
   };
 
   const handleDisconnect = () => {
     setStatus('IDLE');
-    localStorage.removeItem('elite_scale_connected');
-    localStorage.removeItem('elite_scale_brand');
-    localStorage.removeItem('elite_scale_type');
+    localStorage.removeItem('tauze_scale_connected');
+    localStorage.removeItem('tauze_scale_brand');
+    localStorage.removeItem('tauze_scale_type');
   };
 
   return (
@@ -65,8 +65,8 @@ export const ScaleConfigModal: React.FC<ScaleConfigModalProps> = ({ isOpen, onCl
       size="medium"
     >
       <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-        <div className="elite-field-group">
-          <label className="elite-label">Marca/Fabricante do Equipamento</label>
+        <div className="tauze-field-group">
+          <label className="tauze-label">Marca/Fabricante do Equipamento</label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
             {(['TRUTEST', 'GALLAGHER', 'COIMMA', 'DIGISTAR', 'OUTRO'] as ScaleBrand[]).map(b => (
               <button 
@@ -93,8 +93,8 @@ export const ScaleConfigModal: React.FC<ScaleConfigModalProps> = ({ isOpen, onCl
           </div>
         </div>
 
-        <div className="elite-field-group">
-          <label className="elite-label">Tipo de Comunicação</label>
+        <div className="tauze-field-group">
+          <label className="tauze-label">Tipo de Comunicação</label>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button 
               type="button"

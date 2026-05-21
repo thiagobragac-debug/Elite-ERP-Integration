@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Heart, 
   Baby,
@@ -123,16 +123,16 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
 
       <div className="form-group full-width">
         <label><Activity size={14} /> Status</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.status === 'pending' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.status === 'pending' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, status: 'pending'})}
           >
             <Calendar size={16} />
             <span>Agendado</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.status === 'completed' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.status === 'completed' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, status: 'completed'})}
           >
             <Activity size={16} />

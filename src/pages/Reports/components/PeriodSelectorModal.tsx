@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar, ChevronRight, Check, ArrowLeft, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,17 +39,17 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-global-modal-overlay" onClick={onClose}>
+    <div className="tauze-global-modal-overlay" onClick={onClose}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.8, y: 40 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.8, y: 40 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="elite-modal-container"
+        className="tauze-modal-container"
         style={{ maxWidth: '500px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-modal-header">
+        <div className="tauze-modal-header">
           <div className="header-content">
             {view === 'custom' ? (
               <button className="back-btn" onClick={() => setView('list')}>
@@ -68,7 +68,7 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
           <button className="close-btn" onClick={onClose}><X size={20} /></button>
         </div>
 
-        <div className="elite-modal-body">
+        <div className="tauze-modal-body">
           <AnimatePresence mode="wait">
             {view === 'list' ? (
               <motion.div 
@@ -153,13 +153,13 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
           </AnimatePresence>
         </div>
 
-        <div className="elite-modal-footer">
+        <div className="tauze-modal-footer">
           <p className="footer-hint">A alteração do período recalcula todos os indicadores do Dashboard em tempo real.</p>
         </div>
       </motion.div>
 
       <style>{`
-        .elite-global-modal-overlay {
+        .tauze-global-modal-overlay {
           position: fixed;
           top: 0;
           left: 0;

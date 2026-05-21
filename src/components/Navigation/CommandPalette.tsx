@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Search, Command, ArrowRight, X, LayoutGrid, Users, DollarSign, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -135,7 +135,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose 
                 <kbd>↑↓</kbd> <span>Navegar</span>
               </div>
               <div className="footer-item">
-                <Command size={14} /> <span>Elite Search</span>
+                <Command size={14} /> <span>Tauze Search</span>
               </div>
             </div>
           </motion.div>

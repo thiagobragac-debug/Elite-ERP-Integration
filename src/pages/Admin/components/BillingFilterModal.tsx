@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, CreditCard, Calendar, Shield, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -28,17 +28,17 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 10000 }}>
+    <div className="tauze-sidebar-overlay" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 10000 }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
         style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '400px', background: '#fff', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column' }}
       >
-        <div className="elite-sidebar-header" style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="tauze-sidebar-header" style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '10px', borderRadius: '12px', color: '#10b981' }}>
               <Filter size={20} />
@@ -56,10 +56,10 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body" style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
+        <div className="tauze-sidebar-body" style={{ padding: '24px', flex: 1, overflowY: 'auto' }}>
           
-          <div className="elite-filter-section" style={{ marginBottom: '32px' }}>
-            <label className="elite-filter-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '16px' }}>
+          <div className="tauze-filter-section" style={{ marginBottom: '32px' }}>
+            <label className="tauze-filter-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '16px' }}>
               Status da Fatura <CreditCard size={14} />
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
@@ -90,8 +90,8 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section" style={{ marginBottom: '32px' }}>
-            <label className="elite-filter-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '16px' }}>
+          <div className="tauze-filter-section" style={{ marginBottom: '32px' }}>
+            <label className="tauze-filter-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '16px' }}>
               Período de Vencimento <Calendar size={14} />
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -116,8 +116,8 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '16px' }}>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '16px' }}>
               Valor da Fatura <DollarSign size={14} />
             </label>
             <select 
@@ -134,7 +134,7 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
 
         </div>
 
-        <div className="elite-sidebar-footer" style={{ padding: '24px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
+        <div className="tauze-sidebar-footer" style={{ padding: '24px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
           <button 
             style={{ flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}
             onClick={handleClear}

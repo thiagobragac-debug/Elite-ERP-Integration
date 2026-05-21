@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Plus, 
@@ -216,14 +216,14 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                     <button type="button" onClick={() => setTargetType('LOTE')} style={{ flex: 1, padding: '8px', fontSize: '11px', fontWeight: 800, borderRadius: '8px', background: targetType === 'LOTE' ? 'white' : 'transparent', border: 'none', cursor: 'pointer' }}>LOTE COLETIVO</button>
                   </div>
 
-                  <div className="elite-field-group">
-                    <label className="elite-label">{targetType === 'ANIMAL' ? 'Identificação do Animal' : 'Identificação do Lote'}</label>
-                    <input type="text" className="elite-input" value={targetId} onChange={e => setTargetId(e.target.value)} />
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">{targetType === 'ANIMAL' ? 'Identificação do Animal' : 'Identificação do Lote'}</label>
+                    <input type="text" className="tauze-input" value={targetId} onChange={e => setTargetId(e.target.value)} />
                   </div>
 
-                  <div className="elite-field-group">
-                    <label className="elite-label">Data de Início</label>
-                    <input type="date" className="elite-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">Data de Início</label>
+                    <input type="date" className="tauze-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
                   </div>
                 </div>
               </motion.div>
@@ -235,13 +235,13 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div className="elite-field-group">
-                    <label className="elite-label">Nome do Protocolo</label>
-                    <input type="text" className="elite-input" value={newProtocol.name} onChange={e => setNewProtocol({...newProtocol, name: e.target.value})} placeholder="Ex: Vermifugação de Entrada" />
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">Nome do Protocolo</label>
+                    <input type="text" className="tauze-input" value={newProtocol.name} onChange={e => setNewProtocol({...newProtocol, name: e.target.value})} placeholder="Ex: Vermifugação de Entrada" />
                   </div>
-                  <div className="elite-field-group">
-                    <label className="elite-label">Categoria</label>
-                    <select className="elite-input elite-select" value={newProtocol.category} onChange={e => setNewProtocol({...newProtocol, category: e.target.value})}>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label">Categoria</label>
+                    <select className="tauze-input tauze-select" value={newProtocol.category} onChange={e => setNewProtocol({...newProtocol, category: e.target.value})}>
                       <option value="VACINAÇÃO">Vacinação</option>
                       <option value="SANIDADE">Sanidade/Vermifugação</option>
                       <option value="NUTRIÇÃO">Nutrição/Suplementação</option>
@@ -256,17 +256,17 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {newProtocol.steps.map((step, idx) => (
                         <div key={idx} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: '8px', padding: '12px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
-                          <input type="number" className="elite-input" style={{ padding: '8px' }} value={step.day} onChange={e => {
+                          <input type="number" className="tauze-input" style={{ padding: '8px' }} value={step.day} onChange={e => {
                             const steps = [...newProtocol.steps];
                             steps[idx].day = parseInt(e.target.value);
                             setNewProtocol({...newProtocol, steps});
                           }} />
-                          <input type="text" className="elite-input" style={{ padding: '8px' }} placeholder="Produto" value={step.product} onChange={e => {
+                          <input type="text" className="tauze-input" style={{ padding: '8px' }} placeholder="Produto" value={step.product} onChange={e => {
                             const steps = [...newProtocol.steps];
                             steps[idx].product = e.target.value;
                             setNewProtocol({...newProtocol, steps});
                           }} />
-                          <input type="text" className="elite-input" style={{ padding: '8px' }} placeholder="Dose" value={step.dose} onChange={e => {
+                          <input type="text" className="tauze-input" style={{ padding: '8px' }} placeholder="Dose" value={step.dose} onChange={e => {
                             const steps = [...newProtocol.steps];
                             steps[idx].dose = e.target.value;
                             setNewProtocol({...newProtocol, steps});

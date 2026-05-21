@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -28,7 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TransactionForm } from '../../components/Forms/TransactionForm';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
@@ -295,7 +295,7 @@ export const CashFlow: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge premium">
             <Sparkles size={14} fill="currentColor" />
-            <span>ELITE TREASURY v5.0</span>
+            <span>TAUZE TREASURY v5.0</span>
           </div>
           <h1 className="page-title">Fluxo de Caixa Unificado</h1>
           <p className="page-subtitle">Gestão operacional e inteligência financeira avançada em um único dashboard.</p>
@@ -344,9 +344,9 @@ export const CashFlow: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Wallet} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wallet} color="" />)
         ) : reportStats?.map((stat: any, idx: number) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
             icon={getStatIcon(stat.id)}
@@ -397,8 +397,8 @@ export const CashFlow: React.FC = () => {
                   )) : <div className="text-center py-4 text-xs font-bold text-slate-400">Sem dados no período</div>}
                 </div>
               </div>
-              <div className="summary-box glass-card elite-insight-box">
-                <h3>Elite Copilot Intelligence</h3>
+              <div className="summary-box glass-card tauze-insight-box">
+                <h3>Tauze Copilot Intelligence</h3>
                 <div className="progress-list">
                   <div className="progress-item insight-success">
                     <span>Projeção de Saldo</span>
@@ -423,29 +423,29 @@ export const CashFlow: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <div className="elite-controls-row">
-              <div className="elite-tab-group">
-                <button className={`elite-tab-item ${activeTab === 'ALL' ? 'active' : ''}`} onClick={() => setActiveTab('ALL')}>Livro Caixa</button>
-                <button className={`elite-tab-item ${activeTab === 'INFLOW' ? 'active' : ''}`} onClick={() => setActiveTab('INFLOW')}>Entradas</button>
-                <button className={`elite-tab-item ${activeTab === 'OUTFLOW' ? 'active' : ''}`} onClick={() => setActiveTab('OUTFLOW')}>Saídas</button>
+            <div className="tauze-controls-row">
+              <div className="tauze-tab-group">
+                <button className={`tauze-tab-item ${activeTab === 'ALL' ? 'active' : ''}`} onClick={() => setActiveTab('ALL')}>Livro Caixa</button>
+                <button className={`tauze-tab-item ${activeTab === 'INFLOW' ? 'active' : ''}`} onClick={() => setActiveTab('INFLOW')}>Entradas</button>
+                <button className={`tauze-tab-item ${activeTab === 'OUTFLOW' ? 'active' : ''}`} onClick={() => setActiveTab('OUTFLOW')}>Saídas</button>
               </div>
-              <div className="elite-tab-group secondary" style={{ marginLeft: '12px', background: 'hsl(var(--bg-main)/0.5)', padding: '2px' }}>
+              <div className="tauze-tab-group secondary" style={{ marginLeft: '12px', background: 'hsl(var(--bg-main)/0.5)', padding: '2px' }}>
                 <button 
-                  className={`elite-tab-item ${statusFilter === 'ALL' ? 'active' : ''}`}
+                  className={`tauze-tab-item ${statusFilter === 'ALL' ? 'active' : ''}`}
                   onClick={() => setStatusFilter('ALL')}
                   style={{ fontSize: '10px', padding: '6px 12px' }}
                 >
                   Ambos
                 </button>
                 <button 
-                  className={`elite-tab-item ${statusFilter === 'PENDING' ? 'active' : ''}`}
+                  className={`tauze-tab-item ${statusFilter === 'PENDING' ? 'active' : ''}`}
                   onClick={() => setStatusFilter('PENDING')}
                   style={{ fontSize: '10px', padding: '6px 12px' }}
                 >
                   A Realizar
                 </button>
                 <button 
-                  className={`elite-tab-item ${statusFilter === 'PAID' ? 'active' : ''}`}
+                  className={`tauze-tab-item ${statusFilter === 'PAID' ? 'active' : ''}`}
                   onClick={() => setStatusFilter('PAID')}
                   style={{ fontSize: '10px', padding: '6px 12px' }}
                 >
@@ -453,18 +453,18 @@ export const CashFlow: React.FC = () => {
                 </button>
               </div>
 
-              <div className="elite-search-wrapper">
+              <div className="tauze-search-wrapper">
                 <Search size={18} className="s-icon" />
                 <input 
                   type="text" 
-                  className="elite-search-input"
+                  className="tauze-search-input"
                   placeholder="Pesquisar transações..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
 
-              <div className="elite-filter-group">
+              <div className="tauze-filter-group">
                 <button className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}><Filter size={20} /></button>
                 <div className="export-dropdown-container">
                   <button 

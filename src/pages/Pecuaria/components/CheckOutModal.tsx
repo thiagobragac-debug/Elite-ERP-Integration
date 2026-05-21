@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Beef, CheckCircle2, ArrowRightCircle, AlertTriangle,
   Target, Scale, Calendar, TrendingUp, DollarSign, Clock
@@ -60,7 +60,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
       hideSubmit={step === 3 || (step === 1 && !selectedPenId)}
       loading={loading}
     >
-      {/* wrapper ocupa as 4 colunas do elite-input-grid */}
+      {/* wrapper ocupa as 4 colunas do tauze-input-grid */}
       <div style={{ gridColumn: 'span 4' }}>
         <AnimatePresence mode="wait">
 
@@ -183,17 +183,17 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
-                <div className="elite-field-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="elite-label">Data de Saída</label>
-                  <input type="date" className="elite-input" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} />
+                <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="tauze-label">Data de Saída</label>
+                  <input type="date" className="tauze-input" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} />
                 </div>
-                <div className="elite-field-group">
-                  <label className="elite-label">Peso Médio Final (kg)</label>
-                  <input type="number" className="elite-input" placeholder="0.0" value={finalWeight} onChange={e => setFinalWeight(e.target.value)} />
+                <div className="tauze-field-group">
+                  <label className="tauze-label">Peso Médio Final (kg)</label>
+                  <input type="number" className="tauze-input" placeholder="0.0" value={finalWeight} onChange={e => setFinalWeight(e.target.value)} />
                 </div>
-                <div className="elite-field-group">
-                  <label className="elite-label">Destino</label>
-                  <select className="elite-input elite-select" value={destination} onChange={e => setDestination(e.target.value)}>
+                <div className="tauze-field-group">
+                  <label className="tauze-label">Destino</label>
+                  <select className="tauze-input tauze-select" value={destination} onChange={e => setDestination(e.target.value)}>
                     <option value="ABATE">Frigorífico (Abate)</option>
                     <option value="PASTO">Recria/Pasto</option>
                     <option value="VENDA">Venda Direta</option>

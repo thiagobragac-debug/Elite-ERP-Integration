@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Plus, 
@@ -29,7 +29,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useDebounce } from '../../hooks/useDebounce';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { SupplierNetworkMapModal } from '../../components/Modals/SupplierNetworkMapModal';
 import { SupplierFilterModal } from './components/SupplierFilterModal';
@@ -382,7 +382,7 @@ export const SupplierManagement: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <Building2 size={14} fill="currentColor" />
-            <span>ELITE PROCUREMENT v5.0</span>
+            <span>TAUZE PROCUREMENT v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Fornecedores</h1>
           <p className="page-subtitle">Homologação de parceiros, análise de performance e histórico transacional de compras em tempo real.</p>
@@ -401,36 +401,36 @@ export const SupplierManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={Building2} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Building2} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             {...stat}
           />
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'HOMOLOGADO' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'HOMOLOGADO' ? 'active' : ''}`}
             onClick={() => setActiveTab('HOMOLOGADO')}
           >
             Rede Homologada
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'PENDENTE' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'PENDENTE' ? 'active' : ''}`}
             onClick={() => setActiveTab('PENDENTE')}
           >
             Pendentes
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Pesquisar por nome, categoria ou contato..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -454,7 +454,7 @@ export const SupplierManagement: React.FC = () => {
           </button>
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
             title="Filtros Avançados"

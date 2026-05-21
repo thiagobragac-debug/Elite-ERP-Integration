@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Layers, Users, Scale, TrendingUp, Calendar, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -44,16 +44,16 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(139, 92, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#8b5cf6' }}>
               <Layers size={20} />
@@ -71,9 +71,9 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Status Operacional <Clock size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Status Operacional <Clock size={14} /></label>
             <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               {statusOptions.map(s => (
                 <button 
@@ -87,8 +87,8 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Ocupação Mínima (%) <Users size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Ocupação Mínima (%) <Users size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '28px', fontWeight: 900, color: '#8b5cf6' }}>{filters.minOccupancy}%</span>
@@ -106,13 +106,13 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Finalidade Produtiva <TrendingUp size={14} /></label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Finalidade Produtiva <TrendingUp size={14} /></label>
+            <div className="tauze-tag-cloud">
               {finalidades.map(fin => (
                 <button 
                   key={fin}
-                  className={`elite-tag-chip ${filters.finalidades?.includes(fin) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.finalidades?.includes(fin) ? 'active' : ''}`}
                   onClick={() => toggleFinalidade(fin)}
                   style={{ 
                     borderColor: filters.finalidades?.includes(fin) ? '#8b5cf6' : '#e2e8f0', 
@@ -127,8 +127,8 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Uniformidade (CV) <Scale size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Uniformidade (CV) <Scale size={14} /></label>
             <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               {['all', 'Alta', 'Média', 'Baixa'].map(u => (
                 <button 
@@ -142,19 +142,19 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Data de Formação <Calendar size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Data de Formação <Calendar size={14} /></label>
             <div className="date-range-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
                 style={{ height: '40px', fontSize: '12px' }}
               />
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateEnd}
                 onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
                 style={{ height: '40px', fontSize: '12px' }}
@@ -163,7 +163,7 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#8b5cf6' }} onClick={onClose}>APLICAR</button>
         </div>

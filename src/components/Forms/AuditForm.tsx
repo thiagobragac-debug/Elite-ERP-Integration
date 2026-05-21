@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Package, 
   ClipboardCheck,
@@ -124,16 +124,16 @@ export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit,
 
       <div className="form-group full-width">
         <label><ArrowRight size={14} /> Tipo de Ajuste Automático</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.category !== 'conf' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.category !== 'conf' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, category: 'Insumos'})} 
           >
             <RefreshCcw size={16} />
             <span>Ajustar Saldo</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.category === 'conf' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.category === 'conf' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, category: 'conf'})}
           >
             <ClipboardCheck size={16} />
@@ -152,7 +152,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit,
         />
       </div>
 
-      <div className="form-group full-width elite-form-info-box">
+      <div className="form-group full-width tauze-form-info-box">
         <AlertTriangle size={24} style={{ color: '#ed6c02' }} />
         <p>
           <strong>Atenção:</strong> Ao iniciar, o estoque atual será "congelado" para fins de comparativo até a finalização do inventário.

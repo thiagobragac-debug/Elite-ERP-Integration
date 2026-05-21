@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Calendar, Wallet, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -43,16 +43,16 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#3b82f6' }}>
               <Wallet size={20} />
@@ -70,9 +70,9 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Tipo de Lançamento <Activity size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Tipo de Lançamento <Activity size={14} /></label>
             <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               {types.map(t => (
                 <button 
@@ -87,24 +87,24 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Período <Calendar size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Período <Calendar size={14} /></label>
             <div className="date-range-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="filter-field">
-                <label className="elite-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Início</label>
+                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Início</label>
                 <input 
                   type="date" 
-                  className="elite-input" 
+                  className="tauze-input" 
                   value={filters.dateStart}
                   onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
                   style={{ height: '40px', fontSize: '12px' }}
                 />
               </div>
               <div className="filter-field">
-                <label className="elite-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Término</label>
+                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Término</label>
                 <input 
                   type="date" 
-                  className="elite-input" 
+                  className="tauze-input" 
                   value={filters.dateEnd}
                   onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
                   style={{ height: '40px', fontSize: '12px' }}
@@ -113,13 +113,13 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Categorias <Filter size={14} /></label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Categorias <Filter size={14} /></label>
+            <div className="tauze-tag-cloud">
               {categories.map(cat => (
                 <button 
                   key={cat}
-                  className={`elite-tag-chip ${filters.categories?.includes(cat) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.categories?.includes(cat) ? 'active' : ''}`}
                   onClick={() => toggleCategory(cat)}
                   style={{ 
                     borderColor: filters.categories?.includes(cat) ? '#3b82f6' : '#e2e8f0', 
@@ -134,11 +134,11 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Status de Liquidação <Clock size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Status de Liquidação <Clock size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <button 
-                className={`elite-tag-chip ${filters.status === 'PAID' ? 'active' : ''}`}
+                className={`tauze-tag-chip ${filters.status === 'PAID' ? 'active' : ''}`}
                 onClick={() => setFilters({ ...filters, status: 'PAID' })}
                 style={{ 
                   borderColor: filters.status === 'PAID' ? '#10b981' : '#e2e8f0', 
@@ -149,7 +149,7 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
                 Efetivados
               </button>
               <button 
-                className={`elite-tag-chip ${filters.status === 'PENDING' ? 'active' : ''}`}
+                className={`tauze-tag-chip ${filters.status === 'PENDING' ? 'active' : ''}`}
                 onClick={() => setFilters({ ...filters, status: 'PENDING' })}
                 style={{ 
                   borderColor: filters.status === 'PENDING' ? '#f59e0b' : '#e2e8f0', 
@@ -163,7 +163,7 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#3b82f6' }} onClick={onClose}>APLICAR</button>
         </div>

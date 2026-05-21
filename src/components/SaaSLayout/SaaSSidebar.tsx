@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { 
   Globe, 
   Users, 
@@ -45,7 +45,7 @@ export const SaaSSidebar: React.FC = () => {
           <div className="logo-icon" style={{ background: 'linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand) / 0.7) 100%)', boxShadow: '0 0 20px hsl(var(--brand) / 0.3)' }}>
             <Database size={24} color="white" />
           </div>
-          <span className="logo-text" style={{ color: 'white', fontWeight: 900, letterSpacing: '-0.02em' }}>Elite SaaS</span>
+          <span className="logo-text" style={{ color: 'white', fontWeight: 900, letterSpacing: '-0.02em' }}>Tauze SaaS</span>
         </div>
       </div>
 

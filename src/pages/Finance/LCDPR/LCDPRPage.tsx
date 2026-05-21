@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import {
   BookOpen, Plus, Download, RefreshCw, FileText,
   ChevronDown, ChevronUp, Trash2, Edit3, CheckCircle,
@@ -353,10 +353,10 @@ export const LCDPRPage: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="elite-controls-row" style={{ marginBottom: 20 }}>
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row" style={{ marginBottom: 20 }}>
+        <div className="tauze-tab-group">
           {([['lancamentos','Lançamentos (Q100)'],['resumo','Resumo Mensal (Q200)'],['gerar','Gerar Arquivo']] as const).map(([id,label]) => (
-            <button key={id} className={`elite-tab-item ${activeTab===id?'active':''}`} onClick={() => setActiveTab(id)}>{label}</button>
+            <button key={id} className={`tauze-tab-item ${activeTab===id?'active':''}`} onClick={() => setActiveTab(id)}>{label}</button>
           ))}
         </div>
         {activeTab === 'lancamentos' && (

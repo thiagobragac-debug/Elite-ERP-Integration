@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, Shield, Activity, User, Calendar, AlertCircle, FileText, Layout } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -38,16 +38,16 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '12px', color: '#3b82f6' }}>
               <Shield size={20} />
@@ -65,12 +65,12 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Severidade do Evento <AlertCircle size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Severidade do Evento <AlertCircle size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               <button 
-                className={`elite-tag-chip ${filters.severity === 'all' ? 'active' : ''}`}
+                className={`tauze-tag-chip ${filters.severity === 'all' ? 'active' : ''}`}
                 onClick={() => setFilters({ ...filters, severity: 'all' })}
                 style={{ width: '100%', justifyContent: 'space-between', padding: '12px 16px' }}
               >
@@ -106,10 +106,10 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Módulo do Sistema <Layout size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Módulo do Sistema <Layout size={14} /></label>
             <select 
-              className="elite-input" 
+              className="tauze-input" 
               value={filters.module}
               onChange={e => setFilters({ ...filters, module: e.target.value })}
               style={{ width: '100%', fontWeight: 700 }}
@@ -121,12 +121,12 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
             </select>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Usuário Responsável <User size={14} /></label>
-            <div className="elite-search-wrapper" style={{ margin: 0, width: '100%' }}>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Usuário Responsável <User size={14} /></label>
+            <div className="tauze-search-wrapper" style={{ margin: 0, width: '100%' }}>
               <input 
                 type="text" 
-                className="elite-search-input" 
+                className="tauze-search-input" 
                 placeholder="Email ou nome..."
                 value={filters.user}
                 onChange={e => setFilters({ ...filters, user: e.target.value })}
@@ -134,21 +134,21 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Janela Temporal <Calendar size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Janela Temporal <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div className="elite-field">
+              <div className="tauze-field">
                 <input 
                   type="date" 
-                  className="elite-input" 
+                  className="tauze-input" 
                   value={filters.dateStart}
                   onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
                 />
               </div>
-              <div className="elite-field">
+              <div className="tauze-field">
                 <input 
                   type="date" 
-                  className="elite-input" 
+                  className="tauze-input" 
                   value={filters.dateEnd}
                   onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
                 />
@@ -157,7 +157,7 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#3b82f6' }} onClick={onClose}>APLICAR</button>
         </div>

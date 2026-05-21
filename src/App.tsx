@@ -63,7 +63,10 @@ const AdminSettings = React.lazy(() => import('./pages/Admin/AdminSettings').the
 const TenantBilling = React.lazy(() => import('./pages/Admin/TenantBilling').then(m => ({ default: m.TenantBilling })));
 const AuditLog = React.lazy(() => import('./pages/Admin/AuditLog').then(m => ({ default: m.AuditLog })));
 const SaaSAdminPanel = React.lazy(() => import('./pages/Admin/SaaSAdminPanel').then(m => ({ default: m.SaaSAdminPanel })));
-
+const MarketIntelligenceDashboard = React.lazy(() => import('./pages/Market/MarketIntelligenceDashboard').then(m => ({ default: m.MarketIntelligenceDashboard })));
+const MarketAdvancedAnalytics = React.lazy(() => import('./pages/Market/MarketAdvancedAnalytics').then(m => ({ default: m.MarketAdvancedAnalytics })));
+const MarketSeasonality = React.lazy(() => import('./pages/Market/MarketSeasonality').then(m => ({ default: m.MarketSeasonality })));
+const MarketB3Calculator = React.lazy(() => import('./pages/Market/MarketB3Calculator').then(m => ({ default: m.MarketB3Calculator })));
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
   const [isPaletteOpen, setIsPaletteOpen] = React.useState(false);
@@ -134,7 +137,7 @@ function AppContent() {
   return (
     <Router>
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
-      <React.Suspense fallback={<div style={{padding: '2rem'}}>Carregando módulo Elite...</div>}>
+      <React.Suspense fallback={<div style={{padding: '2rem'}}>Carregando módulo Tauze...</div>}>
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
           <Route path="/mfa-enroll" element={isAuthenticated ? <MFAEnroll /> : <Navigate to="/login" replace />} />
@@ -162,6 +165,11 @@ function AppContent() {
             <Route path="admin/configuracoes" element={<AdminSettings />} />
             <Route path="admin/assinatura" element={<TenantBilling />} />
             <Route path="admin/auditoria" element={<AuditLog />} />
+            
+            <Route path="mercado/indicadores" element={<MarketIntelligenceDashboard />} />
+            <Route path="mercado/analise" element={<MarketAdvancedAnalytics />} />
+            <Route path="mercado/sazonalidade" element={<MarketSeasonality />} />
+            <Route path="mercado/b3" element={<MarketB3Calculator />} />
             
             <Route path="pecuaria/dashboard" element={<LivestockDashboard />} />
             <Route path="pecuaria/animal" element={<AnimalManagement />} />

@@ -45,6 +45,16 @@ const menuItems: NavItem[] = [
 
   },
   { 
+    title: 'Mercado', 
+    icon: Globe,
+    subItems: [
+      { title: 'Intelligence Hub', href: '/mercado/indicadores' },
+      { title: 'Análise Avançada', href: '/mercado/analise' },
+      { title: 'Sazonalidade', href: '/mercado/sazonalidade' },
+      { title: 'Calculadora B3', href: '/mercado/b3' }
+    ]
+  },
+  { 
     title: 'Pecuária', 
     icon: Activity,
     subItems: [
@@ -180,7 +190,7 @@ export const Sidebar: React.FC = () => {
           }}>
             {isFleetRoute ? <Truck size={24} color="white" /> : isPurchasingRoute ? <ShoppingCart size={24} color="white" /> : <Activity size={24} color="white" />}
           </div>
-          <span className="logo-text">{isFleetRoute ? 'Elite Frota' : isPurchasingRoute ? 'Elite Compras' : 'Elite Pecuária'}</span>
+          <span className="logo-text">{isFleetRoute ? 'Tauze Frota' : isPurchasingRoute ? 'Tauze Compras' : 'Tauze Pecuária'}</span>
         </div>
       </div>
 

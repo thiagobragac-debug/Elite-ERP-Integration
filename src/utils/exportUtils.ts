@@ -1,5 +1,5 @@
-/**
- * Utilitário de Exportação Elite ERP v5.0
+﻿/**
+ * Utilitário de Exportação Tauze ERP v5.0
  * Gera arquivos CSV/XLSX compatíveis com o Excel brasileiro
  */
 

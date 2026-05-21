@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, Filter, Check, ShoppingCart, Clock, AlertTriangle, User, DollarSign, Calendar, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -46,16 +46,16 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
   };
 
   return createPortal(
-    <div className="elite-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onClick={onClose}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="elite-sidebar-modal"
+        className="tauze-sidebar-modal"
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-sidebar-header">
+        <div className="tauze-sidebar-header">
           <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper primary" style={{ background: 'rgba(16, 163, 74, 0.1)', padding: '10px', borderRadius: '12px', color: '#10a34a' }}>
               <ShoppingCart size={20} />
@@ -73,9 +73,9 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
           </button>
         </div>
 
-        <div className="elite-sidebar-body">
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Nível de Prioridade <AlertTriangle size={14} /></label>
+        <div className="tauze-sidebar-body">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Nível de Prioridade <AlertTriangle size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {priorities.map(p => (
                 <button 
@@ -109,13 +109,13 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Departamentos <User size={14} /></label>
-            <div className="elite-tag-cloud">
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Departamentos <User size={14} /></label>
+            <div className="tauze-tag-cloud">
               {departments.map(dept => (
                 <button 
                   key={dept}
-                  className={`elite-tag-chip ${filters.departments?.includes(dept) ? 'active' : ''}`}
+                  className={`tauze-tag-chip ${filters.departments?.includes(dept) ? 'active' : ''}`}
                   onClick={() => toggleDept(dept)}
                   style={{ 
                     borderColor: filters.departments?.includes(dept) ? '#10a34a' : '#e2e8f0', 
@@ -129,8 +129,8 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Valor Estimado (R$) <DollarSign size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Valor Estimado (R$) <DollarSign size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.maxAmount.toLocaleString('pt-BR')}</span>
@@ -148,18 +148,18 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
             </div>
           </div>
 
-          <div className="elite-filter-section">
-            <label className="elite-filter-label">Data da Solicitação <Calendar size={14} /></label>
+          <div className="tauze-filter-section">
+            <label className="tauze-filter-label">Data da Solicitação <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
               <input 
                 type="date" 
-                className="elite-input" 
+                className="tauze-input" 
                 value={filters.dateEnd}
                 onChange={e => setFilters({ ...filters, dateEnd: e.target.value })}
               />
@@ -167,7 +167,7 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
           </div>
         </div>
 
-        <div className="elite-sidebar-footer">
+        <div className="tauze-sidebar-footer">
           <button className="glass-btn secondary" style={{ flex: 1 }} onClick={handleClear}>LIMPAR</button>
           <button className="primary-btn" style={{ flex: 1, background: '#10a34a' }} onClick={onClose}>APLICAR</button>
         </div>

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+﻿import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ModernTable } from '../../../components/DataTable/ModernTable';
-import { EliteStatCard } from '../../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../../components/Cards/TauzeStatCard';
 import { useTenant } from '../../../contexts/TenantContext';
 import { supabase } from '../../../lib/supabase';
 import { useReportData } from '../../../hooks/useReportData';
@@ -37,7 +37,7 @@ const ReportPrintLayout: React.FC<{
   activeFarm: any;
 }> = ({ report, data, stats, columns, activeFarm }) => (
   <div className="pdf-print-root">
-    <div className="print-watermark">ELITE ERP</div>
+    <div className="print-watermark">TAUZE ERP</div>
     
     <div className="print-modern-header">
       <div className="header-top-bar"></div>
@@ -51,7 +51,7 @@ const ReportPrintLayout: React.FC<{
             </svg>
           </div>
           <div className="print-brand-info">
-            <span className="print-brand-name">ELITE INTELLIGENCE v5.0</span>
+            <span className="print-brand-name">TAUZE INTELLIGENCE v5.0</span>
             <span className="print-brand-tag">Relatório Analítico de Precisão</span>
           </div>
         </div>
@@ -70,7 +70,7 @@ const ReportPrintLayout: React.FC<{
       <div className="title-right">
         <div className="unit-badge">
           <span>UNIDADE</span>
-          <strong>{activeFarm?.name || 'Fazenda Elite Agro'}</strong>
+          <strong>{activeFarm?.name || 'Fazenda Tauze Agro'}</strong>
         </div>
       </div>
     </div>
@@ -137,7 +137,7 @@ const ReportPrintLayout: React.FC<{
 
       <div className="print-only-footer">
         <div className="footer-left">
-          <strong>Elite Intelligence Engine</strong> • Documento gerado eletronicamente
+          <strong>Tauze Intelligence Engine</strong> • Documento gerado eletronicamente
         </div>
         <div className="footer-right">
           Protocolo: {Math.random().toString(36).substring(7).toUpperCase()} • Página 1 de 1
@@ -170,12 +170,12 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
     try {
       if (navigator.share) {
         await navigator.share({
-          title: `Elite ERP: ${report.title}`,
+          title: `Tauze ERP: ${report.title}`,
           text: shareText,
           url: shareUrl,
         });
       } else {
-        await navigator.clipboard.writeText(`${shareText}\nAcesse pelo Elite ERP: ${shareUrl}`);
+        await navigator.clipboard.writeText(`${shareText}\nAcesse pelo Tauze ERP: ${shareUrl}`);
         setIsSharing(true);
         setTimeout(() => setIsSharing(false), 2000);
       }
@@ -258,7 +258,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
 
       const opt = {
         margin: [10, 10, 10, 10] as [number, number, number, number],
-        filename: `RELATORIO_${report.title.replace(/\s+/g, '_').toUpperCase()}_${activeFarm?.name?.replace(/\s+/g, '_').toUpperCase() || 'ELITE'}.pdf`,
+        filename: `RELATORIO_${report.title.replace(/\s+/g, '_').toUpperCase()}_${activeFarm?.name?.replace(/\s+/g, '_').toUpperCase() || 'TAUZE'}.pdf`,
         image: { type: 'jpeg' as const, quality: 1.0 },
         html2canvas: { 
           scale: 3, 
@@ -272,7 +272,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           logging: false
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' as const, compress: true },
-        pagebreak: { mode: ['css', 'legacy'], avoid: '.elite-stat-card' }
+        pagebreak: { mode: ['css', 'legacy'], avoid: '.tauze-stat-card' }
       };
 
       html2pdf().set(opt).from(element).save().then(() => {
@@ -342,7 +342,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
         <div className="viewer-content">
           <div className="next-gen-kpi-grid">
             {stats && stats.length > 0 ? stats.map((s, idx) => (
-               <EliteStatCard 
+               <TauzeStatCard 
                key={idx}
                label={s.label}
                value={s.value}
@@ -354,9 +354,9 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
              />
             )) : (
               <>
-                <EliteStatCard label="Volume Processado" value="1.420" icon={Activity} color="#10b981" progress={100} change="+4.2%" trend="up" />
-                <EliteStatCard label="Performance Global" value="92.4%" icon={TrendingUp} color="#3b82f6" progress={92} change="+1.5%" trend="up" />
-                <EliteStatCard label="Custo Médio / Un" value="R$ 12.40" icon={DollarSign} color="#f59e0b" progress={60} change="-0.8%" trend="down" />
+                <TauzeStatCard label="Volume Processado" value="1.420" icon={Activity} color="#10b981" progress={100} change="+4.2%" trend="up" />
+                <TauzeStatCard label="Performance Global" value="92.4%" icon={TrendingUp} color="#3b82f6" progress={92} change="+1.5%" trend="up" />
+                <TauzeStatCard label="Custo Médio / Un" value="R$ 12.40" icon={DollarSign} color="#f59e0b" progress={60} change="-0.8%" trend="down" />
               </>
             )}
           </div>

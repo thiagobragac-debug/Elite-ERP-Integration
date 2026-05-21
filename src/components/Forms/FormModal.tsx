@@ -1,4 +1,4 @@
-import React, { type ReactNode } from 'react';
+﻿import React, { type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, type LucideIcon } from 'lucide-react';
 
@@ -141,7 +141,7 @@ export const FormModal: React.FC<FormModalProps> = ({
         const isHighlighted = (actualHighlightedFields || []).some(field => isFieldMatch(labelText, field));
         
         if (isHighlighted) {
-          group.classList.add('elite-form-highlighted');
+          group.classList.add('tauze-form-highlighted');
           
           if (!group.querySelector('.audit-change-badge')) {
             const badge = document.createElement('span');
@@ -171,9 +171,9 @@ export const FormModal: React.FC<FormModalProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="elite-modal-overlay" onClick={onClose}>
+    <div className="tauze-modal-overlay" onClick={onClose}>
       <style>{`
-        .elite-form-highlighted {
+        .tauze-form-highlighted {
           border: 1.5px solid #f59e0b !important;
           box-shadow: 0 0 16px rgba(245, 158, 11, 0.2) !important;
           background: rgba(245, 158, 11, 0.02) !important;
@@ -190,14 +190,14 @@ export const FormModal: React.FC<FormModalProps> = ({
           100% { box-shadow: 0 0 12px rgba(245, 158, 11, 0.2); }
         }
 
-        .elite-form-highlighted label {
+        .tauze-form-highlighted label {
           color: #f59e0b !important;
           font-weight: 800 !important;
         }
 
-        .elite-form-highlighted input, 
-        .elite-form-highlighted select, 
-        .elite-form-highlighted textarea {
+        .tauze-form-highlighted input, 
+        .tauze-form-highlighted select, 
+        .tauze-form-highlighted textarea {
           border-color: #f59e0b !important;
           color: inherit !important;
         }
@@ -205,14 +205,14 @@ export const FormModal: React.FC<FormModalProps> = ({
 
       <div 
         ref={modalRef}
-        className={`elite-modal-container ${size}`} 
+        className={`tauze-modal-container ${size}`} 
         style={{ 
           maxWidth: size === 'xlarge' ? '1200px' : size === 'large' ? '900px' : size === 'small' ? '440px' : '680px',
           width: '95%'
         }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="elite-modal-header">
+        <div className="tauze-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="icon-wrapper" style={{ 
               background: 'rgba(255,255,255,0.1)', 
@@ -237,15 +237,15 @@ export const FormModal: React.FC<FormModalProps> = ({
         </div>
 
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
-          <div className="elite-modal-content">
+          <div className="tauze-modal-content">
             <fieldset disabled={actualReadOnly} style={{ border: 'none', padding: 0, margin: 0, display: 'contents' }}>
-              <div className="elite-input-grid">
+              <div className="tauze-input-grid">
                 {children}
               </div>
             </fieldset>
           </div>
 
-          <div className="elite-modal-footer">
+          <div className="tauze-modal-footer">
             <button type="button" className="glass-btn secondary" onClick={onClose}>
               {actualReadOnly ? 'Fechar' : 'Cancelar'}
             </button>

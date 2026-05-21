@@ -1,0 +1,41 @@
+.market-select-tauze {
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--bg-card));
+  color: hsl(var(--text-main));
+  font-weight: 600;
+  font-size: 0.9rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.period-selector-tauze {
+  display: flex;
+  align-items: center;
+  background: hsl(var(--bg-card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.period-selector-tauze button {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  color: hsl(var(--text-muted));
+  font-size: 0.85rem;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.period-selector-tauze button:hover {
+  color: hsl(var(--text-main));
+}
+
+.period-selector-tauze button.active {
+  background: hsl(var(--brand) / 0.1);
+  color: hsl(var(--brand));
+}

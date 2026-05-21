@@ -100,8 +100,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
           change: 'Consolidado', 
           trend: 'neutral' as const, 
           color: '#10b981', 
-          progress: 100,
-          sparkline: [{value: 40}, {value: 55}, {value: 45}, {value: 65}]
+          progress: 100
         },
         { 
           id: 'resultado',
@@ -110,8 +109,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
           change: 'Mês Atual', 
           trend: netMonth >= 0 ? 'up' : 'down', 
           color: '#3b82f6', 
-          progress: Math.min(100, Math.max(0, (inMonth / (outMonth || 1)) * 50)),
-          sparkline: [{value: 30}, {value: 50}, {value: 40}, {value: 70}]
+          progress: Math.min(100, Math.max(0, (inMonth / (outMonth || 1)) * 50))
         },
         { 
           id: 'runway',
@@ -120,8 +118,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
           change: Number(runway) > 12 ? 'Excelente' : 'Atenção', 
           trend: 'up' as const, 
           color: '#8b5cf6', 
-          progress: Math.min(100, (parseFloat(runway) / 24) * 100),
-          sparkline: [{value: 90}, {value: 85}, {value: 80}, {value: 75}]
+          progress: Math.min(100, (parseFloat(runway) / 24) * 100)
         },
         { 
           id: 'entradas',
@@ -130,8 +127,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
           change: 'Realizado', 
           trend: 'up' as const, 
           color: '#10b981', 
-          progress: 100,
-          sparkline: [{value: 10}, {value: 30}, {value: 50}, {value: inMonth}]
+          progress: 100
         }
       ],
       totalCount: (payRes.count || 0) + (recRes.count || 0)
@@ -159,7 +155,7 @@ export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, 
       { label: 'Passivo Circulante', value: 'R$ 12.500,00', color: '#6366f1', progress: 100, change: '1 título pendente', trend: 'neutral' as const, periodLabel: 'Exigível' },
       { label: 'Total Liquidado', value: 'R$ 8.900,00', color: '#10b981', progress: 100, change: 'Sincronizado', periodLabel: 'Histórico', trend: 'up' as const },
       { label: 'Volume de Títulos', value: '2', color: '#ef4444', progress: 100, change: 'Sem dados', trend: 'neutral' as const, periodLabel: 'Total' },
-      { label: 'Eficiência Financeira', value: 'Habilitada', color: '#f59e0b', progress: 100, change: 'Escala Comercial', periodLabel: 'Elite Sync', trend: 'neutral' as const }
+      { label: 'Eficiência Financeira', value: 'Habilitada', color: '#f59e0b', progress: 100, change: 'Escala Comercial', periodLabel: 'Tauze Sync', trend: 'neutral' as const }
     ],
     totalCount: 2
   };
@@ -231,7 +227,7 @@ export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, 
         { 
           label: 'Eficiência Financeira', value: 'Habilitada', 
           color: '#f59e0b', progress: 100,
-          change: 'Escala Comercial', periodLabel: 'Elite Sync', trend: 'neutral' as const
+          change: 'Escala Comercial', periodLabel: 'Tauze Sync', trend: 'neutral' as const
         }
       ],
       totalCount: billsRes.count || 0
@@ -314,16 +310,14 @@ export const contasReceber: ReportHandler = async (tenantId, fazendaId, page = 1
           value: totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
           color: '#10b981', progress: 100, 
           change: overdueCount > 0 ? `${overdueCount} títulos em atraso` : 'Estável', periodLabel: 'A Receber',
-          trend: overdueCount > 0 ? 'down' : 'up',
-          sparkline: [{value: 50}, {value: 60}, {value: 70}, {value: 80}]
+          trend: overdueCount > 0 ? 'down' : 'up'
         },
         { 
           label: 'Total Recebido', 
           value: totalRecebido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
           color: '#3b82f6', progress: 100, 
           change: 'Sincronizado', periodLabel: 'Histórico',
-          trend: 'up' as const,
-          sparkline: [{value: 10}, {value: 15}, {value: 12}, {value: 18}]
+          trend: 'up' as const
         },
         { 
           label: 'Volume de Títulos', 
@@ -473,7 +467,7 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
           trend: 'up' as const, 
           color: '#10b981', 
           progress: 100,
-          periodLabel: 'Consolidado Elite'
+          periodLabel: 'Consolidado Tauze'
         },
         { 
           id: 'ebitda',

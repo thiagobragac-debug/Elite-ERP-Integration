@@ -20,11 +20,12 @@ import {
   Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { ContractForm } from '../../components/Forms/ContractForm';
-import { EliteStatCard } from '../../components/Cards/EliteStatCard';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { HedgeSimulationModal } from './components/HedgeSimulationModal';
@@ -32,6 +33,7 @@ import { ContractFilterModal } from './components/ContractFilterModal';
 
 export const Contracts: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,10 +55,22 @@ export const Contracts: React.FC = () => {
     const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
     if (isReady) {
       fetchContracts();
+      // Ponte 1: Auto-open form if coming from B3 Calculator
+      if (location.state?.createHedge) {
+        setSelectedContract({
+          contract_number: `HEDGE-${location.state.b3Ticker}`,
+          type: 'venda',
+          description: `Contrato de Hedge derivado da B3 - Ticker: ${location.state.b3Ticker} | Preço Alvo: R$ ${location.state.futurePrice.toFixed(2)}`,
+          status: 'active'
+        });
+        setIsModalOpen(true);
+        // Clear state to avoid reopening on refresh
+        window.history.replaceState({}, document.title);
+      }
     } else {
       setLoading(false);
     }
-  }, [activeFarmId, isGlobalMode, activeTenantId]);
+  }, [activeFarmId, isGlobalMode, activeTenantId, location.state]);
 
   const fetchContracts = async () => {
     setLoading(true);
@@ -271,7 +285,7 @@ export const Contracts: React.FC = () => {
         <div className="header-brand-group">
           <div className="brand-badge">
             <ShieldCheck size={14} fill="currentColor" />
-            <span>ELITE CONTRACTS v5.0</span>
+            <span>TAUZE CONTRACTS v5.0</span>
           </div>
           <h1 className="page-title">Contratos de Venda & Hedge</h1>
           <p className="page-subtitle">Gestão de instrumentos contratuais, fixação de preços futuros e rastreabilidade de compromissos.</p>
@@ -290,9 +304,9 @@ export const Contracts: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <EliteStatCard key={i} loading={true} label="" value="" icon={ShieldCheck} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ShieldCheck} color="" />)
         ) : stats.map((stat, idx) => (
-          <EliteStatCard 
+          <TauzeStatCard 
             key={idx}
             label={stat.label}
             value={stat.value}
@@ -305,34 +319,34 @@ export const Contracts: React.FC = () => {
         ))}
       </div>
 
-      <div className="elite-controls-row">
-        <div className="elite-tab-group">
+      <div className="tauze-controls-row">
+        <div className="tauze-tab-group">
           <button 
-            className={`elite-tab-item ${activeTab === 'ACTIVE' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'ACTIVE' ? 'active' : ''}`}
             onClick={() => setActiveTab('ACTIVE')}
           >
             Vigentes
           </button>
           <button 
-            className={`elite-tab-item ${activeTab === 'COMPLETED' ? 'active' : ''}`}
+            className={`tauze-tab-item ${activeTab === 'COMPLETED' ? 'active' : ''}`}
             onClick={() => setActiveTab('COMPLETED')}
           >
             Encerrados
           </button>
         </div>
 
-        <div className="elite-search-wrapper">
+        <div className="tauze-search-wrapper">
           <Search size={18} className="s-icon" />
           <input 
             type="text" 
-            className="elite-search-input"
+            className="tauze-search-input"
             placeholder="Buscar por número do contrato ou contraparte..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        <div className="elite-filter-group">
+        <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
             title="Filtros Avançados"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Trees, 
   Map, 
@@ -120,23 +120,23 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, on
 
       <div className="form-group full-width">
         <label><Activity size={14} /> Novo Status da Área</label>
-        <div className="elite-form-radio-group">
+        <div className="tauze-form-radio-group">
           <div 
-            className={`elite-form-radio-item ${formData.novo_status === 'grazing' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.novo_status === 'grazing' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, novo_status: 'grazing'})}
           >
             <Trees size={16} />
             <span>Pastejo</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.novo_status === 'resting' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.novo_status === 'resting' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, novo_status: 'resting'})}
           >
             <Calendar size={16} />
             <span>Descanso</span>
           </div>
           <div 
-            className={`elite-form-radio-item ${formData.novo_status === 'degraded' ? 'active' : ''}`}
+            className={`tauze-form-radio-item ${formData.novo_status === 'degraded' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, novo_status: 'degraded'})}
           >
             <Droplets size={16} />

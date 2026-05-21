@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   BarChart2, 
   X, 
@@ -211,7 +211,7 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
                 <div>Fornecedor</div>
                 <div style={{ textAlign: 'center' }}>Preço Unitário</div>
                 <div style={{ textAlign: 'center' }}>Prazo de Entrega</div>
-                <div style={{ textAlign: 'right' }}>Ação de Elite</div>
+                <div style={{ textAlign: 'right' }}>Ação de Tauze</div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column' }}>

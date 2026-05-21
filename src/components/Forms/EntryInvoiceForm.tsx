@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   Hash, 
   Calendar, 
@@ -149,7 +149,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
           <label><Building2 size={14} /> Empresa</label>
           <select 
-            className="elite-input"
+            className="tauze-input"
             value={formData.company_id}
             onChange={(e) => setFormData({...formData, company_id: e.target.value})}
             required
@@ -165,7 +165,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
           <label><Barcode size={14} /> Chave (NFe)</label>
           <div style={{ display: 'flex', gap: '4px' }}>
             <input 
-              className="elite-input"
+              className="tauze-input"
               type="text" 
               placeholder="Chave de 44 dígitos..." 
               style={{ flex: 1, fontSize: '12px' }}
@@ -181,7 +181,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         <div className="form-group" style={{ gridColumn: 'span 3' }}>
           <label><Hash size={14} /> Número</label>
           <input 
-            className="elite-input"
+            className="tauze-input"
             type="text" 
             placeholder="Ex: 000.123..." 
             value={formData.invoice_number}
@@ -193,7 +193,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         <div className="form-group" style={{ gridColumn: 'span 1' }}>
           <label><Layers size={14} /> Série</label>
           <input 
-            className="elite-input"
+            className="tauze-input"
             type="text" 
             placeholder="1" 
             value={formData.series}
@@ -206,7 +206,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         <div className="form-group" style={{ gridColumn: 'span 6' }}>
           <label><Building2 size={14} /> Fornecedor</label>
           <select 
-            className="elite-input"
+            className="tauze-input"
             value={formData.supplier_id}
             onChange={(e) => setFormData({...formData, supplier_id: e.target.value})}
             required
@@ -221,7 +221,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
           <label><Calendar size={14} /> Emissão</label>
           <input 
-            className="elite-input"
+            className="tauze-input"
             type="date" 
             value={formData.issue_date}
             onChange={(e) => setFormData({...formData, issue_date: e.target.value})}
@@ -232,7 +232,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
           <label><Calendar size={14} /> Entrada</label>
           <input 
-            className="elite-input"
+            className="tauze-input"
             type="date" 
             value={formData.entry_date}
             onChange={(e) => setFormData({...formData, entry_date: e.target.value})}
@@ -243,7 +243,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
           <label><DollarSign size={14} /> Total (R$)</label>
           <input 
-            className="elite-input"
+            className="tauze-input"
             type="number" 
             step="0.01"
             placeholder="0.00" 
@@ -263,7 +263,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
 
         {/* FINANCEIRO */}
         <div style={{ gridColumn: 'span 12', marginTop: '24px' }}>
-          <div className="elite-separator" style={{ margin: '0 0 24px 0' }} />
+          <div className="tauze-separator" style={{ margin: '0 0 24px 0' }} />
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--brand))', fontSize: '14px', fontWeight: '800', marginBottom: '16px', textTransform: 'uppercase' }}>
             <CreditCard size={18} />
@@ -274,7 +274,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
             <div className="form-group" style={{ gridColumn: 'span 3' }}>
               <label><Banknote size={14} /> Condição</label>
               <select 
-                className="elite-input"
+                className="tauze-input"
                 value={formData.payment_condition}
                 onChange={(e) => setFormData({...formData, payment_condition: e.target.value})}
                 required
@@ -287,7 +287,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
             <div className="form-group" style={{ gridColumn: 'span 3' }}>
               <label><CreditCard size={14} /> Meio de Pagamento</label>
               <select 
-                className="elite-input"
+                className="tauze-input"
                 value={formData.payment_method}
                 onChange={(e) => setFormData({...formData, payment_method: e.target.value})}
                 required
@@ -304,7 +304,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label><Hash size={14} /> Parcelas</label>
                 <input 
-                  className="elite-input"
+                  className="tauze-input"
                   type="number" 
                   min="1"
                   max="48"
@@ -317,7 +317,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
             <div className="form-group" style={{ gridColumn: formData.payment_condition === 'prazo' ? 'span 4' : 'span 6' }}>
               <label><Wallet size={14} /> Conta / Caixa</label>
               <select 
-                className="elite-input"
+                className="tauze-input"
                 value={formData.bank_account_id}
                 onChange={(e) => setFormData({...formData, bank_account_id: e.target.value})}
                 required
@@ -354,7 +354,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
                     <span style={{ fontSize: '12px', fontWeight: '800', color: 'hsl(var(--brand))', width: '30px' }}>{index + 1}ª</span>
                     <input 
                       type="date" 
-                      className="elite-input" 
+                      className="tauze-input" 
                       style={{ height: '36px', padding: '0 8px', fontSize: '12px', flex: 1 }}
                       value={inst.dueDate}
                       onChange={(e) => updateInstallment(inst.id, 'dueDate', e.target.value)}
@@ -363,7 +363,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
                       <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: '800', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }}>R$</span>
                       <input 
                         type="number" 
-                        className="elite-input" 
+                        className="tauze-input" 
                         style={{ height: '36px', padding: '0 8px 0 24px', fontSize: '12px', width: '100%' }}
                         value={inst.value || ''}
                         onChange={(e) => updateInstallment(inst.id, 'value', parseFloat(e.target.value) || 0)}
@@ -384,7 +384,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         <div className="form-group" style={{ gridColumn: 'span 12', marginTop: '16px' }}>
           <label><FileText size={14} /> Observações de Recebimento</label>
           <textarea 
-            className="elite-input"
+            className="tauze-input"
             placeholder="Notas adicionais sobre a conferência..." 
             value={formData.description}
             onChange={(e) => setFormData({...formData, description: e.target.value})}
