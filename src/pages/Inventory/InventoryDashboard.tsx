@@ -29,10 +29,14 @@ export const InventoryDashboard: React.FC = () => {
   const [recentMovements, setRecentMovements] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Patrimônio em Insumos', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Calculando...' },
-    { label: 'Ruptura de Estoque', value: '0', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'stable', change: 'Verificando...' },
-    { label: 'Maturidade (30d)', value: '0 itens', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'stable', change: 'Auditando...' },
-    { label: 'Giro de Estoque', value: '0.0x', icon: Zap, color: '#3b82f6', progress: 0, trend: 'stable', change: 'Sincronizando...' }
+    { label: 'Patrimônio em Insumos', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Calculando...',
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Ruptura de Estoque', value: '0', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'stable' as const, change: 'Verificando...',
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Maturidade (30d)', value: '0 itens', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'stable' as const, change: 'Auditando...',
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Giro de Estoque', value: '0.0x', icon: Zap, color: '#3b82f6', progress: 0, trend: 'stable' as const, change: 'Sincronizando...',
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) }
   ]);
 
   useEffect(() => {
@@ -161,10 +165,14 @@ export const InventoryDashboard: React.FC = () => {
     } catch (err) {
       console.warn("InventoryDashboard: Using Emergency Mock Data.", err);
       setStats([
-        { label: 'Patrimônio em Insumos', value: 'R$ 450.000,00', icon: DollarSign, color: '#10b981', progress: 85, change: 'MOCK ACTIVE' },
-        { label: 'Ruptura de Estoque', value: '2', icon: AlertTriangle, color: '#ef4444', progress: 10, change: 'MOCK ACTIVE' },
-        { label: 'Maturidade (30d)', value: '5 itens', icon: FlaskConical, color: '#f59e0b', progress: 30, change: 'MOCK ACTIVE' },
-        { label: 'Giro de Estoque', value: '1.4x', icon: Zap, color: '#3b82f6', progress: 45, change: 'MOCK ACTIVE' }
+        { label: 'Patrimônio em Insumos', value: 'R$ 450.000,00', icon: DollarSign, color: '#10b981', progress: 85, change: 'MOCK ACTIVE',
+          sparkline: [225000,270000,315000,360000,396000,427500,450000].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+        { label: 'Ruptura de Estoque', value: '2', icon: AlertTriangle, color: '#ef4444', progress: 10, change: 'MOCK ACTIVE',
+          sparkline: [5,4,4,3,3,2,2].map((v,i) => ({ value: v, label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })) },
+        { label: 'Maturidade (30d)', value: '5 itens', icon: FlaskConical, color: '#f59e0b', progress: 30, change: 'MOCK ACTIVE',
+          sparkline: [2,3,3,4,4,5,5].map((v,i) => ({ value: v, label: `${v} itens` })) },
+        { label: 'Giro de Estoque', value: '1.4x', icon: Zap, color: '#3b82f6', progress: 45, change: 'MOCK ACTIVE',
+          sparkline: [0.8,0.9,1.0,1.1,1.2,1.3,1.4].map((v,i) => ({ value: v, label: `${v}x` })) }
       ]);
       setCriticalItems([
         { id: 'm1', nome: 'MOCK: Sal Mineral', estoque_atual: 5, estoque_minimo: 20, unidade: 'Sacos', categoria: 'Nutrição' }

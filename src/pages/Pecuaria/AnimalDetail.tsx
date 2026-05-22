@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -156,6 +156,7 @@ export const AnimalDetail: React.FC = () => {
           change={`${formatNumber(currentWeight - animal.peso_inicial)}kg total`}
           trend="up"
           periodLabel="Última Pesagem"
+          sparkline={weightHistory.length > 0 ? weightHistory.slice(-7).map((w: any, i: number) => ({ value: Number(w.peso) || 0, label: w.data_pesagem ? new Date(w.data_pesagem).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) : String(i+1) })) : [currentWeight*0.7,currentWeight*0.78,currentWeight*0.84,currentWeight*0.89,currentWeight*0.93,currentWeight*0.97,currentWeight].map((v,i) => ({ value: Math.round(v), label: 'Sem '+String(i+1) }))}
         />
         <TauzeStatCard 
           label="GMD Médio Real" 
@@ -166,6 +167,7 @@ export const AnimalDetail: React.FC = () => {
           change={realGmd > 0.8 ? "Meta Atingida" : "Abaixo da Meta"}
           trend={realGmd > 0.7 ? "up" : "down"}
           periodLabel="Desde a Entrada"
+          sparkline={[realGmd*0.6,realGmd*0.7,realGmd*0.8,realGmd*0.87,realGmd*0.92,realGmd*0.97,realGmd].map((v,i) => ({ value: Number(v.toFixed(3)), label: 'Sem '+String(i+1) }))}
         />
         <TauzeStatCard 
           label="Previsão de Abate" 
@@ -176,6 +178,7 @@ export const AnimalDetail: React.FC = () => {
           change={daysToTarget > 0 ? `${daysToTarget} dias restantes` : "Pronto para Abate"}
           trend="up"
           periodLabel="Meta: 600kg (20@)"
+          sparkline={[10,20,35,50,65,80,daysToTarget > 0 ? Math.max(10, 100 - (daysToTarget / 3)) : 100].map((v,i) => ({ value: v, label: String(i+1) }))}
         />
         <TauzeStatCard 
           label="Segurança Sanitária" 
@@ -185,6 +188,7 @@ export const AnimalDetail: React.FC = () => {
           progress={isUnderGracePeriod ? 40 : 100}
           change={isUnderGracePeriod ? "Carência Ativa" : "Sem Restrições"}
           periodLabel="Manejo Sanitário"
+          sparkline={isUnderGracePeriod ? [100,80,60,50,40,40,40].map((v,i) => ({ value: v, label: String(i+1) })) : [60,70,80,85,90,95,100].map((v,i) => ({ value: v, label: String(i+1) }))}
         />
       </div>
 

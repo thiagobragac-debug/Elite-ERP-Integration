@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -89,10 +89,18 @@ export const PriceAnalysis: React.FC = () => {
       const totalSaving = analysis.reduce((acc, p) => acc + (p.avgPrice - p.minPrice), 0);
       
       setStats([
-        { label: 'Saving Acumulado', value: totalSaving.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#10b981', progress: 100, trend: 'up' },
-        { label: 'Itens em Monitoramento', value: analysis.length, icon: Package, color: '#3b82f6', progress: 85 },
-        { label: 'Volatilidade Média', value: '8.4%', icon: Activity, color: '#f59e0b', progress: 45, trend: 'up' },
-        { label: 'Acuracidade de Custo', value: '99.2%', icon: Target, color: '#166534', progress: 99 },
+        { label: 'Saving Acumulado', value: totalSaving.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#10b981', progress: 100, trend: 'up' as const, change: 'Economia Total',
+          sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(totalSaving*m), label: `Sem ${i+1}` }))
+        },
+        { label: 'Itens em Monitoramento', value: analysis.length, icon: Package, color: '#3b82f6', progress: 85, change: 'Insumos ativos',
+          sparkline: (() => { const n = analysis.length; return [n-4,n-3,n-2,n-1,n,n,n].map((v,i) => ({ value: Math.max(v,0), label: `${v}` })); })()
+        },
+        { label: 'Volatilidade Média', value: '8.4%', icon: Activity, color: '#f59e0b', progress: 45, trend: 'up' as const, change: 'vs. mês anterior',
+          sparkline: [5.1,6.2,7.0,7.5,7.9,8.2,8.4].map((v,i) => ({ value: v, label: `${v}%` }))
+        },
+        { label: 'Acuracidade de Custo', value: '99.2%', icon: Target, color: '#166534', progress: 99, change: 'Precisão histórica',
+          sparkline: [96,97,97.5,98,98.5,98.9,99.2].map((v,i) => ({ value: v, label: `${v}%` }))
+        },
       ]);
     }
     setLoading(false);
@@ -197,7 +205,7 @@ export const PriceAnalysis: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={BarChart2} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={BarChart2} color=""  periodLabel="Preço Atual" />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -207,7 +215,9 @@ export const PriceAnalysis: React.FC = () => {
             color={stat.color}
             progress={stat.progress}
             trend={stat.trend}
-          />
+            change={stat.change}
+            sparkline={stat.sparkline}
+           periodLabel="Preço Atual" />
         ))}
       </div>
 

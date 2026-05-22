@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { fetchHistoricalQuotes } from '../../lib/marketQueries';
 import {
   ComposedChart, Line, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot
 } from 'recharts';
-import { Globe, TrendingUp, Filter, Crosshair, FileText } from 'lucide-react';
+import { Globe, TrendingUp, TrendingDown, Filter, Crosshair, FileText, DollarSign, Activity, BarChart2, Zap } from 'lucide-react';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
+import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
 
 interface QuoteData {
   date: string;
@@ -185,6 +187,71 @@ export const MarketAdvancedAnalytics: React.FC = () => {
   const prefix = isRatio ? '' : 'R$ ';
   const suffix = indicator === 'relacao_bezerro_boi' ? ' @' : indicator === 'relacao_boi_milho' ? ' sc' : '';
 
+  // Compute KPIs from loaded data
+  const currentValue = data.length > 0 ? data[data.length - 1].value : null;
+  const firstValue = data.length > 0 ? data[0].value : null;
+  const maxValue = data.length > 0 ? Math.max(...data.map(d => d.value)) : null;
+  const minValue = data.length > 0 ? Math.min(...data.map(d => d.value)) : null;
+  const periodChange = currentValue && firstValue ? ((currentValue - firstValue) / firstValue) * 100 : null;
+  const volatility = data.length > 1 ? (() => {
+    const mean = data.reduce((s, d) => s + d.value, 0) / data.length;
+    const variance = data.reduce((s, d) => s + Math.pow(d.value - mean, 2), 0) / data.length;
+    return (Math.sqrt(variance) / mean) * 100;
+  })() : null;
+
+  const fmtVal = (v: number | null) => v !== null ? `${prefix}${v.toFixed(isRatio ? 3 : 2)}${suffix}` : 'â€”';
+
+  // Build 7-point sparkline from actual price series (last 7 points)
+  const sparkFromData = (n: number = 7) => {
+    const pts = data.filter(d => d.value != null).slice(-n);
+    while (pts.length < n && pts.length > 0) pts.unshift(pts[0]);
+    return pts.map(d => ({ value: d.value, label: d.displayDate }));
+  };
+
+  const kpis = [
+    {
+      label: 'Cotação Atual',
+      value: fmtVal(currentValue),
+      icon: DollarSign,
+      color: '#10b981',
+      progress: maxValue && minValue && currentValue ? ((currentValue - minValue) / (maxValue - minValue)) * 100 : 0,
+      change: periodChange !== null ? `${periodChange >= 0 ? '+' : ''}${periodChange.toFixed(1)}% no período` : 'Carregando...',
+      trend: periodChange !== null ? (periodChange >= 0 ? 'up' : 'down') : undefined,
+      sparkline: sparkFromData(),
+      periodLabel: 'Personalizado'
+    },
+    {
+      label: 'Máxima do Período',
+      value: fmtVal(maxValue),
+      icon: TrendingUp,
+      color: '#ef4444',
+      progress: 100,
+      change: extremePoints?.max ? extremePoints.max.displayDate : 'â€”',
+      sparkline: maxValue ? [maxValue*0.7,maxValue*0.78,maxValue*0.84,maxValue*0.89,maxValue*0.93,maxValue*0.97,maxValue].map((v,i) => ({ value: v, label: `${i+1}` })) : undefined,
+      periodLabel: extremePoints?.max ? extremePoints.max.displayDate : 'Período'
+    },
+    {
+      label: 'Mínima do Período',
+      value: fmtVal(minValue),
+      icon: TrendingDown,
+      color: '#3b82f6',
+      progress: 0,
+      change: extremePoints?.min ? extremePoints.min.displayDate : 'â€”',
+      sparkline: minValue ? [minValue,minValue*1.05,minValue*1.08,minValue*1.06,minValue*1.04,minValue*1.02,minValue].map((v,i) => ({ value: v, label: `${i+1}` })) : undefined,
+      periodLabel: extremePoints?.min ? extremePoints.min.displayDate : 'Período'
+    },
+    {
+      label: 'Volatilidade',
+      value: volatility !== null ? `${volatility.toFixed(1)}%` : 'â€”',
+      icon: Activity,
+      color: '#f59e0b',
+      progress: volatility !== null ? Math.min(volatility * 5, 100) : 0,
+      change: volatility !== null ? (volatility < 5 ? 'Mercado Estável' : volatility < 15 ? 'Volatilidade Moderada' : 'Alta Volatilidade') : 'â€”',
+      sparkline: volatility !== null ? [volatility*0.5,volatility*0.65,volatility*0.75,volatility*0.85,volatility*0.9,volatility*0.95,volatility].map((v,i) => ({ value: v, label: `${v.toFixed(1)}%` })) : undefined,
+      periodLabel: 'Análise Técnica'
+    }
+  ];
+
   return (
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
@@ -197,6 +264,27 @@ export const MarketAdvancedAnalytics: React.FC = () => {
           <p className="page-subtitle">Ferramentas de análise gráfica, médias móveis e identificação de topos e fundos</p>
         </div>
       </header>
+
+      {/* KPI Dashboard padronizado */}
+      <div className="next-gen-kpi-grid" style={{ marginBottom: '24px' }}>
+        {loading
+          ? Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
+          : kpis.map((kpi, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={kpi.label}
+                value={kpi.value}
+                icon={kpi.icon}
+                color={kpi.color}
+                progress={kpi.progress}
+                change={kpi.change}
+                trend={kpi.trend as any}
+                sparkline={kpi.sparkline}
+                periodLabel={kpi.periodLabel}
+              />
+            ))
+        }
+      </div>
 
       <div className="panel-header-tauze" style={{ background: 'hsl(var(--bg-main))', padding: '16px', borderRadius: '16px', border: '1px solid hsl(var(--border))', marginBottom: '24px', height: 'fit-content', flex: 'none' }}>
 

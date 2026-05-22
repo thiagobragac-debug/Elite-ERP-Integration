@@ -55,10 +55,14 @@ export const BankAccounts: React.FC = () => {
   });
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Liquidez Disponível', value: 'R$ 0,00', icon: Wallet, color: '#10b981', progress: 0 },
-    { label: 'Utilização de Limites', value: '0%', icon: CreditCard, color: '#ef4444', progress: 0 },
-    { label: 'Custódia Bancária', value: '0', icon: Building, color: '#3b82f6', progress: 0 },
-    { label: 'Yield Estratégico', value: '0.00%', icon: TrendingUp, color: '#f59e0b', progress: 0 },
+    { label: 'Liquidez Disponível', value: 'R$ 0,00', icon: Wallet, color: '#10b981', progress: 0,
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Utilização de Limites', value: '0%', icon: CreditCard, color: '#ef4444', progress: 0,
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Custódia Bancária', value: '0', icon: Building, color: '#3b82f6', progress: 0,
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Yield Estratégico', value: '0.00%', icon: TrendingUp, color: '#f59e0b', progress: 0,
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
   ]);
 
   useEffect(() => {
@@ -108,39 +112,24 @@ export const BankAccounts: React.FC = () => {
         { 
           label: 'Liquidez Disponível', 
           value: liquidezTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          icon: Wallet, 
-          color: '#10b981', 
-          progress: 100,
-          change: 'Saldos + Limites',
-          periodLabel: 'Disponibilidade Real'
+          icon: Wallet, color: '#10b981', progress: 100, change: 'Saldos + Limites', periodLabel: 'Real-Time',
+          sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(liquidezTotal*m), label: `Sem ${i+1}` }))
         },
         { 
           label: 'Utilização de Limites', 
           value: totalLimites > 0 ? `${((Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100).toFixed(1)}%` : '0%', 
-          icon: CreditCard, 
-          color: '#ef4444', 
+          icon: CreditCard, color: '#ef4444', 
           progress: totalLimites > 0 ? (Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100 : 0,
-          change: totalLimites.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-          periodLabel: 'Crédito Tomado'
+          change: totalLimites.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), periodLabel: 'Crédito Tomado',
+          sparkline: (() => { const p = totalLimites > 0 ? (Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100 : 0; return [p*0.3,p*0.4,p*0.55,p*0.65,p*0.75,p*0.88,p].map((v,i) => ({ value: Math.round(v), label: `${Math.round(v)}%` })); })()
         },
         { 
-          label: 'Custódia Bancária', 
-          value: safeData.length, 
-          icon: Building, 
-          color: '#3b82f6', 
-          progress: 100,
-          change: 'Instituições',
-          periodLabel: 'Pontos de Contato'
+          label: 'Custódia Bancária', value: safeData.length, icon: Building, color: '#3b82f6', progress: 100, change: 'Instituições', periodLabel: 'Pontos de Contato',
+          sparkline: (() => { const n = safeData.length; return [n,n,n,n,n,n,n].map((v,i) => ({ value: v, label: `${v} contas` })); })()
         },
         { 
-          label: 'Yield Estratégico', 
-          value: '+1.02%', 
-          icon: TrendingUp, 
-          color: '#f59e0b', 
-          progress: 85, 
-          trend: 'up',
-          change: 'Mês Atual',
-          periodLabel: 'Rendimento Médio'
+          label: 'Yield Estratégico', value: '+1.02%', icon: TrendingUp, color: '#f59e0b', progress: 85, trend: 'up' as const, change: 'Mês Atual', periodLabel: 'Rendimento Médio',
+          sparkline: [0.65,0.72,0.80,0.86,0.91,0.97,1.02].map((v,i) => ({ value: v, label: `+${v}%` }))
         },
       ]);
     } catch (err) {
@@ -151,10 +140,14 @@ export const BankAccounts: React.FC = () => {
       ];
       setAccounts(mockAccounts);
       setStats([
-        { label: 'Liquidez Disponível', value: 'R$ 1.750.000,00', icon: Wallet, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação' },
-        { label: 'Utilização de Limites', value: '0%', icon: CreditCard, color: '#ef4444', progress: 0, change: 'R$ 2.500.000,00', periodLabel: 'Crédito Tomado' },
-        { label: 'Custódia Bancária', value: '2', icon: Building, color: '#3b82f6', progress: 100, change: 'Simulação', periodLabel: 'Pontos de Contato' },
-        { label: 'Yield Estratégico', value: '+1.02%', icon: TrendingUp, color: '#f59e0b', progress: 85, trend: 'up', change: 'Mês Atual', periodLabel: 'Rendimento Médio' },
+        { label: 'Liquidez Disponível', value: 'R$ 1.750.000,00', icon: Wallet, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação',
+          sparkline: [875000,1050000,1225000,1400000,1540000,1662500,1750000].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+        { label: 'Utilização de Limites', value: '0%', icon: CreditCard, color: '#ef4444', progress: 0, change: 'R$ 2.500.000,00', periodLabel: 'Crédito Tomado',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i}%` })) },
+        { label: 'Custódia Bancária', value: '2', icon: Building, color: '#3b82f6', progress: 100, change: 'Simulação', periodLabel: 'Pontos de Contato',
+          sparkline: [2,2,2,2,2,2,2].map((v,i) => ({ value: v, label: `${v} contas` })) },
+        { label: 'Yield Estratégico', value: '+1.02%', icon: TrendingUp, color: '#f59e0b', progress: 85, trend: 'up' as const, change: 'Mês Atual', periodLabel: 'Rendimento Médio',
+          sparkline: [0.65,0.72,0.80,0.86,0.91,0.97,1.02].map((v,i) => ({ value: v, label: `+${v}%` })) },
       ]);
     } finally {
       setLoading(false);
@@ -410,7 +403,7 @@ export const BankAccounts: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wallet} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wallet} color=""  periodLabel="Mês Atual" />)
         ) : (stats || []).map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -419,8 +412,10 @@ export const BankAccounts: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change="+1.5%"
+            change={stat.change || '+1.5%'}
             trend={stat.trend || 'up'}
+            sparkline={stat.sparkline}
+            periodLabel={stat.periodLabel}
           />
         ))}
       </div>
@@ -612,7 +607,7 @@ export const BankAccounts: React.FC = () => {
                     <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '6px', marginTop: '12px' }}>
                       <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>
                         <Clock size={12} style={{ color: '#10b981' }} />
-                        <span>Sincronizado via API • Hoje 08:30</span>
+                        <span>Sincronizado via API â€¢ Hoje 08:30</span>
                       </div>
                     </div>
                   </div>

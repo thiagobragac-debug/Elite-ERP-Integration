@@ -142,11 +142,11 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title={initialData ? "Editar Fornecedor" : "Novo Fornecedor"}
+      title={initialData ? "Editar Parceiro" : "Novo Parceiro"}
       subtitle="Cadastre parceiros para compras de insumos e serviços."
       icon={Truck}
       loading={loading}
-      submitLabel={initialData ? "Salvar Alterações" : "Salvar Fornecedor"}
+      submitLabel={initialData ? "Salvar Alterações" : "Salvar Parceiro"}
     >
       <div className="form-group full-width">
         <label><Building2 size={14} /> Nome / Razão Social</label>
@@ -272,7 +272,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
         <label><Mail size={14} /> E-mail</label>
         <input 
           type="email" 
-          placeholder="vendas@fornecedor.com" 
+          placeholder="vendas@parceiro.com" 
           value={formData.email}
           onChange={(e) => setFormData({...formData, email: e.target.value})}
         />
@@ -385,7 +385,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           <div className={`tauze-toggle-switch ${formData.is_global ? 'active' : ''}`} />
           <div className="toggle-label-group">
             <span className="toggle-title">Habilitar em todas as fazendas (Global)</span>
-            <span className="toggle-desc">Este fornecedor estará visível em todas as unidades do grupo.</span>
+            <span className="toggle-desc">Este parceiro estará visível em todas as unidades do grupo.</span>
           </div>
         </div>
       </div>

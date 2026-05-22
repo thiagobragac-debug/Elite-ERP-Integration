@@ -127,7 +127,7 @@ export const Reports: React.FC = () => {
 
     // SUPRIMENTOS
     { id: '13', title: 'Giro de Estoque & Insumos', category: 'supply', icon: Package, desc: 'Predição de ruptura e análise de consumo de insumos.', color: '#f59e0b', categoryLabel: 'SUPRIMENTOS', tags: ['Logística', 'Financeiro'], complexity: 'Médio', integrity: 100 },
-    { id: '14', title: 'ABC de Compras Agro', category: 'supply', icon: ShoppingCart, desc: 'Curva de criticidade e concentração de fornecedores.', color: '#f59e0b', categoryLabel: 'SUPRIMENTOS', tags: ['Operacional', 'Financeiro'], complexity: 'Leve', integrity: 100 },
+    { id: '14', title: 'ABC de Compras Agro', category: 'supply', icon: ShoppingCart, desc: 'Curva de criticidade e concentração de parceiroes.', color: '#f59e0b', categoryLabel: 'SUPRIMENTOS', tags: ['Operacional', 'Financeiro'], complexity: 'Leve', integrity: 100 },
     { id: '15', title: 'Acuracidade de Inventário', category: 'supply', icon: Target, desc: 'Auditoria de estoque físico vs. contábil.', color: '#f59e0b', categoryLabel: 'SUPRIMENTOS', tags: ['Auditoria', 'Operacional'], complexity: 'Médio', integrity: 100 },
 
     // COMERCIAL

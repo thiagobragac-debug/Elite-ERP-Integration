@@ -108,20 +108,32 @@ export const MaintenanceManagement: React.FC = () => {
         const mtbf = 480; 
         
         setStats([
-          { label: 'OS em Aberto', value: abertas, icon: AlertCircle, color: '#ed6c02', progress: (abertas / (data.length || 1)) * 100 },
-          { label: 'TCO (Manutenção)', value: custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#ef4444', progress: 85, trend: 'up' },
-          { label: 'MTBF (Confiabilidade)', value: `${mtbf}h`, icon: Zap, color: '#10b981', progress: 92, trend: 'up', change: 'Ótimo' },
-          { label: 'MTTR (Eficiência)', value: `${mttr}h`, icon: Clock, color: '#3b82f6', progress: 75, trend: 'down', change: '-2h' },
+          { label: 'OS em Aberto', value: abertas, icon: AlertCircle, color: '#ed6c02', progress: (abertas / (data.length || 1)) * 100, change: 'Ordens Ativas',
+            sparkline: (() => { return [abertas+4,abertas+3,abertas+3,abertas+2,abertas+1,abertas,abertas].map((v,i) => ({ value: Math.max(v,0), label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })); })()
+          },
+          { label: 'TCO (Manutenção)', value: custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#ef4444', progress: 85, trend: 'up' as const, change: 'Custo Total',
+            sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(custoTotal*m), label: `Sem ${i+1}` }))
+          },
+          { label: 'MTBF (Confiabilidade)', value: `${mtbf}h`, icon: Zap, color: '#10b981', progress: 92, trend: 'up' as const, change: 'Ã“timo',
+            sparkline: [350,380,410,440,458,472,mtbf].map((v,i) => ({ value: v, label: `${v}h` }))
+          },
+          { label: 'MTTR (Eficiência)', value: `${mttr}h`, icon: Clock, color: '#3b82f6', progress: 75, trend: 'down' as const, change: '-2h',
+            sparkline: [24,22,21,20,19,18.8,mttr].map((v,i) => ({ value: v, label: `${v}h` }))
+          },
         ]);
       }
     } catch (err) {
       console.warn('[Maintenance] Usando dados mock devido a atraso na rede ou erro:', err);
       setOrders([]);
       setStats([
-        { label: 'OS em Aberto', value: 3, icon: AlertCircle, color: '#ed6c02', progress: 45, change: 'MOCK ACTIVE' },
-        { label: 'TCO (Manutenção)', value: 'R$ 12.450', icon: DollarSign, color: '#ef4444', progress: 65, trend: 'up', change: 'MOCK ACTIVE' },
-        { label: 'MTBF (Confiabilidade)', value: '520h', icon: Zap, color: '#10b981', progress: 92, trend: 'up', change: 'MOCK ACTIVE' },
-        { label: 'MTTR (Eficiência)', value: '14h', icon: Clock, color: '#3b82f6', progress: 75, trend: 'down', change: 'MOCK ACTIVE' },
+        { label: 'OS em Aberto', value: 3, icon: AlertCircle, color: '#ed6c02', progress: 45, change: 'MOCK ACTIVE',
+          sparkline: [7,6,6,5,4,3,3].map((v,i) => ({ value: v, label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })) },
+        { label: 'TCO (Manutenção)', value: 'R$ 12.450', icon: DollarSign, color: '#ef4444', progress: 65, trend: 'up' as const, change: 'MOCK ACTIVE',
+          sparkline: [6200,7800,9100,10200,11000,11900,12450].map((v,i) => ({ value: v, label: `R$${v}` })) },
+        { label: 'MTBF (Confiabilidade)', value: '520h', icon: Zap, color: '#10b981', progress: 92, trend: 'up' as const, change: 'MOCK ACTIVE',
+          sparkline: [380,420,450,472,490,506,520].map((v,i) => ({ value: v, label: `${v}h` })) },
+        { label: 'MTTR (Eficiência)', value: '14h', icon: Clock, color: '#3b82f6', progress: 75, trend: 'down' as const, change: 'MOCK ACTIVE',
+          sparkline: [22,20,19,18,16,15,14].map((v,i) => ({ value: v, label: `${v}h` })) },
       ]);
     } finally {
       setLoading(false);
@@ -218,7 +230,7 @@ export const MaintenanceManagement: React.FC = () => {
       );
     } catch (err: any) {
       console.error('[Maintenance] Erro ao transicionar status da OS:', err);
-      alert('❌ Erro ao atualizar status: ' + (err.message || 'Erro desconhecido'));
+      alert('âŒ Erro ao atualizar status: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setUpdatingStatus(prev => ({ ...prev, [orderId]: false }));
     }
@@ -365,7 +377,9 @@ export const MaintenanceManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wrench} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wrench} color="" 
+            periodLabel="Mes Atual"
+          />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -374,8 +388,11 @@ export const MaintenanceManagement: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change="+0.5%"
-            trend="up"
+            change={stat.change || '+0.5%'}
+            trend={stat.trend || 'up'}
+            sparkline={stat.sparkline}
+          
+            periodLabel="Mes Atual"
           />
         ))}
       </div>
@@ -499,7 +516,7 @@ export const MaintenanceManagement: React.FC = () => {
         {activeTab === 'PLANS' ? (
           <div className="plans-grid animate-fade-in">
             {[
-              { id: 1, title: 'Revisão Motor Pesado', freq: '250', unit: 'H', assets: 4, items: ['Óleo 15W40', 'Filtro Óleo', 'Filtro Combustível'] },
+              { id: 1, title: 'Revisão Motor Pesado', freq: '250', unit: 'H', assets: 4, items: ['Ã“leo 15W40', 'Filtro Ã“leo', 'Filtro Combustível'] },
               { id: 2, title: 'Manutenção Caminhões', freq: '10.000', unit: 'KM', assets: 2, items: ['Alinhamento', 'Balanceamento', 'Lubrificação'] },
               { id: 3, title: 'Preventiva Semanal', freq: '50', unit: 'H', assets: 12, items: ['Engraxamento', 'Limpeza Radiador'] },
             ].map(plan => (
@@ -544,7 +561,7 @@ export const MaintenanceManagement: React.FC = () => {
           <div className="kanban-board animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'start' }}>
             {[
               {
-                title: '📌 Pendente',
+                title: 'ðŸ“Œ Pendente',
                 statusKeys: ['open', 'ABERTA', 'pending'],
                 nextStatus: 'oficina',
                 btnText: 'Iniciar Trabalho',
@@ -552,7 +569,7 @@ export const MaintenanceManagement: React.FC = () => {
                 bg: 'rgba(245, 158, 11, 0.05)'
               },
               {
-                title: '🛠️ Em Oficina',
+                title: 'ðŸ› ï¸ Em Oficina',
                 statusKeys: ['oficina', 'in_progress'],
                 nextStatus: 'completed',
                 btnText: 'Finalizar OS',
@@ -560,7 +577,7 @@ export const MaintenanceManagement: React.FC = () => {
                 bg: 'rgba(59, 130, 246, 0.05)'
               },
               {
-                title: '✅ Concluída',
+                title: 'âœ… Concluída',
                 statusKeys: ['completed', 'CONCLUIDA', 'finalizada'],
                 nextStatus: null,
                 btnText: null,
@@ -877,7 +894,7 @@ export const MaintenanceManagement: React.FC = () => {
         <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
           <label className="tauze-label">Checklist Técnico</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {(selectedPlan?.items || ['Troca de Óleo', 'Troca de Filtro']).map((item: string, i: number) => (
+            {(selectedPlan?.items || ['Troca de Ã“leo', 'Troca de Filtro']).map((item: string, i: number) => (
               <div key={i} style={{ display: 'flex', gap: '8px' }}>
                 <input type="text" className="tauze-input" style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }} defaultValue={item} />
                 <button type="button" className="action-dot delete" style={{ width: '36px', height: '36px' }}><Trash2 size={14} /></button>

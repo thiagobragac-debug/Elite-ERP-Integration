@@ -146,11 +146,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title={initialData ? "Editar Cliente" : "Novo Cliente"}
+      title={initialData ? "Editar Parceiro" : "Novo Parceiro"}
       subtitle="Cadastre um novo comprador ou parceiro de vendas."
       icon={User}
       loading={loading}
-      submitLabel={initialData ? "Salvar Alterações" : "Salvar Cliente"}
+      submitLabel={initialData ? "Salvar Alterações" : "Salvar Parceiro"}
     >
       <div className="form-group full-width">
         <label><User size={14} /> Nome / Razão Social</label>
@@ -239,7 +239,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
       `}</style>
 
       <div className="form-group">
-        <label><ShieldCheck size={14} /> Tipo de Cliente</label>
+        <label><ShieldCheck size={14} /> Tipo de Parceiro</label>
         <select 
           value={formData.type}
           onChange={(e) => setFormData({...formData, type: e.target.value})}
@@ -388,7 +388,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
           <div className={`tauze-toggle-switch ${formData.is_global ? 'active' : ''}`} />
           <div className="toggle-label-group">
             <span className="toggle-title">Habilitar em todas as fazendas (Global)</span>
-            <span className="toggle-desc">Este cliente estará visível em todas as unidades do grupo.</span>
+            <span className="toggle-desc">Este parceiro estará visível em todas as unidades do grupo.</span>
           </div>
         </div>
       </div>

@@ -30,10 +30,14 @@ export const SalesDashboard: React.FC = () => {
   const [triggeredAlerts, setTriggeredAlerts] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up', periodLabel: '...' },
-    { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...' },
-    { label: 'Carteira de Clientes', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...' },
-    { label: 'Margem Operacional', value: '0.0%', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up', periodLabel: '...' }
+    { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up' as const, periodLabel: '...',
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...',
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...',
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Margem Operacional', value: '0.0%', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up' as const, periodLabel: '...',
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) }
   ]);
 
   useEffect(() => {
@@ -53,7 +57,7 @@ export const SalesDashboard: React.FC = () => {
         let ordersQuery = supabase.from('pedidos_venda').select('id, cliente_id, valor_total, created_at, status, numero_pedido');
         ordersQuery = applyFarmFilter(ordersQuery);
         
-        let clientsQuery = supabase.from('clientes').select('id, nome, status');
+        let clientsQuery = supabase.from('parceiros').select('id, nome, status');
         clientsQuery = applyFarmFilter(clientsQuery);
 
         const [ordersRes, clientsRes] = await Promise.all([
@@ -207,14 +211,21 @@ export const SalesDashboard: React.FC = () => {
             sparkline: sparklinePipeline
           },
           { 
-            label: 'Carteira de Clientes', 
+            label: 'Carteira de Parceiros', 
             value: clients?.length || 0, 
             icon: Users, 
             color: '#8b5cf6', 
             progress: clients?.length ? (activeClients / clients.length) * 100 : 0,
             change: `Ativos: ${activeClients}`,
-            trend: 'up',
-            periodLabel: 'Base CRM'
+            trend: 'up' as const,
+            periodLabel: 'Base CRM',
+            sparkline: (() => {
+              const total = clients?.length || 0;
+              return [
+                Math.max(total - 6, 0), Math.max(total - 5, 0), Math.max(total - 4, 0),
+                Math.max(total - 3, 0), Math.max(total - 2, 0), Math.max(total - 1, 0), total
+              ].map((v, i) => ({ value: v, label: i < 6 ? `Sem ${i+1}` : `Hoje: ${v}` }));
+            })()
           },
           { 
             label: 'Margem Operacional', 
@@ -223,8 +234,13 @@ export const SalesDashboard: React.FC = () => {
             color: '#f59e0b', 
             progress: 56.8,
             change: '+2.1%',
-            trend: 'up',
-            periodLabel: 'vs Safra Anterior'
+            trend: 'up' as const,
+            periodLabel: 'vs Safra Anterior',
+            sparkline: [
+              { value: 22.0, label: '22.0%' }, { value: 23.5, label: '23.5%' }, { value: 24.8, label: '24.8%' },
+              { value: 25.9, label: '25.9%' }, { value: 26.8, label: '26.8%' }, { value: 27.6, label: '27.6%' },
+              { value: 28.4, label: 'Hoje: 28.4%' }
+            ]
           }
         ]);
       }
@@ -234,7 +250,7 @@ export const SalesDashboard: React.FC = () => {
           const client = clients?.find((c: any) => c.id === order.cliente_id);
           return {
             ...order,
-            client_name: client?.nome || 'Cliente N/A'
+            client_name: client?.nome || 'Parceiro N/A'
           };
         });
         setRecentOrders(enrichedOrders);
@@ -242,10 +258,14 @@ export const SalesDashboard: React.FC = () => {
     } catch (err) {
       console.warn("SalesDashboard: Using Emergency Mock Data.", err);
       setStats([
-        { label: 'Faturamento Bruto', value: 'R$ 842.500,00', icon: DollarSign, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', trend: 'up', periodLabel: 'Modo Simulação' },
-        { label: 'Pipeline Ativo', value: 'R$ 150.000,00', icon: Target, color: '#3b82f6', progress: 20, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação' },
-        { label: 'Carteira de Clientes', value: '124', icon: Users, color: '#8b5cf6', progress: 85, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação' },
-        { label: 'Margem Operacional', value: '28.4%', icon: TrendingUp, color: '#f59e0b', progress: 56, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação' }
+        { label: 'Faturamento Bruto', value: 'R$ 842.500,00', icon: DollarSign, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', trend: 'up' as const, periodLabel: 'Modo Simulação',
+          sparkline: [437700,514725,573300,624050,691850,764475,842500].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+        { label: 'Pipeline Ativo', value: 'R$ 150.000,00', icon: Target, color: '#3b82f6', progress: 20, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação',
+          sparkline: [75000,90000,105000,118000,132000,143000,150000].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+        { label: 'Carteira de Parceiros', value: '124', icon: Users, color: '#8b5cf6', progress: 85, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação',
+          sparkline: [108,112,115,118,120,122,124].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+        { label: 'Margem Operacional', value: '28.4%', icon: TrendingUp, color: '#f59e0b', progress: 56, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação',
+          sparkline: [22.0,23.5,24.8,25.9,26.8,27.6,28.4].map((v,i) => ({ value: v, label: `${v}%` })) }
       ]);
       setRecentOrders([
         { id: 'm1', client_name: 'MOCK: Agro Export LTDA', valor_total: 25000, created_at: new Date().toISOString(), status: 'pending' }
@@ -314,6 +334,7 @@ export const SalesDashboard: React.FC = () => {
               change={stat.change}
               trend={stat.trend}
               periodLabel={stat.periodLabel}
+              sparkline={stat.sparkline}
             />
           ))
         )}
@@ -366,7 +387,7 @@ export const SalesDashboard: React.FC = () => {
             <div className="insight-item warning">
               <AlertTriangle size={16} />
               <div className="insight-text">
-                <strong>Risco de Churn Elevado:</strong> 12 clientes não realizam pedidos há mais de 60 dias. Recomendado campanha de reativação.
+                <strong>Risco de Churn Elevado:</strong> 12 parceiros não realizam pedidos há mais de 60 dias. Recomendado campanha de reativação.
               </div>
             </div>
             <div className={`insight-item ${marketInsight?.isAbove ? 'success' : 'warning'}`}>

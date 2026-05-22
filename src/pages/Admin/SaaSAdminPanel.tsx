@@ -106,7 +106,7 @@ export const SaaSAdminPanel: React.FC = () => {
       icon: Edit2
     },
     tenants: {
-      title: 'Gestão de Clientes (Tenants)',
+      title: 'Gestão de Parceiros (Tenants)',
       subtitle: 'Controle de instâncias ativas, provisionamento e acesso administrativo direto.',
       icon: Globe
     },
@@ -1855,7 +1855,7 @@ export const SaaSAdminPanel: React.FC = () => {
           trend="up" 
           change="+12.4%" 
           sparkline={[{value: 30, label: ''}, {value: 45, label: ''}, {value: 60, label: ''}, {value: 85, label: ''}]}
-        />
+         periodLabel="Mês Atual" />
         <TauzeStatCard 
           label="Total de Inquilinos" 
           value={kpis.totalTenants.toString()} 
@@ -1864,7 +1864,7 @@ export const SaaSAdminPanel: React.FC = () => {
           trend="up" 
           change="+82 este mês" 
           sparkline={[{value: 20, label: ''}, {value: 30, label: ''}, {value: 50, label: ''}, {value: 70, label: ''}]}
-        />
+         periodLabel="Mês Atual" />
         <TauzeStatCard 
           label="Usuários Ativos" 
           value={kpis.totalUsers.toString()} 
@@ -1873,7 +1873,7 @@ export const SaaSAdminPanel: React.FC = () => {
           trend="up" 
           change="+5.2%" 
           sparkline={[{value: 40, label: ''}, {value: 55, label: ''}, {value: 65, label: ''}, {value: 80, label: ''}]}
-        />
+         periodLabel="Mês Atual" />
         <TauzeStatCard 
           label="Saúde da Rede" 
           value={`${kpis.health}%`} 
@@ -1882,7 +1882,7 @@ export const SaaSAdminPanel: React.FC = () => {
           trend="up" 
           change="SLA Nominal" 
           sparkline={[{value: 99, label: ''}, {value: 98, label: ''}, {value: 99, label: ''}, {value: 99, label: ''}]}
-        />
+         periodLabel="Mês Atual" />
       </div>
 
       <main className="management-content">
@@ -2396,7 +2396,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     trend="up"
                     icon={DollarSign}
                     color="#10b981"
-                    periodLabel="Taxa de recuperação: 94.2%"
+                    periodLabel="Mensal"
                     sparkline={[{value: 30, label: '1'}, {value: 50, label: '2'}, {value: 45, label: '3'}, {value: 80, label: '4'}]}
                   />
 
@@ -2407,7 +2407,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     trend="down"
                     icon={AlertCircle}
                     color="#ef4444"
-                    periodLabel="Redução vs mês anterior"
+                    periodLabel="Mensal"
                     sparkline={[{value: 60, label: '1'}, {value: 40, label: '2'}, {value: 55, label: '3'}, {value: 30, label: '4'}]}
                   />
 
@@ -2418,7 +2418,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     trend="up"
                     icon={Activity}
                     color="#f59e0b"
-                    periodLabel="Projeção para os próximos 30d"
+                    periodLabel="Próx. 30d"
                     sparkline={[{value: 40, label: '1'}, {value: 60, label: '2'}, {value: 75, label: '3'}, {value: 90, label: '4'}]}
                   />
 
@@ -2429,7 +2429,7 @@ export const SaaSAdminPanel: React.FC = () => {
                     trend="down"
                     icon={Shield}
                     color="#6366f1"
-                    periodLabel="Cancelamentos vs mês anterior"
+                    periodLabel="Mensal"
                     progress={15}
                     sparkline={[{value: 70, label: '1'}, {value: 50, label: '2'}, {value: 45, label: '3'}, {value: 30, label: '4'}]}
                   />

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   User,
@@ -83,7 +83,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
   }, [isOpen, activeFarm]);
 
   const fetchClients = async () => {
-    const { data } = await supabase.from('clientes').select('id, nome').eq('tenant_id', activeFarm?.tenantId || '');
+    const { data } = await supabase.from('parceiros').select('id, nome').eq('tenant_id', activeFarm?.tenantId || '').eq('is_customer', true);
     if (data) setClients(data);
   };
 
@@ -133,14 +133,14 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
       </div>
 
       <div className="tauze-field-group span-2">
-        <label className="tauze-label"><User size={14} /> Cliente / Destinatário</label>
+        <label className="tauze-label"><User size={14} /> Parceiro / Destinatário</label>
         <select 
           className="tauze-input tauze-select"
           value={formData.client_id}
           onChange={(e) => setFormData({...formData, client_id: e.target.value})}
           required
         >
-          <option value="">Selecione o cliente...</option>
+          <option value="">Selecione o parceiro...</option>
           {clients.map(c => (
             <option key={c.id} value={c.id}>{c.nome}</option>
           ))}

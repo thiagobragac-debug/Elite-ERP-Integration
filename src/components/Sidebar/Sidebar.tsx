@@ -84,7 +84,7 @@ const menuItems: NavItem[] = [
     icon: ShoppingCart,
     subItems: [
       { title: 'Intelligence Hub', href: '/compras/dashboard' },
-      { title: 'Fornecedor', href: '/compras/fornecedores' },
+      { title: 'Fornecedor', href: '/compras/parceiroes' },
       { title: 'Solicitação de Compra', href: '/compras/solicitacao' },
       { title: 'Mapa de Cotação', href: '/compras/cotacao' },
       { title: 'Pedido de Compra', href: '/compras/pedido' },
@@ -96,7 +96,7 @@ const menuItems: NavItem[] = [
     icon: TrendingUp,
     subItems: [
       { title: 'Intelligence Hub', href: '/vendas/dashboard' },
-      { title: 'Cliente (CRM)', href: '/vendas/clientes' },
+      { title: 'Cliente (CRM)', href: '/vendas/parceiros' },
       { title: 'Pedido de Venda', href: '/vendas/pedido' },
       { title: 'Contrato & Hedge', href: '/vendas/contrato' },
       { title: 'Nota Fiscal de Saída', href: '/vendas/notas' },

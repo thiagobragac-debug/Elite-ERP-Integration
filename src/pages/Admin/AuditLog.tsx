@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Shield, Clock, Edit3, Trash2, User,
   Beef, Scale, CreditCard, DollarSign,
@@ -63,8 +63,8 @@ const ENTITY_ROUTES: Record<string, string> = {
   'pesagens': '/pecuaria/pesagem',
   'lotes': '/pecuaria/lote',
   'pastos': '/pecuaria/pasto',
-  'clientes': '/vendas/clientes',
-  'fornecedores': '/compras/fornecedores',
+  'parceiros': '/vendas/parceiros',
+  'parceiroes': '/compras/parceiroes',
   'contas_pagar': '/financeiro/pagar',
   'contas_receber': '/financeiro/receber',
   'maquinas': '/frota/maquina',
@@ -172,14 +172,14 @@ export const AuditLog: React.FC = () => {
     setFormInitialData({ ...data, id: entityId });
     setSelectedLog(null);
 
-    if (tableName === 'fornecedores') {
+    if (tableName === 'parceiroes') {
       setIsSupplierFormOpen(true);
     } else if (tableName === 'animais') {
       setIsAnimalFormOpen(true);
     } else if (tableName === 'contas_pagar' || tableName === 'contas_receber') {
       setTransactionFormType(tableName === 'contas_pagar' ? 'payable' : 'receivable');
       setIsTransactionFormOpen(true);
-    } else if (tableName === 'clientes') {
+    } else if (tableName === 'parceiros') {
       setIsClientFormOpen(true);
     } else if (tableName === 'maquinas') {
       setIsMachineFormOpen(true);
@@ -570,10 +570,10 @@ export const AuditLog: React.FC = () => {
                         </div>
                         <div className="dossier-slip-desc">{desc}</div>
                         <div className="dossier-slip-footer">
-                          {data.fornecedor || data.cliente ? (
+                          {data.parceiro || data.parceiro ? (
                             <div className="dossier-slip-meta-item">
-                              <span className="meta-label">Fornecedor / Cliente:</span>
-                              <span className="meta-val">{data.fornecedor || data.cliente}</span>
+                              <span className="meta-label">Parceiro / Parceiro:</span>
+                              <span className="meta-val">{data.parceiro || data.parceiro}</span>
                             </div>
                           ) : null}
                           {date && (
@@ -827,17 +827,17 @@ export const AuditLog: React.FC = () => {
               status: formData.status
             };
 
-            const { error } = await supabase.from('fornecedores').update({
+            const { error } = await supabase.from('parceiros').update({
               ...payload,
               is_global: formData.is_global,
               fazendas_vinculadas: formData.fazendas_vinculadas
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsSupplierFormOpen(false);
-            alert('Fornecedor atualizado com sucesso!');
+            alert('Parceiro atualizado com sucesso!');
           } catch (err: any) {
-            console.error('[AuditLog] Erro ao salvar fornecedor:', err);
-            alert('Erro ao atualizar fornecedor: ' + (err.message || 'Erro desconhecido'));
+            console.error('[AuditLog] Erro ao salvar parceiro:', err);
+            alert('Erro ao atualizar parceiro: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -908,7 +908,7 @@ export const AuditLog: React.FC = () => {
         onClose={() => setIsClientFormOpen(false)}
         onSubmit={async (formData) => {
           try {
-            const { error } = await supabase.from('clientes').update({
+            const { error } = await supabase.from('parceiros').update({
               nome: formData.name,
               documento: formData.cnpj,
               tipo: formData.type,
@@ -931,10 +931,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsClientFormOpen(false);
-            alert('Cliente atualizado com sucesso!');
+            alert('Parceiro atualizado com sucesso!');
           } catch (err: any) {
-            console.error('[AuditLog] Erro ao salvar cliente:', err);
-            alert('Erro ao atualizar cliente: ' + (err.message || 'Erro desconhecido'));
+            console.error('[AuditLog] Erro ao salvar parceiro:', err);
+            alert('Erro ao atualizar parceiro: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -1086,7 +1086,7 @@ export const AuditLog: React.FC = () => {
           try {
             const { error } = await supabase.from('pedidos_compra').update({
               numero: formData.numero,
-              fornecedor_id: formData.fornecedor_id,
+              fornecedor_id: formData.fornecedor_id || formData.parceiro_id,
               data_pedido: formData.data_pedido,
               data_entrega_prevista: formData.data_entrega_prevista || null,
               valor_total: parseFloat(formData.valor_total) || 0,
@@ -1111,7 +1111,7 @@ export const AuditLog: React.FC = () => {
           try {
             const { error } = await supabase.from('pedidos_venda').update({
               numero: formData.numero,
-              cliente_id: formData.cliente_id,
+              cliente_id: formData.cliente_id || formData.parceiro_id,
               data_pedido: formData.data_pedido,
               data_entrega_prevista: formData.data_entrega_prevista || null,
               valor_total: parseFloat(formData.valor_total) || 0,
@@ -1190,8 +1190,8 @@ export const AuditLog: React.FC = () => {
                 data_pagamento: 'Data de Pagamento',
                 metodo_pagamento: 'Método de Pagamento',
                 conta_bancaria_id: 'ID da Conta Bancária',
-                fornecedor_id: 'ID do Fornecedor',
-                cliente_id: 'ID do Cliente',
+                parceiro_id: 'ID do Parceiro',
+                parceiro_id: 'ID do Parceiro',
                 marca: 'Marca',
                 modelo: 'Modelo',
                 placa: 'Placa',

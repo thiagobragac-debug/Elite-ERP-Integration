@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -149,7 +149,7 @@ export const InventoryManagement: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate && !selectedProduct) {
-      alert('⚠️ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.');
+      alert('âš ï¸ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.');
       return;
     }
 
@@ -195,7 +195,7 @@ export const InventoryManagement: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[Inventory] Erro ao salvar produto:', err);
-      alert('❌ Erro ao salvar produto: ' + (err.message || 'Erro desconhecido'));
+      alert('âŒ Erro ao salvar produto: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -225,7 +225,7 @@ export const InventoryManagement: React.FC = () => {
       fetchProducts();
     } catch (err: any) {
       console.error('[Inventory] Error processing FIFO movement:', err);
-      alert('❌ Erro ao processar movimentação FIFO: ' + err.message);
+      alert('âŒ Erro ao processar movimentação FIFO: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -279,7 +279,7 @@ export const InventoryManagement: React.FC = () => {
       } else {
         // Soft delete
         if (item.is_storable && Number(item.estoque_atual || 0) > 0) {
-          alert(`❌ Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`);
+          alert(`âŒ Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`);
           return;
         }
         if (!confirm(`O item "${item.nome}" possui histórico no sistema e não pode ser excluído. Deseja inativá-lo para que não apareça mais nas rotinas?`)) return;
@@ -289,7 +289,7 @@ export const InventoryManagement: React.FC = () => {
         fetchProducts();
       }
     } catch (err: any) {
-      alert('❌ Erro na operação: ' + err.message);
+      alert('âŒ Erro na operação: ' + err.message);
     }
   };
 
@@ -298,7 +298,7 @@ export const InventoryManagement: React.FC = () => {
     const tenantId = activeTenantId || activeFarm?.tenantId;
 
     if (!farmId || !tenantId) {
-      alert('⚠️ Selecione uma fazenda específica para solicitar a compra.');
+      alert('âš ï¸ Selecione uma fazenda específica para solicitar a compra.');
       return;
     }
 
@@ -329,7 +329,7 @@ export const InventoryManagement: React.FC = () => {
       setRequestedProducts(prev => ({ ...prev, [product.id]: true }));
     } catch (err: any) {
       console.error('[Inventory] Erro ao solicitar compra:', err);
-      alert('❌ Erro ao solicitar compra: ' + (err.message || 'Erro desconhecido'));
+      alert('âŒ Erro ao solicitar compra: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setRequestLoading(prev => ({ ...prev, [product.id]: false }));
     }
@@ -370,7 +370,7 @@ export const InventoryManagement: React.FC = () => {
       progress: 85,
       trend: 'up' as const,
       change: 'Patrimônio em Insumos',
-      periodLabel: 'Valor de Inventário',
+      periodLabel: 'Atual',
       sparkline: [{ value: 10, label: '10' }, { value: 15, label: '15' }, { value: 20, label: '20' }, { value: 18, label: '18' }, { value: 25, label: '25' }]
     },
     { 
@@ -537,7 +537,7 @@ export const InventoryManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Package} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Package} color=""  periodLabel="Estoque Atual" />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -778,7 +778,7 @@ export const InventoryManagement: React.FC = () => {
                           <span className="card-role-badge" style={{ marginTop: '4px' }}>{p.categoria || 'INSUMO'}</span>
                         </div>
                         <span className={`status-pill mini ${isCritical ? 'stopped' : 'active'}`} style={{ fontSize: '8px', padding: '4px 8px', borderRadius: '6px' }}>
-                          {isCritical ? '⚠️ Reposição' : '✓ Disponível'}
+                          {isCritical ? 'âš ï¸ Reposição' : 'âœ“ Disponível'}
                         </span>
                       </div>
 

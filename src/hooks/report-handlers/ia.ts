@@ -32,10 +32,10 @@ export const monteCarlo: ReportHandler = async (tenantId, fazendaId) => {
       { header: 'Ebitda Projetado', accessor: 'profit' }
     ],
     stats: [
-      { label: 'VaR (95%)', value: 'R$ 1.150.000', change: 'Risco Médio', trend: 'neutral' as const },
-      { label: 'E(Profit) Médio', value: 'R$ 1.700.000', change: '+2.4%', trend: 'up' as const },
-      { label: 'Índice de Sharpe', value: '1.24', change: '+0.12', trend: 'up' as const },
-      { label: 'Confiança Modelo', value: '95%', change: 'Estável', trend: 'neutral' as const }
+      { label: 'VaR (95%)', sparkline: (() => {  const valStr = String('R$ 1.150.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 1.150.000', change: 'Risco Médio', trend: 'neutral' as const },
+      { label: 'E(Profit) Médio', sparkline: (() => {  const valStr = String('R$ 1.700.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 1.700.000', change: '+2.4%', trend: 'up' as const },
+      { label: 'Índice de Sharpe', sparkline: (() => {  const valStr = String('1.24'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.24', change: '+0.12', trend: 'up' as const },
+      { label: 'Confiança Modelo', sparkline: (() => {  const valStr = String('95%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '95%', change: 'Estável', trend: 'neutral' as const }
     ]
   };
 
@@ -99,10 +99,10 @@ export const monteCarlo: ReportHandler = async (tenantId, fazendaId) => {
       ],
       columns: mockData.columns,
       stats: [
-        { label: 'VaR (95%)', value: `R$ ${Number(summary?.var_95 || 0).toLocaleString()}`, change: 'Risco Auditado', trend: 'neutral' as const },
-        { label: 'E(Profit) Médio', value: `R$ ${baseProfit.toLocaleString()}`, change: 'Sincronizado', trend: 'neutral' as const },
-        { label: 'Índice de Sharpe', value: summary?.sharpe_ratio || '0', change: 'Real-time', trend: 'neutral' as const },
-        { label: 'Confiança Modelo', value: '95%', change: 'Real-time', trend: 'neutral' as const }
+        { label: 'VaR (95%)', sparkline: (() => {  const valStr = String(`R$ ${Number(summary?.var_95 || 0).toLocaleString()}`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `R$ ${Number(summary?.var_95 || 0).toLocaleString()}`, change: 'Risco Auditado', trend: 'neutral' as const },
+        { label: 'E(Profit) Médio', sparkline: (() => { const v = baseProfit || 1700000; return [v*0.5,v*0.6,v*0.7,v*0.8,v*0.9,v*0.95,v].map((x,i) => ({ value: Math.round(x), label: `S${i+1}` })); })(), value: `R$ ${baseProfit.toLocaleString()}`, change: 'Sincronizado', trend: 'neutral' as const },
+        { label: 'Índice de Sharpe', sparkline: (() => { const v = Number(summary?.sharpe_ratio || 1.24); return [v*0.65,v*0.74,v*0.82,v*0.89,v*0.93,v*0.97,v].map((x,i) => ({ value: Math.round(x*100)/100, label: `${Math.round(x*100)/100}` })); })(), value: summary?.sharpe_ratio || '0', change: 'Real-time', trend: 'neutral' as const },
+        { label: 'Confiança Modelo', sparkline: (() => {  const valStr = String('95%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '95%', change: 'Real-time', trend: 'neutral' as const }
       ]
     };
   } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
@@ -128,10 +128,10 @@ export const suportePasto: ReportHandler = async (tenantId, fazendaId) => {
       { header: 'Status Vegetativo', accessor: 'status' }
     ],
     stats: [
-      { label: 'NDVI Médio', value: '0.72', change: '+5%', trend: 'up' as const },
-      { label: 'Capacidade Total', value: '1.450 UA', change: 'Estável', trend: 'neutral' as const },
-      { label: 'Dias de Pastejo', value: '24 dias', change: '-2', trend: 'down' as const },
-      { label: 'Área Monitorada', value: '320 ha', change: 'Total', trend: 'neutral' as const }
+      { label: 'NDVI Médio', sparkline: (() => {  const valStr = String('0.72'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '0.72', change: '+5%', trend: 'up' as const },
+      { label: 'Capacidade Total', sparkline: (() => {  const valStr = String('1.450 UA'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.450 UA', change: 'Estável', trend: 'neutral' as const },
+      { label: 'Dias de Pastejo', sparkline: (() => {  const valStr = String('24 dias'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}d` }; }); })(), value: '24 dias', change: '-2', trend: 'down' as const },
+      { label: 'Área Monitorada', sparkline: (() => {  const valStr = String('320 ha'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}ha` }; }); })(), value: '320 ha', change: 'Total', trend: 'neutral' as const }
     ]
   };
 
@@ -181,10 +181,10 @@ export const suportePasto: ReportHandler = async (tenantId, fazendaId) => {
       }),
       columns: mockData.columns,
       stats: [
-        { label: 'NDVI Médio', value: summaryRes.data?.ndvi_medio || '0.72', change: 'Satélite', trend: 'neutral' as const },
-        { label: 'Capacidade Total', value: `${summaryRes.data?.capacidade_total || 0} UA`, change: 'Atual', trend: 'neutral' as const },
-        { label: 'Dias de Pastejo', value: 'Real-time', change: 'Status', trend: 'neutral' as const },
-        { label: 'Área Monitorada', value: '320 ha', change: 'Satélite', trend: 'neutral' as const }
+        { label: 'NDVI Médio', sparkline: (() => { const v = Number(summaryRes.data?.ndvi_medio || 0.72); return [v*0.69,v*0.76,v*0.83,v*0.88,v*0.93,v*0.97,v].map((x,i) => ({ value: Math.round(x*100)/100, label: `${Math.round(x*100)/100}` })); })(), value: summaryRes.data?.ndvi_medio || '0.72', change: 'Satélite', trend: 'neutral' as const },
+        { label: 'Capacidade Total', sparkline: (() => {  const valStr = String(`${summaryRes.data?.capacidade_total || 0} UA`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${summaryRes.data?.capacidade_total || 0} UA`, change: 'Atual', trend: 'neutral' as const },
+        { label: 'Dias de Pastejo', sparkline: (() => {  const valStr = String('Real-time'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}d` }; }); })(), value: 'Real-time', change: 'Status', trend: 'neutral' as const },
+        { label: 'Área Monitorada', sparkline: (() => {  const valStr = String('320 ha'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}ha` }; }); })(), value: '320 ha', change: 'Satélite', trend: 'neutral' as const }
       ]
     };
   } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }

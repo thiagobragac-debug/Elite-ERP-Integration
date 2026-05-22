@@ -23,7 +23,7 @@ interface FormModalProps {
 const mapDbToFormFields = (tableName: string, dbFields: string[]): string[] => {
   const mapped: string[] = [];
   for (const field of dbFields) {
-    if (tableName === 'clientes') {
+    if (tableName === 'parceiros') {
       if (field === 'nome') mapped.push('name');
       else if (field === 'documento') mapped.push('cnpj');
       else if (field === 'tipo') mapped.push('type');

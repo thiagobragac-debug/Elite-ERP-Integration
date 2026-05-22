@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart2, 
   Package,
@@ -40,7 +40,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
         item_id: initialData.produto_id || '',
         quantity: initialData.quantidade?.toString() || '',
         unit: initialData.unidade || 'Unidades',
-        suppliers: initialData.dados_fornecedores || [{ supplier_id: '', price: '', delivery_days: '' }]
+        suppliers: initialData.dados_parceiroes || [{ supplier_id: '', price: '', delivery_days: '' }]
       });
     } else {
       setFormData({
@@ -61,7 +61,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
   const fetchData = async () => {
     if (!activeFarm) return;
     const { data: pData } = await supabase.from('produtos').select('id, nome').eq('tenant_id', activeFarm.tenantId);
-    const { data: sData } = await supabase.from('fornecedores').select('id, nome').eq('tenant_id', activeFarm.tenantId);
+    const { data: sData } = await supabase.from('parceiros').select('id, nome').eq('tenant_id', activeFarm.tenantId).eq('is_supplier', true);
     if (pData) setProducts(pData);
     if (sData) setSuppliers(sData);
   };
@@ -102,7 +102,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
       onClose={onClose}
       onSubmit={handleSubmit}
       title={initialData ? "Editar Mapa de Cotação" : "Novo Mapa de Cotação"}
-      subtitle="Compare preços de diferentes fornecedores para o mesmo item."
+      subtitle="Compare preços de diferentes parceiroes para o mesmo item."
       icon={BarChart2}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Iniciar Comparativo"}
@@ -148,9 +148,9 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
 
       <div className="form-group full-width">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <label style={{ margin: 0 }}><Building2 size={14} /> Comparativo de Fornecedores</label>
+          <label style={{ margin: 0 }}><Building2 size={14} /> Comparativo de Parceiroes</label>
           <button type="button" className="text-btn-primary" onClick={addSupplier} style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Plus size={14} /> Adicionar Fornecedor
+            <Plus size={14} /> Adicionar Parceiro
           </button>
         </div>
         
@@ -168,7 +168,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
                 onChange={(e) => updateSupplier(idx, 'supplier_id', e.target.value)}
                 required
               >
-                <option value="">Fornecedor...</option>
+                <option value="">Parceiro...</option>
                 {suppliers.map(s => (
                   <option key={s.id} value={s.id}>{s.nome}</option>
                 ))}

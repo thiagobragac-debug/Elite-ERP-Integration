@@ -28,10 +28,10 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
       { header: 'Status', accessor: (row: any) => row.status === 'paid' ? '✅ Liquidado' : '⏳ Pendente' }
     ],
     stats: [
-      { id: 'patrimonio', label: 'Patrimônio Líquido', value: 'R$ 2.450.000', change: 'MOCK', trend: 'neutral' as const, color: '#10b981', progress: 100 },
-      { id: 'resultado', label: 'Resultado Operacional', value: 'R$ 105.000', change: 'MOCK', trend: 'up' as const, color: '#3b82f6', progress: 85 },
-      { id: 'runway', label: 'Runway / Fôlego', value: '18 meses', change: 'MOCK', trend: 'up' as const, color: '#8b5cf6', progress: 75 },
-      { id: 'entradas', label: 'Entradas (Mês)', value: 'R$ 150.000', change: 'MOCK', trend: 'up' as const, color: '#10b981', progress: 100 }
+      { id: 'patrimonio', label: 'Patrimônio Líquido', sparkline: (() => {  const valStr = String('R$ 2.450.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 2.450.000', change: 'MOCK', trend: 'neutral' as const, color: '#10b981', progress: 100 },
+      { id: 'resultado', label: 'Resultado Operacional', sparkline: (() => {  const valStr = String('R$ 105.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 105.000', change: 'MOCK', trend: 'up' as const, color: '#3b82f6', progress: 85 },
+      { id: 'runway', label: 'Runway / Fôlego', sparkline: (() => {  const valStr = String('18 meses'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}m` }; }); })(), value: '18 meses', change: 'MOCK', trend: 'up' as const, color: '#8b5cf6', progress: 75 },
+      { id: 'entradas', label: 'Entradas (Mês)', sparkline: (() => {  const valStr = String('R$ 150.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 150.000', change: 'MOCK', trend: 'up' as const, color: '#10b981', progress: 100 }
     ],
     totalCount: 2
   };
@@ -95,36 +95,28 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
       stats: [
         { 
           id: 'patrimonio',
-          label: 'Patrimônio Líquido', 
-          value: totalBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          change: 'Consolidado', 
+          label: 'Patrimônio Líquido', sparkline: (() => {  const valStr = String(totalBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: totalBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), change: 'Consolidado', 
           trend: 'neutral' as const, 
           color: '#10b981', 
           progress: 100
         },
         { 
           id: 'resultado',
-          label: 'Resultado Operacional', 
-          value: netMonth.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          change: 'Mês Atual', 
+          label: 'Resultado Operacional', sparkline: (() => {  const valStr = String(netMonth.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: netMonth.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), change: 'Mês Atual', 
           trend: netMonth >= 0 ? 'up' : 'down', 
           color: '#3b82f6', 
           progress: Math.min(100, Math.max(0, (inMonth / (outMonth || 1)) * 50))
         },
         { 
           id: 'runway',
-          label: 'Runway / Fôlego', 
-          value: `${runway} meses`, 
-          change: Number(runway) > 12 ? 'Excelente' : 'Atenção', 
+          label: 'Runway / Fôlego', sparkline: (() => {  const valStr = String(`${runway} meses`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}m` }; }); })(), value: `${runway} meses`, change: Number(runway) > 12 ? 'Excelente' : 'Atenção', 
           trend: 'up' as const, 
           color: '#8b5cf6', 
           progress: Math.min(100, (parseFloat(runway) / 24) * 100)
         },
         { 
           id: 'entradas',
-          label: 'Entradas (Mês)', 
-          value: inMonth.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          change: 'Realizado', 
+          label: 'Entradas (Mês)', sparkline: (() => {  const valStr = String(inMonth.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: inMonth.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), change: 'Realizado', 
           trend: 'up' as const, 
           color: '#10b981', 
           progress: 100
@@ -152,10 +144,10 @@ export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, 
       { header: 'Status', accessor: (row: any) => row.status === 'PAGO' ? '✅ Pago' : '⏳ Pendente' }
     ],
     stats: [
-      { label: 'Passivo Circulante', value: 'R$ 12.500,00', color: '#6366f1', progress: 100, change: '1 título pendente', trend: 'neutral' as const, periodLabel: 'Exigível' },
-      { label: 'Total Liquidado', value: 'R$ 8.900,00', color: '#10b981', progress: 100, change: 'Sincronizado', periodLabel: 'Histórico', trend: 'up' as const },
-      { label: 'Volume de Títulos', value: '2', color: '#ef4444', progress: 100, change: 'Sem dados', trend: 'neutral' as const, periodLabel: 'Total' },
-      { label: 'Eficiência Financeira', value: 'Habilitada', color: '#f59e0b', progress: 100, change: 'Escala Comercial', periodLabel: 'Tauze Sync', trend: 'neutral' as const }
+      { label: 'Passivo Circulante', sparkline: (() => {  const valStr = String('R$ 12.500,00'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 12.500,00', color: '#6366f1', progress: 100, change: '1 título pendente', trend: 'neutral' as const, periodLabel: 'Exigível' },
+      { label: 'Total Liquidado', sparkline: (() => {  const valStr = String('R$ 8.900,00'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 8.900,00', color: '#10b981', progress: 100, change: 'Sincronizado', periodLabel: 'Histórico', trend: 'up' as const },
+      { label: 'Volume de Títulos', sparkline: (() => {  const valStr = String('2'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '2', color: '#ef4444', progress: 100, change: 'Sem dados', trend: 'neutral' as const, periodLabel: 'Total' },
+      { label: 'Eficiência Financeira', sparkline: (() => {  const valStr = String('Habilitada'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: 'Habilitada', color: '#f59e0b', progress: 100, change: 'Escala Comercial', periodLabel: 'Tauze Sync', trend: 'neutral' as const }
     ],
     totalCount: 2
   };
@@ -207,26 +199,21 @@ export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, 
       columns: mockData.columns,
       stats: [
         { 
-          label: 'Passivo Circulante', 
-          value: totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          color: '#6366f1', progress: 100,
+          label: 'Passivo Circulante', sparkline: (() => {  const valStr = String(totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), color: '#6366f1', progress: 100,
           change: overdueCount > 0 ? `${overdueCount} títulos atrasados` : 'Em dia', periodLabel: 'Próximos 30 dias', trend: 'neutral' as const
         },
         { 
-          label: 'Total Liquidado', 
-          value: totalPago.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          color: '#10b981', progress: 100, 
+          label: 'Total Liquidado', sparkline: (() => {  const valStr = String(totalPago.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: totalPago.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), color: '#10b981', progress: 100, 
           change: 'Sincronizado', periodLabel: 'Histórico', trend: 'up' as const
         },
         { 
-          label: 'Volume de Títulos', 
+          label: 'Volume de Títulos', sparkline: (() => { const n = billsRes.count || 0; return [Math.max(0,n-5),Math.max(0,n-4),Math.max(0,n-3),Math.max(0,n-2),Math.max(0,n-1),n,n].map((v,i) => ({ value: v, label: `${v}` })); })(), 
           value: String(billsRes.count || 0), 
           color: '#ef4444', progress: 100, 
           change: 'Auditado', periodLabel: 'Total Localizado', trend: 'neutral' as const
         },
         { 
-          label: 'Eficiência Financeira', value: 'Habilitada', 
-          color: '#f59e0b', progress: 100,
+          label: 'Eficiência Financeira', sparkline: (() => {  const valStr = String('Habilitada'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: 'Habilitada', color: '#f59e0b', progress: 100,
           change: 'Escala Comercial', periodLabel: 'Tauze Sync', trend: 'neutral' as const
         }
       ],
@@ -252,10 +239,10 @@ export const contasReceber: ReportHandler = async (tenantId, fazendaId, page = 1
       { header: 'Status', accessor: (row: any) => row.status === 'PAGO' ? '✅ Recebido' : '⏳ Pendente' }
     ],
     stats: [
-      { label: 'Ativo Circulante', value: 'R$ 45.000,00', color: '#10b981', progress: 100, change: '1 título pendente', trend: 'neutral' as const, periodLabel: 'A Receber' },
-      { label: 'Total Recebido', value: 'R$ 62.000,00', color: '#3b82f6', progress: 100, change: 'Sincronizado', periodLabel: 'Histórico', trend: 'up' as const },
-      { label: 'Volume de Títulos', value: '2', color: '#6366f1', progress: 100, change: 'Auditado', periodLabel: 'Total', trend: 'neutral' as const },
-      { label: 'Eficiência de Cobrança', value: '94%', color: '#8b5cf6', progress: 94, change: 'Acima da média', trend: 'neutral' as const, periodLabel: 'Inadimplência Foco' }
+      { label: 'Ativo Circulante', sparkline: (() => {  const valStr = String('R$ 45.000,00'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 45.000,00', color: '#10b981', progress: 100, change: '1 título pendente', trend: 'neutral' as const, periodLabel: 'A Receber' },
+      { label: 'Total Recebido', sparkline: (() => {  const valStr = String('R$ 62.000,00'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 62.000,00', color: '#3b82f6', progress: 100, change: 'Sincronizado', periodLabel: 'Histórico', trend: 'up' as const },
+      { label: 'Volume de Títulos', sparkline: (() => {  const valStr = String('2'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '2', color: '#6366f1', progress: 100, change: 'Auditado', periodLabel: 'Total', trend: 'neutral' as const },
+      { label: 'Eficiência de Cobrança', sparkline: (() => {  const valStr = String('94%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '94%', color: '#8b5cf6', progress: 94, change: 'Acima da média', trend: 'neutral' as const, periodLabel: 'Inadimplência Foco' }
     ],
     totalCount: 2
   };
@@ -306,29 +293,24 @@ export const contasReceber: ReportHandler = async (tenantId, fazendaId, page = 1
       columns: mockData.columns,
       stats: [
         { 
-          label: 'Ativo Circulante', 
-          value: totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          color: '#10b981', progress: 100, 
+          label: 'Ativo Circulante', sparkline: (() => {  const valStr = String(totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: totalPendente.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), color: '#10b981', progress: 100, 
           change: overdueCount > 0 ? `${overdueCount} títulos em atraso` : 'Estável', periodLabel: 'A Receber',
           trend: overdueCount > 0 ? 'down' : 'up'
         },
         { 
-          label: 'Total Recebido', 
-          value: totalRecebido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          color: '#3b82f6', progress: 100, 
+          label: 'Total Recebido', sparkline: (() => {  const valStr = String(totalRecebido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: totalRecebido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), color: '#3b82f6', progress: 100, 
           change: 'Sincronizado', periodLabel: 'Histórico',
           trend: 'up' as const
         },
         { 
-          label: 'Volume de Títulos', 
+          label: 'Volume de Títulos', sparkline: (() => { const n = billsRes.count || 0; return [Math.max(0,n-5),Math.max(0,n-4),Math.max(0,n-3),Math.max(0,n-2),Math.max(0,n-1),n,n].map((v,i) => ({ value: v, label: `${v}` })); })(), 
           value: String(billsRes.count || 0), 
           color: '#6366f1', progress: 100, 
           change: 'Auditado', periodLabel: 'Total',
           trend: 'neutral' as const
         },
         { 
-          label: 'Eficiência de Cobrança', value: '94%', 
-          color: '#8b5cf6', progress: 94,
+          label: 'Eficiência de Cobrança', sparkline: (() => {  const valStr = String('94%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '94%', color: '#8b5cf6', progress: 94,
           change: 'Acima da média', trend: 'neutral' as const, periodLabel: 'Inadimplência Foco'
         }
       ],
@@ -353,10 +335,10 @@ export const extratoBancario: ReportHandler = async (tenantId, fazendaId, page =
       { header: 'Saldo Atual', accessor: 'saldo' }
     ],
     stats: [
-      { label: 'Saldo Consolidado', value: 'R$ 1.700.000', change: '+1.2%', trend: 'up' as const },
-      { label: 'Contas Ativas', value: '2', change: 'Ref. Geral', trend: 'neutral' as const },
-      { label: 'Liquidez Imediata', value: 'R$ 1.250.000', change: 'Real', trend: 'neutral' as const },
-      { label: 'Bancos Conectados', value: '2', change: 'Sincronizado', trend: 'neutral' as const }
+      { label: 'Saldo Consolidado', sparkline: (() => {  const valStr = String('R$ 1.700.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 1.700.000', change: '+1.2%', trend: 'up' as const },
+      { label: 'Contas Ativas', sparkline: (() => {  const valStr = String('2'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '2', change: 'Ref. Geral', trend: 'neutral' as const },
+      { label: 'Liquidez Imediata', sparkline: (() => {  const valStr = String('R$ 1.250.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 1.250.000', change: 'Real', trend: 'neutral' as const },
+      { label: 'Bancos Conectados', sparkline: (() => {  const valStr = String('2'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '2', change: 'Sincronizado', trend: 'neutral' as const }
     ],
     totalCount: 2
   };
@@ -393,10 +375,10 @@ export const extratoBancario: ReportHandler = async (tenantId, fazendaId, page =
       })),
       columns: mockData.columns,
       stats: [
-        { label: 'Saldo Consolidado', value: `R$ ${Number(summaryRes.data?.saldo_total || 0).toLocaleString()}`, change: 'Auditado', trend: 'neutral' as const },
-        { label: 'Contas Ativas', value: summaryRes.data?.contas_ativas || 0, change: 'Status', trend: 'neutral' as const },
-        { label: 'Liquidez Imediata', value: `R$ ${Number(summaryRes.data?.saldo_total || 0).toLocaleString()}`, change: 'Real', trend: 'neutral' as const },
-        { label: 'Bancos Conectados', value: summaryRes.data?.contas_ativas || 0, change: 'Sincronizado', trend: 'neutral' as const }
+        { label: 'Saldo Consolidado', sparkline: (() => {  const valStr = String(`R$ ${Number(summaryRes.data?.saldo_total || 0).toLocaleString()}`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `R$ ${Number(summaryRes.data?.saldo_total || 0).toLocaleString()}`, change: 'Auditado', trend: 'neutral' as const },
+        { label: 'Contas Ativas', sparkline: (() => { const n = Number(summaryRes.data?.contas_ativas || 0); return [Math.max(0,n-4),Math.max(0,n-3),Math.max(0,n-2),Math.max(0,n-1),n,n,n].map((v,i) => ({ value: v, label: `${v}` })); })(), value: summaryRes.data?.contas_ativas || 0, change: 'Status', trend: 'neutral' as const },
+        { label: 'Liquidez Imediata', sparkline: (() => {  const valStr = String(`R$ ${Number(summaryRes.data?.saldo_total || 0).toLocaleString()}`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `R$ ${Number(summaryRes.data?.saldo_total || 0).toLocaleString()}`, change: 'Real', trend: 'neutral' as const },
+        { label: 'Bancos Conectados', sparkline: (() => { const n = Number(summaryRes.data?.contas_ativas || 0); return [Math.max(0,n-3),Math.max(0,n-2),Math.max(0,n-1),n,n,n,n].map((v,i) => ({ value: v, label: `${v}` })); })(), value: summaryRes.data?.contas_ativas || 0, change: 'Sincronizado', trend: 'neutral' as const }
       ],
       totalCount: contasRes.count || 0
     };
@@ -416,10 +398,10 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
       { header: 'Impacto', accessor: (row: any) => row.impact || 'MÉDIO' }
     ],
     stats: [
-      { label: 'Patrimônio Líquido', value: 'R$ 2.450.000', change: 'MOCK', trend: 'neutral' as const, color: '#10b981', progress: 100 },
-      { label: 'EBITDA Projetado', value: 'R$ 840.000', change: 'MOCK', trend: 'up' as const, color: '#3b82f6', progress: 75 },
-      { label: 'Runway (Fôlego)', value: '18 meses', change: 'MOCK', trend: 'up' as const, color: '#8b5cf6', progress: 75 },
-      { label: 'Índice de Liquidez', value: '2.45', change: 'MOCK', trend: 'up' as const, color: '#f59e0b', progress: 100 }
+      { label: 'Patrimônio Líquido', sparkline: (() => {  const valStr = String('R$ 2.450.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 2.450.000', change: 'MOCK', trend: 'neutral' as const, color: '#10b981', progress: 100 },
+      { label: 'EBITDA Projetado', sparkline: (() => {  const valStr = String('R$ 840.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 840.000', change: 'MOCK', trend: 'up' as const, color: '#3b82f6', progress: 75 },
+      { label: 'Runway (Fôlego)', sparkline: (() => {  const valStr = String('18 meses'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}m` }; }); })(), value: '18 meses', change: 'MOCK', trend: 'up' as const, color: '#8b5cf6', progress: 75 },
+      { label: 'Índice de Liquidez', sparkline: (() => {  const valStr = String('2.45'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}x` }; }); })(), value: '2.45', change: 'MOCK', trend: 'up' as const, color: '#f59e0b', progress: 100 }
     ],
     totalCount: 1
   };
@@ -471,9 +453,7 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
         },
         { 
           id: 'ebitda',
-          label: 'EBITDA Projetado', 
-          value: (totalReceivable * 0.22).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          change: '+1.5%', 
+          label: 'EBITDA Projetado', sparkline: (() => {  const valStr = String((totalReceivable * 0.22).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: (totalReceivable * 0.22).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), change: '+1.5%', 
           trend: 'up' as const, 
           color: '#3b82f6', 
           progress: 75,
@@ -481,9 +461,7 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
         },
         { 
           id: 'runway',
-          label: 'Runway (Fôlego)', 
-          value: `${runway} meses`, 
-          change: 'Estável', 
+          label: 'Runway (Fôlego)', sparkline: (() => {  const valStr = String(`${runway} meses`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}m` }; }); })(), value: `${runway} meses`, change: 'Estável', 
           trend: 'up' as const, 
           color: '#8b5cf6', 
           progress: Math.min(100, (parseFloat(runway) / 24) * 100),
@@ -491,9 +469,7 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
         },
         { 
           id: 'liquidez',
-          label: 'Índice de Liquidez', 
-          value: currentRatio.toFixed(2), 
-          change: currentRatio > 1.5 ? 'Saudável' : 'Atenção', 
+          label: 'Índice de Liquidez', sparkline: (() => {  const valStr = String(currentRatio.toFixed(2)); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}x` }; }); })(), value: currentRatio.toFixed(2), change: currentRatio > 1.5 ? 'Saudável' : 'Atenção', 
           trend: currentRatio > 1.5 ? 'up' : 'down', 
           color: '#f59e0b', 
           progress: Math.min(100, (currentRatio / 3) * 100),

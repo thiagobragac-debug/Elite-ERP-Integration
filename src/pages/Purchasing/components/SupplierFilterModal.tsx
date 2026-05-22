@@ -54,7 +54,7 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
               <Building2 size={20} />
             </div>
             <div>
-              <h3>Filtros de Fornecedores</h3>
+              <h3>Filtros de Parceiroes</h3>
               <p>Auditoria de performance e homologação.</p>
             </div>
           </div>

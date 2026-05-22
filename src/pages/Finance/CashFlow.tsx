@@ -344,7 +344,7 @@ export const CashFlow: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wallet} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wallet} color=""  periodLabel="Mês Atual" />)
         ) : reportStats?.map((stat: any, idx: number) => (
           <TauzeStatCard 
             key={idx}

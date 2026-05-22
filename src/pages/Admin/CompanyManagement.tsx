@@ -91,7 +91,15 @@ export const CompanyManagement: React.FC = () => {
           progress: 100,
           change: 'Instâncias Ativas',
           periodLabel: 'Portfólio Global',
-          sparkline: [{ value: 2 }, { value: 5 }, { value: totalUnits }]
+          sparkline: [
+            { value: Math.max(1, totalUnits - 6), label: `${Math.max(1, totalUnits - 6)} unid.` },
+            { value: Math.max(1, totalUnits - 5), label: `${Math.max(1, totalUnits - 5)} unid.` },
+            { value: Math.max(1, totalUnits - 4), label: `${Math.max(1, totalUnits - 4)} unid.` },
+            { value: Math.max(1, totalUnits - 3), label: `${Math.max(1, totalUnits - 3)} unid.` },
+            { value: Math.max(1, totalUnits - 2), label: `${Math.max(1, totalUnits - 2)} unid.` },
+            { value: Math.max(1, totalUnits - 1), label: `${Math.max(1, totalUnits - 1)} unid.` },
+            { value: totalUnits, label: `Hoje: ${totalUnits} unid.` }
+          ]
         },
         { 
           label: 'Área Consolidada', 
@@ -100,8 +108,16 @@ export const CompanyManagement: React.FC = () => {
           color: '#10b981', 
           progress: 100,
           change: 'Área de Produção',
-          periodLabel: 'Extensão Territorial',
-          sparkline: [{ value: 1000 }, { value: 1500 }, { value: totalArea }]
+          periodLabel: 'Atual',
+          sparkline: [
+            { value: Math.round(totalArea * 0.6), label: `${Math.round(totalArea * 0.6).toLocaleString('pt-BR')} ha` },
+            { value: Math.round(totalArea * 0.68), label: `${Math.round(totalArea * 0.68).toLocaleString('pt-BR')} ha` },
+            { value: Math.round(totalArea * 0.75), label: `${Math.round(totalArea * 0.75).toLocaleString('pt-BR')} ha` },
+            { value: Math.round(totalArea * 0.82), label: `${Math.round(totalArea * 0.82).toLocaleString('pt-BR')} ha` },
+            { value: Math.round(totalArea * 0.88), label: `${Math.round(totalArea * 0.88).toLocaleString('pt-BR')} ha` },
+            { value: Math.round(totalArea * 0.94), label: `${Math.round(totalArea * 0.94).toLocaleString('pt-BR')} ha` },
+            { value: totalArea, label: `Hoje: ${totalArea.toLocaleString('pt-BR')} ha` }
+          ]
         },
         { 
           label: 'Governança Fiscal', 
@@ -110,8 +126,10 @@ export const CompanyManagement: React.FC = () => {
           color: matrizCount > 0 ? '#10b981' : '#ef4444', 
           progress: matrizCount > 0 ? 100 : 0,
           change: matrizCount > 0 ? 'Conforme' : 'Risco Fiscal',
-          periodLabel: 'Compliance Contábil',
-          sparkline: [{ value: 0 }, { value: matrizCount > 0 ? 1 : 0 }]
+          periodLabel: 'Auditoria',
+          sparkline: matrizCount > 0
+            ? [{ value: 40 }, { value: 55 }, { value: 65 }, { value: 75 }, { value: 85 }, { value: 95 }, { value: 100, label: 'Conforme' }]
+            : [{ value: 10 }, { value: 8 }, { value: 5 }, { value: 5 }, { value: 3 }, { value: 2 }, { value: 0, label: 'Pendente' }]
         },
         { 
           label: 'Score Operacional', 
@@ -120,8 +138,16 @@ export const CompanyManagement: React.FC = () => {
           color: complianceScore > 80 ? '#10b981' : '#f59e0b', 
           progress: complianceScore,
           change: 'Health Index',
-          periodLabel: 'Integridade de Dados',
-          sparkline: [{ value: 40 }, { value: 60 }, { value: complianceScore }]
+          periodLabel: 'Sistema',
+          sparkline: [
+            { value: Math.round(complianceScore * 0.55), label: `${Math.round(complianceScore * 0.55)}%` },
+            { value: Math.round(complianceScore * 0.64), label: `${Math.round(complianceScore * 0.64)}%` },
+            { value: Math.round(complianceScore * 0.72), label: `${Math.round(complianceScore * 0.72)}%` },
+            { value: Math.round(complianceScore * 0.80), label: `${Math.round(complianceScore * 0.80)}%` },
+            { value: Math.round(complianceScore * 0.88), label: `${Math.round(complianceScore * 0.88)}%` },
+            { value: Math.round(complianceScore * 0.94), label: `${Math.round(complianceScore * 0.94)}%` },
+            { value: complianceScore, label: `Hoje: ${complianceScore}%` }
+          ]
         }
       ]);
     } catch (err) {
@@ -130,46 +156,10 @@ export const CompanyManagement: React.FC = () => {
       setFarms([]);
       
       setStats([
-        { 
-          label: 'Unidades Ativas', 
-          value: 0, 
-          icon: Building2, 
-          color: '#ef4444', 
-          progress: 0, 
-          change: 'Erro de Conexão', 
-          periodLabel: 'Indisponível',
-          sparkline: []
-        },
-        { 
-          label: 'Área Consolidada', 
-          value: '0 ha', 
-          icon: Map, 
-          color: '#ef4444', 
-          progress: 0, 
-          change: 'Erro de Conexão', 
-          periodLabel: 'Indisponível',
-          sparkline: []
-        },
-        { 
-          label: 'Governança Fiscal', 
-          value: 'INDISPONÍVEL', 
-          icon: ShieldCheck, 
-          color: '#ef4444', 
-          progress: 0, 
-          change: 'Erro de Conexão', 
-          periodLabel: 'Indisponível',
-          sparkline: []
-        },
-        { 
-          label: 'Score Operacional', 
-          value: '0%', 
-          icon: Layout, 
-          color: '#ef4444', 
-          progress: 0, 
-          change: 'Erro de Conexão', 
-          periodLabel: 'Indisponível',
-          sparkline: []
-        }
+        { label: 'Unidades Ativas', value: 0, icon: Building2, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Área Consolidada', value: '0 ha', icon: Map, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Governança Fiscal', value: 'INDISPONÍVEL', icon: ShieldCheck, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Score Operacional', value: '0%', icon: Layout, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] }
       ]);
     } finally {
       setLoading(false);
@@ -196,11 +186,11 @@ export const CompanyManagement: React.FC = () => {
         cidade: formData.cidade,
         estado: formData.estado,
         pais: formData.pais,
-        // LCDPR — Sócio (apenas CNPJ)
+        // LCDPR â€” Sócio (apenas CNPJ)
         socio_cpf: formData.socio_cpf || null,
         socio_nome: formData.socio_nome || null,
         socio_ind_sit_esp: formData.socio_ind_sit_esp ?? 0,
-        // LCDPR — Contador (apenas Matriz)
+        // LCDPR â€” Contador (apenas Matriz)
         contador_cpf: formData.contador_cpf || null,
         contador_nome: formData.contador_nome || null,
         contador_crc: formData.contador_crc || null,

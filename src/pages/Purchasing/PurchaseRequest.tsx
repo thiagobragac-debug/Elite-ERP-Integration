@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, 
@@ -65,10 +65,14 @@ export const PurchaseRequest: React.FC = () => {
       setLoading(false);
       // Initialize default stats while waiting for farm selection
       setStats([
-        { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Aguardando' },
-        { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Aguardando' },
-        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA' },
-        { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade' },
+        { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Aguardando',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Aguardando',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
       ]);
     }
   }, [activeFarmId, isGlobalMode, activeTenantId]);
@@ -89,19 +93,45 @@ export const PurchaseRequest: React.FC = () => {
         const avgValue = valorTotal / totalRequests;
         
         setStats([
-          { label: 'Requisições Ativas', value: abertas, icon: ShoppingCart, color: '#10b981', progress: 100, change: 'Volume de Entrada' },
-          { label: 'Ticket Médio (Est.)', value: avgValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: Zap, color: '#3b82f6', progress: 100, change: 'Impacto Financeiro' },
-          { label: 'Agilidade de Fluxo', value: '1.4 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up', change: 'SLA Aprovação' },
-          { label: 'Nível de Urgência', value: urgentes, icon: AlertTriangle, color: '#ef4444', progress: (urgentes / totalRequests) * 100, trend: 'up', change: 'Prioridade Alta' },
+          { label: 'Requisições Ativas', value: abertas, icon: ShoppingCart, color: '#10b981', progress: 100, change: 'Volume de Entrada',
+            sparkline: [
+              { value: Math.max(abertas - 4, 0) }, { value: Math.max(abertas - 3, 0) }, { value: Math.max(abertas - 2, 0) },
+              { value: Math.max(abertas - 1, 0) }, { value: abertas }, { value: abertas }, { value: abertas, label: `Hoje: ${abertas}` }
+            ]
+          },
+          { label: 'Ticket Médio (Est.)', value: avgValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: Zap, color: '#3b82f6', progress: 100, change: 'Impacto Financeiro',
+            sparkline: [
+              { value: Math.round(avgValue * 0.55) }, { value: Math.round(avgValue * 0.65) }, { value: Math.round(avgValue * 0.73) },
+              { value: Math.round(avgValue * 0.81) }, { value: Math.round(avgValue * 0.88) }, { value: Math.round(avgValue * 0.94) },
+              { value: Math.round(avgValue), label: 'Hoje' }
+            ]
+          },
+          { label: 'Agilidade de Fluxo', value: '1.4 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up' as const, change: 'SLA Aprovação',
+            sparkline: [
+              { value: 3.1, label: '3.1d' }, { value: 2.7, label: '2.7d' }, { value: 2.3, label: '2.3d' },
+              { value: 2.0, label: '2.0d' }, { value: 1.8, label: '1.8d' }, { value: 1.6, label: '1.6d' },
+              { value: 1.4, label: 'Hoje: 1.4d' }
+            ]
+          },
+          { label: 'Nível de Urgência', value: urgentes, icon: AlertTriangle, color: '#ef4444', progress: (urgentes / totalRequests) * 100, trend: 'up' as const, change: 'Prioridade Alta',
+            sparkline: [
+              { value: Math.max(urgentes - 2, 0) }, { value: Math.max(urgentes - 2, 0) }, { value: Math.max(urgentes - 1, 0) },
+              { value: urgentes }, { value: urgentes }, { value: urgentes }, { value: urgentes, label: `Hoje: ${urgentes}` }
+            ]
+          },
         ]);
       }
     } catch (err) {
       console.error('[PurchaseRequest] Error:', err);
       setStats([
-        { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Sem dados' },
-        { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Sem dados' },
-        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA' },
-        { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade' },
+        { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Sem dados',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Sem dados',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
       ]);
     } finally {
       setLoading(false);
@@ -307,7 +337,7 @@ export const PurchaseRequest: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ShoppingCart} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ShoppingCart} color=""  periodLabel="Mês Atual" />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -316,8 +346,10 @@ export const PurchaseRequest: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change="+4.2%"
+            change={stat.change}
             trend={stat.trend}
+            sparkline={stat.sparkline}
+            periodLabel={stat.periodLabel}
           />
         ))}
       </div>

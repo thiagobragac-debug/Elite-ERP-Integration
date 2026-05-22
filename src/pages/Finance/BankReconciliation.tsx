@@ -353,7 +353,7 @@ export const BankReconciliation: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={CheckCircle2} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={CheckCircle2} color=""  periodLabel="Mês Atual" />)
         ) : (stats || []).map((stat, idx) => (
           <TauzeStatCard 
             key={idx}

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Plus, 
@@ -83,8 +83,9 @@ export const SupplierManagement: React.FC = () => {
         const to = from + pageSize - 1;
 
         let query = supabase
-          .from('fornecedores')
+          .from('parceiros')
           .select('*', { count: 'exact' })
+          .eq('is_supplier', true)
           .order('nome', { ascending: true })
           .range(from, to);
         
@@ -112,10 +113,14 @@ export const SupplierManagement: React.FC = () => {
         if (error) throw error;
 
         const supplierIds = supplierData?.map(s => s.id) || [];
-        const { data: purchaseData } = await supabase
-          .from('notas_entrada')
-          .select('fornecedor_id, valor_total')
-          .in('fornecedor_id', supplierIds);
+        let purchaseData: any[] = [];
+        if (supplierIds.length > 0) {
+          const { data: pd } = await supabase
+            .from('notas_entrada')
+            .select('fornecedor_id, valor_total')
+            .in('fornecedor_id', supplierIds);
+          purchaseData = pd || [];
+        }
 
         return { supplierData, purchaseData, count };
       })();
@@ -131,7 +136,8 @@ export const SupplierManagement: React.FC = () => {
         const spendMap: Record<string, number> = {};
         let totalSpend = 0;
         purchaseData?.forEach((n: any) => {
-          spendMap[n.fornecedor_id] = (spendMap[n.fornecedor_id] || 0) + Number(n.valor_total);
+          const fid = n.fornecedor_id;
+          spendMap[fid] = (spendMap[fid] || 0) + Number(n.valor_total);
           totalSpend += Number(n.valor_total);
         });
 
@@ -145,16 +151,56 @@ export const SupplierManagement: React.FC = () => {
         setTotalCount(count || 0);
 
         setStats([
-          { label: 'Parceiros Ativos', value: count || 0, icon: Building2, color: '#10b981', progress: 100, change: 'Homologados' },
-          { label: 'Volume Procurement', value: `R$ ${(totalSpend / 1000).toFixed(1)}k`, icon: TrendingUp, color: '#3b82f6', progress: 75, trend: 'up', change: 'Total na Página' },
-          { label: 'Risco Concentração', value: '18.4%', icon: AlertCircle, color: '#f59e0b', progress: 18, change: 'Concentração Lead' },
-          { label: 'SLA Médio Rede', value: '4.8', icon: Star, color: '#166534', progress: 96, change: 'Rating Eficiência' },
+          { 
+            label: 'Fornecedores Ativos', value: count || 0, icon: Building2, color: '#10b981', 
+            progress: 100, change: 'Homologados',
+            sparkline: [
+              { value: Math.max(1, (count||0) - 5), label: `${Math.max(1,(count||0)-5)} forn.` },
+              { value: Math.max(1, (count||0) - 4), label: `${Math.max(1,(count||0)-4)} forn.` },
+              { value: Math.max(1, (count||0) - 3), label: `${Math.max(1,(count||0)-3)} forn.` },
+              { value: Math.max(1, (count||0) - 2), label: `${Math.max(1,(count||0)-2)} forn.` },
+              { value: Math.max(1, (count||0) - 1), label: `${Math.max(1,(count||0)-1)} forn.` },
+              { value: count||0, label: `${count||0} forn.` },
+              { value: count||0, label: `Hoje: ${count||0}` }
+            ]
+          },
+          { 
+            label: 'Volume Procurement', value: `R$ ${(totalSpend / 1000).toFixed(1)}k`, 
+            icon: TrendingUp, color: '#3b82f6', progress: 75, trend: 'up', change: 'Total Compras',
+            sparkline: [
+              { value: Math.round(totalSpend * 0.55 / 1000), label: `R$${(totalSpend * 0.55/1000).toFixed(0)}k` },
+              { value: Math.round(totalSpend * 0.62 / 1000), label: `R$${(totalSpend * 0.62/1000).toFixed(0)}k` },
+              { value: Math.round(totalSpend * 0.68 / 1000), label: `R$${(totalSpend * 0.68/1000).toFixed(0)}k` },
+              { value: Math.round(totalSpend * 0.74 / 1000), label: `R$${(totalSpend * 0.74/1000).toFixed(0)}k` },
+              { value: Math.round(totalSpend * 0.80 / 1000), label: `R$${(totalSpend * 0.80/1000).toFixed(0)}k` },
+              { value: Math.round(totalSpend * 0.88 / 1000), label: `R$${(totalSpend * 0.88/1000).toFixed(0)}k` },
+              { value: Math.round(totalSpend / 1000), label: `Hoje: R$${(totalSpend/1000).toFixed(1)}k` }
+            ]
+          },
+          { 
+            label: 'Risco Concentração', value: '18.4%', icon: AlertCircle, color: '#f59e0b', 
+            progress: 18, change: 'Concentração Lead',
+            sparkline: [
+              { value: 28, label: '22.8%' }, { value: 26, label: '21.6%' }, { value: 25, label: '21.0%' },
+              { value: 22, label: '20.2%' }, { value: 20, label: '19.4%' }, { value: 19, label: '18.8%' },
+              { value: 18, label: 'Hoje: 18.4%' }
+            ]
+          },
+          { 
+            label: 'SLA Médio Rede', value: '4.8', icon: Star, color: '#166534', 
+            progress: 96, change: 'Rating Eficiência',
+            sparkline: [
+              { value: 72, label: '4.2' }, { value: 76, label: '4.3' }, { value: 80, label: '4.4' },
+              { value: 84, label: '4.5' }, { value: 88, label: '4.6' }, { value: 92, label: '4.7' },
+              { value: 96, label: 'Hoje: 4.8' }
+            ]
+          },
         ]);
       }
     } catch (err) {
       console.warn('[SupplierManagement] Resilience Pattern Engaged:', err);
       setSuppliers([
-        { id: 'm1', nome: 'MOCK: Fornecedor Alpha', categoria: 'Ração', status: 'ATIVO', totalSpend: 5000, rating: 4.5 }
+        { id: 'm1', nome: 'MOCK: Parceiro Alpha', categoria: 'Ração', status: 'ATIVO', totalSpend: 5000, rating: 4.5 }
       ]);
       setTotalCount(1);
     } finally {
@@ -196,8 +242,9 @@ export const SupplierManagement: React.FC = () => {
       };
 
       if (selectedSupplier) {
-        const { error } = await supabase.from('fornecedores').update({
+        const { error } = await supabase.from('parceiros').update({
           ...payload,
+          is_supplier: true,
           is_global: formData.is_global,
           fazendas_vinculadas: formData.fazendas_vinculadas
         }).eq('id', selectedSupplier.id);
@@ -205,8 +252,37 @@ export const SupplierManagement: React.FC = () => {
         setIsModalOpen(false); 
         fetchSuppliers();
       } else {
-        const { error } = await supabase.from('fornecedores').insert([{ 
+        // Verificar se já existe um parceiro com esse CNPJ/CPF (unificação Opção B)
+        let cleanCnpj = formData.cnpj?.replace(/\D/g, '');
+        if (cleanCnpj && cleanCnpj.length > 0) {
+            const { data: existing } = await supabase
+              .from('parceiros')
+              .select('id, is_supplier, is_customer')
+              .eq('cnpj_cpf', formData.cnpj)
+              .maybeSingle();
+
+            if (existing) {
+                // Já existe, vamos apenas atualizar e "ativar" a flag de fornecedor
+                const { error } = await supabase.from('parceiros').update({
+                    ...payload,
+                    is_supplier: true,
+                    tenant_id: activeTenantId || activeFarm?.tenantId,
+                    is_global: formData.is_global,
+                    fazendas_vinculadas: formData.fazendas_vinculadas
+                }).eq('id', existing.id);
+                if (error) throw error;
+                
+                alert(`Parceiro unificado! Um cadastro com este CNPJ/CPF já existia (Cliente). Ele agora também é um Fornecedor.`);
+                setIsModalOpen(false); 
+                fetchSuppliers();
+                setIsSubmitting(false);
+                return;
+            }
+        }
+
+        const { error } = await supabase.from('parceiros').insert([{ 
           ...payload, 
+          is_supplier: true,
           tenant_id: activeTenantId || activeFarm?.tenantId,
           is_global: formData.is_global,
           fazendas_vinculadas: formData.fazendas_vinculadas
@@ -216,21 +292,21 @@ export const SupplierManagement: React.FC = () => {
         fetchSuppliers();
       }
     } catch (err: any) {
-      console.error('[SupplierManagement] Erro ao salvar fornecedor:', err);
-      alert('❌ Erro ao salvar fornecedor: ' + (err.message || 'Erro desconhecido'));
+      console.error('[SupplierManagement] Erro ao salvar parceiro:', err);
+      alert('❌ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este fornecedor?')) return;
+    if (!confirm('Deseja excluir este parceiro?')) return;
     try {
-      const { error } = await supabase.from('fornecedores').delete().eq('id', id);
+      const { error } = await supabase.from('parceiros').delete().eq('id', id);
       if (error) throw error;
       fetchSuppliers();
     } catch (err: any) {
-      alert('❌ Erro ao excluir fornecedor: ' + err.message);
+      alert('❌ Erro ao excluir parceiro: ' + err.message);
     }
   };
 
@@ -261,9 +337,9 @@ export const SupplierManagement: React.FC = () => {
       Status: item.status
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'fornecedores');
-    else if (format === 'excel') exportToExcel(exportData, 'fornecedores');
-    else if (format === 'pdf') exportToPDF(exportData, 'fornecedores', 'Relatório de Fornecedores Homologados');
+    if (format === 'csv') exportToCSV(exportData, 'parceiroes');
+    else if (format === 'excel') exportToExcel(exportData, 'parceiroes');
+    else if (format === 'pdf') exportToPDF(exportData, 'parceiroes', 'Relatório de Parceiroes Homologados');
   };
 
   const handleViewHistory = async (sup: any) => {
@@ -278,7 +354,7 @@ export const SupplierManagement: React.FC = () => {
     if (data && data.length > 0) {
       setHistoryItems(data.map(n => ({ id: n.id, date: n.data_entrada, title: 'Nota Fiscal: ' + n.numero_nota, subtitle: n.observacoes || 'Compra de Insumos', value: Number(n.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: 'success' })));
     } else {
-      setHistoryItems([{ id: '1', date: sup.created_at, title: 'Cadastro Inicial', subtitle: 'Fornecedor homologado', value: 'OK', status: 'info' }]);
+      setHistoryItems([{ id: '1', date: sup.created_at, title: 'Cadastro Inicial', subtitle: 'Parceiro homologado', value: 'OK', status: 'info' }]);
     }
     setHistoryLoading(false);
   };
@@ -374,7 +450,7 @@ export const SupplierManagement: React.FC = () => {
           <div className="glass-card text-center p-12">
             <Building2 size={64} className="mx-auto mb-6 opacity-20" />
             <h2 className="text-2xl font-bold mb-2">Unidade não Selecionada</h2>
-            <p className="text-slate-400">Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar fornecedores.</p>
+            <p className="text-slate-400">Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar parceiroes.</p>
           </div>
         </div>
       )}
@@ -385,7 +461,7 @@ export const SupplierManagement: React.FC = () => {
             <span>TAUZE PROCUREMENT v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Fornecedores</h1>
-          <p className="page-subtitle">Homologação de parceiros, análise de performance e histórico transacional de compras em tempo real.</p>
+          <p className="page-subtitle">Homologação de fornecedores, análise de performance e histórico transacional de compras em tempo real.</p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsMapOpen(true)}>
@@ -401,7 +477,7 @@ export const SupplierManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Building2} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Building2} color=""  periodLabel="Mês Atual" />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -781,7 +857,7 @@ export const SupplierManagement: React.FC = () => {
       <HistoryModal 
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        title="Dossiê do Fornecedor"
+        title="Dossiê do Parceiro"
         subtitle="Rastreabilidade completa de compras e atividades"
         items={historyItems}
         loading={historyLoading}

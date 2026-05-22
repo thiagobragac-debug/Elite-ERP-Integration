@@ -138,7 +138,7 @@ function AppContent() {
     <Router>
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
       <React.Suspense fallback={<div style={{padding: '2rem'}}>Carregando módulo Tauze...</div>}>
-        <Routes>
+        <React.Suspense fallback={<div className="loading-overlay" style={{display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--primary)"}}>Carregando módulo...</div>}><React.Suspense fallback={<div className="loading-overlay" style={{display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--primary)"}}>Carregando módulo...</div>}><Routes>
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
           <Route path="/mfa-enroll" element={isAuthenticated ? <MFAEnroll /> : <Navigate to="/login" replace />} />
           
@@ -206,10 +206,10 @@ function AppContent() {
             <Route path="compras/cotacao" element={<QuotationMap />} />
             <Route path="compras/pedido" element={<PurchaseOrder />} />
             <Route path="compras/nota" element={<EntryInvoice />} />
-            <Route path="compras/fornecedores" element={<SupplierManagement />} />
+            <Route path="compras/parceiroes" element={<SupplierManagement />} />
             
             <Route path="vendas/dashboard" element={<SalesDashboard />} />
-            <Route path="vendas/clientes" element={<ClientManagement />} />
+            <Route path="vendas/parceiros" element={<ClientManagement />} />
             <Route path="vendas/pedido" element={<SalesOrders />} />
             <Route path="vendas/contrato" element={<Contracts />} />
             <Route path="vendas/notas" element={<Invoices />} />
@@ -219,7 +219,7 @@ function AppContent() {
           </Route>
 
           <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
-        </Routes>
+        </Routes></React.Suspense></React.Suspense>
       </React.Suspense>
     </Router>
   );

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../contexts/TenantContext';
 import { X, Target, Bell, AlertTriangle } from 'lucide-react';
@@ -46,7 +47,7 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({ isOpen, onClos
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div className="modal-overlay">
         <motion.div 
@@ -143,6 +144,7 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({ isOpen, onClos
           </form>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 };

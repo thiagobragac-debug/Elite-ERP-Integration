@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, 
   TrendingUp, 
@@ -41,10 +41,14 @@ export const PurchasingDashboard: React.FC = () => {
   const [topSuppliers, setTopSuppliers] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Saving Acumulado', value: 'R$ 0,00', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' },
-    { label: 'Exposição de Caixa', value: 'R$ 0,0k', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...' },
-    { label: 'Agilidade de Fluxo', value: '0.0 dias', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...' },
-    { label: 'Acuracidade Orç.', value: '0.0%', icon: Target, color: '#166534', progress: 0, change: 'Auditando...' }
+    { label: 'Saving Acumulado', value: 'R$ 0,00', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' as const,
+      sparkline: [0,0,0,0,0,0,0].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+    { label: 'Exposição de Caixa', value: 'R$ 0,0k', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...',
+      sparkline: [0,0,0,0,0,0,0].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+    { label: 'Agilidade de Fluxo', value: '0.0 dias', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...',
+      sparkline: [0,0,0,0,0,0,0].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+    { label: 'Acuracidade Orç.', value: '0.0%', icon: Target, color: '#166534', progress: 0, change: 'Auditando...',
+      sparkline: [0,0,0,0,0,0,0].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) }
   ]);
 
   useEffect(() => {
@@ -69,7 +73,7 @@ export const PurchasingDashboard: React.FC = () => {
       const fetchPromise = (async () => {
         let requestsQuery = supabase.from('solicitacoes_compra').select('id, titulo, departamento, valor_estimado, status, prioridade').order('created_at', { ascending: false }).limit(500);
         let quotationsQuery = supabase.from('mapas_cotacao').select('dados_fornecedores').order('created_at', { ascending: false }).limit(500);
-        let ordersQuery = supabase.from('pedidos_compra').select('valor_total, status, fornecedores(nome)').order('created_at', { ascending: false }).limit(500);
+        let ordersQuery = supabase.from('pedidos_compra').select('valor_total, status, fornecedor_id').order('created_at', { ascending: false }).limit(500);
         let invoicesQuery = supabase.from('notas_entrada').select('id').limit(500);
 
         requestsQuery = applyFarmFilter(requestsQuery);
@@ -130,10 +134,36 @@ export const PurchasingDashboard: React.FC = () => {
         const pendingValue = orders.filter((o: any) => o.status !== 'received').reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
 
         setStats([
-          { label: 'Saving Acumulado', value: `R$ ${totalSaving.toLocaleString('pt-BR')}`, icon: TrendingDown, color: '#10b981', progress: 100, change: 'Economia Real', trend: 'down' },
-          { label: 'Exposição de Caixa', value: `R$ ${(pendingValue / 1000).toFixed(1)}k`, icon: DollarSign, color: '#3b82f6', progress: (pendingValue / (totalSpend || 1)) * 100, change: 'Pedidos Abertos' },
-          { label: 'Agilidade de Fluxo', value: '1.8 dias', icon: Clock, color: '#f59e0b', progress: 85, change: 'SLA Aprovação' },
-          { label: 'Acuracidade Orç.', value: '96.4%', icon: Target, color: '#166534', progress: 96, change: 'Real vs Planejado' }
+          { label: 'Saving Acumulado', value: `R$ ${totalSaving.toLocaleString('pt-BR')}`, icon: TrendingDown, color: '#10b981', progress: 100, change: 'Economia Real', trend: 'down' as const,
+            sparkline: [
+              { value: Math.round(totalSaving * 0.45) }, { value: Math.round(totalSaving * 0.55) },
+              { value: Math.round(totalSaving * 0.65) }, { value: Math.round(totalSaving * 0.75) },
+              { value: Math.round(totalSaving * 0.85) }, { value: Math.round(totalSaving * 0.92) },
+              { value: Math.round(totalSaving), label: 'Hoje' }
+            ]
+          },
+          { label: 'Exposição de Caixa', value: `R$ ${(pendingValue / 1000).toFixed(1)}k`, icon: DollarSign, color: '#3b82f6', progress: (pendingValue / (totalSpend || 1)) * 100, change: 'Pedidos Abertos',
+            sparkline: [
+              { value: Math.round(pendingValue * 0.50) }, { value: Math.round(pendingValue * 0.60) },
+              { value: Math.round(pendingValue * 0.70) }, { value: Math.round(pendingValue * 0.78) },
+              { value: Math.round(pendingValue * 0.86) }, { value: Math.round(pendingValue * 0.93) },
+              { value: Math.round(pendingValue), label: 'Hoje' }
+            ]
+          },
+          { label: 'Agilidade de Fluxo', value: '1.8 dias', icon: Clock, color: '#f59e0b', progress: 85, change: 'SLA Aprovação',
+            sparkline: [
+              { value: 3.2, label: '3.2d' }, { value: 2.8, label: '2.8d' }, { value: 2.5, label: '2.5d' },
+              { value: 2.2, label: '2.2d' }, { value: 2.0, label: '2.0d' }, { value: 1.9, label: '1.9d' },
+              { value: 1.8, label: 'Hoje: 1.8d' }
+            ]
+          },
+          { label: 'Acuracidade Orç.', value: '96.4%', icon: Target, color: '#166534', progress: 96, change: 'Real vs Planejado',
+            sparkline: [
+              { value: 91, label: '91%' }, { value: 92, label: '92%' }, { value: 93, label: '93%' },
+              { value: 94, label: '94%' }, { value: 95, label: '95%' }, { value: 96, label: '96%' },
+              { value: 96.4, label: 'Hoje: 96.4%' }
+            ]
+          }
         ]);
 
         setRecentRequests(requests.slice(0, 5).map((r: any) => ({
@@ -146,8 +176,15 @@ export const PurchasingDashboard: React.FC = () => {
         })));
 
         const supMap: Record<string, number> = {};
+        // Buscar nomes dos fornecedores separadamente
+        const fornecedorIds = [...new Set(orders.map((o: any) => o.fornecedor_id).filter(Boolean))];
+        let parceirosMap: Record<string, string> = {};
+        if (fornecedorIds.length > 0) {
+          const { data: parceirosData } = await supabase.from('parceiros').select('id, nome').in('id', fornecedorIds);
+          if (parceirosData) parceirosData.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
+        }
         orders.forEach((o: any) => {
-          const name = o.fornecedores?.nome || 'N/A';
+          const name = parceirosMap[o.fornecedor_id] || 'N/A';
           supMap[name] = (supMap[name] || 0) + Number(o.valor_total || 0);
         });
         setTopSuppliers(Object.entries(supMap)
@@ -164,15 +201,19 @@ export const PurchasingDashboard: React.FC = () => {
         { name: 'Recebidos', value: 3, color: '#166534' }
       ]);
       setStats([
-        { label: 'Saving Acumulado', value: 'R$ 42.500', icon: TrendingDown, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', trend: 'down' },
-        { label: 'Exposição de Caixa', value: 'R$ 150k', icon: DollarSign, color: '#3b82f6', progress: 65, change: 'MOCK ACTIVE' },
-        { label: 'Agilidade de Fluxo', value: '2.1 dias', icon: Clock, color: '#f59e0b', progress: 85, change: 'MOCK ACTIVE' },
-        { label: 'Acuracidade Orç.', value: '94.5%', icon: Target, color: '#166534', progress: 96, change: 'MOCK ACTIVE' }
+        { label: 'Saving Acumulado', value: 'R$ 42.500', icon: TrendingDown, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', trend: 'down' as const,
+          sparkline: [19125,23375,28900,33200,37800,40800,42500].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+        { label: 'Exposição de Caixa', value: 'R$ 150k', icon: DollarSign, color: '#3b82f6', progress: 65, change: 'MOCK ACTIVE',
+          sparkline: [75000,90000,105000,118000,132000,143000,150000].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+        { label: 'Agilidade de Fluxo', value: '2.1 dias', icon: Clock, color: '#f59e0b', progress: 85, change: 'MOCK ACTIVE',
+          sparkline: [3.8,3.4,3.0,2.7,2.4,2.2,2.1].map((v,i) => ({ value: v, label: `${v}d` })) },
+        { label: 'Acuracidade Orç.', value: '94.5%', icon: Target, color: '#166534', progress: 96, change: 'MOCK ACTIVE',
+          sparkline: [88,90,91,92,93,94,94.5].map((v,i) => ({ value: v, label: `${v}%` })) }
       ]);
       setRecentRequests([
         { id: 'm1', title: 'Ração Concentrada', dept: 'Pecuária', value: 15000, status: 'pending', priority: 'Urgente' }
       ]);
-      setTopSuppliers([{ name: 'Fornecedor Mock Alpha', value: 50000 }]);
+      setTopSuppliers([{ name: 'Parceiro Mock Alpha', value: 50000 }]);
     } finally {
       setLoading(false);
     }

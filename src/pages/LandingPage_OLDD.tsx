@@ -291,7 +291,7 @@ export const LandingPage: React.FC = () => {
                   </div>
                   <div className="security-text">
                     <strong>Isolamento de Dados Nível 4</strong>
-                    <span>Arquitetura de segurança blindada para cada cliente.</span>
+                    <span>Arquitetura de segurança blindada para cada parceiro.</span>
                   </div>
                 </div>
               </div>

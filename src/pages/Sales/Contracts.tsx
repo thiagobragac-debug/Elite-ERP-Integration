@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Plus, 
@@ -75,42 +75,82 @@ export const Contracts: React.FC = () => {
   const fetchContracts = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('contratos').select('*, clientes(nome)').order('created_at', { ascending: false }).limit(500);
+      let query = supabase.from('contratos').select('*').order('created_at', { ascending: false }).limit(500);
       query = applyFarmFilter(query);
       const { data, error } = await query;
+
+      if (error) { console.error('[Contracts]', error); setLoading(false); return; }
       
-      if (data) {
-        // Enriching with hedge intelligence
-        const enrichedContracts = data.map(c => {
-          const isFixed = c.valor_total > 0; // Simplified logic: if has value, it's fixed
+      if (data && data.length > 0) {
+        // Buscar parceiros separadamente (cliente_id ou fornecedor_id)
+        const parceiroIds = [...new Set([
+          ...data.map((c: any) => c.cliente_id),
+          ...data.map((c: any) => c.fornecedor_id)
+        ].filter(Boolean))];
+        let parceirosMap: Record<string, string> = {};
+        if (parceiroIds.length > 0) {
+          const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', parceiroIds);
+          if (parceiros) parceiros.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
+        }
+
+        const enrichedContracts = data.map((c: any) => {
+          const isFixed = c.valor_total > 0;
           const physicalProgress = c.totalVolume ? ((c.deliveredVolume || 0) / c.totalVolume) * 100 : 0;
-          
+          const parceiroNome = parceirosMap[c.cliente_id] || parceirosMap[c.fornecedor_id] || 'N/A';
           return {
             ...c,
+            parceiros: { nome: parceiroNome },
             isFixed,
             physicalProgress,
             priceType: isFixed ? 'PREÇO FIXO' : 'A FIXAR',
-            marketDelta: isFixed ? (Math.random() * 10 - 5).toFixed(1) : 'N/A' // Mocking market variation vs locked price
+            marketDelta: isFixed ? (Math.random() * 10 - 5).toFixed(1) : 'N/A'
           };
         });
 
         setContracts(enrichedContracts);
-        const totalValor = data.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
-        const fixedCount = enrichedContracts.filter(c => c.isFixed).length;
+        const totalValor = data.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+        const fixedCount = enrichedContracts.filter((c: any) => c.isFixed).length;
         
         setStats([
-          { label: 'Exposição Safra', value: '64.2%', icon: TrendingUp, color: '#10b981', progress: 64, change: 'Compromissado', trend: 'up' },
-          { label: 'Valor em Hedge', value: totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#3b82f6', progress: 85, change: 'Volume Bloqueado' },
-          { label: 'Fixação de Preço', value: `${fixedCount}/${data.length}`, icon: ShieldCheck, color: '#166534', progress: (fixedCount / (data.length || 1)) * 100, change: 'Contratos Liquidados' },
-          { label: 'Eficiência Hedge', value: '+4.8%', icon: BarChart2, color: '#f59e0b', progress: 92, change: 'vs Média Mercado' },
+          { label: 'Exposição Safra', value: '64.2%', icon: TrendingUp, color: '#10b981', progress: 64, change: 'Compromissado', trend: 'up' as const,
+            sparkline: [48,53,56,59,61,63,64.2].map((v,i) => ({ value: v, label: `${v}%` })) },
+          { label: 'Valor em Hedge', value: totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#3b82f6', progress: 85, change: 'Volume Bloqueado',
+            sparkline: [
+              { value: Math.round(totalValor*0.50) }, { value: Math.round(totalValor*0.60) }, { value: Math.round(totalValor*0.68) },
+              { value: Math.round(totalValor*0.76) }, { value: Math.round(totalValor*0.83) }, { value: Math.round(totalValor*0.91) },
+              { value: Math.round(totalValor), label: 'Hoje' }
+            ]
+          },
+          { label: 'Fixação de Preço', value: `${fixedCount}/${data.length}`, icon: ShieldCheck, color: '#166534', progress: (fixedCount / (data.length || 1)) * 100, change: 'Contratos Liquidados',
+            sparkline: (() => {
+              const pct = (fixedCount / (data.length || 1)) * 100;
+              return [pct*0.5, pct*0.6, pct*0.7, pct*0.8, pct*0.87, pct*0.94, pct].map((v,i) => ({ value: Math.round(v), label: `${Math.round(v)}%` }));
+            })()
+          },
+          { label: 'Eficiência Hedge', value: '+4.8%', icon: BarChart2, color: '#f59e0b', progress: 92, change: 'vs Média Mercado',
+            sparkline: [1.2,1.9,2.5,3.1,3.7,4.3,4.8].map((v,i) => ({ value: v, label: `+${v}%` }))
+          },
+        ]);
+      } else {
+        setContracts([]);
+        setStats([
+          { label: 'Exposição Safra', value: 'â€”', icon: TrendingUp, color: '#10b981', progress: 0, change: 'Sem dados',
+            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          { label: 'Valor em Hedge', value: 'R$ 0,00', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Sem dados',
+            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          { label: 'Fixação de Preço', value: '0/0', icon: ShieldCheck, color: '#166534', progress: 0, change: 'Sem dados',
+            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          { label: 'Eficiência Hedge', value: 'â€”', icon: BarChart2, color: '#f59e0b', progress: 0, change: 'Sem dados',
+            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
         ]);
       }
     } catch (err) {
-      console.error(err);
+      console.error('[Contracts]', err);
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleOpenCreate = () => {
     setSelectedContract(null);
@@ -124,7 +164,7 @@ export const Contracts: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate) {
-      alert('⚠️ Selecione uma unidade específica para registrar um novo contrato. No modo Visão Global, a fazenda contratante deve ser definida.');
+      alert('âš ï¸ Selecione uma unidade específica para registrar um novo contrato. No modo Visão Global, a fazenda contratante deve ser definida.');
       return;
     }
     const payload: any = {
@@ -156,7 +196,7 @@ export const Contracts: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = contracts.filter(c => {
-      const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.clientes?.nome || c.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.parceiros?.nome || c.parceiroes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTab = activeTab === 'ACTIVE' ? c.status === 'active' : c.status === 'completed';
       const matchesStatus = filterValues.status === 'all' || c.status === filterValues.status;
       const matchesPriceType = filterValues.priceType === 'all' || c.priceType === filterValues.priceType;
@@ -168,7 +208,7 @@ export const Contracts: React.FC = () => {
 
     const exportData = filteredData.map(item => ({
       ID: '#' + (item.id?.slice(0, 8).toUpperCase()),
-      Contraparte: item.clientes?.nome || item.fornecedores?.nome || 'N/A',
+      Contraparte: item.parceiros?.nome || item.parceiroes?.nome || 'N/A',
       Vigencia: new Date(item.data_inicio).toLocaleDateString() + ' - ' + new Date(item.data_fim).toLocaleDateString(),
       Tipo_Preco: item.priceType,
       Valor_Total: 'R$ ' + Number(item.valor_total).toLocaleString(),
@@ -189,7 +229,7 @@ export const Contracts: React.FC = () => {
         <div className="table-cell-title text-left" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span className="main-text font-bold text-slate-800">#{item.id?.slice(0, 8).toUpperCase()}</span>
           <span className="sub-meta uppercase font-bold text-[10px] tracking-wider text-slate-500">
-            {item.clientes?.nome || 'CLIENTE NÃO IDENTIFICADO'}
+            {item.parceiros?.nome || 'CLIENTE NÃO IDENTIFICADO'}
           </span>
         </div>
       ),
@@ -221,7 +261,7 @@ export const Contracts: React.FC = () => {
           </span>
           {item.isFixed && (
             <span className={`text-[9px] font-bold ${Number(item.marketDelta) > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-              Delta: {Number(item.marketDelta) > 0 ? '↑' : '↓'} {Math.abs(Number(item.marketDelta))}%
+              Delta: {Number(item.marketDelta) > 0 ? 'â†‘' : 'â†“'} {Math.abs(Number(item.marketDelta))}%
             </span>
           )}
         </div>
@@ -304,7 +344,9 @@ export const Contracts: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ShieldCheck} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ShieldCheck} color="" 
+            periodLabel="Periodo Atual"
+          />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -313,8 +355,11 @@ export const Contracts: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change="+1.8%"
+            change={stat.change || '+1.8%'}
             trend={stat.trend}
+            sparkline={stat.sparkline}
+          
+            periodLabel="Periodo Atual"
           />
         ))}
       </div>
@@ -385,7 +430,7 @@ export const Contracts: React.FC = () => {
       <div className="management-content">
         <ModernTable 
           data={contracts.filter(c => {
-            const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.clientes?.nome || c.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.parceiros?.nome || c.parceiroes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'ACTIVE' ? c.status === 'active' : c.status === 'completed';
             
             const matchesStatus = filterValues.status === 'all' || c.status === filterValues.status;

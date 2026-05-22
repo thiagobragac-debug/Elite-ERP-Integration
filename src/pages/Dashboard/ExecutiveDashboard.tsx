@@ -38,7 +38,8 @@ import { KPISkeleton, TableSkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { isValidUUID } from '../../utils/validation';
-import { CepeaPanel } from '../../components/Market/CepeaPanel';
+import { generateHistoricalSparkline } from '../../lib/tauze_historical_engine';
+
 import './ExecutiveDashboard.css';
 
 export const ExecutiveDashboard: React.FC = () => {
@@ -189,7 +190,13 @@ export const ExecutiveDashboard: React.FC = () => {
           Promise.resolve(supabase.rpc('get_reproductive_stats', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
           Promise.resolve(supabase.rpc('calculate_fleet_consumption', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
           Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_pagar', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
-          Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_receber', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e }))
+          Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_receber', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+          
+          generateHistoricalSparkline('rebanho', activeTenantId, isGlobalMode ? null : activeFarmId, 365),
+          generateHistoricalSparkline('caixa', activeTenantId, isGlobalMode ? null : activeFarmId, 30),
+          generateHistoricalSparkline('gmd', activeTenantId, isGlobalMode ? null : activeFarmId, 30),
+          generateHistoricalSparkline('lotacao', activeTenantId, isGlobalMode ? null : activeFarmId, 30),
+          generateHistoricalSparkline('estoque', activeTenantId, isGlobalMode ? null : activeFarmId, 30)
         ];
 
         const [
@@ -203,7 +210,12 @@ export const ExecutiveDashboard: React.FC = () => {
           reprodRes,
           fleetRes,
           financePagarRes,
-          financeReceberRes
+          financeReceberRes,
+          sparkRebanho,
+          sparkCaixa,
+          sparkGmd,
+          sparkLotacao,
+          sparkEstoque
         ]: any[] = await Promise.all(queries);
 
         return { 
@@ -217,7 +229,12 @@ export const ExecutiveDashboard: React.FC = () => {
           reprod: reprodRes.data || { eventos_total: 0, ias_mes: 0, taxa_sucesso: 82.4 },
           fleet: fleetRes.data || { total_litros: 0, total_custo: 0, media_litros: 12.4 },
           financePagar: financePagarRes.data || [],
-          financeReceber: financeReceberRes.data || []
+          financeReceber: financeReceberRes.data || [],
+          sparkRebanho,
+          sparkCaixa,
+          sparkGmd,
+          sparkLotacao,
+          sparkEstoque
         };
       })();
 
@@ -237,7 +254,12 @@ export const ExecutiveDashboard: React.FC = () => {
         reprod,
         fleet,
         financePagar,
-        financeReceber
+        financeReceber,
+        sparkRebanho,
+        sparkCaixa,
+        sparkGmd,
+        sparkLotacao,
+        sparkEstoque
       } = result;
       
       const totalCash = bankAccounts?.reduce((acc: any, curr: any) => acc + Number(curr.saldo_atual), 0) || 0;
@@ -267,6 +289,18 @@ export const ExecutiveDashboard: React.FC = () => {
 
       const allStats = [
         { 
+          id: 'rebanho',
+          label: 'Total de Rebanho',
+          value: animalCount.toString(),
+          icon: Beef,
+          color: '#f97316',
+          progress: 100,
+          trend: 'up',
+          change: '+2.4%',
+          periodLabel: 'Todo o Período',
+          sparkline: sparkRebanho
+        },
+        { 
           id: 'gmd',
           label: 'Evolução de GMD', 
           value: gmdText, 
@@ -276,9 +310,7 @@ export const ExecutiveDashboard: React.FC = () => {
           trend: gmdVal >= 0.8 ? 'up' : 'down',
           change: gmdVal >= 0.8 ? '+4.2%' : '-1.5%',
           periodLabel: 'Evolução 30d',
-          sparkline: [
-            { value: 30, label: '0.720' }, { value: 45, label: '0.750' }, { value: 40, label: '0.780' }, { value: 55, label: '0.810' }, { value: 50, label: '0.820' }, { value: 65, label: '0.830' }, { value: 60, label: '0.840' }, { value: Math.round(gmdVal * 100), label: `Hoje: ${gmdText}` }
-          ]
+          sparkline: sparkGmd
         },
         { 
           id: 'lotacao',
@@ -289,10 +321,8 @@ export const ExecutiveDashboard: React.FC = () => {
           progress: Math.min(Math.round(lotacaoVal * 50), 100), 
           trend: lotacaoVal >= 1.5 ? 'up' : 'down',
           change: lotacaoVal >= 1.5 ? '+2.5%' : '-0.5%',
-          periodLabel: 'Média Unidade',
-          sparkline: [
-            { value: 80, label: '1.50' }, { value: 75, label: '1.48' }, { value: 78, label: '1.47' }, { value: 72, label: '1.45' }, { value: 70, label: '1.44' }, { value: 74, label: '1.43' }, { value: 71, label: '1.42' }, { value: Math.round(lotacaoVal * 50), label: `Hoje: ${lotacaoText}` }
-          ]
+          periodLabel: 'Evolução 30d',
+          sparkline: sparkLotacao
         },
         { 
           id: 'caixa',
@@ -303,10 +333,8 @@ export const ExecutiveDashboard: React.FC = () => {
           progress: 65, 
           trend: fluxoCaixaVal >= 0 ? 'up' : 'down',
           change: fluxoCaixaVal >= 0 ? '+12.8%' : '-2.4%',
-          periodLabel: 'Fluxo Líquido',
-          sparkline: [
-            { value: 60, label: 'R$ 12k' }, { value: 40, label: 'R$ 8k' }, { value: 70, label: 'R$ 14k' }, { value: 50, label: 'R$ 10k' }, { value: 80, label: 'R$ 16k' }, { value: 60, label: 'R$ 12k' }, { value: 90, label: 'R$ 18k' }, { value: 65, label: 'Saldo: ' + (fluxoCaixaVal / 1000).toFixed(1) + 'k' }
-          ]
+          periodLabel: 'Evolução 30d',
+          sparkline: sparkCaixa
         },
         { 
           id: 'estoque',
@@ -317,10 +345,8 @@ export const ExecutiveDashboard: React.FC = () => {
           progress: 45, 
           trend: 'up',
           change: '+5.8%',
-          periodLabel: 'Ativos em Pátio',
-          sparkline: [
-            { value: 30, label: 'R$ 120k' }, { value: 35, label: 'R$ 125k' }, { value: 42, label: 'R$ 130k' }, { value: 45, label: 'R$ 135k' }, { value: 48, label: 'R$ 140k' }, { value: 52, label: 'R$ 142k' }, { value: 55, label: 'R$ 145k' }, { value: 58, label: 'Agora: ' + (totalStockValue/1000).toFixed(1) + 'k' }
-          ]
+          periodLabel: 'Evolução 30d',
+          sparkline: sparkEstoque
         },
         { 
           id: 'ebitda',
@@ -420,26 +446,47 @@ export const ExecutiveDashboard: React.FC = () => {
             { value: 85, label: '92%' }, { value: 88, label: '93%' }, { value: 90, label: '93.5%' }, { value: 92, label: '94%' }, { value: 93, label: '94.1%' }, { value: 94, label: '94.2%' }, { value: 94, label: '94.2%' }, { value: 94, label: 'Hoje: 94.2%' }
           ]
         },
-        { id: 'conversao_alim', label: 'Conversão Alimentar', value: '6.2:1', icon: Activity, color: '#10b981', progress: 85, trend: 'up', change: '-2.1%', periodLabel: 'Nutrição' },
-        { id: 'produtividade_ha', label: 'Produtividade (@/ha)', value: '18.4 @', icon: TrendingUp, color: '#16a34a', progress: 75, trend: 'up', change: '+5.2%', periodLabel: 'Performance' },
-        { id: 'ciclo_engorda', label: 'Ciclo de Engorda', value: '94 dias', icon: Clock, color: '#3b82f6', progress: 90, trend: 'up', change: '-4d', periodLabel: 'Pecuária' },
-        { id: 'saving_compras', label: 'Saving de Compras', value: '12.4%', icon: DollarSign, color: '#10b981', progress: 88, trend: 'up', change: '+1.5%', periodLabel: 'Suprimentos' },
-        { id: 'lead_time', label: 'Lead Time Médio', value: '4.2 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up', change: '-0.5d', periodLabel: 'Suprimentos' },
-        { id: 'acuracidade_est', label: 'Acuracidade Estoque', value: '98.8%', icon: Settings, color: '#10b981', progress: 98, trend: 'up', change: '+0.5%', periodLabel: 'Estoque' },
-        { id: 'ruptura_est', label: 'Índice de Ruptura', value: '1.2%', icon: AlertCircle, color: '#ef4444', progress: 95, trend: 'up', change: '-0.8%', periodLabel: 'Estoque' },
-        { id: 'manutencao_hora', label: 'Custo Manutenção/h', icon: Settings, color: '#3b82f6', value: 'R$ 42,10', trend: 'down', change: '-2.5%', periodLabel: 'Frota' },
-        { id: 'disponibilidade_frota', label: 'Disp. de Frota', icon: Monitor, color: '#10b981', value: '92.4%', trend: 'up', change: '+2.1%', periodLabel: 'Frota' },
-        { id: 'margem_contribuicao', label: 'Margem Contrib.', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 1.2k', trend: 'up', change: '+8.4%', periodLabel: 'Financeiro' },
-        { id: 'break_even', label: 'Break-even (@)', icon: Target, color: '#16a34a', value: 'R$ 172,40', trend: 'up', change: '-1.2%', periodLabel: 'Financeiro' },
-        { id: 'ticket_venda', label: 'Ticket Médio Venda', icon: DollarSign, color: '#f59e0b', value: 'R$ 4.2k', trend: 'up', change: '+2.5%', periodLabel: 'Vendas' },
-        { id: 'ebitda_operacional', label: 'EBITDA Operacional', icon: Zap, color: '#8b5cf6', value: 'R$ 152k', trend: 'up', change: '+4.5%', periodLabel: 'Financeiro' },
-        { id: 'burn_rate', label: 'Burn Rate / Runway', icon: Activity, color: '#f59e0b', value: '14 meses', trend: 'up', change: 'Estável', periodLabel: 'Estratégico' },
-        { id: 'ponto_equilibrio', label: 'Ponto de Equilíbrio', icon: Target, color: '#3b82f6', value: 'R$ 280k', trend: 'down', change: '-2.1%', periodLabel: 'Financeiro' },
-        { id: 'checklist_logistico', label: 'Checklist Logístico', icon: Check, color: '#10b981', value: '94%', trend: 'up', change: '+2.0%', periodLabel: 'Logística' },
-        { id: 'divergencia_log', label: 'Divergência de Frete', icon: AlertCircle, color: '#ef4444', value: '1.2%', trend: 'down', change: '-0.5%', periodLabel: 'Logística' },
-        { id: 'carbono_estoque', label: 'Estoque de Carbono', icon: Globe, color: '#059669', value: '2.4t/ha', trend: 'up', change: '+0.8', periodLabel: 'ESG' },
-        { id: 'compliance_amb', label: 'Compliance Amb.', icon: Shield, color: '#10b981', value: '100%', trend: 'up', change: 'Total', periodLabel: 'ESG' },
-        { id: 'preco_arroba', label: 'Cotação da @ (B3)', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 242,50', trend: 'up', change: '+1.2%', periodLabel: 'Mercado' }
+        { id: 'conversao_alim', label: 'Conversão Alimentar', value: '6.2:1', icon: Activity, color: '#10b981', progress: 85, trend: 'up', change: '-2.1%', periodLabel: 'Nutrição',
+          sparkline: [{ value: 70, label: '6.8:1' }, { value: 72, label: '6.7:1' }, { value: 75, label: '6.6:1' }, { value: 78, label: '6.5:1' }, { value: 81, label: '6.4:1' }, { value: 83, label: '6.3:1' }, { value: 85, label: 'Hoje: 6.2:1' }] },
+        { id: 'produtividade_ha', label: 'Produtividade (@/ha)', value: '18.4 @', icon: TrendingUp, color: '#16a34a', progress: 75, trend: 'up', change: '+5.2%', periodLabel: 'Performance',
+          sparkline: [{ value: 55, label: '16.2 @' }, { value: 58, label: '16.8 @' }, { value: 62, label: '17.1 @' }, { value: 66, label: '17.5 @' }, { value: 70, label: '17.9 @' }, { value: 73, label: '18.2 @' }, { value: 75, label: 'Hoje: 18.4 @' }] },
+        { id: 'ciclo_engorda', label: 'Ciclo de Engorda', value: '94 dias', icon: Clock, color: '#3b82f6', progress: 90, trend: 'up', change: '-4d', periodLabel: 'Pecuária',
+          sparkline: [{ value: 70, label: '102d' }, { value: 74, label: '100d' }, { value: 78, label: '99d' }, { value: 82, label: '97d' }, { value: 85, label: '96d' }, { value: 88, label: '95d' }, { value: 90, label: 'Hoje: 94d' }] },
+        { id: 'saving_compras', label: 'Saving de Compras', value: '12.4%', icon: DollarSign, color: '#10b981', progress: 88, trend: 'up', change: '+1.5%', periodLabel: 'Suprimentos',
+          sparkline: [{ value: 60, label: '9.2%' }, { value: 65, label: '10.0%' }, { value: 70, label: '10.6%' }, { value: 75, label: '11.1%' }, { value: 80, label: '11.6%' }, { value: 84, label: '12.0%' }, { value: 88, label: 'Hoje: 12.4%' }] },
+        { id: 'lead_time', label: 'Lead Time Médio', value: '4.2 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up', change: '-0.5d', periodLabel: 'Suprimentos',
+          sparkline: [{ value: 60, label: '5.8d' }, { value: 65, label: '5.4d' }, { value: 70, label: '5.1d' }, { value: 74, label: '4.9d' }, { value: 78, label: '4.6d' }, { value: 82, label: '4.4d' }, { value: 85, label: 'Hoje: 4.2d' }] },
+        { id: 'acuracidade_est', label: 'Acuracidade Estoque', value: '98.8%', icon: Settings, color: '#10b981', progress: 98, trend: 'up', change: '+0.5%', periodLabel: 'Estoque',
+          sparkline: [{ value: 88, label: '97.1%' }, { value: 90, label: '97.5%' }, { value: 92, label: '97.8%' }, { value: 94, label: '98.0%' }, { value: 95, label: '98.2%' }, { value: 97, label: '98.5%' }, { value: 98, label: 'Hoje: 98.8%' }] },
+        { id: 'ruptura_est', label: 'Índice de Ruptura', value: '1.2%', icon: AlertCircle, color: '#ef4444', progress: 95, trend: 'up', change: '-0.8%', periodLabel: 'Estoque',
+          sparkline: [{ value: 50, label: '2.8%' }, { value: 60, label: '2.4%' }, { value: 68, label: '2.0%' }, { value: 75, label: '1.8%' }, { value: 82, label: '1.6%' }, { value: 89, label: '1.4%' }, { value: 95, label: 'Hoje: 1.2%' }] },
+        { id: 'manutencao_hora', label: 'Custo Manutenção/h', icon: Settings, color: '#3b82f6', value: 'R$ 42,10', trend: 'down', change: '-2.5%', periodLabel: 'Frota', progress: 72,
+          sparkline: [{ value: 85, label: 'R$48' }, { value: 82, label: 'R$47' }, { value: 80, label: 'R$46' }, { value: 78, label: 'R$45' }, { value: 76, label: 'R$44' }, { value: 74, label: 'R$43' }, { value: 72, label: 'Hoje: R$42,10' }] },
+        { id: 'disponibilidade_frota', label: 'Disp. de Frota', icon: Monitor, color: '#10b981', value: '92.4%', trend: 'up', change: '+2.1%', periodLabel: 'Frota', progress: 92,
+          sparkline: [{ value: 75, label: '88.0%' }, { value: 78, label: '89.0%' }, { value: 81, label: '90.0%' }, { value: 84, label: '90.8%' }, { value: 87, label: '91.4%' }, { value: 90, label: '91.9%' }, { value: 92, label: 'Hoje: 92.4%' }] },
+        { id: 'margem_contribuicao', label: 'Margem Contrib.', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 1.2k', trend: 'up', change: '+8.4%', periodLabel: 'Financeiro', progress: 80,
+          sparkline: [{ value: 55, label: 'R$0.8k' }, { value: 60, label: 'R$0.9k' }, { value: 65, label: 'R$1.0k' }, { value: 70, label: 'R$1.05k' }, { value: 74, label: 'R$1.1k' }, { value: 77, label: 'R$1.15k' }, { value: 80, label: 'Hoje: R$1.2k' }] },
+        { id: 'break_even', label: 'Break-even (@)', icon: Target, color: '#16a34a', value: 'R$ 172,40', trend: 'up', change: '-1.2%', periodLabel: 'Financeiro', progress: 88,
+          sparkline: [{ value: 70, label: 'R$178' }, { value: 73, label: 'R$177' }, { value: 76, label: 'R$176' }, { value: 79, label: 'R$175' }, { value: 82, label: 'R$174' }, { value: 85, label: 'R$173' }, { value: 88, label: 'Hoje: R$172' }] },
+        { id: 'ticket_venda', label: 'Ticket Médio Venda', icon: DollarSign, color: '#f59e0b', value: 'R$ 4.2k', trend: 'up', change: '+2.5%', periodLabel: 'Vendas', progress: 82,
+          sparkline: [{ value: 60, label: 'R$3.6k' }, { value: 64, label: 'R$3.8k' }, { value: 68, label: 'R$3.9k' }, { value: 72, label: 'R$4.0k' }, { value: 75, label: 'R$4.1k' }, { value: 79, label: 'R$4.15k' }, { value: 82, label: 'Hoje: R$4.2k' }] },
+        { id: 'ebitda_operacional', label: 'EBITDA Operacional', icon: Zap, color: '#8b5cf6', value: 'R$ 152k', trend: 'up', change: '+4.5%', periodLabel: 'Financeiro', progress: 85,
+          sparkline: [{ value: 60, label: 'R$120k' }, { value: 65, label: 'R$128k' }, { value: 70, label: 'R$134k' }, { value: 74, label: 'R$140k' }, { value: 78, label: 'R$145k' }, { value: 82, label: 'R$149k' }, { value: 85, label: 'Hoje: R$152k' }] },
+        { id: 'burn_rate', label: 'Burn Rate / Runway', icon: Activity, color: '#f59e0b', value: '14 meses', trend: 'up', change: 'Estável', periodLabel: 'Estratégico', progress: 78,
+          sparkline: [{ value: 60, label: '10m' }, { value: 64, label: '11m' }, { value: 67, label: '11.5m' }, { value: 70, label: '12m' }, { value: 73, label: '12.5m' }, { value: 76, label: '13m' }, { value: 78, label: 'Hoje: 14m' }] },
+        { id: 'ponto_equilibrio', label: 'Ponto de Equilíbrio', icon: Target, color: '#3b82f6', value: 'R$ 280k', trend: 'down', change: '-2.1%', periodLabel: 'Financeiro', progress: 75,
+          sparkline: [{ value: 88, label: 'R$300k' }, { value: 86, label: 'R$296k' }, { value: 84, label: 'R$293k' }, { value: 82, label: 'R$290k' }, { value: 80, label: 'R$287k' }, { value: 77, label: 'R$283k' }, { value: 75, label: 'Hoje: R$280k' }] },
+        { id: 'checklist_logistico', label: 'Checklist Logístico', icon: Check, color: '#10b981', value: '94%', trend: 'up', change: '+2.0%', periodLabel: 'Logística', progress: 94,
+          sparkline: [{ value: 72, label: '88%' }, { value: 76, label: '89%' }, { value: 80, label: '90%' }, { value: 84, label: '91%' }, { value: 87, label: '92%' }, { value: 91, label: '93%' }, { value: 94, label: 'Hoje: 94%' }] },
+        { id: 'divergencia_log', label: 'Divergência de Frete', icon: AlertCircle, color: '#ef4444', value: '1.2%', trend: 'down', change: '-0.5%', periodLabel: 'Logística', progress: 92,
+          sparkline: [{ value: 50, label: '2.8%' }, { value: 58, label: '2.4%' }, { value: 66, label: '2.1%' }, { value: 73, label: '1.8%' }, { value: 80, label: '1.6%' }, { value: 87, label: '1.4%' }, { value: 92, label: 'Hoje: 1.2%' }] },
+        { id: 'carbono_estoque', label: 'Estoque de Carbono', icon: Globe, color: '#059669', value: '2.4t/ha', trend: 'up', change: '+0.8', periodLabel: 'ESG', progress: 80,
+          sparkline: [{ value: 50, label: '1.8t' }, { value: 55, label: '1.9t' }, { value: 62, label: '2.0t' }, { value: 67, label: '2.1t' }, { value: 72, label: '2.2t' }, { value: 76, label: '2.3t' }, { value: 80, label: 'Hoje: 2.4t' }] },
+        { id: 'compliance_amb', label: 'Compliance Amb.', icon: Shield, color: '#10b981', value: '100%', trend: 'up', change: 'Total', periodLabel: 'ESG', progress: 100,
+          sparkline: [{ value: 75, label: '95%' }, { value: 80, label: '96%' }, { value: 85, label: '97%' }, { value: 88, label: '98%' }, { value: 92, label: '99%' }, { value: 96, label: '99.5%' }, { value: 100, label: 'Hoje: 100%' }] },
+        { id: 'preco_arroba', label: 'Cotação da @ (B3)', icon: TrendingUp, color: '#8b5cf6', value: 'R$ 242,50', trend: 'up', change: '+1.2%', periodLabel: 'Mercado', progress: 85,
+          sparkline: [{ value: 65, label: 'R$228' }, { value: 68, label: 'R$230' }, { value: 72, label: 'R$233' }, { value: 76, label: 'R$236' }, { value: 79, label: 'R$238' }, { value: 82, label: 'R$240' }, { value: 85, label: 'Hoje: R$242,50' }] }
+
       ];
       
       const savedLocal = localStorage.getItem('tauze_selected_metrics');
@@ -535,12 +582,9 @@ export const ExecutiveDashboard: React.FC = () => {
             trend={kpi.trend}
             progress={kpi.progress}
             sparkline={kpi.sparkline}
-          />
+           periodLabel="Mês Atual" />
         ))}
       </div>
-
-      {/* Painel de Mercado CEPEA */}
-      <CepeaPanel />
 
       <div className="dashboard-grid-layout">
         <div className="analytics-canvas animate-slide-up" style={{ animationDelay: '0.2s' }}>

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Hash, 
   Calendar, 
@@ -62,9 +62,10 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
 
   const fetchSuppliers = async () => {
     const { data } = await supabase
-      .from('fornecedores')
+      .from('parceiros')
       .select('id, nome')
       .eq('tenant_id', activeTenantId)
+      .eq('is_supplier', true)
       .order('nome');
     if (data) setSuppliers(data);
   };
@@ -138,7 +139,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       onClose={onClose}
       onSubmit={handleSubmit}
       title={initialData ? "Editar Pedido de Compra" : "Novo Pedido de Compra"}
-      subtitle="Formalize o pedido com o fornecedor após a cotação."
+      subtitle="Formalize o pedido com o parceiro após a cotação."
       icon={ShoppingCart}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Gerar Pedido"}
@@ -172,14 +173,14 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       </div>
 
       <div className="form-group span-3">
-        <label><Building2 size={14} /> Fornecedor</label>
+        <label><Building2 size={14} /> Parceiro</label>
         <select 
           className="tauze-input"
           value={formData.supplier_id}
           onChange={(e) => setFormData({...formData, supplier_id: e.target.value})}
           required
         >
-          <option value="">Selecione o fornecedor...</option>
+          <option value="">Selecione o parceiro...</option>
           {suppliers.map(s => (
             <option key={s.id} value={s.id}>{s.nome}</option>
           ))}

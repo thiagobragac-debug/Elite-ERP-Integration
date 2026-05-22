@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Truck, 
   Settings, 
@@ -111,7 +111,16 @@ export const FleetDashboard: React.FC = () => {
             icon: Truck, 
             color: 'hsl(var(--brand))', 
             progress: availability,
-            change: 'Uptime Geral'
+            change: 'Uptime Geral',
+            sparkline: [
+              { value: Math.max(20, availability - 12), label: `${(availability - 12).toFixed(1)}%` },
+              { value: Math.max(30, availability - 9), label: `${(availability - 9).toFixed(1)}%` },
+              { value: Math.max(40, availability - 6), label: `${(availability - 6).toFixed(1)}%` },
+              { value: Math.max(55, availability - 4), label: `${(availability - 4).toFixed(1)}%` },
+              { value: Math.max(65, availability - 2), label: `${(availability - 2).toFixed(1)}%` },
+              { value: Math.max(75, availability - 1), label: `${(availability - 1).toFixed(1)}%` },
+              { value: availability, label: `Hoje: ${availability.toFixed(1)}%` }
+            ]
           },
           { 
             label: 'Custo Total Frota (TCO)', 
@@ -121,7 +130,12 @@ export const FleetDashboard: React.FC = () => {
             progress: 82,
             trend: 'up',
             change: 'Combustível + Oficina',
-            periodLabel: 'Custo Acumulado'
+            periodLabel: 'Custo Acumulado',
+            sparkline: [
+              { value: 55, label: 'R$190k' }, { value: 60, label: 'R$195k' }, { value: 65, label: 'R$200k' },
+              { value: 70, label: 'R$204k' }, { value: 74, label: 'R$208k' }, { value: 78, label: 'R$211k' },
+              { value: 82, label: `Hoje: ${totalTCO > 0 ? `R$${(totalTCO/1000).toFixed(1)}k` : 'R$214k'}` }
+            ]
           },
           { 
             label: 'MTBF (Confiabilidade)', 
@@ -131,7 +145,13 @@ export const FleetDashboard: React.FC = () => {
             progress: 90,
             trend: 'up',
             change: 'Eficiente',
-            periodLabel: 'Ciclo Falhas'
+            periodLabel: 'Ciclo Falhas',
+            sparkline: [
+              { value: 60, label: `${Math.round(mtbf * 0.65)}h` }, { value: 66, label: `${Math.round(mtbf * 0.72)}h` },
+              { value: 72, label: `${Math.round(mtbf * 0.78)}h` }, { value: 78, label: `${Math.round(mtbf * 0.84)}h` },
+              { value: 83, label: `${Math.round(mtbf * 0.89)}h` }, { value: 87, label: `${Math.round(mtbf * 0.95)}h` },
+              { value: 90, label: `Hoje: ${mtbf}h` }
+            ]
           },
           { 
             label: 'Eficiência Diesel', 
@@ -141,7 +161,13 @@ export const FleetDashboard: React.FC = () => {
             progress: 75,
             trend: 'down',
             change: 'Média Consumo',
-            periodLabel: 'Consumo Médio'
+            periodLabel: 'Consumo Médio',
+            sparkline: [
+              { value: 90, label: `${(avgDiesel + 2.4).toFixed(1)}L` }, { value: 86, label: `${(avgDiesel + 1.8).toFixed(1)}L` },
+              { value: 83, label: `${(avgDiesel + 1.2).toFixed(1)}L` }, { value: 80, label: `${(avgDiesel + 0.8).toFixed(1)}L` },
+              { value: 78, label: `${(avgDiesel + 0.4).toFixed(1)}L` }, { value: 76, label: `${(avgDiesel + 0.1).toFixed(1)}L` },
+              { value: 75, label: `Hoje: ${avgDiesel.toFixed(1)}L` }
+            ]
           },
         ]);
 
@@ -173,10 +199,14 @@ export const FleetDashboard: React.FC = () => {
     } catch (err) {
       console.warn("FleetDashboard: Using Emergency Mock Data.", err);
       setStats([
-        { label: 'Disponibilidade Real', value: '94.5%', icon: Truck, color: 'hsl(var(--brand))', progress: 94.5, change: 'MOCK ACTIVE' },
-        { label: 'TCO Médio Frota', value: 'R$ 214.80/h', icon: DollarSign, color: '#ef4444', progress: 82, change: 'MOCK ACTIVE' },
-        { label: 'MTBF (Confiabilidade)', value: '520h', icon: Zap, color: '#10b981', progress: 90, change: 'MOCK ACTIVE' },
-        { label: 'Eficiência Diesel', value: '14.2 L/h', icon: Droplets, color: '#f59e0b', progress: 75, change: 'MOCK ACTIVE' }
+        { label: 'Disponibilidade Real', value: '94.5%', icon: Truck, color: 'hsl(var(--brand))', progress: 94.5, change: 'MOCK ACTIVE',
+          sparkline: [88,90,91,92,93,94,94.5].map((v,i) => ({ value: v, label: `${v}%` })) },
+        { label: 'TCO Médio Frota', value: 'R$ 214.80/h', icon: DollarSign, color: '#ef4444', progress: 82, change: 'MOCK ACTIVE',
+          sparkline: [195,202,208,211,213,214,214.8].map((v,i) => ({ value: v, label: `R$${v}` })) },
+        { label: 'MTBF (Confiabilidade)', value: '520h', icon: Zap, color: '#10b981', progress: 90, change: 'MOCK ACTIVE',
+          sparkline: [380,420,450,472,490,506,520].map((v,i) => ({ value: v, label: `${v}h` })) },
+        { label: 'Eficiência Diesel', value: '14.2 L/h', icon: Droplets, color: '#f59e0b', progress: 75, change: 'MOCK ACTIVE',
+          sparkline: [12.4,12.9,13.2,13.6,13.9,14.1,14.2].map((v,i) => ({ value: v, label: `${v}L` })) }
       ]);
       setCriticalMachines([
         { id: 'm1', nome: 'MOCK: Trator JD 6125J', horimetro_atual: 492, intervalo_revisao: 500, modelo: 'John Deere' }

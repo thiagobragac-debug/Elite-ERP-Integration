@@ -26,7 +26,7 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
       { header: 'Status', accessor: (row: any) => row.status === 'critical' ? '🔴 Crítico' : row.status === 'warning' ? '🟡 Alerta' : '🔵 Info' }
     ],
     stats: [
-      { id: 'gmd', label: 'Evolução de GMD', value: '0.842 kg', change: '+4.2%', trend: 'up' as const, color: '#10b981', progress: 85 },
+      { id: 'gmd', label: 'Evolução de GMD', sparkline: (() => {  const valStr = String('0.842 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '0.842 kg', change: '+4.2%', trend: 'up' as const, color: '#10b981', progress: 85 },
       { id: 'caixa', label: 'Fluxo de Caixa', value: 'R$ 1.2M', change: '+12%', trend: 'up' as const, color: '#f59e0b', progress: 65 },
       { id: 'ebitda', label: 'EBITDA Projetado', value: '24.2%', change: '+0.8%', trend: 'up' as const, color: '#8b5cf6', progress: 92 },
       { id: 'lotacao', label: 'Taxa de Lotação', value: '1.8 UA/ha', change: 'Ideal: 2.1', trend: 'neutral' as const, color: '#8b5cf6', progress: 86 }
@@ -71,9 +71,7 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
       stats: [
         { 
           id: 'gmd', 
-          label: 'Evolução de GMD', 
-          value: `${Number(gmdRes.data || 0.842).toFixed(3)} kg`, 
-          change: '+4.2%', 
+          label: 'Evolução de GMD', sparkline: (() => {  const valStr = String(`${Number(gmdRes.data || 0.842).toFixed(3)} kg`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${Number(gmdRes.data || 0.842).toFixed(3)} kg`, change: '+4.2%', 
           trend: 'up' as const, 
           color: '#10b981', 
           progress: 85,

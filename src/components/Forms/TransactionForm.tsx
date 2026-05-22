@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   DollarSign, 
   Calendar, 
@@ -44,11 +44,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
   }, [isOpen, activeTenantId]);
 
   const fetchEntities = async () => {
-    const table = type === 'payable' ? 'fornecedores' : 'clientes';
-    const { data } = await supabase
-      .from(table)
-      .select('id, nome')
-      .eq('tenant_id', activeTenantId);
+    let query = supabase.from('parceiros').select('id, nome').eq('tenant_id', activeTenantId);
+    if (type === 'payable') {
+      query = query.eq('is_supplier', true);
+    } else {
+      query = query.eq('is_customer', true);
+    }
+    const { data } = await query;
     if (data) setEntities(data);
   };
 
@@ -59,7 +61,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
         value: initialData.valor_total?.toString() || '',
         dueDate: initialData.data_vencimento || '',
         category: initialData.categoria || '',
-        entityId: initialData.fornecedor_id || initialData.cliente_id || '',
+        entityId: initialData.parceiro_id || initialData.parceiro_id || '',
         paymentMethod: initialData.metodo_pagamento || initialData.metodo_recebimento || 'Boleto',
         status: initialData.status || 'PENDENTE'
       });
@@ -80,8 +82,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
     ? (type === 'payable' ? 'Editar Conta a Pagar' : 'Editar Conta a Receber')
     : (type === 'payable' ? 'Nova Conta a Pagar' : 'Nova Conta a Receber');
     
-  const subtitle = type === 'payable' ? 'Registre uma saída de caixa para fornecedores.' : 'Registre uma entrada de caixa de clientes.';
-  const entityLabel = type === 'payable' ? 'Fornecedor' : 'Cliente';
+  const subtitle = type === 'payable' ? 'Registre uma saída de caixa para parceiroes.' : 'Registre uma entrada de caixa de parceiros.';
+  const entityLabel = type === 'payable' ? 'Parceiro' : 'Parceiro';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

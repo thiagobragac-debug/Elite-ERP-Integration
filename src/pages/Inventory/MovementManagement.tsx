@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowRightLeft, 
   Plus, 
@@ -41,10 +41,14 @@ export const MovementManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([
-    { label: 'Movimentações', value: '0', icon: ArrowDownLeft, color: '#10b981', progress: 0, change: 'Volume de Log' },
-    { label: 'Página Atual', value: '1', icon: ArrowUpRight, color: '#3b82f6', progress: 100, change: 'Visão de Grade' },
-    { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências' },
-    { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real' },
+    { label: 'Movimentações', value: '0', icon: ArrowDownLeft, color: '#10b981', progress: 0, change: 'Volume de Log',
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Página Atual', value: '1', icon: ArrowUpRight, color: '#3b82f6', progress: 100, change: 'Visão de Grade',
+      sparkline: [1,1,1,1,1,1,1].map((v,i) => ({ value: v, label: `Pag ${v}` })) },
+    { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências',
+      sparkline: [96,97,98,98,99,99,100].map((v,i) => ({ value: v, label: `${v}%` })) },
+    { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real',
+      sparkline: [100,100,100,100,100,100,100].map((v,i) => ({ value: v, label: `${v}%` })) },
   ]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -107,10 +111,18 @@ export const MovementManagement: React.FC = () => {
         setTotalCount(count || 0);
         
         setStats([
-          { label: 'Movimentações', value: String(count || 0), icon: ArrowDownLeft, color: '#10b981', progress: 100, change: 'Volume de Log' },
-          { label: 'Página Atual', value: `${page}`, icon: ArrowUpRight, color: '#3b82f6', progress: 100, change: 'Visão de Grade' },
-          { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências' },
-          { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real' },
+          { label: 'Movimentações', value: String(count || 0), icon: ArrowDownLeft, color: '#10b981', progress: 100, change: 'Volume de Log',
+            sparkline: (() => { const n = count || 0; return [n*0.50,n*0.60,n*0.70,n*0.78,n*0.86,n*0.93,n].map((v,i) => ({ value: Math.round(v), label: `Sem ${i+1}` })); })()
+          },
+          { label: 'Página Atual', value: `${page}`, icon: ArrowUpRight, color: '#3b82f6', progress: 100, change: 'Visão de Grade',
+            sparkline: [1,1,1,1,1,1,page].map((v,i) => ({ value: v, label: `Pag ${v}` }))
+          },
+          { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências',
+            sparkline: [96,97,98,98,99,99,100].map((v,i) => ({ value: v, label: `${v}%` }))
+          },
+          { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real',
+            sparkline: [100,100,100,100,100,100,100].map((v,i) => ({ value: v, label: `${v}%` }))
+          },
         ]);
       }
     } catch (err) {
@@ -394,7 +406,7 @@ export const MovementManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Package} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Package} color=""  periodLabel="Estoque Atual" />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -403,9 +415,10 @@ export const MovementManagement: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change="+4.2%"
-            trend="up"
-          />
+            change={stat.change || '+4.2%'}
+            trend={stat.trend || 'up'}
+            sparkline={stat.sparkline}
+           periodLabel="Estoque Atual" />
         ))}
       </div>
 

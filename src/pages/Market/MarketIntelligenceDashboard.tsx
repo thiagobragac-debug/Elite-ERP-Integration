@@ -98,6 +98,11 @@ export const MarketIntelligenceDashboard: React.FC = () => {
   const stats = getStats();
   const periodLabel = period === 'ALL' ? 'Todo Período' : period === '1Y' ? '1 Ano' : period === '6M' ? '6 Meses' : period === '90D' ? '90 Dias' : '30 Dias';
 
+  // Sample data for sparkline (max 20 points)
+  const sparklineData = data.length <= 20 
+    ? data.map(d => ({ value: d.value, label: d.displayDate || d.date }))
+    : data.filter((_, i) => i % Math.ceil(data.length / 20) === 0).map(d => ({ value: d.value, label: d.displayDate || d.date }));
+
   return (
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
@@ -110,11 +115,12 @@ export const MarketIntelligenceDashboard: React.FC = () => {
           <p className="page-subtitle">Análise avançada de indicadores e histórico de preços</p>
         </div>
         
-        <div className="page-actions" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <div className="page-actions" style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'nowrap' }}>
           <select 
             value={indicator} 
             onChange={(e) => setIndicator(e.target.value)}
             className="market-select-tauze"
+            style={{ maxWidth: '300px' }}
           >
             <option value="boi_gordo_cepea">Boi Gordo (CEPEA) - R$/@</option>
             <option value="bezerro_ms_cepea">Bezerro MS (CEPEA) - R$/cabeça</option>
@@ -135,32 +141,13 @@ export const MarketIntelligenceDashboard: React.FC = () => {
           </div>
 
           <button 
-            className="glass-btn secondary icon-only" 
+            className="glass-btn secondary" 
             title="Criar Alerta de Mercado"
-            style={{ height: '42px', width: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             onClick={() => setIsAlertModalOpen(true)}
           >
-            <Bell size={18} />
+            <Bell size={16} />
+            Alerta
           </button>
-
-          <div className="export-dropdown-container" style={{ position: 'relative' }}>
-            <button 
-              className="glass-btn secondary icon-only" 
-              title="Exportar Dados"
-              style={{ height: '42px', width: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onClick={() => {
-                const menu = document.getElementById('export-menu-market');
-                if (menu) menu.classList.toggle('active');
-              }}
-            >
-              <FileText size={18} />
-            </button>
-            <div id="export-menu-market" className="export-menu" style={{ top: '50px', right: '0' }}>
-              <button onClick={() => { handleExport('csv'); document.getElementById('export-menu-market')?.classList.remove('active'); }}>Excel (.CSV)</button>
-              <button onClick={() => { handleExport('excel'); document.getElementById('export-menu-market')?.classList.remove('active'); }}>Excel (.xlsx)</button>
-              <button onClick={() => { handleExport('pdf'); document.getElementById('export-menu-market')?.classList.remove('active'); }}>PDF</button>
-            </div>
-          </div>
         </div>
       </header>
 
@@ -178,6 +165,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
               trend={stats.variation >= 0 ? 'up' : 'down'}
               progress={85}
               periodLabel={periodLabel}
+              sparkline={sparklineData}
             />
             <TauzeStatCard 
               label="Máxima no Período" 
@@ -186,6 +174,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
               color="#3b82f6"
               progress={100}
               periodLabel={periodLabel}
+              sparkline={sparklineData}
             />
             <TauzeStatCard 
               label="Mínima no Período" 
@@ -194,6 +183,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
               color="#f59e0b"
               progress={40}
               periodLabel={periodLabel}
+              sparkline={sparklineData}
             />
             <TauzeStatCard 
               label="Preço Médio" 
@@ -202,6 +192,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
               color="#8b5cf6"
               progress={75}
               periodLabel={periodLabel}
+              sparkline={sparklineData}
             />
           </>
         )}
@@ -228,7 +219,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={350}>
-                <AreaChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
+                <AreaChart data={data} margin={{ top: 50, right: 20, left: 0, bottom: 20 }}>
                   <defs>
                     <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="hsl(var(--brand))" stopOpacity={0.3}/>
@@ -245,7 +236,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
                     minTickGap={30}
                   />
                   <YAxis 
-                    domain={['dataMin - 5', 'dataMax + 5']} 
+                    domain={['dataMin - 15', 'dataMax + 15']} 
                     axisLine={false} 
                     tickLine={false} 
                     tick={{ fontSize: 11, fill: 'hsl(var(--text-muted))' }}

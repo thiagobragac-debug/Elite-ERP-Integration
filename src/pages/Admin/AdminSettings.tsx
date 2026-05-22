@@ -357,7 +357,7 @@ export const AdminSettings: React.FC = () => {
                     <div className="premium-switch">
                       <div className="info">
                         <span className="t">Validação de CNPJ Sefaz</span>
-                        <span className="d">Verificação automática em tempo real de fornecedores.</span>
+                        <span className="d">Verificação automática em tempo real de parceiroes.</span>
                       </div>
                       <div className="toggle-box active"></div>
                     </div>

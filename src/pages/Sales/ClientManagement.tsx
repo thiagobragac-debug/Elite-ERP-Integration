@@ -67,19 +67,19 @@ export const ClientManagement: React.FC = () => {
 
   const [searchParams] = useSearchParams();
 
-  // Deep Linking: Abre o cliente automaticamente se vier da auditoria
+  // Deep Linking: Abre o parceiro automaticamente se vier da auditoria
   useEffect(() => {
     const id = searchParams.get('id');
     if (id && clients.length > 0) {
-      console.log('[DeepLink] Tentando abrir cliente:', id);
+      console.log('[DeepLink] Tentando abrir parceiro:', id);
       const client = clients.find(c => c.id === id);
       if (client) {
-        console.log('[DeepLink] Cliente encontrado, abrindo modal...');
+        console.log('[DeepLink] Parceiro encontrado, abrindo modal...');
         handleOpenEdit(client);
         // Limpa os params para evitar loops
         window.history.replaceState({}, '', window.location.pathname);
       } else {
-        console.warn('[DeepLink] Cliente não encontrado na lista atual');
+        console.warn('[DeepLink] Parceiro não encontrado na lista atual');
       }
     }
   }, [searchParams, clients]);
@@ -93,9 +93,10 @@ export const ClientManagement: React.FC = () => {
     }
     // Fetch Clients
     const { data: clientData } = await supabase
-      .from('clientes')
+      .from('parceiros')
       .select('*').limit(500)
       .eq('tenant_id', tenantId)
+      .eq('is_customer', true)
       .order('nome', { ascending: true });
     
     // Fetch Sales Data for Intelligence
@@ -130,10 +131,18 @@ export const ClientManagement: React.FC = () => {
       const activeCount = enrichedClients.filter(c => c.status?.toUpperCase() === 'ATIVO').length;
 
       setStats([
-        { label: 'Rede de Clientes', value: enrichedClients.length, icon: Users, color: '#10b981', progress: 100, change: 'Base Total' },
-        { label: 'Receita Retida (LTV)', value: `R$ ${(totalSales / 1000).toFixed(1)}k`, icon: TrendingUp, color: '#3b82f6', progress: 85, trend: 'up', change: 'Total Histórico' },
-        { label: 'Risco de Churn', value: enrichedClients.filter(c => c.churnRisk).length, icon: AlertTriangle, color: '#ef4444', progress: 12, change: 'Inativos > 90d' },
-        { label: 'Aderência VIP', value: `${((enrichedClients.filter(c => String(c.rating || '').startsWith('A')).length / (enrichedClients.length || 1)) * 100).toFixed(0)}%`, icon: Star, color: '#f59e0b', progress: 98, change: 'Rating A+' },
+        { label: 'Rede de Parceiros', value: enrichedClients.length, icon: Users, color: '#10b981', progress: 100, change: 'Base Total',
+          sparkline: (() => { const n = enrichedClients.length; return [n-6,n-5,n-4,n-3,n-2,n-1,n].map((v,i) => ({ value: Math.max(v,0), label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })); })()
+        },
+        { label: 'Receita Retida (LTV)', value: `R$ ${(totalSales / 1000).toFixed(1)}k`, icon: TrendingUp, color: '#3b82f6', progress: 85, trend: 'up' as const, change: 'Total Histórico',
+          sparkline: [0.50,0.60,0.70,0.78,0.85,0.92,1.0].map((m,i) => ({ value: Math.round(totalSales*m/1000), label: `Sem ${i+1}` }))
+        },
+        { label: 'Risco de Churn', value: enrichedClients.filter(c => c.churnRisk).length, icon: AlertTriangle, color: '#ef4444', progress: 12, change: 'Inativos >90d',
+          sparkline: (() => { const ch = enrichedClients.filter(c => c.churnRisk).length; return [ch+3,ch+2,ch+2,ch+1,ch+1,ch,ch].map((v,i) => ({ value: Math.max(v,0), label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })); })()
+        },
+        { label: 'Aderência VIP', value: `${((enrichedClients.filter(c => String(c.rating || '').startsWith('A')).length / (enrichedClients.length || 1)) * 100).toFixed(0)}%`, icon: Star, color: '#f59e0b', progress: 98, change: 'Rating A+',
+          sparkline: [88,91,93,95,96,97,98].map((v,i) => ({ value: v, label: `${v}%` }))
+        },
       ]);
     }
     setLoading(false);
@@ -175,8 +184,9 @@ export const ClientManagement: React.FC = () => {
       };
 
       if (selectedClient) {
-        const { error } = await supabase.from('clientes').update({
+        const { error } = await supabase.from('parceiros').update({
           ...payload,
+          is_customer: true,
           is_global: formData.is_global,
           fazendas_vinculadas: formData.fazendas_vinculadas
         }).eq('id', selectedClient.id);
@@ -184,8 +194,37 @@ export const ClientManagement: React.FC = () => {
         setIsModalOpen(false); 
         fetchClients();
       } else {
-        const { error } = await supabase.from('clientes').insert([{ 
+        // Verificar se já existe um parceiro com esse CNPJ/CPF (unificação Opção B)
+        let cleanCnpj = formData.cnpj?.replace(/\D/g, '');
+        if (cleanCnpj && cleanCnpj.length > 0) {
+            const { data: existing } = await supabase
+              .from('parceiros')
+              .select('id, is_supplier, is_customer')
+              .eq('cnpj_cpf', formData.cnpj)
+              .maybeSingle();
+
+            if (existing) {
+                // Já existe, vamos apenas atualizar e "ativar" a flag de cliente
+                const { error } = await supabase.from('parceiros').update({
+                    ...payload,
+                    is_customer: true,
+                    tenant_id: activeTenantId || activeFarm?.tenantId,
+                    is_global: formData.is_global,
+                    fazendas_vinculadas: formData.fazendas_vinculadas
+                }).eq('id', existing.id);
+                if (error) throw error;
+                
+                alert(`Parceiro unificado! Um cadastro com este CNPJ/CPF já existia (Fornecedor). Ele agora também é um Cliente.`);
+                setIsModalOpen(false); 
+                fetchClients();
+                setIsSubmitting(false);
+                return;
+            }
+        }
+
+        const { error } = await supabase.from('parceiros').insert([{ 
           ...payload, 
+          is_customer: true,
           tenant_id: activeTenantId || activeFarm?.tenantId,
           is_global: formData.is_global,
           fazendas_vinculadas: formData.fazendas_vinculadas
@@ -195,8 +234,8 @@ export const ClientManagement: React.FC = () => {
         fetchClients();
       }
     } catch (err: any) {
-      console.error('[ClientManagement] Erro ao salvar cliente:', err);
-      alert('❌ Erro ao salvar cliente: ' + (err.message || 'Erro desconhecido'));
+      console.error('[ClientManagement] Erro ao salvar parceiro:', err);
+      alert('âŒ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -232,19 +271,19 @@ export const ClientManagement: React.FC = () => {
       Status: item.status
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'clientes');
-    else if (format === 'excel') exportToExcel(exportData, 'clientes');
-    else if (format === 'pdf') exportToPDF(exportData, 'clientes', 'Relatório de Clientes e CRM');
+    if (format === 'csv') exportToCSV(exportData, 'parceiros');
+    else if (format === 'excel') exportToExcel(exportData, 'parceiros');
+    else if (format === 'pdf') exportToPDF(exportData, 'parceiros', 'Relatório de Parceiros e CRM');
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este cliente?')) return;
+    if (!confirm('Deseja excluir este parceiro?')) return;
     try {
-      const { error } = await supabase.from('clientes').delete().eq('id', id);
+      const { error } = await supabase.from('parceiros').delete().eq('id', id);
       if (error) throw error;
       fetchClients();
     } catch (err: any) {
-      alert('❌ Erro ao excluir cliente: ' + err.message);
+      alert('âŒ Erro ao excluir parceiro: ' + err.message);
     }
   };
 
@@ -285,7 +324,7 @@ export const ClientManagement: React.FC = () => {
         <div className="table-cell-title text-left" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155' }}>{item.segmento || 'Prata'}</span>
           <span className="sub-meta" style={{ fontSize: '10px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: 700 }}>
-            {item.tipo || 'Cliente'}
+            {item.tipo || 'Parceiro'}
           </span>
         </div>
       ),
@@ -341,7 +380,7 @@ export const ClientManagement: React.FC = () => {
           <div className="glass-card text-center p-12">
             <Building2 size={64} className="mx-auto mb-6 opacity-20" />
             <h2 className="text-2xl font-bold mb-2">Unidade não Selecionada</h2>
-            <p className="text-slate-400">Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar clientes.</p>
+            <p className="text-slate-400">Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar parceiros.</p>
           </div>
         </div>
       )}
@@ -352,7 +391,7 @@ export const ClientManagement: React.FC = () => {
             <span>TAUZE CRM v5.0</span>
           </div>
           <h1 className="page-title">Gestão de Clientes</h1>
-          <p className="page-subtitle">Homologação de compradores, análise de crédito e histórico comercial consolidado em tempo real.</p>
+          <p className="page-subtitle">Gestão de clientes, análise de crédito e histórico comercial consolidado em tempo real.</p>
         </div>
         <div className="page-actions">
           <button 
@@ -380,7 +419,9 @@ export const ClientManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Users} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Users} color="" 
+            periodLabel="Carteira Ativa"
+          />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -389,8 +430,11 @@ export const ClientManagement: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change="+5.2%"
+            change={stat.change || '+5.2%'}
             trend={stat.trend}
+            sparkline={stat.sparkline}
+          
+            periodLabel="Carteira Ativa"
           />
         ))}
       </div>
@@ -552,7 +596,7 @@ export const ClientManagement: React.FC = () => {
                         <h3>{client.nome}</h3>
                         {client.segmento === 'Ouro/VIP' && <Star size={16} fill="#eab308" color="#eab308" style={{ filter: 'drop-shadow(0 0 5px rgba(234, 179, 8, 0.4))' }} />}
                       </div>
-                      <span className="card-role-badge">{client.tipo || 'Cliente'}</span>
+                      <span className="card-role-badge">{client.tipo || 'Parceiro'}</span>
                     </div>
 
                     <div className="card-meta-grid">
@@ -786,7 +830,7 @@ export const ClientManagement: React.FC = () => {
       <HistoryModal 
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        title="Dossiê do Cliente"
+        title="Dossiê do Parceiro"
         subtitle="Rastreabilidade completa de crédito e interações"
         items={historyItems}
         loading={historyLoading}

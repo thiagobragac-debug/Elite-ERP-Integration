@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ï»¿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Truck, 
@@ -109,28 +109,28 @@ export const FleetManagement: React.FC = () => {
           progress: 100,
           change: `${total} ativos`,
           periodLabel: 'Frota Geral',
-          sparkline: [{ value: 95 }, { value: 98 }, { value: 100 }]
+          sparkline: [Math.max(1,total-4),Math.max(1,total-3),Math.max(1,total-2),Math.max(1,total-1),total,total,total].map((v,i) => ({ value: v, label: String(v) }))
         },
         { 
-          label: 'Em Manutenção', 
+          label: 'Em Manutenï¿½ï¿½o', 
           value: emManutencao, 
           icon: Tool, 
           color: '#ef4444', 
           progress: (emManutencao / (total || 1)) * 100,
-          change: 'Crítico',
-          periodLabel: 'Parada Técnica',
-          sparkline: [{ value: 2 }, { value: 5 }, { value: emManutencao }]
+          change: 'Crï¿½tico',
+          periodLabel: 'Parada Tï¿½cnica',
+          sparkline: [Math.max(0,emManutencao+3),Math.max(0,emManutencao+2),Math.max(0,emManutencao+1),Math.max(0,emManutencao+1),emManutencao,emManutencao,emManutencao].map((v,i) => ({ value: v, label: String(v) }))
         },
         { 
-          label: 'Consumo Médio (Global)', 
+          label: 'Consumo Mï¿½dio (Global)', 
           value: `${avgEfficiency} L/h`, 
           icon: Activity, 
           color: '#f59e0b', 
           progress: 72,
           trend: 'down',
           change: '-2.5%',
-          periodLabel: 'Consumo Médio',
-          sparkline: [{ value: 15.5 }, { value: 14.8 }, { value: 14.2 }]
+          periodLabel: 'Consumo Mï¿½dio',
+          sparkline: [16.2,15.8,15.4,15.0,14.7,14.4,Number(avgEfficiency)||14.2].map((v,i) => ({ value: v, label: v+'L/h' }))
         },
         { 
           label: 'Disponibilidade', 
@@ -141,7 +141,7 @@ export const FleetManagement: React.FC = () => {
           trend: 'up',
           change: 'Operacional',
           periodLabel: 'Uptime Real',
-          sparkline: [{ value: 85 }, { value: 88 }, { value: 92 }]
+          sparkline: [82,84,86,88,90,91,Math.round((emOperacao/(total||1))*100)].map((v,i) => ({ value: v, label: v+'%' }))
         },
       ]);
     } catch (err) {
@@ -164,7 +164,7 @@ export const FleetManagement: React.FC = () => {
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate && !selectedMachine) {
-      alert('?? Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.');
+      alert('?? Selecione uma unidade especï¿½fica para cadastrar um novo ativo. No modo Visï¿½o Global, a fazenda proprietï¿½ria deve ser definida.');
       return;
     }
     
@@ -188,7 +188,7 @@ export const FleetManagement: React.FC = () => {
         data_proxima_revisao: formData.data_proxima_revisao || null,
         status: formData.status || 'active',
         observacoes: formData.observacoes,
-        tipo_medidor: formData.categoria === 'Trator' || formData.categoria === 'Implemento' ? 'Horímetro' : 'Odômetro',
+        tipo_medidor: formData.categoria === 'Trator' || formData.categoria === 'Implemento' ? 'Horï¿½metro' : 'Odï¿½metro',
         ...insertPayload
       };
 
@@ -203,7 +203,7 @@ export const FleetManagement: React.FC = () => {
       fetchMachines();
     } catch (err) {
       console.error('Error saving machine:', err);
-      alert('Erro ao salvar máquina. Verifique o console para mais detalhes.');
+      alert('Erro ao salvar mï¿½quina. Verifique o console para mais detalhes.');
     } finally {
       setLoading(false);
     }
@@ -211,7 +211,7 @@ export const FleetManagement: React.FC = () => {
 
   const handleMaintenanceSubmit = async (data: any) => {
     if (!canCreate) {
-      alert('?? Selecione uma unidade específica para registrar uma manutenção. No modo Visão Global, a fazenda deve ser definida.');
+      alert('?? Selecione uma unidade especï¿½fica para registrar uma manutenï¿½ï¿½o. No modo Visï¿½o Global, a fazenda deve ser definida.');
       return;
     }
     const { error } = await supabase.from('manutencao_frota').insert([{
@@ -259,13 +259,13 @@ export const FleetManagement: React.FC = () => {
       Ano: item.ano || '-',
       Placa: item.placa || '-',
       Uso_Atual: item.horimetro_atual ? `${item.horimetro_atual}h` : item.quilometragem_atual ? `${item.quilometragem_atual}km` : '0',
-      Status: item.status === 'active' ? 'Em Campo' : item.status === 'maintenance' ? 'Manutenção' : 'Parado',
+      Status: item.status === 'active' ? 'Em Campo' : item.status === 'maintenance' ? 'Manutenï¿½ï¿½o' : 'Parado',
       Combustivel: item.combustivel || '-'
     }));
 
     if (format === 'csv') exportToCSV(exportData, 'frota_veiculos');
     else if (format === 'excel') exportToExcel(exportData, 'frota_veiculos');
-    else if (format === 'pdf') exportToPDF(exportData, 'frota_veiculos', 'Relatório de Frota e Maquinários');
+    else if (format === 'pdf') exportToPDF(exportData, 'frota_veiculos', 'Relatï¿½rio de Frota e Maquinï¿½rios');
   };
 
   const handleDelete = async (id: string) => {
@@ -275,14 +275,14 @@ export const FleetManagement: React.FC = () => {
   };
 
   const handleViewHistory = async (machine: any) => {
-    setHistoryTitle(`Histórico: ${machine.nome}`);
+    setHistoryTitle(`Histï¿½rico: ${machine.nome}`);
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
     setTimeout(() => {
       setHistoryItems([
-        { id: '1', date: new Date().toISOString(), title: 'Manutenção Corretiva', subtitle: 'Troca de óleo e filtros', value: 'R$ 1.250,00', status: 'success' },
+        { id: '1', date: new Date().toISOString(), title: 'Manutenï¿½ï¿½o Corretiva', subtitle: 'Troca de ï¿½leo e filtros', value: 'R$ 1.250,00', status: 'success' },
         { id: '2', date: new Date(Date.now() - 86400000 * 5).toISOString(), title: 'Abastecimento', subtitle: '450 litros (Diesel S10)', value: 'R$ 2.700,00', status: 'info' },
-        { id: '3', date: new Date(Date.now() - 86400000 * 15).toISOString(), title: 'Revisão Preventiva', subtitle: 'Checklist 250 horas', value: 'Concluído', status: 'success' },
+        { id: '3', date: new Date(Date.now() - 86400000 * 15).toISOString(), title: 'Revisï¿½o Preventiva', subtitle: 'Checklist 250 horas', value: 'Concluï¿½do', status: 'success' },
       ]);
       setHistoryLoading(false);
     }, 800);
@@ -290,7 +290,7 @@ export const FleetManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Ativo / Identificação',
+      header: 'Ativo / Identificaï¿½ï¿½o',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
@@ -304,7 +304,7 @@ export const FleetManagement: React.FC = () => {
       align: 'left' as const
     },
     {
-      header: 'Categoria & Combustível',
+      header: 'Categoria & Combustï¿½vel',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
@@ -328,7 +328,7 @@ export const FleetManagement: React.FC = () => {
       align: 'center' as const
     },
     {
-      header: 'Eficiência Estimada',
+      header: 'Eficiï¿½ncia Estimada',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
           <span>{item.consumo_estimado ? `${item.consumo_estimado} L/h` : '14.2 L/h'}</span>
@@ -337,7 +337,7 @@ export const FleetManagement: React.FC = () => {
       align: 'center' as const
     },
     {
-      header: 'Próxima Revisão',
+      header: 'Prï¿½xima Revisï¿½o',
       accessor: (item: any) => {
         const current = item.horimetro_atual || 0;
         const interval = item.intervalo_revisao || 250;
@@ -371,7 +371,7 @@ export const FleetManagement: React.FC = () => {
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span className={`status-pill ${item.status === 'active' ? 'active' : item.status === 'maintenance' ? 'warning' : 'stopped'}`}>
-            {item.status === 'active' ? 'Operacional' : item.status === 'maintenance' ? 'Manutenção' : 'Parado'}
+            {item.status === 'active' ? 'Operacional' : item.status === 'maintenance' ? 'Manutenï¿½ï¿½o' : 'Parado'}
           </span>
         </div>
       ),
@@ -379,7 +379,7 @@ export const FleetManagement: React.FC = () => {
     }
   ];
 
-  const categories = ['All', 'Trator', 'Caminhão', 'Implemento', 'Picape', 'Máquina'];
+  const categories = ['All', 'Trator', 'Caminhï¿½o', 'Implemento', 'Picape', 'Mï¿½quina'];
 
   return (
     <div className="fleet-page animate-slide-up">
@@ -389,8 +389,8 @@ export const FleetManagement: React.FC = () => {
             <Truck size={14} fill="currentColor" />
             <span>TAUZE FLEET v5.0</span>
           </div>
-          <h1 className="page-title">Gestão de Frota</h1>
-          <p className="page-subtitle">Telemetria de ativos, controle de manutenção e eficiência operacional do maquinário em tempo real.</p>
+          <h1 className="page-title">Gestï¿½o de Frota</h1>
+          <p className="page-subtitle">Telemetria de ativos, controle de manutenï¿½ï¿½o e eficiï¿½ncia operacional do maquinï¿½rio em tempo real.</p>
         </div>
         <div className="page-actions">
           <button className="primary-btn" onClick={handleOpenCreate}>
@@ -447,14 +447,14 @@ export const FleetManagement: React.FC = () => {
           <button 
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
-            title="Visualização em Lista"
+            title="Visualizaï¿½ï¿½o em Lista"
           >
             <ListIcon size={18} />
           </button>
           <button 
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
-            title="Visualização em Cards"
+            title="Visualizaï¿½ï¿½o em Cards"
           >
             <LayoutGrid size={18} />
           </button>
@@ -463,7 +463,7 @@ export const FleetManagement: React.FC = () => {
         <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
-            title="Filtros Avançados"
+            title="Filtros Avanï¿½ados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           >
             <Filter size={20} />
@@ -499,7 +499,7 @@ export const FleetManagement: React.FC = () => {
         {machines.length === 0 && !loading ? (
           <EmptyState
             title="Nenhum ativo cadastrado"
-            description="A frota desta unidade ainda não possui ativos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
+            description="A frota desta unidade ainda nï¿½o possui ativos registrados. Cadastre o primeiro maquinï¿½rio para iniciar o monitoramento telemetria."
             actionLabel="Novo Ativo"
             onAction={handleOpenCreate}
             icon={Truck}
@@ -580,7 +580,7 @@ export const FleetManagement: React.FC = () => {
                       <Truck size={32} />
                     </div>
                     <div className="card-bottom-actions">
-                      <button className="action-icon-btn info" onClick={() => handleViewHistory(m)} title="Dossiê"><History size={14} /></button>
+                      <button className="action-icon-btn info" onClick={() => handleViewHistory(m)} title="Dossiï¿½"><History size={14} /></button>
                       <button className="action-icon-btn edit" onClick={() => handleOpenEdit(m)} title="Editar"><Edit3 size={14} /></button>
                       <button className="action-icon-btn delete" onClick={() => handleDelete(m.id)} title="Excluir"><Trash2 size={14} /></button>
                     </div>
@@ -605,12 +605,12 @@ export const FleetManagement: React.FC = () => {
                       </div>
                       <div className="meta-item">
                         <Zap size={14} className="meta-icon" style={{ color: '#8b5cf6' }} />
-                        <span>{m.potencia ? `${m.potencia}cv` : 'Potência N/D'} • {m.peso_operacional ? `${(m.peso_operacional/1000).toFixed(1)}t` : 'N/D'}</span>
+                        <span>{m.potencia ? `${m.potencia}cv` : 'Potï¿½ncia N/D'} ï¿½ {m.peso_operacional ? `${(m.peso_operacional/1000).toFixed(1)}t` : 'N/D'}</span>
                       </div>
                       <div className="maintenance-countdown-tauze">
                         <div className="countdown-header">
                           <Clock size={12} />
-                          <span>Próxima Revisão</span>
+                          <span>Prï¿½xima Revisï¿½o</span>
                         </div>
                         {(() => {
                           const current = m.horimetro_atual || 0;
@@ -904,7 +904,7 @@ export const FleetManagement: React.FC = () => {
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title={historyTitle}
-        subtitle="Rastreabilidade completa de manutenções e intervenções"
+        subtitle="Rastreabilidade completa de manutenï¿½ï¿½es e intervenï¿½ï¿½es"
         items={historyItems}
         loading={historyLoading}
       />

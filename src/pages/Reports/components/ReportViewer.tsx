@@ -137,10 +137,10 @@ const ReportPrintLayout: React.FC<{
 
       <div className="print-only-footer">
         <div className="footer-left">
-          <strong>Tauze Intelligence Engine</strong> • Documento gerado eletronicamente
+          <strong>Tauze Intelligence Engine</strong> â€¢ Documento gerado eletronicamente
         </div>
         <div className="footer-right">
-          Protocolo: {Math.random().toString(36).substring(7).toUpperCase()} • Página 1 de 1
+          Protocolo: {Math.random().toString(36).substring(7).toUpperCase()} â€¢ Página 1 de 1
         </div>
       </div>
     </div>
@@ -351,12 +351,21 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
                progress={100}
                change={s.change}
                trend={s.trend === 'down' ? 'down' : 'up'}
+               sparkline={s.sparkline}
+             
+               periodLabel="Periodo Atual"
              />
             )) : (
               <>
-                <TauzeStatCard label="Volume Processado" value="1.420" icon={Activity} color="#10b981" progress={100} change="+4.2%" trend="up" />
-                <TauzeStatCard label="Performance Global" value="92.4%" icon={TrendingUp} color="#3b82f6" progress={92} change="+1.5%" trend="up" />
-                <TauzeStatCard label="Custo Médio / Un" value="R$ 12.40" icon={DollarSign} color="#f59e0b" progress={60} change="-0.8%" trend="down" />
+                <TauzeStatCard label="Volume Processado" value="1.420" icon={Activity} color="#10b981" progress={100} change="+4.2%" trend="up" sparkline={[710,852,994,1136,1278,1349,1420].map((v,i) => ({ value: v, label: 'Sem '+String(i+1) }))} 
+            periodLabel="Periodo Atual"
+          />
+                <TauzeStatCard label="Performance Global" value="92.4%" icon={TrendingUp} color="#3b82f6" progress={92} change="+1.5%" trend="up" sparkline={[87,88,89,90,91,92,92.4].map((v,i) => ({ value: v, label: String(v)+'%' }))} 
+            periodLabel="Periodo Atual"
+          />
+                <TauzeStatCard label="Custo Médio / Un" value="R$ 12.40" icon={DollarSign} color="#f59e0b" progress={60} change="-0.8%" trend="down" sparkline={[13.2,13.0,12.9,12.8,12.7,12.5,12.4].map((v,i) => ({ value: v, label: 'R$'+String(v) }))} 
+            periodLabel="Periodo Atual"
+          />
               </>
             )}
           </div>
@@ -365,7 +374,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
             <div className="analytics-card">
               <div className="card-header">
                 <h3>Detalhamento de Registros</h3>
-                <span className="subtitle">Dados paginados em tempo real • Escala Comercial</span>
+                <span className="subtitle">Dados paginados em tempo real â€¢ Escala Comercial</span>
               </div>
             {error ? (
               <div className="report-error">

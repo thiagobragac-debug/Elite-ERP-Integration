@@ -94,7 +94,7 @@ export const AccountsReceivable: React.FC = () => {
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate && !selectedInvoice) {
-      alert('⚠️ Selecione uma unidade específica para registrar uma nova receita. No modo Visão Global, a fazenda beneficiária deve ser definida.');
+      alert('âš ï¸ Selecione uma unidade específica para registrar uma nova receita. No modo Visão Global, a fazenda beneficiária deve ser definida.');
       return;
     }
 
@@ -105,7 +105,7 @@ export const AccountsReceivable: React.FC = () => {
         valor_total: parseFloat(formData.value),
         data_vencimento: formData.dueDate,
         categoria: formData.category,
-        cliente_id: formData.entityId,
+        cliente_id: formData.entityId || null,
         metodo_recebimento: formData.paymentMethod,
         status: formData.status
       };
@@ -132,7 +132,7 @@ export const AccountsReceivable: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[AccountsReceivable] Erro ao salvar:', err);
-      alert('❌ Erro ao salvar receita: ' + (err.message || 'Erro desconhecido'));
+      alert('âŒ Erro ao salvar receita: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -140,7 +140,7 @@ export const AccountsReceivable: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = invoices.filter(i => {
-      const matchesSearch = (i.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (i.clientes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (i.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (i.parceiros?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTab = activeTab === 'TODAS' || i.status === activeTab;
       const matchesStatus = filterValues.status === 'all' || i.status === filterValues.status;
       const amount = Number(i.valor_total);
@@ -153,7 +153,7 @@ export const AccountsReceivable: React.FC = () => {
     const exportData = filteredData.map(item => ({
       Vencimento: item.data_vencimento,
       Descricao: item.descricao,
-      Cliente: item.clientes?.nome || item.cliente || 'Geral',
+      Parceiro: item.parceiros?.nome || item.parceiro || 'Geral',
       Valor: item.valor_total,
       Status: item.status,
       Categoria: item.categoria,
@@ -172,7 +172,7 @@ export const AccountsReceivable: React.FC = () => {
       if (error) throw error;
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao excluir receita: ' + err.message);
+      alert('âŒ Erro ao excluir receita: ' + err.message);
     }
   };
 
@@ -184,7 +184,7 @@ export const AccountsReceivable: React.FC = () => {
   const handleViewDetails = (inv: any) => {
     setIsHistoryModalOpen(true);
     setHistoryItems([
-      { id: '1', date: inv.data_vencimento, title: 'Título: ' + inv.descricao, subtitle: 'Cliente: ' + (inv.clientes?.nome || inv.cliente || 'Geral'), value: Number(inv.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: inv.status === 'RECEBIDO' ? 'success' : 'pending' },
+      { id: '1', date: inv.data_vencimento, title: 'Título: ' + inv.descricao, subtitle: 'Parceiro: ' + (inv.parceiros?.nome || inv.parceiro || 'Geral'), value: Number(inv.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: inv.status === 'RECEBIDO' ? 'success' : 'pending' },
       { id: '2', date: inv.data_vencimento, title: 'Categoria', subtitle: inv.categoria || 'Geral', value: inv.metodo_recebimento || 'N/A', status: 'info' },
       { id: '3', date: inv.data_vencimento, title: 'Origem', subtitle: 'Venda de Gado', value: '100%', status: 'success' },
     ]);
@@ -231,11 +231,11 @@ export const AccountsReceivable: React.FC = () => {
       align: 'left' as const
     },
     {
-      header: 'Cliente / Pagador',
+      header: 'Parceiro / Pagador',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155', fontWeight: 600, fontSize: '12px' }}>
           <Users size={14} color="#94a3b8" />
-          <span>{item.clientes?.nome || item.cliente || 'Geral'}</span>
+          <span>{item.parceiros?.nome || item.parceiro || 'Geral'}</span>
         </div>
       ),
       align: 'left' as const
@@ -321,8 +321,11 @@ export const AccountsReceivable: React.FC = () => {
             icon={stat.icon || getIcon(stat.label)}
             color={stat.color || 'brand'}
             progress={stat.progress}
-            change="+4.8%"
+            change={stat.change || '+4.8%'}
             trend={stat.trend === 'neutral' ? undefined : stat.trend}
+            sparkline={stat.sparkline}
+          
+            periodLabel="Mes Atual"
           />
         ))}
       </div>
@@ -354,7 +357,7 @@ export const AccountsReceivable: React.FC = () => {
           <input 
             type="text" 
             className="tauze-search-input"
-            placeholder="Filtrar por descrição ou cliente..." 
+            placeholder="Filtrar por descrição ou parceiro..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

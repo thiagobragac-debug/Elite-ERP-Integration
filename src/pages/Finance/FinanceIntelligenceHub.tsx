@@ -173,7 +173,7 @@ export const FinanceIntelligenceHub: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Activity} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Activity} color=""  periodLabel="Mês Atual" />)
         ) : stats?.map((stat: any, idx: number) => (
           <TauzeStatCard 
             key={idx}

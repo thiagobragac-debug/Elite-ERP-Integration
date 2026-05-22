@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, 
   Hash, 
@@ -68,9 +68,10 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
 
   const fetchClients = async () => {
     const { data } = await supabase
-      .from('clientes')
+      .from('parceiros')
       .select('id, nome')
       .eq('tenant_id', activeTenantId)
+      .eq('is_customer', true)
       .order('nome');
     if (data) setClients(data);
   };
@@ -177,14 +178,14 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       </div>
 
       <div className="form-group span-3">
-        <label><User size={14} /> Cliente / Comprador</label>
+        <label><User size={14} /> Parceiro / Comprador</label>
         <select 
           className="tauze-input"
           value={formData.clientId}
           onChange={(e) => setFormData({...formData, clientId: e.target.value})}
           required
         >
-          <option value="">Selecione o cliente...</option>
+          <option value="">Selecione o parceiro...</option>
           {clients.map(c => (
             <option key={c.id} value={c.id}>{c.nome}</option>
           ))}

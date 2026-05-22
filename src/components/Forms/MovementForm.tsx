@@ -268,10 +268,10 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
       </div>
 
       <div className="form-group">
-        <label><Building2 size={14} /> {formData.tipo === 'in' ? 'Fornecedor' : 'Destino / Aplicação'}</label>
+        <label><Building2 size={14} /> {formData.tipo === 'in' ? 'Parceiro' : 'Destino / Aplicação'}</label>
         <input 
           type="text" 
-          placeholder={formData.tipo === 'in' ? "Ex: Fornecedor X..." : "Ex: Lote Engorda A1..."}
+          placeholder={formData.tipo === 'in' ? "Ex: Parceiro X..." : "Ex: Lote Engorda A1..."}
           value={formData.origem_destino}
           onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
           required

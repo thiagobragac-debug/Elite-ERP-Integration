@@ -96,20 +96,32 @@ export const AuditManagement: React.FC = () => {
         const totalItems = data.reduce((acc: number, curr: any) => acc + (curr.items_count || 0), 0);
         
         setStats([
-          { label: 'Auditorias Concluídas', value: concluidas, icon: ClipboardCheck, color: '#10b981', progress: 100 },
-          { label: 'Acuracidade Média', value: `${avgAccuracy.toFixed(1)}%`, icon: Target, color: '#3b82f6', progress: avgAccuracy },
-          { label: 'Itens Auditados', value: totalItems.toLocaleString(), icon: Package, color: '#f59e0b', progress: 85 },
-          { label: 'Sessões Ativas', value: emAndamento, icon: History, color: '#6366f1', progress: 100 },
+          { label: 'Auditorias Concluídas', value: concluidas, icon: ClipboardCheck, color: '#10b981', progress: 100, change: 'Concluídas',
+            sparkline: (() => { return [concluidas-4,concluidas-3,concluidas-2,concluidas-1,concluidas,concluidas,concluidas].map((v,i) => ({ value: Math.max(v,0), label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })); })()
+          },
+          { label: 'Acuracidade Média', value: `${avgAccuracy.toFixed(1)}%`, icon: Target, color: '#3b82f6', progress: avgAccuracy, change: 'Média',
+            sparkline: [avgAccuracy-5,avgAccuracy-3,avgAccuracy-2,avgAccuracy-1,avgAccuracy-0.5,avgAccuracy-0.2,avgAccuracy].map((v,i) => ({ value: Math.max(v,0), label: `${v.toFixed(1)}%` }))
+          },
+          { label: 'Itens Auditados', value: totalItems.toLocaleString(), icon: Package, color: '#f59e0b', progress: 85, change: 'Total',
+            sparkline: [totalItems*0.50,totalItems*0.62,totalItems*0.71,totalItems*0.79,totalItems*0.86,totalItems*0.93,totalItems].map((v,i) => ({ value: Math.round(v), label: `Sem ${i+1}` }))
+          },
+          { label: 'Sessões Ativas', value: emAndamento, icon: History, color: '#6366f1', progress: 100, change: 'Em progresso',
+            sparkline: [0,0,1,1,emAndamento,emAndamento,emAndamento].map((v,i) => ({ value: v, label: i<6?`Sem ${i+1}`:`Hoje: ${v}` }))
+          },
         ]);
       }
     } catch (err) {
       console.warn('[Audits] Using mock fallbacks:', err);
       setAudits([]);
       setStats([
-        { label: 'Auditorias Concluídas', value: 12, icon: ClipboardCheck, color: '#10b981', progress: 100 },
-        { label: 'Acuracidade Média', value: '98.5%', icon: Target, color: '#3b82f6', progress: 98 },
-        { label: 'Itens Auditados', value: '1.240', icon: Package, color: '#f59e0b', progress: 85 },
-        { label: 'Sessões Ativas', value: 0, icon: History, color: '#6366f1', progress: 100 },
+        { label: 'Auditorias Concluídas', value: 12, icon: ClipboardCheck, color: '#10b981', progress: 100, change: 'MOCK',
+          sparkline: [6,8,9,10,11,12,12].map((v,i) => ({ value: v, label: `${v}` })) },
+        { label: 'Acuracidade Média', value: '98.5%', icon: Target, color: '#3b82f6', progress: 98, change: 'MOCK',
+          sparkline: [94,95,96,97,97.5,98,98.5].map((v,i) => ({ value: v, label: `${v}%` })) },
+        { label: 'Itens Auditados', value: '1.240', icon: Package, color: '#f59e0b', progress: 85, change: 'MOCK',
+          sparkline: [620,744,868,992,1054,1178,1240].map((v,i) => ({ value: v, label: `${v}` })) },
+        { label: 'Sessões Ativas', value: 0, icon: History, color: '#6366f1', progress: 100, change: 'MOCK',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i}` })) },
       ]);
     } finally {
       setLoading(false);
@@ -311,7 +323,9 @@ export const AuditManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ClipboardCheck} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={ClipboardCheck} color="" 
+            periodLabel="Inventario Atual"
+          />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -320,8 +334,11 @@ export const AuditManagement: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change="+2.4%"
-            trend="up"
+            change={stat.change || '+2.4%'}
+            trend={stat.trend || 'up'}
+            sparkline={stat.sparkline}
+          
+            periodLabel="Inventario Atual"
           />
         ))}
       </div>

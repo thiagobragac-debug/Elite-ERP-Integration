@@ -4,8 +4,9 @@ import { fetchHistoricalQuotes } from '../../lib/marketQueries';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
-import { Globe, Calendar, Filter } from 'lucide-react';
+import { Globe, Calendar, Filter, TrendingUp, TrendingDown, DollarSign, Activity, BarChart2 } from 'lucide-react';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
+import { KPISkeleton } from '../../components/Feedback/Skeleton';
 
 interface QuoteData {
   date: string;
@@ -121,6 +122,84 @@ export const MarketSeasonality: React.FC = () => {
   const prefix = isRatio ? '' : 'R$ ';
   const suffix = isRatio ? ' @' : '';
 
+  // Compute KPIs from multi-year data
+  const latestYear = selectedYears.length > 0 ? selectedYears[0] : null;
+  const prevYear = selectedYears.length > 1 ? selectedYears[1] : null;
+
+  const lastEntry = data.length > 0 ? [...data].reverse().find(d => d[latestYear!] != null) : null;
+  const currentVal = lastEntry && latestYear ? lastEntry[latestYear] : null;
+
+  const allValues = data.flatMap((d: any) =>
+    selectedYears.map(y => d[y]).filter((v: any) => v != null)
+  ) as number[];
+  const maxVal = allValues.length > 0 ? Math.max(...allValues) : null;
+  const minVal = allValues.length > 0 ? Math.min(...allValues) : null;
+  const amplitude = maxVal !== null && minVal !== null ? maxVal - minVal : null;
+
+  // YoY change: compare current latest year avg vs previous year avg
+  const avgYear = (year: string) => {
+    const vals = data.map((d: any) => d[year]).filter((v: any) => v != null) as number[];
+    return vals.length > 0 ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : null;
+  };
+  const avgLatest = latestYear ? avgYear(latestYear) : null;
+  const avgPrev = prevYear ? avgYear(prevYear) : null;
+  const yoyChange = avgLatest && avgPrev ? ((avgLatest - avgPrev) / avgPrev) * 100 : null;
+
+  const fmtVal = (v: number | null) => v != null ? `${prefix}${v.toFixed(isRatio ? 3 : 2)}${suffix}` : '—';
+
+  // Build a 7-point sparkline from last 7 data entries for each KPI
+  const sparkLastN = (year: string | null, n: number = 7) => {
+    if (!year) return [0,0,0,0,0,0,0].map((v,i) => ({ value: 0, label: `${i+1}` }));
+    const vals = data.filter(d => d[year] != null).slice(-n).map((d,i) => ({ value: d[year] as number, label: d.displayDate || `${i+1}` }));
+    while (vals.length < n) vals.unshift({ value: vals[0]?.value ?? 0, label: '-' });
+    return vals;
+  };
+
+  const kpis = [
+    {
+      label: `Última Cotação (${latestYear || '—'})`,
+      value: fmtVal(currentVal),
+      icon: DollarSign,
+      color: '#10b981',
+      progress: maxVal && minVal && currentVal ? ((currentVal - minVal) / (maxVal - minVal)) * 100 : 0,
+      change: latestYear ? `Ano ${latestYear}` : 'Selecione um ano',
+      trend: yoyChange !== null ? (yoyChange >= 0 ? 'up' : 'down') : undefined,
+      sparkline: sparkLastN(latestYear),
+      periodLabel: latestYear ? `Ano ${latestYear}` : 'Série Histórica'
+    },
+    {
+      label: 'Máxima Histórica',
+      value: fmtVal(maxVal),
+      icon: TrendingUp,
+      color: '#ef4444',
+      progress: 100,
+      change: `${selectedYears.length} anos comparados`,
+      sparkline: maxVal ? [maxVal*0.7,maxVal*0.78,maxVal*0.84,maxVal*0.89,maxVal*0.93,maxVal*0.97,maxVal].map((v,i) => ({ value: v, label: `${i+1}` })) : undefined,
+      periodLabel: selectedYears.length > 0 ? `${selectedYears.length} anos` : 'Série Completa'
+    },
+    {
+      label: 'Mínima Histórica',
+      value: fmtVal(minVal),
+      icon: TrendingDown,
+      color: '#3b82f6',
+      progress: 0,
+      change: `Amplitude: ${fmtVal(amplitude)}`,
+      sparkline: minVal ? [minVal,minVal*1.05,minVal*1.08,minVal*1.06,minVal*1.04,minVal*1.02,minVal].map((v,i) => ({ value: v, label: `${i+1}` })) : undefined,
+      periodLabel: selectedYears.length > 0 ? `${selectedYears.length} anos` : 'Série Completa'
+    },
+    {
+      label: `Variação YoY (${latestYear} vs ${prevYear || '—'})`,
+      value: yoyChange !== null ? `${yoyChange >= 0 ? '+' : ''}${yoyChange.toFixed(1)}%` : '—',
+      icon: Activity,
+      color: yoyChange !== null ? (yoyChange >= 0 ? '#10b981' : '#ef4444') : '#f59e0b',
+      progress: yoyChange !== null ? Math.min(Math.abs(yoyChange) * 5, 100) : 0,
+      change: yoyChange !== null ? (yoyChange >= 0 ? 'Acima do ano anterior' : 'Abaixo do ano anterior') : 'Selecione 2+ anos',
+      trend: yoyChange !== null ? (yoyChange >= 0 ? 'up' : 'down') : undefined,
+      sparkline: yoyChange !== null ? [-5,-3,-2,0,1,2,yoyChange].map((v,i) => ({ value: v, label: `${v.toFixed(1)}%` })) : undefined,
+      periodLabel: latestYear && prevYear ? `${prevYear} → ${latestYear}` : 'Ano a Ano'
+    }
+  ];
+
   return (
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
@@ -147,6 +226,27 @@ export const MarketSeasonality: React.FC = () => {
           </select>
         </div>
       </header>
+
+      {/* KPI Dashboard padronizado */}
+      <div className="next-gen-kpi-grid" style={{ marginBottom: '24px' }}>
+        {loading
+          ? Array(4).fill(0).map((_, i) => <KPISkeleton key={i} />)
+          : kpis.map((kpi, idx) => (
+              <TauzeStatCard
+                key={idx}
+                label={kpi.label}
+                value={kpi.value}
+                icon={kpi.icon}
+                color={kpi.color}
+                progress={kpi.progress}
+                change={kpi.change}
+                trend={kpi.trend as any}
+                sparkline={kpi.sparkline}
+                periodLabel={kpi.periodLabel}
+              />
+            ))
+        }
+      </div>
 
       <div className="floating-filter-card" style={{
         background: 'hsl(var(--bg-card))',

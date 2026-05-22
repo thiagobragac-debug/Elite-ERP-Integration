@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Hash, 
   Calendar, 
@@ -97,9 +97,10 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
 
   const fetchSuppliers = async () => {
     const { data } = await supabase
-      .from('fornecedores')
+      .from('parceiros')
       .select('*')
       .eq('tenant_id', activeTenantId)
+      .eq('is_supplier', true)
       .order('nome');
     if (data) setSuppliers(data);
   };
@@ -204,14 +205,14 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
 
         {/* LINHA 2 - METADADOS */}
         <div className="form-group" style={{ gridColumn: 'span 6' }}>
-          <label><Building2 size={14} /> Fornecedor</label>
+          <label><Building2 size={14} /> Parceiro</label>
           <select 
             className="tauze-input"
             value={formData.supplier_id}
             onChange={(e) => setFormData({...formData, supplier_id: e.target.value})}
             required
           >
-            <option value="">Selecione o fornecedor...</option>
+            <option value="">Selecione o parceiro...</option>
             {suppliers.map(s => (
               <option key={s.id} value={s.id}>{s.nome}</option>
             ))}

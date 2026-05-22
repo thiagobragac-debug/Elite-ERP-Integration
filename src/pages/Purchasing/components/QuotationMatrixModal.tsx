@@ -21,7 +21,7 @@ interface SupplierBid {
   delivery_days?: number | string;
   // Fallbacks support
   name?: string;
-  fornecedor_nome?: string;
+  parceiro_nome?: string;
   preco?: number | string;
   deliveryDays?: number | string;
   prazo_entrega?: number | string;
@@ -58,7 +58,7 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
       const tenantId = quotation.tenant_id;
       if (tenantId) {
         const { data } = await supabase
-          .from('fornecedores')
+          .from('parceiros')
           .select('id, nome')
           .eq('tenant_id', tenantId);
         
@@ -79,12 +79,12 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
 
   if (!quotation) return null;
 
-  const rawBids: SupplierBid[] = quotation.suppliers || quotation.dados_fornecedores || [];
+  const rawBids: SupplierBid[] = quotation.suppliers || quotation.dados_parceiroes || [];
 
   // Parse and normalize bids
   const bids = rawBids.map((b, index) => {
     const sId = b.supplier_id || '';
-    const name = b.name || b.fornecedor_nome || suppliers[sId] || `Fornecedor ${index + 1}`;
+    const name = b.name || b.parceiro_nome || suppliers[sId] || `Parceiro ${index + 1}`;
     const price = Number(b.price || b.preco || 0);
     const deliveryDays = Number(b.delivery_days || b.deliveryDays || b.prazo_entrega || 0);
     const isWinner = !!(b.isWinner || b.vencedor || quotation.status === 'closed' && (b.isWinner || b.vencedor));
@@ -121,7 +121,7 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); onClose(); }}
-      title="Matriz Comparativa de Fornecedores"
+      title="Matriz Comparativa de Parceiroes"
       subtitle={`Análise das propostas comerciais para o item: ${quotation.produto_id || 'N/A'}`}
       icon={BarChart2}
       hideSubmit={true}
@@ -145,7 +145,7 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
           <div style={{ padding: '48px', textAlign: 'center', background: 'hsl(var(--bg-main)/0.2)', borderRadius: '20px', border: '1px dashed hsl(var(--border))' }}>
             <ShieldAlert size={36} color="hsl(var(--warning))" style={{ margin: '0 auto 12px' }} />
             <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'hsl(var(--text-main))', marginBottom: '4px' }}>Nenhuma Proposta Recebida</h3>
-            <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Este mapa de cotação ainda não possui propostas de fornecedores cadastradas.</p>
+            <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Este mapa de cotação ainda não possui propostas de parceiroes cadastradas.</p>
           </div>
         ) : (
           <>
@@ -208,7 +208,7 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em'
               }}>
-                <div>Fornecedor</div>
+                <div>Parceiro</div>
                 <div style={{ textAlign: 'center' }}>Preço Unitário</div>
                 <div style={{ textAlign: 'center' }}>Prazo de Entrega</div>
                 <div style={{ textAlign: 'right' }}>Ação de Tauze</div>
@@ -250,7 +250,7 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
                           transition: 'all 0.25s ease'
                         }}
                       >
-                        {/* Fornecedor */}
+                        {/* Parceiro */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                           <span style={{ fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
                             {bid.resolvedName}

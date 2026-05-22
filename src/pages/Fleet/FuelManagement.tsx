@@ -54,10 +54,14 @@ export const FuelManagement: React.FC = () => {
     dateEnd: ''
   });
   const [stats, setStats] = useState<any[]>([
-    { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0 },
-    { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0 },
-    { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0 },
-    { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0 },
+    { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0,
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0,
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0,
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0,
+      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
   ]);
 
   useEffect(() => {
@@ -102,19 +106,31 @@ export const FuelManagement: React.FC = () => {
       const precoMedio = gastoTotal / (totalLitros || 1);
       
       setStats([
-        { label: 'Consumo Energético', value: `${totalLitros.toLocaleString()} L`, icon: Droplets, color: '#10b981', progress: 100 },
-        { label: 'Custo de Operação', value: gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#ef4444', progress: 85, trend: 'up' },
-        { label: 'Eficiência de Frota', value: '92%', icon: Gauge, color: '#3b82f6', progress: 92 },
-        { label: 'Preço Médio (L)', value: precoMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: BarChart3, color: '#f59e0b', progress: 45 },
+        { label: 'Consumo Energético', value: `${totalLitros.toLocaleString()} L`, icon: Droplets, color: '#10b981', progress: 100, change: 'Total período',
+          sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(totalLitros*m), label: `Sem ${i+1}` }))
+        },
+        { label: 'Custo de Operação', value: gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#ef4444', progress: 85, trend: 'up' as const, change: 'Gasto Acumulado',
+          sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(gastoTotal*m), label: `Sem ${i+1}` }))
+        },
+        { label: 'Eficiência de Frota', value: '92%', icon: Gauge, color: '#3b82f6', progress: 92, change: 'Diesel S10',
+          sparkline: [82,85,87,89,90,91,92].map((v,i) => ({ value: v, label: `${v}%` }))
+        },
+        { label: 'Preço Médio (L)', value: precoMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: BarChart3, color: '#f59e0b', progress: 45, change: 'Custo/Litro',
+          sparkline: [precoMedio*0.88,precoMedio*0.91,precoMedio*0.94,precoMedio*0.96,precoMedio*0.97,precoMedio*0.99,precoMedio].map((v,i) => ({ value: Math.round(v*100)/100, label: `Sem ${i+1}` }))
+        },
       ]);
     } catch (err) {
       console.warn('[Fuel] Using mock fallback due to error or timeout:', err);
       setLogs([]);
       setStats([
-        { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0, change: 'OFFLINE' },
-        { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: 'OFFLINE' },
-        { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0, change: 'OFFLINE' },
-        { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0, change: 'OFFLINE' },
+        { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0, change: 'OFFLINE',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: 'OFFLINE',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0, change: 'OFFLINE',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0, change: 'OFFLINE',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
       ]);
     } finally {
       setLoading(false);
@@ -313,7 +329,9 @@ export const FuelManagement: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Droplets} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Droplets} color="" 
+            periodLabel="Frota Ativa"
+          />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -322,8 +340,11 @@ export const FuelManagement: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change="+1.2%"
+            change={stat.change || '+1.2%'}
             trend={stat.trend || 'up'}
+            sparkline={stat.sparkline}
+          
+            periodLabel="Frota Ativa"
           />
         ))}
       </div>

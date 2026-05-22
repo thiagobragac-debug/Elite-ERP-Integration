@@ -188,7 +188,7 @@ export const LCDPRPage: React.FC = () => {
           tipo: 'R', cod_natureza: '01',
           descricao: r.descricao || r.categoria || 'Receita Importada',
           cpf_cnpj_participante: (r.cpf_cnpj || '').replace(/\D/g,'') || null,
-          nome_participante: r.fornecedor || r.cliente || null,
+          nome_participante: r.parceiro || r.parceiro || null,
           num_documento: r.numero_documento || null,
           valor: Number(r.valor_total) || 0,
           origem: 'CONTAS_RECEBER', origem_id: r.id
@@ -203,7 +203,7 @@ export const LCDPRPage: React.FC = () => {
           tipo: 'D', cod_natureza: '29',
           descricao: p.descricao || p.categoria || 'Despesa Importada',
           cpf_cnpj_participante: (p.cpf_cnpj || '').replace(/\D/g,'') || null,
-          nome_participante: p.fornecedor || null,
+          nome_participante: p.parceiro || null,
           num_documento: p.numero_documento || null,
           valor: Number(p.valor_total) || 0,
           origem: 'CONTAS_PAGAR', origem_id: p.id

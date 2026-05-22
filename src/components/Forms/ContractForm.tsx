@@ -76,7 +76,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
   }, [isOpen, activeFarm, formData.party_type]);
 
   const fetchParties = async () => {
-    const table = formData.party_type === 'client' ? 'clientes' : 'fornecedores';
+    const table = formData.party_type === 'client' ? 'parceiros' : 'parceiroes';
     const { data } = await supabase.from(table).select('id, nome').eq('fazenda_id', activeFarm?.id || '');
     if (data) setParties(data);
   };
@@ -136,14 +136,14 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
             onClick={() => setFormData({...formData, party_type: 'client'})}
           >
             <User size={16} />
-            <span>Cliente</span>
+            <span>Parceiro</span>
           </div>
           <div 
             className={`tauze-form-radio-item ${formData.party_type === 'supplier' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, party_type: 'supplier'})}
           >
             <Building2 size={16} />
-            <span>Fornecedor</span>
+            <span>Parceiro</span>
           </div>
         </div>
       </div>

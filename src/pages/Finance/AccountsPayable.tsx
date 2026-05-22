@@ -109,7 +109,7 @@ export const AccountsPayable: React.FC = () => {
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate && !selectedBill) {
-      alert('⚠️ Selecione uma unidade específica para registrar uma nova conta. No modo Visão Global, a fazenda devedora deve ser definida.');
+      alert('âš ï¸ Selecione uma unidade específica para registrar uma nova conta. No modo Visão Global, a fazenda devedora deve ser definida.');
       return;
     }
 
@@ -120,7 +120,7 @@ export const AccountsPayable: React.FC = () => {
         valor_total: parseFloat(formData.value),
         data_vencimento: formData.dueDate,
         categoria: formData.category,
-        fornecedor_id: formData.entityId,
+        fornecedor_id: formData.entityId || null,
         metodo_pagamento: formData.paymentMethod,
         status: formData.status
       };
@@ -147,7 +147,7 @@ export const AccountsPayable: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[AccountsPayable] Erro ao salvar:', err);
-      alert('❌ Erro ao salvar título: ' + (err.message || 'Erro desconhecido'));
+      alert('âŒ Erro ao salvar título: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -155,7 +155,7 @@ export const AccountsPayable: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = bills.filter(b => {
-      const matchesSearch = (b.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (b.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.parceiroes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTab = activeTab === 'TODAS' || b.status === activeTab;
       const matchesStatus = filterValues.status === 'all' || b.status === filterValues.status;
       const amount = Number(b.valor_total);
@@ -168,7 +168,7 @@ export const AccountsPayable: React.FC = () => {
     const exportData = filteredData.map(item => ({
       Vencimento: item.data_vencimento,
       Descricao: item.descricao,
-      Fornecedor: item.fornecedores?.nome || item.fornecedor || 'Geral',
+      Parceiro: item.parceiroes?.nome || item.parceiro || 'Geral',
       Valor: item.valor_total,
       Status: item.status,
       Categoria: item.categoria,
@@ -187,7 +187,7 @@ export const AccountsPayable: React.FC = () => {
       if (error) throw error;
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao excluir título: ' + err.message);
+      alert('âŒ Erro ao excluir título: ' + err.message);
     }
   };
 
@@ -199,7 +199,7 @@ export const AccountsPayable: React.FC = () => {
   const handleViewDetails = (bill: any) => {
     setIsHistoryModalOpen(true);
     setHistoryItems([
-      { id: '1', date: bill.data_vencimento, title: 'Título: ' + bill.descricao, subtitle: 'Fornecedor: ' + (bill.fornecedores?.nome || bill.fornecedor || 'Geral'), value: Number(bill.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: bill.status === 'PAGO' ? 'success' : 'pending' },
+      { id: '1', date: bill.data_vencimento, title: 'Título: ' + bill.descricao, subtitle: 'Parceiro: ' + (bill.parceiroes?.nome || bill.parceiro || 'Geral'), value: Number(bill.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: bill.status === 'PAGO' ? 'success' : 'pending' },
       { id: '2', date: bill.data_vencimento, title: 'Categoria', subtitle: bill.categoria || 'Geral', value: bill.metodo_pagamento || 'N/A', status: 'info' },
       { id: '3', date: bill.data_vencimento, title: 'Centro de Custo', subtitle: 'Geral Fazenda', value: '100%', status: 'success' },
     ]);
@@ -246,11 +246,11 @@ export const AccountsPayable: React.FC = () => {
       align: 'left' as const
     },
     {
-      header: 'Fornecedor / Credor',
+      header: 'Parceiro / Credor',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155', fontWeight: 600, fontSize: '12px' }}>
           <Building2 size={14} color="#94a3b8" />
-          <span>{item.fornecedores?.nome || item.fornecedor || 'Geral'}</span>
+          <span>{item.parceiroes?.nome || item.parceiro || 'Geral'}</span>
         </div>
       ),
       align: 'left' as const
@@ -311,7 +311,7 @@ export const AccountsPayable: React.FC = () => {
             <span>TAUZE PAYABLES v5.0</span>
           </div>
           <h1 className="page-title">Contas a Pagar</h1>
-          <p className="page-subtitle">Gestão de obrigações, fluxo de saída e controle rigoroso de fornecedores.</p>
+          <p className="page-subtitle">Gestão de obrigações, fluxo de saída e controle rigoroso de parceiroes.</p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsCalendarOpen(true)}>
@@ -336,8 +336,11 @@ export const AccountsPayable: React.FC = () => {
             icon={stat.icon || getIcon(stat.label)}
             color={stat.color || 'brand'}
             progress={stat.progress}
-            change="+2.1%"
+            change={stat.change || '+2.1%'}
             trend={stat.trend === 'neutral' ? undefined : stat.trend}
+            sparkline={stat.sparkline}
+          
+            periodLabel="Mes Atual"
           />
         ))}
       </div>
@@ -369,7 +372,7 @@ export const AccountsPayable: React.FC = () => {
           <input 
             type="text" 
             className="tauze-search-input"
-            placeholder="Filtrar por descrição ou fornecedor..." 
+            placeholder="Filtrar por descrição ou parceiro..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

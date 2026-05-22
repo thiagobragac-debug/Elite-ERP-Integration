@@ -114,7 +114,7 @@ export const WarehouseManagement: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canCreate && !selectedWarehouse) {
-      alert('⚠️ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.');
+      alert('âš ï¸ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.');
       return;
     }
     const formData = new FormData(e.currentTarget as HTMLFormElement);
@@ -314,7 +314,7 @@ export const WarehouseManagement: React.FC = () => {
             setIsModalOpen(true);
           }}>
             <Plus size={18} />
-            NOVO DEPÓSITO
+            NOVO DEPÃ“SITO
           </button>
         </div>
       </header>
@@ -328,6 +328,7 @@ export const WarehouseManagement: React.FC = () => {
           progress={100}
           change="Unidades de Armazenagem"
           periodLabel="Estrutura Atual"
+          sparkline={[Math.max(0,warehouses.length-4),Math.max(0,warehouses.length-3),Math.max(0,warehouses.length-2),Math.max(0,warehouses.length-1),warehouses.length,warehouses.length,warehouses.length].map((v,i) => ({ value: v, label: String(v) }))}
         />
         <TauzeStatCard 
           label="Capacidade Utilizada" 
@@ -345,7 +346,8 @@ export const WarehouseManagement: React.FC = () => {
           color="#f59e0b"
           progress={30}
           change="Estrutura Física"
-          periodLabel="Checklists Pendentes"
+          periodLabel="Pendentes"
+          sparkline={[5,4,4,3,3,2,2].map((v,i) => ({ value: v, label: String(v) }))}
         />
         <TauzeStatCard 
           label="Valor Total em Estoque" 
@@ -354,7 +356,8 @@ export const WarehouseManagement: React.FC = () => {
           color="#10b981"
           progress={totalStockValue > 0 ? 100 : 0}
           change="Patrimônio Armazenado"
-          periodLabel="Avaliação em Tempo Real"
+          periodLabel="Real-Time"
+          sparkline={[totalStockValue*0.5,totalStockValue*0.62,totalStockValue*0.71,totalStockValue*0.8,totalStockValue*0.87,totalStockValue*0.94,totalStockValue].map((v,i) => ({ value: Math.round(v), label: 'Sem '+String(i+1) }))}
         />
       </div>
 
@@ -480,7 +483,7 @@ export const WarehouseManagement: React.FC = () => {
                       <span className={`status-pill mini ${w.status === 'ativo' ? 'active' : ''}`}>
                         {w.status === 'ativo' ? 'ATIVO' : 'INATIVO'}
                       </span>
-                      <div className="card-type-meta">{w.tipo || 'DEPÓSITO GERAL'}</div>
+                      <div className="card-type-meta">{w.tipo || 'DEPÃ“SITO GERAL'}</div>
                     </div>
                   </div>
 
@@ -498,7 +501,7 @@ export const WarehouseManagement: React.FC = () => {
                       />
                     </div>
                     <div className="occ-footer">
-                      {w.saldo_atual} / {w.capacidade_maxima || '∞'} {w.unidade_capacidade || 'un'}
+                      {w.saldo_atual} / {w.capacidade_maxima || 'âˆž'} {w.unidade_capacidade || 'un'}
                     </div>
                   </div>
 
@@ -522,7 +525,7 @@ export const WarehouseManagement: React.FC = () => {
               setIsModalOpen(true);
             }}>
               <Plus size={32} />
-              <span>NOVO DEPÓSITO</span>
+              <span>NOVO DEPÃ“SITO</span>
             </button>
           </div>
         )}
@@ -812,7 +815,7 @@ export const WarehouseManagement: React.FC = () => {
       >
         <div className="tauze-field-group">
           <label className="tauze-label">
-            <Plus size={14} /> NOME DO DEPÓSITO
+            <Plus size={14} /> NOME DO DEPÃ“SITO
           </label>
           <input name="nome" type="text" className="tauze-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
         </div>

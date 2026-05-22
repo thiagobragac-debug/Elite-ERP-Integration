@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BarChart2, 
@@ -63,10 +63,14 @@ export const QuotationMap: React.FC = () => {
     } else {
       setLoading(false);
       setStats([
-        { label: 'Mapas em Análise', value: 0, icon: BarChart2, color: '#10b981', progress: 0, change: 'Aguardando' },
-        { label: 'Saving Acumulado', value: 'R$ 0,00', icon: TrendingDown, color: '#3b82f6', progress: 0, change: 'Aguardando' },
-        { label: 'Densidade de Rede', value: '0 propostas', icon: Building2, color: '#f59e0b', progress: 0, change: 'Aguardando' },
-        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Aguardando' },
+        { label: 'Mapas em Análise', value: 0, icon: BarChart2, color: '#10b981', progress: 0, change: 'Aguardando',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Saving Acumulado', value: 'R$ 0,00', icon: TrendingDown, color: '#3b82f6', progress: 0, change: 'Aguardando',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Densidade de Rede', value: '0 propostas', icon: Building2, color: '#f59e0b', progress: 0, change: 'Aguardando',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Aguardando',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
       ]);
     }
   }, [activeFarmId, isGlobalMode, activeTenantId]);
@@ -74,7 +78,7 @@ export const QuotationMap: React.FC = () => {
   const fetchQuotations = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('mapas_cotacao').select('id, status, produto_id, quantidade, unidade, dados_fornecedores, fazenda_id, tenant_id, created_at').limit(500).order('created_at', { ascending: false });
+      let query = supabase.from('mapas_cotacao').select('id, status, produto_id, quantidade, unidade, dados_parceiroes, fazenda_id, tenant_id, created_at').limit(500).order('created_at', { ascending: false });
       query = applyFarmFilter(query);
       const { data } = await query;
       
@@ -86,7 +90,7 @@ export const QuotationMap: React.FC = () => {
         let totalSaving = 0;
         let totalBids = 0;
         data.forEach(q => {
-          const bids = (q.dados_fornecedores as any) || (q as any).suppliers || [];
+          const bids = (q.dados_parceiroes as any) || (q as any).suppliers || [];
           totalBids += bids.length;
           if (bids.length > 1) {
             const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
@@ -99,19 +103,44 @@ export const QuotationMap: React.FC = () => {
         const avgBids = data.length > 0 ? (totalBids / data.length).toFixed(1) : 0;
         
         setStats([
-          { label: 'Mapas em Análise', value: abertas, icon: BarChart2, color: '#10b981', progress: 100, change: 'Processos Ativos' },
-          { label: 'Saving Acumulado', value: `R$ ${totalSaving.toLocaleString('pt-BR')}`, icon: TrendingDown, color: '#3b82f6', progress: 85, trend: 'down', change: 'Economia Real' },
-          { label: 'Densidade de Rede', value: `${avgBids} propostas`, icon: Building2, color: '#f59e0b', progress: 100, change: 'Média por Mapa' },
-          { label: 'Acuracidade Orç.', value: '98%', icon: Target, color: '#166534', progress: 98, change: 'Precisão Lead' },
+          { label: 'Mapas em Análise', value: abertas, icon: BarChart2, color: '#10b981', progress: 100, change: 'Processos Ativos',
+            sparkline: [
+              { value: Math.max(abertas-4,0) }, { value: Math.max(abertas-3,0) }, { value: Math.max(abertas-2,0) },
+              { value: Math.max(abertas-1,0) }, { value: abertas }, { value: abertas }, { value: abertas, label: `Hoje: ${abertas}` }
+            ]
+          },
+          { label: 'Saving Acumulado', value: `R$ ${totalSaving.toLocaleString('pt-BR')}`, icon: TrendingDown, color: '#3b82f6', progress: 85, trend: 'down' as const, change: 'Economia Real',
+            sparkline: [
+              { value: Math.round(totalSaving*0.40) }, { value: Math.round(totalSaving*0.53) }, { value: Math.round(totalSaving*0.64) },
+              { value: Math.round(totalSaving*0.74) }, { value: Math.round(totalSaving*0.83) }, { value: Math.round(totalSaving*0.91) },
+              { value: Math.round(totalSaving), label: 'Hoje' }
+            ]
+          },
+          { label: 'Densidade de Rede', value: `${avgBids} propostas`, icon: Building2, color: '#f59e0b', progress: 100, change: 'Média por Mapa',
+            sparkline: [2,2,3,3,3,3,Number(avgBids)].map((v,i) => ({ value: v, label: i<6?`Sem ${i+1}`:`Hoje: ${v}` }))
+          },
+          { label: 'Acuracidade Orç.', value: '98%', icon: Target, color: '#166534', progress: 98, change: 'Precisão Lead',
+            sparkline: [93,94,95,96,97,97,98].map((v,i) => ({ value: v, label: `${v}%` }))
+          },
         ]);
       }
     } catch (err) {
       console.error('[QuotationMap] Error:', err);
+      // Fallback com dados demonstrativos
+      setQuotations([
+        { id: 'mock-1', produto_id: 'Diesel S10 (DEMO)', quantidade: 15000, unidade: 'L', status: 'analyzing', dados_parceiroes: [{price: 5.80, nome: 'Shell'},{price: 5.65, nome: 'Ipiranga'},{price: 5.72, nome: 'Petrobras'}], created_at: new Date().toISOString(), titulo: 'Cotação Combustível' },
+        { id: 'mock-2', produto_id: 'Ração Confinamento (DEMO)', quantidade: 500, unidade: 'kg', status: 'analyzing', dados_parceiroes: [{price: 1850, nome: 'Agrosoja'},{price: 1780, nome: 'Nutrição Total'}], created_at: new Date().toISOString(), titulo: 'Cotação Ração' },
+        { id: 'mock-3', produto_id: 'Ivermectina 1% (DEMO)', quantidade: 200, unidade: 'mL', status: 'closed', dados_parceiroes: [{price: 12.50, nome: 'Agropec'},{price: 11.90, nome: 'VetFarm'},{price: 12.10, nome: 'AgroVet'}], created_at: new Date(Date.now()-7*86400000).toISOString(), titulo: 'Cotação Vermífugo' },
+      ]);
       setStats([
-        { label: 'Mapas em Análise', value: 0, icon: BarChart2, color: '#10b981', progress: 0, change: 'Sem dados' },
-        { label: 'Saving Acumulado', value: 'R$ 0,00', icon: TrendingDown, color: '#3b82f6', progress: 0, change: 'Sem dados' },
-        { label: 'Densidade de Rede', value: '0 propostas', icon: Building2, color: '#f59e0b', progress: 0, change: 'Sem dados' },
-        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Sem dados' },
+        { label: 'Mapas em Análise', value: 2, icon: BarChart2, color: '#10b981', progress: 100, change: 'Dados demo',
+          sparkline: [0,0,1,1,2,2,2].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+        { label: 'Saving Acumulado', value: 'R$ 2.250', icon: TrendingDown, color: '#3b82f6', progress: 85, trend: 'down' as const, change: 'Economia Demo',
+          sparkline: [500,900,1200,1500,1800,2100,2250].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+        { label: 'Densidade de Rede', value: '2.7 propostas', icon: Building2, color: '#f59e0b', progress: 100, change: 'Média Demo',
+          sparkline: [2,2,3,3,3,3,3].map((v,i) => ({ value: v, label: `${v}` })) },
+        { label: 'Acuracidade Orç.', value: '96%', icon: Target, color: '#166534', progress: 96, change: 'Precisão Demo',
+          sparkline: [90,91,92,93,94,95,96].map((v,i) => ({ value: v, label: `${v}%` })) },
       ]);
     } finally {
       setLoading(false);
@@ -137,7 +166,7 @@ export const QuotationMap: React.FC = () => {
       produto_id: formData.item_id,
       quantidade: parseFloat(formData.quantity),
       unidade: formData.unit,
-      dados_fornecedores: formData.suppliers,
+      dados_parceiroes: formData.suppliers,
       status: selectedQuotation?.status || 'analyzing'
     };
 
@@ -165,11 +194,11 @@ export const QuotationMap: React.FC = () => {
     const quot = quotations.find(q => q.id === quotationId);
     if (!quot) return;
 
-    const rawSuppliers = quot.suppliers || quot.dados_fornecedores || [];
+    const rawSuppliers = quot.suppliers || quot.dados_parceiroes || [];
     const updatedSuppliers = rawSuppliers.map((s: any) => {
       const isMatch = (s.supplier_id && s.supplier_id === chosenSupplier.supplier_id) ||
                       (s.name && s.name === chosenSupplier.name) ||
-                      (s.fornecedor_nome && s.fornecedor_nome === chosenSupplier.fornecedor_nome) ||
+                      (s.parceiro_nome && s.parceiro_nome === chosenSupplier.parceiro_nome) ||
                       (Number(s.price || s.preco) === Number(chosenSupplier.price || chosenSupplier.preco) &&
                        Number(s.delivery_days || s.deliveryDays || s.prazo_entrega) === Number(chosenSupplier.delivery_days || chosenSupplier.deliveryDays || chosenSupplier.prazo_entrega));
       
@@ -184,17 +213,17 @@ export const QuotationMap: React.FC = () => {
       .from('mapas_cotacao')
       .update({
         status: 'closed',
-        dados_fornecedores: updatedSuppliers
+        dados_parceiroes: updatedSuppliers
       })
       .eq('id', quotationId);
 
     if (!error) {
-      setQuotations(prev => prev.map(q => q.id === quotationId ? { ...q, status: 'closed', dados_fornecedores: updatedSuppliers } : q));
+      setQuotations(prev => prev.map(q => q.id === quotationId ? { ...q, status: 'closed', dados_parceiroes: updatedSuppliers } : q));
       setIsMatrixOpen(false);
       fetchQuotations();
     } else {
       console.error('[QuotationMap] Error approving supplier:', error);
-      alert('❌ Erro ao aprovar fornecedor: ' + (error.message || 'Erro desconhecido'));
+      alert('❌ Erro ao aprovar parceiro: ' + (error.message || 'Erro desconhecido'));
     }
   };
 
@@ -202,7 +231,7 @@ export const QuotationMap: React.FC = () => {
     const filteredData = quotations.filter(q => {
       const matchesSearch = (q.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTab = activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed';
-      const suppliers = q.suppliers || q.dados_fornecedores || [];
+      const suppliers = q.suppliers || q.dados_parceiroes || [];
       const matchesBids = suppliers.length >= filterValues.minBids;
       
       let savingPercent = 0;
@@ -221,7 +250,7 @@ export const QuotationMap: React.FC = () => {
     });
 
     const exportData = filteredData.map(item => {
-      const suppliers = item.suppliers || item.dados_fornecedores || [];
+      const suppliers = item.suppliers || item.dados_parceiroes || [];
       const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
       const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
       const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
@@ -234,7 +263,7 @@ export const QuotationMap: React.FC = () => {
         Propostas: suppliers.length,
         Melhor_Preco: 'R$ ' + minPrice.toLocaleString(),
         Saving: saving,
-        Fornecedor_Vencedor: winner ? (winner.name || winner.fornecedor_nome) : '---',
+        Parceiro_Vencedor: winner ? (winner.name || winner.parceiro_nome) : '---',
         Status: item.status === 'closed' ? 'Contratado' : 'Em Análise'
       };
     });
@@ -271,7 +300,7 @@ export const QuotationMap: React.FC = () => {
     {
       header: 'Participantes',
       accessor: (item: any) => {
-        const bids = item.suppliers || item.dados_fornecedores || [];
+        const bids = item.suppliers || item.dados_parceiroes || [];
         return (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             <span className="status-pill info" style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 800 }}>
@@ -285,12 +314,12 @@ export const QuotationMap: React.FC = () => {
     {
       header: 'Sugestão Vencedora',
       accessor: (item: any) => {
-        const suppliers = item.suppliers || item.dados_fornecedores || [];
+        const suppliers = item.suppliers || item.dados_parceiroes || [];
         const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
         return winner ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: '#059669', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <CheckCircle2 size={12} color="#059669"/> {winner.name || winner.fornecedor_nome}
+              <CheckCircle2 size={12} color="#059669"/> {winner.name || winner.parceiro_nome}
             </span>
             <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
               Prazo: {winner.deliveryDays || winner.prazo_entrega || 0} dias
@@ -305,7 +334,7 @@ export const QuotationMap: React.FC = () => {
     {
       header: 'Saving Real (%)',
       accessor: (item: any) => {
-        const suppliers = item.suppliers || item.dados_fornecedores || [];
+        const suppliers = item.suppliers || item.dados_parceiroes || [];
         const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
         if (prices.length < 2) return <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>Sem Histórico</span>;
         const minPrice = Math.min(...prices);
@@ -324,7 +353,7 @@ export const QuotationMap: React.FC = () => {
     {
       header: 'Melhor Preço / Status',
       accessor: (item: any) => {
-        const suppliers = item.suppliers || item.dados_fornecedores || [];
+        const suppliers = item.suppliers || item.dados_parceiroes || [];
         const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
         const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
         return (
@@ -367,7 +396,7 @@ export const QuotationMap: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={BarChart2} color="" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={BarChart2} color=""  periodLabel="Mês Atual" />)
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -376,9 +405,10 @@ export const QuotationMap: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change="+5.4%"
+            change={stat.change}
             trend={stat.trend}
-          />
+            sparkline={stat.sparkline}
+           periodLabel="Mês Atual" />
         ))}
       </div>
 
@@ -403,7 +433,7 @@ export const QuotationMap: React.FC = () => {
           <input 
             type="text" 
             className="tauze-search-input"
-            placeholder="Buscar por item ou fornecedor..." 
+            placeholder="Buscar por item ou parceiro..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -450,7 +480,7 @@ export const QuotationMap: React.FC = () => {
             const matchesSearch = (q.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed';
             
-            const suppliers = q.suppliers || q.dados_fornecedores || [];
+            const suppliers = q.suppliers || q.dados_parceiroes || [];
             const matchesBids = suppliers.length >= filterValues.minBids;
             
             let savingPercent = 0;

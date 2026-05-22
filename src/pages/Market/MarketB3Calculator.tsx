@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Calculator, ArrowRight, ArrowDownRight, ArrowUpRight, TrendingUp, AlertCircle, Globe } from 'lucide-react';
+import { Calculator, ArrowRight, ArrowDownRight, ArrowUpRight, TrendingUp, AlertCircle, Globe, Activity } from 'lucide-react';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useTenant } from '../../contexts/TenantContext';
@@ -79,9 +79,12 @@ export const MarketB3Calculator: React.FC = () => {
 
   const basis = (physicalPrice && futurePrice) ? physicalPrice - futurePrice : null;
 
+  const sparklineFisico = chartData.filter(d => d.Fisico != null).slice(-20).map(d => ({ value: Number(d.Fisico), label: d.displayDate }));
+  const sparklineB3 = chartData.filter(d => d.B3 != null).slice(-20).map(d => ({ value: Number(d.B3), label: d.displayDate }));
+
   return (
     <div className="admin-intelligence-page animate-slide-up">
-      <header className="page-header">
+      <header className="page-header" style={{ marginBottom: '24px' }}>
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
             <Calculator size={14} fill="currentColor" />
@@ -94,11 +97,13 @@ export const MarketB3Calculator: React.FC = () => {
 
       <div className="next-gen-kpi-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         <TauzeStatCard 
-          label="Preço Físico Atual (CEPEA)" 
+          label={`Preço Físico (CEPEA)`} 
           value={physicalPrice ? `R$ ${physicalPrice.toFixed(2)}` : '---'} 
-          icon={TrendingUp} 
+          icon={Activity} 
           color="#3b82f6" 
           progress={100} 
+          sparkline={sparklineFisico}
+          periodLabel="Preço CEPEA"
         />
         <TauzeStatCard 
           label={`Preço Futuro (${b3Ticker})`} 
@@ -106,6 +111,8 @@ export const MarketB3Calculator: React.FC = () => {
           icon={Globe} 
           color="#8b5cf6" 
           progress={100} 
+          sparkline={sparklineB3}
+          periodLabel="Futuro B3"
         />
         <div className={`tauze-kpi-card`} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <span className="kpi-label-tauze">Base (Físico - Futuro)</span>

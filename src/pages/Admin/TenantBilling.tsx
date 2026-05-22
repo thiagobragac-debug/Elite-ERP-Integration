@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   DollarSign, 
@@ -269,7 +269,7 @@ export const TenantBilling: React.FC = () => {
           trend="up"
           icon={Users}
           color={billingStats.usersCount > billingStats.usersLimit * 0.9 ? '#ef4444' : '#f59e0b'}
-          periodLabel={`Plano atual suporta até ${billingStats.usersLimit}`}
+          periodLabel="Limite Atual"
           progress={Math.min(100, Math.round((billingStats.usersCount / billingStats.usersLimit) * 100))}
           sparkline={[{value: Math.max(0, billingStats.usersCount - 2), label: ''}, {value: billingStats.usersCount, label: ''}]}
         />
@@ -280,7 +280,7 @@ export const TenantBilling: React.FC = () => {
           trend="up"
           icon={HardDrive}
           color={billingStats.storageGb > billingStats.storageLimit * 0.9 ? '#ef4444' : '#10b981'}
-          periodLabel={`Plano atual suporta até ${billingStats.storageLimit} GB`}
+          periodLabel="Limite Atual"
           progress={Math.min(100, Math.round((billingStats.storageGb / billingStats.storageLimit) * 100))}
           sparkline={[{value: Math.max(0.1, billingStats.storageGb - 0.2), label: ''}, {value: billingStats.storageGb, label: ''}]}
         />
@@ -291,7 +291,7 @@ export const TenantBilling: React.FC = () => {
           trend="down"
           icon={Clock}
           color={billingStats.daysLeft < 5 ? '#ef4444' : '#10b981'}
-          periodLabel="Próxima renovação"
+          periodLabel="Renovação"
           progress={Math.min(100, Math.round((billingStats.daysLeft / 30) * 100))}
           sparkline={[{value: 30, label: ''}, {value: billingStats.daysLeft, label: ''}]}
         />
@@ -302,7 +302,7 @@ export const TenantBilling: React.FC = () => {
           trend="up"
           icon={LayoutGrid}
           color={billingStats.activeModules === '8/8' ? '#10b981' : '#3b82f6'}
-          periodLabel={billingStats.activeModules === '8/8' ? 'Diamond Precision' : 'Plano atual não inclui BI Avançado'}
+          periodLabel={billingStats.activeModules === '8/8' ? 'Diamond Precision' : 'Plano Básico'}
           progress={billingStats.activeModules === '8/8' ? 100 : 62}
           sparkline={[{value: 5, label: ''}, {value: billingStats.activeModules === '8/8' ? 8 : 5, label: ''}]}
         />
@@ -364,7 +364,7 @@ export const TenantBilling: React.FC = () => {
                       <span style={{ padding: '6px 14px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', borderRadius: '20px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>ATIVA EM DIA</span>
                     </div>
                     <p style={{ margin: 0, fontSize: '15px', color: '#94a3b8', fontWeight: 500 }}>
-                      Faturamento Mensal • <span style={{ color: '#10b981', fontWeight: 700 }}>Licença Vitalícia Administrativa</span>
+                      Faturamento Mensal â€¢ <span style={{ color: '#10b981', fontWeight: 700 }}>Licença Vitalícia Administrativa</span>
                     </p>
                   </div>
                 </div>

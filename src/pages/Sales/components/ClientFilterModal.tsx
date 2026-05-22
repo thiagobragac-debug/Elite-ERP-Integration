@@ -55,7 +55,7 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
               <Users size={20} />
             </div>
             <div>
-              <h3>Filtros de Clientes</h3>
+              <h3>Filtros de Parceiros</h3>
               <p>Segmentação e análise de carteira.</p>
             </div>
           </div>
@@ -81,7 +81,7 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
                 color: filters.onlyChurnRisk ? 'white' : '#64748b'
               }}
             >
-              Apenas Clientes em Risco (&gt;90d inativo)
+              Apenas Parceiros em Risco (&gt;90d inativo)
             </button>
           </div>
 

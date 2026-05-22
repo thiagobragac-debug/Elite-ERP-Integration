@@ -63,7 +63,7 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Compras</h3>
-              <p>Gerencie ordens e fornecedores.</p>
+              <p>Gerencie ordens e parceiroes.</p>
             </div>
           </div>
           <button 
@@ -105,7 +105,7 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Fornecedores Homologados <Building2 size={14} /></label>
+            <label className="tauze-filter-label">Parceiroes Homologados <Building2 size={14} /></label>
             <div className="tauze-tag-cloud">
               {suppliers.map(sup => (
                 <button 
