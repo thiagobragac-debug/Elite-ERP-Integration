@@ -102,7 +102,7 @@ export const MarketHistoryChart: React.FC = () => {
               color: 'hsl(var(--text-main))'
             }}
             itemStyle={{ color: 'hsl(var(--brand))' }}
-            formatter={(val: number) => [`R$ ${val.toFixed(2)}`, 'Cotação']}
+            formatter={(val: any) => [`R$ ${Number(val).toFixed(2)}`, 'Cotação']}
             labelStyle={{ color: 'hsl(var(--text-muted))', marginBottom: '4px' }}
           />
           <Area 

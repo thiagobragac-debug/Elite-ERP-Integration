@@ -347,7 +347,7 @@ export const MarketSeasonality: React.FC = () => {
                       color: 'hsl(var(--text-main))'
                     }}
                     labelStyle={{ color: 'hsl(var(--text-muted))', marginBottom: '8px', fontWeight: 'bold' }}
-                    formatter={(val: number, name: string) => [`${prefix}${val.toFixed(isRatio ? 3 : 2)}${suffix}`, `Ano ${name}`]}
+                    formatter={(val: any, name: any) => [`${prefix}${Number(val).toFixed(isRatio ? 3 : 2)}${suffix}`, `Ano ${name}`]}
                   />
                   <Legend wrapperStyle={{ paddingTop: '20px' }} />
                   

@@ -350,10 +350,19 @@ export const SaaSAdminPanel: React.FC = () => {
     setTenantsList(prev => prev.map(t => t.id === tenant.id ? { ...t, status: newStatus } : t));
     try {
       await supabase.from('tenants').update({ status: newStatus }).eq('id', tenant.id);
-      await supabase.rpc('admin_set_tenant_ban', { target_tenant_id: tenant.id, banned: !active }).catch(() => {
+      try {
+        await supabase.rpc('admin_set_tenant_ban', { target_tenant_id: tenant.id, banned: !active });
+      } catch (rpcErr) {
         console.warn('[ToggleTenant] admin_set_tenant_ban RPC not available');
+      }
+      await logAudit({
+        tenant_id: '00000000-0000-0000-0000-000000000000',
+        user_id: user?.id,
+        action: `TENANT_${active ? 'ATIVADO' : 'SUSPENSO'}`,
+        entity: 'tenants',
+        entity_id: tenant.id,
+        description: `Status alterado para ${newStatus}`
       });
-      await logAudit({ action: `TENANT_${active ? 'ATIVADO' : 'SUSPENSO'}`, entity: 'tenants', entityId: tenant.id, details: `Status alterado para ${newStatus}` });
     } catch (err) {
       setTenantsList(prev => prev.map(t => t.id === tenant.id ? { ...t, status: active ? 'Suspenso' : 'Ativo' } : t));
       console.error('[ToggleTenant] Error:', err);

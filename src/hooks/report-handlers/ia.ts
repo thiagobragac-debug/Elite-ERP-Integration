@@ -111,7 +111,7 @@ export const monteCarlo: ReportHandler = async (tenantId, fazendaId) => {
 /**
  * IA: Capacidade de Suporte de Pasto (Satélite)
  */
-export const suportePasto: ReportHandler = async (tenantId, fazendaId) => {
+export const suportePasto: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const mockData = {
     data: [
       { id: 'ia1', nome: 'Piquete 04 🌿', area: '50 ha', ndvi: '0.78', umidade: '64.2%', suporte: '120 UA', desvio: '+15 UA 📈', status: 'Excelente 🌿' },

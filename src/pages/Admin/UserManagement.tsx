@@ -77,7 +77,8 @@ export const UserManagement: React.FC = () => {
     multiDevice: true,
     block3Attempts: true,
     geoIpCheck: true,
-    mfaRequired: false
+    mfaRequired: false,
+    maintenanceMode: false
   });
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -91,56 +92,19 @@ export const UserManagement: React.FC = () => {
 
   const isAdmin = userProfile?.role === 'ADMIN' || userProfile?.role === 'Administrador';
 
-  // --- MÃ“DULO DE GOVERNANÇA & SEGURANÇA (PREMIUM EVOLUTION) ---
-  const AVAILABLE_PERMISSIONS = [
-    { id: 'global_view', label: 'Visão Global Multi-Fazendas' },
-    { id: 'panorama', label: 'Executive Dashboard (Panorama)' },
-    
-    { id: 'pecuaria', label: 'Pecuária: Acesso Total' },
-    { id: 'pecuaria_dashboard', label: 'Pecuária: Dashboards' },
-    { id: 'pecuaria_animais', label: 'Pecuária: Animais e Lotes' },
-    { id: 'pecuaria_saude', label: 'Pecuária: Sanidade e Nutrição' },
-    
-    { id: 'financeiro', label: 'Financeiro: Acesso Total' },
-    { id: 'financeiro_dashboard', label: 'Financeiro: Inteligência Hub' },
-    { id: 'financeiro_operacoes', label: 'Financeiro: Contas a Pagar/Receber' },
-    { id: 'financeiro_bancos', label: 'Financeiro: Conciliação e Bancos' },
-    
-    { id: 'comercial', label: 'Comercial: Acesso Total' },
-    { id: 'comercial_pedidos', label: 'Comercial: Pedidos e Contratos' },
-    { id: 'comercial_clientes', label: 'Comercial: Gestão de Clientes' },
-
-    { id: 'compras', label: 'Compras: Acesso Total' },
-    { id: 'compras_pedidos', label: 'Compras: Requisições e Pedidos' },
-    { id: 'compras_fornecedores', label: 'Compras: Gestão de Fornecedores' },
-    
-    { id: 'logistica', label: 'Logística & Estoque: Acesso Total' },
-    { id: 'logistica_armazens', label: 'Estoque: Gestão de Armazéns' },
-    
-    { id: 'frota', label: 'Frota: Acesso Total' },
-    { id: 'frota_abastecimento', label: 'Frota: Abastecimento' },
-    { id: 'frota_manutencao', label: 'Frota: Manutenção' },
-
-    { id: 'mercado', label: 'Inteligência de Mercado: Acesso Total' },
-    
-    { id: 'ia', label: 'Hub de Inteligência IA' },
-    
-    { id: 'admin', label: 'Governança: Acesso Administrativo' }
-  ];
-
   const [liveLogs, setLiveLogs] = useState<any[]>([]);
   const [terminalSeverity, setTerminalSeverity] = useState<'ALL' | 'INFO' | 'WARN' | 'CRITICAL'>('ALL');
   const [isTerminalRunning, setIsTerminalRunning] = useState(true);
   const [anomalies, setAnomalies] = useState<any[]>([]);
 
   const fetchSecurityLogs = async () => {
-    if (!activeFarm) return;
+    if (!activeTenantId) return;
     setLogsLoading(true);
     try {
       const { data, error } = await supabase
         .from('audit_logs')
         .select('*')
-        .eq('tenant_id', activeFarm.tenantId)
+        .eq('tenant_id', activeTenantId)
         .order('created_at', { ascending: false })
         .limit(50);
       
@@ -214,41 +178,7 @@ export const UserManagement: React.FC = () => {
     return () => clearInterval(interval);
   }, [isTerminalRunning, activeFarm]);
 
-  const handleToggleMatrixPermission = async (profileId: string, permissionId: string) => {
-    const profile = profilesList.find(p => p.id === profileId);
-    if (!profile) return;
-
-    let updatedPermissions = [...(profile.permissoes || [])];
-    if (updatedPermissions.includes(permissionId)) {
-      updatedPermissions = updatedPermissions.filter(p => p !== permissionId);
-    } else {
-      updatedPermissions.push(permissionId);
-    }
-
-    // Optimistic UI update
-    setProfilesList(prev => prev.map(p => p.id === profileId ? { ...p, permissoes: updatedPermissions } : p));
-
-    try {
-      const { error } = await supabase
-        .from('perfis_usuario')
-        .update({ permissoes: updatedPermissions })
-        .eq('id', profileId);
-
-      if (error) {
-        // Rollback
-        setProfilesList(prev => prev.map(p => p.id === profileId ? profile : p));
-        console.warn("Erro ao salvar permissão na matriz:", error);
-      } else {
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 2000);
-      }
-    } catch (err) {
-      setProfilesList(prev => prev.map(p => p.id === profileId ? profile : p));
-      console.warn("Erro ao salvar permissão na matriz:", err);
-    }
-  };
-
-  const handleMitigateAnomaly = (id: string, action: 'block' | 'suspend' | 'dismiss') => {
+  const handleMitigateAnomaly = async (id: string, action: 'block' | 'suspend' | 'dismiss') => {
     const anom = anomalies.find(a => a.id === id);
     setAnomalies(prev => prev.filter(a => a.id !== id));
     
@@ -269,6 +199,29 @@ export const UserManagement: React.FC = () => {
 
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2000);
+
+    if (activeTenantId) {
+      try {
+        const { error } = await supabase
+          .from('audit_logs')
+          .insert([
+            {
+              tenant_id: activeTenantId,
+              user_id: userProfile?.id || null,
+              action: action === 'dismiss' ? 'SECURITY_DISMISS' : action === 'block' ? 'SECURITY_BLOCK' : 'SECURITY_SUSPEND',
+              entity: 'system_guard',
+              entity_id: anom?.id && /^[0-9a-fA-F-]{36}$/.test(anom.id) ? anom.id : null,
+              description: `System Guard: ${actionText} Alvo: ${anom?.user || 'Desconhecido'}`
+            }
+          ]);
+
+        if (error) {
+          console.warn("Failed to persist mitigation log to database:", error);
+        }
+      } catch (err) {
+        console.warn("Error inserting mitigation log:", err);
+      }
+    }
   };
 
   useEffect(() => {
@@ -294,11 +247,50 @@ export const UserManagement: React.FC = () => {
 
 
 
-  const toggleSecuritySetting = (key: keyof typeof securitySettings) => {
-    setSecuritySettings(prev => ({ ...prev, [key]: !prev[key] }));
-    // Here we would sync with DB: supabase.from('tenant_settings').update({ security: ... })
+  const toggleSecuritySetting = async (key: keyof typeof securitySettings) => {
+    const newValue = !securitySettings[key];
+    const updatedSettings = { ...securitySettings, [key]: newValue };
+    
+    // Update state optimistically
+    setSecuritySettings(updatedSettings);
     setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 2000);
+    const timer = setTimeout(() => setSaveSuccess(false), 2000);
+
+    if (activeTenantId) {
+      try {
+        const { data: tenantData } = await supabase
+          .from('tenants')
+          .select('settings')
+          .eq('id', activeTenantId)
+          .single();
+
+        const currentSettings = tenantData?.settings || {};
+        const newSettings = {
+          ...currentSettings,
+          security: updatedSettings
+        };
+
+        const { error } = await supabase
+          .from('tenants')
+          .update({ settings: newSettings })
+          .eq('id', activeTenantId);
+
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Failed to sync security setting with database:", err);
+      }
+    }
+  };
+
+  const handleToggleMaintenanceMode = async () => {
+    const isActivating = !securitySettings.maintenanceMode;
+    const msg = isActivating
+      ? 'Deseja realmente ATIVAR o Modo de Manutenção? Isso restringirá o acesso de usuários não-administradores.'
+      : 'Deseja realmente DESATIVAR o Modo de Manutenção? O acesso normal será restabelecido.';
+    
+    if (window.confirm(msg)) {
+      await toggleSecuritySetting('maintenanceMode');
+    }
   };
 
   const fetchData = async () => {
@@ -309,11 +301,33 @@ export const UserManagement: React.FC = () => {
     }
 
     try {
-      const [{ data: usersData, error: usersError }, { data: profilesData }, { data: activeLogs }] = await Promise.all([
+      const [
+        { data: usersData, error: usersError },
+        { data: profilesData },
+        { data: activeLogs },
+        { data: tenantData }
+      ] = await Promise.all([
         supabase.from('profiles_view').select('*, perfis_usuario(nome)').eq('tenant_id', activeTenantId),
         supabase.from('perfis_usuario').select('*').limit(500).eq('tenant_id', activeTenantId),
-        supabase.from('audit_logs').select('user_email').eq('tenant_id', activeTenantId).gte('created_at', new Date().toISOString().split('T')[0])
+        supabase.from('audit_logs').select('user_email').eq('tenant_id', activeTenantId).gte('created_at', new Date().toISOString().split('T')[0]),
+        supabase.from('tenants').select('settings').eq('id', activeTenantId).maybeSingle()
       ]);
+
+      if (tenantData?.settings?.security) {
+        const sec = tenantData.settings.security;
+        setSecuritySettings({
+          min8Chars: sec.min8Chars ?? true,
+          specialChars: sec.specialChars ?? true,
+          numLetters: sec.numLetters ?? true,
+          inactivity30m: sec.inactivity30m ?? true,
+          forceLogout: sec.forceLogout ?? false,
+          multiDevice: sec.multiDevice ?? true,
+          block3Attempts: sec.block3Attempts ?? true,
+          geoIpCheck: sec.geoIpCheck ?? true,
+          mfaRequired: sec.mfaRequired ?? false,
+          maintenanceMode: sec.maintenanceMode ?? false,
+        });
+      }
 
       const processedProfiles = (profilesData || []).map((p: any) => ({
         ...p,
@@ -467,10 +481,14 @@ export const UserManagement: React.FC = () => {
       const { error } = await supabase.from('profiles').update(payload).eq('id', selectedUser.id);
       if (!error) {
         // Apply/remove Auth ban based on status
-        await supabase.rpc('admin_set_user_ban', {
-          target_user_id: selectedUser.id,
-          banned: data.status === 'inactive'
-        }).catch(() => console.warn('[handleAddUser] admin_set_user_ban RPC not available'));
+        try {
+          await supabase.rpc('admin_set_user_ban', {
+            target_user_id: selectedUser.id,
+            banned: data.status === 'inactive'
+          });
+        } catch (rpcErr) {
+          console.warn('[handleAddUser] admin_set_user_ban RPC not available');
+        }
         setIsUserModalOpen(false);
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 2000);
@@ -885,7 +903,7 @@ export const UserManagement: React.FC = () => {
                         );
                       })()}
                       <span className={`status-pill ${user.status === 'active' ? 'active' : 'stopped'}`} style={{ marginTop: '8px', fontSize: '9px' }}>
-                        {user.status === 'active' ? 'â— Online' : 'â—‹ Offline'}
+                        {user.status === 'active' ? '● Online' : '○ Offline'}
                       </span>
                     </div>
                     <div className="card-main-content">
@@ -982,11 +1000,11 @@ export const UserManagement: React.FC = () => {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
                             {(profile.permissions || []).includes('all') ? (
                               <span style={{ fontSize: '9px', fontWeight: 900, background: '#fef2f2', color: '#ef4444', padding: '4px 8px', borderRadius: '6px' }}>
-                                ðŸ”´ ACESSO CRÍTICO (TOTAL)
+                                🔴 ACESSO CRÍTICO (TOTAL)
                               </span>
                             ) : (
                               <span style={{ fontSize: '9px', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '4px 8px', borderRadius: '6px' }}>
-                                ðŸŸ¢ CONTROLE PARCIAL
+                                🟢 CONTROLE PARCIAL
                               </span>
                             )}
                           </div>
@@ -1005,83 +1023,6 @@ export const UserManagement: React.FC = () => {
                 </button>
               </motion.div>
             )}
-
-            {/* Matriz Visual de Permissões Interativa */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="premium-card permission-matrix-card"
-              style={{ marginTop: '30px', padding: '24px' }}
-            >
-              <div className="matrix-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Shield size={18} className="text-emerald-500" />
-                    MATRIZ VISUAL DE PERMISSÕES
-                  </h3>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500, marginTop: '2px' }}>
-                    Visão comparativa side-by-side de controle de acesso dos perfis a cada módulo do sistema. Clique nas células para alternar permissões dinamicamente.
-                  </p>
-                </div>
-              </div>
-
-              <div className="matrix-table-wrapper" style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                <table className="matrix-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: 'white' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--bg-main)', borderBottom: '1px solid var(--border)' }}>
-                      <th style={{ padding: '16px 20px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', width: '30%' }}>MÃ“DULO / RECURSO</th>
-                      {profilesList.map(profile => (
-                        <th key={profile.id} style={{ padding: '16px 20px', fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-main)', textAlign: 'center' }}>
-                          {profile.nome}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {AVAILABLE_PERMISSIONS.map(perm => (
-                      <tr key={perm.id} style={{ borderBottom: '1px solid var(--border)', transition: '0.2s' }} className="matrix-row">
-                        <td style={{ padding: '16px 20px', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                          {perm.label}
-                        </td>
-                        {profilesList.map(profile => {
-                          const hasPermission = (profile.permissoes || []).includes(perm.id) || (profile.permissoes || []).includes('all') || (profile.permissions || []).includes('all');
-                          const isAll = (profile.permissoes || []).includes('all') || (profile.permissions || []).includes('all');
-                          return (
-                            <td key={profile.id} style={{ padding: '16px 20px', textAlign: 'center' }}>
-                              <button
-                                type="button"
-                                disabled={isAll}
-                                onClick={() => handleToggleMatrixPermission(profile.id, perm.id)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  cursor: isAll ? 'not-allowed' : 'pointer',
-                                  padding: '8px',
-                                  borderRadius: '50%',
-                                  transition: '0.2s',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
-                                className="matrix-cell-btn"
-                                title={isAll ? "Perfil com acesso total" : `Alternar ${perm.label} para ${profile.nome}`}
-                              >
-                                {hasPermission ? (
-                                  <ShieldCheck size={20} style={{ color: '#10b981', filter: 'drop-shadow(0 2px 4px rgba(16,185,129,0.2))' }} />
-                                ) : (
-                                  <Lock size={16} style={{ color: '#94a3b8' }} />
-                                )}
-                              </button>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
           </>
         ) : (
           <div className="security-intelligence-layout">
@@ -1149,13 +1090,24 @@ export const UserManagement: React.FC = () => {
                       <div className="toggle-dot"></div>
                     </div>
                   </div>
-                  <button className="maintenance-btn" onClick={() => confirm('Ativar Modo de Manutenção?') && setSaveSuccess(true)}>
-                    <Shield size={16} /> MODO DE MANUTENÇÃO
+                  <button 
+                    className={`maintenance-btn ${securitySettings.maintenanceMode ? 'maintenance-active' : ''}`}
+                    onClick={handleToggleMaintenanceMode}
+                  >
+                    <ShieldAlert size={16} className={securitySettings.maintenanceMode ? 'animate-pulse text-white' : ''} />
+                    <span>{securitySettings.maintenanceMode ? 'DESATIVAR MANUTENÇÃO (ATIVO)' : 'MODO DE MANUTENÇÃO'}</span>
                   </button>
-                  <div className="guard-status-alert">
-                    <div className="pulsing-dot red"></div>
-                    <span>Nenhum ataque detectado nas últimas 24h</span>
-                  </div>
+                  {anomalies.length > 0 ? (
+                    <div className="guard-status-alert alert-active" style={{ background: '#fef2f2', color: '#ef4444' }}>
+                      <div className="pulsing-dot red"></div>
+                      <span>{anomalies.length} Ameaça(s) detectada(s) nas últimas 24h</span>
+                    </div>
+                  ) : (
+                    <div className="guard-status-alert" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                      <div className="pulsing-dot"></div>
+                      <span>Nenhum ataque detectado nas últimas 24h</span>
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
@@ -1164,13 +1116,13 @@ export const UserManagement: React.FC = () => {
             <div className="security-advanced-grid" style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: '24px' }}>
               
               {/* Terminal de Auditoria Interativo */}
-              <section className="security-panel terminal-panel" style={{ background: '#090d16', borderColor: '#1e293b', boxShadow: '0 15px 30px rgba(0,0,0,0.4)', padding: '20px', minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
-                <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b', paddingBottom: '14px', marginBottom: '14px' }}>
+              <section className={`security-panel terminal-panel ${isTerminalRunning ? 'terminal-dark' : 'terminal-light'}`} style={{ padding: '20px', minHeight: '400px', display: 'flex', flexDirection: 'column' }}>
+                <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '14px', marginBottom: '14px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div className="icon-badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}><Terminal size={18} /></div>
                     <div>
-                      <h3 style={{ color: '#f8fafc', fontSize: '0.8125rem', margin: 0 }}>Terminal de Auditoria Interativo</h3>
-                      <p style={{ color: '#64748b', fontSize: '0.6875rem', margin: '2px 0 0 0' }}>Stream ao vivo de eventos de segurança do System Guard</p>
+                      <h3 className="terminal-title" style={{ fontSize: '0.8125rem', margin: 0 }}>Terminal de Auditoria Interativo</h3>
+                      <p className="terminal-subtitle" style={{ fontSize: '0.6875rem', margin: '2px 0 0 0' }}>Stream ao vivo de eventos de segurança do System Guard</p>
                     </div>
                   </div>
                   
@@ -1181,20 +1133,6 @@ export const UserManagement: React.FC = () => {
                       onClick={() => setIsTerminalRunning(!isTerminalRunning)}
                       className={`terminal-ctrl-btn ${isTerminalRunning ? 'active' : ''}`}
                       title={isTerminalRunning ? "Pausar Monitoramento" : "Iniciar Monitoramento"}
-                      style={{
-                        background: isTerminalRunning ? '#10b98122' : '#334155',
-                        border: 'none',
-                        color: isTerminalRunning ? '#10b981' : '#cbd5e1',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        cursor: 'pointer',
-                        transition: '0.2s'
-                      }}
                     >
                       {isTerminalRunning ? <Pause size={12} /> : <Play size={12} />}
                       {isTerminalRunning ? 'LIVE' : 'PAUSADO'}
@@ -1202,19 +1140,8 @@ export const UserManagement: React.FC = () => {
                     <button 
                       type="button"
                       onClick={() => setLiveLogs([])}
-                      className="terminal-ctrl-btn"
+                      className="terminal-ctrl-btn clear-btn"
                       title="Limpar Console"
-                      style={{
-                        background: '#334155',
-                        border: 'none',
-                        color: '#cbd5e1',
-                        padding: '6px 12px',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        transition: '0.2s'
-                      }}
                     >
                       LIMPAR
                     </button>
@@ -1228,17 +1155,7 @@ export const UserManagement: React.FC = () => {
                       key={sev}
                       type="button"
                       onClick={() => setTerminalSeverity(sev)}
-                      style={{
-                        background: terminalSeverity === sev ? '#38bdf822' : '#1e293b',
-                        border: 'none',
-                        color: terminalSeverity === sev ? '#38bdf8' : '#94a3b8',
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        fontSize: '10px',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        transition: '0.2s'
-                      }}
+                      className={`terminal-filter-btn ${terminalSeverity === sev ? 'active' : ''}`}
                     >
                       {sev === 'ALL' ? 'TODOS' : sev}
                     </button>
@@ -1248,18 +1165,15 @@ export const UserManagement: React.FC = () => {
                 {/* Área de Logs */}
                 <div className="terminal-logs-screen" style={{
                   flex: 1,
-                  background: '#040711',
                   borderRadius: '12px',
                   padding: '16px',
                   fontFamily: 'JetBrains Mono, Courier New, monospace',
                   fontSize: '11px',
                   overflowY: 'auto',
                   maxHeight: '280px',
-                  border: '1px solid #1e293b',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px',
-                  boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.8)'
+                  gap: '8px'
                 }}>
                   <AnimatePresence>
                     {liveLogs
@@ -1272,18 +1186,19 @@ export const UserManagement: React.FC = () => {
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0 }}
-                            style={{ color: '#94a3b8', lineHeight: '1.5', display: 'flex', gap: '8px', alignItems: 'flex-start' }}
+                            className="terminal-log-row"
+                            style={{ lineHeight: '1.5', display: 'flex', gap: '8px', alignItems: 'flex-start' }}
                           >
-                            <span style={{ color: '#475569' }}>[{new Date(log.date).toLocaleTimeString('pt-BR')}]</span>
+                            <span className="log-time">[{new Date(log.date).toLocaleTimeString('pt-BR')}]</span>
                             <span style={{ color: sevColor, fontWeight: 900, minWidth: '70px', display: 'inline-block' }}>[{log.type}]</span>
-                            <span style={{ flex: 1, color: '#f1f5f9' }}>{log.msg}</span>
-                            <span style={{ color: '#475569', fontSize: '10px' }}>({log.user} â€¢ {log.ip})</span>
+                            <span className="log-msg" style={{ flex: 1 }}>{log.msg}</span>
+                            <span className="log-meta">({log.user} • {log.ip})</span>
                           </motion.div>
                         );
                       })}
                   </AnimatePresence>
                   {liveLogs.filter(l => terminalSeverity === 'ALL' || l.type === terminalSeverity).length === 0 && (
-                    <div style={{ color: '#475569', textAlign: 'center', padding: '40px 0', fontStyle: 'italic' }}>
+                    <div className="terminal-empty-state" style={{ textAlign: 'center', padding: '40px 0', fontStyle: 'italic' }}>
                       Nenhum evento registrado no console.
                     </div>
                   )}
@@ -1502,17 +1417,29 @@ export const UserManagement: React.FC = () => {
           cursor: not-allowed;
         }
 
-        /* Cyberpunk Terminal Styling */
+        /* Cyberpunk & Premium Light Terminal Styling */
         .terminal-panel {
-          background: #05070c !important;
-          border: 1px solid #1e293b !important;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           border-radius: 24px !important;
           position: relative;
           overflow: hidden;
         }
 
-        .terminal-panel::before {
+        .terminal-panel.terminal-dark {
+          background: #05070c !important;
+          border: 1px solid #1e293b !important;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        .terminal-panel.terminal-light {
+          background: rgba(255, 255, 255, 0.45) !important;
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.6) !important;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04) !important;
+        }
+
+        .terminal-panel.terminal-dark::before {
           content: '';
           position: absolute;
           top: 0;
@@ -1528,17 +1455,79 @@ export const UserManagement: React.FC = () => {
           100% { transform: translateX(100%); }
         }
 
-        .terminal-ctrl-btn {
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        /* Panel Headers in light/dark */
+        .terminal-panel.terminal-dark .panel-header {
+          border-bottom: 1px solid #1e293b !important;
+        }
+        .terminal-panel.terminal-light .panel-header {
+          border-bottom: 1px solid var(--border) !important;
         }
 
-        .terminal-ctrl-btn:hover {
+        /* Title and Subtitle in light/dark */
+        .terminal-panel.terminal-dark .terminal-title {
+          color: #f8fafc !important;
+        }
+        .terminal-panel.terminal-light .terminal-title {
+          color: var(--text-main) !important;
+        }
+        .terminal-panel.terminal-dark .terminal-subtitle {
+          color: #64748b !important;
+        }
+        .terminal-panel.terminal-light .terminal-subtitle {
+          color: var(--text-muted) !important;
+        }
+
+        /* Control Buttons in dark mode */
+        .terminal-panel.terminal-dark .terminal-ctrl-btn {
+          background: #334155;
+          border: none;
+          color: #cbd5e1;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .terminal-panel.terminal-dark .terminal-ctrl-btn:hover {
           transform: translateY(-1px);
           filter: brightness(1.1);
         }
-
-        .terminal-ctrl-btn.active {
+        .terminal-panel.terminal-dark .terminal-ctrl-btn.active {
+          background: #10b98122 !important;
+          color: #10b981 !important;
           box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+          animation: pulse-terminal-btn 2s infinite;
+        }
+
+        /* Control Buttons in light mode */
+        .terminal-panel.terminal-light .terminal-ctrl-btn {
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          color: #475569;
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 11px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .terminal-panel.terminal-light .terminal-ctrl-btn:hover {
+          transform: translateY(-1px);
+          background: #e2e8f0;
+          color: #1e293b;
+        }
+        .terminal-panel.terminal-light .terminal-ctrl-btn.active {
+          background: #10b98122 !important;
+          border-color: rgba(16, 185, 129, 0.3) !important;
+          color: #10b981 !important;
+          box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
           animation: pulse-terminal-btn 2s infinite;
         }
 
@@ -1547,27 +1536,129 @@ export const UserManagement: React.FC = () => {
           50% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.6); }
         }
 
-        .terminal-logs-screen {
+        /* Severity buttons in dark mode */
+        .terminal-panel.terminal-dark .terminal-filter-btn {
+          background: #1e293b;
+          border: none;
+          color: #94a3b8;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .terminal-panel.terminal-dark .terminal-filter-btn:hover {
+          background: #273549;
+          color: #cbd5e1;
+        }
+        .terminal-panel.terminal-dark .terminal-filter-btn.active {
+          background: rgba(56, 189, 248, 0.15) !important;
+          color: #38bdf8 !important;
+        }
+
+        /* Severity buttons in light mode */
+        .terminal-panel.terminal-light .terminal-filter-btn {
+          background: #f1f5f9;
+          border: 1px solid #e2e8f0;
+          color: #64748b;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 10px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .terminal-panel.terminal-light .terminal-filter-btn:hover {
+          background: #e2e8f0;
+          color: #334155;
+        }
+        .terminal-panel.terminal-light .terminal-filter-btn.active {
+          background: #e0f2fe !important;
+          border-color: #bae6fd !important;
+          color: #0284c7 !important;
+        }
+
+        /* Log console screen & scrollbars in dark/light */
+        .terminal-panel.terminal-dark .terminal-logs-screen {
+          background: #040711 !important;
+          border: 1px solid #1e293b !important;
+          box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.8) !important;
           scrollbar-width: thin;
           scrollbar-color: #1e293b #040711;
         }
-
-        .terminal-logs-screen::-webkit-scrollbar {
+        .terminal-panel.terminal-dark .terminal-logs-screen::-webkit-scrollbar {
           width: 6px;
         }
-
-        .terminal-logs-screen::-webkit-scrollbar-track {
+        .terminal-panel.terminal-dark .terminal-logs-screen::-webkit-scrollbar-track {
           background: #040711;
           border-radius: 10px;
         }
-
-        .terminal-logs-screen::-webkit-scrollbar-thumb {
+        .terminal-panel.terminal-dark .terminal-logs-screen::-webkit-scrollbar-thumb {
           background: #1e293b;
           border-radius: 10px;
         }
-
-        .terminal-logs-screen::-webkit-scrollbar-thumb:hover {
+        .terminal-panel.terminal-dark .terminal-logs-screen::-webkit-scrollbar-thumb:hover {
           background: #334155;
+        }
+
+        .terminal-panel.terminal-light .terminal-logs-screen {
+          background: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important;
+          box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+          scrollbar-width: thin;
+          scrollbar-color: #cbd5e1 #f8fafc;
+        }
+        .terminal-panel.terminal-light .terminal-logs-screen::-webkit-scrollbar {
+          width: 6px;
+        }
+        .terminal-panel.terminal-light .terminal-logs-screen::-webkit-scrollbar-track {
+          background: #f8fafc;
+          border-radius: 10px;
+        }
+        .terminal-panel.terminal-light .terminal-logs-screen::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 10px;
+        }
+        .terminal-panel.terminal-light .terminal-logs-screen::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+
+        /* Logs text elements in dark mode */
+        .terminal-panel.terminal-dark .terminal-log-row {
+          color: #94a3b8;
+        }
+        .terminal-panel.terminal-dark .log-time {
+          color: #475569;
+        }
+        .terminal-panel.terminal-dark .log-msg {
+          color: #f1f5f9;
+        }
+        .terminal-panel.terminal-dark .log-meta {
+          color: #475569;
+          font-size: 10px;
+        }
+        .terminal-panel.terminal-dark .terminal-empty-state {
+          color: #475569;
+        }
+
+        /* Logs text elements in light mode */
+        .terminal-panel.terminal-light .terminal-log-row {
+          color: #475569;
+        }
+        .terminal-panel.terminal-light .log-time {
+          color: #94a3b8;
+        }
+        .terminal-panel.terminal-light .log-msg {
+          color: #1e293b;
+          font-weight: 500;
+        }
+        .terminal-panel.terminal-light .log-meta {
+          color: #94a3b8;
+          font-size: 10px;
+        }
+        .terminal-panel.terminal-light .terminal-empty-state {
+          color: #94a3b8;
         }
 
         /* Anomalies Panel Styling */
@@ -1695,25 +1786,80 @@ export const UserManagement: React.FC = () => {
           font-size: 0.75rem;
           font-weight: 800;
           border: 1px solid #fee2e2;
-          transition: 0.2s;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           margin-bottom: 4px;
+          cursor: pointer;
         }
-        .maintenance-btn:hover { background: #ef4444; color: white; border-color: #ef4444; }
+        .maintenance-btn:hover {
+          background: #ef4444;
+          color: white;
+          border-color: #ef4444;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+        .maintenance-btn.maintenance-active {
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: white;
+          border: 1px solid #f87171;
+          box-shadow: 0 0 15px rgba(239, 68, 68, 0.5), 0 0 5px rgba(239, 68, 68, 0.3);
+          animation: pulse-red-maintenance 2s infinite alternate;
+        }
+        @keyframes pulse-red-maintenance {
+          0% {
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+            transform: scale(1);
+          }
+          100% {
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+            transform: scale(1.01);
+          }
+        }
 
         .guard-status-alert {
           display: flex;
           align-items: center;
           gap: 10px;
           padding: 12px;
-          background: #f0fdf4;
           border-radius: 10px;
           font-size: 0.625rem;
           font-weight: 800;
-          color: #16a34a;
           text-transform: uppercase;
+          transition: all 0.3s ease;
         }
-        .pulsing-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; }
-        .pulsing-dot.red { background: #ef4444; }
+        .pulsing-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #16a34a;
+          box-shadow: 0 0 8px rgba(22, 163, 74, 0.6);
+          animation: pulse-green-dot 1.5s infinite;
+        }
+        .pulsing-dot.red {
+          background: #ef4444;
+          box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+          animation: pulse-red-dot 1.5s infinite;
+        }
+        @keyframes pulse-green-dot {
+          0% {
+            box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 8px rgba(22, 163, 74, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+          }
+        }
+        @keyframes pulse-red-dot {
+          0% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+          }
+          70% {
+            box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+          }
+        }
 
 
         .user-cards-grid {

@@ -1191,7 +1191,6 @@ export const AuditLog: React.FC = () => {
                 metodo_pagamento: 'Método de Pagamento',
                 conta_bancaria_id: 'ID da Conta Bancária',
                 parceiro_id: 'ID do Parceiro',
-                parceiro_id: 'ID do Parceiro',
                 marca: 'Marca',
                 modelo: 'Modelo',
                 placa: 'Placa',

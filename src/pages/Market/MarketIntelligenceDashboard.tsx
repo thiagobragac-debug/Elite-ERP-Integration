@@ -251,7 +251,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
                       boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
                       color: 'hsl(var(--text-main))'
                     }}
-                    formatter={(val: number) => [`R$ ${val.toFixed(2)}`, 'Cotação']}
+                    formatter={(val: any) => [`R$ ${Number(val).toFixed(2)}`, 'Cotação']}
                     labelStyle={{ color: 'hsl(var(--text-muted))', marginBottom: '8px', fontWeight: 'bold' }}
                   />
                   <Area 

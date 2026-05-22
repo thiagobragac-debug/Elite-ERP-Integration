@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Truck, 
@@ -112,24 +112,24 @@ export const FleetManagement: React.FC = () => {
           sparkline: [Math.max(1,total-4),Math.max(1,total-3),Math.max(1,total-2),Math.max(1,total-1),total,total,total].map((v,i) => ({ value: v, label: String(v) }))
         },
         { 
-          label: 'Em Manuten��o', 
+          label: 'Em Manutenção', 
           value: emManutencao, 
           icon: Tool, 
           color: '#ef4444', 
           progress: (emManutencao / (total || 1)) * 100,
-          change: 'Cr�tico',
-          periodLabel: 'Parada T�cnica',
+          change: 'Crítico',
+          periodLabel: 'Parada Técnica',
           sparkline: [Math.max(0,emManutencao+3),Math.max(0,emManutencao+2),Math.max(0,emManutencao+1),Math.max(0,emManutencao+1),emManutencao,emManutencao,emManutencao].map((v,i) => ({ value: v, label: String(v) }))
         },
         { 
-          label: 'Consumo M�dio (Global)', 
+          label: 'Consumo Médio (Global)', 
           value: `${avgEfficiency} L/h`, 
           icon: Activity, 
           color: '#f59e0b', 
           progress: 72,
           trend: 'down',
           change: '-2.5%',
-          periodLabel: 'Consumo M�dio',
+          periodLabel: 'Consumo Médio',
           sparkline: [16.2,15.8,15.4,15.0,14.7,14.4,Number(avgEfficiency)||14.2].map((v,i) => ({ value: v, label: v+'L/h' }))
         },
         { 
@@ -164,7 +164,7 @@ export const FleetManagement: React.FC = () => {
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate && !selectedMachine) {
-      alert('?? Selecione uma unidade espec�fica para cadastrar um novo ativo. No modo Vis�o Global, a fazenda propriet�ria deve ser definida.');
+      alert('⚠️ Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.');
       return;
     }
     
@@ -188,7 +188,7 @@ export const FleetManagement: React.FC = () => {
         data_proxima_revisao: formData.data_proxima_revisao || null,
         status: formData.status || 'active',
         observacoes: formData.observacoes,
-        tipo_medidor: formData.categoria === 'Trator' || formData.categoria === 'Implemento' ? 'Hor�metro' : 'Od�metro',
+        tipo_medidor: formData.categoria === 'Trator' || formData.categoria === 'Implemento' ? 'Horômetro' : 'Odômetro',
         ...insertPayload
       };
 
@@ -203,7 +203,7 @@ export const FleetManagement: React.FC = () => {
       fetchMachines();
     } catch (err) {
       console.error('Error saving machine:', err);
-      alert('Erro ao salvar m�quina. Verifique o console para mais detalhes.');
+      alert('Erro ao salvar máquina. Verifique o console para mais detalhes.');
     } finally {
       setLoading(false);
     }
@@ -211,7 +211,7 @@ export const FleetManagement: React.FC = () => {
 
   const handleMaintenanceSubmit = async (data: any) => {
     if (!canCreate) {
-      alert('?? Selecione uma unidade espec�fica para registrar uma manuten��o. No modo Vis�o Global, a fazenda deve ser definida.');
+      alert('⚠️ Selecione uma unidade específica para registrar uma manutenção. No modo Visão Global, a fazenda deve ser definida.');
       return;
     }
     const { error } = await supabase.from('manutencao_frota').insert([{
@@ -259,13 +259,13 @@ export const FleetManagement: React.FC = () => {
       Ano: item.ano || '-',
       Placa: item.placa || '-',
       Uso_Atual: item.horimetro_atual ? `${item.horimetro_atual}h` : item.quilometragem_atual ? `${item.quilometragem_atual}km` : '0',
-      Status: item.status === 'active' ? 'Em Campo' : item.status === 'maintenance' ? 'Manuten��o' : 'Parado',
+      Status: item.status === 'active' ? 'Em Campo' : item.status === 'maintenance' ? 'Manutenção' : 'Parado',
       Combustivel: item.combustivel || '-'
     }));
 
     if (format === 'csv') exportToCSV(exportData, 'frota_veiculos');
     else if (format === 'excel') exportToExcel(exportData, 'frota_veiculos');
-    else if (format === 'pdf') exportToPDF(exportData, 'frota_veiculos', 'Relat�rio de Frota e Maquin�rios');
+    else if (format === 'pdf') exportToPDF(exportData, 'frota_veiculos', 'Relatório de Frota e Maquinários');
   };
 
   const handleDelete = async (id: string) => {
@@ -275,14 +275,14 @@ export const FleetManagement: React.FC = () => {
   };
 
   const handleViewHistory = async (machine: any) => {
-    setHistoryTitle(`Hist�rico: ${machine.nome}`);
+    setHistoryTitle(`Histórico: ${machine.nome}`);
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
     setTimeout(() => {
       setHistoryItems([
-        { id: '1', date: new Date().toISOString(), title: 'Manuten��o Corretiva', subtitle: 'Troca de �leo e filtros', value: 'R$ 1.250,00', status: 'success' },
+        { id: '1', date: new Date().toISOString(), title: 'Manutenção Corretiva', subtitle: 'Troca de óleo e filtros', value: 'R$ 1.250,00', status: 'success' },
         { id: '2', date: new Date(Date.now() - 86400000 * 5).toISOString(), title: 'Abastecimento', subtitle: '450 litros (Diesel S10)', value: 'R$ 2.700,00', status: 'info' },
-        { id: '3', date: new Date(Date.now() - 86400000 * 15).toISOString(), title: 'Revis�o Preventiva', subtitle: 'Checklist 250 horas', value: 'Conclu�do', status: 'success' },
+        { id: '3', date: new Date(Date.now() - 86400000 * 15).toISOString(), title: 'Revisão Preventiva', subtitle: 'Checklist 250 horas', value: 'Concluído', status: 'success' },
       ]);
       setHistoryLoading(false);
     }, 800);
@@ -290,7 +290,7 @@ export const FleetManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Ativo / Identifica��o',
+      header: 'Ativo / Identificação',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>
@@ -304,7 +304,7 @@ export const FleetManagement: React.FC = () => {
       align: 'left' as const
     },
     {
-      header: 'Categoria & Combust�vel',
+      header: 'Categoria & Combustível',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
@@ -328,7 +328,7 @@ export const FleetManagement: React.FC = () => {
       align: 'center' as const
     },
     {
-      header: 'Efici�ncia Estimada',
+      header: 'Eficiência Estimada',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: '#475569' }}>
           <span>{item.consumo_estimado ? `${item.consumo_estimado} L/h` : '14.2 L/h'}</span>
@@ -337,7 +337,7 @@ export const FleetManagement: React.FC = () => {
       align: 'center' as const
     },
     {
-      header: 'Pr�xima Revis�o',
+      header: 'Próxima Revisão',
       accessor: (item: any) => {
         const current = item.horimetro_atual || 0;
         const interval = item.intervalo_revisao || 250;
@@ -371,7 +371,7 @@ export const FleetManagement: React.FC = () => {
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span className={`status-pill ${item.status === 'active' ? 'active' : item.status === 'maintenance' ? 'warning' : 'stopped'}`}>
-            {item.status === 'active' ? 'Operacional' : item.status === 'maintenance' ? 'Manuten��o' : 'Parado'}
+            {item.status === 'active' ? 'Operacional' : item.status === 'maintenance' ? 'Manutenção' : 'Parado'}
           </span>
         </div>
       ),
@@ -379,7 +379,7 @@ export const FleetManagement: React.FC = () => {
     }
   ];
 
-  const categories = ['All', 'Trator', 'Caminh�o', 'Implemento', 'Picape', 'M�quina'];
+  const categories = ['All', 'Trator', 'Caminhão', 'Implemento', 'Picape', 'Máquina'];
 
   return (
     <div className="fleet-page animate-slide-up">
@@ -389,8 +389,8 @@ export const FleetManagement: React.FC = () => {
             <Truck size={14} fill="currentColor" />
             <span>TAUZE FLEET v5.0</span>
           </div>
-          <h1 className="page-title">Gest�o de Frota</h1>
-          <p className="page-subtitle">Telemetria de ativos, controle de manuten��o e efici�ncia operacional do maquin�rio em tempo real.</p>
+          <h1 className="page-title">Gestão de Frota</h1>
+          <p className="page-subtitle">Telemetria de ativos, controle de manutenção e eficiência operacional do maquinário em tempo real.</p>
         </div>
         <div className="page-actions">
           <button className="primary-btn" onClick={handleOpenCreate}>
@@ -447,14 +447,14 @@ export const FleetManagement: React.FC = () => {
           <button 
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
-            title="Visualiza��o em Lista"
+            title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
           <button 
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
-            title="Visualiza��o em Cards"
+            title="Visualização em Cards"
           >
             <LayoutGrid size={18} />
           </button>
@@ -463,7 +463,7 @@ export const FleetManagement: React.FC = () => {
         <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
-            title="Filtros Avan�ados"
+            title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           >
             <Filter size={20} />
@@ -499,7 +499,7 @@ export const FleetManagement: React.FC = () => {
         {machines.length === 0 && !loading ? (
           <EmptyState
             title="Nenhum ativo cadastrado"
-            description="A frota desta unidade ainda n�o possui ativos registrados. Cadastre o primeiro maquin�rio para iniciar o monitoramento telemetria."
+            description="A frota desta unidade ainda não possui ativos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
             actionLabel="Novo Ativo"
             onAction={handleOpenCreate}
             icon={Truck}
@@ -580,7 +580,7 @@ export const FleetManagement: React.FC = () => {
                       <Truck size={32} />
                     </div>
                     <div className="card-bottom-actions">
-                      <button className="action-icon-btn info" onClick={() => handleViewHistory(m)} title="Dossi�"><History size={14} /></button>
+                      <button className="action-icon-btn info" onClick={() => handleViewHistory(m)} title="Dossiê"><History size={14} /></button>
                       <button className="action-icon-btn edit" onClick={() => handleOpenEdit(m)} title="Editar"><Edit3 size={14} /></button>
                       <button className="action-icon-btn delete" onClick={() => handleDelete(m.id)} title="Excluir"><Trash2 size={14} /></button>
                     </div>
@@ -605,12 +605,12 @@ export const FleetManagement: React.FC = () => {
                       </div>
                       <div className="meta-item">
                         <Zap size={14} className="meta-icon" style={{ color: '#8b5cf6' }} />
-                        <span>{m.potencia ? `${m.potencia}cv` : 'Pot�ncia N/D'} � {m.peso_operacional ? `${(m.peso_operacional/1000).toFixed(1)}t` : 'N/D'}</span>
+                        <span>{m.potencia ? `${m.potencia}cv` : 'Potência N/D'} • {m.peso_operacional ? `${(m.peso_operacional/1000).toFixed(1)}t` : 'N/D'}</span>
                       </div>
                       <div className="maintenance-countdown-tauze">
                         <div className="countdown-header">
                           <Clock size={12} />
-                          <span>Pr�xima Revis�o</span>
+                          <span>Próxima Revisão</span>
                         </div>
                         {(() => {
                           const current = m.horimetro_atual || 0;
@@ -904,7 +904,7 @@ export const FleetManagement: React.FC = () => {
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title={historyTitle}
-        subtitle="Rastreabilidade completa de manuten��es e interven��es"
+        subtitle="Rastreabilidade completa de manutenções e intervenções"
         items={historyItems}
         loading={historyLoading}
       />

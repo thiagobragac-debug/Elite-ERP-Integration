@@ -4,31 +4,29 @@ import {
   Sparkles, 
   Terminal, 
   Check, 
-  CheckCircle2,
+  Cpu, 
   Truck, 
   TrendingUp, 
   ArrowRight,
   ChevronDown,
   Activity,
   Layers,
-  Sliders, 
-  DollarSign, 
-  Award, 
-  Map, 
-  Scale, 
-  Calendar, 
-  Compass, 
-  ShoppingCart, 
-  FileText, 
-  PieChart, 
-  Users, 
-  Settings, 
-  RefreshCw,
-  Play,
-  MapPin,
-  ChevronRight,
-  Search,
-  BookOpen
+  Database,
+  Sliders,
+  DollarSign,
+  Award,
+  Map,
+  Scale,
+  Calendar,
+  Compass,
+  AlertCircle,
+  ShoppingCart,
+  FileText,
+  PieChart,
+  CheckCircle2,
+  Users,
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 
 // Tauze official emerald logo (#00b865) with vertical central gap
@@ -53,39 +51,34 @@ const TauzeLogo: React.FC<{ size?: number; className?: string; color?: string }>
 
 export const LandingPage: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [activeModule, setActiveModule] = useState<'agricola' | 'pecuaria' | 'frota' | 'compras' | 'vendas' | 'financas' | 'bi'>('agricola');
+  const [activeModule, setActiveModule] = useState<'pecuaria' | 'frota' | 'vendas' | 'compras' | 'financas' | 'bi'>('pecuaria');
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
   
   // Interactive Flow Timeline Active Step
   const [flowStep, setFlowStep] = useState<number>(0);
 
   // Process ROI Calculator states
-  const [herdScale, setHerdScale] = useState(1500);
-  const [harvestHectares, setHarvestHectares] = useState(2500);
-  const [adminTimeSaved, setAdminTimeSaved] = useState(60); // monthly hours saved
+  const [herdScale, setHerdScale] = useState(1200);
+  const [harvestHectares, setHarvestHectares] = useState(2000);
+  const [adminTimeSaved, setAdminTimeSaved] = useState(40); // monthly hours saved
 
-  // Module 1: Agricola simulator state
-  const [activeTalhao, setActiveTalhao] = useState<'talhao-1' | 'talhao-2' | 'talhao-3'>('talhao-1');
-  const [isTractorDispatched, setIsTractorDispatched] = useState(false);
-  const [soilProgress, setSoilProgress] = useState(65);
-
-  // Module 2: Pecuária state
-  const [selectedCow, setSelectedCow] = useState<'bov-104' | 'bov-212' | 'bov-309'>('bov-104');
+  // Module 1: Pecuária state
+  const [selectedCow, setSelectedCow] = useState<'bov-A' | 'bov-B'>('bov-A');
   const [cowWeight, setCowWeight] = useState(482.4);
   const [isWeighing, setIsWeighing] = useState(false);
 
-  // Module 3: Fleet active machinery & fuel levels
+  // Module 2: Fleet status active machinery
   const [activeTractor, setActiveTractor] = useState<'trator-1' | 'colheitadeira-1'>('trator-1');
-  const [fuelLevel, setFuelLevel] = useState(82);
+  const [fuelLevel, setFuelLevel] = useState(84);
 
-  // Module 4: Compras order approval tracker
-  const [purchaseStep, setPurchaseStep] = useState<'requisicao' | 'cotacao' | 'aprovado'>('requisicao');
-
-  // Module 5: Vendas contract active approval state
+  // Module 3: Vendas contract active approval state
   const [contractApproved, setContractApproved] = useState(false);
   const [contractLoading, setContractLoading] = useState(false);
 
-  // Module 6: Financas reconciliation active state
+  // Module 4: Compras order approval tracker
+  const [purchaseStep, setPurchaseStep] = useState<'requisicao' | 'cotado' | 'aprovado'>('requisicao');
+
+  // Module 5: Financas reconciliation active state
   const [reconciliationStatus, setReconciliationStatus] = useState<'pending' | 'reconciled'>('pending');
   const [reconciling, setReconciling] = useState(false);
 
@@ -102,36 +95,19 @@ export const LandingPage: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setFuelLevel(prev => {
-        if (prev <= 15) return 92; // auto-refuel
+        if (prev <= 10) return 95; // auto-refuel
         return prev - 1;
       });
-    }, 6000);
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Dispatch Tractor Action Simulator
-  const handleDispatchTractor = () => {
-    if (isTractorDispatched) return;
-    setIsTractorDispatched(true);
-    let steps = soilProgress;
-    const interval = setInterval(() => {
-      setSoilProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsTractorDispatched(false);
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 150);
-  };
-
   // RFID Weighing action simulation
-  const handleWeigh = (cow: 'bov-104' | 'bov-212' | 'bov-309') => {
+  const handleWeigh = (cow: 'bov-A' | 'bov-B') => {
     if (isWeighing) return;
     setSelectedCow(cow);
     setIsWeighing(true);
-    const targetWeight = cow === 'bov-104' ? 482.4 : cow === 'bov-212' ? 524.8 : 463.1;
+    const targetWeight = cow === 'bov-A' ? 482.4 : 518.9;
 
     let steps = 0;
     const interval = setInterval(() => {
@@ -143,9 +119,9 @@ export const LandingPage: React.FC = () => {
           return targetWeight;
         }
         steps++;
-        return parseFloat((prev + diff * 0.45).toFixed(1));
+        return parseFloat((prev + diff * 0.4).toFixed(1));
       });
-    }, 85);
+    }, 80);
   };
 
   // Contract approval action simulation
@@ -158,7 +134,7 @@ export const LandingPage: React.FC = () => {
     }, 1200);
   };
 
-  // Reconciliation action simulation
+  // Reconcilation action simulation
   const handleReconcile = () => {
     if (reconciliationStatus === 'reconciled' || reconciling) return;
     setReconciling(true);
@@ -169,15 +145,15 @@ export const LandingPage: React.FC = () => {
   };
 
   // ROI Calculations
-  const rfidSavingValue = herdScale * 42; // R$42 saved per head
-  const fuelSavingValue = harvestHectares * 22.5; // R$22.5 saved per hectare
-  const adminSavingValue = adminTimeSaved * 12 * 80; // R$80 hourly cost saved
+  const rfidSavingValue = herdScale * 38; // R$38 saved per head
+  const fuelSavingValue = harvestHectares * 18.5; // R$18.5 saved per hectare
+  const adminSavingValue = adminTimeSaved * 12 * 75; // R$75 hourly cost saved
   const totalProcessSavings = Math.round(rfidSavingValue + fuelSavingValue + adminSavingValue);
 
   return (
     <div className="tauze-erp-matrix">
 
-      {/* -------------------- DYNAMIC COMMODITY TICKER -------------------- */}
+      {/* -------------------- STATS COMMODITY BAR -------------------- */}
       <div className="commodities-ticker">
         <div className="ticker-container">
           <div className="ticker-slide">
@@ -185,21 +161,21 @@ export const LandingPage: React.FC = () => {
             <span className="ticker-node"><span className="ticker-indicator"></span> SOJA PARANAGUÁ: R$ 138,50/sc <span className="text-positive">(+1,20%)</span></span>
             <span className="ticker-node"><span className="ticker-indicator"></span> MILHO B3 (CCM): R$ 68,10/sc <span className="text-negative">(-0,45%)</span></span>
             <span className="ticker-node"><span className="ticker-indicator"></span> DÓLAR COMERCIAL: R$ 5,13 <span className="text-negative">(-0,28%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> IMPORTAÇÃO DE NF-e: XML AUTOMÁTICO</span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> API DE BANCOS PARCEIROS: ATIVA (6 BANCOS)</span>
+            <span className="ticker-node"><span className="ticker-indicator"></span> CONVERSÃO DE COMPRAS NF-e: 100% AUTOMATIZADA</span>
+            <span className="ticker-node"><span className="ticker-indicator"></span> INTEGRAÇÃO DE BANCOS API: ATIVA (6 BANCOS)</span>
           </div>
           <div className="ticker-slide">
             <span className="ticker-node"><span className="ticker-indicator"></span> BOI GORDO B3 (BGI): R$ 286,40/@ <span className="text-positive">(+0,85%)</span></span>
             <span className="ticker-node"><span className="ticker-indicator"></span> SOJA PARANAGUÁ: R$ 138,50/sc <span className="text-positive">(+1,20%)</span></span>
             <span className="ticker-node"><span className="ticker-indicator"></span> MILHO B3 (CCM): R$ 68,10/sc <span className="text-negative">(-0,45%)</span></span>
             <span className="ticker-node"><span className="ticker-indicator"></span> DÓLAR COMERCIAL: R$ 5,13 <span className="text-negative">(-0,28%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> IMPORTAÇÃO DE NF-e: XML AUTOMÁTICO</span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> API DE BANCOS PARCEIROS: ATIVA (6 BANCOS)</span>
+            <span className="ticker-node"><span className="ticker-indicator"></span> CONVERSÃO DE COMPRAS NF-e: 100% AUTOMATIZADA</span>
+            <span className="ticker-node"><span className="ticker-indicator"></span> INTEGRAÇÃO DE BANCOS API: ATIVA (6 BANCOS)</span>
           </div>
         </div>
       </div>
 
-      {/* -------------------- PREMIUM NAVIGATION NAVBAR -------------------- */}
+      {/* -------------------- NAVIGATION NAVBAR -------------------- */}
       <nav className={`matrix-navbar ${scrolled ? 'elevated' : ''}`}>
         <div className="navbar-inner">
           <div className="brand-logo-group">
@@ -208,15 +184,15 @@ export const LandingPage: React.FC = () => {
             </div>
             <div className="brand-title-column">
               <span className="brand-name">tauze</span>
-              <span className="brand-description">Sistemas de Gestão Rural</span>
+              <span className="brand-description">Enterprise Agribusiness Suite</span>
             </div>
           </div>
 
           <div className="navbar-links">
             <a href="#modulos">Módulos do Sistema</a>
-            <a href="#fluxo-processos">Ciclo de Processos</a>
-            <a href="#simulador-processos">Demonstrativo ROI</a>
-            <a href="#faq">Dúvidas Comuns</a>
+            <a href="#fluxo-processos">Fluxo de Processos</a>
+            <a href="#simulador-processos">Simulador de Economia</a>
+            <a href="#faq">Dúvidas Frequentes</a>
           </div>
 
           <div className="navbar-actions">
@@ -228,7 +204,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </nav>
 
-      {/* -------------------- MASSIVE OPERATIONAL HERO -------------------- */}
+      {/* -------------------- CINEMATIC MODULES HERO -------------------- */}
       <header className="matrix-hero">
         <div className="radial-glow-layer"></div>
         <div className="dots-layout-layer"></div>
@@ -236,87 +212,76 @@ export const LandingPage: React.FC = () => {
         <div className="hero-content-box">
           <span className="hero-eyebrow-badge">
             <Sparkles size={11} className="badge-spark" />
-            <span>ERP RURAL COMPACTO & OPERACIONAL</span>
+            <span>SISTEMA DE GESTÃO INTEGRAL RURAL</span>
           </span>
 
           <h1 className="hero-main-title">
-            Foque na operação do seu negócio.<br />
-            Esqueça planilhas e redigitação de dados.
+            O ERP completo do agronegócio.<br />
+            Do pasto ao faturamento em uma única plataforma.
           </h1>
 
           <p className="hero-subtext">
-            O <strong>tauze</strong> integra os processos práticos da fazenda. Controle a pesagem por brinco RFID, 
-            monitore a telemetria do maquinário, emita notas fiscais de contratos e automatize a conciliação bancária 
-            em um fluxo contínuo desenvolvido para o produtor rural.
+            Integre todos os processos da sua fazenda. Controle a pesagem voluntária RFID, acompanhe a telemetria 
+            de frotas, execute compras e cotações, fature contratos de grãos e realize conciliação bancária 
+            automatizada de ponta a ponta.
           </p>
 
           <div className="hero-actions-row">
             <a href="#modulos" className="btn-primary-action">
-              <span>Explorar Recursos Operacionais</span>
+              <span>Explorar Módulos Operacionais</span>
               <ArrowRight size={16} />
             </a>
             <a href="#simulador-processos" className="btn-secondary-action">
-              <span>Calcular Economia Anual</span>
+              <span>Calcular Retorno Operacional</span>
             </a>
           </div>
         </div>
 
-        {/* Hero Quick Feature Badges */}
+        {/* Hero Features Bar */}
         <div className="hero-quick-features">
           <div className="quick-item">
-            <Check size={16} className="text-emerald" />
-            <span>Manejo Pecuário Inteligente</span>
+            <Scale size={16} className="text-emerald" />
+            <strong>RFID & Balança Voluntária</strong>
           </div>
           <div className="quick-item">
-            <Check size={16} className="text-emerald" />
-            <span>Telemetria de Campo Sem Internet</span>
+            <Truck size={16} className="text-emerald" />
+            <strong>Telemetria & Consumos Frota</strong>
           </div>
           <div className="quick-item">
-            <Check size={16} className="text-emerald" />
-            <span>Contratos & Emissão Fiscal NF-e</span>
+            <FileText size={16} className="text-emerald" />
+            <strong>Faturamento & Contratos de Grãos</strong>
           </div>
           <div className="quick-item">
-            <Check size={16} className="text-emerald" />
-            <span>Banco Casado 100% via API</span>
+            <DollarSign size={16} className="text-emerald" />
+            <strong>Conciliação Bancária Sem Planilhas</strong>
           </div>
         </div>
       </header>
 
-      {/* -------------------- ALL SYSTEM MODULES CONSOLE -------------------- */}
+      {/* -------------------- CORE MODULES SHOWCASE (THE CONSOLE) -------------------- */}
       <section id="modulos" className="modules-showcase-section">
         <div className="section-head-centered">
           <span className="section-pre-title">RECURSOS DO SISTEMA</span>
-          <h2>A Solução Completa para os Processos do Campo</h2>
+          <h2>Explore os Módulos Integrados da Plataforma</h2>
           <p>
-            Do preparo do solo ao extrato bancário. Conheça e experimente os recursos dos <strong>7 módulos operacionais</strong> 
-            que integram a rotina física e financeira do seu agronegócio.
+            Clique nas abas abaixo para visualizar as telas reais de cada módulo e entender como o 
+            <strong> tauze</strong> automatiza a rotina operacional do seu negócio rural.
           </p>
         </div>
 
         <div className="matrix-console-board">
-          {/* Module Selector Sidebar - 7 modules */}
+          {/* Module Selector Sidebar */}
           <div className="console-navigation-sidebar">
             <div className="sidebar-group-title">MÓDULOS DE FLUXO ATIVOS</div>
             
-            <button 
-              className={`module-tab-btn ${activeModule === 'agricola' ? 'active' : ''}`}
-              onClick={() => setActiveModule('agricola')}
-            >
-              <div className="tab-icon-wrap"><Compass size={16} /></div>
-              <div className="tab-texts">
-                <strong>🌱 Módulo Agrícola & Solo</strong>
-                <span>Plantios, pulverizações e talhões</span>
-              </div>
-            </button>
-
             <button 
               className={`module-tab-btn ${activeModule === 'pecuaria' ? 'active' : ''}`}
               onClick={() => setActiveModule('pecuaria')}
             >
               <div className="tab-icon-wrap"><Scale size={16} /></div>
               <div className="tab-texts">
-                <strong>🌾 Módulo Pecuária & Gado</strong>
-                <span>Leitura RFID e pesagem de passagem</span>
+                <strong>🌾 Módulo Pecuária</strong>
+                <span>RFID e monitoramento de peso voluntário</span>
               </div>
             </button>
 
@@ -326,8 +291,19 @@ export const LandingPage: React.FC = () => {
             >
               <div className="tab-icon-wrap"><Truck size={16} /></div>
               <div className="tab-texts">
-                <strong>🚜 Módulo Frotas & Telemetria</strong>
-                <span>Trajetos GPS e diesel de máquinas</span>
+                <strong>🚜 Módulo Frotas & Campo</strong>
+                <span>Telemetria, manutenção e combustível</span>
+              </div>
+            </button>
+
+            <button 
+              className={`module-tab-btn ${activeModule === 'vendas' ? 'active' : ''}`}
+              onClick={() => setActiveModule('vendas')}
+            >
+              <div className="tab-icon-wrap"><FileText size={16} /></div>
+              <div className="tab-texts">
+                <strong>💼 Módulo Vendas & Contratos</strong>
+                <span>Contratos de safras e faturamento</span>
               </div>
             </button>
 
@@ -338,18 +314,7 @@ export const LandingPage: React.FC = () => {
               <div className="tab-icon-wrap"><ShoppingCart size={16} /></div>
               <div className="tab-texts">
                 <strong>🛒 Módulo Compras & Estoque</strong>
-                <span>Cotações, adubos e insumos ativos</span>
-              </div>
-            </button>
-
-            <button 
-              className={`module-tab-btn ${activeModule === 'vendas' ? 'active' : ''}`}
-              onClick={() => setActiveModule('vendas')}
-            >
-              <div className="tab-icon-wrap"><FileText size={16} /></div>
-              <div className="tab-texts">
-                <strong>💼 Módulo Vendas & Safra</strong>
-                <span>Contratos de grãos e saída fiscal</span>
+                <span>Cotações, pipeline de pedidos e insumos</span>
               </div>
             </button>
 
@@ -359,8 +324,8 @@ export const LandingPage: React.FC = () => {
             >
               <div className="tab-icon-wrap"><DollarSign size={16} /></div>
               <div className="tab-texts">
-                <strong>💰 Módulo Finanças & Caixa</strong>
-                <span>API de extratos e conciliação direta</span>
+                <strong>💰 Módulo Finanças & Conciliação</strong>
+                <span>Fluxo de caixa e conciliação bancária</span>
               </div>
             </button>
 
@@ -370,13 +335,13 @@ export const LandingPage: React.FC = () => {
             >
               <div className="tab-icon-wrap"><PieChart size={16} /></div>
               <div className="tab-texts">
-                <strong>📊 Módulo BI & Custos reais</strong>
-                <span>Lucratividade, EBITDA e DRE da safra</span>
+                <strong>📊 Módulo BI & Inteligência</strong>
+                <span>EBITDA, lucratividade e relatórios DRE</span>
               </div>
             </button>
           </div>
 
-          {/* Dynamic Interactive Simulator Console Display */}
+          {/* Dynamic Interface Simulator Workspace */}
           <div className="console-display-workspace">
             <div className="workspace-header-bar">
               <div className="window-controls">
@@ -384,136 +349,48 @@ export const LandingPage: React.FC = () => {
                 <span className="dot dot-minimize"></span>
                 <span className="dot dot-expand"></span>
               </div>
-              <div className="workspace-path-bar">tauze://erp/modulo-{activeModule}/processamento-real</div>
-              <span className="live-badge">CONEXÃO OPERACIONAL</span>
+              <div className="workspace-path-bar">tauze://plataforma/modulo-{activeModule}/dashboard-operacional</div>
+              <span className="live-badge">SISTEMA ATIVO</span>
             </div>
 
             <div className="workspace-body-container">
               
-              {/* MODULE 1: AGRÍCOLA */}
-              {activeModule === 'agricola' && (
-                <div className="module-fade-in agricola-module">
-                  <div className="interface-splits">
-                    <div className="interactive-pane">
-                      <div className="panel-title-row">
-                        <span>ESTRUTURA DE TALHÕES & CULTIVO</span>
-                        <div className="status-badge"><span className="pulse-dot"></span>SATÉLITE ATIVO</div>
-                      </div>
-
-                      <div className="agricola-simulator-box">
-                        <div className="talhao-selector">
-                          <button 
-                            className={`talhao-btn ${activeTalhao === 'talhao-1' ? 'active' : ''}`}
-                            onClick={() => { setActiveTalhao('talhao-1'); setSoilProgress(65); }}
-                          >
-                            Talhão #01 (Soja)
-                          </button>
-                          <button 
-                            className={`talhao-btn ${activeTalhao === 'talhao-2' ? 'active' : ''}`}
-                            onClick={() => { setActiveTalhao('talhao-2'); setSoilProgress(80); }}
-                          >
-                            Talhão #02 (Milho)
-                          </button>
-                          <button 
-                            className={`talhao-btn ${activeTalhao === 'talhao-3' ? 'active' : ''}`}
-                            onClick={() => { setActiveTalhao('talhao-3'); setSoilProgress(45); }}
-                          >
-                            Talhão #03 (Algodão)
-                          </button>
-                        </div>
-
-                        <div className="talhao-progress-card">
-                          <div className="lbl-row">
-                            <span>Progresso do Cultivo (Ciclo Físico):</span>
-                            <strong>{soilProgress}%</strong>
-                          </div>
-                          <div className="progress-bar-container">
-                            <div className="bar" style={{ width: `${soilProgress}%` }}></div>
-                          </div>
-
-                          <div className="specs-small-row">
-                            <div>
-                              <span>Hectares Ativos:</span>
-                              <strong>{activeTalhao === 'talhao-1' ? '820 ha' : activeTalhao === 'talhao-2' ? '1.200 ha' : '480 ha'}</strong>
-                            </div>
-                            <div>
-                              <span>Última Irrigação:</span>
-                              <strong>Hoje, 07:15</strong>
-                            </div>
-                          </div>
-                        </div>
-
-                        <button 
-                          className={`btn-dispatch ${isTractorDispatched ? 'loading' : ''}`}
-                          onClick={handleDispatchTractor}
-                        >
-                          {isTractorDispatched ? 'Simulando Aplicação no Campo...' : 'Simular Aplicação de Insumos'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="feature-description-pane">
-                      <span className="badge-module">PRODUÇÃO AGRÍCOLA</span>
-                      <h3>Controle Completo do Preparo ao Armazenamento</h3>
-                      <p>
-                        Monitore o andamento de cada talhão de terra de forma visual. O módulo agrícola do Tauze 
-                        permite centralizar o cronograma de plantio, programar a pulverização correta contra pragas e 
-                        registrar a colheita, alimentando diretamente o inventário de grãos no almoxarifado.
-                      </p>
-                      
-                      <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Gestão visual de lotes e variedades de sementes</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Previsão de rendimento físico e datas ideais de colheita</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Baixa imediata do estoque ao iniciar plantio</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* MODULE 2: PECUÁRIA */}
+              {/* 1. PECUÁRIA MODULE INTERFACE */}
               {activeModule === 'pecuaria' && (
                 <div className="module-fade-in pecuaria-module">
                   <div className="interface-splits">
                     <div className="interactive-pane">
                       <div className="panel-title-row">
-                        <span>MONITORAMENTO DE BRINCOS RFID</span>
-                        <div className="status-badge"><span className="pulse-dot"></span>BALANÇA ONLINE</div>
+                        <span>BALANÇA RFID VOLUNTÁRIA</span>
+                        <div className="status-badge"><span className="pulse-dot"></span>LIVESTOCK FEED</div>
                       </div>
 
                       <div className="rfid-cattle-box">
                         <div className="weigh-led-card">
-                          <span className="label">BRINCO IDENTIFICADO PELA ANTENA</span>
+                          <span className="label">BRINCO ATIVO NA ANTENA</span>
                           <strong className={isWeighing ? 'anim-digits' : ''}>{cowWeight.toFixed(1)} <span className="unit">KG</span></strong>
                           <div className="status-row">
                             <span className="status-glow"></span>
-                            <span>CÓDIGO INTEGRADO: {selectedCow === 'bov-104' ? '#BR-104' : selectedCow === 'bov-212' ? '#BR-212' : '#BR-309'}</span>
+                            <span>RFID LIDO: {selectedCow === 'bov-A' ? '#BR-104' : '#BR-212'}</span>
                           </div>
                         </div>
 
                         <div className="cattle-selector-widget">
-                          <span className="widget-label">Aproximar animal da balança de pesagem voluntária:</span>
+                          <span className="widget-label">Aproximar Bovino da Balança de Passagem:</span>
                           <div className="cattle-buttons">
                             <button 
-                              className={`cattle-btn ${selectedCow === 'bov-104' ? 'active' : ''}`}
-                              onClick={() => handleWeigh('bov-104')}
+                              className={`cattle-btn ${selectedCow === 'bov-A' ? 'active' : ''}`}
+                              onClick={() => handleWeigh('bov-A')}
                             >
-                              <strong>Animal #BR-104 (Lote Pasto A)</strong>
-                              <span>GMD: +1,45 kg/dia</span>
+                              <strong>Brinco #BR-104 (Lote A)</strong>
+                              <span>Média GMD: +1,45 kg/dia</span>
                             </button>
                             <button 
-                              className={`cattle-btn ${selectedCow === 'bov-212' ? 'active' : ''}`}
-                              onClick={() => handleWeigh('bov-212')}
+                              className={`cattle-btn ${selectedCow === 'bov-B' ? 'active' : ''}`}
+                              onClick={() => handleWeigh('bov-B')}
                             >
-                              <strong>Animal #BR-212 (Lote Pasto B)</strong>
-                              <span>GMD: +1,22 kg/dia</span>
-                            </button>
-                            <button 
-                              className={`cattle-btn ${selectedCow === 'bov-309' ? 'active' : ''}`}
-                              onClick={() => handleWeigh('bov-309')}
-                            >
-                              <strong>Animal #BR-309 (Lote Pasto C)</strong>
-                              <span>GMD: +1,15 kg/dia</span>
+                              <strong>Brinco #BR-212 (Lote B)</strong>
+                              <span>Média GMD: +1,18 kg/dia</span>
                             </button>
                           </div>
                         </div>
@@ -522,52 +399,52 @@ export const LandingPage: React.FC = () => {
 
                     <div className="feature-description-pane">
                       <span className="badge-module">PECUÁRIA DE PRECISÃO</span>
-                      <h3>Pesagem Voluntária no Cocho sem Manejo Estressante</h3>
+                      <h3>Curvas de Peso e Nutrição Automáticas</h3>
                       <p>
-                        O manejo tradicional com gado correndo pelo curral estressa os animais, gerando perda 
-                        física de arrobas no dia do processo. A balança autônoma da Tauze monitora o peso voluntário 
-                        toda vez que o animal vai ao bebedouro, criando a curva de GMD de forma 100% offline e autônoma.
+                        A pesagem tradicional no curral gera alto estresse nos animais, acarretando perda 
+                        de até 4 arrobas no dia do manejo. Nossa balança autônoma instalada no bebedouro 
+                        monitora a pesagem voluntária sempre que o gado bebe água, gerando GMD diário instantâneo.
                       </p>
                       
                       <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Curvas de engorda diárias geradas por antenas RFID</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Cálculo automático de rendimento de carcaça projetado</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Previsão de ganho por lote de pasto rotacionado</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Curvas de GMD em tempo real</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Previsão exata de data de abate</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Alerta de fuga ou inatividade no lote</span></div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* MODULE 3: FLOTA & TELEMETRIA */}
+              {/* 2. FLEET MODULE INTERFACE */}
               {activeModule === 'frota' && (
                 <div className="module-fade-in fleet-module">
                   <div className="interface-splits">
                     <div className="interactive-pane">
                       <div className="panel-title-row">
-                        <span>RASTREAMENTO GPS & CONSUMO DIESEL</span>
-                        <div className="status-badge"><span className="pulse-dot"></span>TELEMETRIA ATIVA</div>
+                        <span>CENTRO DE TELEMETRIA DE CAMPO</span>
+                        <div className="status-badge"><span className="pulse-dot"></span>GPS ATIVO</div>
                       </div>
 
                       <div className="fleet-machinery-card">
                         <div className="machinery-selector">
                           <button 
                             className={`machinery-tab ${activeTractor === 'trator-1' ? 'active' : ''}`}
-                            onClick={() => { setActiveTractor('trator-1'); setFuelLevel(82); }}
+                            onClick={() => { setActiveTractor('trator-1'); setFuelLevel(84); }}
                           >
-                            Trator JD 8R #04
+                            Trator John Deere 8R
                           </button>
                           <button 
                             className={`machinery-tab ${activeTractor === 'colheitadeira-1' ? 'active' : ''}`}
-                            onClick={() => { setActiveTractor('colheitadeira-1'); setFuelLevel(58); }}
+                            onClick={() => { setActiveTractor('colheitadeira-1'); setFuelLevel(62); }}
                           >
-                            Colheitadeira Case #02
+                            Colheitadeira Case 9250
                           </button>
                         </div>
 
                         <div className="machinery-live-specs">
                           <div className="spec-item">
-                            <span className="lbl">Tanque de Combustível</span>
+                            <span className="lbl">Diesel no Tanque</span>
                             <strong className="text-emerald">{fuelLevel}%</strong>
                             <div className="progress-bar-container">
                               <div className="bar" style={{ width: `${fuelLevel}%` }}></div>
@@ -576,16 +453,16 @@ export const LandingPage: React.FC = () => {
                           
                           <div className="spec-details-row">
                             <div>
-                              <span className="lbl">Atividade</span>
+                              <span className="lbl">Status</span>
                               <strong className="text-positive">OPERANDO</strong>
                             </div>
                             <div>
-                              <span className="lbl">Consumo médio</span>
-                              <strong>{activeTractor === 'trator-1' ? '14,8 L/h' : '26,4 L/h'}</strong>
+                              <span className="lbl">Consumo Médio</span>
+                              <strong>{activeTractor === 'trator-1' ? '14,2 L/h' : '28,4 L/h'}</strong>
                             </div>
                             <div>
-                              <span className="lbl">Próxima Oficina</span>
-                              <strong>38 Horas</strong>
+                              <span className="lbl">Próxima Manutenção</span>
+                              <strong>42 Horas</strong>
                             </div>
                           </div>
                         </div>
@@ -593,32 +470,101 @@ export const LandingPage: React.FC = () => {
                     </div>
 
                     <div className="feature-description-pane">
-                      <span className="badge-module">FROTAS & MÁQUINAS</span>
-                      <h3>Eficiência Física nos Abastecimentos e Rotas</h3>
+                      <span className="badge-module">CONTROLE DE FROTAS</span>
+                      <h3>Gestão de Diesel, Horas e Manutenções</h3>
                       <p>
-                        Monitore a operação das suas colheitadeiras e tratores. O sistema calcula a velocidade, 
-                        trajetória de plantio no talhão e detecta de forma instantânea consumos anômalos de diesel, 
-                        evitando desperdícios e gerando alertas de manutenções periódicas automáticas.
+                        Acompanhe em tempo real a velocidade, rota de plantio e consumo de combustível do seu maquinário. 
+                        A plataforma do Tauze centraliza manutenções preventivas e previne gargalos operacionais antes 
+                        que as colheitadeiras parem no campo.
                       </p>
                       
                       <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Rastreamento e horímetro de frotas offline-first</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Lançamento simplificado de combustíveis diretamente na bomba</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Histórico operacional por operador e trator</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Rastreamento e telemetria offline-first</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Alertas de excesso de velocidade ou ociosidade</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Controle de abastecimento direto na fazenda</span></div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* MODULE 4: COMPRAS & ESTOQUE */}
+              {/* 3. SALES MODULE INTERFACE */}
+              {activeModule === 'vendas' && (
+                <div className="module-fade-in sales-module">
+                  <div className="interface-splits">
+                    <div className="interactive-pane">
+                      <div className="panel-title-row">
+                        <span>MINUTA DE CONTRATO DE SAINDA // GRÃOS</span>
+                        <div className="status-badge">B3 COMPLIANT</div>
+                      </div>
+
+                      <div className="sales-contract-interactive-box">
+                        <div className="contract-sheet">
+                          <div className="sheet-row">
+                            <span>Tipo de Contrato:</span>
+                            <strong>Venda de Grãos (Soja) // Safra 2026</strong>
+                          </div>
+                          <div className="sheet-row">
+                            <span>Comprador:</span>
+                            <strong>Cargill Agrícola S/A</strong>
+                          </div>
+                          <div className="sheet-row">
+                            <span>Volume Negociado:</span>
+                            <strong>15.000 Sacas (900 Toneladas)</strong>
+                          </div>
+                          <div className="sheet-row">
+                            <span>Preço Fechado por Saca:</span>
+                            <strong className="text-emerald">R$ 138,50 / sc</strong>
+                          </div>
+                          <div className="sheet-divider"></div>
+                          <div className="sheet-total">
+                            <span>Valor Total do Contrato:</span>
+                            <strong>R$ 2.077.500,00</strong>
+                          </div>
+                        </div>
+
+                        <button 
+                          className={`btn-approve-contract ${contractApproved ? 'success' : ''}`}
+                          onClick={handleApproveContract}
+                        >
+                          {contractLoading ? (
+                            <span>Aprovando contrato...</span>
+                          ) : contractApproved ? (
+                            <span className="flex-row"><Check size={16} /> Contrato Faturado e Aprovado</span>
+                          ) : (
+                            <span>Assinar e Faturar Contrato</span>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="feature-description-pane">
+                      <span className="badge-module">VENDAS & CONTRATOS</span>
+                      <h3>Faturamento de Safras sem Erros de Registro</h3>
+                      <p>
+                        Registre minutas, controle o saldo de entregas e fature contratos de venda de grãos ou cabeças de gado. 
+                        A plataforma se conecta diretamente ao faturamento fiscal eletrônico, automatizando a baixa do estoque 
+                        de silagem no momento em que o grão sai da fazenda.
+                      </p>
+                      
+                      <div className="feature-bullets-grid">
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Emissão de notas fiscais de venda automatizada</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Acompanhamento físico de entregas por contrato</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Integração de travas físicas com a Bolsa de Grãos</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. PURCHASING MODULE INTERFACE */}
               {activeModule === 'compras' && (
                 <div className="module-fade-in purchasing-module">
                   <div className="interface-splits">
                     <div className="interactive-pane">
                       <div className="panel-title-row">
-                        <span>PIPELINE DE COTAÇÃO MULTI-FORNECEDOR</span>
-                        <div className="status-badge">SUPPLY INTEGRATION</div>
+                        <span>PEDIDO DE RECOMPRA AUTOMÁTICA</span>
+                        <div className="status-badge">ESTOQUE MÍNIMO</div>
                       </div>
 
                       <div className="purchasing-pipeline-box">
@@ -628,9 +574,9 @@ export const LandingPage: React.FC = () => {
                             <span>Requisição</span>
                           </div>
                           <div className="step-connector"></div>
-                          <div className={`step-node ${purchaseStep === 'cotacao' ? 'active' : ''}`}>
+                          <div className={`step-node ${purchaseStep === 'cotado' ? 'active' : ''}`}>
                             <span className="num">02</span>
-                            <span>Cotações</span>
+                            <span>Cotação</span>
                           </div>
                           <div className="step-connector"></div>
                           <div className={`step-node ${purchaseStep === 'aprovado' ? 'active' : ''}`}>
@@ -641,136 +587,72 @@ export const LandingPage: React.FC = () => {
 
                         <div className="purchase-info-sheet">
                           <div className="item-row">
-                            <span>Item Solicitado:</span>
-                            <strong>Fertilizante NPK (12 Toneladas)</strong>
+                            <span>Insumo Necessário:</span>
+                            <strong>Fertilizante NPK (15 Toneladas)</strong>
                           </div>
                           <div className="item-row">
-                            <span>Melhor Oferta:</span>
-                            <strong className="text-emerald">Nutrien Rural // R$ 58.400,00</strong>
+                            <span>Fornecedor Sugerido:</span>
+                            <strong>Nutrien Agrossoluções S/A</strong>
+                          </div>
+                          <div className="item-row">
+                            <span>Valor da Melhor Cotação:</span>
+                            <strong className="text-emerald">R$ 64.500,00</strong>
                           </div>
                         </div>
 
                         <div className="pipeline-controls">
                           {purchaseStep === 'requisicao' && (
-                            <button className="btn-pipeline" onClick={() => setPurchaseStep('cotacao')}>Buscar Fornecedores do Sistema</button>
+                            <button className="btn-pipeline" onClick={() => setPurchaseStep('cotado')}>Consultar Cotações do Sistema</button>
                           )}
-                          {purchaseStep === 'cotacao' && (
-                            <button className="btn-pipeline" onClick={() => setPurchaseStep('aprovado')}>Aprovar Menor Preço e Comprar</button>
+                          {purchaseStep === 'cotado' && (
+                            <button className="btn-pipeline" onClick={() => setPurchaseStep('aprovado')}>Aprovar Ordem de Compra</button>
                           )}
                           {purchaseStep === 'aprovado' && (
-                            <button className="btn-pipeline success-btn" onClick={() => setPurchaseStep('requisicao')}>Reiniciar Compra de Insumos</button>
+                            <button className="btn-pipeline success-btn" onClick={() => setPurchaseStep('requisicao')}>Resetar Simulador</button>
                           )}
                         </div>
                       </div>
                     </div>
 
                     <div className="feature-description-pane">
-                      <span className="badge-module">SUPRIMENTOS & ESTOQUES</span>
-                      <h3>Cotações Inteligentes Sem Planilhas Manuais</h3>
+                      <span className="badge-module">COMPRAS & INVENTÁRIO</span>
+                      <h3>Abastecimento Inteligente de Insumos</h3>
                       <p>
-                        Mantenha o almoxarifado de adubos e defensivos no nível de segurança ideal. Ao abrir uma requisição 
-                        de compras, o sistema dispara consultas de orçamento automáticas aos fornecedores parceiros, 
-                        agrupando os preços em um painel simples e emitindo a nota fiscal de entrada pelo XML sem digitação.
+                        Não corra o risco de ficar sem defensivos no meio do plantio. O módulo de compras 
+                        do Tauze monitora os níveis mínimos de inventário físico da fazenda, sugere ordens de recompra 
+                        autônomas e envia requisições aos fornecedores homologados para cotação automatizada.
                       </p>
                       
                       <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Integração de compras fiscais de sementes e vacinas</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Rastreabilidade e controle de data de validade de químicos</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Alertas imediatos de estoque mínimo para reposição</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Cotação multi-fornecedor automática</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Lançamento de notas de entrada via importação de XML</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Rastreamento de validade e lotes de vacinas e químicos</span></div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* MODULE 5: VENDAS & SAFRAS */}
-              {activeModule === 'vendas' && (
-                <div className="module-fade-in sales-module">
-                  <div className="interface-splits">
-                    <div className="interactive-pane">
-                      <div className="panel-title-row">
-                        <span>MINUTA DE CONTRATO FUTURO // GRÃOS</span>
-                        <div className="status-badge">COMERCIAL CONCLUÍDO</div>
-                      </div>
-
-                      <div className="sales-contract-interactive-box">
-                        <div className="contract-sheet">
-                          <div className="sheet-row">
-                            <span>Tipo de Contrato:</span>
-                            <strong>Venda de Grãos (Soja) // Safra 2026</strong>
-                          </div>
-                          <div className="sheet-row">
-                            <span>Comprador Comercial:</span>
-                            <strong>Cargill Agrícola S/A</strong>
-                          </div>
-                          <div className="sheet-row">
-                            <span>Volume de Entrega:</span>
-                            <strong>12.000 Sacas (720 Toneladas)</strong>
-                          </div>
-                          <div className="sheet-row">
-                            <span>Preço por Saca:</span>
-                            <strong className="text-emerald">R$ 138,50 / sc</strong>
-                          </div>
-                          <div className="sheet-divider"></div>
-                          <div className="sheet-total">
-                            <span>Faturamento Total Projetado:</span>
-                            <strong>R$ 1.662.000,00</strong>
-                          </div>
-                        </div>
-
-                        <button 
-                          className={`btn-approve-contract ${contractApproved ? 'success' : ''}`}
-                          onClick={handleApproveContract}
-                        >
-                          {contractLoading ? (
-                            <span>Faturando e gerando NF-e...</span>
-                          ) : contractApproved ? (
-                            <span className="flex-row"><Check size={16} /> Contrato Assinado & Nota Fiscal Emitida!</span>
-                          ) : (
-                            <span>Assinar Contrato e Faturar Lote</span>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="feature-description-pane">
-                      <span className="badge-module">VENDAS & CONTRATOS</span>
-                      <h3>Faturamento ágil e Baixa Física no Armazém</h3>
-                      <p>
-                        Formalize suas vendas de safras e contratos futuros com segurança. A plataforma gerencia 
-                        o saldo físico de entregas por cliente, calcula o valor médio de faturamento líquido de impostos e 
-                        emite automaticamente as notas fiscais no momento do carregamento das carretas no silo.
-                      </p>
-                      
-                      <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Emissão rápida de NF-e, CT-e e MDF-e de transporte</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Acompanhamento físico e financeiro de entregas parciais</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Conexão direta com faturamento de boi gordo e grãos</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* MODULE 6: FINANÇAS & CONCILIAÇÃO BANCÁRIA */}
+              {/* 5. FINANCAS MODULE INTERFACE */}
               {activeModule === 'financas' && (
                 <div className="module-fade-in finance-module">
                   <div className="interface-splits">
                     <div className="interactive-pane">
                       <div className="panel-title-row">
-                        <span>CONCILIAÇÃO BANCÁRIA AUTOMÁTICA</span>
-                        <div className="status-badge">API OPEN FINANCE</div>
+                        <span>CONCILIAÇÃO BANCÁRIA DIGITAL AUTOMATIZADA</span>
+                        <div className="status-badge">INTEGRAÇÃO BANCO API</div>
                       </div>
 
                       <div className="reconciliation-interactive-box">
                         <div className="reconcile-split-cards">
+                          {/* Left Bank Statement */}
                           <div className="reconcile-card bank-statement">
-                            <span className="card-lbl">CONTA CORRENTE BANCO</span>
+                            <span className="card-lbl">EXTRATO DO BANCO</span>
                             <div className="entry-row">
-                              <span className="title">BUNGE ALIMENTOS (CRÉDITO)</span>
+                              <span className="title">BUNGE ALIMENTOS (Crédito)</span>
                               <strong className="text-positive">R$ 138.500,00</strong>
                             </div>
-                            <span className="time">Transferência Recebida: 22/05/2026</span>
+                            <span className="time">Recebido em: 22/05/2026</span>
                           </div>
 
                           <div className="reconcile-action-connector">
@@ -779,86 +661,87 @@ export const LandingPage: React.FC = () => {
                                 className={`btn-reconcile-trigger ${reconciling ? 'loading' : ''}`}
                                 onClick={handleReconcile}
                               >
-                                {reconciling ? 'Casando dados...' : 'Conciliar Lote'}
+                                {reconciling ? 'Cruzando...' : 'Conciliar Lote'}
                               </button>
                             ) : (
                               <div className="stamp-success">
                                 <Check size={14} />
-                                <span>100% Casado</span>
+                                <span>Lote Casado</span>
                               </div>
                             )}
                           </div>
 
+                          {/* Right ERP Invoice ledger */}
                           <div className="reconcile-card erp-ledger">
-                            <span className="card-lbl">NF-E DE VENDA REGISTRADA</span>
+                            <span className="card-lbl">CONTRATO / LANÇAMENTO INTERNO</span>
                             <div className="entry-row">
-                              <span className="title">Fatura Venda Soja #9254</span>
+                              <span className="title">NF-e Venda Bunge #9842</span>
                               <strong className="text-positive">R$ 138.500,00</strong>
                             </div>
-                            <span className="time">Faturamento Fiscal: 21/05/2026</span>
+                            <span className="time">Emissão em: 21/05/2026</span>
                           </div>
                         </div>
 
                         <div className="reconciliation-progress-indicator">
-                          <span className="title">Acurácia Financeira do Mês Atual:</span>
+                          <span className="title">Status de Reconciliação do Mês:</span>
                           <div className="progress-bar-reconciled">
                             <div className={`bar ${reconciliationStatus === 'reconciled' ? 'full' : 'half'}`}></div>
                           </div>
                           <span className="percentage">
-                            {reconciliationStatus === 'reconciled' ? '100% das notas e contas conciliadas no extrato!' : '91% das transações casadas'}
+                            {reconciliationStatus === 'reconciled' ? '100% dos Lançamentos Fechados!' : '92% Fechado'}
                           </span>
                         </div>
                       </div>
                     </div>
 
                     <div className="feature-description-pane">
-                      <span className="badge-module">FINANCEIRO INTEGRADO</span>
-                      <h3>Conciliação Bancária Automática via API</h3>
+                      <span className="badge-module">CONCILIAÇÃO FINANCEIRA</span>
+                      <h3>Casamento Automático de Extratos sem Planilhas</h3>
                       <p>
-                        A tarefa cansativa de olhar linha por linha do extrato bancário do agronegócio e bater manualmente 
-                        com o fluxo de caixa acabou. O Tauze conecta-se às contas correntes do seu banco, identifica os 
-                        depósitos recebidos dos compradores e liquida as notas fiscais pendentes de forma imediata.
+                        A tarefa exaustiva de conferir linha por linha do extrato bancário com as notas fiscais emitidas 
+                        acabou. O Tauze se conecta às suas contas correntes corporativas via API e cruza 
+                        automaticamente os depósitos recebidos com os respectivos contratos e faturas emitidos no ERP.
                       </p>
                       
                       <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Integração de extratos via API com os maiores bancos do país</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Baixa fiscal e do contas a receber automatizada</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Projeção de fluxo de caixa operacional para os próximos 90 dias</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Integração nativa com Banco do Brasil, Itaú, Bradesco e Sicredi</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Previsão diária de fluxo de caixa operacional</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Baixa fiscal imediata ao detectar depósitos</span></div>
                       </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* MODULE 7: BI & BUSINESS INTELLIGENCE */}
+              {/* 6. BI & INTELLIGENCE MODULE INTERFACE */}
               {activeModule === 'bi' && (
                 <div className="module-fade-in bi-module">
                   <div className="interface-splits">
                     <div className="interactive-pane">
                       <div className="panel-title-row">
-                        <span>DEMONSTRATIVO DE RESULTADOS DA SAFRA</span>
+                        <span>DEMONSTRATIVO DE RESULTADO OPERACIONAL (DRE)</span>
                         <div className="status-badge">EBITDA REAL</div>
                       </div>
 
                       <div className="bi-analytics-box">
                         <div className="analytics-grid">
                           <div className="analytic-card">
-                            <span className="lbl">Faturamento Líquido da Safra</span>
-                            <strong>R$ 3.820.000,00</strong>
-                            <span className="subtext text-positive">+16% vs Ano Anterior</span>
+                            <span className="lbl">Faturamento Líquido</span>
+                            <strong>R$ 4.250.000,00</strong>
+                            <span className="subtext text-positive">+14% vs Safra anterior</span>
                           </div>
                           
                           <div className="analytic-card">
-                            <span className="lbl">Custo Operacional Efetivo</span>
-                            <strong>R$ 2.180.000,00</strong>
-                            <span className="subtext text-negative">-4% com cotações inteligentes</span>
+                            <span className="lbl">Custo Operacional Total</span>
+                            <strong>R$ 2.450.000,00</strong>
+                            <span className="subtext text-negative">-2% sob cotações inteligentes</span>
                           </div>
 
                           <div className="analytic-card full-card">
-                            <span className="lbl">Resultado EBITDA Consolidado</span>
+                            <span className="lbl">Margem EBITDA da Safra</span>
                             <div className="ebitda-row">
-                              <strong className="text-emerald">42.9% Margem</strong>
-                              <span className="lbl-status">LUCRO SAUDÁVEL</span>
+                              <strong className="text-emerald">42.3%</strong>
+                              <span className="lbl-status">EXCELENTE RENTABILIDADE</span>
                             </div>
                           </div>
                         </div>
@@ -866,18 +749,18 @@ export const LandingPage: React.FC = () => {
                     </div>
 
                     <div className="feature-description-pane">
-                      <span className="badge-module">INTELIGÊNCIA & CUSTOS</span>
-                      <h3>Margem Real de Lucratividade Sem Erros</h3>
+                      <span className="badge-module">INTELiGÊNCIA & BI</span>
+                      <h3>Lucratividade Real na Ponta do Lápis</h3>
                       <p>
-                        A tomada de decisão depende de informações financeiras confiáveis. O módulo de BI do Tauze 
-                        calcula automaticamente seu custo por saca ou por arroba engordada, fornecendo a margem EBITDA 
-                        consolidada e relatórios DRE operacionais detalhados de defensivos, frotas e insumos.
+                        A tomada de decisão estratégica depende de dados rápidos e confiáveis. Nosso módulo 
+                        de Business Intelligence calcula e consolida automaticamente sua margem EBITDA da safra, 
+                        distribuindo custos operacionais em contas de custeio detalhadas de defensivos, frotas e pessoal.
                       </p>
                       
                       <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>DRE operacional integrado gerado automaticamente</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Distribuição exata do custo produtivo de cada talhão físico</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Indicador de lucratividade por safra e lote de animais</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>DRE automatizado atualizado diariamente</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Distribuição exata de custos de plantio e colheita</span></div>
+                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Visão unificada para consolidar múltiplas fazendas</span></div>
                       </div>
                     </div>
                   </div>
@@ -893,23 +776,23 @@ export const LandingPage: React.FC = () => {
       <section id="fluxo-processos" className="unified-timeline-section">
         <div className="container-inner-layout">
           <div className="section-head-centered">
-            <span className="section-pre-title">JORNADA DA OPERAÇÃO</span>
-            <h2>Como os Módulos do ERP Integram Seus Processos</h2>
+            <span className="section-pre-title">INTEGRAÇÃO DE PROCESSOS</span>
+            <h2>O Fluxo Contínuo da Fazenda ao Banco</h2>
             <p>
-              Em sistemas tradicionais, cada setor funciona isolado. No <strong>tauze</strong>, a rotina prática do campo 
-              alimenta de forma imediata o estoque, o faturamento fiscal e a baixa do fluxo de caixa bancário.
+              Em um ERP tradicional, os módulos funcionam como caixas isoladas. No <strong>tauze</strong>, 
+              cada atividade operacional alimenta de forma automática o próximo passo do seu negócio.
             </p>
           </div>
 
           <div className="operational-flow-visual-hub">
-            {/* Steps Column Left */}
+            {/* Timeline Steps Left */}
             <div className="flow-steps-column">
               {[
-                { title: "1. Entrada de Insumos (Compras)", desc: "Ao receber defensivos ou adubos, a importação da nota fiscal atualiza o inventário físico do almoxarifado automaticamente.", icon: <ShoppingCart size={16} /> },
-                { title: "2. Preparo, Plantio & Manejo", desc: "No campo, as ordens de serviço agrícolas e os brincos RFID das pesagens voluntárias geram consumo e engorda em tempo real.", icon: <Compass size={16} /> },
-                { title: "3. Telemetria Física (Frota)", desc: "As máquinas trabalham. O sistema computa o diesel das bombas e calcula o custo exato de cada talhão ativo de terra.", icon: <Truck size={16} /> },
-                { title: "4. Comercial & Saída Fiscal (Vendas)", desc: "A colheita ou engorda entra no silo. Emite-se a NF-e do contrato comercial de soja ou carne, dando baixa imediata no estoque.", icon: <FileText size={16} /> },
-                { title: "5. Liquidação Bancária (Finanças)", desc: "O pagamento cai na conta corrente. A API bancária cruza os valores recebidos e executa a baixa sem redigitação de extrato.", icon: <DollarSign size={16} /> }
+                { title: "1. Entrada de Insumos & Compras", desc: "A nota fiscal eletrônica (NF-e) do fornecedor é importada no sistema. O estoque de adubos e químicos é abastecido imediatamente no estoque.", icon: <ShoppingCart size={16} /> },
+                { title: "2. Manejo Físico de Pastagens & Rastreio", desc: "A pesagem voluntária monitora os brincos RFID das cabeças de gado. O sistema recalcula o GMD do lote e prevê a data ótima para abate.", icon: <Scale size={16} /> },
+                { title: "3. Telemetria de Frota & Colheita", desc: "Os tratores realizam o serviço no campo. O consumo de diesel é lançado, as horas são atualizadas e o grão colhido alimenta o estoque físico.", icon: <Truck size={16} /> },
+                { title: "4. Travamento de Preço & Venda", desc: "No momento ótimo indicado pelo mercado ou pelo volume, emite-se o contrato de venda de soja ou carne e a nota fiscal é enviada ao cliente.", icon: <FileText size={16} /> },
+                { title: "5. Recebimento & Conciliação Bancária", desc: "O pagamento cai no banco corporativo. A API do Tauze reconhece a transação, casa o extrato com a nota e gera o saldo positivo no caixa.", icon: <DollarSign size={16} /> }
               ].map((step, idx) => (
                 <button 
                   key={idx}
@@ -919,49 +802,49 @@ export const LandingPage: React.FC = () => {
                   <div className="bullet-num">{idx + 1}</div>
                   <div className="texts">
                     <strong>{step.title}</strong>
-                    <span>{step.desc}</span>
+                    <span>Clique para entender o fluxo de dados</span>
                   </div>
                 </button>
               ))}
             </div>
 
-            {/* Simulated Live Process Screen Viewer Right */}
+            {/* Simulated Live Process Card Right */}
             <div className="flow-screen-viewer">
               <div className="viewer-card">
                 <div className="card-top-head">
                   <div className="icon-badge-flow">
-                    {[<ShoppingCart size={18} />, <Compass size={18} />, <Truck size={18} />, <FileText size={18} />, <DollarSign size={18} />][flowStep]}
+                    {[<ShoppingCart size={18} />, <Scale size={18} />, <Truck size={18} />, <FileText size={18} />, <DollarSign size={18} />][flowStep]}
                   </div>
-                  <strong>FLUXO DE INTEGRAÇÃO RURAL</strong>
+                  <strong>FLUXO DE INTEGRAÇÃO EM TEMPO REAL</strong>
                 </div>
 
                 <div className="card-body-flow">
                   <h4>
                     {
                       [
-                        "Abastecimento Imediato no Almoxarifado",
-                        "Manejo Integrado de Pesagem e Lotes",
-                        "Custos Reais de Telemetria e Máquinas",
-                        "Baixa Automática nos Silos e Notas Fiscais",
-                        "Open Finance Liquidando Fluxo Bancário"
+                        "Como as Compras abastecem o Inventário",
+                        "Como o RFID automatiza a engorda de animais",
+                        "Como a Telemetria se integra aos custos operacionais",
+                        "Como as Vendas faturam e programam entregas",
+                        "Como a API bancária liquida o fluxo financeiro"
                       ][flowStep]
                     }
                   </h4>
                   <p>
                     {
                       [
-                        "O XML do fertilizante é importado no módulo de Compras. Instantaneamente, o estoque é atualizado por depósito físico e as parcelas a pagar são programadas no contas a pagar financeiro, sem que você precise digitar nenhuma linha.",
-                        "Enquanto os bois passam de forma voluntária nos cochos e as ordens de serviço agrícolas são criadas no campo, o ERP consolida a estimativa de custos de defensivos aplicados por hectare e a evolução diária de peso por lote de pasto.",
-                        "Toda a telemetria física é sincronizada com o ERP. No instante em que os tratores registram consumo de combustível nas bombas da fazenda, o custo unitário por talhão de terra é atualizado no módulo de BI, disparando requisições preventivas.",
-                        "No carregamento dos caminhões de safras ou embarque do gado, o operador fecha a NF-e de saída de grãos/carne. O Tauze calcula os descontos fiscais automáticos e deduz as quantidades colhidas das posições físicas dos silos.",
-                        "O crédito financeiro do comprador é identificado no extrato da sua conta corrente corporativa. As APIs de Open Finance integradas no Tauze realizam a conciliação do lote com a nota emitida, fechando o demonstrativo DRE operacional."
+                        "Ao adquirir adubo ou defensivos, a importação do XML da NF-e cria a requisição de compras, atualiza o inventário por depósito físico e planeja o cronograma de contas a pagar no módulo financeiro sem redigitação de dados.",
+                        "À medida que o boi transita pela porteira com brinco RFID voluntário, as antenas transmitem as pesagens. O sistema gera a estimativa de custos de engorda por arroba e agenda no painel financeiro a receita projetada de abate.",
+                        "Toda telemetria de combustíveis e horas das máquinas é processada. Ao detectar abastecimento, o sistema atualiza o centro de custo de cada talhão de terra e planeja automaticamente a recompra preventiva de diesel.",
+                        "A colheita ou engorda entra no estoque. O operador fecha o contrato e emite a NF-e. O sistema calcula taxas comerciais, faz a baixa automática no almoxarifado de insumos e agenda a cobrança ativa.",
+                        "O depósito do comprador é identificado no extrato bancário. A inteligência do Tauze lê a assinatura digital, casa o montante líquido correspondente com a venda pendente e atualiza os dashboards de BI em tempo real."
                       ][flowStep]
                     }
                   </p>
 
                   <div className="flow-interactive-status-badge">
                     <span className="live-pulse"></span>
-                    <span>INTEGRAÇÃO DO PROCESSO OPERACIONAL CONCLUÍDA</span>
+                    <span>INTEGRAÇÃO DE BANCO DE DADOS CONCLUÍDA</span>
                   </div>
                 </div>
               </div>
@@ -970,34 +853,34 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* -------------------- DENSE TACTILE PROCESS ROI CALCULATOR -------------------- */}
+      {/* -------------------- INTERACTIVE CAPITAL PROCESS CALCULATOR (LEDGER) -------------------- */}
       <section id="simulador-processos" className="process-roi-section">
         <div className="roi-layout-box">
           <div className="section-head-centered">
-            <span className="section-pre-title">RETORNO SOBRE PROCESSO</span>
-            <h2>Veja o Impacto Financeiro na Operação</h2>
+            <span className="section-pre-title">SIMULADOR DE ECONOMIA</span>
+            <h2>O Impacto Financeiro dos Processos do ERP</h2>
             <p>
-              Simule a dimensão física da sua fazenda. O demonstrativo de retorno abaixo estima a economia 
-              anual proporcionada ao unificar os processos com o <strong>tauze</strong>.
+              Ajuste as métricas de escala da sua fazenda e veja na fatura timbrada a estimativa de economia 
+              anual assegurada ao unificar e otimizar seus fluxos de trabalho.
             </p>
           </div>
 
           <div className="roi-calculator-layout">
-            {/* Parameters Control Left */}
+            {/* Silders Panel Left */}
             <div className="sliders-control-desk">
-              <span className="desk-eyebrow">MÉTRICAS DO AGRONEGÓCIO</span>
-              <h3>Parâmetros de Produção</h3>
+              <span className="desk-eyebrow">PARÂMETROS DE PRODUÇÃO</span>
+              <h3>Configure seus Custos</h3>
 
-              {/* Slider 1: Herd */}
+              {/* Slider 1: Herd scale */}
               <div className="slider-control-group">
                 <div className="label-row">
-                  <span>Rebanho Bovino Ativo:</span>
-                  <strong>{herdScale.toLocaleString('pt-BR')} cabeças</strong>
+                  <span>Rebanho Ativo (Cabeças):</span>
+                  <strong>{herdScale.toLocaleString('pt-BR')} cab.</strong>
                 </div>
                 <input 
                   type="range" 
                   min="200" 
-                  max="15000" 
+                  max="12000" 
                   step="100" 
                   value={herdScale} 
                   onChange={(e) => setHerdScale(parseInt(e.target.value))}
@@ -1008,13 +891,13 @@ export const LandingPage: React.FC = () => {
               {/* Slider 2: Hectares */}
               <div className="slider-control-group">
                 <div className="label-row">
-                  <span>Área de Cultivo Ativa:</span>
-                  <strong>{harvestHectares.toLocaleString('pt-BR')} hectares</strong>
+                  <span>Área de Cultivo (Hectares):</span>
+                  <strong>{harvestHectares.toLocaleString('pt-BR')} ha</strong>
                 </div>
                 <input 
                   type="range" 
                   min="300" 
-                  max="20000" 
+                  max="25000" 
                   step="100" 
                   value={harvestHectares} 
                   onChange={(e) => setHarvestHectares(parseInt(e.target.value))}
@@ -1022,16 +905,16 @@ export const LandingPage: React.FC = () => {
                 />
               </div>
 
-              {/* Slider 3: Hours Saved */}
+              {/* Slider 3: Admin time */}
               <div className="slider-control-group">
                 <div className="label-row">
-                  <span>Horas Adm. Economizadas Mensais:</span>
+                  <span>Horas Administrativas Gastas (Mensais):</span>
                   <strong>{adminTimeSaved} horas</strong>
                 </div>
                 <input 
                   type="range" 
-                  min="10" 
-                  max="180" 
+                  min="5" 
+                  max="160" 
                   step="5" 
                   value={adminTimeSaved} 
                   onChange={(e) => setAdminTimeSaved(parseInt(e.target.value))}
@@ -1040,28 +923,28 @@ export const LandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Textured printed invoice card Right */}
+            {/* Printable Invoice Right */}
             <div className="printable-invoice-wrapper">
               <div className="invoice-paper">
                 <div className="invoice-head">
-                  <span className="brand">TAUZE SYSTEMS</span>
-                  <span className="title">DEMONSTRATIVO DE RETORNO SOBRE O INVESTIMENTO</span>
-                  <span className="date">ANÁLISE DE PROCESSO: SAFRA VIGENTE</span>
+                  <span className="brand">TAUZE SYSTEMS RETAIL</span>
+                  <span className="title">DEMONSTRATIVO DE RETORNO SOBRE O PROCESSO</span>
+                  <span className="date">DATA DE ANÁLISE: 2026-05-22</span>
                 </div>
 
                 <div className="dotted-separator"></div>
 
                 <div className="invoice-entries">
                   <div className="invoice-entry-row">
-                    <span>Otimização Pecuária (Engorda rápida RFID sem estresse)</span>
+                    <span>Otimização RFID Pecuária (Fim do estresse de manejo)</span>
                     <strong className="text-positive">+ R$ {Math.round(rfidSavingValue).toLocaleString('pt-BR')}</strong>
                   </div>
                   <div className="invoice-entry-row">
-                    <span>Combustível & Rotas Otimizadas (Telemetria Frota)</span>
+                    <span>Diesel & Desgaste Otimizado (Telemetria)</span>
                     <strong className="text-positive">+ R$ {Math.round(fuelSavingValue).toLocaleString('pt-BR')}</strong>
                   </div>
                   <div className="invoice-entry-row">
-                    <span>Otimização do Escritório (Conciliação Automática via API)</span>
+                    <span>Redução de Horas Administrativas (Conciliação API)</span>
                     <strong className="text-positive">+ R$ {Math.round(adminSavingValue).toLocaleString('pt-BR')}</strong>
                   </div>
                 </div>
@@ -1069,7 +952,7 @@ export const LandingPage: React.FC = () => {
                 <div className="dotted-separator"></div>
 
                 <div className="invoice-total-section">
-                  <span>RETORNO ESTIMADO ANUAL</span>
+                  <span>RETORNO ANUAL ESTIMADO</span>
                   <span className="total-val">R$ {totalProcessSavings.toLocaleString('pt-BR')}</span>
                 </div>
 
@@ -1078,7 +961,7 @@ export const LandingPage: React.FC = () => {
                     <Award size={14} />
                     <span>PROCESSOS CERTIFICADOS</span>
                   </div>
-                  <p>Economia média anual baseada no rendimento operacional coletado junto a produtores parceiros.</p>
+                  <p>Valores médios projetados com base no ganho operacional relatado por produtores parceiros.</p>
                 </div>
               </div>
             </div>
@@ -1090,30 +973,30 @@ export const LandingPage: React.FC = () => {
       <section className="matrix-faq-section" id="faq">
         <div className="container-inner-layout">
           <div className="section-head-centered">
-            <span className="section-pre-title">SUPORTE OPERACIONAL</span>
-            <h2>Dúvidas Operacionais Comuns</h2>
+            <span className="section-pre-title">SUPORTE & OPERAÇÕES</span>
+            <h2>Respostas a Dúvidas Operacionais</h2>
             <p>
-              Entenda como o sistema opera na prática da fazenda, no financeiro e nos processos comerciais diários.
+              Fique por dentro de todos os detalhes práticos de funcionamento do sistema para a gestão da sua fazenda.
             </p>
           </div>
 
           <div className="faq-accordion-container">
             {[
               {
-                q: "A balança RFID de pesagem voluntária funciona sem internet no pasto?",
-                a: "Com certeza. A antena RFID e os módulos de pesagem embarcados nos cochos de água operam de forma offline-first. As informações de peso e o ID do brinco do bovino são armazenados localmente e transmitidos via antenas de rádio de longo alcance para a sede da fazenda, sincronizando com os dados em nuvem assim que há conexão disponível."
+                q: "Como a conciliação bancária automática funciona sem planilhas?",
+                a: "A plataforma do Tauze utiliza integrações seguras via APIs bancárias. O sistema monitora suas contas correntes homologadas e reconhece pagamentos recebidos de grãos ou carne. A inteligência do ERP cruza o valor depositado com o saldo em aberto das faturas fiscais (NF-e) geradas na venda, realizando a baixa e atualizando o fluxo de caixa de forma automática."
               },
               {
-                q: "O contas a receber liquida a nota fiscal automaticamente via API bancária?",
-                a: "Sim. Por meio de conexões via APIs Open Finance seguras com os maiores bancos comerciais brasileiros (Banco do Brasil, Bradesco, Itaú, Sicredi), a plataforma faz a leitura em tempo real dos extratos. Ao detectar a transferência correspondente ao contrato faturado, o contas a receber liquida o título e atualiza o DRE de forma automática."
+                q: "A balança RFID voluntária pode ser usada em pastos sem energia elétrica?",
+                a: "Sim. A balança embarcada Tauze possui sistemas de alimentação solar redundantes e bateria de altíssima autonomia. A transmissão de dados é offline-first: o hardware armazena as pesagens localmente e transmite ao roteador central via ondas de rádio de longo alcance LoraWAN (até 15km de distância)."
               },
               {
-                q: "Como a importação de XML no módulo de compras ajuda no estoque de insumos?",
-                a: "No instante em que o fornecedor emite a nota fiscal de sementes, ração ou defensivos para a sua fazenda, a API do Tauze faz a leitura do documento fiscal eletrônico. O sistema atualiza o almoxarifado de depósito correspondente, registra os lotes e datas de validade das vacinas e insumos, e programa as datas no contas a pagar sem digitação."
+                q: "O módulo de compras consegue importar dados de cotações externas?",
+                a: "Com certeza. No momento em que você cria uma requisição de compras (ex: Fertilizantes), o sistema dispara solicitações automáticas aos distribuidores parceiros cadastrados. Eles preenchem os preços em um formulário digital simplificado e o ERP agrupa todas as respostas em um pipeline visual de custos, indicando o melhor preço de mercado."
               },
               {
-                q: "O módulo de frotas funciona com o maquinário operando no campo?",
-                a: "Sim. A telemetria física armazena a velocidade, horas de motor aceso e localização no campo. Sempre que o maquinário passa próximo ao Wi-Fi da sede ou sincroniza via redes móveis, o consumo médio de diesel e o histórico são processados, disparando alertas de manutenções preventivas nos tratores antes de apresentarem defeito."
+                q: "Como o sistema ajuda no controle de defensivos químicos e estoque?",
+                a: "O módulo de Compras e Estoque registra a entrada de defensivos via XML de NF-e e monitora prazos de validade e dosagens. O controle de inventário físico dá baixa imediata de silagem ou fertilizantes no momento em que as ordens de serviço do módulo Frotas & Campo são executadas no solo."
               }
             ].map((faq, index) => (
               <div 
@@ -1134,38 +1017,38 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* -------------------- OPERATIONAL SPEC SHEET -------------------- */}
+      {/* -------------------- SPECIFICATIONS TECHNICAL SHEET -------------------- */}
       <section className="technical-specs-sheet">
         <div className="container-inner-layout">
           <div className="specs-card-matrix">
-            <span className="specs-eyebrow">DIRETRIZES DA PLATAFORMA</span>
-            <h3>Ficha de Capacidades Operacionais do ERP</h3>
-            <p className="specs-sub font-sm">Abaixo da interface elegante, operam integrações de alta engenharia para agronegócio:</p>
+            <span className="specs-eyebrow">DIRETRIZ TÉCNICA</span>
+            <h3>Ficha Técnica das Funcionalidades do ERP</h3>
+            <p className="specs-sub font-sm">Abaixo da interface elegante, operam integrações de alta engenharia:</p>
             
             <div className="specs-matrix-grid">
               <div className="matrix-row">
-                <span className="property">EMISSÃO E CONFORMIDADE</span>
-                <span className="detail">Suporte completo a NF-e (Produtor Rural), MDF-e, CT-e e NF-e de grãos</span>
+                <span className="property">EMISSÃO FISCAL</span>
+                <span className="detail">Compatível com NF-e (Produtor Rural), MDF-e e CT-e</span>
               </div>
               <div className="matrix-row">
                 <span className="property">CONEXÃO OFF-GRID</span>
-                <span className="detail">Transmissão de balanças e telemetria via rádio de longo alcance (LoraWAN 915 MHz)</span>
+                <span className="detail">Transmissão de balança e frotas via LoraWAN (915 MHz)</span>
               </div>
               <div className="matrix-row">
-                <span className="property">APIS OPEN FINANCE</span>
-                <span className="detail">Integração homologada de extrato e liquidação com BB, Itaú, Bradesco e cooperativas</span>
+                <span className="property">INTEGRAÇÃO BANCÁRIA</span>
+                <span className="detail">Conexão segura via APIs Open Finance com os maiores bancos</span>
               </div>
               <div className="matrix-row">
-                <span className="property">PADRÕES DE PESAGEM</span>
-                <span className="detail">Compatível com brinco de identificação nacional e padrão internacional ISO 11784/11785</span>
+                <span className="property">PADRÃO RFID ANTENA</span>
+                <span className="detail">Compatibilidade com padrão internacional ISO 11784 e 11785</span>
               </div>
               <div className="matrix-row">
-                <span className="property">TELEMETRIA DE MÁQUINAS</span>
-                <span className="detail">Sensores de nível de tanque em bombas de abastecimento e integração de horímetro</span>
+                <span className="property">MONITORAMENTO DE DIESEL</span>
+                <span className="detail">Leitura direta em bocal de abastecimento e telemetria de tanque</span>
               </div>
               <div className="matrix-row">
-                <span className="property">SUPORTE E HARDWARE</span>
-                <span className="detail">Plataforma responsiva para tablets e celulares de campo, operando mesmo sem internet</span>
+                <span className="property">REQUISITOS DE HARDWARE</span>
+                <span className="detail">Operável via tablet, smartphone ou desktop com sincronismo em tempo real</span>
               </div>
             </div>
           </div>
@@ -1181,47 +1064,47 @@ export const LandingPage: React.FC = () => {
               <span className="title">tauze</span>
             </div>
             <p className="desc">
-              Otimizando e automatizando os processos práticos, físicos e financeiros do agronegócio moderno.
+              Simplificando a gestão operacional, financeira e física do agronegócio moderno.
             </p>
           </div>
 
           <div className="footer-links-side">
             <div className="links-column">
-              <h4>Módulos ERP</h4>
-              <a href="#modulos">Agrícola</a>
+              <h4>Módulos Principais</h4>
               <a href="#modulos">Pecuária</a>
               <a href="#modulos">Frotas</a>
+              <a href="#modulos">Vendas</a>
               <a href="#modulos">Compras</a>
             </div>
             <div className="links-column">
-              <h4>Operações</h4>
-              <span className="text-tag">API Bancária Ativa</span>
-              <span className="text-tag">Emissão de NF-e</span>
+              <h4>Financeiro</h4>
+              <span className="text-tag">API Bancária Integrada</span>
+              <span className="text-tag">NF-e Automática</span>
             </div>
           </div>
         </div>
 
         <div className="footer-bottom-row">
-          <p>&copy; 2026 Tauze Systems. Todos os direitos reservados. Foco absoluto na operação e produtividade do agronegócio.</p>
+          <p>&copy; 2026 Tauze Systems. Todos os direitos reservados. Foco na operacionalização e crescimento do seu negócio rural.</p>
         </div>
       </footer>
 
-      {/* -------------------- CUSTOM CSS INLINE STYLES -------------------- */}
+      {/* -------------------- EMBEDDED SYSTEM MODULAR DESIGN -------------------- */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 
         .tauze-erp-matrix {
-          /* Premium Color Design Tokens */
+          /* Color Design Tokens */
           --bg-canvas: #faf9f6;          /* Luxurious warm off-white alabaster */
-          --bg-card: rgba(255, 255, 255, 0.88); /* Clean modern glass */
-          --text-main: #131c16;          /* Deep carbon obsidian text */
-          --text-muted: #4e5651;         /* Readable charcoal graphite */
-          --accent: #00b865;             /* Signature glowing emerald */
+          --bg-card: rgba(255, 255, 255, 0.85); /* Premium clean glass */
+          --text-main: #131c16;          /* Deep obsidian carbon text */
+          --text-muted: #4e5651;         /* Warm readability graphite */
+          --accent: #00b865;             /* Signature vibrant emerald */
           --accent-hover: #009953;
-          --gold: #c5a073;               /* Elegant brushed light brass/gold */
+          --gold: #c5a880;               /* Soft warm luxury gold/brass */
           --gold-light: rgba(197, 160, 115, 0.08);
-          --border-premium: rgba(197, 160, 115, 0.22); /* Light gold hairline border */
-          --border-light: rgba(19, 28, 22, 0.06);     /* Micro thin border */
+          --border-premium: rgba(197, 160, 115, 0.22); /* Gold hairline border */
+          --border-light: rgba(19, 28, 22, 0.06);     /* Micro hairline border */
           --shadow-luxe: 0 25px 50px rgba(19, 28, 22, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.9);
           
           background-color: var(--bg-canvas);
@@ -1236,6 +1119,7 @@ export const LandingPage: React.FC = () => {
         /* Helpers */
         .text-positive { color: var(--accent); }
         .text-negative { color: #ff5f56; }
+        .text-gold { color: var(--gold); }
         .font-sm { font-size: 0.85rem; }
         .flex-row { display: flex; align-items: center; gap: 6px; }
 
@@ -1263,7 +1147,7 @@ export const LandingPage: React.FC = () => {
 
         .ticker-slide {
           display: flex;
-          animation: infiniteTickerSlide 32s linear infinite;
+          animation: infiniteTickerSlide 34s linear infinite;
         }
 
         @keyframes infiniteTickerSlide {
@@ -1291,7 +1175,7 @@ export const LandingPage: React.FC = () => {
           display: inline-block;
         }
 
-        /* --- NAVIGATION NAVBAR --- */
+        /* --- NAVBAR --- */
         .matrix-navbar {
           position: fixed;
           top: 38px;
@@ -1448,7 +1332,7 @@ export const LandingPage: React.FC = () => {
 
         .hero-main-title {
           font-family: 'Lora', serif;
-          font-size: 3.6rem;
+          font-size: 3.8rem;
           font-weight: 500;
           line-height: 1.15;
           color: var(--text-main);
@@ -1532,10 +1416,13 @@ export const LandingPage: React.FC = () => {
           font-family: 'Outfit', sans-serif;
           font-size: 0.85rem;
           color: var(--text-main);
+        }
+
+        .quick-item strong {
           font-weight: 700;
         }
 
-        /* --- CONSOLE SHOWCASE SECTION --- */
+        /* --- CONSOLE WORKSPACE BOARD --- */
         .modules-showcase-section {
           padding: 100px 24px;
           max-width: 1240px;
@@ -1646,6 +1533,7 @@ export const LandingPage: React.FC = () => {
           line-height: 1.3;
         }
 
+        /* Hover & Active Button Styles */
         .module-tab-btn:hover {
           background: rgba(255, 255, 255, 0.5);
           border-color: rgba(197, 160, 115, 0.12);
@@ -1666,7 +1554,7 @@ export const LandingPage: React.FC = () => {
           color: var(--accent);
         }
 
-        /* Console Workspace Frame */
+        /* Display Frame (Mac style) */
         .console-display-workspace {
           background: #ffffff;
           border: 1px solid var(--border-light);
@@ -1674,7 +1562,7 @@ export const LandingPage: React.FC = () => {
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          min-height: 420px;
+          min-height: 380px;
           box-shadow: inset 0 0 40px rgba(19, 28, 22, 0.01);
         }
 
@@ -1728,7 +1616,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .module-fade-in {
-          animation: fadeEffectMatrix 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          animation: fadeEffectMatrix 0.5s cubic-bezier(0.16, 1, 0.3, 1);
           width: 100%;
         }
 
@@ -1740,7 +1628,7 @@ export const LandingPage: React.FC = () => {
         /* --- STYLES FOR SIMULATORS --- */
         .interface-splits {
           display: grid;
-          grid-template-columns: 1fr 340px;
+          grid-template-columns: 1fr 320px;
           gap: 24px;
           align-items: center;
           height: 100%;
@@ -1752,7 +1640,7 @@ export const LandingPage: React.FC = () => {
           border: 1px solid var(--border-light);
           border-radius: 8px;
           padding: 16px;
-          min-height: 320px;
+          min-height: 280px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
@@ -1767,7 +1655,7 @@ export const LandingPage: React.FC = () => {
           font-weight: 800;
           color: var(--text-muted);
           letter-spacing: 0.05em;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
 
         .status-badge {
@@ -1839,102 +1727,7 @@ export const LandingPage: React.FC = () => {
           color: var(--text-muted);
         }
 
-        /* 1. Módulo Agrícola */
-        .agricola-simulator-box {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .talhao-selector {
-          display: flex;
-          gap: 6px;
-          background: #ffffff;
-          padding: 4px;
-          border-radius: 6px;
-          border: 1px solid var(--border-light);
-        }
-
-        .talhao-btn {
-          flex: 1;
-          background: transparent;
-          border: none;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.74rem;
-          font-weight: 700;
-          color: var(--text-muted);
-          padding: 6px;
-          cursor: pointer;
-          border-radius: 4px;
-          transition: all 0.2s;
-        }
-
-        .talhao-btn.active {
-          background: var(--gold-light);
-          color: var(--gold);
-        }
-
-        .talhao-progress-card {
-          background: #ffffff;
-          border: 1px solid var(--border-premium);
-          padding: 16px;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(19, 28, 22, 0.01);
-        }
-
-        .talhao-progress-card .lbl-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.74rem;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-
-        .talhao-progress-card strong {
-          color: var(--accent);
-        }
-
-        .specs-small-row {
-          display: flex;
-          justify-content: space-between;
-          border-top: 1px solid var(--border-light);
-          padding-top: 12px;
-          margin-top: 12px;
-        }
-
-        .specs-small-row div {
-          display: flex;
-          flex-direction: column;
-          font-size: 0.72rem;
-        }
-
-        .specs-small-row span {
-          color: var(--text-muted);
-        }
-
-        .specs-small-row strong {
-          color: var(--text-main);
-          font-family: 'Outfit', sans-serif;
-        }
-
-        .btn-dispatch {
-          background: var(--text-main);
-          color: #ffffff;
-          border: none;
-          padding: 10px;
-          border-radius: 6px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.78rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-dispatch:hover {
-          background: #000000;
-        }
-
-        /* 2. Pecuária Simulator */
+        /* 1. Pecuária Simulator */
         .rfid-cattle-box {
           display: flex;
           flex-direction: column;
@@ -2010,7 +1803,7 @@ export const LandingPage: React.FC = () => {
         .cattle-buttons {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
         }
 
         .cattle-btn {
@@ -2050,7 +1843,7 @@ export const LandingPage: React.FC = () => {
           color: var(--accent);
         }
 
-        /* 3. Fleet & Telemetria */
+        /* 2. Fleet & Campo */
         .fleet-machinery-card {
           display: flex;
           flex-direction: column;
@@ -2059,7 +1852,7 @@ export const LandingPage: React.FC = () => {
 
         .machinery-selector {
           display: flex;
-          gap: 6px;
+          gap: 8px;
           border-bottom: 1px solid var(--border-light);
           padding-bottom: 8px;
         }
@@ -2131,7 +1924,83 @@ export const LandingPage: React.FC = () => {
           font-size: 0.85rem;
         }
 
-        /* 4. Compras & Estoque */
+        /* 3. Sales Contracts */
+        .sales-contract-interactive-box {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+
+        .contract-sheet {
+          background: #ffffff;
+          border: 1px solid var(--border-premium);
+          padding: 16px;
+          border-radius: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .sheet-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 0.78rem;
+        }
+
+        .sheet-row span {
+          color: var(--text-muted);
+        }
+
+        .sheet-row strong {
+          color: var(--text-main);
+          font-family: 'Outfit', sans-serif;
+        }
+
+        .sheet-divider {
+          border-top: 1px dashed var(--border-premium);
+          margin: 4px 0;
+        }
+
+        .sheet-total {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.85rem;
+        }
+
+        .sheet-total span {
+          font-weight: 700;
+        }
+
+        .sheet-total strong {
+          font-family: 'Outfit', sans-serif;
+          font-size: 1.1rem;
+          color: var(--accent);
+        }
+
+        .btn-approve-contract {
+          background: var(--text-main);
+          color: #ffffff;
+          border: none;
+          padding: 12px;
+          border-radius: 8px;
+          font-family: 'Outfit', sans-serif;
+          font-size: 0.8rem;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+
+        .btn-approve-contract:hover {
+          background: #000000;
+        }
+
+        .btn-approve-contract.success {
+          background: var(--accent);
+          cursor: default;
+        }
+
+        /* 4. Purchasing order requisitions */
         .purchasing-pipeline-box {
           display: flex;
           flex-direction: column;
@@ -2237,83 +2106,7 @@ export const LandingPage: React.FC = () => {
           background: var(--text-main);
         }
 
-        /* 5. Vendas & Safra */
-        .sales-contract-interactive-box {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .contract-sheet {
-          background: #ffffff;
-          border: 1px solid var(--border-premium);
-          padding: 16px;
-          border-radius: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .sheet-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.78rem;
-        }
-
-        .sheet-row span {
-          color: var(--text-muted);
-        }
-
-        .sheet-row strong {
-          color: var(--text-main);
-          font-family: 'Outfit', sans-serif;
-        }
-
-        .sheet-divider {
-          border-top: 1px dashed var(--border-premium);
-          margin: 4px 0;
-        }
-
-        .sheet-total {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 0.85rem;
-        }
-
-        .sheet-total span {
-          font-weight: 700;
-        }
-
-        .sheet-total strong {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.1rem;
-          color: var(--accent);
-        }
-
-        .btn-approve-contract {
-          background: var(--text-main);
-          color: #ffffff;
-          border: none;
-          padding: 12px;
-          border-radius: 8px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.8rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .btn-approve-contract:hover {
-          background: #000000;
-        }
-
-        .btn-approve-contract.success {
-          background: var(--accent);
-          cursor: default;
-        }
-
-        /* 6. Finanças & Caixa */
+        /* 5. Bank Reconciliation */
         .reconciliation-interactive-box {
           display: flex;
           flex-direction: column;
@@ -2442,7 +2235,7 @@ export const LandingPage: React.FC = () => {
           transition: width 0.4s ease;
         }
 
-        .progress-bar-reconciled .bar.half { width: 91%; }
+        .progress-bar-reconciled .bar.half { width: 92%; }
         .progress-bar-reconciled .bar.full { width: 100%; }
 
         .reconciliation-progress-indicator .percentage {
@@ -2451,7 +2244,7 @@ export const LandingPage: React.FC = () => {
           color: var(--accent);
         }
 
-        /* 7. BI & Inteligência */
+        /* 6. BI & Analytics */
         .bi-analytics-box {
           display: flex;
           flex-direction: column;
@@ -2515,7 +2308,7 @@ export const LandingPage: React.FC = () => {
           border-radius: 4px;
         }
 
-        /* --- UNIFIED FLUID TIMELINE --- */
+        /* --- UNIFIED FLUID OPERATIONAL FLOW TIMELINE --- */
         .unified-timeline-section {
           padding: 100px 24px;
           background: #FAF9F6;
@@ -2603,6 +2396,7 @@ export const LandingPage: React.FC = () => {
           color: var(--accent);
         }
 
+        /* Flow screen viewer right */
         .flow-screen-viewer {
           perspective: 1000px;
         }
@@ -2835,7 +2629,7 @@ export const LandingPage: React.FC = () => {
 
         .invoice-entry-row span {
           color: var(--text-muted);
-          max-width: 280px;
+          max-width: 260px;
         }
 
         .invoice-entry-row strong {
@@ -2952,6 +2746,7 @@ export const LandingPage: React.FC = () => {
           margin: 0;
         }
 
+        /* Expanded accordion states */
         .faq-block.expanded {
           border-color: var(--gold);
           background: #ffffff;
@@ -2967,7 +2762,7 @@ export const LandingPage: React.FC = () => {
           max-height: 200px;
         }
 
-        /* --- SPEC SHEET --- */
+        /* --- TECHNICAL SPECIFICATIONS INDEX --- */
         .technical-specs-sheet {
           padding: 80px 24px;
           background: #faf9f6;
@@ -3004,65 +2799,66 @@ export const LandingPage: React.FC = () => {
         .specs-sub {
           color: var(--text-muted);
           margin-bottom: 32px;
+          display: block;
         }
 
         .specs-matrix-grid {
-          display: flex;
-          flex-direction: column;
+          display: grid;
+          grid-template-columns: 1fr;
+          border-top: 1px solid var(--border-light);
         }
 
         .matrix-row {
-          display: flex;
-          justify-content: space-between;
+          display: grid;
+          grid-template-columns: 240px 1fr;
           padding: 16px 0;
           border-bottom: 1px solid var(--border-light);
-          font-size: 0.88rem;
-        }
-
-        .matrix-row:last-child {
-          border-bottom: none;
+          align-items: center;
         }
 
         .matrix-row .property {
           font-family: 'Outfit', sans-serif;
-          font-weight: 700;
-          color: var(--gold);
+          font-size: 0.78rem;
+          font-weight: 800;
+          color: var(--text-muted);
           letter-spacing: 0.05em;
         }
 
         .matrix-row .detail {
+          font-size: 0.88rem;
           color: var(--text-main);
-          text-align: right;
           font-weight: 500;
         }
 
-        /* --- BRAND FOOTER --- */
+        /* --- FOOTER --- */
         .matrix-footer {
           background: #0f1411;
           color: #ffffff;
           padding: 80px 24px 40px 24px;
-          border-top: 1px solid rgba(255, 255, 255, 0.04);
-          text-align: left;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .footer-top-columns {
-          max-width: 1100px;
-          margin: 0 auto 56px auto;
-          display: grid;
-          grid-template-columns: 1fr 360px;
-          gap: 48px;
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          padding-bottom: 48px;
+          margin-bottom: 32px;
         }
 
         .footer-brand-side {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
+          max-width: 320px;
+          text-align: left;
         }
 
         .brand-logo-inline {
           display: flex;
           align-items: center;
           gap: 12px;
+          margin-bottom: 16px;
         }
 
         .brand-logo-inline .title {
@@ -3074,16 +2870,15 @@ export const LandingPage: React.FC = () => {
         }
 
         .footer-brand-side .desc {
+          font-size: 0.88rem;
           color: rgba(255, 255, 255, 0.6);
-          font-size: 0.9rem;
           line-height: 1.6;
-          max-width: 480px;
         }
 
         .footer-links-side {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
+          display: flex;
+          gap: 64px;
+          text-align: left;
         }
 
         .links-column {
@@ -3094,92 +2889,116 @@ export const LandingPage: React.FC = () => {
 
         .links-column h4 {
           font-family: 'Outfit', sans-serif;
-          font-size: 0.76rem;
+          font-size: 0.78rem;
           font-weight: 800;
+          color: rgba(255, 255, 255, 0.4);
+          letter-spacing: 0.05em;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: var(--gold);
           margin-bottom: 8px;
         }
 
         .links-column a {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 0.84rem;
+          font-size: 0.88rem;
+          color: rgba(255, 255, 255, 0.8);
           text-decoration: none;
-          transition: color 0.2s;
+          transition: color 0.25s;
         }
 
         .links-column a:hover {
-          color: #ffffff;
+          color: var(--accent);
         }
 
         .text-tag {
-          font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.6);
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 0.7rem;
+          font-family: monospace;
+          display: inline-block;
+          margin-bottom: 4px;
         }
 
         .footer-bottom-row {
-          max-width: 1100px;
+          max-width: 1200px;
           margin: 0 auto;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-          padding-top: 32px;
           text-align: center;
-        }
-
-        .footer-bottom-row p {
+          font-size: 0.74rem;
           color: rgba(255, 255, 255, 0.4);
-          font-size: 0.76rem;
         }
 
-        /* --- RESPONSIVE MEDIA QUERIES --- */
-        @media (max-width: 1024px) {
+        /* --- RESPONSIVENESS AND LAYOUT ALIGNMENT --- */
+        @media (max-width: 991px) {
+          .hero-main-title {
+            font-size: 2.8rem;
+          }
+          
           .matrix-console-board {
             grid-template-columns: 1fr;
           }
 
+          .interface-splits {
+            grid-template-columns: 1fr;
+            gap: 24px;
+          }
+
           .operational-flow-visual-hub {
             grid-template-columns: 1fr;
+            gap: 24px;
           }
 
           .roi-calculator-layout {
             grid-template-columns: 1fr;
+            gap: 32px;
+          }
+          
+          .printable-invoice-wrapper {
+            max-width: 480px;
+            margin: 0 auto;
           }
 
-          .footer-top-columns {
+          .hero-quick-features {
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+          }
+
+          .matrix-row {
             grid-template-columns: 1fr;
+            gap: 6px;
           }
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 576px) {
           .hero-main-title {
-            font-size: 2.4rem;
-          }
-
-          .hero-subtext {
-            font-size: 1rem;
-          }
-
-          .interface-splits {
-            grid-template-columns: 1fr;
+            font-size: 2.2rem;
           }
 
           .navbar-links {
             display: none;
           }
 
-          .reconcile-split-cards {
-            grid-template-columns: 1fr;
+          .hero-actions-row {
+            flex-direction: column;
             gap: 12px;
           }
-          
-          .reconcile-action-connector {
-            transform: rotate(90deg);
-            margin: 8px 0;
+
+          .btn-primary-action, .btn-secondary-action {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .invoice-paper {
+            padding: 20px;
+          }
+
+          .footer-top-columns {
+            flex-direction: column;
+            gap: 32px;
           }
         }
       `}</style>
     </div>
   );
 };
-
-export default LandingPage;

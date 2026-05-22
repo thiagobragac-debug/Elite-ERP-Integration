@@ -74,8 +74,7 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
           label: 'Evolução de GMD', sparkline: (() => {  const valStr = String(`${Number(gmdRes.data || 0.842).toFixed(3)} kg`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${Number(gmdRes.data || 0.842).toFixed(3)} kg`, change: '+4.2%', 
           trend: 'up' as const, 
           color: '#10b981', 
-          progress: 85,
-          sparkline: [{value: 30}, {value: 45}, {value: 85}]
+          progress: 85
         },
         { 
           id: 'caixa', 

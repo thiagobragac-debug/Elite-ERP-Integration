@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { fetchHistoricalQuotes } from '../../lib/marketQueries';
 import {
@@ -439,7 +439,7 @@ export const MarketAdvancedAnalytics: React.FC = () => {
                       color: 'hsl(var(--text-main))'
                     }}
                     labelStyle={{ color: 'hsl(var(--text-muted))', marginBottom: '8px', fontWeight: 'bold' }}
-                    formatter={(val: number, name: string) => {
+                    formatter={(val: any, name: any) => {
                       if (name === 'value') return [`${prefix}${val.toFixed(isRatio ? 3 : 2)}${suffix}`, isRatio ? 'Relação' : 'Cotação Real'];
                       if (name === 'mma7') return [`${prefix}${val.toFixed(isRatio ? 3 : 2)}${suffix}`, 'Média Móvel (7d)'];
                       if (name === 'mma30') return [`${prefix}${val.toFixed(isRatio ? 3 : 2)}${suffix}`, 'Média Móvel (30d)'];

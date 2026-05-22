@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   History,
   Briefcase,
-  Plus
+  Plus,
+  Bell
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';

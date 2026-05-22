@@ -87,7 +87,7 @@ export const pedidosVenda: ReportHandler = async (tenantId, fazendaId, page = 1,
 /**
  * Comercial: Base de Clientes
  */
-export const clientes: ReportHandler = async (tenantId, fazendaId) => {
+export const clientes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const mockData = {
     data: [
       { id: 'c1', nome: 'Cargill Agrícola 🏢', cnpj: '60.500.123/0001-90', contato: '(11) 3004-9000 📞', email: 'compras@cargill.com', cidade: 'Santos - SP ⚓', status: 'Ativo 🟢', ltv: 'R$ 450.000' },

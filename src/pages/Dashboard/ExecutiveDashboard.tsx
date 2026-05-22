@@ -192,11 +192,11 @@ export const ExecutiveDashboard: React.FC = () => {
           Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_pagar', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
           Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_receber', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
           
-          generateHistoricalSparkline('rebanho', activeTenantId, isGlobalMode ? null : activeFarmId, 365),
-          generateHistoricalSparkline('caixa', activeTenantId, isGlobalMode ? null : activeFarmId, 30),
-          generateHistoricalSparkline('gmd', activeTenantId, isGlobalMode ? null : activeFarmId, 30),
-          generateHistoricalSparkline('lotacao', activeTenantId, isGlobalMode ? null : activeFarmId, 30),
-          generateHistoricalSparkline('estoque', activeTenantId, isGlobalMode ? null : activeFarmId, 30)
+          generateHistoricalSparkline('rebanho', activeTenantId || '', isGlobalMode ? null : activeFarmId, 365),
+          generateHistoricalSparkline('caixa', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30),
+          generateHistoricalSparkline('gmd', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30),
+          generateHistoricalSparkline('lotacao', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30),
+          generateHistoricalSparkline('estoque', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30)
         ];
 
         const [
