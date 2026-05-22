@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Globe, 
   Activity, 
@@ -544,10 +544,68 @@ export const SaaSAdminPanel: React.FC = () => {
           .eq('id', selectedTenant.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data: newTenant, error } = await supabase
           .from('tenants')
-          .insert([tenantData]);
+          .insert([tenantData])
+          .select()
+          .single();
         if (error) throw error;
+        
+        if (newTenant) {
+          // Criar perfis padrão
+          const defaultProfiles = [
+            {
+              tenant_id: newTenant.id,
+              nome: 'Administrador',
+              descricao: 'Acesso total e irrestrito ao sistema.',
+              permissoes: ['all'],
+              ativo: true
+            },
+            {
+              tenant_id: newTenant.id,
+              nome: 'Gerente de Pecuária',
+              descricao: 'Gestão completa do rebanho, nutrição, sanidade e pesagens.',
+              permissoes: ['pecuaria', 'pecuaria_dashboard', 'pecuaria_animais', 'pecuaria_saude'],
+              ativo: true
+            },
+            {
+              tenant_id: newTenant.id,
+              nome: 'Analista Financeiro',
+              descricao: 'Acesso às operações de contas a pagar, receber e fluxo de caixa.',
+              permissoes: ['financeiro', 'financeiro_dashboard', 'financeiro_operacoes', 'financeiro_bancos'],
+              ativo: true
+            },
+            {
+              tenant_id: newTenant.id,
+              nome: 'Comprador',
+              descricao: 'Gestão de cotações, fornecedores e pedidos de compra.',
+              permissoes: ['compras', 'compras_pedidos', 'compras_fornecedores'],
+              ativo: true
+            },
+            {
+              tenant_id: newTenant.id,
+              nome: 'Gestor de Frota',
+              descricao: 'Controle de abastecimentos e manutenções de máquinas.',
+              permissoes: ['frota', 'frota_abastecimento', 'frota_manutencao'],
+              ativo: true
+            },
+            {
+              tenant_id: newTenant.id,
+              nome: 'Encarregado de Estoque',
+              descricao: 'Controle de movimentações e armazéns.',
+              permissoes: ['logistica', 'logistica_armazens'],
+              ativo: true
+            }
+          ];
+          
+          const { error: profileError } = await supabase
+            .from('perfis_usuario')
+            .insert(defaultProfiles);
+            
+          if (profileError) {
+            console.error('Erro ao criar perfis padrão:', profileError);
+          }
+        }
       }
       
       await fetchTenants();

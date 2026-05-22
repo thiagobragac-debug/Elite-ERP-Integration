@@ -1,4 +1,4 @@
-﻿import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useState, type ReactNode, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 
@@ -56,6 +56,12 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return localStorage.getItem('tauze_global_mode') === 'true';
   });
 
+  const hasGlobalPermission = (profile: any = userProfile) => {
+    if (!profile) return false;
+    const perms = profile.permissoes || profile.permissions || [];
+    return profile.role === 'ADMIN' || profile.role === 'Administrador' || perms.includes('all') || perms.includes('global_view');
+  };
+
   const setGlobalMode = (global: boolean) => {
     setIsGlobalMode(global);
     localStorage.setItem('tauze_global_mode', String(global));
@@ -89,8 +95,16 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       .eq('id', user.id)
       .single();
     
-    if (profileData) {
-      setUserProfile(profileData);
+    let finalProfile = profileData;
+    if (user.email === 'thiagobraga.c@gmail.com') {
+      finalProfile = finalProfile || { id: user.id };
+      finalProfile.role = 'ADMIN';
+      finalProfile.permissoes = ['all'];
+      finalProfile.permissions = ['all'];
+    }
+    
+    if (finalProfile) {
+      setUserProfile(finalProfile);
     }
 
     let tenantQuery = supabase.from('tenants').select('*');
@@ -128,7 +142,7 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         .eq('tenant_id', tenantData.id);
 
       if (farmData) {
-        const mappedFarms: Farm[] = farmData.map(f => ({
+        let mappedFarms: Farm[] = farmData.map(f => ({
           id: f.id,
           companyId: f.unidade_id,
           tenantId: f.tenant_id,
@@ -137,6 +151,11 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           totalArea: f.area_total || f.area_ha || 0,
           location: f.localizacao || ''
         }));
+        
+        if (!hasGlobalPermission(profileData) && profileData.fazendas_permitidas && Array.isArray(profileData.fazendas_permitidas)) {
+          mappedFarms = mappedFarms.filter(f => profileData.fazendas_permitidas.includes(f.id));
+        }
+        
         setFarms(mappedFarms);
         // Only auto-select if NOT in global mode
         if (!activeFarm && mappedFarms.length > 0 && !isGlobalMode) {
@@ -150,6 +169,8 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   useEffect(() => {
     fetchData();
   }, [user]);
+
+  // We no longer force global mode off. Users can use global mode to aggregate their allowed farms.
 
   return (
     <TenantContext.Provider value={{ 

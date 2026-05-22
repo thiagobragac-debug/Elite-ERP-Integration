@@ -41,7 +41,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
       hideSubmit={true}
       size="medium"
     >
-      <div style={{ gridColumn: 'span 2' }}>
+      <div style={{ gridColumn: 'span 4' }}>
         {loading ? (
           <div style={{ padding: '48px', textAlign: 'center' }}>
             <div style={{ width: '32px', height: '32px', border: '3.5px solid hsl(var(--border))', borderTopColor: 'hsl(var(--brand))', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 1s linear infinite' }}></div>

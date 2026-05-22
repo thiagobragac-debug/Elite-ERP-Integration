@@ -1,6 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Layout } from './components/Layout/Layout';
@@ -9,8 +9,8 @@ import { SaaSLayout } from './components/SaaSLayout/SaaSLayout';
 import { SuperAdminGuard } from './components/Guards/SuperAdminGuard';
 import { Login } from './pages/Auth/Login';
 import { MFAEnroll } from './pages/Auth/MFAEnroll';
-import { useAuth } from './contexts/AuthContext';
 import { MFAGuard } from './components/Guards/MFAGuard';
+import { PermissionGuard } from './components/Guards/PermissionGuard';
 import { CommandPalette } from './components/Navigation/CommandPalette';
 
 import PastureManagement from './pages/Pecuaria/PastureManagement';
@@ -157,62 +157,80 @@ function AppContent() {
           } />
 
           <Route path="/" element={isAuthenticated ? <MFAGuard><Layout /></MFAGuard> : <Navigate to="/login" replace />}>
-            <Route index element={<ExecutiveDashboard />} />
-            <Route path="admin/usuarios" element={<UserManagement />} />
-            <Route path="admin/perfil" element={<ProfilePage />} />
-            <Route path="admin/config" element={<CompanyManagement />} />
-            <Route path="admin/intelligence" element={<AdminIntelligenceHub />} />
-            <Route path="admin/configuracoes" element={<AdminSettings />} />
-            <Route path="admin/assinatura" element={<TenantBilling />} />
-            <Route path="admin/auditoria" element={<AuditLog />} />
+                        <Route index element={<ExecutiveDashboard />} />
             
-            <Route path="mercado/indicadores" element={<MarketIntelligenceDashboard />} />
-            <Route path="mercado/analise" element={<MarketAdvancedAnalytics />} />
-            <Route path="mercado/sazonalidade" element={<MarketSeasonality />} />
-            <Route path="mercado/b3" element={<MarketB3Calculator />} />
+            <Route path="admin" element={<PermissionGuard permission="admin"><Outlet/></PermissionGuard>}>
+              <Route path="usuarios" element={<UserManagement />} />
+              <Route path="perfil" element={<ProfilePage />} />
+              <Route path="config" element={<CompanyManagement />} />
+              <Route path="intelligence" element={<AdminIntelligenceHub />} />
+              <Route path="configuracoes" element={<AdminSettings />} />
+              <Route path="assinatura" element={<TenantBilling />} />
+              <Route path="auditoria" element={<AuditLog />} />
+            </Route>
             
-            <Route path="pecuaria/dashboard" element={<LivestockDashboard />} />
-            <Route path="pecuaria/animal" element={<AnimalManagement />} />
-            <Route path="pecuaria/animal/:id" element={<AnimalDetail />} />
-            <Route path="pecuaria/lote" element={<LotManagement />} />
-            <Route path="pecuaria/pasto" element={<PastureManagement />} />
-            <Route path="pecuaria/pesagem" element={<WeightManagement />} />
-            <Route path="pecuaria/reproducao" element={<ReproductionManagement />} />
-            <Route path="pecuaria/nutricao" element={<NutritionManagement />} />
-            <Route path="pecuaria/sanidade" element={<HealthManagement />} />
-            <Route path="pecuaria/confinamento" element={<ConfinementManagement />} />
+            <Route path="mercado" element={<PermissionGuard permission="mercado"><Outlet/></PermissionGuard>}>
+              <Route path="indicadores" element={<MarketIntelligenceDashboard />} />
+              <Route path="analise" element={<MarketAdvancedAnalytics />} />
+              <Route path="sazonalidade" element={<MarketSeasonality />} />
+              <Route path="b3" element={<MarketB3Calculator />} />
+            </Route>
+            
+            <Route path="pecuaria" element={<PermissionGuard permission="pecuaria"><Outlet/></PermissionGuard>}>
+              <Route path="dashboard" element={<PermissionGuard permission="pecuaria_dashboard"><LivestockDashboard /></PermissionGuard>} />
+              <Route path="animal" element={<PermissionGuard permission="pecuaria_animais"><AnimalManagement /></PermissionGuard>} />
+              <Route path="animal/:id" element={<PermissionGuard permission="pecuaria_animais"><AnimalDetail /></PermissionGuard>} />
+              <Route path="lote" element={<PermissionGuard permission="pecuaria_animais"><LotManagement /></PermissionGuard>} />
+              <Route path="pasto" element={<PermissionGuard permission="pecuaria_animais"><PastureManagement /></PermissionGuard>} />
+              <Route path="pesagem" element={<PermissionGuard permission="pecuaria_animais"><WeightManagement /></PermissionGuard>} />
+              <Route path="reproducao" element={<PermissionGuard permission="pecuaria_saude"><ReproductionManagement /></PermissionGuard>} />
+              <Route path="nutricao" element={<PermissionGuard permission="pecuaria_saude"><NutritionManagement /></PermissionGuard>} />
+              <Route path="sanidade" element={<PermissionGuard permission="pecuaria_saude"><HealthManagement /></PermissionGuard>} />
+              <Route path="confinamento" element={<PermissionGuard permission="pecuaria_animais"><ConfinementManagement /></PermissionGuard>} />
+            </Route>
 
-            <Route path="financeiro/intelligence" element={<FinanceIntelligenceHub />} />
-            <Route path="financeiro/contas" element={<BankAccounts />} />
-            <Route path="financeiro/fluxo" element={<CashFlow />} />
-            <Route path="financeiro/pagar" element={<AccountsPayable />} />
-            <Route path="financeiro/receber" element={<AccountsReceivable />} />
-            <Route path="financeiro/conciliacao" element={<BankReconciliation />} />
-            <Route path="financeiro/lcdpr" element={<LCDPRPage />} />
+            <Route path="financeiro" element={<PermissionGuard permission="financeiro"><Outlet/></PermissionGuard>}>
+              <Route path="intelligence" element={<PermissionGuard permission="financeiro_dashboard"><FinanceIntelligenceHub /></PermissionGuard>} />
+              <Route path="contas" element={<PermissionGuard permission="financeiro_bancos"><BankAccounts /></PermissionGuard>} />
+              <Route path="fluxo" element={<CashFlow />} />
+              <Route path="pagar" element={<PermissionGuard permission="financeiro_operacoes"><AccountsPayable /></PermissionGuard>} />
+              <Route path="receber" element={<PermissionGuard permission="financeiro_operacoes"><AccountsReceivable /></PermissionGuard>} />
+              <Route path="conciliacao" element={<PermissionGuard permission="financeiro_bancos"><BankReconciliation /></PermissionGuard>} />
+              <Route path="lcdpr" element={<LCDPRPage />} />
+            </Route>
             
-            <Route path="frota/dashboard" element={<FleetDashboard />} />
-            <Route path="frota/maquina" element={<FleetManagement />} />
-            <Route path="frota/abastecimento" element={<FuelManagement />} />
-            <Route path="frota/manutencao" element={<MaintenanceManagement />} />
+            <Route path="frota" element={<PermissionGuard permission="frota"><Outlet/></PermissionGuard>}>
+              <Route path="dashboard" element={<FleetDashboard />} />
+              <Route path="maquina" element={<FleetManagement />} />
+              <Route path="abastecimento" element={<PermissionGuard permission="frota_abastecimento"><FuelManagement /></PermissionGuard>} />
+              <Route path="manutencao" element={<PermissionGuard permission="frota_manutencao"><MaintenanceManagement /></PermissionGuard>} />
+            </Route>
 
-            <Route path="estoque/dashboard" element={<InventoryDashboard />} />
-            <Route path="estoque/insumo" element={<InventoryManagement />} />
-            <Route path="estoque/deposito" element={<WarehouseManagement />} />
-            <Route path="estoque/movimentacao" element={<MovementManagement />} />
-            <Route path="estoque/inventario" element={<AuditManagement />} />
+            <Route path="estoque" element={<PermissionGuard permission="logistica"><Outlet/></PermissionGuard>}>
+              <Route path="dashboard" element={<InventoryDashboard />} />
+              <Route path="insumo" element={<PermissionGuard permission="logistica_armazens"><InventoryManagement /></PermissionGuard>} />
+              <Route path="deposito" element={<PermissionGuard permission="logistica_armazens"><WarehouseManagement /></PermissionGuard>} />
+              <Route path="movimentacao" element={<MovementManagement />} />
+              <Route path="inventario" element={<AuditManagement />} />
+            </Route>
             
-            <Route path="compras/dashboard" element={<PurchasingDashboard />} />
-            <Route path="compras/solicitacao" element={<PurchaseRequest />} />
-            <Route path="compras/cotacao" element={<QuotationMap />} />
-            <Route path="compras/pedido" element={<PurchaseOrder />} />
-            <Route path="compras/nota" element={<EntryInvoice />} />
-            <Route path="compras/parceiroes" element={<SupplierManagement />} />
+            <Route path="compras" element={<PermissionGuard permission="compras"><Outlet/></PermissionGuard>}>
+              <Route path="dashboard" element={<PurchasingDashboard />} />
+              <Route path="solicitacao" element={<PermissionGuard permission="compras_pedidos"><PurchaseRequest /></PermissionGuard>} />
+              <Route path="cotacao" element={<PermissionGuard permission="compras_pedidos"><QuotationMap /></PermissionGuard>} />
+              <Route path="pedido" element={<PermissionGuard permission="compras_pedidos"><PurchaseOrder /></PermissionGuard>} />
+              <Route path="nota" element={<EntryInvoice />} />
+              <Route path="parceiroes" element={<PermissionGuard permission="compras_fornecedores"><SupplierManagement /></PermissionGuard>} />
+            </Route>
             
-            <Route path="vendas/dashboard" element={<SalesDashboard />} />
-            <Route path="vendas/parceiros" element={<ClientManagement />} />
-            <Route path="vendas/pedido" element={<SalesOrders />} />
-            <Route path="vendas/contrato" element={<Contracts />} />
-            <Route path="vendas/notas" element={<Invoices />} />
+            <Route path="vendas" element={<PermissionGuard permission="comercial"><Outlet/></PermissionGuard>}>
+              <Route path="dashboard" element={<SalesDashboard />} />
+              <Route path="parceiros" element={<PermissionGuard permission="comercial_clientes"><ClientManagement /></PermissionGuard>} />
+              <Route path="pedido" element={<PermissionGuard permission="comercial_pedidos"><SalesOrders /></PermissionGuard>} />
+              <Route path="contrato" element={<PermissionGuard permission="comercial_pedidos"><Contracts /></PermissionGuard>} />
+              <Route path="notas" element={<Invoices />} />
+            </Route>
+            
             <Route path="relatorios" element={<Reports />} />
             
             <Route path="*" element={<Navigate to="/" replace />} />

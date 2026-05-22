@@ -24,14 +24,15 @@ interface UserFormProps {
 }
 
 export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, farms } = useTenant();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     profile_id: '',
     status: 'active',
-    company_id: ''
+    company_id: '',
+    fazendas_permitidas: [] as string[]
   });
   const [profiles, setProfiles] = useState<any[]>([]);
 
@@ -43,7 +44,8 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
         phone: initialData.phone || '',
         profile_id: initialData.perfil_id || '',
         status: initialData.status || 'active',
-        company_id: initialData.unidade_id || ''
+        company_id: initialData.unidade_id || '',
+        fazendas_permitidas: initialData.fazendas_permitidas || []
       });
     } else {
       setFormData({
@@ -52,7 +54,8 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
         phone: '',
         profile_id: '',
         status: 'active',
-        company_id: ''
+        company_id: '',
+        fazendas_permitidas: []
       });
     }
   }, [initialData, isOpen]);
@@ -160,6 +163,32 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
           onChange={(e) => setFormData({...formData, company_id: e.target.value})}
           required
         />
+      </div>
+
+      <div className="form-group full-width">
+        <label><Building2 size={14} /> Fazendas Permitidas (Acesso Restrito)</label>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '10px', marginTop: '8px' }}>
+          {farms.map(farm => (
+            <label key={farm.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', background: 'hsl(var(--bg-main))', padding: '10px', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
+              <input 
+                type="checkbox" 
+                checked={formData.fazendas_permitidas.includes(farm.id)}
+                onChange={(e) => {
+                  const newPermitidas = e.target.checked 
+                    ? [...formData.fazendas_permitidas, farm.id]
+                    : formData.fazendas_permitidas.filter(id => id !== farm.id);
+                  setFormData({...formData, fazendas_permitidas: newPermitidas});
+                }}
+                style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))' }}
+              />
+              {farm.name}
+            </label>
+          ))}
+          {farms.length === 0 && <span style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Nenhuma fazenda cadastrada.</span>}
+        </div>
+        <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '6px' }}>
+          * Deixe desmarcado se o usuário tiver a permissão "Visão Global" no perfil (que já garante acesso total).
+        </p>
       </div>
 
       <div className="form-group full-width">

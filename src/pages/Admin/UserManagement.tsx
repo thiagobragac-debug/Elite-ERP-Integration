@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -93,14 +93,39 @@ export const UserManagement: React.FC = () => {
 
   // --- MÃ“DULO DE GOVERNANÇA & SEGURANÇA (PREMIUM EVOLUTION) ---
   const AVAILABLE_PERMISSIONS = [
-    { id: 'pecuaria', label: 'Gestão de Pecuária' },
-    { id: 'financeiro', label: 'Financeiro (Completo)' },
-    { id: 'financeiro_view', label: 'Financeiro (Somente Visualização)' },
-    { id: 'estoque', label: 'Controle de Estoque' },
-    { id: 'maquinas', label: 'Gestão de Frota' },
-    { id: 'compras', label: 'Módulo Compras' },
-    { id: 'vendas', label: 'Módulo Vendas' },
-    { id: 'admin', label: 'Configurações Administrativas' }
+    { id: 'global_view', label: 'Visão Global Multi-Fazendas' },
+    { id: 'panorama', label: 'Executive Dashboard (Panorama)' },
+    
+    { id: 'pecuaria', label: 'Pecuária: Acesso Total' },
+    { id: 'pecuaria_dashboard', label: 'Pecuária: Dashboards' },
+    { id: 'pecuaria_animais', label: 'Pecuária: Animais e Lotes' },
+    { id: 'pecuaria_saude', label: 'Pecuária: Sanidade e Nutrição' },
+    
+    { id: 'financeiro', label: 'Financeiro: Acesso Total' },
+    { id: 'financeiro_dashboard', label: 'Financeiro: Inteligência Hub' },
+    { id: 'financeiro_operacoes', label: 'Financeiro: Contas a Pagar/Receber' },
+    { id: 'financeiro_bancos', label: 'Financeiro: Conciliação e Bancos' },
+    
+    { id: 'comercial', label: 'Comercial: Acesso Total' },
+    { id: 'comercial_pedidos', label: 'Comercial: Pedidos e Contratos' },
+    { id: 'comercial_clientes', label: 'Comercial: Gestão de Clientes' },
+
+    { id: 'compras', label: 'Compras: Acesso Total' },
+    { id: 'compras_pedidos', label: 'Compras: Requisições e Pedidos' },
+    { id: 'compras_fornecedores', label: 'Compras: Gestão de Fornecedores' },
+    
+    { id: 'logistica', label: 'Logística & Estoque: Acesso Total' },
+    { id: 'logistica_armazens', label: 'Estoque: Gestão de Armazéns' },
+    
+    { id: 'frota', label: 'Frota: Acesso Total' },
+    { id: 'frota_abastecimento', label: 'Frota: Abastecimento' },
+    { id: 'frota_manutencao', label: 'Frota: Manutenção' },
+
+    { id: 'mercado', label: 'Inteligência de Mercado: Acesso Total' },
+    
+    { id: 'ia', label: 'Hub de Inteligência IA' },
+    
+    { id: 'admin', label: 'Governança: Acesso Administrativo' }
   ];
 
   const [liveLogs, setLiveLogs] = useState<any[]>([]);
@@ -433,7 +458,8 @@ export const UserManagement: React.FC = () => {
       tenant_id: activeFarm.tenantId,
       perfil_id: data.profile_id,
       status: data.status || 'active',
-      role: 'USER'
+      role: 'USER',
+      fazendas_permitidas: data.fazendas_permitidas || []
     };
 
     if (selectedUser) {

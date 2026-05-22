@@ -1,4 +1,4 @@
-﻿import { useTenant } from '../contexts/TenantContext';
+import { useTenant } from '../contexts/TenantContext';
 import { isValidUUID } from '../utils/validation';
 
 /**
@@ -12,7 +12,13 @@ import { isValidUUID } from '../utils/validation';
  *   const query = applyFarmFilter(supabase.from('animais').select('*'));
  */
 export const useFarmFilter = () => {
-  const { isGlobalMode, activeFarmId, activeTenantId, activeFarm, farms } = useTenant();
+  const { isGlobalMode, activeFarmId, activeTenantId, activeFarm, farms, userProfile } = useTenant();
+
+  const hasGlobalPermission = () => {
+    if (!userProfile) return false;
+    const perms = userProfile.permissoes || userProfile.permissions || [];
+    return userProfile.role === 'ADMIN' || userProfile.role === 'Administrador' || perms.includes('all') || perms.includes('global_view');
+  };
 
   /**
    * For tables that have fazenda_id:
@@ -36,7 +42,14 @@ export const useFarmFilter = () => {
         console.error('[useFarmFilter] Invalid activeTenantId format', { activeTenantId });
         return query.is('tenant_id', null);
       }
-      return query.eq('tenant_id', activeTenantId);
+      
+      if (hasGlobalPermission()) {
+        return query.eq('tenant_id', activeTenantId);
+      } else {
+        const farmIds = farms.map(f => f.id);
+        if (farmIds.length === 0) return query.is('fazenda_id', null);
+        return query.in('fazenda_id', farmIds);
+      }
     }
 
     if (!activeFarmId) return query.is('fazenda_id', null); // Silent during load
