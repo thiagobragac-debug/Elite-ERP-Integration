@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Trees, 
   Plus, 
@@ -26,6 +26,8 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { PastureFilterModal } from './components/PastureFilterModal';
 import { PastureForm } from '../../components/Forms/PastureForm';
+import { PastureManejoForm } from '../../components/Forms/PastureManejoForm';
+import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
 
 const PastureManagement: React.FC = () => {
@@ -47,6 +49,104 @@ const PastureManagement: React.FC = () => {
     maxUA: 100,
     needsFertilization: false
   });
+
+  const [isManejoOpen, setIsManejoOpen] = useState(false);
+  const [manejoPastureId, setManejoPastureId] = useState<string | undefined>(undefined);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyItems, setHistoryItems] = useState<any[]>([]);
+  const [selectedPastureName, setSelectedPastureName] = useState('');
+
+  const handleOpenManejo = (pasture: any) => {
+    setManejoPastureId(pasture.id);
+    setIsManejoOpen(true);
+  };
+
+  const handleOpenHistory = async (pasture: any) => {
+    setSelectedPastureName(pasture.nome);
+    setIsHistoryOpen(true);
+    setHistoryLoading(true);
+    try {
+      const { data: pastoLogs, error: err1 } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('entity', 'pastos')
+        .eq('entity_id', pasture.id);
+
+      const { data: loteLogs, error: err2 } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .eq('entity', 'lotes');
+
+      if (err1) throw err1;
+      if (err2) throw err2;
+
+      const filteredLoteLogs = (loteLogs || []).filter(item => 
+        item.new_data?.pasto_id === pasture.id || 
+        item.old_data?.pasto_id === pasture.id
+      );
+
+      const allLogs = [...(pastoLogs || []), ...filteredLoteLogs].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      const formattedItems = allLogs.map((item: any) => {
+        let title = 'Evento no Pasto';
+        let subtitle = item.description || '';
+        let value = 'INFO';
+        let status: 'success' | 'warning' | 'info' = 'info';
+
+        if (item.action === 'INSERT' && item.entity === 'pastos') {
+          title = 'Pasto Cadastrado';
+          subtitle = `Área inicial: ${item.new_data?.area || 0} ha | Capim: ${item.new_data?.tipo_capim || 'N/A'}`;
+          value = 'CADASTRADO';
+          status = 'success';
+        } else if (item.action === 'MANEJO' || item.description?.includes('Manejo')) {
+          title = 'Manejo Registrado';
+          subtitle = item.description || '';
+          value = 'MANEJO';
+          status = 'info';
+        } else if (item.action === 'UPDATE' && item.entity === 'pastos') {
+          const oldStatus = item.old_data?.status;
+          const newStatus = item.new_data?.status;
+          if (oldStatus !== newStatus && newStatus) {
+            title = 'Mudança de Status';
+            subtitle = `Pasto alterado para status: ${newStatus === 'resting' ? 'Descanso' : newStatus === 'grazing' ? 'Pastejo' : 'Degradado'}`;
+            value = newStatus === 'resting' ? 'DESCANSO' : newStatus === 'grazing' ? 'PASTEJO' : 'DEGRADADO';
+            status = newStatus === 'resting' ? 'info' : newStatus === 'grazing' ? 'success' : 'warning';
+          } else {
+            title = 'Dados Atualizados';
+            subtitle = 'Alterações nas configurações ou limites físicos';
+            value = 'EDITADO';
+            status = 'info';
+          }
+        } else if (item.entity === 'lotes') {
+          const isEntrance = item.new_data?.pasto_id === pasture.id;
+          title = isEntrance ? 'Entrada de Lote' : 'Saída de Lote';
+          subtitle = isEntrance 
+            ? `Lote "${item.new_data?.nome}" transferido para este pasto`
+            : `Lote "${item.old_data?.nome}" transferido para outro pasto`;
+          value = isEntrance ? 'ENTRADA' : 'SAÍDA';
+          status = isEntrance ? 'success' : 'warning';
+        }
+
+        return {
+          id: item.id,
+          date: item.created_at,
+          title,
+          subtitle,
+          value,
+          status
+        };
+      });
+
+      setHistoryItems(formattedItems);
+    } catch (err) {
+      console.error('Error fetching pasture history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   const handleOpenCreate = () => {
     setSelectedPasture(null);
@@ -497,8 +597,8 @@ const PastureManagement: React.FC = () => {
             itemsPerPage={pageSize}
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" title="Mapa"><Maximize2 size={18} /></button>
-                <button className="action-dot success" title="Histórico"><History size={18} /></button>
+                <button className="action-dot info" title="Manejo / Rotação" onClick={() => handleOpenManejo(item)}><Maximize2 size={18} /></button>
+                <button className="action-dot success" title="Histórico" onClick={() => handleOpenHistory(item)}><History size={18} /></button>
                 <button className="action-dot edit" title="Editar" onClick={() => handleOpenEdit(item)}><Edit3 size={18} /></button>
                 <button className="action-dot delete" title="Excluir" onClick={() => handleDelete(item.id)}><Trash2 size={18} /></button>
               </div>
@@ -530,7 +630,7 @@ const PastureManagement: React.FC = () => {
                 badgeText = 'ATENÇÃO';
                 borderClass = 'warning-badge';
               }
-
+ 
               return (
                 <div 
                   key={p.id} 
@@ -541,8 +641,9 @@ const PastureManagement: React.FC = () => {
                       <Trees size={28} />
                     </div>
                     <div className="card-bottom-actions">
+                      <button className="action-icon-btn info" title="Manejo / Rotação" onClick={() => handleOpenManejo(p)}><Maximize2 size={14} /></button>
+                      <button className="action-icon-btn success" title="Histórico" onClick={() => handleOpenHistory(p)}><History size={14} /></button>
                       <button className="action-icon-btn" title="Editar" onClick={() => handleOpenEdit(p)}><Edit3 size={14} /></button>
-                      <button className="action-icon-btn" title="Vazio Sanitário" onClick={() => handleVazioSanitario(p)}><RefreshCw size={14} /></button>
                       <button className="action-icon-btn delete" title="Excluir" onClick={() => handleDelete(p.id)}><Trash2 size={14} /></button>
                     </div>
                   </div>
@@ -612,6 +713,22 @@ const PastureManagement: React.FC = () => {
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleSubmit}
         initialData={selectedPasture}
+      />
+
+      <PastureManejoForm
+        isOpen={isManejoOpen}
+        onClose={() => setIsManejoOpen(false)}
+        onSubmit={refresh}
+        initialPastureId={manejoPastureId}
+      />
+
+      <HistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        title={`Histórico - ${selectedPastureName}`}
+        subtitle="Linha do tempo de ocupação, manejos e manutenções"
+        items={historyItems}
+        loading={historyLoading}
       />
       <style>{`
         .pasture-cards-grid {
@@ -811,7 +928,7 @@ const PastureManagement: React.FC = () => {
 
         .card-bottom-actions {
           display: flex;
-          flex-wrap: nowrap;
+          flex-wrap: wrap;
           justify-content: center;
           gap: 6px;
           width: 100%;

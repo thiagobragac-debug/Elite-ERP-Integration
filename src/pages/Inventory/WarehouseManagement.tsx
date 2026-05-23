@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -114,7 +114,7 @@ export const WarehouseManagement: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canCreate && !selectedWarehouse) {
-      alert('âš ï¸ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.');
+      alert('⚠️ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.');
       return;
     }
     const formData = new FormData(e.currentTarget as HTMLFormElement);
@@ -314,7 +314,7 @@ export const WarehouseManagement: React.FC = () => {
             setIsModalOpen(true);
           }}>
             <Plus size={18} />
-            NOVO DEPÃ“SITO
+            NOVO DEPÓSITO
           </button>
         </div>
       </header>
@@ -483,7 +483,7 @@ export const WarehouseManagement: React.FC = () => {
                       <span className={`status-pill mini ${w.status === 'ativo' ? 'active' : ''}`}>
                         {w.status === 'ativo' ? 'ATIVO' : 'INATIVO'}
                       </span>
-                      <div className="card-type-meta">{w.tipo || 'DEPÃ“SITO GERAL'}</div>
+                      <div className="card-type-meta">{w.tipo || 'DEPÓSITO GERAL'}</div>
                     </div>
                   </div>
 
@@ -501,7 +501,7 @@ export const WarehouseManagement: React.FC = () => {
                       />
                     </div>
                     <div className="occ-footer">
-                      {w.saldo_atual} / {w.capacidade_maxima || 'âˆž'} {w.unidade_capacidade || 'un'}
+                      <span className="balance-text">{w.saldo_atual} / {w.capacidade_maxima || '∞'} {w.unidade_capacidade || 'un'}</span>
                     </div>
                   </div>
 
@@ -525,7 +525,7 @@ export const WarehouseManagement: React.FC = () => {
               setIsModalOpen(true);
             }}>
               <Plus size={32} />
-              <span>NOVO DEPÃ“SITO</span>
+              <span>NOVO DEPÓSITO</span>
             </button>
           </div>
         )}
@@ -815,7 +815,7 @@ export const WarehouseManagement: React.FC = () => {
       >
         <div className="tauze-field-group">
           <label className="tauze-label">
-            <Plus size={14} /> NOME DO DEPÃ“SITO
+            <Plus size={14} /> NOME DO DEPÓSITO
           </label>
           <input name="nome" type="text" className="tauze-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
         </div>

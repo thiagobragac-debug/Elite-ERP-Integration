@@ -234,7 +234,7 @@ export const UserManagement: React.FC = () => {
   const { isGlobalMode, activeTenantId, activeFarmId } = useFarmFilter();
 
   useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+    const isReady = !!activeTenantId;
     if (isReady) {
       fetchData();
       if (activeTab === 'seguranca') {
@@ -243,7 +243,7 @@ export const UserManagement: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [activeTab, activeFarm, activeFarmId, isGlobalMode, activeTenantId]);
+  }, [activeTab, activeTenantId]);
 
 
 
@@ -307,7 +307,7 @@ export const UserManagement: React.FC = () => {
         { data: activeLogs },
         { data: tenantData }
       ] = await Promise.all([
-        supabase.from('profiles_view').select('*, perfis_usuario(nome)').eq('tenant_id', activeTenantId),
+        supabase.from('profiles_view').select('*').eq('tenant_id', activeTenantId),
         supabase.from('perfis_usuario').select('*').limit(500).eq('tenant_id', activeTenantId),
         supabase.from('audit_logs').select('user_email').eq('tenant_id', activeTenantId).gte('created_at', new Date().toISOString().split('T')[0]),
         supabase.from('tenants').select('settings').eq('id', activeTenantId).maybeSingle()
@@ -338,11 +338,10 @@ export const UserManagement: React.FC = () => {
       }));
 
       const processedUsers = (usersData || []).map((u: any) => {
-        const perfil = Array.isArray(u.perfis_usuario) ? u.perfis_usuario[0] : u.perfis_usuario;
         return {
           ...u,
-          name: u.full_name,
-          profile: perfil?.nome,
+          name: u.name || u.full_name,
+          profile: u.profile_name,
           farm: u.unidade_nome,
           status: u.status || 'active', // Default to active since status is not stored in DB
           memberSince: u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '---'
@@ -553,9 +552,9 @@ export const UserManagement: React.FC = () => {
   const handleOpenEditProfile = (profile: any) => {
     setSelectedProfile({
       id: profile.id,
-      name: profile.name,
-      description: profile.description,
-      permissions: profile.permissions
+      nome: profile.nome || profile.name,
+      descricao: profile.descricao || profile.description,
+      permissoes: profile.permissoes || profile.permissions || []
     });
     setIsProfileModalOpen(true);
   };

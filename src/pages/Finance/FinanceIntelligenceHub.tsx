@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Zap, 
   TrendingUp, 
@@ -308,6 +308,24 @@ export const FinanceIntelligenceHub: React.FC = () => {
               </div>
             </div>
           </div>
+
+          <div className="quick-actions-hub glass-card">
+            <h3>Ações Estratégicas</h3>
+            <div className="action-btns">
+              <button className="hub-action-btn">
+                <Layers size={18} />
+                <span>Conciliar Bancos</span>
+              </button>
+              <button className="hub-action-btn">
+                <Calendar size={18} />
+                <span>Simular Cenários</span>
+              </button>
+              <button className="hub-action-btn">
+                <BarChart3 size={18} />
+                <span>Relatório Gerencial</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Lado Direito: Health Score e Radar */}
@@ -353,13 +371,13 @@ export const FinanceIntelligenceHub: React.FC = () => {
                 Analisando dimensões de risco...
               </div>
             ) : (
-              <div style={{ width: '100%', height: '220px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '100%', height: '220px', position: 'relative' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-                    <PolarGrid stroke="rgba(148, 163, 184, 0.15)" />
+                    <PolarGrid stroke="hsl(var(--border) / 0.4)" />
                     <PolarAngleAxis 
                       dataKey="subject" 
-                      tick={{ fill: 'var(--text-muted)', fontSize: 9, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}
+                      tick={{ fill: 'hsl(var(--text-muted))', fontSize: 9, fontWeight: 700, fontFamily: 'Outfit, sans-serif' }}
                     />
                     <PolarRadiusAxis 
                       angle={30} 
@@ -378,8 +396,9 @@ export const FinanceIntelligenceHub: React.FC = () => {
                       formatter={(value: any) => [`${value} / 100`, 'Pontuação']}
                       contentStyle={{
                         borderRadius: '12px',
-                        border: '1px solid var(--border)',
-                        background: 'rgba(255, 255, 255, 0.95)',
+                        border: '1px solid hsl(var(--border))',
+                        background: 'hsl(var(--bg-card) / 0.95)',
+                        color: 'hsl(var(--text-main))',
                         boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
                         fontSize: '11px',
                         fontFamily: 'Outfit, sans-serif',
@@ -406,24 +425,6 @@ export const FinanceIntelligenceHub: React.FC = () => {
               </div>
             </div>
           </div>
-
-          <div className="quick-actions-hub glass-card">
-            <h3>Ações Estratégicas</h3>
-            <div className="action-btns">
-              <button className="hub-action-btn">
-                <Layers size={18} />
-                <span>Conciliar Bancos</span>
-              </button>
-              <button className="hub-action-btn">
-                <Calendar size={18} />
-                <span>Simular Cenários</span>
-              </button>
-              <button className="hub-action-btn">
-                <BarChart3 size={18} />
-                <span>Relatório Gerencial</span>
-              </button>
-            </div>
-          </div>
         </aside>
       </div>
 
@@ -436,9 +437,9 @@ export const FinanceIntelligenceHub: React.FC = () => {
         .hub-card { 
           padding: 24px; 
           min-height: 380px; 
-          background: white; 
+          background: hsl(var(--bg-card)); 
           border-radius: 1.25rem; 
-          border: 1px solid var(--border); 
+          border: 1px solid hsl(var(--border)); 
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
           display: flex;
           flex-direction: column;
@@ -446,8 +447,8 @@ export const FinanceIntelligenceHub: React.FC = () => {
         
         .card-header-hub { margin-bottom: 24px; display: flex; flex-direction: column; gap: 4px; }
         .h-left { display: flex; align-items: center; gap: 12px; }
-        .h-left h3 { font-size: 1rem; font-weight: 800; color: var(--text-main); margin: 0; letter-spacing: -0.01em; }
-        .card-header-hub .subtitle { font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .h-left h3 { font-size: 1rem; font-weight: 800; color: hsl(var(--text-main)); margin: 0; letter-spacing: -0.01em; }
+        .card-header-hub .subtitle { font-size: 0.75rem; color: hsl(var(--text-muted)); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
         .chart-composition-wrapper {
           display: grid;
@@ -472,59 +473,64 @@ export const FinanceIntelligenceHub: React.FC = () => {
         .insights-list { display: flex; flex-direction: column; gap: 12px; }
         .insight-item { 
           display: flex; align-items: center; gap: 16px; padding: 14px; 
-          background: var(--bg-main); border-radius: 1rem; 
+          background: hsl(var(--bg-main)); border-radius: 1rem; 
           border: 1px solid transparent; cursor: pointer; transition: 0.2s;
         }
-        .insight-item:hover { border-color: var(--border); background: white; transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .insight-icon-box { width: 36px; height: 36px; border-radius: 0.75rem; background: white; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .insight-item:hover { border-color: hsl(var(--border)); background: hsl(var(--bg-card)); transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .insight-icon-box { width: 36px; height: 36px; border-radius: 0.75rem; background: hsl(var(--bg-card)); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .insight-content { flex: 1; display: flex; flex-direction: column; gap: 2px; }
         .insight-header { display: flex; align-items: center; gap: 8px; }
-        .insight-header h4 { font-size: 0.875rem; font-weight: 800; margin: 0; color: var(--text-main); }
-        .impact-badge { font-size: 0.625rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: white; color: var(--text-muted); border: 1px solid var(--border); }
-        .insight-content p { font-size: 0.75rem; color: var(--text-muted); margin: 0; line-height: 1.5; font-weight: 500; }
+        .insight-header h4 { font-size: 0.875rem; font-weight: 800; margin: 0; color: hsl(var(--text-main)); }
+        .impact-badge { font-size: 0.625rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; background: hsl(var(--bg-card)); color: hsl(var(--text-muted)); border: 1px solid hsl(var(--border)); }
+        .insight-content p { font-size: 0.75rem; color: hsl(var(--text-muted)); margin: 0; line-height: 1.5; font-weight: 500; }
 
         .intelligence-aside { display: flex; flex-direction: column; gap: 24px; }
         .health-score-card { 
-          padding: 32px; 
+          padding: 20px; 
           display: flex; 
           flex-direction: column; 
           align-items: center; 
-          gap: 24px; 
+          gap: 16px; 
           text-align: center;
-          background: white; 
+          background: hsl(var(--bg-card)); 
           border-radius: 1.25rem; 
-          border: 1px solid var(--border); 
+          border: 1px solid hsl(var(--border)); 
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
         }
-        .score-viz { position: relative; width: 160px; height: 160px; }
+        .score-viz { position: relative; width: 120px; height: 120px; }
         .score-viz svg { transform: rotate(-90deg); width: 100%; height: 100%; }
-        .score-viz .track { fill: none; stroke: var(--bg-main); stroke-width: 10; }
-        .score-viz .fill { fill: none; stroke: var(--brand); stroke-width: 10; stroke-linecap: round; }
+        .score-viz .track { fill: none; stroke: hsl(var(--border)); stroke-width: 10; }
+        .score-viz .fill { fill: none; stroke: hsl(var(--brand)); stroke-width: 10; stroke-linecap: round; }
         .score-value { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .score-value .num { font-size: 40px; font-weight: 900; color: var(--text-main); letter-spacing: -0.05em; line-height: 1; }
-        .score-value .label { font-size: 0.625rem; font-weight: 800; color: var(--text-muted); letter-spacing: 0.1em; }
+        .score-value .num { font-size: 32px; font-weight: 900; color: hsl(var(--text-main)); letter-spacing: -0.05em; line-height: 1; }
+        .score-value .label { font-size: 0.625rem; font-weight: 800; color: hsl(var(--text-muted)); letter-spacing: 0.1em; }
         
-        .score-footer { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+        .score-footer { display: flex; flex-direction: column; align-items: center; gap: 8px; }
         .status-badge { font-size: 0.75rem; font-weight: 800; color: white; padding: 4px 12px; border-radius: 100px; }
-        .score-footer p { font-size: 0.8125rem; color: var(--text-muted); line-height: 1.6; font-weight: 500; }
+        .score-footer p { font-size: 0.75rem; color: hsl(var(--text-muted)); line-height: 1.6; font-weight: 500; }
 
         .quick-actions-hub {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 1.25rem;
-          border: 1px solid var(--border);
+          border: 1px solid hsl(var(--border));
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
-          padding: 24px;
+          padding: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
         }
-        .quick-actions-hub h3 { font-size: 0.875rem; font-weight: 800; color: var(--text-main); margin-bottom: 20px; letter-spacing: -0.01em; }
-        .action-btns { display: flex; flex-direction: column; gap: 8px; }
+        .quick-actions-hub h3 { font-size: 0.9rem; font-weight: 800; color: hsl(var(--text-main)); margin: 0; letter-spacing: -0.01em; white-space: nowrap; }
+        .action-btns { display: flex; flex-direction: row; gap: 12px; flex: 1; justify-content: flex-end; }
         .hub-action-btn { 
-          display: flex; align-items: center; gap: 12px; padding: 12px 16px; 
-          background: var(--bg-main); border: 1px solid transparent; 
+          display: flex; align-items: center; gap: 8px; padding: 10px 16px; 
+          background: hsl(var(--bg-main)); border: 1px solid transparent; 
           border-radius: 0.75rem; font-size: 0.8125rem; font-weight: 700; 
-          color: var(--text-main); cursor: pointer; transition: 0.2s;
+          color: hsl(var(--text-main)); cursor: pointer; transition: 0.2s;
+          white-space: nowrap;
         }
-        .hub-action-btn:hover { background: white; border-color: var(--border); color: var(--brand); transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .hub-action-btn svg { color: var(--brand); }
+        .hub-action-btn:hover { background: hsl(var(--bg-card)); border-color: hsl(var(--border)); color: hsl(var(--brand)); transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .hub-action-btn svg { color: hsl(var(--brand)); }
 
         @media (max-width: 1024px) {
           .intelligence-grid {
@@ -535,6 +541,19 @@ export const FinanceIntelligenceHub: React.FC = () => {
           }
           .chart-composition-wrapper {
             grid-template-columns: 1fr;
+          }
+          .quick-actions-hub {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+          }
+          .quick-actions-hub h3 {
+            margin-bottom: 8px;
+            text-align: center;
+          }
+          .action-btns {
+            flex-direction: column;
+            width: 100%;
           }
         }
       `}</style>

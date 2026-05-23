@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { AnimalForm } from '../../components/Forms/AnimalForm';
 import { AnimalFilterModal } from './components/AnimalFilterModal';
+import { QuickManejoModal } from './components/QuickManejoModal';
 import { supabase } from '../../lib/supabase';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
@@ -36,6 +37,8 @@ export const AnimalManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null);
+  const [isManejoModalOpen, setIsManejoModalOpen] = useState(false);
+  const [manejoAnimal, setManejoAnimal] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'TODOS' | 'ATIVO' | 'ABATIDO'>('TODOS');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -419,7 +422,7 @@ export const AnimalManagement: React.FC = () => {
                 <button className="action-dot info" onClick={() => navigate(`/pecuaria/animal/${item.id}`)} title="Dossiê">
                   <Eye size={18} />
                 </button>
-                <button className="action-dot success" title="Manejos">
+                <button className="action-dot success" title="Manejos" onClick={() => { setManejoAnimal(item); setIsManejoModalOpen(true); }}>
                   <Activity size={18} />
                 </button>
                 <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
@@ -479,6 +482,7 @@ export const AnimalManagement: React.FC = () => {
                     </div>
                     <div className="card-bottom-actions">
                       <button className="action-icon-btn info" onClick={() => navigate(`/pecuaria/animal/${a.id}`)} title="Dossiê"><Eye size={14} /></button>
+                      <button className="action-icon-btn success" onClick={() => { setManejoAnimal(a); setIsManejoModalOpen(true); }} title="Manejos" style={{ color: '#10b981' }}><Activity size={14} /></button>
                       <button className="action-icon-btn edit" onClick={() => handleOpenEdit(a)} title="Editar"><Edit3 size={14} /></button>
                       <button className="action-icon-btn delete" onClick={() => handleDelete(a.id)} title="Excluir"><Trash2 size={14} /></button>
                     </div>
@@ -569,6 +573,16 @@ export const AnimalManagement: React.FC = () => {
         onSubmit={handleSubmit}
         initialData={selectedAnimal}
         loading={isSubmitting}
+      />
+
+      <QuickManejoModal
+        isOpen={isManejoModalOpen}
+        onClose={() => { setIsManejoModalOpen(false); setManejoAnimal(null); }}
+        animal={manejoAnimal}
+        activeTenantId={activeTenantId || ''}
+        activeFarmId={activeFarmId || ''}
+        insertPayload={insertPayload}
+        onSuccess={() => { refresh(); }}
       />
       <style>{`
         .animal-cards-grid {

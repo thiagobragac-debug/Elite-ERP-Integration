@@ -1,4 +1,4 @@
-﻿.executive-page {
+.executive-page {
   display: flex;
   flex-direction: column;
   gap: 40px;
@@ -72,9 +72,10 @@
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   transition: all 0.4s ease;
+  min-height: 168px;
 }
 
 .tauze-kpi-card:hover {
@@ -163,7 +164,7 @@
   height: 1px;
   background: #f1f5f9;
   width: 100%;
-  margin: 8px 0;
+  margin: 2px 0;
 }
 
 .kpi-sparkline {

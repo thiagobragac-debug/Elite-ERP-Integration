@@ -42,7 +42,7 @@ export const PulseStatCard: React.FC<PulseStatCardProps> = ({
   }, []);
 
   if (loading) {
-    return <div className="tauze-kpi-card loading-skeleton" style={{ height: '220px' }}></div>;
+    return <div className="tauze-kpi-card loading-skeleton" style={{ height: '168px' }}></div>;
   }
 
   const hasData = normalized.length > 0 && normalized.some(s => s.value > 0);

@@ -41,6 +41,7 @@ const menuItems: NavItem[] = [
       { title: 'Usuário', href: '/admin/usuarios' },
       { title: 'Empresa / Fazenda', href: '/admin/config' },
       { title: 'Configurações', href: '/admin/configuracoes' },
+      { title: 'Aprovações', href: '/admin/aprovacoes' },
       { title: 'Assinatura & Planos', href: '/admin/assinatura' },
       { title: 'Log de Auditoria', href: '/admin/auditoria' },
     ]
@@ -167,24 +168,31 @@ export const Sidebar: React.FC = () => {
   });
 
   const [isFarmSelectorOpen, setIsFarmSelectorOpen] = useState(false);
-  const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode, userProfile } = useTenant();
+  const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode, userProfile, tenant } = useTenant();
+
+  const auditEnabled = tenant?.settings?.security?.auditLogsEnabled ?? true;
 
   // Helper function to check if the user has a specific permission (or is ADMIN/Administrador)
   const checkPermission = (permission?: string): boolean => {
     if (!permission) return true;
-    if (userProfile?.role === 'ADMIN' || userProfile?.role === 'Administrador') return true;
+    const role = userProfile?.role?.toUpperCase();
+    if (role === 'ADMIN' || role === 'ADMINISTRADOR') return true;
     const perms = userProfile?.permissoes || userProfile?.permissions || [];
     return perms.includes('all') || perms.includes(permission);
   };
 
-  // Dynamically compute the menu items the user has access to, without mutating the original array
+  // Dynamically compute the menu items the user has access to
   const filteredMenuItems = menuItems
     .filter(item => checkPermission(item.permission))
     .map(item => {
       if (!item.subItems) return item;
       return {
         ...item,
-        subItems: item.subItems.filter(sub => checkPermission(sub.permission))
+        subItems: item.subItems.filter(sub => {
+          if (!checkPermission(sub.permission)) return false;
+          if (sub.title === 'Log de Auditoria' && !auditEnabled) return false;
+          return true;
+        })
       };
     })
     .filter(item => !item.subItems || item.subItems.length > 0 || item.href);

@@ -1,4 +1,4 @@
-﻿import { supabase } from '../../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 
 const TIMEOUT_MS = 30000;
@@ -271,7 +271,7 @@ export const pedidosCompra: ReportHandler = async (tenantId, fazendaId, page = 1
 
     const fetchCompras = supabase
       .from('pedidos_compra')
-      .select('*, fornecedores(nome)', { count: 'exact' })
+      .select('*, fornecedores:parceiros(nome)', { count: 'exact' })
       .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
       .order('created_at', { ascending: false })
       .range(from, to);

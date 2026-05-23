@@ -24,10 +24,18 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSub
 
   useEffect(() => {
     if (initialData) {
+      let perms = [];
+      if (Array.isArray(initialData.permissoes)) {
+        perms = initialData.permissoes;
+      } else if (typeof initialData.permissoes === 'string') {
+        try { perms = JSON.parse(initialData.permissoes); } catch (e) { perms = []; }
+      }
+      if (!Array.isArray(perms)) perms = [];
+
       setFormData({
         nome: initialData.nome || '',
         descricao: initialData.descricao || '',
-        permissoes: initialData.permissoes || []
+        permissoes: perms
       });
     } else {
       setFormData({
@@ -99,8 +107,8 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSub
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title="Criar Perfil de Acesso"
-      subtitle="Defina o nome e as permissões de acesso para este grupo."
+      title={initialData ? "Editar Perfil de Acesso" : "Criar Perfil de Acesso"}
+      subtitle={initialData ? "Edite o nome e as permissões de acesso para este grupo." : "Defina o nome e as permissões de acesso para este grupo."}
       icon={Shield}
       loading={loading}
       submitLabel="Salvar Perfil"

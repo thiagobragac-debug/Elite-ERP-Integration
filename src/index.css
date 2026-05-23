@@ -472,7 +472,7 @@ input:focus, select:focus, textarea:focus {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 220px;
+  min-height: 168px;
 }
 
 .tauze-kpi-card:hover {
@@ -485,7 +485,7 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .viz-circle-wrapper {
@@ -562,7 +562,7 @@ input:focus, select:focus, textarea:focus {
 .kpi-divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
-  margin: 16px 0;
+  margin: 4px 0;
 }
 
 .kpi-footer-tauze {
@@ -1538,9 +1538,10 @@ select {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
   transition: all 0.4s ease;
+  min-height: 168px;
 }
 
 .tauze-kpi-card:hover {
@@ -1629,7 +1630,7 @@ select {
   height: 1px;
   background: #f1f5f9;
   width: 100%;
-  margin: 8px 0;
+  margin: 2px 0;
 }
 
 /* kpi-sparkline/spark-bar: see primary definition above */
@@ -1892,7 +1893,7 @@ input:focus, textarea:focus, select:focus {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 220px;
+  min-height: 168px;
 }
 
 .tauze-kpi-card:hover {
@@ -1905,7 +1906,7 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .viz-circle-wrapper {
@@ -1982,7 +1983,7 @@ input:focus, textarea:focus, select:focus {
 .kpi-divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
-  margin: 16px 0;
+  margin: 4px 0;
 }
 
 .kpi-footer-tauze {

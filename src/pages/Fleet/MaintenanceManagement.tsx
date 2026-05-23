@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Wrench, 
   Plus, 
@@ -114,7 +114,7 @@ export const MaintenanceManagement: React.FC = () => {
           { label: 'TCO (Manutenção)', value: custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#ef4444', progress: 85, trend: 'up' as const, change: 'Custo Total',
             sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(custoTotal*m), label: `Sem ${i+1}` }))
           },
-          { label: 'MTBF (Confiabilidade)', value: `${mtbf}h`, icon: Zap, color: '#10b981', progress: 92, trend: 'up' as const, change: 'Ã“timo',
+          { label: 'MTBF (Confiabilidade)', value: `${mtbf}h`, icon: Zap, color: '#10b981', progress: 92, trend: 'up' as const, change: 'Ótimo',
             sparkline: [350,380,410,440,458,472,mtbf].map((v,i) => ({ value: v, label: `${v}h` }))
           },
           { label: 'MTTR (Eficiência)', value: `${mttr}h`, icon: Clock, color: '#3b82f6', progress: 75, trend: 'down' as const, change: '-2h',
@@ -516,7 +516,7 @@ export const MaintenanceManagement: React.FC = () => {
         {activeTab === 'PLANS' ? (
           <div className="plans-grid animate-fade-in">
             {[
-              { id: 1, title: 'Revisão Motor Pesado', freq: '250', unit: 'H', assets: 4, items: ['Ã“leo 15W40', 'Filtro Ã“leo', 'Filtro Combustível'] },
+              { id: 1, title: 'Revisão Motor Pesado', freq: '250', unit: 'H', assets: 4, items: ['Óleo 15W40', 'Filtro Óleo', 'Filtro Combustível'] },
               { id: 2, title: 'Manutenção Caminhões', freq: '10.000', unit: 'KM', assets: 2, items: ['Alinhamento', 'Balanceamento', 'Lubrificação'] },
               { id: 3, title: 'Preventiva Semanal', freq: '50', unit: 'H', assets: 12, items: ['Engraxamento', 'Limpeza Radiador'] },
             ].map(plan => (
@@ -894,7 +894,7 @@ export const MaintenanceManagement: React.FC = () => {
         <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
           <label className="tauze-label">Checklist Técnico</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {(selectedPlan?.items || ['Troca de Ã“leo', 'Troca de Filtro']).map((item: string, i: number) => (
+            {(selectedPlan?.items || ['Troca de Óleo', 'Troca de Filtro']).map((item: string, i: number) => (
               <div key={i} style={{ display: 'flex', gap: '8px' }}>
                 <input type="text" className="tauze-input" style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }} defaultValue={item} />
                 <button type="button" className="action-dot delete" style={{ width: '36px', height: '36px' }}><Trash2 size={14} /></button>

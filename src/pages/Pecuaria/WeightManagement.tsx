@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Scale, 
   Plus, 
@@ -349,6 +349,55 @@ export const WeightManagement: React.FC = () => {
     refresh 
   } = useReportData('pesagens', { page, pageSize });
 
+  const [selectedAnimalBrinco, setSelectedAnimalBrinco] = useState('');
+
+  const handleOpenHistory = async (weighing: any) => {
+    const animalId = weighing.animal_id;
+    const brinco = weighing.animais?.brinco || 'N/A';
+    setSelectedAnimalBrinco(brinco);
+    setIsHistoryModalOpen(true);
+    setHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('pesagens')
+        .select('*')
+        .eq('animal_id', animalId)
+        .order('data_pesagem', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedItems = (data || []).map((p: any, idx: number) => {
+        const prev = data[idx + 1];
+        let gmdText = '';
+        let status: 'success' | 'warning' | 'info' = 'info';
+
+        if (prev) {
+          const days = (new Date(p.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / (1000 * 60 * 60 * 24);
+          if (days > 0) {
+            const gmdVal = (Number(p.peso) - Number(prev.peso)) / days;
+            gmdText = ` | GMD: ${gmdVal.toFixed(2)} kg/dia`;
+            status = gmdVal > 0.8 ? 'success' as const : gmdVal > 0.4 ? 'info' as const : 'warning' as const;
+          }
+        }
+
+        return {
+          id: p.id,
+          date: p.data_pesagem,
+          title: `Pesagem: ${Number(p.peso).toFixed(1)} kg`,
+          subtitle: `${p.observacao || 'Pesagem de rotina'}${gmdText}`,
+          value: `${Number(p.peso).toFixed(1)} kg`,
+          status
+        };
+      });
+
+      setHistoryItems(formattedItems);
+    } catch (err) {
+      console.error('Error fetching animal weight history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
   const handleOpenCreate = () => {
     setSelectedWeight(null);
     setIsModalOpen(true);
@@ -686,7 +735,7 @@ export const WeightManagement: React.FC = () => {
             searchPlaceholder="Pesquisar por brinco..."
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" title="Histórico"><History size={18} /></button>
+                <button className="action-dot info" title="Histórico" onClick={() => handleOpenHistory(item)}><History size={18} /></button>
                 <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar"><Edit3 size={18} /></button>
                 <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir"><Trash2 size={18} /></button>
               </div>
@@ -701,6 +750,15 @@ export const WeightManagement: React.FC = () => {
         onSubmit={handleSubmit}
         initialData={selectedWeight}
         loading={isSubmitting}
+      />
+
+      <HistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        title={`Histórico de Peso - Brinco #${selectedAnimalBrinco}`}
+        subtitle="Evolução de pesagens e ganho médio diário (GMD) cronológico"
+        items={historyItems}
+        loading={historyLoading}
       />
 
       <ScaleConfigModal 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CreditCard, 
   Plus, 
@@ -155,7 +155,7 @@ export const AccountsPayable: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = bills.filter(b => {
-      const matchesSearch = (b.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.parceiroes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (b.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) || (b.parceiros?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTab = activeTab === 'TODAS' || b.status === activeTab;
       const matchesStatus = filterValues.status === 'all' || b.status === filterValues.status;
       const amount = Number(b.valor_total);
@@ -168,7 +168,7 @@ export const AccountsPayable: React.FC = () => {
     const exportData = filteredData.map(item => ({
       Vencimento: item.data_vencimento,
       Descricao: item.descricao,
-      Parceiro: item.parceiroes?.nome || item.parceiro || 'Geral',
+      Parceiro: item.parceiros?.nome || item.parceiro || 'Geral',
       Valor: item.valor_total,
       Status: item.status,
       Categoria: item.categoria,
@@ -199,7 +199,7 @@ export const AccountsPayable: React.FC = () => {
   const handleViewDetails = (bill: any) => {
     setIsHistoryModalOpen(true);
     setHistoryItems([
-      { id: '1', date: bill.data_vencimento, title: 'Título: ' + bill.descricao, subtitle: 'Parceiro: ' + (bill.parceiroes?.nome || bill.parceiro || 'Geral'), value: Number(bill.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: bill.status === 'PAGO' ? 'success' : 'pending' },
+      { id: '1', date: bill.data_vencimento, title: 'Título: ' + bill.descricao, subtitle: 'Parceiro: ' + (bill.parceiros?.nome || bill.parceiro || 'Geral'), value: Number(bill.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: bill.status === 'PAGO' ? 'success' : 'pending' },
       { id: '2', date: bill.data_vencimento, title: 'Categoria', subtitle: bill.categoria || 'Geral', value: bill.metodo_pagamento || 'N/A', status: 'info' },
       { id: '3', date: bill.data_vencimento, title: 'Centro de Custo', subtitle: 'Geral Fazenda', value: '100%', status: 'success' },
     ]);
@@ -250,7 +250,7 @@ export const AccountsPayable: React.FC = () => {
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155', fontWeight: 600, fontSize: '12px' }}>
           <Building2 size={14} color="#94a3b8" />
-          <span>{item.parceiroes?.nome || item.parceiro || 'Geral'}</span>
+          <span>{item.parceiros?.nome || item.parceiro || 'Geral'}</span>
         </div>
       ),
       align: 'left' as const
@@ -311,7 +311,7 @@ export const AccountsPayable: React.FC = () => {
             <span>TAUZE PAYABLES v5.0</span>
           </div>
           <h1 className="page-title">Contas a Pagar</h1>
-          <p className="page-subtitle">Gestão de obrigações, fluxo de saída e controle rigoroso de parceiroes.</p>
+          <p className="page-subtitle">Gestão de obrigações, fluxo de saída e controle rigoroso de parceiros.</p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => setIsCalendarOpen(true)}>

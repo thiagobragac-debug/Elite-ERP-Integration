@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Plus, 
@@ -33,7 +33,7 @@ import { CompanyFilterModal } from './components/CompanyFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 
 export const CompanyManagement: React.FC = () => {
-  const { activeFarm, tenant } = useTenant();
+  const { activeFarm, tenant, activeTenantId } = useTenant();
   const [activeTab, setActiveTab] = useState<'companies' | 'farms'>('companies');
   const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState<any[]>([]);
@@ -59,18 +59,21 @@ export const CompanyManagement: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
 
   useEffect(() => {
-    if (tenant?.id) {
+    const isReady = !!activeTenantId;
+    if (isReady) {
       fetchData();
+    } else {
+      setLoading(false);
     }
-  }, [tenant?.id]);
+  }, [activeTenantId]);
 
   const fetchData = async () => {
-    if (!tenant?.id) return;
+    if (!activeTenantId) return;
     setLoading(true);
     try {
       const [{ data: unitsData }, { data: farmsData }] = await Promise.all([
-        supabase.from('unidades').select('*').limit(500).eq('tenant_id', tenant.id),
-        supabase.from('fazendas').select('*').limit(500).eq('tenant_id', tenant.id)
+        supabase.from('unidades').select('*').limit(500).eq('tenant_id', activeTenantId),
+        supabase.from('fazendas').select('*').limit(500).eq('tenant_id', activeTenantId)
       ]);
 
       if (unitsData) setCompanies(unitsData);

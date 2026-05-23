@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Trees, 
   Map, 
@@ -11,20 +11,24 @@ import {
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { logAudit } from '../../utils/audit';
 
 interface PastureManejoFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
+  initialPastureId?: string;
 }
 
-export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, onClose, onSubmit }) => {
-  const { activeFarm } = useTenant();
+export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, onClose, onSubmit, initialPastureId }) => {
+  const { activeFarm, activeTenantId } = useTenant();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [pastures, setPastures] = useState<any[]>([]);
   
   const [formData, setFormData] = useState({
-    pasto_id: '',
+    pasto_id: initialPastureId || '',
     tipo_manejo: 'Adubação',
     data_manejo: new Date().toISOString().split('T')[0],
     novo_status: 'resting',
@@ -36,6 +40,19 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, on
       fetchPastures();
     }
   }, [isOpen, activeFarm]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setFormData(prev => ({
+        ...prev,
+        pasto_id: initialPastureId || '',
+        tipo_manejo: 'Adubação',
+        data_manejo: new Date().toISOString().split('T')[0],
+        novo_status: 'resting',
+        observacoes: ''
+      }));
+    }
+  }, [initialPastureId, isOpen]);
 
   const fetchPastures = async () => {
     const { data } = await supabase
@@ -58,6 +75,23 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, on
         .eq('id', formData.pasto_id);
 
       if (!error) {
+        if (activeTenantId) {
+          const selectedPastureName = pastures.find(p => p.id === formData.pasto_id)?.nome || 'Pastagem';
+          await logAudit({
+            tenant_id: activeTenantId,
+            user_id: user?.id,
+            action: 'MANEJO',
+            entity: 'pastos',
+            entity_id: formData.pasto_id,
+            description: `Manejo de Pastagem: ${formData.tipo_manejo} realizado em ${new Date(formData.data_manejo).toLocaleDateString('pt-BR')} no pasto "${selectedPastureName}". Status da área: ${formData.novo_status === 'resting' ? 'Descanso' : formData.novo_status === 'grazing' ? 'Pastejo' : 'Degradado'}. Obs: ${formData.observacoes || 'Nenhuma'}`,
+            new_data: { 
+              status: formData.novo_status,
+              tipo_manejo: formData.tipo_manejo,
+              data_manejo: formData.data_manejo,
+              observacoes: formData.observacoes
+            }
+          });
+        }
         onSubmit(formData);
         onClose();
       }

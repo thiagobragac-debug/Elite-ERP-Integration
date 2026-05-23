@@ -161,7 +161,7 @@ export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, 
     
     let query = supabase
       .from('contas_pagar')
-      .select('*, fornecedores(nome)', { count: 'exact' })
+      .select('*, parceiros(nome)', { count: 'exact' })
       .match(scope)
       .order('data_vencimento', { ascending: true })
       .range(from, to);
@@ -255,7 +255,7 @@ export const contasReceber: ReportHandler = async (tenantId, fazendaId, page = 1
 
     let query = supabase
       .from('contas_receber')
-      .select('*, clientes(nome)', { count: 'exact' })
+      .select('*, parceiros(nome)', { count: 'exact' })
       .match(scope)
       .order('data_vencimento', { ascending: true })
       .range(from, to);

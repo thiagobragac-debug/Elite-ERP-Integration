@@ -24,7 +24,7 @@ interface UserFormProps {
 }
 
 export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const { activeFarm, farms } = useTenant();
+  const { activeFarm, farms, activeTenantId } = useTenant();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -38,6 +38,14 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
 
   useEffect(() => {
     if (initialData) {
+      let fazendas = [];
+      if (Array.isArray(initialData.fazendas_permitidas)) {
+        fazendas = initialData.fazendas_permitidas;
+      } else if (typeof initialData.fazendas_permitidas === 'string') {
+        try { fazendas = JSON.parse(initialData.fazendas_permitidas); } catch (e) { fazendas = []; }
+      }
+      if (!Array.isArray(fazendas)) fazendas = [];
+
       setFormData({
         name: initialData.name || '',
         email: initialData.email || '',
@@ -45,7 +53,7 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
         profile_id: initialData.perfil_id || '',
         status: initialData.status || 'active',
         company_id: initialData.unidade_id || '',
-        fazendas_permitidas: initialData.fazendas_permitidas || []
+        fazendas_permitidas: fazendas
       });
     } else {
       setFormData({
@@ -67,20 +75,16 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
   }, [isOpen]);
 
   const fetchProfiles = async () => {
-    if (!activeFarm) return;
-    const { data } = await supabase
+    if (!activeTenantId) return;
+    const { data, error } = await supabase
       .from('perfis_usuario')
       .select('id, nome')
-      .eq('tenant_id', activeFarm.tenantId);
+      .eq('tenant_id', activeTenantId);
     
-    if (data) {
+    if (data && !error) {
       setProfiles(data.map(p => ({ id: p.id, name: p.nome })));
     } else {
-      setProfiles([
-        { id: '1', name: 'Administrador Master' },
-        { id: '2', name: 'Gerente de Fazenda' },
-        { id: '3', name: 'Operador de Campo' }
-      ]);
+      setProfiles([]);
     }
   };
 

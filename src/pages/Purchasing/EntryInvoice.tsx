@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Activity,
@@ -330,7 +330,7 @@ export const EntryInvoice: React.FC = () => {
             } : {}}
           >
             <Activity size={18} />
-            {showDivergences ? 'AUDITORIA ATIVA' : 'DIVERGÃŠNCIAS'}
+            {showDivergences ? 'AUDITORIA ATIVA' : 'DIVERGÊNCIAS'}
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />

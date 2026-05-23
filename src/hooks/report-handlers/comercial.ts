@@ -43,7 +43,7 @@ export const pedidosVenda: ReportHandler = async (tenantId, fazendaId, page = 1,
 
     const fetchVendas = supabase
       .from('pedidos_venda')
-      .select('*, clientes(nome)', { count: 'exact' })
+      .select('*, clientes:parceiros(nome)', { count: 'exact' })
       .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
       .order('created_at', { ascending: false })
       .range(from, to);
@@ -115,9 +115,10 @@ export const clientes: ReportHandler = async (tenantId, fazendaId, page = 1, pag
     const to = from + pageSize - 1;
 
     const fetchCls = supabase
-      .from('clientes')
+      .from('parceiros')
       .select('*', { count: 'exact' })
       .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
+      .eq('is_customer', true)
       .range(from, to);
 
     const { data: cls, count, error } = await withTimeout((fetchCls as unknown) as Promise<any>) as any;
@@ -127,11 +128,11 @@ export const clientes: ReportHandler = async (tenantId, fazendaId, page = 1, pag
       data: (cls || []).map((c: any) => ({ 
         id: c.id, 
         nome: c.nome, 
-        cnpj: c.documento || 'Sem Documento', 
+        cnpj: c.cnpj_cpf || c.documento || 'Sem Documento', 
         contato: c.telefone || c.celular || 'Sem Contato 📞',
         email: c.email || 'Sem E-mail ✉️',
         cidade: c.cidade ? `${c.cidade}${c.estado ? ' - ' + c.estado : ''}` : 'Não Informada',
-        status: c.ativo === false ? 'Inativo 🔴' : 'Ativo 🟢',
+        status: c.status === 'INATIVO' ? 'Inativo 🔴' : 'Ativo 🟢',
         ltv: `R$ ${Number(c.ltv || 0).toLocaleString()}`
       })),
       columns: mockData.columns,

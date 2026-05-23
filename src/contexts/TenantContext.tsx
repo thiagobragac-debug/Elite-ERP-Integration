@@ -110,6 +110,8 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     let tenantQuery = supabase.from('tenants').select('*');
     if (impersonateId) {
       tenantQuery = tenantQuery.eq('id', impersonateId);
+    } else if (finalProfile?.tenant_id) {
+      tenantQuery = tenantQuery.eq('id', finalProfile.tenant_id);
     } else {
       tenantQuery = tenantQuery.limit(1);
     }

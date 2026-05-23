@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
   PieChart, 
@@ -99,6 +99,9 @@ export const AdminSettings: React.FC = () => {
     lotacao: { mode: 'manual', manualValue: 1.5, autoFormula: 'Capacidade Nominal' },
     caixa: { mode: 'auto', manualValue: 100000, autoFormula: 'Projeção Mensal' }
   });
+  const [auditLogsEnabled, setAuditLogsEnabled] = useState<boolean>(
+    tenant?.settings?.security?.auditLogsEnabled ?? true
+  );
 
   useEffect(() => {
     if (location.pathname === '/admin/bi') setActiveTab('bi');
@@ -211,6 +214,41 @@ export const AdminSettings: React.FC = () => {
     );
   };
 
+  const toggleAuditLogs = async () => {
+    const newValue = !auditLogsEnabled;
+    setAuditLogsEnabled(newValue);
+
+    if (tenant?.id) {
+      try {
+        const { data: tenantData } = await supabase
+          .from('tenants')
+          .select('settings')
+          .eq('id', tenant.id)
+          .single();
+
+        const currentSettings = tenantData?.settings || {};
+        const newSettings = {
+          ...currentSettings,
+          security: {
+            ...(currentSettings.security || {}),
+            auditLogsEnabled: newValue
+          }
+        };
+
+        const { error } = await supabase
+          .from('tenants')
+          .update({ settings: newSettings })
+          .eq('id', tenant.id);
+
+        if (error) throw error;
+        await refreshData();
+      } catch (err) {
+        console.warn("Failed to sync audit logs setting with database:", err);
+        setAuditLogsEnabled(!newValue); // revert on failure
+      }
+    }
+  };
+
   const tabs = [
     { id: 'system', label: 'Parâmetros de Sistema', icon: Settings },
     { id: 'governance', label: 'Políticas Operacionais', icon: Shield },
@@ -313,7 +351,10 @@ export const AdminSettings: React.FC = () => {
                         <span className="t">Logs de Auditoria</span>
                         <span className="d">Rastrear todas as ações do sistema.</span>
                       </div>
-                      <div className="toggle-box active"></div>
+                      <div 
+                        className={`toggle-box ${auditLogsEnabled ? 'active' : ''}`}
+                        onClick={toggleAuditLogs}
+                      ></div>
                     </div>
                   </div>
                 </section>

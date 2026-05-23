@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   User, 
   Mail, 
@@ -19,6 +19,31 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 export const ProfilePage: React.FC = () => {
   const { userProfile } = useTenant();
   const [activeSubTab, setActiveSubTab] = useState<'info' | 'pref' | 'security'>('info');
+  
+  // Local state for personal info
+  const [formData, setFormData] = useState({
+    name: userProfile?.full_name || '',
+    phone: ''
+  });
+  
+  // Local state for preferences
+  const [preferences, setPreferences] = useState({
+    darkMode: true,
+    biAlerts: false,
+    dailySummary: true
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    setIsSaving(true);
+    setTimeout(() => {
+      setIsSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }, 800);
+  };
 
   const loginHistory = [
     { id: '1', date: new Date().toISOString(), event: 'Login via Chrome/Windows', ip: '189.12.34.56', status: 'Sucesso' },
@@ -90,7 +115,11 @@ export const ProfilePage: React.FC = () => {
               <div className="fields-grid">
                 <div className="tauze-field">
                   <label>Nome Completo</label>
-                  <input type="text" defaultValue={userProfile?.full_name} />
+                  <input 
+                    type="text" 
+                    value={formData.name} 
+                    onChange={e => setFormData({...formData, name: e.target.value})} 
+                  />
                 </div>
                 <div className="tauze-field">
                   <label>E-mail (Principal)</label>
@@ -98,7 +127,12 @@ export const ProfilePage: React.FC = () => {
                 </div>
                 <div className="tauze-field">
                   <label>Telefone / WhatsApp</label>
-                  <input type="text" placeholder="(00) 00000-0000" />
+                  <input 
+                    type="text" 
+                    placeholder="(00) 00000-0000" 
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})} 
+                  />
                 </div>
                 <div className="tauze-field">
                   <label>Cargo / Função</label>
@@ -107,9 +141,14 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               <div className="panel-footer">
-                <button className="primary-btn">
+                <button 
+                  className={`primary-btn ${saved ? 'success' : ''}`} 
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  style={saved ? { background: '#16a34a', borderColor: '#16a34a' } : {}}
+                >
                   <Save size={18} />
-                  SALVAR ALTERAÇÕES
+                  {isSaving ? 'SALVANDO...' : saved ? 'ALTERAÇÕES SALVAS!' : 'SALVAR ALTERAÇÕES'}
                 </button>
               </div>
             </motion.div>
@@ -123,26 +162,26 @@ export const ProfilePage: React.FC = () => {
               </div>
               
               <div className="switches-list">
-                <div className="pref-switch">
+                <div className="pref-switch" onClick={() => setPreferences(p => ({...p, darkMode: !p.darkMode}))} style={{ cursor: 'pointer' }}>
                   <div className="info">
                     <span className="t">Modo Escuro Automático</span>
                     <span className="d">Sincronizar com o horário do seu dispositivo.</span>
                   </div>
-                  <div className="toggle active"></div>
+                  <div className={`toggle ${preferences.darkMode ? 'active' : ''}`}></div>
                 </div>
-                <div className="pref-switch">
+                <div className="pref-switch" onClick={() => setPreferences(p => ({...p, biAlerts: !p.biAlerts}))} style={{ cursor: 'pointer' }}>
                   <div className="info">
                     <span className="t">Notificações de BI</span>
                     <span className="d">Alertas críticos de GMD e metas no navegador.</span>
                   </div>
-                  <div className="toggle"></div>
+                  <div className={`toggle ${preferences.biAlerts ? 'active' : ''}`}></div>
                 </div>
-                <div className="pref-switch">
+                <div className="pref-switch" onClick={() => setPreferences(p => ({...p, dailySummary: !p.dailySummary}))} style={{ cursor: 'pointer' }}>
                   <div className="info">
                     <span className="t">Resumo Diário por E-mail</span>
                     <span className="d">Receber PDF com os KPIs da fazenda às 07:00.</span>
                   </div>
-                  <div className="toggle active"></div>
+                  <div className={`toggle ${preferences.dailySummary ? 'active' : ''}`}></div>
                 </div>
               </div>
             </motion.div>

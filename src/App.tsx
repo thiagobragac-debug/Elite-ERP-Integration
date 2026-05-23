@@ -62,6 +62,7 @@ const AdminIntelligenceHub = React.lazy(() => import('./pages/Admin/AdminIntelli
 const AdminSettings = React.lazy(() => import('./pages/Admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const TenantBilling = React.lazy(() => import('./pages/Admin/TenantBilling').then(m => ({ default: m.TenantBilling })));
 const AuditLog = React.lazy(() => import('./pages/Admin/AuditLog').then(m => ({ default: m.AuditLog })));
+const ApprovalCenter = React.lazy(() => import('./pages/Admin/ApprovalCenter').then(m => ({ default: m.ApprovalCenter })));
 const SaaSAdminPanel = React.lazy(() => import('./pages/Admin/SaaSAdminPanel').then(m => ({ default: m.SaaSAdminPanel })));
 const MarketIntelligenceDashboard = React.lazy(() => import('./pages/Market/MarketIntelligenceDashboard').then(m => ({ default: m.MarketIntelligenceDashboard })));
 const MarketAdvancedAnalytics = React.lazy(() => import('./pages/Market/MarketAdvancedAnalytics').then(m => ({ default: m.MarketAdvancedAnalytics })));
@@ -168,6 +169,7 @@ function AppContent() {
                 <Route path="configuracoes" element={<AdminSettings />} />
                 <Route path="assinatura" element={<TenantBilling />} />
                 <Route path="auditoria" element={<AuditLog />} />
+                <Route path="aprovacoes" element={<ApprovalCenter />} />
               </Route>
               
               <Route path="mercado" element={<PermissionGuard permission="mercado"><Outlet/></PermissionGuard>}>

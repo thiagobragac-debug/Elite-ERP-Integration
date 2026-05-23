@@ -46,7 +46,7 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
   }, []);
 
   if (loading) {
-    return <div className="tauze-kpi-card loading-skeleton" style={{ height: '220px' }}></div>;
+    return <div className="tauze-kpi-card loading-skeleton" style={{ height: '168px' }}></div>;
   }
 
   const maxVal = normalizedSparkline.length > 0 ? Math.max(...normalizedSparkline.map(s => s.value), 1) : 1;
