@@ -28,6 +28,7 @@ const LivestockDashboard = React.lazy(() => import('./pages/Pecuaria/LivestockDa
 const InventoryDashboard = React.lazy(() => import('./pages/Inventory/InventoryDashboard').then(m => ({ default: m.InventoryDashboard })));
 const InventoryManagement = React.lazy(() => import('./pages/Inventory/InventoryManagement').then(m => ({ default: m.InventoryManagement })));
 const WarehouseManagement = React.lazy(() => import('./pages/Inventory/WarehouseManagement').then(m => ({ default: m.WarehouseManagement })));
+const WarehouseDetails = React.lazy(() => import('./pages/Inventory/WarehouseDetails').then(m => ({ default: m.WarehouseDetails })));
 const MovementManagement = React.lazy(() => import('./pages/Inventory/MovementManagement').then(m => ({ default: m.MovementManagement })));
 const AuditManagement = React.lazy(() => import('./pages/Inventory/AuditManagement').then(m => ({ default: m.AuditManagement })));
 const CashFlow = React.lazy(() => import('./pages/Finance/CashFlow').then(m => ({ default: m.CashFlow })));
@@ -213,6 +214,7 @@ function AppContent() {
                 <Route path="dashboard" element={<InventoryDashboard />} />
                 <Route path="insumo" element={<PermissionGuard permission="logistica_armazens"><InventoryManagement /></PermissionGuard>} />
                 <Route path="deposito" element={<PermissionGuard permission="logistica_armazens"><WarehouseManagement /></PermissionGuard>} />
+                <Route path="deposito/:id" element={<PermissionGuard permission="logistica_armazens"><WarehouseDetails /></PermissionGuard>} />
                 <Route path="movimentacao" element={<MovementManagement />} />
                 <Route path="inventario" element={<AuditManagement />} />
               </Route>

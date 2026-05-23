@@ -26,6 +26,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { FormModal } from '../../components/Forms/FormModal';
 import { WarehouseFilterModal } from './components/WarehouseFilterModal';
+import { WarehouseStockModal } from './components/WarehouseStockModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 export const WarehouseManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
@@ -42,6 +43,10 @@ export const WarehouseManagement: React.FC = () => {
     occupation: 'all',
     types: [] as string[]
   });
+
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [stockModalWarehouseId, setStockModalWarehouseId] = useState<string | null>(null);
+  const [stockModalWarehouseName, setStockModalWarehouseName] = useState<string | null>(null);
 
   const [farms, setFarms] = useState<any[]>([]);
 
@@ -467,6 +472,11 @@ export const WarehouseManagement: React.FC = () => {
                   </div>
                   <div className="card-bottom-actions">
                     <button className="action-icon-btn edit" onClick={() => {
+                      setStockModalWarehouseId(w.id);
+                      setStockModalWarehouseName(w.nome || w.name);
+                      setIsStockModalOpen(true);
+                    }} title="Ver Detalhes"><ListIcon size={14} /></button>
+                    <button className="action-icon-btn edit" onClick={() => {
                       setSelectedWarehouse(w);
                       setIsModalOpen(true);
                     }} title="Editar"><Edit3 size={14} /></button>
@@ -476,8 +486,12 @@ export const WarehouseManagement: React.FC = () => {
 
                 <div className="card-main-content">
                   <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
-                    <div className="title-row" style={{ width: '100%' }}>
-                      <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', width: '100%' }}>{w.name || w.nome}</h3>
+                    <div className="title-row" style={{ width: '100%', cursor: 'pointer' }} onClick={() => {
+                      setStockModalWarehouseId(w.id);
+                      setStockModalWarehouseName(w.nome || w.name);
+                      setIsStockModalOpen(true);
+                    }}>
+                      <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#3b82f6', width: '100%' }}>{w.name || w.nome}</h3>
                     </div>
                     <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span className={`status-pill mini ${w.status === 'ativo' ? 'active' : ''}`}>
@@ -530,6 +544,13 @@ export const WarehouseManagement: React.FC = () => {
           </div>
         )}
       </div>
+
+      <WarehouseStockModal 
+        isOpen={isStockModalOpen}
+        onClose={() => setIsStockModalOpen(false)}
+        warehouseId={stockModalWarehouseId}
+        warehouseName={stockModalWarehouseName}
+      />
 
       <style>{`
         .warehouse-cards-grid {
