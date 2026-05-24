@@ -133,12 +133,20 @@ export const MovementManagement: React.FC = () => {
   };
 
   const handleOpenCreate = (type: 'in' | 'out' | 'transfer') => {
+    if (!activeFarmId || isGlobalMode) {
+      alert('⚠️ Selecione uma unidade/fazenda específica no menu superior para lançar movimentações. Não é possível movimentar no modo Visão Global.');
+      return;
+    }
     setSelectedMovement(null);
     setModalType(type);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (move: any) => {
+    if (!activeFarmId || isGlobalMode) {
+      alert('⚠️ Selecione uma unidade/fazenda específica no menu superior para editar movimentações. Não é possível editar no modo Visão Global.');
+      return;
+    }
     setSelectedMovement(move);
     setModalType(move.tipo);
     setIsModalOpen(true);
@@ -147,49 +155,54 @@ export const MovementManagement: React.FC = () => {
   const handleSubmit = async (formData: any) => {
     if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
 
+    const isEdit = !!selectedMovement;
+    const items = formData.items || [];
+
     if (formData.tipo === 'transfer') {
       try {
-        // 1. Get current product to use current average cost
-        const { data: product } = await supabase
-          .from('produtos')
-          .select('custo_medio')
-          .eq('id', formData.produto_id)
-          .single();
-        
-        const currentCost = product?.custo_medio || 0;
+        const outPayloads = [];
+        const inPayloads = [];
 
-        // 2. Create the "OUT" movement from source
-        const outPayload = {
-          produto_id: formData.produto_id,
-          tipo: 'out',
-          quantidade: parseFloat(formData.quantidade),
-          deposito_id: formData.deposito_id,
-          valor_unitario: currentCost,
-          data_movimentacao: formData.data_movimentacao,
-          origem_destino: `Transferência para depósito destino`,
-          responsavel: formData.responsavel,
-          fazenda_id: activeFarm.id,
-          tenant_id: activeFarm.tenantId
-        };
+        for (const item of items) {
+          const { data: product } = await supabase
+            .from('produtos')
+            .select('custo_medio')
+            .eq('id', item.produto_id)
+            .single();
+          
+          const currentCost = product?.custo_medio || 0;
 
-        // 3. Create the "IN" movement to destination
-        const inPayload = {
-          produto_id: formData.produto_id,
-          tipo: 'in',
-          quantidade: parseFloat(formData.quantidade),
-          deposito_id: formData.destino_deposito_id,
-          valor_unitario: currentCost,
-          data_movimentacao: formData.data_movimentacao,
-          origem_destino: `Transferência de depósito origem`,
-          responsavel: formData.responsavel,
-          fazenda_id: activeFarm.id,
-          tenant_id: activeFarm.tenantId
-        };
+          outPayloads.push({
+            produto_id: item.produto_id,
+            tipo: 'out',
+            quantidade: parseFloat(item.quantidade),
+            deposito_id: formData.deposito_origem_id,
+            valor_unitario: currentCost,
+            data_movimentacao: formData.data_movimentacao,
+            origem_destino: `Transferência para depósito destino`,
+            responsavel: formData.responsavel,
+            fazenda_id: activeFarm.id,
+            tenant_id: activeFarm.tenantId
+          });
 
-        const { error: errorOut } = await supabase.from('movimentacoes_estoque').insert([outPayload]);
+          inPayloads.push({
+            produto_id: item.produto_id,
+            tipo: 'in',
+            quantidade: parseFloat(item.quantidade),
+            deposito_id: formData.destino_deposito_id,
+            valor_unitario: currentCost,
+            data_movimentacao: formData.data_movimentacao,
+            origem_destino: `Transferência de depósito origem`,
+            responsavel: formData.responsavel,
+            fazenda_id: activeFarm.id,
+            tenant_id: activeFarm.tenantId
+          });
+        }
+
+        const { error: errorOut } = await supabase.from('movimentacoes_estoque').insert(outPayloads);
         if (errorOut) throw errorOut;
 
-        const { error: errorIn } = await supabase.from('movimentacoes_estoque').insert([inPayload]);
+        const { error: errorIn } = await supabase.from('movimentacoes_estoque').insert(inPayloads);
         if (errorIn) throw errorIn;
 
         setIsModalOpen(false);
@@ -202,36 +215,93 @@ export const MovementManagement: React.FC = () => {
       }
     }
 
-    const payload = {
-      produto_id: formData.produto_id,
-      tipo: formData.tipo,
-      quantidade: parseFloat(formData.quantidade),
-      deposito_id: formData.deposito_id,
-      valor_unitario: parseFloat(formData.valor_unitario || 0),
-      data_movimentacao: formData.data_movimentacao,
-      origem_destino: formData.origem_destino,
-      responsavel: formData.responsavel,
-      fazenda_id: activeFarm.id,
-      tenant_id: activeFarm.tenantId
-    };
+    // Normal IN / OUT
+    try {
+      if (isEdit && items.length === 1) {
+        // Edit single item
+        const item = items[0];
+        let costToUse = parseFloat(item.valor_unitario || 0);
 
-    if (selectedMovement) {
-      const { error } = await supabase
-        .from('movimentacoes_estoque')
-        .update(payload)
-        .eq('id', selectedMovement.id);
-      
-      if (!error) {
-        setIsModalOpen(false);
-        fetchMovements();
-      }
-    } else {
-      const { error } = await supabase.from('movimentacoes_estoque').insert([payload]);
+        // If it's an OUT movement, fetch the current average cost of the product
+        if (formData.tipo === 'out') {
+          const { data: product } = await supabase
+            .from('produtos')
+            .select('custo_medio')
+            .eq('id', item.produto_id)
+            .single();
+          costToUse = product?.custo_medio || 0;
+        }
 
-      if (!error) {
-        setIsModalOpen(false);
-        fetchMovements();
+        const payload = {
+          produto_id: item.produto_id,
+          tipo: formData.tipo,
+          quantidade: parseFloat(item.quantidade),
+          deposito_id: item.deposito_id,
+          valor_unitario: costToUse,
+          data_movimentacao: formData.data_movimentacao,
+          origem_destino: formData.origem_destino,
+          responsavel: formData.responsavel,
+          lote: item.lote || null,
+          data_validade: item.data_validade || null,
+          fazenda_id: activeFarm.id,
+          tenant_id: activeFarm.tenantId
+        };
+
+        const { error } = await supabase
+          .from('movimentacoes_estoque')
+          .update(payload)
+          .eq('id', selectedMovement.id);
+        
+        if (!error) {
+          setIsModalOpen(false);
+          fetchMovements();
+        } else {
+          throw error;
+        }
+      } else {
+        // Insert multiple items
+        const payloads = [];
+        
+        for (const item of items) {
+          let costToUse = parseFloat(item.valor_unitario || 0);
+
+          if (formData.tipo === 'out') {
+            const { data: product } = await supabase
+              .from('produtos')
+              .select('custo_medio')
+              .eq('id', item.produto_id)
+              .single();
+            costToUse = product?.custo_medio || 0;
+          }
+
+          payloads.push({
+            produto_id: item.produto_id,
+            tipo: formData.tipo,
+            quantidade: parseFloat(item.quantidade),
+            deposito_id: item.deposito_id,
+            valor_unitario: costToUse,
+            data_movimentacao: formData.data_movimentacao,
+            origem_destino: formData.origem_destino,
+            responsavel: formData.responsavel,
+            lote: item.lote || null,
+            data_validade: item.data_validade || null,
+            fazenda_id: activeFarm.id,
+            tenant_id: activeFarm.tenantId
+          });
+        }
+
+        const { error } = await supabase.from('movimentacoes_estoque').insert(payloads);
+
+        if (!error) {
+          setIsModalOpen(false);
+          fetchMovements();
+        } else {
+          throw error;
+        }
       }
+    } catch (err) {
+      console.error('Insert error:', err);
+      alert('Erro ao inserir movimentações.');
     }
   };
 

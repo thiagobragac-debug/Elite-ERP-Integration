@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -42,7 +42,7 @@ import { formatNumber } from '../../utils/format';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const InventoryManagement: React.FC = () => {
-  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<any[]>([]);
@@ -96,7 +96,7 @@ export const InventoryManagement: React.FC = () => {
           .order('nome', { ascending: true })
           .range(from, to);
         
-        query = applyFarmFilter(query);
+        query = applyTenantFilter(query);
 
         if (filterValues.categoria !== 'all') {
           query = query.eq('categoria', filterValues.categoria);
@@ -170,6 +170,7 @@ export const InventoryManagement: React.FC = () => {
         localizacao: data.localizacao,
         ean: data.ean,
         ncm: data.ncm,
+        is_active: data.is_active,
         ...insertPayload
       };
 
@@ -524,7 +525,13 @@ export const InventoryManagement: React.FC = () => {
           <p className="page-subtitle">Rastreabilidade de estoque, custo médio e predição de suprimentos em tempo real.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsMovementModalOpen(true)}>
+          <button className="glass-btn secondary" onClick={() => {
+            if (!activeFarmId || isGlobalMode) {
+              alert('⚠️ Selecione uma unidade/fazenda específica no menu superior para lançar movimentações. Não é possível movimentar no modo Visão Global.');
+              return;
+            }
+            setIsMovementModalOpen(true);
+          }}>
             <ArrowRightLeft size={18} />
             MOVIMENTAÇÃO
           </button>

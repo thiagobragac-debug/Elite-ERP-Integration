@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowRightLeft, 
   Package,
@@ -9,11 +9,15 @@ import {
   ArrowUpRight,
   Hash,
   Settings,
-  DollarSign
+  DollarSign,
+  Plus,
+  Trash2
 } from 'lucide-react';
 import { FormModal } from './FormModal';
+import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 
 interface MovementFormProps {
   isOpen: boolean;
@@ -25,51 +29,71 @@ interface MovementFormProps {
 
 export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onSubmit, defaultType = 'in', initialData }) => {
   const { activeFarm } = useTenant();
+  const { applyFarmFilter, applyTenantFilter } = useFarmFilter();
+  
+  // Base Transaction Data
   const [formData, setFormData] = useState({
-    produto_id: '',
-    deposito_id: '',
     destino_deposito_id: '',
     tipo: defaultType as 'in' | 'out' | 'transfer' | 'adjust',
+    data_movimentacao: new Date().toISOString().split('T')[0],
+    origem_destino: '',
+    responsavel: '',
+    deposito_origem_id: '' // Used only for transfers now
+  });
+
+  // Cart of Items
+  const [items, setItems] = useState<any[]>([]);
+
+  // Current Item Input State
+  const [currentItem, setCurrentItem] = useState({
+    produto_id: '',
     quantidade: '',
     valor_unitario: '',
-    data_movimentacao: new Date().toISOString().split('T')[0],
     lote: '',
     data_validade: '',
-    origem_destino: '',
-    responsavel: ''
+    deposito_id: ''
   });
 
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (initialData) {
       setFormData({
-        produto_id: initialData.produto_id || '',
-        deposito_id: initialData.deposito_id || '',
         destino_deposito_id: initialData.destino_deposito_id || '',
         tipo: initialData.tipo || defaultType,
+        data_movimentacao: initialData.data_movimentacao ? new Date(initialData.data_movimentacao).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        origem_destino: initialData.origem_destino || '',
+        responsavel: initialData.responsavel || '',
+        deposito_origem_id: initialData.deposito_id || ''
+      });
+      setItems([{
+        id: initialData.id, // Keep ID for update
+        produto_id: initialData.produto_id || '',
         quantidade: initialData.quantidade?.toString() || '',
         valor_unitario: initialData.valor_unitario?.toString() || '',
-        data_movimentacao: initialData.data_movimentacao || new Date().toISOString().split('T')[0],
         lote: initialData.lote || '',
         data_validade: initialData.data_validade || '',
-        origem_destino: initialData.origem_destino || '',
-        responsavel: initialData.responsavel || ''
-      });
+        deposito_id: initialData.deposito_id || ''
+      }]);
     } else {
       setFormData({
-        produto_id: '',
-        deposito_id: '',
         destino_deposito_id: '',
         tipo: defaultType as any,
+        data_movimentacao: new Date().toISOString().split('T')[0],
+        origem_destino: '',
+        responsavel: '',
+        deposito_origem_id: ''
+      });
+      setItems([]);
+      setCurrentItem({
+        produto_id: '',
         quantidade: '',
         valor_unitario: '',
-        data_movimentacao: new Date().toISOString().split('T')[0],
         lote: '',
         data_validade: '',
-        origem_destino: '',
-        responsavel: ''
+        deposito_id: ''
       });
     }
   }, [initialData, isOpen, defaultType]);
@@ -82,201 +106,411 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
   }, [isOpen, activeFarm]);
 
   const fetchProducts = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('produtos')
-      .select('id, nome, unidade')
-      .eq('fazenda_id', activeFarm?.id);
+      .select('id, nome, unidade, categoria, custo_medio');
+    query = applyTenantFilter(query);
+    const { data, error } = await query;
+      
+    if (error) console.error('fetchProducts ERROR:', error);
     if (data) setProducts(data);
   };
 
   const fetchWarehouses = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('depositos')
       .select('id, nome')
-      .eq('fazenda_id', activeFarm?.id)
-      .eq('status', 'ativo');
+      .neq('status', 'inativo');
+    query = applyFarmFilter(query);
+    const { data, error } = await query;
+      
+    if (error) console.error('fetchWarehouses ERROR:', error);
     if (data) setWarehouses(data);
   };
 
-  const [loading, setLoading] = useState(false);
+  const isMedicament = (prodId: string) => {
+    const prod = products.find(p => p.id === prodId);
+    if (!prod || !prod.categoria) return false;
+    const cat = prod.categoria.toLowerCase();
+    return cat.includes('medicamento') || cat.includes('saúde') || cat.includes('saude') || cat.includes('vacina') || cat.includes('veterinário');
+  };
+
+  useEffect(() => {
+    if (formData.tipo === 'out' && currentItem.produto_id) {
+      const prod = products.find(p => p.id === currentItem.produto_id);
+      if (prod) {
+        setCurrentItem(prev => ({ ...prev, valor_unitario: (prod.custo_medio || 0).toString() }));
+      }
+    }
+  }, [currentItem.produto_id, formData.tipo, products]);
+
+  const handleAddItem = () => {
+    if (!currentItem.produto_id || !currentItem.quantidade) {
+      alert("Selecione o produto e informe a quantidade.");
+      return;
+    }
+    
+    // Validate if it's an IN operation
+    if (formData.tipo === 'in' && !currentItem.valor_unitario) {
+      alert("Preencha o Valor Unitário para entrada.");
+      return;
+    }
+
+    if (formData.tipo !== 'transfer' && !currentItem.deposito_id) {
+      alert("Selecione o Depósito para o item.");
+      return;
+    }
+
+    setItems([...items, { ...currentItem }]);
+    
+    // Reset current item but keep the warehouse to save clicks!
+    setCurrentItem({
+      produto_id: '',
+      quantidade: '',
+      valor_unitario: '',
+      lote: '',
+      data_validade: '',
+      deposito_id: currentItem.deposito_id 
+    });
+  };
+
+  const handleRemoveItem = (index: number) => {
+    const newItems = [...items];
+    newItems.splice(index, 1);
+    setItems(newItems);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (items.length === 0) {
+      alert("Adicione pelo menos um insumo à lista.");
+      return;
+    }
+    if (formData.tipo === 'transfer' && (!formData.deposito_origem_id || !formData.destino_deposito_id)) {
+      alert("Para transferência, informe a origem e destino.");
+      return;
+    }
     setLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, items });
     } finally {
       setLoading(false);
     }
   };
+
+  const selectedProductObj = products.find(p => p.id === currentItem.produto_id);
+  const requiresLot = isMedicament(currentItem.produto_id);
 
   return (
     <FormModal
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
+      size="large"
       title={initialData ? "Editar Movimentação" : (formData.tipo === 'in' ? "Lançar Entrada" : formData.tipo === 'transfer' ? "Transferência de Estoque" : "Lançar Saída")}
-      subtitle={formData.tipo === 'transfer' ? "Mova insumos entre depósitos da mesma unidade." : "Registre a movimentação física de um insumo."}
+      subtitle={formData.tipo === 'transfer' ? "Mova insumos entre depósitos da mesma unidade." : "Registre a movimentação física (Multi-itens)."}
       icon={formData.tipo === 'in' ? ArrowDownLeft : formData.tipo === 'transfer' ? ArrowRightLeft : ArrowUpRight}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : (formData.tipo === 'transfer' ? "Confirmar Transferência" : "Confirmar Movimentação")}
     >
-      <div className="form-group full-width">
-        <label><Package size={14} /> Selecionar Produto</label>
-        <select 
-          value={formData.produto_id}
-          onChange={(e) => setFormData({...formData, produto_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione um item do estoque...</option>
-          {products.map(p => (
-            <option key={p.id} value={p.id}>{p.nome} ({p.unidade})</option>
-          ))}
-        </select>
-      </div>
-
-      <div className="form-group full-width">
-        <label><Building2 size={14} /> {formData.tipo === 'transfer' ? 'Depósito de Origem' : 'Depósito / Almoxarifado'}</label>
-        <select 
-          value={formData.deposito_id}
-          onChange={(e) => setFormData({...formData, deposito_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione o local {formData.tipo === 'transfer' ? 'de saída' : 'de armazenagem'}...</option>
-          {warehouses.map(w => (
-            <option key={w.id} value={w.id}>{w.nome}</option>
-          ))}
-        </select>
-      </div>
-
-      {formData.tipo === 'transfer' && (
-        <div className="form-group full-width">
-          <label><ArrowRightLeft size={14} /> Depósito de Destino</label>
-          <select 
-            value={formData.destino_deposito_id}
-            onChange={(e) => setFormData({...formData, destino_deposito_id: e.target.value})}
-            required
-          >
-            <option value="">Selecione o local de destino...</option>
-            {warehouses.filter(w => w.id !== formData.deposito_id).map(w => (
-              <option key={w.id} value={w.id}>{w.nome}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      <div className="form-group full-width">
-        <label><ArrowRightLeft size={14} /> Tipo de Movimento</label>
-        <div className="tauze-form-radio-group">
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'in' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'in'})}
-          >
-            <ArrowDownLeft size={16} />
-            <span>Entrada (+)</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'out' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'out'})}
-          >
-            <ArrowUpRight size={16} />
-            <span>Saída (-)</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'transfer' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'transfer'})}
-          >
-            <ArrowRightLeft size={16} />
-            <span>Transf.</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'adjust' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'adjust'})}
-          >
-            <Settings size={16} />
-            <span>Ajuste</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label><Hash size={14} /> Quantidade</label>
-        <input 
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
-          value={formData.quantidade}
-          onChange={(e) => setFormData({...formData, quantidade: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Calendar size={14} /> Data</label>
-        <input 
-          type="date" 
-          value={formData.data_movimentacao}
-          onChange={(e) => setFormData({...formData, data_movimentacao: e.target.value})}
-          required
-        />
-      </div>
-
-      {formData.tipo === 'in' && (
-        <>
-          <div className="form-group">
-            <label><DollarSign size={14} /> Valor Unitário (R$)</label>
-            <input 
-              type="number" 
-              step="0.01"
-              placeholder="0.00" 
-              value={formData.valor_unitario}
-              onChange={(e) => setFormData({...formData, valor_unitario: e.target.value})}
-              required
+      <div style={{ display: 'flex', gap: '16px', gridColumn: '1 / -1', background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '12px' }}>
+        
+        {/* If Transfer, we keep the Origin Depot at the top level */}
+        {formData.tipo === 'transfer' && (
+          <div className="form-group" style={{ flex: 1 }}>
+            <label><Building2 size={14} /> Depósito de Origem</label>
+            <SearchableSelect
+              value={formData.deposito_origem_id}
+              onChange={(val) => setFormData({...formData, deposito_origem_id: val})}
+              options={warehouses.map(w => ({ value: w.id, label: w.nome }))}
+              placeholder="Selecione o local de saída..."
             />
           </div>
-          <div className="form-group">
-            <label><Hash size={14} /> Número do Lote</label>
+        )}
+
+        {/* If Transfer, we keep Destination Depot at the top level */}
+        {formData.tipo === 'transfer' && (
+          <div className="form-group" style={{ flex: 1 }}>
+            <label><ArrowRightLeft size={14} /> Depósito de Destino</label>
+            <SearchableSelect
+              value={formData.destino_deposito_id}
+              onChange={(val) => setFormData({...formData, destino_deposito_id: val})}
+              options={warehouses.filter(w => w.id !== formData.deposito_origem_id).map(w => ({ value: w.id, label: w.nome }))}
+              placeholder="Selecione o local de destino..."
+            />
+          </div>
+        )}
+
+        <div className="form-group" style={{ flex: 1, minWidth: '150px' }}>
+          <label><Calendar size={14} /> Data do Lançamento</label>
+          <input 
+            type="date" 
+            value={formData.data_movimentacao}
+            onChange={(e) => setFormData({...formData, data_movimentacao: e.target.value})}
+            required
+            className="tauze-input"
+          />
+        </div>
+
+        {formData.tipo !== 'in' && (
+          <div className="form-group" style={{ flex: 2, minWidth: '200px' }}>
+            <label><Building2 size={14} /> Destino / Aplicação</label>
             <input 
               type="text" 
-              placeholder="Ex: LOT-2024-01" 
-              value={formData.lote}
-              onChange={(e) => setFormData({...formData, lote: e.target.value})}
+              className="tauze-input"
+              placeholder="Ex: Lote Engorda A1..."
+              value={formData.origem_destino}
+              onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
               required
             />
           </div>
-          <div className="form-group">
-            <label><Calendar size={14} /> Data de Validade</label>
+        )}
+
+        <div className="form-group" style={{ flex: 1, minWidth: '200px' }}>
+            <label><Users size={14} /> Responsável</label>
             <input 
-              type="date" 
-              value={formData.data_validade}
-              onChange={(e) => setFormData({...formData, data_validade: e.target.value})}
+              type="text" 
+              className="tauze-input"
+              placeholder="Nome de quem realizou..."
+              value={formData.responsavel}
+              onChange={(e) => setFormData({...formData, responsavel: e.target.value})}
               required
             />
           </div>
-        </>
-      )}
-
-      <div className="form-group">
-        <label><Users size={14} /> Responsável</label>
-        <input 
-          type="text" 
-          placeholder="Nome de quem realizou..." 
-          value={formData.responsavel}
-          onChange={(e) => setFormData({...formData, responsavel: e.target.value})}
-          required
-        />
       </div>
 
-      <div className="form-group">
-        <label><Building2 size={14} /> {formData.tipo === 'in' ? 'Parceiro' : 'Destino / Aplicação'}</label>
-        <input 
-          type="text" 
-          placeholder={formData.tipo === 'in' ? "Ex: Parceiro X..." : "Ex: Lote Engorda A1..."}
-          value={formData.origem_destino}
-          onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
-          required
-        />
+      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '8px' }}>
+        <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b', marginBottom: '16px' }}>
+          {initialData ? 'Item da Movimentação' : 'Adicionar Insumos'}
+        </h4>
+
+        {!initialData && (
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'end', marginBottom: '12px', width: '100%' }}>
+            <div className="form-group" style={{ flex: 3, margin: 0, minWidth: '200px' }}>
+              <label><Package size={14} /> Selecionar Produto</label>
+              <SearchableSelect
+                value={currentItem.produto_id}
+                onChange={(val) => setCurrentItem({...currentItem, produto_id: val})}
+                options={products.map(p => ({ value: p.id, label: `${p.nome} (${p.unidade})` }))}
+                placeholder={products.length === 0 ? (loading ? "Carregando..." : "Nenhum produto...") : "Selecione um item..."}
+              />
+            </div>
+
+            {formData.tipo !== 'transfer' && (
+              <div className="form-group" style={{ flex: 1, margin: 0, minWidth: '150px' }}>
+                <label><Building2 size={14} /> Depósito</label>
+                <SearchableSelect
+                  value={currentItem.deposito_id}
+                  onChange={(val) => setCurrentItem({...currentItem, deposito_id: val})}
+                  options={warehouses.map(w => ({ value: w.id, label: w.nome }))}
+                  placeholder={warehouses.length === 0 ? (loading ? "Carregando..." : "Nenhum depósito...") : "Selecione um depósito..."}
+                />
+              </div>
+            )}
+
+            <div className="form-group" style={{ flex: 1, margin: 0, minWidth: '100px' }}>
+              <label><Hash size={14} /> Qtd</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  placeholder="0.00" 
+                  className="tauze-input"
+                  value={currentItem.quantidade}
+                  onChange={(e) => setCurrentItem({...currentItem, quantidade: e.target.value})}
+                  style={{ width: '100%' }}
+                />
+              </div>
+            </div>
+
+            {formData.tipo !== 'transfer' && (
+              <div className="form-group" style={{ flex: 1, margin: 0, minWidth: '100px' }}>
+                <label><DollarSign size={14} /> {formData.tipo === 'out' ? 'Custo Médio (Un)' : 'Custo (Un)'}</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  placeholder="0.00" 
+                  className="tauze-input"
+                  value={currentItem.valor_unitario}
+                  onChange={(e) => setCurrentItem({...currentItem, valor_unitario: e.target.value})}
+                  disabled={formData.tipo === 'out'}
+                  style={{ width: '100%', background: formData.tipo === 'out' ? '#f1f5f9' : 'white', cursor: formData.tipo === 'out' ? 'not-allowed' : 'text' }}
+                  title={formData.tipo === 'out' ? "Custo médio calculado automaticamente" : ""}
+                />
+              </div>
+            )}
+
+            <button type="button" className="primary-btn" style={{ padding: '0 20px', height: '42px', flexShrink: 0 }} onClick={handleAddItem}>
+              <Plus size={18} />
+            </button>
+          </div>
+        )}
+
+        {/* Conditional Lot/Validity Input for Current Item (only Medicaments) */}
+        {!initialData && requiresLot && formData.tipo === 'in' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px', background: '#fffbeb', padding: '12px', borderRadius: '8px', border: '1px solid #fde68a' }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ color: '#d97706' }}><Hash size={14} /> Número do Lote (Medicamento)</label>
+              <input 
+                type="text" 
+                placeholder="Ex: LOT-2024-01" 
+                className="tauze-input"
+                style={{ borderColor: '#fcd34d' }}
+                value={currentItem.lote}
+                onChange={(e) => setCurrentItem({...currentItem, lote: e.target.value})}
+              />
+            </div>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label style={{ color: '#d97706' }}><Calendar size={14} /> Data de Validade</label>
+              <input 
+                type="date" 
+                className="tauze-input"
+                style={{ borderColor: '#fcd34d' }}
+                value={currentItem.data_validade}
+                onChange={(e) => setCurrentItem({...currentItem, data_validade: e.target.value})}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Edit mode: Render the single item editable fields directly instead of a cart */}
+        {initialData && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label><Package size={14} /> Produto</label>
+                  <SearchableSelect
+                    value={items[0]?.produto_id}
+                    onChange={(val) => {
+                      const newItems = [...items];
+                      newItems[0].produto_id = val;
+                      setItems(newItems);
+                    }}
+                    options={products.map(p => ({ value: p.id, label: `${p.nome} (${p.unidade})` }))}
+                    placeholder={products.length === 0 ? (loading ? "Carregando..." : "Nenhum produto...") : "Selecione um item..."}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label><Building2 size={14} /> Depósito</label>
+                  <SearchableSelect
+                    value={items[0]?.deposito_id}
+                    onChange={(val) => {
+                      const newItems = [...items];
+                      newItems[0].deposito_id = val;
+                      setItems(newItems);
+                    }}
+                    options={warehouses.map(w => ({ value: w.id, label: w.nome }))}
+                    placeholder={warehouses.length === 0 ? (loading ? "Carregando..." : "Nenhum depósito...") : "Selecione um depósito..."}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: formData.tipo === 'in' ? '1fr 1fr' : '1fr', gap: '16px' }}>
+                <div className="form-group">
+                  <label><Hash size={14} /> Quantidade</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    className="tauze-input"
+                    value={items[0]?.quantidade}
+                    onChange={(e) => {
+                      const newItems = [...items];
+                      newItems[0].quantidade = e.target.value;
+                      setItems(newItems);
+                    }}
+                    required
+                  />
+                </div>
+                {formData.tipo !== 'transfer' && (
+                  <div className="form-group">
+                    <label><DollarSign size={14} /> {formData.tipo === 'out' ? 'Custo Médio (Un)' : 'Valor Unitário'}</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="tauze-input"
+                      value={items[0]?.valor_unitario}
+                      onChange={(e) => {
+                        const newItems = [...items];
+                        newItems[0].valor_unitario = e.target.value;
+                        setItems(newItems);
+                      }}
+                      disabled={formData.tipo === 'out'}
+                      style={{ background: formData.tipo === 'out' ? '#f1f5f9' : 'white', cursor: formData.tipo === 'out' ? 'not-allowed' : 'text' }}
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+
+              {isMedicament(items[0]?.produto_id) && formData.tipo === 'in' && (
+                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label><Hash size={14} /> Lote</label>
+                    <input 
+                      type="text" 
+                      className="tauze-input"
+                      value={items[0]?.lote}
+                      onChange={(e) => {
+                        const newItems = [...items];
+                        newItems[0].lote = e.target.value;
+                        setItems(newItems);
+                      }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label><Calendar size={14} /> Data de Validade</label>
+                    <input 
+                      type="date" 
+                      className="tauze-input"
+                      value={items[0]?.data_validade}
+                      onChange={(e) => {
+                        const newItems = [...items];
+                        newItems[0].data_validade = e.target.value;
+                        setItems(newItems);
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+          </div>
+        )}
+
+        {/* Render Cart List for New Mode */}
+        {!initialData && items.length > 0 && (
+          <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <h5 style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Itens Prontos para Lançamento ({items.length})</h5>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {items.map((item, idx) => {
+                const p = products.find(prod => prod.id === item.produto_id);
+                const w = warehouses.find(wh => wh.id === item.deposito_id);
+                return (
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', border: '1px solid #e2e8f0', padding: '12px 16px', borderRadius: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                        <Package size={16} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b' }}>{p?.nome || 'Insumo'}</span>
+                        <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
+                          <span>Qtd: {item.quantidade} {p?.unidade}</span>
+                          {formData.tipo !== 'transfer' && <span>Depósito: {w?.nome || '-'}</span>}
+                          {formData.tipo !== 'transfer' && <span>Custo: R$ {item.valor_unitario}</span>}
+                          {item.lote && <span style={{ color: '#d97706' }}>Lote: {item.lote}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <button type="button" style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px' }} onClick={() => handleRemoveItem(idx)}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
+
     </FormModal>
   );
 };

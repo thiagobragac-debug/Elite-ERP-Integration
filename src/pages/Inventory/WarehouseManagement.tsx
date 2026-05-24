@@ -900,33 +900,10 @@ export const WarehouseManagement: React.FC = () => {
           <label className="tauze-label">
             <Activity size={14} /> STATUS DO ATIVO
           </label>
-          <div className="tauze-form-radio-group">
-            <input type="hidden" name="status" value={selectedWarehouse?.status || 'ativo'} />
-            <div 
-              className={`tauze-form-radio-item ${(selectedWarehouse?.status || 'ativo') === 'ativo' ? 'active' : ''}`}
-              onClick={(e) => {
-                const hiddenInput = e.currentTarget.parentElement?.querySelector('input[name="status"]') as HTMLInputElement;
-                if (hiddenInput) hiddenInput.value = 'ativo';
-                const items = e.currentTarget.parentElement?.querySelectorAll('.tauze-form-radio-item');
-                items?.forEach(i => i.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-              }}
-            >
-              <CheckCircle2 size={16} /> OPERACIONAL
-            </div>
-            <div 
-              className={`tauze-form-radio-item ${(selectedWarehouse?.status || 'ativo') === 'inativo' ? 'active' : ''}`}
-              onClick={(e) => {
-                const hiddenInput = e.currentTarget.parentElement?.querySelector('input[name="status"]') as HTMLInputElement;
-                if (hiddenInput) hiddenInput.value = 'inativo';
-                const items = e.currentTarget.parentElement?.querySelectorAll('.tauze-form-radio-item');
-                items?.forEach(i => i.classList.remove('active'));
-                e.currentTarget.classList.add('active');
-              }}
-            >
-              <X size={16} /> INATIVO
-            </div>
-          </div>
+          <select name="status" className="tauze-input tauze-select" defaultValue={selectedWarehouse?.status || 'ativo'} required>
+            <option value="ativo">Ativo (Operacional)</option>
+            <option value="inativo">Inativo (Bloqueado)</option>
+          </select>
         </div>
       </FormModal>
     </div>

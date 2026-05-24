@@ -33,7 +33,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
     localizacao: '',
     is_purchasable: true,
     is_sellable: false,
-    is_storable: true
+    is_storable: true,
+    is_active: true
   });
 
   const [loading, setLoading] = useState(false);
@@ -54,7 +55,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         localizacao: initialData.localizacao || '',
         is_purchasable: initialData.is_purchasable !== undefined ? initialData.is_purchasable : true,
         is_sellable: initialData.is_sellable !== undefined ? initialData.is_sellable : false,
-        is_storable: initialData.is_storable !== undefined ? initialData.is_storable : true
+        is_storable: initialData.is_storable !== undefined ? initialData.is_storable : true,
+        is_active: initialData.is_active !== undefined ? initialData.is_active : true
       });
     }
   }, [initialData, isOpen]);
@@ -207,6 +209,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
           onChange={(e) => setFormData({...formData, custo_medio: e.target.value})}
           required
         />
+      </div>
+
+      <div className="tauze-field-group">
+        <label className="tauze-label"><Tag size={14} /> Status do Insumo</label>
+        <select 
+          className="tauze-input tauze-select"
+          value={formData.is_active ? 'ativo' : 'inativo'}
+          onChange={(e) => setFormData({...formData, is_active: e.target.value === 'ativo'})}
+          required
+        >
+          <option value="ativo">Ativo (Visível no sistema)</option>
+          <option value="inativo">Inativo (Oculto)</option>
+        </select>
       </div>
 
       <div className="tauze-field-group full-width">
