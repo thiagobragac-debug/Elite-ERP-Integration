@@ -20,6 +20,9 @@ export const Layout: React.FC = () => {
       if (e.altKey && e.key.toLowerCase() === 'f') {
         setIsKioskMode(prev => !prev);
       }
+      if (e.key === 'Escape') {
+        setIsKioskMode(false);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);

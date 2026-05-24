@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   Building2,
   FileText,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 import { fetchCNPJData } from '../../utils/cnpj';
+import { fetchCEPData } from '../../utils/cep';
 import { maskCPFCNPJ } from '../../utils/format';
 
 interface CompanyFormProps {
@@ -127,6 +128,28 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
     }
   };
 
+  const handleCEPSearch = async () => {
+    const cleanCEP = formData.cep.replace(/\D/g, '');
+    if (cleanCEP.length !== 8) return;
+    
+    setLoading(true);
+    try {
+      const data = await fetchCEPData(cleanCEP);
+      setFormData(prev => ({
+        ...prev,
+        logradouro: data.street || prev.logradouro,
+        bairro: data.neighborhood || prev.bairro,
+        cidade: data.city || prev.cidade,
+        estado: data.state || prev.estado,
+        pais: 'Brasil'
+      }));
+    } catch (err) {
+      alert('Não foi possível localizar este CEP. Verifique os dados ou preencha manualmente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -215,8 +238,23 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
 
       <div className="form-group">
         <label>CEP</label>
-        <input type="text" placeholder="00000-000" value={formData.cep}
-          onChange={(e) => setFormData({...formData, cep: e.target.value})} />
+        <div className="tauze-input-with-action">
+          <input type="text" placeholder="00000-000" value={formData.cep}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, '');
+              const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
+              setFormData({...formData, cep: masked});
+            }} />
+          <button 
+            type="button"
+            className="action-trigger-btn"
+            onClick={handleCEPSearch}
+            title="Buscar CEP"
+            disabled={formData.cep.replace(/\D/g, '').length !== 8 || loading}
+          >
+            {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
+          </button>
+        </div>
       </div>
       <div className="form-group">
         <label>Tipo</label>

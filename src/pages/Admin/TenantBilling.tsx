@@ -395,68 +395,92 @@ export const TenantBilling: React.FC = () => {
                   {[1, 2].map(i => <div key={i} className="tauze-card-skeleton" style={{ height: '400px' }} />)}
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '32px' }}>
                   {plans.filter(p => p.price > 0).map((plan) => (
                     <motion.div 
                       key={plan.id}
-                      whileHover={{ y: -10, boxShadow: '0 30px 60px -12px rgba(0,0,0,0.1)' }}
-                      className="user-card-premium"
+                      whileHover={{ y: -12, scale: 1.02 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                      className="pricing-card-premium"
                       style={{ 
-                        height: 'auto', 
+                        position: 'relative',
                         padding: '40px', 
-                        flexDirection: 'column', 
-                        background: plan.isPopular ? 'rgba(16, 185, 129, 0.02)' : '#fff',
-                        border: plan.isPopular ? '2px solid #10b981' : '1px solid hsl(var(--border))',
-                        borderRadius: '32px'
+                        background: plan.isPopular 
+                          ? 'linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%)' 
+                          : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+                        border: plan.isPopular ? '2px solid #10b981' : '1px solid rgba(203, 213, 225, 0.5)',
+                        borderRadius: '32px',
+                        boxShadow: plan.isPopular 
+                          ? '0 20px 40px -10px rgba(16, 185, 129, 0.15)' 
+                          : '0 10px 30px -10px rgba(0,0,0,0.05)',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column'
                       }}
                     >
+                      {/* Decorative background blur */}
                       {plan.isPopular && (
-                        <div style={{ position: 'absolute', top: '24px', right: '24px', background: '#10b981', color: 'white', padding: '6px 16px', borderRadius: '20px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px' }}>RECOMENDADO</div>
+                        <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)', borderRadius: '50%', filter: 'blur(20px)' }} />
+                      )}
+
+                      {plan.isPopular && (
+                        <div style={{ position: 'absolute', top: '24px', right: '24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '6px 16px', borderRadius: '20px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1.5px', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}>
+                          MAIS ESCOLHIDO
+                        </div>
                       )}
                       
-                      <div style={{ marginBottom: '32px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', margin: '0 0 16px', letterSpacing: '1px' }}>{plan.name}</h4>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                          <span style={{ fontSize: '20px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>R$</span>
-                          <h3 style={{ margin: 0, fontSize: '48px', fontWeight: 900, color: 'hsl(var(--text-main))', letterSpacing: '-1.5px' }}>
+                      <div style={{ marginBottom: '32px', position: 'relative', zIndex: 1 }}>
+                        <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: plan.isPopular ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+                          {plan.isPopular ? <TrendingUp size={24} color="#10b981" /> : <LayoutGrid size={24} color="#3b82f6" />}
+                        </div>
+                        <h4 style={{ fontSize: '13px', fontWeight: 900, color: plan.isPopular ? '#059669' : '#64748b', textTransform: 'uppercase', margin: '0 0 16px', letterSpacing: '1.5px' }}>{plan.name}</h4>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                          <span style={{ fontSize: '18px', fontWeight: 800, color: 'hsl(var(--text-main))', marginTop: '6px' }}>R$</span>
+                          <h3 style={{ margin: 0, fontSize: '56px', fontWeight: 900, color: 'hsl(var(--text-main))', letterSpacing: '-2px', lineHeight: '1' }}>
                             {plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                           </h3>
-                          <span style={{ fontSize: '16px', fontWeight: 600, color: '#94a3b8' }}>/mês</span>
+                          <span style={{ fontSize: '16px', fontWeight: 600, color: '#94a3b8', alignSelf: 'flex-end', marginBottom: '8px' }}>/mês</span>
                         </div>
-                        <p style={{ color: '#64748b', fontSize: '14px', margin: '16px 0 0', fontWeight: 500, lineHeight: '1.6' }}>
-                          {plan.description || `Otimizado para operações com até ${plan.users_limit} usuários e gestão avançada.`}
+                        <p style={{ color: '#64748b', fontSize: '14px', margin: '20px 0 0', fontWeight: 500, lineHeight: '1.6' }}>
+                          {plan.description || `Infraestrutura sob medida para suportar operações de até ${plan.users_limit} usuários simultâneos.`}
                         </p>
                       </div>
                       
-                      <div style={{ flex: 1, marginBottom: '32px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                      <div style={{ flex: 1, marginBottom: '36px', position: 'relative', zIndex: 1 }}>
+                        <div style={{ height: '1px', background: 'linear-gradient(90deg, rgba(203, 213, 225, 0.5) 0%, transparent 100%)', marginBottom: '24px' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                           {(Array.isArray(plan.features) ? plan.features : []).map((f: string, i: number) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{ width: '20px', height: '20px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                <Check size={12} color="#10b981" strokeWidth={3} />
+                              <div style={{ width: '24px', height: '24px', background: plan.isPopular ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: plan.isPopular ? '0 4px 10px rgba(16, 185, 129, 0.2)' : 'none' }}>
+                                <Check size={14} color={plan.isPopular ? "#ffffff" : "#64748b"} strokeWidth={3} />
                               </div>
-                              <span style={{ fontSize: '13px', color: 'hsl(var(--text-main))', fontWeight: 600 }}>{f}</span>
+                              <span style={{ fontSize: '14px', color: 'hsl(var(--text-main))', fontWeight: 600 }}>{f}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                       
                       <button 
-                        className={plan.isPopular ? "primary-btn" : "glass-btn"}
+                        className={plan.isPopular ? "premium-action-btn" : "glass-btn"}
                         style={{ 
                           width: '100%', 
-                          padding: '18px', 
+                          padding: '20px', 
                           borderRadius: '16px', 
                           fontWeight: 900, 
                           fontSize: '13px', 
                           textTransform: 'uppercase', 
                           letterSpacing: '1px',
-                          background: plan.isPopular ? '#10b981' : 'transparent',
+                          background: plan.isPopular ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'white',
                           color: plan.isPopular ? '#fff' : 'hsl(var(--text-main))',
-                          boxShadow: plan.isPopular ? '0 10px 20px -5px rgba(16, 185, 129, 0.4)' : 'none'
+                          border: plan.isPopular ? 'none' : '2px solid #e2e8f0',
+                          boxShadow: plan.isPopular ? '0 15px 30px -10px rgba(16, 185, 129, 0.4)' : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          position: 'relative',
+                          zIndex: 1
                         }}
                       >
-                        ASSINAR {plan.name}
+                        MUDAR PARA {plan.name}
                       </button>
                     </motion.div>
                   ))}

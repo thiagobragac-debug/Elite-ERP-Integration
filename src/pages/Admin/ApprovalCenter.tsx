@@ -458,14 +458,27 @@ export const ApprovalCenter: React.FC = () => {
                         </button>
                       </>
                     ) : (
-                      <button 
-                        className="action-dot" 
-                        style={{ background: '#f59e0b20', color: '#f59e0b', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
-                        title="Reverter Decisão"
-                        onClick={() => handleRevert(item.id)}
-                      >
-                        <RefreshCw size={14} style={{ marginRight: '4px' }}/> Reverter
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ 
+                          color: item.status === 'approved' ? '#10b981' : '#ef4444', 
+                          fontWeight: 800, 
+                          fontSize: '11px', 
+                          textTransform: 'uppercase',
+                          background: item.status === 'approved' ? '#10b98120' : '#ef444420',
+                          padding: '4px 8px',
+                          borderRadius: '6px'
+                        }}>
+                          {item.status === 'approved' ? 'Aprovado' : 'Recusado'}
+                        </span>
+                        <button 
+                          className="action-dot" 
+                          style={{ background: '#f59e0b20', color: '#f59e0b', width: '28px', height: '28px', padding: 0, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
+                          title="Reverter Decisão"
+                          onClick={() => handleRevert(item.id)}
+                        >
+                          <RefreshCw size={14} />
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
