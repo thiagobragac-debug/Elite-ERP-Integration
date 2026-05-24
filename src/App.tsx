@@ -31,6 +31,7 @@ const WarehouseManagement = React.lazy(() => import('./pages/Inventory/Warehouse
 const WarehouseDetails = React.lazy(() => import('./pages/Inventory/WarehouseDetails').then(m => ({ default: m.WarehouseDetails })));
 const MovementManagement = React.lazy(() => import('./pages/Inventory/MovementManagement').then(m => ({ default: m.MovementManagement })));
 const AuditManagement = React.lazy(() => import('./pages/Inventory/AuditManagement').then(m => ({ default: m.AuditManagement })));
+const InventorySettings = React.lazy(() => import('./pages/Inventory/InventorySettings').then(m => ({ default: m.InventorySettings })));
 const CashFlow = React.lazy(() => import('./pages/Finance/CashFlow').then(m => ({ default: m.CashFlow })));
 const AccountsPayable = React.lazy(() => import('./pages/Finance/AccountsPayable').then(m => ({ default: m.AccountsPayable })));
 const AccountsReceivable = React.lazy(() => import('./pages/Finance/AccountsReceivable').then(m => ({ default: m.AccountsReceivable })));
@@ -60,8 +61,8 @@ const UserManagement = React.lazy(() => import('./pages/Admin/UserManagement').t
 const ProfilePage = React.lazy(() => import('./pages/Admin/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const CompanyManagement = React.lazy(() => import('./pages/Admin/CompanyManagement').then(m => ({ default: m.CompanyManagement })));
 const AdminIntelligenceHub = React.lazy(() => import('./pages/Admin/AdminIntelligenceHub').then(m => ({ default: m.AdminIntelligenceHub })));
-const AdminSettings = React.lazy(() => import('./pages/Admin/AdminSettings').then(m => ({ default: m.AdminSettings })));
 const TenantBilling = React.lazy(() => import('./pages/Admin/TenantBilling').then(m => ({ default: m.TenantBilling })));
+const ModuleSettings = React.lazy(() => import('./pages/Admin/ModuleSettings').then(m => ({ default: m.ModuleSettings })));
 const AuditLog = React.lazy(() => import('./pages/Admin/AuditLog').then(m => ({ default: m.AuditLog })));
 const ApprovalCenter = React.lazy(() => import('./pages/Admin/ApprovalCenter').then(m => ({ default: m.ApprovalCenter })));
 const SaaSAdminPanel = React.lazy(() => import('./pages/Admin/SaaSAdminPanel').then(m => ({ default: m.SaaSAdminPanel })));
@@ -167,7 +168,7 @@ function AppContent() {
                 <Route path="perfil" element={<ProfilePage />} />
                 <Route path="config" element={<CompanyManagement />} />
                 <Route path="intelligence" element={<AdminIntelligenceHub />} />
-                <Route path="configuracoes" element={<AdminSettings />} />
+                <Route path="configuracoes" element={<ModuleSettings />} />
                 <Route path="assinatura" element={<TenantBilling />} />
                 <Route path="auditoria" element={<AuditLog />} />
                 <Route path="aprovacoes" element={<ApprovalCenter />} />

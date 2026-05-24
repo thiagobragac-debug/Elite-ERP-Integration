@@ -40,7 +40,7 @@ const menuItems: NavItem[] = [
       { title: 'Intelligence Hub', href: '/admin/intelligence' },
       { title: 'Usuário', href: '/admin/usuarios' },
       { title: 'Empresa / Fazenda', href: '/admin/config' },
-      { title: 'Configurações', href: '/admin/configuracoes' },
+      { title: 'Central de Configurações', href: '/admin/configuracoes' },
       { title: 'Aprovações', href: '/admin/aprovacoes' },
       { title: 'Assinatura & Planos', href: '/admin/assinatura' },
       { title: 'Log de Auditoria', href: '/admin/auditoria' },

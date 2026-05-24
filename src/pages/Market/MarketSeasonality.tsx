@@ -45,6 +45,20 @@ export const MarketSeasonality: React.FC = () => {
           }
           return null;
         }).filter(Boolean) as any[];
+      } else if (indicator === 'relacao_boi_milho') {
+        const [boiData, milhoData] = await Promise.all([
+          fetchHistoricalQuotes('boi_gordo_cepea', undefined, undefined, true),
+          fetchHistoricalQuotes('milho_cepea', undefined, undefined, true)
+        ]);
+
+        const milhoMap = new Map(milhoData.map((d: any) => [d.date, Number(d.value)]));
+        rawData = boiData.map((boi: any) => {
+          const milhoVal = milhoMap.get(boi.date);
+          if (milhoVal && milhoVal > 0) {
+            return { date: boi.date, value: Number(boi.value) / milhoVal };
+          }
+          return null;
+        }).filter(Boolean) as any[];
       } else {
         rawData = await fetchHistoricalQuotes(indicator, undefined, undefined, true);
       }
@@ -118,9 +132,9 @@ export const MarketSeasonality: React.FC = () => {
     '#8b5cf6', '#ec4899', '#14b8a6', '#f97316'
   ];
 
-  const isRatio = indicator === 'relacao_bezerro_boi';
+  const isRatio = indicator === 'relacao_bezerro_boi' || indicator === 'relacao_boi_milho';
   const prefix = isRatio ? '' : 'R$ ';
-  const suffix = isRatio ? ' @' : '';
+  const suffix = indicator === 'relacao_bezerro_boi' ? ' @' : indicator === 'relacao_boi_milho' ? ' sc' : '';
 
   // Compute KPIs from multi-year data
   const latestYear = selectedYears.length > 0 ? selectedYears[0] : null;
@@ -213,17 +227,7 @@ export const MarketSeasonality: React.FC = () => {
         </div>
         
         <div className="page-actions" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <select 
-            value={indicator} 
-            onChange={(e) => setIndicator(e.target.value)}
-            className="market-select-tauze"
-          >
-            <option value="boi_gordo_cepea">Boi Gordo (CEPEA) - R$/@</option>
-            <option value="bezerro_ms_cepea">Bezerro MS (CEPEA) - R$/cabeça</option>
-            <option value="bezerro_sp_cepea">Bezerro SP (CEPEA) - R$/cabeça</option>
-            <option value="relacao_bezerro_boi">Relação Bezerro/Boi (Qtd @)</option>
-            <option value="milho_cepea" disabled>Milho (CEPEA) - Em Breve</option>
-          </select>
+          {/* O seletor de indicador foi movido para o painel de filtros abaixo */}
         </div>
       </header>
 
@@ -248,65 +252,71 @@ export const MarketSeasonality: React.FC = () => {
         }
       </div>
 
-      <div className="floating-filter-card" style={{
-        background: 'hsl(var(--bg-card))',
-        border: '1px solid hsl(var(--border))',
-        borderRadius: '16px',
-        padding: '20px',
-        marginBottom: '24px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '24px',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div className="title-info" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ padding: '10px', background: 'hsl(var(--brand) / 0.1)', borderRadius: '10px' }}>
-            <Filter size={20} className="text-brand" />
+      <div className="panel-header-tauze" style={{ background: 'hsl(var(--bg-main))', padding: '16px', borderRadius: '16px', border: '1px solid hsl(var(--border))', marginBottom: '24px', height: 'fit-content', flex: 'none' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start', width: '100%' }}>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '250px' }}>
+            <label style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Indicador</label>
+            <select 
+              value={indicator} 
+              onChange={(e) => setIndicator(e.target.value)}
+              className="market-select-tauze"
+              style={{ height: '42px', padding: '0 12px', width: '100%' }}
+            >
+              <option value="boi_gordo_cepea">Boi Gordo (CEPEA) - R$/@</option>
+              <option value="bezerro_ms_cepea">Bezerro MS (CEPEA) - R$/cabeça</option>
+              <option value="bezerro_sp_cepea">Bezerro SP (CEPEA) - R$/cabeça</option>
+              <option value="milho_cepea">Milho (CEPEA) - R$/sc</option>
+              <option value="relacao_bezerro_boi">Relação Bezerro/Boi (Qtd @)</option>
+              <option value="relacao_boi_milho">Relação Boi/Milho (Qtd sacas)</option>
+            </select>
           </div>
-          <div>
-            <h3 style={{ margin: 0, fontSize: '1rem', color: 'hsl(var(--text-main))' }}>Anos Selecionados</h3>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'hsl(var(--text-muted))' }}>Clique nos botões abaixo para ligar/desligar a linha do ano correspondente no gráfico</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
+            <label style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Anos Selecionados para Comparativo</label>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', minHeight: '42px', alignItems: 'center' }}>
+              {availableYears.map((year, i) => {
+                const isActive = selectedYears.includes(year);
+                const color = colors[i % colors.length];
+                return (
+                  <button 
+                    key={year}
+                    onClick={() => toggleYear(year)}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: `1px solid ${isActive ? color : 'hsl(var(--border))'}`,
+                      background: isActive ? `${color}15` : 'transparent',
+                      color: isActive ? color : 'hsl(var(--text-muted))',
+                      transition: 'all 0.2s',
+                      height: '38px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    onMouseOver={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.borderColor = 'hsl(var(--text-muted))';
+                        e.currentTarget.style.color = 'hsl(var(--text-main))';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.borderColor = 'hsl(var(--border))';
+                        e.currentTarget.style.color = 'hsl(var(--text-muted))';
+                      }
+                    }}
+                  >
+                    {year}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
-        
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {availableYears.map((year, i) => {
-            const isActive = selectedYears.includes(year);
-            const color = colors[i % colors.length];
-            return (
-              <button 
-                key={year}
-                onClick={() => toggleYear(year)}
-                style={{
-                  padding: '6px 16px',
-                  borderRadius: '100px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  border: `1px solid ${isActive ? color : 'hsl(var(--border))'}`,
-                  background: isActive ? `${color}15` : 'transparent',
-                  color: isActive ? color : 'hsl(var(--text-muted))',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.borderColor = 'hsl(var(--text-muted))';
-                    e.currentTarget.style.color = 'hsl(var(--text-main))';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.borderColor = 'hsl(var(--border))';
-                    e.currentTarget.style.color = 'hsl(var(--text-muted))';
-                  }
-                }}
-              >
-                {year}
-              </button>
-            )
-          })}
+
         </div>
       </div>
 

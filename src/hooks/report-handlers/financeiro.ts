@@ -67,6 +67,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
         type: 'outflow',
         category: p.categoria || 'Despesa Operacional',
         description: p.descricao,
+        status: p.status === 'PAGO' ? 'paid' : 'pending',
         entity: 'contas_pagar'
       })),
       ...(recRes.data || []).map((r: any) => ({
@@ -76,6 +77,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
         type: 'inflow',
         category: r.categoria || 'Receita Bruta',
         description: r.descricao,
+        status: r.status === 'PAGO' ? 'paid' : 'pending',
         entity: 'contas_receber'
       }))
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

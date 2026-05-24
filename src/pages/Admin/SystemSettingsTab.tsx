@@ -76,11 +76,14 @@ const AVAILABLE_METRICS: Metric[] = [
   { id: 'preco_arroba', name: 'Cotação da @ (B3)', cat: 'Mercado', icon: TrendingUp, value: 'R$ 242,50', trend: '+1.2%', isPositive: true, color: '#8b5cf6' },
 ];
 
-export const AdminSettings: React.FC = () => {
+export const SystemSettingsTab: React.FC<{
+  activeTab: string;
+  triggerSave: number;
+  onSaveStatus: (isSaving: boolean, success: boolean) => void;
+}> = ({ activeTab, triggerSave, onSaveStatus }) => {
   const location = useLocation();
   const { tenant, refreshData, userProfile, refreshProfile } = useTenant();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<SettingTab>('system');
   const [isSaving, setIsSaving] = useState(false);
   const [saveScope, setSaveScope] = useState<'global' | 'personal'>('global');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -117,6 +120,16 @@ export const AdminSettings: React.FC = () => {
       setMetricTargets(tenant.settings.metric_targets);
     }
   }, [location.pathname, tenant, userProfile]);
+
+  useEffect(() => {
+    if (triggerSave > 0) {
+      handleSave();
+    }
+  }, [triggerSave]);
+
+  useEffect(() => {
+    onSaveStatus(isSaving, saveSuccess);
+  }, [isSaving, saveSuccess]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -249,63 +262,9 @@ export const AdminSettings: React.FC = () => {
     }
   };
 
-  const tabs = [
-    { id: 'system', label: 'Parâmetros de Sistema', icon: Settings },
-    { id: 'governance', label: 'Políticas Operacionais', icon: Shield },
-    { id: 'bi', label: 'Inteligência (BI)', icon: PieChart },
-    { id: 'canvas', label: 'Personalização (Canvas)', icon: Layout },
-  ];
-
   return (
-    <div className="admin-page animate-slide-up">
-      <header className="page-header">
-        <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Settings size={14} fill="currentColor" />
-            <span>CENTRAL DE GOVERNANÇA v5.0</span>
-          </div>
-          <h1 className="page-title">Configurações do Ecossistema</h1>
-          <p className="page-subtitle">Gestão estratégica de parâmetros, métricas e interface do ecossistema Tauze.</p>
-        </div>
-        <div className="page-actions">
-          <AnimatePresence>
-            {saveSuccess && (
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                className="save-toast-tauze"
-              >
-                <Check size={16} />
-                <span>Alterações Sincronizadas</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <button className={`primary-btn ${saveSuccess ? 'success' : ''}`} onClick={handleSave} disabled={isSaving}>
-            {isSaving ? <RefreshCw size={18} className="animate-spin" /> : saveSuccess ? <Check size={18} /> : <Save size={18} />}
-            <span>{isSaving ? 'SINCRONIZANDO...' : saveSuccess ? 'CONFIGURAÇÕES SALVAS' : 'SALVAR ALTERAÇÕES'}</span>
-          </button>
-        </div>
-      </header>
-
-      <div className="tauze-controls-row" style={{ marginTop: '24px' }}>
-        <div className="tauze-tab-group">
-          {tabs.map(tab => (
-            <button 
-              key={tab.id}
-              className={`tauze-tab-item ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id as SettingTab)}
-            >
-              <tab.icon size={16} />
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-      
-      <div className="tauze-separator" style={{ margin: '24px 0' }}></div>
-
-      <main className="hub-content">
+    <div className="tab-content-wrapper animate-slide-up">
+      <main className="hub-content" style={{ padding: 0 }}>
         <AnimatePresence mode="wait">
           {activeTab === 'system' && (
             <motion.div 

@@ -123,25 +123,30 @@ export const QuotationMap: React.FC = () => {
             sparkline: [93,94,95,96,97,97,98].map((v,i) => ({ value: v, label: `${v}%` }))
           },
         ]);
+        if (data.length === 0) {
+          // Fallback para visualização da demo se o banco real estiver vazio
+          const mockData = [
+            { id: 'mock-1', produto_id: 'Diesel S10 (DEMO)', quantidade: 15000, unidade: 'L', status: 'analyzing', dados_parceiroes: [{price: 5.80, nome: 'Shell'},{price: 5.65, nome: 'Ipiranga'},{price: 5.72, nome: 'Petrobras'}], created_at: new Date().toISOString(), titulo: 'Cotação Combustível' },
+            { id: 'mock-2', produto_id: 'Ração Confinamento (DEMO)', quantidade: 500, unidade: 'kg', status: 'analyzing', dados_parceiroes: [{price: 1850, nome: 'Agrosoja'},{price: 1780, nome: 'Nutrição Total'}], created_at: new Date().toISOString(), titulo: 'Cotação Ração' },
+            { id: 'mock-3', produto_id: 'Ivermectina 1% (DEMO)', quantidade: 200, unidade: 'mL', status: 'closed', dados_parceiroes: [{price: 12.50, nome: 'Agropec'},{price: 11.90, nome: 'VetFarm'},{price: 12.10, nome: 'AgroVet'}], created_at: new Date(Date.now()-7*86400000).toISOString(), titulo: 'Cotação Vermífugo' },
+          ];
+          setQuotations(mockData);
+          setStats([
+            { label: 'Mapas em Análise', value: 2, icon: BarChart2, color: '#10b981', progress: 100, change: 'Dados demo',
+              sparkline: [0,0,1,1,2,2,2].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+            { label: 'Saving Acumulado', value: 'R$ 2.250', icon: TrendingDown, color: '#3b82f6', progress: 85, trend: 'down' as const, change: 'Economia Demo',
+              sparkline: [500,900,1200,1500,1800,2100,2250].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
+            { label: 'Densidade de Rede', value: '2.7 propostas', icon: Building2, color: '#f59e0b', progress: 100, change: 'Média Demo',
+              sparkline: [2,2,3,3,3,3,3].map((v,i) => ({ value: v, label: `${v}` })) },
+            { label: 'Acuracidade Orç.', value: '96%', icon: Target, color: '#166534', progress: 96, change: 'Precisão Demo',
+              sparkline: [90,91,92,93,94,95,96].map((v,i) => ({ value: v, label: `${v}%` })) },
+          ]);
+        }
       }
     } catch (err) {
       console.error('[QuotationMap] Error:', err);
-      // Fallback com dados demonstrativos
-      setQuotations([
-        { id: 'mock-1', produto_id: 'Diesel S10 (DEMO)', quantidade: 15000, unidade: 'L', status: 'analyzing', dados_parceiroes: [{price: 5.80, nome: 'Shell'},{price: 5.65, nome: 'Ipiranga'},{price: 5.72, nome: 'Petrobras'}], created_at: new Date().toISOString(), titulo: 'Cotação Combustível' },
-        { id: 'mock-2', produto_id: 'Ração Confinamento (DEMO)', quantidade: 500, unidade: 'kg', status: 'analyzing', dados_parceiroes: [{price: 1850, nome: 'Agrosoja'},{price: 1780, nome: 'Nutrição Total'}], created_at: new Date().toISOString(), titulo: 'Cotação Ração' },
-        { id: 'mock-3', produto_id: 'Ivermectina 1% (DEMO)', quantidade: 200, unidade: 'mL', status: 'closed', dados_parceiroes: [{price: 12.50, nome: 'Agropec'},{price: 11.90, nome: 'VetFarm'},{price: 12.10, nome: 'AgroVet'}], created_at: new Date(Date.now()-7*86400000).toISOString(), titulo: 'Cotação Vermífugo' },
-      ]);
-      setStats([
-        { label: 'Mapas em Análise', value: 2, icon: BarChart2, color: '#10b981', progress: 100, change: 'Dados demo',
-          sparkline: [0,0,1,1,2,2,2].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-        { label: 'Saving Acumulado', value: 'R$ 2.250', icon: TrendingDown, color: '#3b82f6', progress: 85, trend: 'down' as const, change: 'Economia Demo',
-          sparkline: [500,900,1200,1500,1800,2100,2250].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-        { label: 'Densidade de Rede', value: '2.7 propostas', icon: Building2, color: '#f59e0b', progress: 100, change: 'Média Demo',
-          sparkline: [2,2,3,3,3,3,3].map((v,i) => ({ value: v, label: `${v}` })) },
-        { label: 'Acuracidade Orç.', value: '96%', icon: Target, color: '#166534', progress: 96, change: 'Precisão Demo',
-          sparkline: [90,91,92,93,94,95,96].map((v,i) => ({ value: v, label: `${v}%` })) },
-      ]);
+      // Fallback de erro
+      console.error('[QuotationMap] Error:', err);
     } finally {
       setLoading(false);
     }

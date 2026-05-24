@@ -9,6 +9,8 @@ import {
   FileText
 } from 'lucide-react';
 import { FormModal } from './FormModal';
+import { SearchableSelect } from './SearchableSelect';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ProductFormProps {
   isOpen: boolean;
@@ -19,9 +21,13 @@ interface ProductFormProps {
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSubmit, initialData, hasHistory = false }) => {
+  const { tenant } = useAuth();
+  const [categories, setCategories] = useState<{value: string, label: string}[]>([]);
+  const [ncms, setNcms] = useState<{value: string, label: string}[]>([]);
   const [formData, setFormData] = useState({
     nome: '',
-    categoria: 'Outros',
+    categoria: '',
+    categoria_id: '',
     unidade: 'un',
     estoque_minimo: '0',
     estoque_atual: '0',
@@ -40,10 +46,63 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
+    const fetchCategories = async () => {
+      if (!tenant) return;
+      const { data } = await supabase
+        .from('categorias_sistema')
+        .select('id, nome')
+        .eq('tenant_id', tenant.id)
+        .eq('modulo', 'estoque')
+        .eq('is_active', true)
+        .order('nome');
+      
+      if (data && data.length > 0) {
+        setCategories(data.map(d => ({ value: d.id, label: d.nome })));
+      } else {
+        // Fallback or empty
+        setCategories([
+          { value: "Semente", label: "Semente" },
+          { value: "Adubo", label: "Adubo" },
+          { value: "Medicamento", label: "Medicamento" },
+          { value: "Suplemento", label: "Suplemento / Sal" },
+          { value: "Combustível", label: "Combustível" },
+          { value: "Outros", label: "Outros" }
+        ]);
+      }
+    };
+
+    const fetchNcms = async () => {
+      if (!tenant) return;
+      const { data } = await supabase
+        .from('estoque_ncms')
+        .select('codigo, descricao')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .order('codigo');
+        
+      if (data && data.length > 0) {
+        setNcms(data.map(d => ({ value: d.codigo, label: `${d.codigo} - ${d.descricao}` })));
+      } else {
+        setNcms([
+          { value: "3105.20.00", label: "3105.20.00 - Adubos ou Fertilizantes" },
+          { value: "3808.91.19", label: "3808.91.19 - Inseticidas" },
+          { value: "1005.90.10", label: "1005.90.10 - Milho em Grão" }
+        ]);
+      }
+    };
+
+    if (isOpen) {
+      fetchCategories();
+      fetchNcms();
+    }
+  }, [tenant, isOpen]);
+
+  React.useEffect(() => {
     if (initialData) {
       setFormData({
         nome: initialData.nome || '',
-        categoria: initialData.categoria || 'Outros',
+        categoria_id: initialData.categoria_id || '',
+        categoria: initialData.categoria || '',
         unidade: initialData.unidade || 'un',
         estoque_minimo: initialData.estoque_minimo?.toString() || '0',
         estoque_atual: initialData.estoque_atual?.toString() || '0',
@@ -96,19 +155,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
 
       <div className="tauze-field-group">
         <label className="tauze-label"><Tag size={14} /> Categoria</label>
-        <select 
-          className="tauze-input tauze-select"
-          value={formData.categoria}
-          onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-          required
-        >
-          <option value="Semente">Semente</option>
-          <option value="Adubo">Adubo</option>
-          <option value="Medicamento">Medicamento</option>
-          <option value="Suplemento">Suplemento / Sal</option>
-          <option value="Combustível">Combustível</option>
-          <option value="Outros">Outros</option>
-        </select>
+        <SearchableSelect
+          value={formData.categoria_id || formData.categoria}
+          onChange={(val) => {
+            // Find if val is a known ID
+            const isKnown = categories.find(c => c.value === val);
+            if (isKnown) {
+              setFormData({...formData, categoria_id: val, categoria: isKnown.label});
+            } else {
+              setFormData({...formData, categoria_id: '', categoria: val}); // Free text if creatable
+            }
+          }}
+          creatable={true}
+          placeholder="Selecione ou digite nova..."
+          options={categories}
+        />
       </div>
 
       <div className="tauze-field-group">
@@ -146,12 +207,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
 
       <div className="tauze-field-group">
         <label className="tauze-label"><Hash size={14} /> NCM</label>
-        <input 
-          className="tauze-input"
-          type="text" 
-          placeholder="Código Fiscal" 
+        <SearchableSelect
+          options={ncms}
           value={formData.ncm}
-          onChange={(e) => setFormData({...formData, ncm: e.target.value})}
+          onChange={(val) => setFormData({...formData, ncm: val})}
+          placeholder="Selecione um NCM..."
         />
       </div>
 

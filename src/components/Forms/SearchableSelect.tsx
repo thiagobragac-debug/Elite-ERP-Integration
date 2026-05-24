@@ -13,6 +13,7 @@ interface SearchableSelectProps {
   options: Option[];
   placeholder?: string;
   icon?: React.ReactNode;
+  creatable?: boolean;
 }
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -20,7 +21,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   onChange,
   options,
   placeholder = 'Selecione...',
-  icon
+  icon,
+  creatable = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -70,6 +72,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     const safeInput = (inputValue || '').toString().toLowerCase();
     return safeLabel.includes(safeInput);
   });
+
+  const exactMatch = options.some(opt => 
+    (opt.label || '').toString().toLowerCase() === (inputValue || '').toString().toLowerCase()
+  );
+
+  const showCreatable = creatable && inputValue.trim().length > 0 && !exactMatch;
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
@@ -135,7 +143,31 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           overflow: 'hidden'
         }}>
           <div style={{ overflowY: 'auto', padding: '4px' }}>
-            {filteredOptions.length === 0 ? (
+            {showCreatable && (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange(inputValue); // Using the exact typed value
+                  setIsOpen(false);
+                  inputRef.current?.blur();
+                }}
+                style={{
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: '#f0fdf4',
+                  color: '#16a34a',
+                  fontWeight: 600,
+                  marginBottom: '4px'
+                }}
+              >
+                + Criar "{inputValue}"
+              </div>
+            )}
+            
+            {filteredOptions.length === 0 && !showCreatable ? (
               <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
                 Nenhum resultado encontrado. <br/> <span style={{ fontSize: '10px' }}>[Total base: {options.length}]</span>
               </div>
