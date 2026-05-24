@@ -330,18 +330,10 @@ export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1,
  */
 export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
   const mockData = {
-    data: [
-      { id: '1', type: 'VACINA', title: 'MOCK: Vacinação Aftosa', target: 'Lote 01', date: 'Hoje', priority: 'high' },
-      { id: '2', type: 'PESAGEM', title: 'MOCK: Pesagem Periódica', target: 'Lote 02', date: 'Amanhã', priority: 'medium' }
-    ],
-    stats: [
-      { label: 'Estoque Biológico', sparkline: (() => {  const valStr = String('425 Cabeças'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '425 Cabeças', change: 'MOCK', trend: 'neutral' as const, icon: Beef, color: '#10b981' },
-      { label: 'GMD Médio (30d)', sparkline: (() => {  const valStr = String('0.842 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '0.842 kg', change: 'MOCK', trend: 'up' as const, icon: TrendingUp, color: '#3b82f6' },
-      { label: 'Taxa de Lotação', sparkline: (() => {  const valStr = String('1.82 UA/ha'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.82 UA/ha', change: 'MOCK', trend: 'up' as const, icon: MapIcon, color: '#f59e0b' },
-      { label: 'Segurança Sanitária', sparkline: (() => {  const valStr = String('2'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '2', change: 'Trava Ativa', trend: 'down' as const, icon: Skull, color: '#ef4444' }
-    ],
+    manejos: [],
+    stats: [],
     columns: [],
-    totalCount: 2
+    totalCount: 0
   };
 
   try {

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   HeartPulse, 
   Plus, 
@@ -363,17 +363,15 @@ export const HealthManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {events.length === 0 && !loading ? (
-          <EmptyState
+        <ModernTable 
+          emptyState={<EmptyState
             title="Nenhum registro sanitário"
             description="Nenhum manejo ou protocolo foi lançado para esta unidade. Inicie o controle sanitário registrando a primeira vacinação ou tratamento."
             actionLabel="Novo Registro"
             onAction={handleOpenCreate}
             icon={HeartPulse}
-          />
-        ) : (
-          <ModernTable 
-            data={filteredEvents}
+          />}
+          data={filteredEvents}
             columns={tableColumns}
             loading={loading}
             hideHeader={true}
@@ -388,9 +386,7 @@ export const HealthManagement: React.FC = () => {
                 <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar"><Edit3 size={18} /></button>
                 <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir"><Trash2 size={18} /></button>
               </div>
-            )}
           />
-        )}
       </div>
 
       <HealthForm 

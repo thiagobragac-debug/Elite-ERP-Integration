@@ -414,16 +414,14 @@ export const AccountsPayable: React.FC = () => {
       />
 
       <div className="management-content">
-        {bills.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhuma conta a pagar"
-            description="Não há obrigações financeiras registradas para esta unidade. Registre uma nova conta para iniciar o controle de pagamentos."
-            actionLabel="Nova Conta"
-            onAction={handleOpenCreate}
-            icon={CreditCard}
-          />
-        ) : (
           <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhuma conta a pagar"
+              description="Não há obrigações financeiras registradas para esta unidade. Registre uma nova conta para iniciar o controle de pagamentos."
+              actionLabel="Nova Conta"
+              onAction={handleOpenCreate}
+              icon={CreditCard}
+            />}
              data={bills}
             columns={columns}
             loading={loading}
@@ -459,7 +457,6 @@ export const AccountsPayable: React.FC = () => {
               </div>
             )}
           />
-        )}
       </div>
 
       <AnimatePresence>

@@ -398,16 +398,15 @@ export const AnimalManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {animals.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhum animal cadastrado"
-            description="Não há animais registrados para esta unidade. Inicie o controle do rebanho cadastrando o primeiro animal."
-            actionLabel="Novo Animal"
-            onAction={handleOpenCreate}
-            icon={Beef}
-          />
-        ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
           <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhum animal cadastrado"
+              description="Não há animais registrados para esta unidade. Inicie o controle do rebanho cadastrando o primeiro animal."
+              actionLabel="Novo Animal"
+              onAction={handleOpenCreate}
+              icon={Beef}
+            />}
             data={filteredAnimals}
             columns={tableColumns}
             loading={loading}

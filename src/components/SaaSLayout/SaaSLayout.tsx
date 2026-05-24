@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { SaaSSidebar } from './SaaSSidebar';
 import { Header } from '../Layout/Header';
 import '../Layout/Layout.css'; // Reuse layout styles for structure
@@ -8,6 +9,12 @@ interface SaaSLayoutProps {
 }
 
 export const SaaSLayout: React.FC<SaaSLayoutProps> = ({ children }) => {
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   return (
     <div className="layout">
       <SaaSSidebar />

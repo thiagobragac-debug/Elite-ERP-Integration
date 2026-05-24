@@ -30,6 +30,7 @@ interface ModernTableProps<T> {
   onPageChange?: (page: number) => void;
   itemsPerPage?: number;
   onlyPagination?: boolean;
+  emptyState?: React.ReactNode;
 }
 
 import { formatNumber } from '../../utils/format';
@@ -52,7 +53,8 @@ export function ModernTable<T extends { id: string | number }>({
   currentPage: externalPage,
   onPageChange,
   itemsPerPage = 10,
-  onlyPagination = false
+  onlyPagination = false,
+  emptyState
 }: ModernTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState('');
   const [internalPage, setInternalPage] = useState(1);
@@ -264,10 +266,12 @@ export function ModernTable<T extends { id: string | number }>({
         </table>
         
         {!loading && paginatedData.length === 0 && (
-          <div className="empty-state">
-            <Search size={48} />
-            <p>Nenhum registro encontrado para sua busca.</p>
-          </div>
+          emptyState ? emptyState : (
+            <div className="empty-state">
+              <Search size={48} />
+              <p>Nenhum registro encontrado para sua busca.</p>
+            </div>
+          )
         )}
       </div>
 

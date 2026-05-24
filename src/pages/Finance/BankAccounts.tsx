@@ -500,16 +500,15 @@ export const BankAccounts: React.FC = () => {
       </div>
 
       <div className="management-content">
-        {accounts.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhuma conta bancária"
-            description="Você ainda não possui contas bancárias cadastradas para esta unidade. Comece adicionando sua primeira conta para gerir a tesouraria."
-            actionLabel="Nova Conta"
-            onAction={handleOpenCreate}
-            icon={Building2}
-          />
-        ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
            <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhuma conta bancária"
+              description="Você ainda não possui contas bancárias cadastradas para esta unidade. Comece adicionando sua primeira conta para gerir a tesouraria."
+              actionLabel="Nova Conta"
+              onAction={handleOpenCreate}
+              icon={Building2}
+            />}
             data={accounts.filter(acc => {
               const matchesSearch = (acc.banco || '').toLowerCase().includes(searchTerm.toLowerCase()) || (acc.conta || '').toLowerCase().includes(searchTerm.toLowerCase());
               const matchesTab = activeTab === 'BALANCES' ? true : (acc.saldo_atual > 0);

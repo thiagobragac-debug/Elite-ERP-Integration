@@ -496,16 +496,15 @@ export const FleetManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {machines.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhum ativo cadastrado"
-            description="A frota desta unidade ainda não possui ativos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
-            actionLabel="Novo Ativo"
-            onAction={handleOpenCreate}
-            icon={Truck}
-          />
-        ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
           <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhum ativo cadastrado"
+              description="A frota desta unidade ainda não possui ativos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
+              actionLabel="Novo Ativo"
+              onAction={handleOpenCreate}
+              icon={Truck}
+            />}
             data={machines.filter(m => {
               const matchesSearch = (
                 (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 

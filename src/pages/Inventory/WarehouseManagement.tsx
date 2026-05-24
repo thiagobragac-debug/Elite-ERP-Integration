@@ -832,7 +832,7 @@ export const WarehouseManagement: React.FC = () => {
         subtitle={`Vincule este almoxarifado à fazenda ${activeFarm?.name || 'ativa'}`}
         icon={Package}
         submitLabel={selectedWarehouse ? "Salvar Alterações" : "Confirmar Cadastro"}
-        size="large"
+        size="medium"
       >
         <div className="tauze-field-group">
           <label className="tauze-label">

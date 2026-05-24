@@ -159,10 +159,7 @@ export const perfisUsuario: ReportHandler = async (tenantId, fazendaId, page = 1
  */
 export const adminOverview: ReportHandler = async (tenantId, fazendaId) => {
   const mockData = {
-    data: [
-      { id: '1', action: 'INSERT', entity: 'animais', description: 'MOCK: Inserido animal BR 4520', created_at: new Date().toISOString() },
-      { id: '2', action: 'DELETE', entity: 'lotes', description: 'MOCK: Excluído lote LT 03 legado', created_at: new Date().toISOString() }
-    ],
+    data: [],
     columns: [
       { header: 'Ação', accessor: 'action' },
       { header: 'Tabela', accessor: 'entity' },

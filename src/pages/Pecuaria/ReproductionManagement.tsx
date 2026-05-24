@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Heart, 
   Plus, 
@@ -400,17 +400,15 @@ export const ReproductionManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {events.length === 0 && !loading ? (
-          <EmptyState
+        <ModernTable 
+          emptyState={<EmptyState
             title="Nenhum evento reprodutivo"
             description="Não há registros reprodutivos para esta unidade. Inicie o controle registrando a primeira inseminação ou diagnóstico."
             actionLabel="Novo Evento"
             onAction={handleOpenCreate}
             icon={Heart}
-          />
-        ) : (
-          <ModernTable 
-            data={filteredEvents}
+          />}
+          data={filteredEvents}
             columns={columns}
             loading={loading}
             hideHeader={true}
@@ -433,7 +431,6 @@ export const ReproductionManagement: React.FC = () => {
               </div>
             )}
           />
-        )}
       </div>
 
       <ReproductionForm 

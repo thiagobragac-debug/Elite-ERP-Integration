@@ -577,16 +577,15 @@ const PastureManagement: React.FC = () => {
       </div>
 
       <div className="management-content">
-        {localPastures.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhum pasto cadastrado"
-            description="Não há áreas de pastagem registradas. Comece cadastrando seus piquetes para monitorar a lotação."
-            actionLabel="Novo Pasto"
-            onAction={handleOpenCreate}
-            icon={Trees}
-          />
-        ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
           <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhum pasto cadastrado"
+              description="Não há áreas de pastagem registradas. Comece cadastrando seus piquetes para monitorar a lotação."
+              actionLabel="Novo Pasto"
+              onAction={handleOpenCreate}
+              icon={Trees}
+            />}
             data={filteredPastures}
             columns={tableColumns}
             loading={loading}

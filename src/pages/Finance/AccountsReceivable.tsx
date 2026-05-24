@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   HandCoins, 
   Plus, 
@@ -399,16 +399,14 @@ export const AccountsReceivable: React.FC = () => {
       </div>
 
       <div className="management-content">
-        {invoices.length === 0 && !loading ? (
-          <EmptyState 
-            title="Nenhum recebível cadastrado" 
-            description="Você ainda não registrou nenhuma conta a receber para esta unidade. Comece adicionando uma nova venda ou fatura."
-            actionLabel="Adicionar Receita"
-            onAction={handleOpenCreate}
-            icon={HandCoins}
-          />
-        ) : (
           <ModernTable 
+            emptyState={<EmptyState 
+              title="Nenhum recebível cadastrado" 
+              description="Você ainda não registrou nenhuma conta a receber para esta unidade. Comece adicionando uma nova venda ou fatura."
+              actionLabel="Adicionar Receita"
+              onAction={handleOpenCreate}
+              icon={HandCoins}
+            />}
             data={invoices}
             columns={columns}
             loading={loading}
@@ -444,7 +442,6 @@ export const AccountsReceivable: React.FC = () => {
               </div>
             )}
           />
-        )}
       </div>
 
       <AnimatePresence>

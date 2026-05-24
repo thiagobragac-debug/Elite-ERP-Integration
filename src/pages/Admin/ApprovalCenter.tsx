@@ -125,6 +125,11 @@ export const ApprovalCenter: React.FC = () => {
     setPendencies(prev => prev.map(p => p.id === id ? { ...p, status: 'rejected' } : p));
   };
 
+  const handleRevert = (id: string) => {
+    if (!confirm('Tem certeza que deseja reverter esta decisão? O status voltará para pendente.')) return;
+    setPendencies(prev => prev.map(p => p.id === id ? { ...p, status: 'pending', stage: 1 } : p));
+  };
+
   const pendingCount = pendencies.filter(p => p.status === 'pending').length;
   const approvedCount = pendencies.filter(p => p.status === 'approved').length;
   const rejectedCount = pendencies.filter(p => p.status === 'rejected').length;
@@ -432,26 +437,37 @@ export const ApprovalCenter: React.FC = () => {
                 hideHeader={true}
                 searchPlaceholder="Buscar pendências..."
                 actions={(item) => (
-                  item.status === 'pending' ? (
-                    <div className="modern-actions" style={{ justifyContent: 'flex-end', width: '100%' }}>
+                  <div className="modern-actions" style={{ justifyContent: 'flex-end', width: '100%' }}>
+                    {item.status === 'pending' ? (
+                      <>
+                        <button 
+                          className="action-dot" 
+                          style={{ background: '#22c55e20', color: '#22c55e', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
+                          title="Aprovar"
+                          onClick={() => handleApprove(item.id)}
+                        >
+                          Aprovar
+                        </button>
+                        <button 
+                          className="action-dot" 
+                          style={{ background: '#ef444420', color: '#ef4444', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
+                          title="Rejeitar"
+                          onClick={() => handleReject(item.id)}
+                        >
+                          Rejeitar
+                        </button>
+                      </>
+                    ) : (
                       <button 
                         className="action-dot" 
-                        style={{ background: '#22c55e20', color: '#22c55e', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
-                        title="Aprovar"
-                        onClick={() => handleApprove(item.id)}
+                        style={{ background: '#f59e0b20', color: '#f59e0b', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
+                        title="Reverter Decisão"
+                        onClick={() => handleRevert(item.id)}
                       >
-                        Aprovar
+                        <RefreshCw size={14} style={{ marginRight: '4px' }}/> Reverter
                       </button>
-                      <button 
-                        className="action-dot" 
-                        style={{ background: '#ef444420', color: '#ef4444', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
-                        title="Rejeitar"
-                        onClick={() => handleReject(item.id)}
-                      >
-                        Rejeitar
-                      </button>
-                    </div>
-                  ) : <div style={{ minWidth: '100px' }}></div>
+                    )}
+                  </div>
                 )}
               />
             </motion.div>

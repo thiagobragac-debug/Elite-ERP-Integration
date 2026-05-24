@@ -15,10 +15,7 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
  */
 export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 50) => {
   const mockData = {
-    data: [
-      { id: 'f1', description: 'MOCK: Venda de Soja', category: 'RECEITA', amount: 150000, date: new Date().toISOString(), type: 'inflow', status: 'pending' },
-      { id: 'f2', description: 'MOCK: Adubo NPK', category: 'CUSTO', amount: -45000, date: new Date().toISOString(), type: 'outflow', status: 'paid' }
-    ],
+    data: [],
     columns: [
       { header: 'Descrição', accessor: 'description' },
       { header: 'Categoria', accessor: 'category' },
@@ -27,12 +24,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
       { header: 'Tipo', accessor: (row: any) => row.type === 'inflow' ? '🟢 Entrada' : '🔴 Saída' },
       { header: 'Status', accessor: (row: any) => row.status === 'paid' ? '✅ Liquidado' : '⏳ Pendente' }
     ],
-    stats: [
-      { id: 'patrimonio', label: 'Patrimônio Líquido', sparkline: (() => {  const valStr = String('R$ 2.450.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 2.450.000', change: 'MOCK', trend: 'neutral' as const, color: '#10b981', progress: 100 },
-      { id: 'resultado', label: 'Resultado Operacional', sparkline: (() => {  const valStr = String('R$ 105.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 105.000', change: 'MOCK', trend: 'up' as const, color: '#3b82f6', progress: 85 },
-      { id: 'runway', label: 'Runway / Fôlego', sparkline: (() => {  const valStr = String('18 meses'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}m` }; }); })(), value: '18 meses', change: 'MOCK', trend: 'up' as const, color: '#8b5cf6', progress: 75 },
-      { id: 'entradas', label: 'Entradas (Mês)', sparkline: (() => {  const valStr = String('R$ 150.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 150.000', change: 'MOCK', trend: 'up' as const, color: '#10b981', progress: 100 }
-    ],
+    stats: [],
     totalCount: 2
   };
 
@@ -134,10 +126,7 @@ export const fluxoCaixa: ReportHandler = async (tenantId, fazendaId, page = 1, p
  */
 export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 25, filters: any = {}) => {
   const mockData = {
-    data: [
-      { id: 'p1', descricao: 'MOCK: Compra de Calcário', valor_total: 12500, data_vencimento: new Date().toISOString(), status: 'PENDENTE', fornecedores: { nome: 'Calcário Centro-Oeste' } },
-      { id: 'p2', descricao: 'MOCK: Patrulha Mecanizada', valor_total: 8900, data_vencimento: new Date().toISOString(), status: 'PAGO', fornecedores: { nome: 'Agro Mecânica' } }
-    ],
+    data: [],
     columns: [
       { header: 'Descrição', accessor: 'descricao' },
       { header: 'Fornecedor', accessor: (row: any) => row.fornecedores?.nome || 'N/A' },
@@ -229,10 +218,7 @@ export const contasPagar: ReportHandler = async (tenantId, fazendaId, page = 1, 
  */
 export const contasReceber: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 25, filters: any = {}) => {
   const mockData = {
-    data: [
-      { id: 'r1', descricao: 'MOCK: Venda de Bezerros', valor_total: 45000, data_vencimento: new Date().toISOString(), status: 'PENDENTE', clientes: { nome: 'Recria Agropecuária' } },
-      { id: 'r2', descricao: 'MOCK: Venda de Milho', valor_total: 62000, data_vencimento: new Date().toISOString(), status: 'PAGO', clientes: { nome: 'Cooperativa Sul' } }
-    ],
+    data: [],
     columns: [
       { header: 'Descrição', accessor: 'descricao' },
       { header: 'Cliente', accessor: (row: any) => row.clientes?.nome || 'N/A' },
@@ -391,21 +377,14 @@ export const extratoBancario: ReportHandler = async (tenantId, fazendaId, page =
  */
 export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
   const mockData = {
-    data: [
-      { id: 1, type: 'opportunity', title: 'Otimização de Fluxo (MOCK)', desc: 'Você tem contas a receber em aberto. Considere antecipar recebíveis para reforçar caixa.', impact: 'ALTO', color: '#10b981' }
-    ],
+    data: [],
     columns: [
       { header: 'Insight / Oportunidade', accessor: 'title' },
       { header: 'Detalhes', accessor: 'desc' },
       { header: 'Impacto', accessor: (row: any) => row.impact || 'MÉDIO' }
     ],
-    stats: [
-      { label: 'Patrimônio Líquido', sparkline: (() => {  const valStr = String('R$ 2.450.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 2.450.000', change: 'MOCK', trend: 'neutral' as const, color: '#10b981', progress: 100 },
-      { label: 'EBITDA Projetado', sparkline: (() => {  const valStr = String('R$ 840.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 840.000', change: 'MOCK', trend: 'up' as const, color: '#3b82f6', progress: 75 },
-      { label: 'Runway (Fôlego)', sparkline: (() => {  const valStr = String('18 meses'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}m` }; }); })(), value: '18 meses', change: 'MOCK', trend: 'up' as const, color: '#8b5cf6', progress: 75 },
-      { label: 'Índice de Liquidez', sparkline: (() => {  const valStr = String('2.45'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}x` }; }); })(), value: '2.45', change: 'MOCK', trend: 'up' as const, color: '#f59e0b', progress: 100 }
-    ],
-    totalCount: 1
+    stats: [],
+    totalCount: 0
   };
 
   try {

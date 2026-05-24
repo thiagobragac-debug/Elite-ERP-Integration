@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { DatabaseSeeder } from './components/DatabaseSeeder';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -139,6 +141,7 @@ function AppContent() {
 
   return (
     <Router>
+      <DatabaseSeeder />
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
       <React.Suspense fallback={<div style={{padding: '2rem'}}>Carregando módulo Tauze...</div>}>
         <React.Suspense fallback={<div className="loading-overlay" style={{display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--primary)"}}>Carregando módulo...</div>}><React.Suspense fallback={<div className="loading-overlay" style={{display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--primary)"}}>Carregando módulo...</div>}><Routes>
@@ -255,6 +258,7 @@ export function App() {
     <ThemeProvider>
       <AuthProvider>
         <TenantProvider>
+          <Toaster />
           <AppContent />
         </TenantProvider>
       </AuthProvider>

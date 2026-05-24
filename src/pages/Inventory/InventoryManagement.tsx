@@ -641,16 +641,15 @@ export const InventoryManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {products.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhum insumo cadastrado"
-            description="A frota desta unidade ainda não possui insumos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
-            actionLabel="Novo Insumo"
-            onAction={handleOpenCreate}
-            icon={Package}
-          />
-        ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
           <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhum insumo cadastrado"
+              description="A frota desta unidade ainda não possui insumos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
+              actionLabel="Novo Insumo"
+              onAction={handleOpenCreate}
+              icon={Package}
+            />}
             data={products}
             columns={columns}
             loading={loading}

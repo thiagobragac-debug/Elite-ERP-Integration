@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Building2, 
   Plus, 
@@ -404,16 +404,15 @@ export const ConfinementManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {confinements.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhum ciclo de confinamento"
-            description="Não há currais ativos para esta unidade. Inicie a terminação intensiva realizando o primeiro check-in."
-            actionLabel="Novo Check-in"
-            onAction={() => setIsModalOpen(true)}
-            icon={Building2}
-          />
-        ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
           <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhum ciclo de confinamento"
+              description="Não há currais ativos para esta unidade. Inicie a terminação intensiva realizando o primeiro check-in."
+              actionLabel="Novo Check-in"
+              onAction={() => setIsModalOpen(true)}
+              icon={Building2}
+            />}
             data={filteredConfinements}
             columns={tableColumns}
             loading={loading}

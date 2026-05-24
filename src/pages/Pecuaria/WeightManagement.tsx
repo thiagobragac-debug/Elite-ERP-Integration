@@ -714,16 +714,15 @@ export const WeightManagement: React.FC = () => {
       <div className="management-content">
         {activeTab === 'PERFORMANCE' ? (
           <LotPerformanceView weighings={filteredWeighings} />
-        ) : weighings.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhuma pesagem registrada"
-            description="Ainda não há pesagens lançadas para esta unidade. Inicie o controle de GMD registrando a primeira pesagem do lote."
-            actionLabel="Nova Pesagem"
-            onAction={handleOpenCreate}
-            icon={Scale}
-          />
         ) : (
           <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhuma pesagem registrada"
+              description="Ainda não há pesagens lançadas para esta unidade. Inicie o controle de GMD registrando a primeira pesagem do lote."
+              actionLabel="Nova Pesagem"
+              onAction={handleOpenCreate}
+              icon={Scale}
+            />}
             data={filteredWeighings}
             columns={columns}
             loading={loading}

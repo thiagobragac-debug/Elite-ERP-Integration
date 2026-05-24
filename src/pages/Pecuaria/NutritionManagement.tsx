@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Beef, 
   Plus, 
@@ -344,17 +344,15 @@ export const NutritionManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {diets.length === 0 && !loading ? (
-          <EmptyState
+        <ModernTable 
+          emptyState={<EmptyState
             title="Nenhuma dieta formulada"
             description="Não há formulações registradas para esta unidade. Inicie o controle nutricional criando a primeira dieta de precisão."
             actionLabel="Nova Dieta"
             onAction={handleOpenCreate}
             icon={Utensils}
-          />
-        ) : (
-          <ModernTable 
-            data={filteredDiets}
+          />}
+          data={filteredDiets}
             columns={tableColumns}
             loading={loading}
             hideHeader={true}
@@ -375,9 +373,7 @@ export const NutritionManagement: React.FC = () => {
                   <Trash2 size={18} />
                 </button>
               </div>
-            )}
           />
-        )}
       </div>
 
       <DietForm 

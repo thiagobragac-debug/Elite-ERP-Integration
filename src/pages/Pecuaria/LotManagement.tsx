@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
@@ -480,16 +480,15 @@ export const LotManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {localLots.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhum lote cadastrado"
-            description="Nenhum lote operacional foi criado para esta fazenda. Organize o rebanho criando o primeiro lote de manejo."
-            actionLabel="Novo Lote"
-            onAction={handleOpenCreate}
-            icon={Layers}
-          />
-        ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
           <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhum lote cadastrado"
+              description="Nenhum lote operacional foi criado para esta fazenda. Organize o rebanho criando o primeiro lote de manejo."
+              actionLabel="Novo Lote"
+              onAction={handleOpenCreate}
+              icon={Layers}
+            />}
             data={filteredLots}
             columns={tableColumns}
             loading={loading}

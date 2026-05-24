@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   Plus, 
@@ -767,16 +767,15 @@ export const SalesOrders: React.FC = () => {
       />
 
       <div className="management-content">
-        {orders.length === 0 && !loading ? (
-          <EmptyState
-            title="Nenhum pedido de venda"
-            description="Nenhuma ordem comercial registrada para esta unidade. Inicie criando um novo pedido de venda."
-            actionLabel="Novo Pedido"
-            onAction={handleOpenCreate}
-            icon={FileText}
-          />
-        ) : viewMode === 'list' ? (
+        {viewMode === 'list' ? (
           <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhum pedido de venda"
+              description="Nenhuma ordem comercial registrada para esta unidade. Inicie criando um novo pedido de venda."
+              actionLabel="Novo Pedido"
+              onAction={handleOpenCreate}
+              icon={FileText}
+            />}
             data={orders}
             columns={columns}
             loading={loading}
