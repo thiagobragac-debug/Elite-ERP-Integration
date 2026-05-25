@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Wheat, 
   Tag,
@@ -104,7 +104,7 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
 
       <div className="form-group full-width">
         <label><Wheat size={14} /> Tipo de Formulação</label>
-        <div className="tauze-form-radio-group">
+        <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div 
             className={`tauze-form-radio-item ${formData.tipo === 'Concentrado' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'Concentrado'})}

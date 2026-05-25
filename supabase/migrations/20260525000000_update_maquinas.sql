@@ -1,0 +1,15 @@
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS marca text;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS modelo text;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS chassi text;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS combustivel text;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS capacidade_tanque numeric;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS valor_compra numeric;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS potencia integer;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS peso_operacional numeric;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS intervalo_revisao integer DEFAULT 250;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS consumo_estimado numeric;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS data_proxima_revisao date;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS observacoes text;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS tipo_medidor text;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS horimetro_atual numeric DEFAULT 0;
+ALTER TABLE public.maquinas ADD COLUMN IF NOT EXISTS quilometragem_atual numeric DEFAULT 0;

@@ -9,7 +9,8 @@ import {
   CheckCircle2,
   User,
   Tag,
-  Activity
+  Activity,
+  Briefcase
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
@@ -32,9 +33,11 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
     profile_id: '',
     status: 'active',
     company_id: '',
-    fazendas_permitidas: [] as string[]
+    fazendas_permitidas: [] as string[],
+    cargo_id: ''
   });
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [cargos, setCargos] = useState<any[]>([]);
 
   useEffect(() => {
     if (initialData) {
@@ -53,7 +56,8 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
         profile_id: initialData.perfil_id || '',
         status: initialData.status || 'active',
         company_id: initialData.unidade_id || '',
-        fazendas_permitidas: fazendas
+        fazendas_permitidas: fazendas,
+        cargo_id: initialData.cargo_id || ''
       });
     } else {
       setFormData({
@@ -63,7 +67,8 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
         profile_id: '',
         status: 'active',
         company_id: '',
-        fazendas_permitidas: []
+        fazendas_permitidas: [],
+        cargo_id: ''
       });
     }
   }, [initialData, isOpen]);
@@ -71,6 +76,7 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
   useEffect(() => {
     if (isOpen) {
       fetchProfiles();
+      fetchCargos();
     }
   }, [isOpen]);
 
@@ -85,6 +91,21 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
       setProfiles(data.map(p => ({ id: p.id, name: p.nome })));
     } else {
       setProfiles([]);
+    }
+  };
+
+  const fetchCargos = async () => {
+    if (!activeTenantId) return;
+    const { data, error } = await supabase
+      .from('cargos')
+      .select('id, nome')
+      .eq('tenant_id', activeTenantId)
+      .eq('is_active', true);
+    
+    if (data && !error) {
+      setCargos(data.map(c => ({ id: c.id, name: c.nome })));
+    } else {
+      setCargos([]);
     }
   };
 
@@ -154,6 +175,19 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
           <option value="">Selecione um perfil...</option>
           {profiles.map(p => (
             <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label><Briefcase size={14} /> Cargo / Função</label>
+        <select 
+          value={formData.cargo_id}
+          onChange={(e) => setFormData({...formData, cargo_id: e.target.value})}
+        >
+          <option value="">Nenhum cargo...</option>
+          {cargos.map(c => (
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
       </div>

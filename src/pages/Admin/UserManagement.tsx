@@ -472,7 +472,8 @@ export const UserManagement: React.FC = () => {
       perfil_id: data.profile_id,
       status: data.status || 'active',
       role: 'USER',
-      fazendas_permitidas: data.fazendas_permitidas || []
+      fazendas_permitidas: data.fazendas_permitidas || [],
+      cargo_id: data.cargo_id || null
     };
 
     if (selectedUser) {

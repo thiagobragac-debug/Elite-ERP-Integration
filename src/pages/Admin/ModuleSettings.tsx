@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Settings, Plus, Search } from 'lucide-react';
 import { CategorySettingsTab } from './CategoryManagement';
 import { SystemSettingsTab } from './SystemSettingsTab';
+import { RoleSettingsTab } from './RoleManagement';
 import { NcmSettingsTab } from '../Inventory/InventorySettings';
 
 export const ModuleSettings: React.FC = () => {
@@ -28,6 +29,7 @@ export const ModuleSettings: React.FC = () => {
       case 'sistema':
         return [
           { id: 'system', label: 'Parâmetros' },
+          { id: 'cargos', label: 'Cargos Corporativos' },
           { id: 'governance', label: 'Políticas' },
           { id: 'bi', label: 'BI' },
           { id: 'canvas', label: 'Canvas' }
@@ -194,6 +196,7 @@ export const ModuleSettings: React.FC = () => {
               }}
             />
           )}
+          {activeSetting === 'cargos' && <RoleSettingsTab searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'categorias' && <CategorySettingsTab modulo={activeModule} searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'racas' && <CategorySettingsTab modulo="racas" searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'unidades' && <CategorySettingsTab modulo="unidades" searchTerm={searchTerm} triggerCreate={triggerCreate} />}

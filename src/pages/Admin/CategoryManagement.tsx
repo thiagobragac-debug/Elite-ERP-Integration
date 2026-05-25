@@ -13,6 +13,8 @@ interface Categoria {
   cor: string;
   is_active: boolean;
   modulo_vinculado?: string;
+  is_system?: boolean;
+  categoria_financeira_id?: string;
 }
 
 export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string, triggerCreate: number }> = ({ modulo, searchTerm, triggerCreate }) => {
@@ -27,7 +29,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
     nome: '',
     cor: '#94a3b8',
     is_active: true,
-    modulo_vinculado: ''
+    modulo_vinculado: '',
+    categoria_financeira_id: ''
   });
 
   // Removed local modules list
@@ -128,6 +131,20 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
             { tenant_id: tenant.id, modulo: 'unidades', nome: 'L', cor: '#10b981', is_active: true },
             { tenant_id: tenant.id, modulo: 'unidades', nome: 'm³', cor: '#f59e0b', is_active: true }
           ];
+        } else if (modulo === 'estoque') {
+          defaultCategories = [
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Combustíveis', cor: '#ef4444', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Defensivos', cor: '#f59e0b', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Fertilizantes', cor: '#10b981', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Peças', cor: '#64748b', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Medicamentos', cor: '#3b82f6', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Suplementos', cor: '#8b5cf6', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Sementes', cor: '#d97706', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Rações', cor: '#b45309', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Vacinas', cor: '#ec4899', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'EPIs', cor: '#0f172a', is_active: true, is_system: true },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Geral', cor: '#94a3b8', is_active: true, is_system: false }
+          ];
         }
         
         if (defaultCategories.length > 0) {
@@ -162,7 +179,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
 
   const handleOpenCreate = () => {
     setEditItem(null);
-    setFormData({ nome: '', cor: '#94a3b8', is_active: true, modulo_vinculado: '' });
+    setFormData({ nome: '', cor: '#94a3b8', is_active: true, modulo_vinculado: '', categoria_financeira_id: '' });
     setIsModalOpen(true);
   };
 
@@ -172,7 +189,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
       nome: cat.nome, 
       cor: cat.cor || '#94a3b8', 
       is_active: cat.is_active,
-      modulo_vinculado: cat.modulo_vinculado || ''
+      modulo_vinculado: cat.modulo_vinculado || '',
+      categoria_financeira_id: cat.categoria_financeira_id || ''
     });
     setIsModalOpen(true);
   };
@@ -189,6 +207,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           cor: formData.cor,
           is_active: formData.is_active,
           modulo_vinculado: formData.modulo_vinculado || null,
+          categoria_financeira_id: formData.categoria_financeira_id || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', editItem.id);
@@ -208,7 +227,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           nome: formData.nome,
           cor: formData.cor,
           is_active: formData.is_active,
-          modulo_vinculado: formData.modulo_vinculado || null
+          modulo_vinculado: formData.modulo_vinculado || null,
+          categoria_financeira_id: formData.categoria_financeira_id || null
         });
 
       if (!error) {
@@ -247,17 +267,32 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
         <div className="table-cell-title" style={{ flexDirection: 'row', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '16px', height: '16px', borderRadius: '4px', background: cat.cor || '#94a3b8' }}></div>
           <span className="main-text">{cat.nome}</span>
+          {cat.is_system && (
+            <span style={{ fontSize: '10px', background: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+              SISTEMA
+            </span>
+          )}
         </div>
       ),
       align: 'left' as const
     },
     {
-      header: 'Vínculo Operacional',
-      accessor: (cat: Categoria) => (
-        <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
-          {cat.modulo_vinculado ? cat.modulo_vinculado.toUpperCase() : 'GERAL / MISTO'}
-        </span>
-      ),
+      header: modulo === 'estoque' ? 'Vínculo Financeiro' : 'Vínculo Operacional',
+      accessor: (cat: Categoria) => {
+        if (modulo === 'estoque') {
+          const finCat = categorias.find(c => c.id === cat.categoria_financeira_id);
+          return (
+            <span style={{ fontSize: '12px', fontWeight: 600, color: finCat ? '#8b5cf6' : '#94a3b8' }}>
+              {finCat ? finCat.nome.toUpperCase() : 'SEM VÍNCULO'}
+            </span>
+          );
+        }
+        return (
+          <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
+            {cat.modulo_vinculado ? cat.modulo_vinculado.toUpperCase() : 'GERAL / MISTO'}
+          </span>
+        );
+      },
       align: 'left' as const
     },
     {
@@ -285,9 +320,11 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
               <button className="icon-btn-secondary" onClick={(e) => { e.stopPropagation(); handleOpenEdit(cat); }}>
                 <Edit2 size={16} />
               </button>
-              <button className="icon-btn-secondary" onClick={(e) => { e.stopPropagation(); handleDelete(cat.id); }} style={{ color: '#ef4444', borderColor: '#fee2e2', background: '#fef2f2' }}>
-                <Trash2 size={16} />
-              </button>
+              {!cat.is_system && (
+                <button className="icon-btn-secondary" onClick={(e) => { e.stopPropagation(); handleDelete(cat.id); }} style={{ color: '#ef4444', borderColor: '#fee2e2', background: '#fef2f2' }}>
+                  <Trash2 size={16} />
+                </button>
+              )}
             </>
           )}
         />
@@ -304,7 +341,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           submitLabel="Salvar Categoria"
           size="small"
         >
-          <div className="tauze-field-group">
+          <div className="tauze-field-group" style={{ gridColumn: '1 / -1' }}>
             <label className="tauze-label">Nome da Categoria</label>
             <input 
               type="text" 
@@ -312,12 +349,14 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
               value={formData.nome}
               onChange={e => setFormData({...formData, nome: e.target.value})}
               placeholder="Ex: Combustível, Suplementos, etc..."
+              disabled={editItem?.is_system}
               required
             />
+            {editItem?.is_system && <span style={{ fontSize: '11px', color: '#ef4444' }}>O nome desta categoria não pode ser alterado, pois é essencial para o sistema.</span>}
           </div>
 
           {modulo === 'financeiro' && (
-            <div className="tauze-field-group">
+            <div className="tauze-field-group" style={{ gridColumn: '1 / -1' }}>
               <label className="tauze-label">Vínculo Operacional</label>
               <select 
                 className="tauze-input"
@@ -330,6 +369,25 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
                 <option value="frota">Máquinas & Frota</option>
                 <option value="logistica">Logística & Frete</option>
               </select>
+            </div>
+          )}
+
+          {modulo === 'estoque' && (
+            <div className="tauze-field-group" style={{ gridColumn: '1 / -1' }}>
+              <label className="tauze-label">Categoria Financeira Padrão (Opcional)</label>
+              <select 
+                className="tauze-input"
+                value={formData.categoria_financeira_id}
+                onChange={e => setFormData({...formData, categoria_financeira_id: e.target.value})}
+              >
+                <option value="">-- Não vincular nenhuma --</option>
+                {categorias.filter(c => c.modulo === 'financeiro').map(c => (
+                  <option key={c.id} value={c.id}>{c.nome}</option>
+                ))}
+              </select>
+              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
+                Automatiza o lançamento no Contas a Pagar/Receber
+              </span>
             </div>
           )}
 
@@ -352,16 +410,19 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           </div>
 
           <div className="tauze-field-group" style={{ marginTop: '8px', gridColumn: '1 / -1' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '12px 16px', background: 'hsl(var(--bg-body))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: editItem?.is_system ? 'not-allowed' : 'pointer', padding: '12px 16px', background: 'hsl(var(--bg-body))', borderRadius: '12px', border: '1px solid hsl(var(--border))', opacity: editItem?.is_system ? 0.7 : 1 }}>
               <input 
                 type="checkbox" 
                 checked={formData.is_active}
                 onChange={e => setFormData({...formData, is_active: e.target.checked})}
-                style={{ width: '18px', height: '18px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: 'pointer' }}
+                disabled={editItem?.is_system}
+                style={{ width: '18px', height: '18px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: editItem?.is_system ? 'not-allowed' : 'pointer' }}
               />
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>Categoria Ativa</span>
-                <span style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>Permite usar esta categoria nos formulários do sistema</span>
+                <span style={{ fontSize: '12px', color: editItem?.is_system ? '#ef4444' : 'hsl(var(--text-muted))', fontWeight: 500 }}>
+                  {editItem?.is_system ? 'Categorias do sistema não podem ser desativadas.' : 'Permite usar esta categoria nos formulários do sistema'}
+                </span>
               </div>
             </label>
           </div>

@@ -843,7 +843,7 @@ export const WarehouseManagement: React.FC = () => {
         submitLabel={selectedWarehouse ? "Salvar Alterações" : "Confirmar Cadastro"}
         size="medium"
       >
-        <div className="tauze-field-group">
+        <div className="tauze-field-group full-width">
           <label className="tauze-label">
             <Plus size={14} /> NOME DO DEPÓSITO
           </label>
@@ -861,13 +861,6 @@ export const WarehouseManagement: React.FC = () => {
             <option value="Tanque">Tanque de Líquidos</option>
             <option value="Defensivos">Defensivos</option>
           </select>
-        </div>
-
-        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="tauze-label">
-            <FileText size={14} /> DESCRIÇÃO / FINALIDADE
-          </label>
-          <textarea name="descricao" className="tauze-input" style={{ height: '50px', resize: 'none' }} placeholder="Detalhes estratégicos..." defaultValue={selectedWarehouse?.descricao}></textarea>
         </div>
 
         <div className="tauze-field-group">
@@ -894,13 +887,6 @@ export const WarehouseManagement: React.FC = () => {
 
         <div className="tauze-field-group">
           <label className="tauze-label">
-            <Plus size={14} /> LOCALIZAÇÃO TÉCNICA / GPS
-          </label>
-          <input name="localizacao_tecnica" type="text" className="tauze-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
-        </div>
-
-        <div className="tauze-field-group">
-          <label className="tauze-label">
             <Layout size={14} /> FAZENDA VINCULADA
           </label>
           <select name="fazenda_id" className="tauze-input" defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id} required>
@@ -910,6 +896,15 @@ export const WarehouseManagement: React.FC = () => {
             ))}
           </select>
         </div>
+
+        <div className="tauze-field-group">
+          <label className="tauze-label">
+            <Plus size={14} /> LOCALIZAÇÃO TÉCNICA / GPS
+          </label>
+          <input name="localizacao_tecnica" type="text" className="tauze-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
+        </div>
+
+
 
         <div className="tauze-field-group">
           <label className="tauze-label">

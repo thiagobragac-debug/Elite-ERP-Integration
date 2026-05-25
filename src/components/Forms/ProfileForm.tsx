@@ -113,25 +113,27 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel="Salvar Perfil"
     >
-      <div className="form-group full-width">
-        <label><Shield size={14} /> Nome do Perfil</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Gerente Administrativo, Tratorista..." 
-          value={formData.nome}
-          onChange={(e) => setFormData({...formData, nome: e.target.value})}
-          required 
-        />
-      </div>
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Shield size={14} /> Nome do Perfil</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Gerente Administrativo, Tratorista..." 
+            value={formData.nome}
+            onChange={(e) => setFormData({...formData, nome: e.target.value})}
+            required 
+          />
+        </div>
 
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Descrição Curta</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Acesso total aos módulos de campo e estoque." 
-          value={formData.descricao}
-          onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-        />
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><FileText size={14} /> Descrição Curta</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Acesso total aos módulos de campo e estoque." 
+            value={formData.descricao}
+            onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+          />
+        </div>
       </div>
 
       <div className="form-group full-width">

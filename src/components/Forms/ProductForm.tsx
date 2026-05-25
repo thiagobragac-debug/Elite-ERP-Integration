@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 import { SearchableSelect } from './SearchableSelect';
-import { useAuth } from '../../contexts/AuthContext';
+import { useTenant } from '../../contexts/TenantContext';
+import { supabase } from '../../lib/supabase';
 
 interface ProductFormProps {
   isOpen: boolean;
@@ -21,7 +22,7 @@ interface ProductFormProps {
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSubmit, initialData, hasHistory = false }) => {
-  const { tenant } = useAuth();
+  const { tenant } = useTenant();
   const [categories, setCategories] = useState<{value: string, label: string}[]>([]);
   const [ncms, setNcms] = useState<{value: string, label: string}[]>([]);
   const [formData, setFormData] = useState({
@@ -48,18 +49,31 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
   React.useEffect(() => {
     const fetchCategories = async () => {
       if (!tenant) return;
-      const { data } = await supabase
-        .from('categorias_sistema')
-        .select('id, nome')
-        .eq('tenant_id', tenant.id)
-        .eq('modulo', 'estoque')
-        .eq('is_active', true)
-        .order('nome');
-      
-      if (data && data.length > 0) {
-        setCategories(data.map(d => ({ value: d.id, label: d.nome })));
-      } else {
-        // Fallback or empty
+      try {
+        const fetchPromise = supabase
+          .from('categorias_sistema')
+          .select('id, nome')
+          .eq('tenant_id', tenant.id)
+          .eq('modulo', 'estoque')
+          .eq('is_active', true)
+          .order('nome');
+          
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 3000)
+        );
+
+        const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
+        const { data, error } = result;
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          setCategories(data.map((d: any) => ({ value: d.id, label: d.nome })));
+        } else {
+          throw new Error('No data');
+        }
+      } catch (error) {
+        console.warn('[ProductForm] Category fetch fallback:', error);
         setCategories([
           { value: "Semente", label: "Semente" },
           { value: "Adubo", label: "Adubo" },
@@ -73,16 +87,30 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
 
     const fetchNcms = async () => {
       if (!tenant) return;
-      const { data } = await supabase
-        .from('estoque_ncms')
-        .select('codigo, descricao')
-        .eq('tenant_id', tenant.id)
-        .eq('is_active', true)
-        .order('codigo');
+      try {
+        const fetchPromise = supabase
+          .from('estoque_ncms')
+          .select('codigo, descricao')
+          .eq('tenant_id', tenant.id)
+          .eq('is_active', true)
+          .order('codigo');
+          
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 3000)
+        );
+
+        const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
+        const { data, error } = result;
         
-      if (data && data.length > 0) {
-        setNcms(data.map(d => ({ value: d.codigo, label: `${d.codigo} - ${d.descricao}` })));
-      } else {
+        if (error) throw error;
+          
+        if (data && data.length > 0) {
+          setNcms(data.map((d: any) => ({ value: d.codigo, label: `${d.codigo} - ${d.descricao}` })));
+        } else {
+          throw new Error('No data');
+        }
+      } catch (error) {
+        console.warn('[ProductForm] NCM fetch fallback:', error);
         setNcms([
           { value: "3105.20.00", label: "3105.20.00 - Adubos ou Fertilizantes" },
           { value: "3808.91.19", label: "3808.91.19 - Inseticidas" },
@@ -141,121 +169,127 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Item"}
     >
-      <div className="tauze-field-group">
-        <label className="tauze-label"><Package size={14} /> Nome do Item</label>
-        <input 
-          className="tauze-input"
-          type="text" 
-          placeholder="Ex: Milho, NPK 04-14-08, Ivermectina..." 
-          value={formData.nome}
-          onChange={(e) => setFormData({...formData, nome: e.target.value})}
-          required 
-        />
+      <div className="tauze-field-group full-width" style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr', gap: '16px', padding: 0, background: 'transparent', border: 'none' }}>
+        <div className="tauze-field-group" style={{ margin: 0, gridColumn: 'span 1' }}>
+          <label className="tauze-label"><Package size={14} /> Nome do Item</label>
+          <input 
+            className="tauze-input"
+            type="text" 
+            placeholder="Ex: Milho, NPK 04-14-08, Ivermectina..." 
+            value={formData.nome}
+            onChange={(e) => setFormData({...formData, nome: e.target.value})}
+            required 
+          />
+        </div>
+
+        <div className="tauze-field-group" style={{ margin: 0, gridColumn: 'span 1' }}>
+          <label className="tauze-label"><Tag size={14} /> Categoria</label>
+          <SearchableSelect
+            value={formData.categoria_id || formData.categoria}
+            onChange={(val) => {
+              // Find if val is a known ID
+              const isKnown = categories.find(c => c.value === val);
+              if (isKnown) {
+                setFormData({...formData, categoria_id: val, categoria: isKnown.label});
+              } else {
+                setFormData({...formData, categoria_id: '', categoria: val}); // Free text if creatable
+              }
+            }}
+            creatable={true}
+            placeholder="Selecione ou digite nova..."
+            options={categories}
+          />
+        </div>
+
+        <div className="tauze-field-group" style={{ margin: 0, gridColumn: 'span 1' }}>
+          <label className="tauze-label"><Tag size={14} /> Marca / Fabricante</label>
+          <input 
+            className="tauze-input"
+            type="text" 
+            placeholder="Ex: Bunge, Syngenta..." 
+            value={formData.marca}
+            onChange={(e) => setFormData({...formData, marca: e.target.value})}
+          />
+        </div>
       </div>
 
-      <div className="tauze-field-group">
-        <label className="tauze-label"><Tag size={14} /> Categoria</label>
-        <SearchableSelect
-          value={formData.categoria_id || formData.categoria}
-          onChange={(val) => {
-            // Find if val is a known ID
-            const isKnown = categories.find(c => c.value === val);
-            if (isKnown) {
-              setFormData({...formData, categoria_id: val, categoria: isKnown.label});
-            } else {
-              setFormData({...formData, categoria_id: '', categoria: val}); // Free text if creatable
-            }
-          }}
-          creatable={true}
-          placeholder="Selecione ou digite nova..."
-          options={categories}
-        />
+      <div className="tauze-field-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '16px', padding: 0, background: 'transparent', border: 'none' }}>
+        <div className="tauze-field-group" style={{ margin: 0, gridColumn: 'span 1' }}>
+          <label className="tauze-label"><Layers size={14} /> Localização (Almoxarifado)</label>
+          <input 
+            className="tauze-input"
+            type="text" 
+            placeholder="Prateleira A, Galpão 01..." 
+            value={formData.localizacao}
+            onChange={(e) => setFormData({...formData, localizacao: e.target.value})}
+          />
+        </div>
+
+        <div className="tauze-field-group" style={{ margin: 0, gridColumn: 'span 1' }}>
+          <label className="tauze-label"><Hash size={14} /> Código de Barras</label>
+          <input 
+            className="tauze-input"
+            type="text" 
+            placeholder="789..." 
+            value={formData.ean}
+            onChange={(e) => setFormData({...formData, ean: e.target.value})}
+          />
+        </div>
+
+        <div className="tauze-field-group" style={{ margin: 0, gridColumn: 'span 1' }}>
+          <label className="tauze-label"><Hash size={14} /> NCM</label>
+          <SearchableSelect
+            options={ncms}
+            value={formData.ncm}
+            onChange={(val) => setFormData({...formData, ncm: val})}
+            placeholder="Selecione um NCM..."
+          />
+        </div>
       </div>
 
-      <div className="tauze-field-group">
-        <label className="tauze-label"><Tag size={14} /> Marca / Fabricante</label>
-        <input 
-          className="tauze-input"
-          type="text" 
-          placeholder="Ex: Bunge, Syngenta..." 
-          value={formData.marca}
-          onChange={(e) => setFormData({...formData, marca: e.target.value})}
-        />
-      </div>
+      <div className="tauze-field-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', padding: 0, background: 'transparent', border: 'none' }}>
+        <div className="tauze-field-group" style={{ margin: 0, gridColumn: 'span 1' }}>
+          <label className="tauze-label"><Hash size={14} /> Est. Atual</label>
+          <input 
+            className="tauze-input"
+            type="number" 
+            step="0.01"
+            placeholder="0.00" 
+            value={formData.estoque_atual}
+            onChange={(e) => setFormData({...formData, estoque_atual: e.target.value})}
+            required
+          />
+        </div>
 
-      <div className="tauze-field-group">
-        <label className="tauze-label"><Layers size={14} /> Localização (Almoxarifado)</label>
-        <input 
-          className="tauze-input"
-          type="text" 
-          placeholder="Prateleira A, Galpão 01..." 
-          value={formData.localizacao}
-          onChange={(e) => setFormData({...formData, localizacao: e.target.value})}
-        />
-      </div>
+        <div className="tauze-field-group" style={{ margin: 0, gridColumn: 'span 1' }}>
+          <label className="tauze-label"><AlertTriangle size={14} /> Est. Mínimo</label>
+          <input 
+            className="tauze-input"
+            type="number" 
+            step="0.01"
+            placeholder="0.00" 
+            value={formData.estoque_minimo}
+            onChange={(e) => setFormData({...formData, estoque_minimo: e.target.value})}
+            required
+          />
+        </div>
 
-      <div className="tauze-field-group">
-        <label className="tauze-label"><Hash size={14} /> Código de Barras (EAN)</label>
-        <input 
-          className="tauze-input"
-          type="text" 
-          placeholder="789..." 
-          value={formData.ean}
-          onChange={(e) => setFormData({...formData, ean: e.target.value})}
-        />
-      </div>
-
-      <div className="tauze-field-group">
-        <label className="tauze-label"><Hash size={14} /> NCM</label>
-        <SearchableSelect
-          options={ncms}
-          value={formData.ncm}
-          onChange={(val) => setFormData({...formData, ncm: val})}
-          placeholder="Selecione um NCM..."
-        />
-      </div>
-
-      <div className="tauze-field-group">
-        <label className="tauze-label"><Hash size={14} /> Est. Atual</label>
-        <input 
-          className="tauze-input"
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
-          value={formData.estoque_atual}
-          onChange={(e) => setFormData({...formData, estoque_atual: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="tauze-field-group">
-        <label className="tauze-label"><AlertTriangle size={14} /> Est. Mínimo</label>
-        <input 
-          className="tauze-input"
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
-          value={formData.estoque_minimo}
-          onChange={(e) => setFormData({...formData, estoque_minimo: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="tauze-field-group">
-        <label className="tauze-label"><Layers size={14} /> Unidade</label>
-        <select 
-          className="tauze-input tauze-select"
-          value={formData.unidade}
-          onChange={(e) => setFormData({...formData, unidade: e.target.value})}
-          required
-        >
-          <option value="un">un</option>
-          <option value="kg">kg</option>
-          <option value="ton">ton</option>
-          <option value="L">L</option>
-          <option value="dose">dose</option>
-          <option value="saco">saco</option>
-        </select>
+        <div className="tauze-field-group" style={{ margin: 0, gridColumn: 'span 1' }}>
+          <label className="tauze-label"><Layers size={14} /> Unidade</label>
+          <select 
+            className="tauze-input tauze-select"
+            value={formData.unidade}
+            onChange={(e) => setFormData({...formData, unidade: e.target.value})}
+            required
+          >
+            <option value="un">un</option>
+            <option value="kg">kg</option>
+            <option value="ton">ton</option>
+            <option value="L">L</option>
+            <option value="dose">dose</option>
+            <option value="saco">saco</option>
+          </select>
+        </div>
       </div>
 
       <div className="tauze-field-group">

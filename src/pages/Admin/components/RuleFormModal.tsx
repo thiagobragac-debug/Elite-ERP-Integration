@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Layers, Plus, Minus, Trash2, ArrowRight } from 'lucide-react';
+import { Shield, Layers, Plus, Minus, Trash2, ArrowRight, User, Briefcase } from 'lucide-react';
 import { FormModal } from '../../../components/Forms/FormModal';
+import { supabase } from '../../../lib/supabase';
+import { useTenant } from '../../../contexts/TenantContext';
 
 interface RuleCondition {
   id: string;
@@ -20,13 +22,6 @@ interface RuleFormModalProps {
   initialData?: any;
 }
 
-const mockProfiles = [
-  'Diretoria',
-  'Gerente Financeiro',
-  'Gestor do Centro de Custo',
-  'Suprimentos',
-  'Recursos Humanos'
-];
 
 export const RuleFormModal: React.FC<RuleFormModalProps> = ({
   isOpen,
@@ -34,6 +29,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
   onSubmit,
   initialData
 }) => {
+  const { activeTenantId } = useTenant();
   const [formData, setFormData] = useState({
     module: '',
     stages: 1,
@@ -47,6 +43,9 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
   const [approvers, setApprovers] = useState<RuleApprover[]>([
     { level: 1, profile: '' }
   ]);
+  
+  const [cargos, setCargos] = useState<any[]>([]);
+  const [usuarios, setUsuarios] = useState<any[]>([]);
 
   useEffect(() => {
     if (initialData) {
@@ -72,6 +71,26 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
       setApprovers([{ level: 1, profile: '' }]);
     }
   }, [initialData, isOpen]);
+
+  useEffect(() => {
+    if (isOpen && activeTenantId) {
+      fetchApproverOptions();
+    }
+  }, [isOpen, activeTenantId]);
+
+  const fetchApproverOptions = async () => {
+    try {
+      const [cargosRes, usersRes] = await Promise.all([
+        supabase.from('cargos').select('id, nome').eq('tenant_id', activeTenantId).eq('is_active', true).order('nome'),
+        supabase.from('profiles_view').select('id, name, email').eq('tenant_id', activeTenantId).order('name')
+      ]);
+
+      if (cargosRes.data) setCargos(cargosRes.data);
+      if (usersRes.data) setUsuarios(usersRes.data);
+    } catch (err) {
+      console.error('Error fetching approver options', err);
+    }
+  };
 
   const handleStageChange = (newStages: number) => {
     setFormData(p => ({ ...p, stages: newStages }));
@@ -273,10 +292,17 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
                       required
                       style={{ width: '100%', background: 'white' }}
                     >
-                      <option value="">Selecionar Perfil/Cargo...</option>
-                      {mockProfiles.map(p => (
-                        <option key={p} value={p}>{p}</option>
-                      ))}
+                      <option value="">Selecionar Perfil/Cargo ou Usuário...</option>
+                      <optgroup label="🏢 Cargos Corporativos">
+                        {cargos.map(c => (
+                          <option key={`cargo_${c.id}`} value={`cargo_${c.id}`}>{c.nome}</option>
+                        ))}
+                      </optgroup>
+                      <optgroup label="👤 Usuários Específicos">
+                        {usuarios.map(u => (
+                          <option key={`user_${u.id}`} value={`user_${u.id}`}>{u.name} ({u.email})</option>
+                        ))}
+                      </optgroup>
                     </select>
                   </div>
                 </div>

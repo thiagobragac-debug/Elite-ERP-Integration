@@ -133,198 +133,211 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Ativo"}
     >
-      <div className="form-group full-width">
-        <label><Truck size={14} /> Nome do Ativo</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Trator 01, Hilux Branca..." 
-          value={formData.nome}
-          onChange={(e) => setFormData({...formData, nome: e.target.value})}
-          required 
-        />
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Truck size={14} /> Nome do Ativo</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Trator 01, Hilux Branca..." 
+            value={formData.nome}
+            onChange={(e) => setFormData({...formData, nome: e.target.value})}
+            required 
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Tag size={14} /> Marca</label>
+          <input 
+            type="text" 
+            placeholder="Ex: John Deere, Toyota..." 
+            value={formData.marca}
+            onChange={(e) => setFormData({...formData, marca: e.target.value})}
+            required
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Layers size={14} /> Modelo</label>
+          <input 
+            type="text" 
+            placeholder="Ex: 6125J, SRX..." 
+            value={formData.modelo}
+            onChange={(e) => setFormData({...formData, modelo: e.target.value})}
+            required
+          />
+        </div>
       </div>
 
-      <div className="form-group">
-        <label><Tag size={14} /> Marca</label>
-        <input 
-          type="text" 
-          placeholder="Ex: John Deere, Toyota..." 
-          value={formData.marca}
-          onChange={(e) => setFormData({...formData, marca: e.target.value})}
-          required
-        />
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Settings size={14} /> Categoria</label>
+          <select 
+            value={formData.categoria}
+            onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+            required
+          >
+            <option value="">Selecionar...</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Calendar size={14} /> Ano</label>
+          <input 
+            type="number" 
+            placeholder="2024" 
+            value={formData.ano}
+            onChange={(e) => setFormData({...formData, ano: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Activity size={14} /> Potência (cv)</label>
+          <input 
+            type="number" 
+            placeholder="Ex: 125" 
+            value={formData.potencia}
+            onChange={(e) => setFormData({...formData, potencia: e.target.value})}
+          />
+        </div>
       </div>
 
-      <div className="form-group">
-        <label><Layers size={14} /> Modelo</label>
-        <input 
-          type="text" 
-          placeholder="Ex: 6125J, SRX..." 
-          value={formData.modelo}
-          onChange={(e) => setFormData({...formData, modelo: e.target.value})}
-          required
-        />
+
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Hash size={14} /> Placa / Registro</label>
+          <input 
+            type="text" 
+            placeholder="ABC-1234" 
+            value={formData.placa}
+            onChange={(e) => setFormData({...formData, placa: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Hash size={14} /> Chassi / Série</label>
+          <input 
+            type="text" 
+            placeholder="Número de identificação..." 
+            value={formData.chassi}
+            onChange={(e) => setFormData({...formData, chassi: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Settings size={14} /> Combustível</label>
+          <select 
+            value={formData.combustivel}
+            onChange={(e) => setFormData({...formData, combustivel: e.target.value})}
+          >
+            <option>Diesel</option>
+            <option>Diesel S10</option>
+            <option>Gasolina</option>
+            <option>Etanol</option>
+            <option>Arla 32</option>
+          </select>
+        </div>
       </div>
 
-      <div className="form-group">
-        <label><Settings size={14} /> Categoria</label>
-        <select 
-          value={formData.categoria}
-          onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-          required
-        >
-          <option value="">Selecionar...</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.nome}>{cat.nome}</option>
-          ))}
-        </select>
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Activity size={14} /> Capacidade Tanque (L)</label>
+          <input 
+            type="number" 
+            placeholder="0" 
+            value={formData.capacidade_tanque}
+            onChange={(e) => setFormData({...formData, capacidade_tanque: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Activity size={14} /> Horímetro Inicial</label>
+          <input 
+            type="number" 
+            placeholder="0" 
+            value={formData.horimetro_inicial}
+            onChange={(e) => setFormData({...formData, horimetro_inicial: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Activity size={14} /> KM Inicial</label>
+          <input 
+            type="number" 
+            placeholder="0" 
+            value={formData.quilometragem_inicial}
+            onChange={(e) => setFormData({...formData, quilometragem_inicial: e.target.value})}
+          />
+        </div>
       </div>
 
-      <div className="form-group">
-        <label><Calendar size={14} /> Ano</label>
-        <input 
-          type="number" 
-          placeholder="2024" 
-          value={formData.ano}
-          onChange={(e) => setFormData({...formData, ano: e.target.value})}
-        />
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><DollarSign size={14} /> Valor de Compra (R$)</label>
+          <input 
+            type="number" 
+            step="0.01"
+            placeholder="0.00" 
+            value={formData.valor_compra}
+            onChange={(e) => setFormData({...formData, valor_compra: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Activity size={14} /> Peso Operacional (kg)</label>
+          <input 
+            type="number" 
+            placeholder="Ex: 5800" 
+            value={formData.peso_operacional}
+            onChange={(e) => setFormData({...formData, peso_operacional: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Settings size={14} /> Intervalo Revisão (h/km)</label>
+          <input 
+            type="number" 
+            placeholder="Ex: 250" 
+            value={formData.intervalo_revisao}
+            onChange={(e) => setFormData({...formData, intervalo_revisao: e.target.value})}
+          />
+        </div>
       </div>
 
-      <div className="form-group">
-        <label><Activity size={14} /> Horímetro Inicial</label>
-        <input 
-          type="number" 
-          placeholder="0" 
-          value={formData.horimetro_inicial}
-          onChange={(e) => setFormData({...formData, horimetro_inicial: e.target.value})}
-        />
-      </div>
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Activity size={14} /> Meta de Consumo (L/h)</label>
+          <input 
+            type="number" 
+            step="0.1"
+            placeholder="Ex: 14.5" 
+            value={formData.consumo_estimado}
+            onChange={(e) => setFormData({...formData, consumo_estimado: e.target.value})}
+          />
+        </div>
 
-      <div className="form-group">
-        <label><Activity size={14} /> KM Inicial</label>
-        <input 
-          type="number" 
-          placeholder="0" 
-          value={formData.quilometragem_inicial}
-          onChange={(e) => setFormData({...formData, quilometragem_inicial: e.target.value})}
-        />
-      </div>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Calendar size={14} /> Próxima Revisão</label>
+          <input 
+            type="date" 
+            value={formData.data_proxima_revisao}
+            onChange={(e) => setFormData({...formData, data_proxima_revisao: e.target.value})}
+          />
+        </div>
 
-      <div className="form-group">
-        <label><Hash size={14} /> Placa / Registro</label>
-        <input 
-          type="text" 
-          placeholder="ABC-1234" 
-          value={formData.placa}
-          onChange={(e) => setFormData({...formData, placa: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Hash size={14} /> Chassi / Série</label>
-        <input 
-          type="text" 
-          placeholder="Número de identificação..." 
-          value={formData.chassi}
-          onChange={(e) => setFormData({...formData, chassi: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Settings size={14} /> Combustível</label>
-        <select 
-          value={formData.combustivel}
-          onChange={(e) => setFormData({...formData, combustivel: e.target.value})}
-        >
-          <option>Diesel</option>
-          <option>Diesel S10</option>
-          <option>Gasolina</option>
-          <option>Etanol</option>
-          <option>Arla 32</option>
-        </select>
-      </div>
-
-      <div className="form-group">
-        <label><Activity size={14} /> Capacidade Tanque (L)</label>
-        <input 
-          type="number" 
-          placeholder="0" 
-          value={formData.capacidade_tanque}
-          onChange={(e) => setFormData({...formData, capacidade_tanque: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><DollarSign size={14} /> Valor de Compra (R$)</label>
-        <input 
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
-          value={formData.valor_compra}
-          onChange={(e) => setFormData({...formData, valor_compra: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Activity size={14} /> Potência (cv)</label>
-        <input 
-          type="number" 
-          placeholder="Ex: 125" 
-          value={formData.potencia}
-          onChange={(e) => setFormData({...formData, potencia: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Activity size={14} /> Peso Operacional (kg)</label>
-        <input 
-          type="number" 
-          placeholder="Ex: 5800" 
-          value={formData.peso_operacional}
-          onChange={(e) => setFormData({...formData, peso_operacional: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Settings size={14} /> Intervalo Revisão (h/km)</label>
-        <input 
-          type="number" 
-          placeholder="Ex: 250" 
-          value={formData.intervalo_revisao}
-          onChange={(e) => setFormData({...formData, intervalo_revisao: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Activity size={14} /> Meta de Consumo (L/h)</label>
-        <input 
-          type="number" 
-          step="0.1"
-          placeholder="Ex: 14.5" 
-          value={formData.consumo_estimado}
-          onChange={(e) => setFormData({...formData, consumo_estimado: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Calendar size={14} /> Próxima Revisão</label>
-        <input 
-          type="date" 
-          value={formData.data_proxima_revisao}
-          onChange={(e) => setFormData({...formData, data_proxima_revisao: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Activity size={14} /> Status da Máquina</label>
-        <select 
-          value={formData.status}
-          onChange={(e) => setFormData({...formData, status: e.target.value})}
-        >
-          <option value="active">Operacional</option>
-          <option value="maintenance">Em Manutenção</option>
-          <option value="stopped">Parado (Crítico)</option>
-        </select>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Activity size={14} /> Status da Máquina</label>
+          <select 
+            value={formData.status}
+            onChange={(e) => setFormData({...formData, status: e.target.value})}
+          >
+            <option value="active">Operacional</option>
+            <option value="maintenance">Em Manutenção</option>
+            <option value="stopped">Parado (Crítico)</option>
+          </select>
+        </div>
       </div>
 
       <div className="form-group full-width">

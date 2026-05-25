@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Map, 
   Maximize,
@@ -196,7 +196,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
 
       <div className="form-group full-width">
         <label><Tag size={14} /> Status da Área</label>
-        <div className="tauze-form-radio-group">
+        <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div 
             className={`tauze-form-radio-item ${formData.status === 'grazing' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, status: 'grazing'})}

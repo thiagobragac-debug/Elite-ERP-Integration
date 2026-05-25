@@ -266,213 +266,227 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
         <span>Endereço Completo</span>
       </div>
 
-      <div className="form-group">
-        <label>CEP</label>
-        <div className="tauze-input-with-action">
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 3fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>CEP</label>
+          <div className="tauze-input-with-action">
+            <input 
+              type="text" 
+              placeholder="00000-000" 
+              value={formData.cep}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '');
+                const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
+                setFormData({...formData, cep: masked});
+              }}
+              onBlur={handleCEPSearch}
+              className="flex-1"
+            />
+            <button 
+              type="button"
+              className="action-trigger-btn"
+              onClick={handleCEPSearch}
+              title="Buscar CEP"
+              disabled={formData.cep.replace(/\D/g, '').length !== 8 || loading}
+            >
+              {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
+            </button>
+          </div>
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Tipo</label>
           <input 
             type="text" 
-            placeholder="00000-000" 
-            value={formData.cep}
-            onChange={(e) => {
-              const val = e.target.value.replace(/\D/g, '');
-              const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
-              setFormData({...formData, cep: masked});
-            }}
-            onBlur={handleCEPSearch}
-            className="flex-1"
+            placeholder="Rua, Av..." 
+            value={formData.tipo_logradouro}
+            onChange={(e) => setFormData({...formData, tipo_logradouro: e.target.value})}
           />
-          <button 
-            type="button"
-            className="action-trigger-btn"
-            onClick={handleCEPSearch}
-            title="Buscar CEP"
-            disabled={formData.cep.replace(/\D/g, '').length !== 8 || loading}
-          >
-            {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
-          </button>
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Logradouro</label>
+          <input 
+            type="text" 
+            placeholder="Nome da rua ou avenida" 
+            value={formData.logradouro}
+            onChange={(e) => setFormData({...formData, logradouro: e.target.value})}
+          />
         </div>
       </div>
 
-      <div className="form-group">
-        <label>Tipo</label>
-        <input 
-          type="text" 
-          placeholder="Rua, Av..." 
-          value={formData.tipo_logradouro}
-          onChange={(e) => setFormData({...formData, tipo_logradouro: e.target.value})}
-        />
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 2fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Número</label>
+          <input 
+            type="text" 
+            placeholder="123" 
+            value={formData.numero}
+            onChange={(e) => setFormData({...formData, numero: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Complemento</label>
+          <input 
+            type="text" 
+            placeholder="Sala, Andar, Bloco" 
+            value={formData.complemento}
+            onChange={(e) => setFormData({...formData, complemento: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Bairro</label>
+          <input 
+            type="text" 
+            placeholder="Nome do bairro" 
+            value={formData.bairro}
+            onChange={(e) => setFormData({...formData, bairro: e.target.value})}
+          />
+        </div>
       </div>
 
-      <div className="form-group" style={{ flex: '2 1 250px' }}>
-        <label>Logradouro</label>
-        <input 
-          type="text" 
-          placeholder="Nome da rua ou avenida" 
-          value={formData.logradouro}
-          onChange={(e) => setFormData({...formData, logradouro: e.target.value})}
-        />
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Cidade</label>
+          <input 
+            type="text" 
+            placeholder="Nome da cidade" 
+            value={formData.cidade}
+            onChange={(e) => setFormData({...formData, cidade: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Estado (UF)</label>
+          <input 
+            type="text" 
+            placeholder="EX: MT" 
+            value={formData.estado}
+            onChange={(e) => setFormData({...formData, estado: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>País</label>
+          <input 
+            type="text" 
+            value={formData.pais}
+            onChange={(e) => setFormData({...formData, pais: e.target.value})}
+          />
+        </div>
       </div>
 
-      <div className="form-group">
-        <label>Número</label>
-        <input 
-          type="text" 
-          placeholder="123" 
-          value={formData.numero}
-          onChange={(e) => setFormData({...formData, numero: e.target.value})}
-        />
-      </div>
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '24px', alignItems: 'start', border: 'none', padding: 0, background: 'transparent', marginTop: '12px' }}>
+        {/* Left Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="form-section-title full-width" style={{ marginBottom: 0 }}>
+            <CreditCard size={16} />
+            <span>Parâmetros Financeiros</span>
+          </div>
 
-      <div className="form-group">
-        <label>Complemento</label>
-        <input 
-          type="text" 
-          placeholder="Sala, Andar, Bloco" 
-          value={formData.complemento}
-          onChange={(e) => setFormData({...formData, complemento: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Bairro</label>
-        <input 
-          type="text" 
-          placeholder="Nome do bairro" 
-          value={formData.bairro}
-          onChange={(e) => setFormData({...formData, bairro: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Cidade</label>
-        <input 
-          type="text" 
-          placeholder="Nome da cidade" 
-          value={formData.cidade}
-          onChange={(e) => setFormData({...formData, cidade: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Estado (UF)</label>
-        <input 
-          type="text" 
-          placeholder="EX: MT" 
-          value={formData.estado}
-          onChange={(e) => setFormData({...formData, estado: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label>País</label>
-        <input 
-          type="text" 
-          value={formData.pais}
-          onChange={(e) => setFormData({...formData, pais: e.target.value})}
-        />
-      </div>
-
-      <div className="form-section-title full-width" style={{ marginTop: '12px' }}>
-        <CreditCard size={16} />
-        <span>Parâmetros Financeiros</span>
-      </div>
-
-      <div className="form-group">
-        <label><Star size={14} /> Segmento Estratégico</label>
-        <select 
-          value={formData.segment}
-          onChange={(e) => setFormData({...formData, segment: e.target.value})}
-          required
-        >
-          <option value="Ouro/VIP">Ouro / VIP</option>
-          <option value="Prata/Recorrente">Prata / Recorrente</option>
-          <option value="Bronze/Inativo">Bronze / Inativo</option>
-          <option value="Novo">Novo / Lead</option>
-        </select>
-      </div>
-
-      <div className="form-section-title full-width" style={{ marginTop: '24px' }}>
-        <Building2 size={16} />
-        <span>Abrangência e Visibilidade</span>
-      </div>
-
-      <div className="form-group full-width">
-        <div 
-          className="tauze-toggle-row"
-          onClick={() => setFormData({ ...formData, is_global: !formData.is_global })}
-        >
-          <div className={`tauze-toggle-switch ${formData.is_global ? 'active' : ''}`} />
-          <div className="toggle-label-group">
-            <span className="toggle-title">Habilitar em todas as fazendas (Global)</span>
-            <span className="toggle-desc">Este parceiro estará visível em todas as unidades do grupo.</span>
+          <div className="form-group full-width" style={{ marginBottom: 0 }}>
+            <label><Star size={14} /> Segmento Estratégico</label>
+            <select 
+              value={formData.segment}
+              onChange={(e) => setFormData({...formData, segment: e.target.value})}
+              required
+            >
+              <option value="Ouro/VIP">Ouro / VIP</option>
+              <option value="Prata/Recorrente">Prata / Recorrente</option>
+              <option value="Bronze/Inativo">Bronze / Inativo</option>
+              <option value="Novo">Novo / Lead</option>
+            </select>
           </div>
         </div>
-      </div>
 
-      {!formData.is_global && (
-        <div className="form-group full-width">
-          <label>Vincular a Fazendas Específicas</label>
-          <div className="tauze-multi-select-container">
+        {/* Right Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="form-section-title full-width" style={{ marginBottom: 0 }}>
+            <Building2 size={16} />
+            <span>Abrangência e Visibilidade</span>
+          </div>
+
+          <div className="form-group full-width" style={{ marginBottom: 0 }}>
             <div 
-              className="tauze-multi-select-trigger"
-              onClick={() => setIsFarmDropdownOpen(!isFarmDropdownOpen)}
+              className="tauze-toggle-row"
+              onClick={() => setFormData({ ...formData, is_global: !formData.is_global })}
             >
-              <div className="selected-chips">
-                {formData.fazendas_vinculadas.length === 0 ? (
-                  <span className="placeholder">Nenhuma fazenda selecionada</span>
-                ) : (
-                  formData.fazendas_vinculadas.map(fid => {
-                    const farm = farms.find(f => f.id === fid);
-                    return (
-                      <span key={fid} className="tauze-chip">
-                        {farm?.name || 'Fazenda'}
-                        <button 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFormData({
-                              ...formData,
-                              fazendas_vinculadas: formData.fazendas_vinculadas.filter(id => id !== fid)
-                            });
-                          }}
-                        >
-                          ×
-                        </button>
-                      </span>
-                    );
-                  })
+              <div className={`tauze-toggle-switch ${formData.is_global ? 'active' : ''}`} />
+              <div className="toggle-label-group">
+                <span className="toggle-title">Habilitar em todas as fazendas (Global)</span>
+                <span className="toggle-desc">Este parceiro estará visível em todas as unidades do grupo.</span>
+              </div>
+            </div>
+          </div>
+
+          {!formData.is_global && (
+            <div className="form-group full-width" style={{ marginBottom: 0 }}>
+              <label>Vincular a Fazendas Específicas</label>
+              <div className="tauze-multi-select-container">
+                <div 
+                  className="tauze-multi-select-trigger"
+                  onClick={() => setIsFarmDropdownOpen(!isFarmDropdownOpen)}
+                >
+                  <div className="selected-chips">
+                    {formData.fazendas_vinculadas.length === 0 ? (
+                      <span className="placeholder">Nenhuma fazenda selecionada</span>
+                    ) : (
+                      formData.fazendas_vinculadas.map(fid => {
+                        const farm = farms.find(f => f.id === fid);
+                        return (
+                          <span key={fid} className="tauze-chip">
+                            {farm?.name || 'Fazenda'}
+                            <button 
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFormData({
+                                  ...formData,
+                                  fazendas_vinculadas: formData.fazendas_vinculadas.filter(id => id !== fid)
+                                });
+                              }}
+                            >
+                              ×
+                            </button>
+                          </span>
+                        );
+                      })
+                    )}
+                  </div>
+                  <ChevronDown size={18} className={`chevron ${isFarmDropdownOpen ? 'open' : ''}`} />
+                </div>
+
+                {isFarmDropdownOpen && (
+                  <div className="tauze-multi-select-dropdown">
+                    {farms.map(farm => (
+                      <div 
+                        key={farm.id}
+                        className={`dropdown-item ${formData.fazendas_vinculadas.includes(farm.id) ? 'selected' : ''}`}
+                        onClick={() => {
+                          const isSelected = formData.fazendas_vinculadas.includes(farm.id);
+                          setFormData({
+                            ...formData,
+                            fazendas_vinculadas: isSelected 
+                              ? formData.fazendas_vinculadas.filter(id => id !== farm.id)
+                              : [...formData.fazendas_vinculadas, farm.id]
+                          });
+                        }}
+                      >
+                        <div className="checkbox-mini">
+                          {formData.fazendas_vinculadas.includes(farm.id) && <Check size={12} />}
+                        </div>
+                        <span>{farm.name}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              <ChevronDown size={18} className={`chevron ${isFarmDropdownOpen ? 'open' : ''}`} />
             </div>
-
-            {isFarmDropdownOpen && (
-              <div className="tauze-multi-select-dropdown">
-                {farms.map(farm => (
-                  <div 
-                    key={farm.id}
-                    className={`dropdown-item ${formData.fazendas_vinculadas.includes(farm.id) ? 'selected' : ''}`}
-                    onClick={() => {
-                      const isSelected = formData.fazendas_vinculadas.includes(farm.id);
-                      setFormData({
-                        ...formData,
-                        fazendas_vinculadas: isSelected 
-                          ? formData.fazendas_vinculadas.filter(id => id !== farm.id)
-                          : [...formData.fazendas_vinculadas, farm.id]
-                      });
-                    }}
-                  >
-                    <div className="checkbox-mini">
-                      {formData.fazendas_vinculadas.includes(farm.id) && <Check size={12} />}
-                    </div>
-                    <span>{farm.name}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       <style>{`
         .tauze-toggle-row {

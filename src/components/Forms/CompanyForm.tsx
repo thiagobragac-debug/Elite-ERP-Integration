@@ -175,35 +175,37 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
       submitLabel={initialData ? 'Salvar Alterações' : 'Salvar Empresa'}
     >
       {/* Identificação */}
-      <div className="form-group full-width">
-        <label><Building2 size={14} /> Razão Social / Nome Fantasia</label>
-        <input type="text" placeholder="Ex: Agropecuária Matriz Ltda..." value={formData.name}
-          onChange={(e) => setFormData({...formData, name: e.target.value})} required />
-      </div>
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Building2 size={14} /> Razão Social / Nome Fantasia</label>
+          <input type="text" placeholder="Ex: Agropecuária Matriz Ltda..." value={formData.name}
+            onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+        </div>
 
-      <div className="form-group">
-        <label><FileText size={14} /> Tipo de Documento</label>
-        <select value={formData.tipo_documento}
-          onChange={(e) => setFormData({...formData, tipo_documento: e.target.value, document: ''})}>
-          <option value="CNPJ">CNPJ (Pessoa Jurídica)</option>
-          <option value="CPF">CPF (Pessoa Física / Produtor Rural)</option>
-        </select>
-      </div>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><FileText size={14} /> Tipo de Documento</label>
+          <select value={formData.tipo_documento}
+            onChange={(e) => setFormData({...formData, tipo_documento: e.target.value, document: ''})}>
+            <option value="CNPJ">CNPJ (Pessoa Jurídica)</option>
+            <option value="CPF">CPF (Pessoa Física / Produtor Rural)</option>
+          </select>
+        </div>
 
-      <div className="form-group">
-        <label><FileText size={14} /> {formData.tipo_documento}</label>
-        <div className="tauze-input-with-action">
-          <input type="text"
-            placeholder={formData.tipo_documento === 'CNPJ' ? '00.000.000/0000-00' : '000.000.000-00'}
-            value={formData.document}
-            onChange={(e) => setFormData({...formData, document: maskCPFCNPJ(e.target.value)})}
-            required />
-          {formData.tipo_documento === 'CNPJ' && (
-            <button type="button" className="action-trigger-btn" onClick={handleCNPJSearch}
-              title="Buscar dados na Receita" disabled={docDigits.length !== 14 || loading}>
-              {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
-            </button>
-          )}
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><FileText size={14} /> {formData.tipo_documento}</label>
+          <div className="tauze-input-with-action">
+            <input type="text"
+              placeholder={formData.tipo_documento === 'CNPJ' ? '00.000.000/0000-00' : '000.000.000-00'}
+              value={formData.document}
+              onChange={(e) => setFormData({...formData, document: maskCPFCNPJ(e.target.value)})}
+              required />
+            {formData.tipo_documento === 'CNPJ' && (
+              <button type="button" className="action-trigger-btn" onClick={handleCNPJSearch}
+                title="Buscar dados na Receita" disabled={docDigits.length !== 14 || loading}>
+                {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -237,67 +239,81 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
         <MapPin size={16} /><span>Endereço Sede</span>
       </div>
 
-      <div className="form-group">
-        <label>CEP</label>
-        <div className="tauze-input-with-action">
-          <input type="text" placeholder="00000-000" value={formData.cep}
-            onChange={(e) => {
-              const val = e.target.value.replace(/\D/g, '');
-              const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
-              setFormData({...formData, cep: masked});
-            }}
-            onBlur={handleCEPSearch}
-          />
-          <button 
-            type="button"
-            className="action-trigger-btn"
-            onClick={handleCEPSearch}
-            title="Buscar CEP"
-            disabled={formData.cep.replace(/\D/g, '').length !== 8 || loading}
-          >
-            {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
-          </button>
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 3fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>CEP</label>
+          <div className="tauze-input-with-action">
+            <input type="text" placeholder="00000-000" value={formData.cep}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '');
+                const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
+                setFormData({...formData, cep: masked});
+              }}
+              onBlur={handleCEPSearch}
+            />
+            <button 
+              type="button"
+              className="action-trigger-btn"
+              onClick={handleCEPSearch}
+              title="Buscar CEP"
+              disabled={formData.cep.replace(/\D/g, '').length !== 8 || loading}
+            >
+              {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
+            </button>
+          </div>
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Tipo</label>
+          <input type="text" placeholder="Rua, Av..." value={formData.tipo_logradouro}
+            onChange={(e) => setFormData({...formData, tipo_logradouro: e.target.value})} />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Logradouro</label>
+          <input type="text" placeholder="Nome da rua ou avenida" value={formData.logradouro}
+            onChange={(e) => setFormData({...formData, logradouro: e.target.value})} />
         </div>
       </div>
-      <div className="form-group">
-        <label>Tipo</label>
-        <input type="text" placeholder="Rua, Av..." value={formData.tipo_logradouro}
-          onChange={(e) => setFormData({...formData, tipo_logradouro: e.target.value})} />
+
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 2fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Número</label>
+          <input type="text" placeholder="123" value={formData.numero}
+            onChange={(e) => setFormData({...formData, numero: e.target.value})} />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Complemento</label>
+          <input type="text" placeholder="Sala, Andar, Bloco" value={formData.complemento}
+            onChange={(e) => setFormData({...formData, complemento: e.target.value})} />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Bairro</label>
+          <input type="text" placeholder="Nome do bairro" value={formData.bairro}
+            onChange={(e) => setFormData({...formData, bairro: e.target.value})} />
+        </div>
       </div>
-      <div className="form-group" style={{flex: '2 1 250px'}}>
-        <label>Logradouro</label>
-        <input type="text" placeholder="Nome da rua ou avenida" value={formData.logradouro}
-          onChange={(e) => setFormData({...formData, logradouro: e.target.value})} />
-      </div>
-      <div className="form-group">
-        <label>Número</label>
-        <input type="text" placeholder="123" value={formData.numero}
-          onChange={(e) => setFormData({...formData, numero: e.target.value})} />
-      </div>
-      <div className="form-group">
-        <label>Complemento</label>
-        <input type="text" placeholder="Sala, Andar, Bloco" value={formData.complemento}
-          onChange={(e) => setFormData({...formData, complemento: e.target.value})} />
-      </div>
-      <div className="form-group">
-        <label>Bairro</label>
-        <input type="text" placeholder="Nome do bairro" value={formData.bairro}
-          onChange={(e) => setFormData({...formData, bairro: e.target.value})} />
-      </div>
-      <div className="form-group">
-        <label>Cidade</label>
-        <input type="text" placeholder="Nome da cidade" value={formData.cidade}
-          onChange={(e) => setFormData({...formData, cidade: e.target.value})} />
-      </div>
-      <div className="form-group">
-        <label>Estado (UF)</label>
-        <input type="text" placeholder="MT" maxLength={2} value={formData.estado}
-          onChange={(e) => setFormData({...formData, estado: e.target.value.toUpperCase()})} />
-      </div>
-      <div className="form-group">
-        <label>País</label>
-        <input type="text" value={formData.pais}
-          onChange={(e) => setFormData({...formData, pais: e.target.value})} />
+
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Cidade</label>
+          <input type="text" placeholder="Nome da cidade" value={formData.cidade}
+            onChange={(e) => setFormData({...formData, cidade: e.target.value})} />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Estado (UF)</label>
+          <input type="text" placeholder="MT" maxLength={2} value={formData.estado}
+            onChange={(e) => setFormData({...formData, estado: e.target.value.toUpperCase()})} />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>País</label>
+          <input type="text" value={formData.pais}
+            onChange={(e) => setFormData({...formData, pais: e.target.value})} />
+        </div>
       </div>
 
       {/* Sócio Responsável — somente quando CNPJ */}

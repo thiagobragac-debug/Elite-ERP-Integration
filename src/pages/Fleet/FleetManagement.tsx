@@ -189,6 +189,8 @@ export const FleetManagement: React.FC = () => {
         status: formData.status || 'active',
         observacoes: formData.observacoes,
         tipo_medidor: formData.categoria === 'Trator' || formData.categoria === 'Implemento' ? 'Horômetro' : 'Odômetro',
+        horimetro_atual: parseFloat(formData.horimetro_inicial) || 0,
+        quilometragem_atual: parseFloat(formData.quilometragem_inicial) || 0,
         ...insertPayload
       };
 
@@ -203,7 +205,7 @@ export const FleetManagement: React.FC = () => {
       fetchMachines();
     } catch (err) {
       console.error('Error saving machine:', err);
-      alert('Erro ao salvar máquina. Verifique o console para mais detalhes.');
+      alert(`Erro ao salvar máquina: ${err?.message || JSON.stringify(err)}`);
     } finally {
       setLoading(false);
     }
