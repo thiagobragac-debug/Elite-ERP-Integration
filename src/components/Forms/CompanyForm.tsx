@@ -209,7 +209,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
 
       <div className="form-group full-width">
         <label><ShieldCheck size={14} /> Tipo de Unidade</label>
-        <div className="tauze-form-radio-group">
+        <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
           {['matriz', 'filial', 'parceiro'].map(t => (
             <div key={t} className={`tauze-form-radio-item ${formData.type === t ? 'active' : ''}`}
               onClick={() => setFormData({...formData, type: t})}>
@@ -314,26 +314,28 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
             </div>
           </div>
 
-          <div className="form-group">
-            <label><UserCheck size={14} /> CPF do Sócio Responsável</label>
-            <input type="text" placeholder="000.000.000-00" maxLength={14}
-              value={formData.socio_cpf}
-              onChange={(e) => setFormData({...formData, socio_cpf: maskCPF(e.target.value)})} />
-          </div>
-          <div className="form-group">
-            <label><UserCheck size={14} /> Nome Completo do Sócio</label>
-            <input type="text" placeholder="Nome como consta no CPF" value={formData.socio_nome}
-              onChange={(e) => setFormData({...formData, socio_nome: e.target.value})} />
-          </div>
-          <div className="form-group full-width">
-            <label><ShieldCheck size={14} /> Situação Especial (LCDPR)</label>
-            <select value={formData.socio_ind_sit_esp}
-              onChange={(e) => setFormData({...formData, socio_ind_sit_esp: Number(e.target.value)})}>
-              <option value={0}>0 — Normal</option>
-              <option value={1}>1 — Falecimento</option>
-              <option value={2}>2 — Espólio</option>
-              <option value={3}>3 — Saída Definitiva do País</option>
-            </select>
+          <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+              <label><UserCheck size={14} /> CPF do Sócio Responsável</label>
+              <input type="text" placeholder="000.000.000-00" maxLength={14}
+                value={formData.socio_cpf}
+                onChange={(e) => setFormData({...formData, socio_cpf: maskCPF(e.target.value)})} />
+            </div>
+            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+              <label><UserCheck size={14} /> Nome Completo do Sócio</label>
+              <input type="text" placeholder="Nome como consta no CPF" value={formData.socio_nome}
+                onChange={(e) => setFormData({...formData, socio_nome: e.target.value})} />
+            </div>
+            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+              <label><ShieldCheck size={14} /> Situação Especial (LCDPR)</label>
+              <select value={formData.socio_ind_sit_esp}
+                onChange={(e) => setFormData({...formData, socio_ind_sit_esp: Number(e.target.value)})}>
+                <option value={0}>0 — Normal</option>
+                <option value={1}>1 — Falecimento</option>
+                <option value={2}>2 — Espólio</option>
+                <option value={3}>3 — Saída Definitiva do País</option>
+              </select>
+            </div>
           </div>
         </>
       )}
@@ -354,21 +356,23 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
             </div>
           </div>
 
-          <div className="form-group">
-            <label><BookOpen size={14} /> CPF do Contador</label>
-            <input type="text" placeholder="000.000.000-00" maxLength={14}
-              value={formData.contador_cpf}
-              onChange={(e) => setFormData({...formData, contador_cpf: maskCPF(e.target.value)})} />
-          </div>
-          <div className="form-group">
-            <label><BookOpen size={14} /> Nome do Contador</label>
-            <input type="text" placeholder="Nome completo do contador" value={formData.contador_nome}
-              onChange={(e) => setFormData({...formData, contador_nome: e.target.value})} />
-          </div>
-          <div className="form-group">
-            <label><CreditCard size={14} /> Número do CRC</label>
-            <input type="text" placeholder="Ex: CRC-MT/123456-O" value={formData.contador_crc}
-              onChange={(e) => setFormData({...formData, contador_crc: e.target.value})} />
+          <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+              <label><BookOpen size={14} /> CPF do Contador</label>
+              <input type="text" placeholder="000.000.000-00" maxLength={14}
+                value={formData.contador_cpf}
+                onChange={(e) => setFormData({...formData, contador_cpf: maskCPF(e.target.value)})} />
+            </div>
+            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+              <label><BookOpen size={14} /> Nome do Contador</label>
+              <input type="text" placeholder="Nome completo do contador" value={formData.contador_nome}
+                onChange={(e) => setFormData({...formData, contador_nome: e.target.value})} />
+            </div>
+            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
+              <label><CreditCard size={14} /> Número do CRC</label>
+              <input type="text" placeholder="Ex: CRC-MT/123456-O" value={formData.contador_crc}
+                onChange={(e) => setFormData({...formData, contador_crc: e.target.value})} />
+            </div>
           </div>
         </>
       )}

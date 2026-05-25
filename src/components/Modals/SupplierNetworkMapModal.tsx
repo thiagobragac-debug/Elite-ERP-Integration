@@ -72,7 +72,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
             <div>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>Mapa de Rede de Suprimentos</h3>
               <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
-                Inteligência geográfica e logística da base de parceiroes
+                Inteligência geográfica e logística da base de fornecedores
               </p>
             </div>
           </div>
@@ -180,7 +180,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
             <div className="sidebar-section bottom">
               <button 
                 className="optimize-btn" 
-                onClick={() => alert(`Otimizando rotas para ${selectedIds.length || filteredSuppliers.length} parceiroes...`)}
+                onClick={() => alert(`Otimizando rotas para ${selectedIds.length || filteredSuppliers.length} fornecedores...`)}
                 style={{ background: 'hsl(var(--brand))', color: 'white' }}
               >
                 <Navigation size={14} />

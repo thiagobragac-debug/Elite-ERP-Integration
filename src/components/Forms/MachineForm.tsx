@@ -10,6 +10,8 @@ import {
   DollarSign
 } from 'lucide-react';
 import { FormModal } from './FormModal';
+import { supabase } from '../../lib/supabase';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface MachineFormProps {
   isOpen: boolean;
@@ -41,7 +43,26 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
     observacoes: ''
   });
 
+  const { activeTenantId } = useTenant();
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (isOpen && activeTenantId) {
+      fetchCategories();
+    }
+  }, [isOpen, activeTenantId]);
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from('categorias_sistema')
+      .select('id, nome')
+      .eq('tenant_id', activeTenantId)
+      .eq('modulo', 'frota')
+      .eq('is_active', true)
+      .order('nome');
+    if (data) setCategories(data);
+  };
 
   React.useEffect(() => {
     if (initialData) {
@@ -152,11 +173,10 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
           onChange={(e) => setFormData({...formData, categoria: e.target.value})}
           required
         >
-          <option value="Trator">Trator</option>
-          <option value="Implemento">Implemento</option>
-          <option value="Caminhonete">Caminhonete / Carro</option>
-          <option value="Caminhão">Caminhão</option>
-          <option value="Outros">Outros</option>
+          <option value="">Selecionar...</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+          ))}
         </select>
       </div>
 

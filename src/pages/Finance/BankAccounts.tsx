@@ -573,7 +573,8 @@ export const BankAccounts: React.FC = () => {
               .map(acc => (
                 <motion.div 
                   key={acc.id} 
-                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   className={`user-card-premium active`}
                 >
                   <div className="card-left-section">

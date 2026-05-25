@@ -65,7 +65,7 @@ export const useFarmFilter = () => {
   };
 
   /**
-   * For tables that only have tenant_id (parceiros, parceiroes, etc.)
+   * For tables that only have tenant_id (parceiros, fornecedores, etc.)
    * These are already "global" by nature — always filter by tenant.
    */
   const applyTenantFilter = (query: any) => {

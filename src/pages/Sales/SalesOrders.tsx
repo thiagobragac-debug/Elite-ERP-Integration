@@ -446,7 +446,7 @@ export const SalesOrders: React.FC = () => {
 
             {order.status === 'delivered' && (
               <span className="status-pill active" style={{ fontSize: '8px', padding: '4px 8px', borderRadius: '6px', fontWeight: 900 }}>
-                âœ“ ENTREGUE
+                ✓ ENTREGUE
               </span>
             )}
 
@@ -800,7 +800,7 @@ export const SalesOrders: React.FC = () => {
             <div style={{ background: 'hsl(var(--bg-main)/0.2)', borderRadius: '24px', border: '1px solid hsl(var(--border))', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '10px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--warning))', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  ðŸ“Œ Pendentes
+                  📌 Pendentes
                 </span>
                 <span className="status-pill warning" style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 900 }}>
                   {orders.filter(o => o.status === 'pending').length}
@@ -817,7 +817,7 @@ export const SalesOrders: React.FC = () => {
             <div style={{ background: 'hsl(var(--bg-main)/0.2)', borderRadius: '24px', border: '1px solid hsl(var(--border))', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '10px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  ðŸšš Entregues
+                  🚚 Entregues
                 </span>
                 <span className="status-pill active" style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 900 }}>
                   {orders.filter(o => o.status === 'delivered').length}
@@ -834,7 +834,7 @@ export const SalesOrders: React.FC = () => {
             <div style={{ background: 'hsl(var(--bg-main)/0.2)', borderRadius: '24px', border: '1px solid hsl(var(--border))', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', height: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid hsl(var(--border))', paddingBottom: '10px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  âŒ Cancelados
+                  ❌ Cancelados
                 </span>
                 <span className="status-pill danger" style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 900 }}>
                   {orders.filter(o => o.status === 'canceled').length}

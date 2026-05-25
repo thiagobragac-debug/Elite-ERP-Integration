@@ -17,10 +17,20 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   fallback 
 }) => {
   const { isAuthenticated } = useAuth();
-  const { userProfile } = useTenant();
+  const { userProfile, loading } = useTenant();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', gap: 16 }}>
+        <div style={{ width: 40, height: 40, border: '3px solid var(--border)', borderTopColor: 'var(--brand)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>Verificando permissões...</span>
+        <style>{`@keyframes spin { 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   // Admin bypass

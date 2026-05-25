@@ -17,3 +17,46 @@ export const cleanUUID = (id: string | null | undefined): string | null => {
   if (isValidUUID(id)) return id as string;
   return null;
 };
+
+export const isValidCPF = (cpf: string): boolean => {
+  const cleanCPF = cpf.replace(/[^\d]+/g, '');
+  if (cleanCPF.length !== 11 || !!cleanCPF.match(/(\d)\1{10}/)) return false;
+  const cpfArray = cleanCPF.split('').map(el => +el);
+  const rest = (count: number) => (cpfArray.slice(0, count - 12).reduce((soma, el, index) => (soma + el * (count - index)), 0) * 10) % 11 % 10;
+  return rest(10) === cpfArray[9] && rest(11) === cpfArray[10];
+};
+
+export const isValidCNPJ = (cnpj: string): boolean => {
+  const cleanCNPJ = cnpj.replace(/[^\d]+/g, '');
+  if (cleanCNPJ.length !== 14 || !!cleanCNPJ.match(/(\d)\1{13}/)) return false;
+  let tamanho = cleanCNPJ.length - 2;
+  let numeros = cleanCNPJ.substring(0, tamanho);
+  let digitos = cleanCNPJ.substring(tamanho);
+  let soma = 0;
+  let pos = tamanho - 7;
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  let resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+  if (resultado !== parseInt(digitos.charAt(0))) return false;
+  tamanho = tamanho + 1;
+  numeros = cleanCNPJ.substring(0, tamanho);
+  soma = 0;
+  pos = tamanho - 7;
+  for (let i = tamanho; i >= 1; i--) {
+    soma += parseInt(numeros.charAt(tamanho - i)) * pos--;
+    if (pos < 2) pos = 9;
+  }
+  resultado = soma % 11 < 2 ? 0 : 11 - (soma % 11);
+  if (resultado !== parseInt(digitos.charAt(1))) return false;
+  return true;
+};
+
+export const isValidDocument = (doc: string): boolean => {
+  const clean = doc.replace(/[^\d]+/g, '');
+  if (!clean) return true; // Let required validation handle empty fields if necessary
+  if (clean.length === 11) return isValidCPF(clean);
+  if (clean.length === 14) return isValidCNPJ(clean);
+  return false;
+};

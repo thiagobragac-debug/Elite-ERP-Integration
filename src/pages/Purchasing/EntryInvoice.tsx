@@ -192,7 +192,7 @@ export const EntryInvoice: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = invoices.filter(inv => {
-      const matchesSearch = inv.numero_nota.toLowerCase().includes(searchTerm.toLowerCase()) || (inv.parceiroes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = inv.numero_nota.toLowerCase().includes(searchTerm.toLowerCase()) || (inv.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesAmount = Number(inv.valor_total) <= filterValues.maxAmount;
       const matchesDate = (!filterValues.dateStart || new Date(inv.data_emissao) >= new Date(filterValues.dateStart)) &&
                          (!filterValues.dateEnd || new Date(inv.data_emissao) <= new Date(filterValues.dateEnd));
@@ -203,7 +203,7 @@ export const EntryInvoice: React.FC = () => {
       ID: item.id?.slice(0, 8).toUpperCase(),
       Numero_Nota: item.numero_nota,
       Serie: item.serie,
-      Parceiro: item.parceiroes?.nome || '-',
+      Parceiro: item.fornecedores?.nome || '-',
       Emissao: new Date(item.data_emissao).toLocaleDateString(),
       Entrada: item.data_entrada ? new Date(item.data_entrada).toLocaleDateString() : '-',
       Valor_Total: item.valor_total || 0,

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   FileText, 
   User,
@@ -76,7 +76,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
   }, [isOpen, activeFarm, formData.party_type]);
 
   const fetchParties = async () => {
-    const table = formData.party_type === 'client' ? 'parceiros' : 'parceiroes';
+    const table = 'parceiros';
     const { data } = await supabase.from(table).select('id, nome').eq('fazenda_id', activeFarm?.id || '');
     if (data) setParties(data);
   };

@@ -107,8 +107,7 @@ export const SystemSettingsTab: React.FC<{
   );
 
   useEffect(() => {
-    if (location.pathname === '/admin/bi') setActiveTab('bi');
-    if (location.pathname === '/admin/canvas') setActiveTab('canvas');
+    // O roteamento interno de tabs agora é controlado pelo ModuleSettings.
     
     // Sincronizar com o banco de dados se disponível e não houver cache local prioritário
     const dbMetrics = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
@@ -357,7 +356,7 @@ export const SystemSettingsTab: React.FC<{
                     <div className="premium-switch">
                       <div className="info">
                         <span className="t">Validação de CNPJ Sefaz</span>
-                        <span className="d">Verificação automática em tempo real de parceiroes.</span>
+                        <span className="d">Verificação automática em tempo real de fornecedores.</span>
                       </div>
                       <div className="toggle-box active"></div>
                     </div>

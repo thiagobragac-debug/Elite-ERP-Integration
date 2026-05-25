@@ -885,7 +885,8 @@ export const UserManagement: React.FC = () => {
                 .map(user => (
                   <motion.div 
                     key={user.id} 
-                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     className={`user-card-premium ${user.status === 'active' ? 'active' : ''}`}
                   >
                     <div className="card-left-section" style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -977,7 +978,8 @@ export const UserManagement: React.FC = () => {
                   .map(profile => (
                     <motion.div 
                       key={profile.id} 
-                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                       className="user-card-premium active"
                     >
                       <div className="card-left-section" style={{ padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -1223,7 +1225,6 @@ export const UserManagement: React.FC = () => {
                       return (
                         <motion.div
                           key={anom.id}
-                          layout
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, x: 50 }}

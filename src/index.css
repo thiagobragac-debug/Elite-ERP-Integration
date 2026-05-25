@@ -2174,7 +2174,6 @@ input:focus, textarea:focus, select:focus {
   to { opacity: 1; transform: translateY(0); }
 }
 
-
 /* Tauze Premium Card System (V5.0) */
 .user-cards-grid {
   display: grid;
@@ -2182,6 +2181,8 @@ input:focus, textarea:focus, select:focus {
   gap: 24px;
   padding: 8px 0;
 }
+
+
 
 .user-card-premium {
   background: hsl(var(--bg-card));
@@ -2197,6 +2198,30 @@ input:focus, textarea:focus, select:focus {
   position: relative;
   text-align: left;
 }
+
+.add-user-card-premium {
+  border: 2px dashed hsl(var(--border-strong) / 0.5);
+  border-radius: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: transparent;
+  cursor: pointer;
+  color: hsl(var(--text-muted));
+  transition: 0.2s;
+  min-height: 180px;
+  height: 100%;
+}
+
+.add-user-card-premium:hover {
+  border-color: hsl(var(--brand));
+  color: hsl(var(--brand));
+  background: hsl(var(--brand) / 0.02);
+}
+
+.add-user-card-premium span { font-size: 11px; font-weight: 900; letter-spacing: 0.05em; }
 
 .user-card-premium::before {
   content: '';

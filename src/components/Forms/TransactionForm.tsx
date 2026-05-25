@@ -35,11 +35,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
   });
 
   const [entities, setEntities] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && activeTenantId) {
       fetchEntities();
+      fetchCategories();
     }
   }, [isOpen, activeTenantId]);
 
@@ -52,6 +54,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
     }
     const { data } = await query;
     if (data) setEntities(data);
+  };
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from('categorias_sistema')
+      .select('id, nome')
+      .eq('tenant_id', activeTenantId)
+      .eq('modulo', 'financeiro')
+      .eq('is_active', true)
+      .order('nome');
+    if (data) setCategories(data);
   };
 
   React.useEffect(() => {
@@ -82,7 +95,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
     ? (type === 'payable' ? 'Editar Conta a Pagar' : 'Editar Conta a Receber')
     : (type === 'payable' ? 'Nova Conta a Pagar' : 'Nova Conta a Receber');
     
-  const subtitle = type === 'payable' ? 'Registre uma saída de caixa para parceiroes.' : 'Registre uma entrada de caixa de parceiros.';
+  const subtitle = type === 'payable' ? 'Registre uma saída de caixa para fornecedores.' : 'Registre uma entrada de caixa de parceiros.';
   const entityLabel = type === 'payable' ? 'Parceiro' : 'Parceiro';
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -160,13 +173,9 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
           onChange={(e) => setFormData({...formData, category: e.target.value})}
         >
           <option value="">Selecionar...</option>
-          <option>Nutrição</option>
-          <option>Sanidade</option>
-          <option>Mão de Obra</option>
-          <option>Venda de Gado</option>
-          <option>Combustível</option>
-          <option>Manutenção</option>
-          <option>Administrativo</option>
+          {categories.map(cat => (
+            <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+          ))}
         </select>
       </div>
 

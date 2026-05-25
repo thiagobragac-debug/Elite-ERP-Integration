@@ -226,7 +226,7 @@ export const PurchaseOrder: React.FC = () => {
     const exportData = orders.map(item => ({
       ID: item.id?.slice(0, 8).toUpperCase(),
       Pedido: item.numero_pedido || '-',
-      Parceiro: item.parceiroes?.nome || '-',
+      Parceiro: item.fornecedores?.nome || '-',
       Previsao: item.previsao_entrega ? new Date(item.previsao_entrega).toLocaleDateString() : '-',
       Valor_Total: item.valor_total || 0,
       Forma_Pagto: item.forma_pagamento || '-',
@@ -361,7 +361,7 @@ export const PurchaseOrder: React.FC = () => {
             <span>TAUZE PROCUREMENT v5.0</span>
           </div>
           <h1 className="page-title">Ordens de Compra (OC)</h1>
-          <p className="page-subtitle">Gestão de suprimentos, negociações com parceiroes e controle de recebimento físico.</p>
+          <p className="page-subtitle">Gestão de suprimentos, negociações com fornecedores e controle de recebimento físico.</p>
         </div>
         <div className="page-actions">
           <button className="primary-btn" onClick={handleOpenCreate}>

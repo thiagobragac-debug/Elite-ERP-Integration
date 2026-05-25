@@ -79,7 +79,7 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
 
   if (!quotation) return null;
 
-  const rawBids: SupplierBid[] = quotation.suppliers || quotation.dados_parceiroes || [];
+  const rawBids: SupplierBid[] = quotation.suppliers || quotation.dados_fornecedores || [];
 
   // Parse and normalize bids
   const bids = rawBids.map((b, index) => {
@@ -145,7 +145,7 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
           <div style={{ padding: '48px', textAlign: 'center', background: 'hsl(var(--bg-main)/0.2)', borderRadius: '20px', border: '1px dashed hsl(var(--border))' }}>
             <ShieldAlert size={36} color="hsl(var(--warning))" style={{ margin: '0 auto 12px' }} />
             <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'hsl(var(--text-main))', marginBottom: '4px' }}>Nenhuma Proposta Recebida</h3>
-            <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Este mapa de cotação ainda não possui propostas de parceiroes cadastradas.</p>
+            <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Este mapa de cotação ainda não possui propostas de fornecedores cadastradas.</p>
           </div>
         ) : (
           <>

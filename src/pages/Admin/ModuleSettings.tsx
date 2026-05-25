@@ -35,6 +35,7 @@ export const ModuleSettings: React.FC = () => {
       case 'estoque':
         return [
           { id: 'categorias', label: 'Categorias de Insumo' },
+          { id: 'unidades', label: 'Unidades de Medida' },
           { id: 'ncms', label: 'Tabela de NCMs' }
         ];
       case 'financeiro':
@@ -194,8 +195,10 @@ export const ModuleSettings: React.FC = () => {
             />
           )}
           {activeSetting === 'categorias' && <CategorySettingsTab modulo={activeModule} searchTerm={searchTerm} triggerCreate={triggerCreate} />}
+          {activeSetting === 'racas' && <CategorySettingsTab modulo="racas" searchTerm={searchTerm} triggerCreate={triggerCreate} />}
+          {activeSetting === 'unidades' && <CategorySettingsTab modulo="unidades" searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'ncms' && <NcmSettingsTab searchTerm={searchTerm} triggerCreate={triggerCreate} triggerImport={triggerImport} />}
-          {(activeSetting === 'planos' || activeSetting === 'regras' || activeSetting === 'racas' || activeSetting === 'manutencao') && (
+          {(activeSetting === 'planos' || activeSetting === 'regras' || activeSetting === 'manutencao') && (
             <div className="hub-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', color: 'hsl(var(--text-muted))', textAlign: 'center' }}>
               <div>
                 <Settings size={32} style={{ opacity: 0.3, marginBottom: '16px' }} />

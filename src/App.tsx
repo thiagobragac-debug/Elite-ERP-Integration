@@ -229,7 +229,7 @@ function AppContent() {
                 <Route path="cotacao" element={<PermissionGuard permission="compras_pedidos"><QuotationMap /></PermissionGuard>} />
                 <Route path="pedido" element={<PermissionGuard permission="compras_pedidos"><PurchaseOrder /></PermissionGuard>} />
                 <Route path="nota" element={<EntryInvoice />} />
-                <Route path="parceiroes" element={<PermissionGuard permission="compras_fornecedores"><SupplierManagement /></PermissionGuard>} />
+                <Route path="fornecedores" element={<PermissionGuard permission="compras_fornecedores"><SupplierManagement /></PermissionGuard>} />
               </Route>
               
               <Route path="vendas" element={<PermissionGuard permission="comercial"><Outlet/></PermissionGuard>}>

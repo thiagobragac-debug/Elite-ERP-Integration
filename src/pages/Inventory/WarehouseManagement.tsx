@@ -49,12 +49,14 @@ export const WarehouseManagement: React.FC = () => {
   const [stockModalWarehouseName, setStockModalWarehouseName] = useState<string | null>(null);
 
   const [farms, setFarms] = useState<any[]>([]);
+  const [unidades, setUnidades] = useState<any[]>([]);
 
   useEffect(() => {
     const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
     if (isReady) {
       fetchWarehouses();
       fetchFarms();
+      fetchUnidades();
     } else {
       setLoading(false);
     }
@@ -65,6 +67,13 @@ export const WarehouseManagement: React.FC = () => {
     query = applyTenantFilter(query);
     const { data } = await query;
     if (data) setFarms(data);
+  };
+
+  const fetchUnidades = async () => {
+    let query = supabase.from('categorias_sistema').select('*').eq('modulo', 'unidades').eq('is_active', true).order('nome');
+    query = applyTenantFilter(query);
+    const { data } = await query;
+    if (data) setUnidades(data);
   };
 
   const fetchWarehouses = async () => {
@@ -868,11 +877,17 @@ export const WarehouseManagement: React.FC = () => {
           <div style={{ display: 'flex', gap: '8px' }}>
             <input name="capacidade_maxima" type="number" className="tauze-input" style={{ flex: 1 }} placeholder="0.00" defaultValue={selectedWarehouse?.capacidade_maxima} />
             <select name="unidade_capacidade" className="tauze-input" style={{ width: '75px' }} defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}>
-              <option value="un">un</option>
-              <option value="kg">kg</option>
-              <option value="ton">ton</option>
-              <option value="L">L</option>
-              <option value="m³">m³</option>
+              {unidades.length > 0 ? (
+                unidades.map(u => <option key={u.id} value={u.nome}>{u.nome}</option>)
+              ) : (
+                <>
+                  <option value="un">un</option>
+                  <option value="kg">kg</option>
+                  <option value="ton">ton</option>
+                  <option value="L">L</option>
+                  <option value="m³">m³</option>
+                </>
+              )}
             </select>
           </div>
         </div>

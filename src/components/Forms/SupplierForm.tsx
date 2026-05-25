@@ -16,7 +16,9 @@ import { FormModal } from './FormModal';
 import { fetchCNPJData } from '../../utils/cnpj';
 import { fetchCEPData } from '../../utils/cep';
 import { maskCPFCNPJ } from '../../utils/format';
+import { isValidDocument } from '../../utils/validation';
 import { useTenant } from '../../contexts/TenantContext';
+import { supabase } from '../../lib/supabase';
 
 interface SupplierFormProps {
   isOpen: boolean;
@@ -48,10 +50,28 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
     fazendas_vinculadas: [] as string[]
   });
 
-  const { farms } = useTenant();
+  const { farms, activeTenantId } = useTenant();
   const [isFarmDropdownOpen, setIsFarmDropdownOpen] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (isOpen && activeTenantId) {
+      fetchCategories();
+    }
+  }, [isOpen, activeTenantId]);
+
+  const fetchCategories = async () => {
+    const { data } = await supabase
+      .from('categorias_sistema')
+      .select('id, nome')
+      .eq('tenant_id', activeTenantId)
+      .eq('modulo', 'compras')
+      .eq('is_active', true)
+      .order('nome');
+    if (data) setCategories(data);
+  };
 
   React.useEffect(() => {
     if (initialData) {
@@ -153,6 +173,10 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.cnpj && !isValidDocument(formData.cnpj)) {
+      alert('❌ O CPF ou CNPJ informado é inválido. Verifique os números e tente novamente.');
+      return;
+    }
     setLoading(true);
     try {
       await onSubmit(formData);
@@ -172,104 +196,64 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Parceiro"}
     >
-      <div className="form-group full-width">
-        <label><Building2 size={14} /> Nome / Razão Social</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Agropecuária Fertilizantes Ltda" 
-          value={formData.nome}
-          onChange={(e) => setFormData({...formData, nome: e.target.value})}
-          required 
-        />
-      </div>
-
-      <div className="form-group">
-        <label><FileText size={14} /> CNPJ / CPF</label>
-        <div className="tauze-input-with-action">
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Building2 size={14} /> Nome / Razão Social</label>
           <input 
             type="text" 
-            placeholder="00.000.000/0000-00" 
-            value={formData.cnpj}
-            onChange={(e) => setFormData({...formData, cnpj: maskCPFCNPJ(e.target.value)})}
-            className="flex-1"
+            placeholder="Ex: Agropecuária Fertilizantes Ltda" 
+            value={formData.nome}
+            onChange={(e) => setFormData({...formData, nome: e.target.value})}
+            required 
           />
-          <button 
-            type="button"
-            className="action-trigger-btn"
-            onClick={handleCNPJSearch}
-            title="Buscar dados na Receita"
-            disabled={formData.cnpj.replace(/\D/g, '').length !== 14 || loading}
-          >
-            {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
-          </button>
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><FileText size={14} /> CNPJ / CPF</label>
+          <div className="tauze-input-with-action">
+            <input 
+              type="text" 
+              placeholder="00.000.000/0000-00" 
+              value={formData.cnpj}
+              onChange={(e) => setFormData({...formData, cnpj: maskCPFCNPJ(e.target.value)})}
+              className="flex-1"
+            />
+            <button 
+              type="button"
+              className="action-trigger-btn"
+              onClick={handleCNPJSearch}
+              title="Buscar dados na Receita"
+              disabled={formData.cnpj.replace(/\D/g, '').length !== 14 || loading}
+            >
+              {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
+            </button>
+          </div>
         </div>
       </div>
 
-      <style>{`
-        .tauze-input-with-action {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Tag size={14} /> Categoria</label>
+          <select 
+            value={formData.categoria}
+            onChange={(e) => setFormData({...formData, categoria: e.target.value})}
+          >
+            <option value="">Selecionar...</option>
+            {categories.map(cat => (
+              <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+            ))}
+          </select>
+        </div>
 
-        .tauze-input-with-action input {
-          width: 100%;
-          padding-right: 46px !important;
-        }
-
-        .action-trigger-btn {
-          position: absolute;
-          right: 8px;
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          border: none;
-          background: hsl(var(--bg-main));
-          color: hsl(var(--brand));
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .action-trigger-btn:hover:not(:disabled) {
-          background: hsl(var(--brand));
-          color: white;
-        }
-
-        .action-trigger-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          color: hsl(var(--text-muted));
-        }
-
-        .spinner-tiny {
-          width: 16px;
-          height: 16px;
-          border: 2px solid hsl(var(--brand) / 0.3);
-          border-top-color: hsl(var(--brand));
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-
-      <div className="form-group">
-        <label><Tag size={14} /> Categoria</label>
-        <select 
-          value={formData.categoria}
-          onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-        >
-          <option>Geral</option>
-          <option>Insumos</option>
-          <option>Máquinas</option>
-          <option>Serviços</option>
-          <option>Nutrição</option>
-        </select>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Mail size={14} /> E-mail</label>
+          <input 
+            type="email" 
+            placeholder="vendas@parceiro.com" 
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+          />
+        </div>
       </div>
 
       <div className="form-group">
@@ -289,16 +273,6 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           placeholder="(00) 00000-0000" 
           value={formData.telefone}
           onChange={(e) => setFormData({...formData, telefone: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <label><Mail size={14} /> E-mail</label>
-        <input 
-          type="email" 
-          placeholder="vendas@parceiro.com" 
-          value={formData.email}
-          onChange={(e) => setFormData({...formData, email: e.target.value})}
         />
       </div>
 
@@ -678,6 +652,58 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           background: hsl(var(--brand));
           border-color: hsl(var(--brand));
           color: white;
+        }
+      `}</style>
+      <style>{`
+        .tauze-input-with-action {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .tauze-input-with-action input {
+          width: 100%;
+          padding-right: 46px !important;
+        }
+
+        .action-trigger-btn {
+          position: absolute;
+          right: 8px;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: none;
+          background: hsl(var(--bg-main));
+          color: hsl(var(--brand));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.2s;
+        }
+
+        .action-trigger-btn:hover:not(:disabled) {
+          background: hsl(var(--brand));
+          color: white;
+        }
+
+        .action-trigger-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+          color: hsl(var(--text-muted));
+        }
+
+        .spinner-tiny {
+          width: 16px;
+          height: 16px;
+          border: 2px solid hsl(var(--brand) / 0.3);
+          border-top-color: hsl(var(--brand));
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </FormModal>

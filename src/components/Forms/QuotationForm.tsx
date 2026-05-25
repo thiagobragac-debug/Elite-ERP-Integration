@@ -40,7 +40,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
         item_id: initialData.produto_id || '',
         quantity: initialData.quantidade?.toString() || '',
         unit: initialData.unidade || 'Unidades',
-        suppliers: initialData.dados_parceiroes || [{ supplier_id: '', price: '', delivery_days: '' }]
+        suppliers: initialData.dados_fornecedores || [{ supplier_id: '', price: '', delivery_days: '' }]
       });
     } else {
       setFormData({
@@ -102,7 +102,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
       onClose={onClose}
       onSubmit={handleSubmit}
       title={initialData ? "Editar Mapa de Cotação" : "Novo Mapa de Cotação"}
-      subtitle="Compare preços de diferentes parceiroes para o mesmo item."
+      subtitle="Compare preços de diferentes fornecedores para o mesmo item."
       icon={BarChart2}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Iniciar Comparativo"}

@@ -176,7 +176,7 @@ export const PriceAnalysis: React.FC = () => {
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span className={`status-pill ${item.variation === 'up' ? 'stopped' : item.variation === 'down' ? 'active' : 'warning'}`} style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 900 }}>
-            {item.variation === 'up' ? `▲ +${item.diffPercent.toFixed(1)}%` : item.variation === 'down' ? `▼ ${item.diffPercent.toFixed(1)}%` : 'ESTÁVEL'}
+            {item.variation === 'up' ? `? +${item.diffPercent.toFixed(1)}%` : item.variation === 'down' ? `" ${item.diffPercent.toFixed(1)}%` : 'ESTÁVEL'}
           </span>
         </div>
       ),

@@ -543,11 +543,7 @@ export const FleetManagement: React.FC = () => {
             )}
           />
         ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="user-cards-grid"
-          >
+          <div className="user-cards-grid">
             {machines
               .filter(m => {
                 const matchesSearch = (
@@ -569,9 +565,8 @@ export const FleetManagement: React.FC = () => {
                 return matchesSearch && matchesCategory && matchesStatus && matchesMarcas && matchesUsage && matchesYear;
               })
               .map(m => (
-                <motion.div 
+                <div 
                   key={m.id} 
-                  layout
                   className={`user-card-premium ${m.status === 'active' ? 'active' : m.status === 'maintenance' ? 'warning-badge' : 'danger-badge'}`}
                 >
                   <div className="card-left-section">
@@ -633,9 +628,13 @@ export const FleetManagement: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               ))}
-          </motion.div>
+            <button className="add-user-card-premium" onClick={handleOpenCreate}>
+              <Plus size={32} />
+              <span>NOVA MÁQUINA</span>
+            </button>
+          </div>
         )}
       </div>
 
@@ -668,68 +667,6 @@ export const FleetManagement: React.FC = () => {
           background: hsl(var(--bg-card));
           color: hsl(var(--brand));
           box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-
-        .user-cards-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 24px;
-          padding: 8px;
-        }
-
-        @media (max-width: 1400px) {
-          .user-cards-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 900px) {
-          .user-cards-grid { grid-template-columns: 1fr; }
-        }
-
-        .user-card-premium {
-          background: hsl(var(--bg-card));
-          border-radius: 24px;
-          border: 1px solid hsl(var(--border));
-          display: flex;
-          overflow: hidden;
-          padding: 0;
-          min-height: 180px;
-          height: auto;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: var(--shadow-sm);
-          position: relative;
-          text-align: left;
-        }
-
-        .user-card-premium::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 6px;
-          background: hsl(var(--border-strong));
-          transition: 0.3s;
-        }
-
-        .user-card-premium.active::before {
-          background: #10b981;
-          box-shadow: 4px 0 15px rgba(16, 185, 129, 0.3);
-        }
-
-        .user-card-premium.warning-badge::before {
-          background: #f59e0b;
-          box-shadow: 4px 0 15px rgba(245, 158, 11, 0.3);
-        }
-
-        .user-card-premium.danger-badge::before {
-          background: #ef4444;
-          box-shadow: 4px 0 15px rgba(239, 68, 68, 0.3);
-        }
-
-        .user-card-premium:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 16px 32px rgba(0,0,0,0.08);
-          border-color: hsl(var(--brand) / 0.35);
         }
 
         .card-left-section {

@@ -196,7 +196,7 @@ export const Contracts: React.FC = () => {
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = contracts.filter(c => {
-      const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.parceiros?.nome || c.parceiroes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.parceiros?.nome || c.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTab = activeTab === 'ACTIVE' ? c.status === 'active' : c.status === 'completed';
       const matchesStatus = filterValues.status === 'all' || c.status === filterValues.status;
       const matchesPriceType = filterValues.priceType === 'all' || c.priceType === filterValues.priceType;
@@ -208,7 +208,7 @@ export const Contracts: React.FC = () => {
 
     const exportData = filteredData.map(item => ({
       ID: '#' + (item.id?.slice(0, 8).toUpperCase()),
-      Contraparte: item.parceiros?.nome || item.parceiroes?.nome || 'N/A',
+      Contraparte: item.parceiros?.nome || item.fornecedores?.nome || 'N/A',
       Vigencia: new Date(item.data_inicio).toLocaleDateString() + ' - ' + new Date(item.data_fim).toLocaleDateString(),
       Tipo_Preco: item.priceType,
       Valor_Total: 'R$ ' + Number(item.valor_total).toLocaleString(),
@@ -430,7 +430,7 @@ export const Contracts: React.FC = () => {
       <div className="management-content">
         <ModernTable 
           data={contracts.filter(c => {
-            const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.parceiros?.nome || c.parceiroes?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.parceiros?.nome || c.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'ACTIVE' ? c.status === 'active' : c.status === 'completed';
             
             const matchesStatus = filterValues.status === 'all' || c.status === filterValues.status;

@@ -262,6 +262,12 @@ export const SupplierManagement: React.FC = () => {
               .maybeSingle();
 
             if (existing) {
+                if (existing.is_supplier) {
+                    alert('❌ Este CPF/CNPJ já está cadastrado como fornecedor!');
+                    setIsSubmitting(false);
+                    return;
+                }
+                
                 // Já existe, vamos apenas atualizar e "ativar" a flag de fornecedor
                 const { error } = await supabase.from('parceiros').update({
                     ...payload,
@@ -337,9 +343,9 @@ export const SupplierManagement: React.FC = () => {
       Status: item.status
     }));
 
-    if (format === 'csv') exportToCSV(exportData, 'parceiroes');
-    else if (format === 'excel') exportToExcel(exportData, 'parceiroes');
-    else if (format === 'pdf') exportToPDF(exportData, 'parceiroes', 'Relatório de Parceiroes Homologados');
+    if (format === 'csv') exportToCSV(exportData, 'fornecedores');
+    else if (format === 'excel') exportToExcel(exportData, 'fornecedores');
+    else if (format === 'pdf') exportToPDF(exportData, 'fornecedores', 'Relatório de Parceiroes Homologados');
   };
 
   const handleViewHistory = async (sup: any) => {
@@ -450,7 +456,7 @@ export const SupplierManagement: React.FC = () => {
           <div className="glass-card text-center p-12">
             <Building2 size={64} className="mx-auto mb-6 opacity-20" />
             <h2 className="text-2xl font-bold mb-2">Unidade não Selecionada</h2>
-            <p className="text-slate-400">Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar parceiroes.</p>
+            <p className="text-slate-400">Selecione uma fazenda no menu lateral ou ative a Visão Global para gerenciar fornecedores.</p>
           </div>
         </div>
       )}
@@ -600,7 +606,8 @@ export const SupplierManagement: React.FC = () => {
               .map(sup => (
                 <motion.div 
                   key={sup.id} 
-                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   className={`user-card-premium ${sup.status === 'ATIVO' ? 'active' : ''}`}
                 >
                   <div className="card-left-section">

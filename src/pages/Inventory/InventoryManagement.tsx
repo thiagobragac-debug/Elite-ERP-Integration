@@ -731,7 +731,8 @@ export const InventoryManagement: React.FC = () => {
                 return (
                   <motion.div 
                     key={p.id} 
-                    layout
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     className={`user-card-premium ${isCritical ? 'stopped-badge' : 'active'}`}
                   >
                     <div className="card-left-section">
@@ -784,7 +785,7 @@ export const InventoryManagement: React.FC = () => {
                           <span className="card-role-badge" style={{ marginTop: '4px' }}>{p.categoria || 'INSUMO'}</span>
                         </div>
                         <span className={`status-pill mini ${isCritical ? 'stopped' : 'active'}`} style={{ fontSize: '8px', padding: '4px 8px', borderRadius: '6px' }}>
-                          {isCritical ? 'âš ï¸ Reposição' : 'âœ“ Disponível'}
+                          {isCritical ? '⚠️ Reposição' : '✓ Disponível'}
                         </span>
                       </div>
 

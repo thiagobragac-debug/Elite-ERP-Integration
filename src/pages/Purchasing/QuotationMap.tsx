@@ -78,7 +78,7 @@ export const QuotationMap: React.FC = () => {
   const fetchQuotations = async () => {
     setLoading(true);
     try {
-      let query = supabase.from('mapas_cotacao').select('id, status, produto_id, quantidade, unidade, dados_parceiroes, fazenda_id, tenant_id, created_at').limit(500).order('created_at', { ascending: false });
+      let query = supabase.from('mapas_cotacao').select('id, status, produto_id, quantidade, unidade, dados_fornecedores, fazenda_id, tenant_id, created_at').limit(500).order('created_at', { ascending: false });
       query = applyFarmFilter(query);
       const { data } = await query;
       
@@ -90,7 +90,7 @@ export const QuotationMap: React.FC = () => {
         let totalSaving = 0;
         let totalBids = 0;
         data.forEach(q => {
-          const bids = (q.dados_parceiroes as any) || (q as any).suppliers || [];
+          const bids = (q.dados_fornecedores as any) || (q as any).suppliers || [];
           totalBids += bids.length;
           if (bids.length > 1) {
             const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
@@ -126,9 +126,9 @@ export const QuotationMap: React.FC = () => {
         if (data.length === 0) {
           // Fallback para visualização da demo se o banco real estiver vazio
           const mockData = [
-            { id: 'mock-1', produto_id: 'Diesel S10 (DEMO)', quantidade: 15000, unidade: 'L', status: 'analyzing', dados_parceiroes: [{price: 5.80, nome: 'Shell'},{price: 5.65, nome: 'Ipiranga'},{price: 5.72, nome: 'Petrobras'}], created_at: new Date().toISOString(), titulo: 'Cotação Combustível' },
-            { id: 'mock-2', produto_id: 'Ração Confinamento (DEMO)', quantidade: 500, unidade: 'kg', status: 'analyzing', dados_parceiroes: [{price: 1850, nome: 'Agrosoja'},{price: 1780, nome: 'Nutrição Total'}], created_at: new Date().toISOString(), titulo: 'Cotação Ração' },
-            { id: 'mock-3', produto_id: 'Ivermectina 1% (DEMO)', quantidade: 200, unidade: 'mL', status: 'closed', dados_parceiroes: [{price: 12.50, nome: 'Agropec'},{price: 11.90, nome: 'VetFarm'},{price: 12.10, nome: 'AgroVet'}], created_at: new Date(Date.now()-7*86400000).toISOString(), titulo: 'Cotação Vermífugo' },
+            { id: 'mock-1', produto_id: 'Diesel S10 (DEMO)', quantidade: 15000, unidade: 'L', status: 'analyzing', dados_fornecedores: [{price: 5.80, nome: 'Shell'},{price: 5.65, nome: 'Ipiranga'},{price: 5.72, nome: 'Petrobras'}], created_at: new Date().toISOString(), titulo: 'Cotação Combustível' },
+            { id: 'mock-2', produto_id: 'Ração Confinamento (DEMO)', quantidade: 500, unidade: 'kg', status: 'analyzing', dados_fornecedores: [{price: 1850, nome: 'Agrosoja'},{price: 1780, nome: 'Nutrição Total'}], created_at: new Date().toISOString(), titulo: 'Cotação Ração' },
+            { id: 'mock-3', produto_id: 'Ivermectina 1% (DEMO)', quantidade: 200, unidade: 'mL', status: 'closed', dados_fornecedores: [{price: 12.50, nome: 'Agropec'},{price: 11.90, nome: 'VetFarm'},{price: 12.10, nome: 'AgroVet'}], created_at: new Date(Date.now()-7*86400000).toISOString(), titulo: 'Cotação Vermífugo' },
           ];
           setQuotations(mockData);
           setStats([
@@ -171,7 +171,7 @@ export const QuotationMap: React.FC = () => {
       produto_id: formData.item_id,
       quantidade: parseFloat(formData.quantity),
       unidade: formData.unit,
-      dados_parceiroes: formData.suppliers,
+      dados_fornecedores: formData.suppliers,
       status: selectedQuotation?.status || 'analyzing'
     };
 
@@ -199,7 +199,7 @@ export const QuotationMap: React.FC = () => {
     const quot = quotations.find(q => q.id === quotationId);
     if (!quot) return;
 
-    const rawSuppliers = quot.suppliers || quot.dados_parceiroes || [];
+    const rawSuppliers = quot.suppliers || quot.dados_fornecedores || [];
     const updatedSuppliers = rawSuppliers.map((s: any) => {
       const isMatch = (s.supplier_id && s.supplier_id === chosenSupplier.supplier_id) ||
                       (s.name && s.name === chosenSupplier.name) ||
@@ -218,12 +218,12 @@ export const QuotationMap: React.FC = () => {
       .from('mapas_cotacao')
       .update({
         status: 'closed',
-        dados_parceiroes: updatedSuppliers
+        dados_fornecedores: updatedSuppliers
       })
       .eq('id', quotationId);
 
     if (!error) {
-      setQuotations(prev => prev.map(q => q.id === quotationId ? { ...q, status: 'closed', dados_parceiroes: updatedSuppliers } : q));
+      setQuotations(prev => prev.map(q => q.id === quotationId ? { ...q, status: 'closed', dados_fornecedores: updatedSuppliers } : q));
       setIsMatrixOpen(false);
       fetchQuotations();
     } else {
@@ -236,7 +236,7 @@ export const QuotationMap: React.FC = () => {
     const filteredData = quotations.filter(q => {
       const matchesSearch = (q.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesTab = activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed';
-      const suppliers = q.suppliers || q.dados_parceiroes || [];
+      const suppliers = q.suppliers || q.dados_fornecedores || [];
       const matchesBids = suppliers.length >= filterValues.minBids;
       
       let savingPercent = 0;
@@ -255,7 +255,7 @@ export const QuotationMap: React.FC = () => {
     });
 
     const exportData = filteredData.map(item => {
-      const suppliers = item.suppliers || item.dados_parceiroes || [];
+      const suppliers = item.suppliers || item.dados_fornecedores || [];
       const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
       const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
       const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
@@ -305,7 +305,7 @@ export const QuotationMap: React.FC = () => {
     {
       header: 'Participantes',
       accessor: (item: any) => {
-        const bids = item.suppliers || item.dados_parceiroes || [];
+        const bids = item.suppliers || item.dados_fornecedores || [];
         return (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             <span className="status-pill info" style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 800 }}>
@@ -319,7 +319,7 @@ export const QuotationMap: React.FC = () => {
     {
       header: 'Sugestão Vencedora',
       accessor: (item: any) => {
-        const suppliers = item.suppliers || item.dados_parceiroes || [];
+        const suppliers = item.suppliers || item.dados_fornecedores || [];
         const winner = suppliers.find((s: any) => s.isWinner || s.vencedor);
         return winner ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
@@ -339,7 +339,7 @@ export const QuotationMap: React.FC = () => {
     {
       header: 'Saving Real (%)',
       accessor: (item: any) => {
-        const suppliers = item.suppliers || item.dados_parceiroes || [];
+        const suppliers = item.suppliers || item.dados_fornecedores || [];
         const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
         if (prices.length < 2) return <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>Sem Histórico</span>;
         const minPrice = Math.min(...prices);
@@ -358,7 +358,7 @@ export const QuotationMap: React.FC = () => {
     {
       header: 'Melhor Preço / Status',
       accessor: (item: any) => {
-        const suppliers = item.suppliers || item.dados_parceiroes || [];
+        const suppliers = item.suppliers || item.dados_fornecedores || [];
         const prices = suppliers.map((s: any) => Number(s.price || s.preco || 0)).filter((p: number) => p > 0);
         const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
         return (
@@ -485,7 +485,7 @@ export const QuotationMap: React.FC = () => {
             const matchesSearch = (q.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'OPEN' ? q.status !== 'closed' : q.status === 'closed';
             
-            const suppliers = q.suppliers || q.dados_parceiroes || [];
+            const suppliers = q.suppliers || q.dados_fornecedores || [];
             const matchesBids = suppliers.length >= filterValues.minBids;
             
             let savingPercent = 0;

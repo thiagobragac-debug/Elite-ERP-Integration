@@ -204,6 +204,12 @@ export const ClientManagement: React.FC = () => {
               .maybeSingle();
 
             if (existing) {
+                if (existing.is_customer) {
+                    alert('❌ Este CPF/CNPJ já está cadastrado como cliente!');
+                    setIsSubmitting(false);
+                    return;
+                }
+                
                 // Já existe, vamos apenas atualizar e "ativar" a flag de cliente
                 const { error } = await supabase.from('parceiros').update({
                     ...payload,
@@ -576,7 +582,8 @@ export const ClientManagement: React.FC = () => {
               .map(client => (
                 <motion.div 
                   key={client.id} 
-                  layout
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   className={`user-card-premium ${client.status?.toUpperCase() === 'ATIVO' ? 'active' : 'warning-badge'}`}
                 >
                   <div className="card-left-section">

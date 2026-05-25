@@ -38,10 +38,10 @@ const menuItems: NavItem[] = [
     permission: 'admin',
     subItems: [
       { title: 'Intelligence Hub', href: '/admin/intelligence' },
+      { title: 'Aprovações', href: '/admin/aprovacoes' },
       { title: 'Usuário', href: '/admin/usuarios' },
       { title: 'Empresa / Fazenda', href: '/admin/config' },
-      { title: 'Central de Configurações', href: '/admin/configuracoes' },
-      { title: 'Aprovações', href: '/admin/aprovacoes' },
+      { title: 'Configurações', href: '/admin/configuracoes' },
       { title: 'Assinatura & Planos', href: '/admin/assinatura' },
       { title: 'Log de Auditoria', href: '/admin/auditoria' },
     ]
@@ -90,7 +90,7 @@ const menuItems: NavItem[] = [
     permission: 'compras',
     subItems: [
       { title: 'Intelligence Hub', href: '/compras/dashboard' },
-      { title: 'Fornecedor', href: '/compras/parceiroes', permission: 'compras_fornecedores' },
+      { title: 'Fornecedor', href: '/compras/fornecedores', permission: 'compras_fornecedores' },
       { title: 'Solicitação de Compra', href: '/compras/solicitacao', permission: 'compras_pedidos' },
       { title: 'Mapa de Cotação', href: '/compras/cotacao', permission: 'compras_pedidos' },
       { title: 'Pedido de Compra', href: '/compras/pedido', permission: 'compras_pedidos' },

@@ -12,6 +12,7 @@ interface Categoria {
   nome: string;
   cor: string;
   is_active: boolean;
+  modulo_vinculado?: string;
 }
 
 export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string, triggerCreate: number }> = ({ modulo, searchTerm, triggerCreate }) => {
@@ -25,14 +26,15 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
   const [formData, setFormData] = useState({
     nome: '',
     cor: '#94a3b8',
-    is_active: true
+    is_active: true,
+    modulo_vinculado: ''
   });
 
   // Removed local modules list
 
   useEffect(() => {
     fetchCategorias();
-  }, [tenant]);
+  }, [tenant, modulo]);
 
   useEffect(() => {
     if (triggerCreate > 0) {
@@ -59,7 +61,88 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
       const { data, error } = result;
 
       if (error) throw error;
-      setCategorias(data || []);
+      
+      let fetchedData = data || [];
+      
+      // Auto-seed for financeiro, compras, parceiros, frota, racas, pecuaria or unidades if completely empty
+      if (fetchedData.filter((c: any) => c.modulo === modulo).length === 0) {
+        let defaultCategories: any[] = [];
+        
+        if (modulo === 'financeiro') {
+          defaultCategories = [
+            { tenant_id: tenant.id, modulo: 'financeiro', nome: 'Receita Operacional', cor: '#10b981', is_active: true },
+            { tenant_id: tenant.id, modulo: 'financeiro', nome: 'Venda de Animais', cor: '#059669', is_active: true },
+            { tenant_id: tenant.id, modulo: 'financeiro', nome: 'Despesa Administrativa', cor: '#f59e0b', is_active: true },
+            { tenant_id: tenant.id, modulo: 'financeiro', nome: 'Nutrição Animal', cor: '#d97706', is_active: true },
+            { tenant_id: tenant.id, modulo: 'financeiro', nome: 'Sanidade Animal', cor: '#b45309', is_active: true },
+            { tenant_id: tenant.id, modulo: 'financeiro', nome: 'Insumos Agrícolas', cor: '#f97316', is_active: true },
+            { tenant_id: tenant.id, modulo: 'financeiro', nome: 'Mão de Obra', cor: '#ef4444', is_active: true },
+            { tenant_id: tenant.id, modulo: 'financeiro', nome: 'Manutenção de Frota', cor: '#8b5cf6', is_active: true },
+            { tenant_id: tenant.id, modulo: 'financeiro', nome: 'Combustível', cor: '#ec4899', is_active: true }
+          ];
+        } else if (modulo === 'compras') {
+          defaultCategories = [
+            { tenant_id: tenant.id, modulo: 'compras', nome: 'Geral', cor: '#94a3b8', is_active: true },
+            { tenant_id: tenant.id, modulo: 'compras', nome: 'Insumos', cor: '#3b82f6', is_active: true },
+            { tenant_id: tenant.id, modulo: 'compras', nome: 'Máquinas', cor: '#f59e0b', is_active: true },
+            { tenant_id: tenant.id, modulo: 'compras', nome: 'Serviços', cor: '#8b5cf6', is_active: true },
+            { tenant_id: tenant.id, modulo: 'compras', nome: 'Nutrição', cor: '#10b981', is_active: true }
+          ];
+        } else if (modulo === 'parceiros') {
+          defaultCategories = [
+            { tenant_id: tenant.id, modulo: 'parceiros', nome: 'Frigorífico', cor: '#ef4444', is_active: true },
+            { tenant_id: tenant.id, modulo: 'parceiros', nome: 'Trader', cor: '#3b82f6', is_active: true },
+            { tenant_id: tenant.id, modulo: 'parceiros', nome: 'Pessoa Física', cor: '#10b981', is_active: true },
+            { tenant_id: tenant.id, modulo: 'parceiros', nome: 'Leilão', cor: '#f59e0b', is_active: true }
+          ];
+        } else if (modulo === 'frota') {
+          defaultCategories = [
+            { tenant_id: tenant.id, modulo: 'frota', nome: 'Trator', cor: '#ef4444', is_active: true },
+            { tenant_id: tenant.id, modulo: 'frota', nome: 'Implemento', cor: '#f59e0b', is_active: true },
+            { tenant_id: tenant.id, modulo: 'frota', nome: 'Caminhonete / Carro', cor: '#3b82f6', is_active: true },
+            { tenant_id: tenant.id, modulo: 'frota', nome: 'Caminhão', cor: '#10b981', is_active: true },
+            { tenant_id: tenant.id, modulo: 'frota', nome: 'Outros', cor: '#64748b', is_active: true }
+          ];
+        } else if (modulo === 'racas') {
+          defaultCategories = [
+            { tenant_id: tenant.id, modulo: 'racas', nome: 'Nelore', cor: '#ef4444', is_active: true },
+            { tenant_id: tenant.id, modulo: 'racas', nome: 'Angus', cor: '#0f172a', is_active: true },
+            { tenant_id: tenant.id, modulo: 'racas', nome: 'Senepol', cor: '#b45309', is_active: true },
+            { tenant_id: tenant.id, modulo: 'racas', nome: 'Brahman', cor: '#94a3b8', is_active: true },
+            { tenant_id: tenant.id, modulo: 'racas', nome: 'Cruzamento Industrial', cor: '#8b5cf6', is_active: true }
+          ];
+        } else if (modulo === 'pecuaria') {
+          defaultCategories = [
+            { tenant_id: tenant.id, modulo: 'pecuaria', nome: 'Bezerro', cor: '#64748b', is_active: true },
+            { tenant_id: tenant.id, modulo: 'pecuaria', nome: 'Garrote', cor: '#3b82f6', is_active: true },
+            { tenant_id: tenant.id, modulo: 'pecuaria', nome: 'Boi', cor: '#ef4444', is_active: true },
+            { tenant_id: tenant.id, modulo: 'pecuaria', nome: 'Vaca', cor: '#10b981', is_active: true },
+            { tenant_id: tenant.id, modulo: 'pecuaria', nome: 'Novilha', cor: '#f59e0b', is_active: true },
+            { tenant_id: tenant.id, modulo: 'pecuaria', nome: 'Touro', cor: '#0f172a', is_active: true }
+          ];
+        } else if (modulo === 'unidades') {
+          defaultCategories = [
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'un', cor: '#94a3b8', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'kg', cor: '#3b82f6', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'ton', cor: '#ef4444', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'L', cor: '#10b981', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'm³', cor: '#f59e0b', is_active: true }
+          ];
+        }
+        
+        if (defaultCategories.length > 0) {
+          const { data: inserted, error: insertErr } = await supabase
+            .from('categorias_sistema')
+            .insert(defaultCategories)
+            .select();
+            
+          if (!insertErr && inserted) {
+            fetchedData = [...fetchedData, ...inserted];
+          }
+        }
+      }
+
+      setCategorias(fetchedData);
     } catch (err) {
       console.warn('[CategoryManagement] Resilience Pattern Engaged:', err);
       // Fallback mock data if the table doesn't exist yet
@@ -79,13 +162,18 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
 
   const handleOpenCreate = () => {
     setEditItem(null);
-    setFormData({ nome: '', cor: '#94a3b8', is_active: true });
+    setFormData({ nome: '', cor: '#94a3b8', is_active: true, modulo_vinculado: '' });
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (cat: Categoria) => {
     setEditItem(cat);
-    setFormData({ nome: cat.nome, cor: cat.cor || '#94a3b8', is_active: cat.is_active });
+    setFormData({ 
+      nome: cat.nome, 
+      cor: cat.cor || '#94a3b8', 
+      is_active: cat.is_active,
+      modulo_vinculado: cat.modulo_vinculado || ''
+    });
     setIsModalOpen(true);
   };
 
@@ -100,6 +188,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           nome: formData.nome,
           cor: formData.cor,
           is_active: formData.is_active,
+          modulo_vinculado: formData.modulo_vinculado || null,
           updated_at: new Date().toISOString()
         })
         .eq('id', editItem.id);
@@ -118,7 +207,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           modulo: modulo,
           nome: formData.nome,
           cor: formData.cor,
-          is_active: formData.is_active
+          is_active: formData.is_active,
+          modulo_vinculado: formData.modulo_vinculado || null
         });
 
       if (!error) {
@@ -162,6 +252,15 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
       align: 'left' as const
     },
     {
+      header: 'Vínculo Operacional',
+      accessor: (cat: Categoria) => (
+        <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>
+          {cat.modulo_vinculado ? cat.modulo_vinculado.toUpperCase() : 'GERAL / MISTO'}
+        </span>
+      ),
+      align: 'left' as const
+    },
+    {
       header: 'Status',
       accessor: (cat: Categoria) => (
         <span className={`status-chip ${cat.is_active ? 'success' : 'danger'}`}>
@@ -200,7 +299,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleSave}
           title={editItem ? 'Editar Categoria' : 'Nova Categoria'}
-          subtitle={`Módulo selecionado: ${modules.find(m => m.id === activeTab)?.label}`}
+          subtitle={`Adicionar nova categoria para o módulo: ${modulo.toUpperCase()}`}
           icon={Tag}
           submitLabel="Salvar Categoria"
           size="small"
@@ -217,7 +316,24 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
             />
           </div>
 
-          <div className="tauze-field-group">
+          {modulo === 'financeiro' && (
+            <div className="tauze-field-group">
+              <label className="tauze-label">Vínculo Operacional</label>
+              <select 
+                className="tauze-input"
+                value={formData.modulo_vinculado}
+                onChange={e => setFormData({...formData, modulo_vinculado: e.target.value})}
+              >
+                <option value="">Geral / Administrativo (Sede)</option>
+                <option value="pecuaria">Pecuária (Gado)</option>
+                <option value="estoque">Estoque & Agricultura</option>
+                <option value="frota">Máquinas & Frota</option>
+                <option value="logistica">Logística & Frete</option>
+              </select>
+            </div>
+          )}
+
+          <div className="tauze-field-group" style={{ gridColumn: '1 / -1' }}>
             <label className="tauze-label">Cor de Identificação</label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {['#94a3b8', '#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'].map(color => (

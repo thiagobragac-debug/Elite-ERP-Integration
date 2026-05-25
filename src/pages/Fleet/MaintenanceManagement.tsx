@@ -561,7 +561,7 @@ export const MaintenanceManagement: React.FC = () => {
           <div className="kanban-board animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'start' }}>
             {[
               {
-                title: 'ðŸ“Œ Pendente',
+                title: '📌 Pendente',
                 statusKeys: ['open', 'ABERTA', 'pending'],
                 nextStatus: 'oficina',
                 btnText: 'Iniciar Trabalho',
@@ -569,7 +569,7 @@ export const MaintenanceManagement: React.FC = () => {
                 bg: 'rgba(245, 158, 11, 0.05)'
               },
               {
-                title: 'ðŸ› ï¸ Em Oficina',
+                title: '🛠️ Em Oficina',
                 statusKeys: ['oficina', 'in_progress'],
                 nextStatus: 'completed',
                 btnText: 'Finalizar OS',
@@ -577,7 +577,7 @@ export const MaintenanceManagement: React.FC = () => {
                 bg: 'rgba(59, 130, 246, 0.05)'
               },
               {
-                title: 'âœ… Concluída',
+                title: '✅ Concluída',
                 statusKeys: ['completed', 'CONCLUIDA', 'finalizada'],
                 nextStatus: null,
                 btnText: null,
@@ -636,7 +636,6 @@ export const MaintenanceManagement: React.FC = () => {
                           return (
                             <motion.div
                               key={o.id}
-                              layout
                               initial={{ opacity: 0, y: 10 }}
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, scale: 0.95 }}

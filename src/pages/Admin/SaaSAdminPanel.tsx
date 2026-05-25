@@ -2206,7 +2206,8 @@ export const SaaSAdminPanel: React.FC = () => {
                       return (
                         <motion.div 
                           key={t.id} 
-                          layout
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
                           className={`tenant-card-premium ${(t.status || 'Ativo').toLowerCase() === 'ativo' ? 'active' : ((t.status || '').toLowerCase() === 'trial' ? 'trial' : ((t.status || '').toLowerCase() === 'suspenso' ? 'suspenso' : 'stopped'))}`}
                         >
                           <div className="tenant-card-left-section">
@@ -2397,7 +2398,8 @@ export const SaaSAdminPanel: React.FC = () => {
                       return (
                         <motion.div 
                           key={plan.name} 
-                          layout
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
                           className={`tenant-card-premium ${getPlanBadgeClass(plan.name)}`}
                         >
                           <div className="tenant-card-left-section">

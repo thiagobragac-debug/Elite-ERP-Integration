@@ -63,7 +63,7 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Compras</h3>
-              <p>Gerencie ordens e parceiroes.</p>
+              <p>Gerencie ordens e fornecedores.</p>
             </div>
           </div>
           <button 

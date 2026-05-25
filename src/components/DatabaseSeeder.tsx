@@ -70,7 +70,7 @@ export const DatabaseSeeder: React.FC = () => {
             quantidade: 50,
             unidade: 'Ton',
             status: 'analyzing',
-            dados_parceiroes: [
+            dados_fornecedores: [
               { name: 'AgroSul', price: 2100 },
               { name: 'Fertilizantes BR', price: 1950 }
             ],

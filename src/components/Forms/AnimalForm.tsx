@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Beef, 
   Hash, 
@@ -15,6 +15,7 @@ import {
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { useTenant } from '../../contexts/TenantContext';
 import { isValidUUID } from '../../utils/validation';
 
 interface AnimalFormProps {
@@ -43,12 +44,19 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     finalidade: 'Corte'
   });
   const { applyFarmFilter } = useFarmFilter();
+  const { activeTenantId } = useTenant();
   const [lotes, setLotes] = useState<any[]>([]);
+  const [racas, setRacas] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingLotes, setLoadingLotes] = useState(false);
 
   React.useEffect(() => {
     fetchLotes();
+    if (isOpen && activeTenantId) {
+      fetchRacas();
+      fetchCategorias();
+    }
     if (initialData) {
       setFormData({
         brinco: initialData.brinco || '',
@@ -99,6 +107,28 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     }
   };
 
+  const fetchRacas = async () => {
+    const { data } = await supabase
+      .from('categorias_sistema')
+      .select('id, nome')
+      .eq('tenant_id', activeTenantId)
+      .eq('modulo', 'racas')
+      .eq('is_active', true)
+      .order('nome');
+    if (data) setRacas(data);
+  };
+
+  const fetchCategorias = async () => {
+    const { data } = await supabase
+      .from('categorias_sistema')
+      .select('id, nome')
+      .eq('tenant_id', activeTenantId)
+      .eq('modulo', 'pecuaria')
+      .eq('is_active', true)
+      .order('nome');
+    if (data) setCategorias(data);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -139,10 +169,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           value={formData.raca}
           onChange={(e) => setFormData({...formData, raca: e.target.value})}
         >
-          <option>Nelore</option>
-          <option>Angus</option>
-          <option>Brahman</option>
-          <option>Cruzamento Industrial</option>
+          <option value="">Selecionar Raça...</option>
+          {racas.map(r => (
+            <option key={r.id} value={r.nome}>{r.nome}</option>
+          ))}
         </select>
       </div>
 
@@ -274,12 +304,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           value={formData.categoria}
           onChange={(e) => setFormData({...formData, categoria: e.target.value})}
         >
-          <option>Bezerro</option>
-          <option>Garrote</option>
-          <option>Boi</option>
-          <option>Vaca</option>
-          <option>Novilha</option>
-          <option>Touro</option>
+          <option value="">Selecionar...</option>
+          {categorias.map(c => (
+            <option key={c.id} value={c.nome}>{c.nome}</option>
+          ))}
         </select>
       </div>
 

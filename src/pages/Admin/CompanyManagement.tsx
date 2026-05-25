@@ -31,6 +31,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { CompanyFilterModal } from './components/CompanyFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
+import { useViewMode } from '../../hooks/useViewMode';
 
 export const CompanyManagement: React.FC = () => {
   const { activeFarm, tenant, activeTenantId } = useTenant();
@@ -46,7 +47,7 @@ export const CompanyManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useViewMode('company-management', 'grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     type: 'all',
@@ -653,7 +654,8 @@ export const CompanyManagement: React.FC = () => {
                   {filteredCompanies.map(c => (
                     <motion.div 
                       key={c.id} 
-                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                       className={`tauze-modern-entity-card ${c.tipo?.toLowerCase() === 'matriz' ? 'matriz' : 'filial'}`}
                     >
                       <div className="card-top-banner">
@@ -721,7 +723,8 @@ export const CompanyManagement: React.FC = () => {
                   {filteredFarms.map(f => (
                     <motion.div 
                       key={f.id} 
-                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
                       className="tauze-modern-entity-card produtivo"
                     >
                       <div className="card-top-banner">

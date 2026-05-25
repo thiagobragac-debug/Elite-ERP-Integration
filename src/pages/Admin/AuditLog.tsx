@@ -64,7 +64,7 @@ const ENTITY_ROUTES: Record<string, string> = {
   'lotes': '/pecuaria/lote',
   'pastos': '/pecuaria/pasto',
   'parceiros': '/vendas/parceiros',
-  'parceiroes': '/compras/parceiroes',
+  'fornecedores': '/compras/fornecedores',
   'contas_pagar': '/financeiro/pagar',
   'contas_receber': '/financeiro/receber',
   'maquinas': '/frota/maquina',
@@ -172,7 +172,7 @@ export const AuditLog: React.FC = () => {
     setFormInitialData({ ...data, id: entityId });
     setSelectedLog(null);
 
-    if (tableName === 'parceiroes') {
+    if (tableName === 'fornecedores') {
       setIsSupplierFormOpen(true);
     } else if (tableName === 'animais') {
       setIsAnimalFormOpen(true);
