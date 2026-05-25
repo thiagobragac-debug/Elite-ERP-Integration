@@ -137,11 +137,12 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
       const data = await fetchCEPData(cleanCEP);
       setFormData(prev => ({
         ...prev,
+        tipo_logradouro: data.tipo_logradouro || prev.tipo_logradouro,
         logradouro: data.street || prev.logradouro,
         bairro: data.neighborhood || prev.bairro,
         cidade: data.city || prev.cidade,
         estado: data.state || prev.estado,
-        pais: 'Brasil'
+        pais: 'BRASIL'
       }));
     } catch (err) {
       alert('Não foi possível localizar este CEP. Verifique os dados ou preencha manualmente.');
@@ -244,7 +245,9 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
               const val = e.target.value.replace(/\D/g, '');
               const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
               setFormData({...formData, cep: masked});
-            }} />
+            }}
+            onBlur={handleCEPSearch}
+          />
           <button 
             type="button"
             className="action-trigger-btn"

@@ -141,11 +141,12 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
       const data = await fetchCEPData(cleanCEP);
       setFormData(prev => ({
         ...prev,
+        tipo_logradouro: data.tipo_logradouro || prev.tipo_logradouro,
         logradouro: data.street || prev.logradouro,
         bairro: data.neighborhood || prev.bairro,
         cidade: data.city || prev.cidade,
         estado: data.state || prev.estado,
-        pais: 'Brasil'
+        pais: 'BRASIL'
       }));
     } catch (err) {
       alert('Não foi possível localizar este CEP. Verifique os dados ou digite manualmente.');
@@ -302,6 +303,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
               const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
               setFormData({...formData, cep: masked});
             }}
+            onBlur={handleCEPSearch}
             className="flex-1"
           />
           <button 

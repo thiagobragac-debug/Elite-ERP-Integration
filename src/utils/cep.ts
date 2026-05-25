@@ -14,12 +14,23 @@ export const fetchCEPData = async (cep: string) => {
 
     const data = await response.json();
     
+    const rawStreet = data.street || '';
+    const firstSpaceIndex = rawStreet.indexOf(' ');
+    let tipoLogradouro = '';
+    let logradouro = rawStreet;
+
+    if (firstSpaceIndex > 0) {
+      tipoLogradouro = rawStreet.substring(0, firstSpaceIndex);
+      logradouro = rawStreet.substring(firstSpaceIndex + 1);
+    }
+
     return {
       cep: data.cep,
-      state: data.state,
-      city: data.city,
-      neighborhood: data.neighborhood,
-      street: data.street,
+      state: (data.state || '').toUpperCase(),
+      city: (data.city || '').toUpperCase(),
+      neighborhood: (data.neighborhood || '').toUpperCase(),
+      street: logradouro.toUpperCase(),
+      tipo_logradouro: tipoLogradouro.toUpperCase(),
       location: data.location // might contain coordinates
     };
   } catch (error) {
