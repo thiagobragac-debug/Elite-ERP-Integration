@@ -361,11 +361,22 @@ export const CompanyManagement: React.FC = () => {
       )
     },
     {
+      header: 'Contato',
+      accessor: (item: any) => (
+        <div className="table-cell-title">
+          <span className="main-text" style={{ fontSize: 13 }}>{item.email || '---'}</span>
+          <div className="sub-meta text-[11px]">
+            {item.telefone || '---'}
+          </div>
+        </div>
+      )
+    },
+    {
       header: 'Localização',
       accessor: (item: any) => (
         <div className="table-cell-meta">
           <MapPin size={14} />
-          <span>{item.cidade}/{item.estado}</span>
+          <span>{item.cidade || '---'} / {item.estado || '--'}</span>
         </div>
       )
     },
@@ -373,10 +384,21 @@ export const CompanyManagement: React.FC = () => {
       header: 'Tipo',
       accessor: (item: any) => (
         <span className={`status-pill ${item.tipo === 'matriz' ? 'active' : 'info'}`}>
-          {item.tipo}
+          {item.tipo || 'UNIDADE'}
         </span>
       ),
       align: 'center' as const
+    },
+    {
+      header: 'Status',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 8, height: 8, borderRadius: '50%', background: item.ativo ? '#10b981' : '#ef4444' }} />
+          <span style={{ fontSize: 12, fontWeight: 700, color: item.ativo ? '#10b981' : '#ef4444' }}>
+            {item.ativo ? 'ATIVO' : 'INATIVO'}
+          </span>
+        </div>
+      )
     }
   ];
 
@@ -387,7 +409,18 @@ export const CompanyManagement: React.FC = () => {
         <div className="table-cell-title">
           <span className="main-text">{item.nome}</span>
           <div className="sub-meta uppercase font-bold text-[10px] tracking-wider">
-            {item.localizacao}
+            {item.localizacao || 'Sem localização'}
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Documentos',
+      accessor: (item: any) => (
+        <div className="table-cell-title">
+          <span className="main-text" style={{ fontSize: 12 }}>IE: {item.ie_produtor || '---'}</span>
+          <div className="sub-meta text-[11px]">
+            NIRF: {item.nirf || '---'}
           </div>
         </div>
       )
@@ -395,18 +428,27 @@ export const CompanyManagement: React.FC = () => {
     {
       header: 'Área Total',
       accessor: (item: any) => (
-        <div className="table-cell-meta">
-          <Layout size={14} />
-          <span>{item.area_total} ha</span>
+        <div className="table-cell-meta" style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}>
+          <Layout size={14} style={{ color: 'hsl(var(--brand))' }} />
+          <span>{item.area_total || 0} ha</span>
         </div>
       )
     },
     {
-      header: 'Empresa',
+      header: 'Município / UF',
+      accessor: (item: any) => (
+        <div className="table-cell-meta">
+          <MapPin size={14} />
+          <span>{item.municipio || '---'} / {item.uf || '--'}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Empresa Vinculada',
       accessor: (item: any) => (
         <div className="table-cell-meta">
           <Building2 size={14} />
-          <span>{companies.find(c => c.id === item.unidade_id)?.razao_social || 'N/A'}</span>
+          <span style={{ fontWeight: 600 }}>{companies.find(c => c.id === item.unidade_id)?.razao_social || 'N/A'}</span>
         </div>
       )
     }
@@ -612,34 +654,36 @@ export const CompanyManagement: React.FC = () => {
                     <motion.div 
                       key={c.id} 
                       layout
-                      className={`user-card-premium ${c.tipo?.toLowerCase() === 'matriz' ? 'active' : ''}`}
+                      className={`tauze-modern-entity-card ${c.tipo?.toLowerCase() === 'matriz' ? 'matriz' : 'filial'}`}
                     >
-                      <div className="card-avatar">
-                        <Building2 size={32} />
+                      <div className="card-top-banner">
+                        <div className="banner-badge">{c.tipo || 'UNIDADE'}</div>
                       </div>
-                      <div className="card-main-content">
-                        <div className="card-header-info">
-                          <h3>{c.razao_social || c.nome}</h3>
-                          <span className="card-role-badge">{c.tipo || 'UNIDADE'}</span>
+                      <div className="card-avatar-overlap">
+                        <Building2 size={24} />
+                      </div>
+                      <div className="card-body">
+                        <h3 className="entity-name" title={c.razao_social || c.nome}>{c.razao_social || c.nome}</h3>
+                        
+                        <div className="entity-meta-row">
+                          <Globe size={14} />
+                          <span>CNPJ: {c.cnpj || c.documento || '---'}</span>
                         </div>
-                        <div className="card-meta-grid">
-                          <div className="meta-item">
-                            <Globe size={14} className="meta-icon" />
-                            <span>CNPJ: {c.cnpj || c.documento || '---'}</span>
-                          </div>
-                          <div className="meta-item">
-                            <MapPin size={14} className="meta-icon" />
-                            <span>{c.cidade || 'Sede'}/{c.estado || 'BR'}</span>
-                          </div>
-                          <div className="meta-item">
-                            <Calendar size={14} className="meta-icon" />
-                            <span>Contrato Ativo</span>
-                          </div>
+                        <div className="entity-meta-row">
+                          <MapPin size={14} />
+                          <span>{c.cidade || 'Sede'} / {c.estado || 'BR'}</span>
                         </div>
-                        <div className="card-bottom-actions">
-                          <button className="action-icon-btn" onClick={() => handleViewLogs(c)} title="Logs"><History size={16} /></button>
-                          <button className="action-icon-btn" onClick={() => { setEditingItem(c); setIsCompanyModalOpen(true); }} title="Editar"><Edit3 size={16} /></button>
-                          <button className="action-icon-btn delete" onClick={() => handleDelete('company', c.id)} title="Excluir"><XCircle size={16} /></button>
+                        <div className="entity-meta-row">
+                          <Calendar size={14} />
+                          <span>Contrato Ativo</span>
+                        </div>
+                        
+                        <div className="card-divider"></div>
+                        
+                        <div className="card-footer-actions">
+                          <button onClick={() => handleViewLogs(c)} title="Logs"><History size={14} /> Logs</button>
+                          <button onClick={() => { setEditingItem(c); setIsCompanyModalOpen(true); }} title="Editar"><Edit3 size={14} /> Editar</button>
+                          <button className="danger" onClick={() => handleDelete('company', c.id)} title="Excluir"><XCircle size={14} /> Excluir</button>
                         </div>
                       </div>
                     </motion.div>
@@ -678,33 +722,35 @@ export const CompanyManagement: React.FC = () => {
                     <motion.div 
                       key={f.id} 
                       layout
-                      className="user-card-premium active"
+                      className="tauze-modern-entity-card produtivo"
                     >
-                      <div className="card-avatar profile-icon" style={{ background: '#10b981' }}>
-                        <Map size={32} />
+                      <div className="card-top-banner">
+                        <div className="banner-badge">PRODUTIVA</div>
                       </div>
-                      <div className="card-main-content">
-                        <div className="card-header-info">
-                          <h3>{f.nome}</h3>
-                          <span className="card-role-badge" style={{ color: '#10b981', background: '#10b98115', borderColor: '#10b98130' }}>PRODUTIVA</span>
+                      <div className="card-avatar-overlap">
+                        <Map size={24} />
+                      </div>
+                      <div className="card-body">
+                        <h3 className="entity-name" title={f.nome}>{f.nome}</h3>
+                        
+                        <div className="entity-meta-row">
+                          <Layout size={14} />
+                          <span>Área: {f.area_total} ha</span>
                         </div>
-                        <div className="card-meta-grid">
-                          <div className="meta-item">
-                            <Layout size={14} className="meta-icon" />
-                            <span>Área: {f.area_total} ha</span>
-                          </div>
-                          <div className="meta-item">
-                            <Building2 size={14} className="meta-icon" />
-                            <span>{companies.find(c => c.id === f.unidade_id)?.razao_social || 'N/A'}</span>
-                          </div>
-                          <div className="meta-item">
-                            <MapPin size={14} className="meta-icon" />
-                            <span>{f.localizacao || 'Localização não informada'}</span>
-                          </div>
+                        <div className="entity-meta-row">
+                          <Building2 size={14} />
+                          <span>Empresa: {companies.find(c => c.id === f.unidade_id)?.razao_social || 'N/A'}</span>
                         </div>
-                        <div className="card-bottom-actions">
-                          <button className="action-icon-btn" onClick={() => { setEditingItem(f); setIsFarmModalOpen(true); }} title="Editar"><Edit3 size={16} /></button>
-                          <button className="action-icon-btn delete" onClick={() => handleDelete('farm', f.id)} title="Excluir"><XCircle size={16} /></button>
+                        <div className="entity-meta-row">
+                          <MapPin size={14} />
+                          <span>{f.localizacao || 'Localização não informada'}</span>
+                        </div>
+                        
+                        <div className="card-divider"></div>
+                        
+                        <div className="card-footer-actions" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                          <button onClick={() => { setEditingItem(f); setIsFarmModalOpen(true); }} title="Editar"><Edit3 size={14} /> Editar</button>
+                          <button className="danger" onClick={() => handleDelete('farm', f.id)} title="Excluir"><XCircle size={14} /> Excluir</button>
                         </div>
                       </div>
                     </motion.div>
@@ -798,154 +844,177 @@ export const CompanyManagement: React.FC = () => {
           .user-cards-grid { grid-template-columns: 1fr; }
         }
 
-        .user-card-premium {
+        .tauze-modern-entity-card {
           background: hsl(var(--bg-card));
-          border-radius: 24px;
           border: 1px solid hsl(var(--border));
-          display: flex;
+          border-radius: 20px;
           overflow: hidden;
-          padding: 0;
-          min-height: 180px;
-          height: auto;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: var(--shadow-sm);
           position: relative;
-          text-align: left;
-        }
-
-        .user-card-premium::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 0;
-          bottom: 0;
-          width: 6px;
-          background: hsl(var(--border));
-          transition: 0.3s;
-        }
-
-        .user-card-premium.active::before {
-          background: hsl(161 64% 39%);
-          box-shadow: 4px 0 15px hsl(161 64% 39% / 0.3);
-        }
-
-        .user-card-premium.info-badge::before {
-          background: hsl(var(--brand));
-          box-shadow: 4px 0 15px hsl(var(--brand) / 0.3);
-        }
-
-        .user-card-premium:hover {
-          transform: translateY(-6px);
-          box-shadow: var(--shadow-lg);
-          border-color: hsl(var(--brand) / 0.3);
-        }
-
-        .card-left-section {
-          width: 110px;
-          flex-shrink: 0;
-          background: hsl(var(--bg-main) / 0.5);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 20px rgba(0,0,0,0.03);
           display: flex;
           flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          border-right: 1px solid hsl(var(--border));
+          min-height: 280px;
         }
-
-        .card-avatar {
-          width: 56px;
-          height: 56px;
-          border-radius: 16px;
-          background: var(--bg-main);
+        .tauze-modern-entity-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+          border-color: hsl(var(--brand) / 0.4);
+        }
+        .tauze-modern-entity-card.matriz { border-color: #10b98140; }
+        .tauze-modern-entity-card.matriz:hover {
+          border-color: #10b981;
+          box-shadow: 0 12px 30px rgba(16,185,129,0.12);
+        }
+        .tauze-modern-entity-card.produtivo { border-color: #10b98130; }
+        .tauze-modern-entity-card.produtivo:hover { border-color: #10b98180; }
+        
+        .card-top-banner {
+          height: 70px;
+          background: linear-gradient(135deg, hsl(var(--bg-main)) 0%, hsl(var(--bg-card)) 100%);
+          border-bottom: 1px solid hsl(var(--border));
+          position: relative;
           display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.5rem;
-          font-weight: 900;
-          color: var(--brand);
-          flex-shrink: 0;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-        }
-        .card-avatar.profile-icon {
-          color: white;
-          box-shadow: 0 8px 16px rgba(16, 185, 129, 0.2);
-        }
-        .card-main-content {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
+          justify-content: flex-end;
           padding: 12px 16px;
-          min-width: 0;
         }
-        .card-header-info {
+        .tauze-modern-entity-card.matriz .card-top-banner {
+          background: linear-gradient(135deg, #10b98120 0%, #04785720 100%);
+          border-bottom-color: #10b98130;
+        }
+        .tauze-modern-entity-card.produtivo .card-top-banner {
+          background: linear-gradient(135deg, #10b98110 0%, #10b98105 100%);
+          border-bottom-color: #10b98120;
+        }
+        
+        .banner-badge {
+          background: hsl(var(--bg-card));
+          border: 1px solid hsl(var(--border));
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 10px;
+          font-weight: 800;
+          color: hsl(var(--text-main));
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          height: max-content;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .tauze-modern-entity-card.matriz .banner-badge {
+          color: #10b981;
+          border-color: #10b98140;
+          background: #10b98110;
+        }
+        .tauze-modern-entity-card.produtivo .banner-badge {
+          color: #10b981;
+          border-color: #10b98130;
+        }
+        
+        .card-avatar-overlap {
+          width: 52px;
+          height: 52px;
+          background: hsl(var(--bg-card));
+          border: 2px solid hsl(var(--border));
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: hsl(var(--text-main));
+          position: absolute;
+          top: 44px;
+          left: 20px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+          z-index: 2;
+        }
+        .tauze-modern-entity-card.matriz .card-avatar-overlap {
+          color: #10b981;
+          border-color: #10b98150;
+          box-shadow: 0 4px 12px rgba(16,185,129,0.15);
+        }
+        .tauze-modern-entity-card.produtivo .card-avatar-overlap {
+          color: #10b981;
+          border-color: #10b98140;
+        }
+        
+        .card-body {
+          padding: 36px 20px 20px;
           display: flex;
           flex-direction: column;
-          gap: 2px;
-        }
-        .card-header-info h3 {
-          font-size: 16px;
-          font-weight: 900;
-          color: var(--text-main);
-          margin: 0;
-          letter-spacing: -0.01em;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        .card-role-badge {
-          align-self: flex-start;
-          font-size: 0.625rem;
-          font-weight: 800;
-          color: var(--brand);
-          background: rgba(var(--brand-rgb), 0.1);
-          padding: 2px 8px;
-          border-radius: 4px;
-          text-transform: uppercase;
+          flex: 1;
         }
         
-        .card-meta-grid {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 4px;
-          margin-top: 4px;
-        }
-        .meta-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 0.75rem;
-          color: var(--text-muted);
-          font-weight: 500;
+        .entity-name {
+          font-size: 16px;
+          font-weight: 800;
+          color: hsl(var(--text-main));
+          margin: 0 0 16px 0;
+          line-height: 1.3;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        .meta-icon {
-          color: var(--brand);
-          opacity: 0.7;
+        
+        .entity-meta-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: hsl(var(--text-muted));
+          font-size: 13px;
+          font-weight: 600;
+          margin-bottom: 12px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .entity-meta-row svg {
+          color: hsl(var(--brand));
+          opacity: 0.8;
           flex-shrink: 0;
         }
-        
-        .card-bottom-actions {
-          display: flex;
-          flex-wrap: nowrap;
-          gap: 6px;
-          margin-top: 4px;
+        .tauze-modern-entity-card.matriz .entity-meta-row svg,
+        .tauze-modern-entity-card.produtivo .entity-meta-row svg {
+          color: #10b981;
         }
-        .action-icon-btn { 
-          width: 28px;
-          height: 28px;
-          border-radius: 8px; 
-          background: var(--bg-main);
-          color: var(--text-muted); 
+        
+        .card-divider {
+          height: 1px;
+          background: hsl(var(--border));
+          margin: 16px -20px;
+        }
+        
+        .card-footer-actions {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+          margin-top: auto;
+        }
+        .card-footer-actions button {
           display: flex;
           align-items: center;
-          justify-content: center; 
-          transition: 0.2s; 
+          justify-content: center;
+          gap: 6px;
+          padding: 10px 0;
+          background: transparent;
+          border: 1px solid hsl(var(--border));
+          border-radius: 10px;
+          color: hsl(var(--text-main));
+          font-size: 12px;
+          font-weight: 700;
           cursor: pointer;
+          transition: 0.2s;
         }
-        .action-icon-btn:hover { background: var(--brand); color: white; transform: translateY(-2px); }
-        .action-icon-btn.delete:hover { background: #ef4444; }
+        .card-footer-actions button:hover {
+          background: hsl(var(--bg-main));
+          border-color: hsl(var(--text-muted));
+        }
+        .card-footer-actions button.danger {
+          color: #ef4444;
+          border-color: #ef444430;
+        }
+        .card-footer-actions button.danger:hover {
+          background: #ef444410;
+          border-color: #ef4444;
+        }
       `}</style>
 
       <CompanyForm 
