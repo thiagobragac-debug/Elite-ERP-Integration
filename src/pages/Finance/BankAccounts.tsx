@@ -35,8 +35,11 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { isValidUUID } from '../../utils/validation';
 
+import { useTenant } from '../../contexts/TenantContext';
+
 export const BankAccounts: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { activeCompany, companies } = useTenant();
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,9 +90,13 @@ export const BankAccounts: React.FC = () => {
         let query = supabase
           .from('contas_bancarias')
           .select('*').limit(500)
-          .order('banco', { ascending: true });
+          .order('banco', { ascending: true })
+          .eq('tenant_id', activeTenantId);
         
-        query = applyFarmFilter(query);
+        if (!isGlobalMode && activeCompany?.id) {
+          query = query.or(`unidade_id.eq.${activeCompany.id},is_global.eq.true`);
+        }
+
         const { data, error } = await query;
         if (error) throw error;
         return data;
@@ -177,7 +184,8 @@ export const BankAccounts: React.FC = () => {
       benchmark_rendimento: formData.benchmark_rendimento,
       descricao: formData.descricao,
       tenant_id: activeTenantId,
-      fazenda_id: activeFarmId || null
+      unidade_id: formData.is_global ? null : (formData.unidade_id || activeCompany?.id || null),
+      is_global: formData.is_global || false
     };
 
     const saveToSupabase = async (payloadToSave: any) => {
@@ -205,7 +213,7 @@ export const BankAccounts: React.FC = () => {
         tipo: formData.tipo,
         saldo_atual: parseFloat(formData.saldo_inicial),
         descricao: formData.descricao,
-        tenant_id: activeFarm?.tenantId || activeTenantId
+        tenant_id: activeTenantId
       };
       result = await saveToSupabase(basicPayload);
     }
@@ -318,9 +326,16 @@ export const BankAccounts: React.FC = () => {
     {
       header: 'Tipo de Conta',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
             {item.tipo || 'Corrente'}
+          </span>
+          <span style={{ 
+            fontSize: '9px', fontWeight: 800, padding: '2px 6px', borderRadius: '4px',
+            background: item.is_global ? 'hsl(var(--brand) / 0.1)' : 'hsl(var(--text-muted) / 0.1)', 
+            color: item.is_global ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))'
+          }}>
+            {item.is_global ? 'USO GLOBAL' : (companies.find((c: any) => c.id === item.unidade_id)?.name || 'NÃO VINCULADO')}
           </span>
         </div>
       ),
@@ -575,7 +590,12 @@ export const BankAccounts: React.FC = () => {
                   <div className="card-main-content">
                     <div className="card-header-info">
                       <h3>{acc.banco}</h3>
-                      <span className="card-role-badge">{acc.tipo || 'CONTA CORRENTE'}</span>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                        <span className="card-role-badge">{acc.tipo || 'CONTA CORRENTE'}</span>
+                        <span className="card-role-badge" style={{ background: acc.is_global ? 'hsl(var(--brand) / 0.1)' : 'hsl(var(--text-muted) / 0.1)', color: acc.is_global ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}>
+                          {acc.is_global ? 'USO GLOBAL' : (companies.find((c: any) => c.id === acc.unidade_id)?.name || 'NÃO VINCULADO')}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="card-meta-grid">

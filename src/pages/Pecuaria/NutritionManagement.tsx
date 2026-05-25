@@ -373,6 +373,7 @@ export const NutritionManagement: React.FC = () => {
                   <Trash2 size={18} />
                 </button>
               </div>
+            )}
           />
       </div>
 

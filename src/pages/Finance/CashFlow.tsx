@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
@@ -54,7 +54,6 @@ export const CashFlow: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState<'ALL' | 'INFLOW' | 'OUTFLOW'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID'>('ALL');
-  const [viewMode, setViewMode] = useState<'operational' | 'analytical'>('operational');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -234,60 +233,6 @@ export const CashFlow: React.FC = () => {
     }
   ];
 
-  const analyticalCategories = [
-    { 
-      name: 'Receita Realizada', 
-      value: transactions.filter(t => t.type === 'inflow' && t.status === 'paid').reduce((acc, t) => acc + Math.abs(t.amount), 0), 
-      color: '#10b981', 
-      icon: ArrowUpRight,
-      percentage: 100 
-    },
-    { 
-      name: 'Despesa Realizada', 
-      value: transactions.filter(t => t.type === 'outflow' && t.status === 'paid').reduce((acc, t) => acc + Math.abs(t.amount), 0), 
-      color: '#ef4444', 
-      icon: ArrowDownLeft,
-      percentage: 100
-    },
-    { 
-      name: 'Provisionado (Líquido)', 
-      value: transactions.filter(t => t.status === 'pending').reduce((acc, t) => acc + t.amount, 0), 
-      color: '#3b82f6', 
-      icon: Clock,
-      percentage: 65
-    },
-    { 
-      name: 'Result. Consolidado', 
-      value: transactions.reduce((acc, t) => acc + t.amount, 0), 
-      color: '#f59e0b', 
-      icon: Layers,
-      percentage: 88
-    },
-  ];
-
-  // Dynamic Composition Calculations
-  const inflowsByCategory = transactions.filter(t => t.type === 'inflow').reduce((acc: any, t) => {
-    acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
-    return acc;
-  }, {});
-  
-  const outflowsByCategory = transactions.filter(t => t.type === 'outflow').reduce((acc: any, t) => {
-    acc[t.category] = (acc[t.category] || 0) + Math.abs(t.amount);
-    return acc;
-  }, {});
-
-  const totalInflow = (Object.values(inflowsByCategory).reduce((a: any, b: any) => a + b, 0) as number) || 1;
-  const totalOutflow = (Object.values(outflowsByCategory).reduce((a: any, b: any) => a + b, 0) as number) || 1;
-
-  const topInflows = Object.entries(inflowsByCategory)
-    .sort(([, a]: any, [, b]: any) => b - a)
-    .slice(0, 3)
-    .map(([name, val]: any) => ({ name, percent: ((Number(val) / Number(totalInflow)) * 100).toFixed(0) }));
-
-  const topOutflows = Object.entries(outflowsByCategory)
-    .sort(([, a]: any, [, b]: any) => b - a)
-    .slice(0, 3)
-    .map(([name, val]: any) => ({ name, percent: ((Number(val) / Number(totalOutflow)) * 100).toFixed(0) }));
 
   return (
     <div className="cash-flow-page animate-slide-up">
@@ -301,20 +246,6 @@ export const CashFlow: React.FC = () => {
           <p className="page-subtitle">Gestão operacional e inteligência financeira avançada em um único dashboard.</p>
         </div>
         <div className="page-actions">
-          <div className="view-mode-toggle">
-            <button 
-              className={`mode-btn ${viewMode === 'operational' ? 'active' : ''}`}
-              onClick={() => setViewMode('operational')}
-            >
-              <Layers size={16} /> OPERACIONAL
-            </button>
-            <button 
-              className={`mode-btn ${viewMode === 'analytical' ? 'active' : ''}`}
-              onClick={() => setViewMode('analytical')}
-            >
-              <BarChart3 size={16} /> ANALÍTICO
-            </button>
-          </div>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} /> NOVA OPERAÇÃO
           </button>
@@ -354,75 +285,7 @@ export const CashFlow: React.FC = () => {
         ))}
       </div>
 
-      <AnimatePresence mode="wait">
-        {viewMode === 'analytical' ? (
-          <motion.div 
-            key="analytical"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="analytical-view-content"
-          >
-            <div className="premium-category-grid">
-              {analyticalCategories.map((cat, idx) => (
-                <div key={idx} className="category-item-card">
-                  <div className="cat-icon" style={{ background: cat.color + '22', color: cat.color }}>
-                    <cat.icon size={24} />
-                  </div>
-                  <div className="cat-info">
-                    <span className="cat-label">{cat.name}</span>
-                    <h4 className="cat-value">{cat.value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</h4>
-                  </div>
-                  <div className="cat-progress-bar">
-                    <div className="fill" style={{ width: '75%', background: cat.color }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="analytical-summary-cards" style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
-              <div className="summary-box glass-card">
-                <h3>Composição de Entradas</h3>
-                <div className="progress-list">
-                  {topInflows.length > 0 ? topInflows.map((item, i) => (
-                    <div key={i} className="progress-item"><span>{item.name}</span><span>{item.percent}%</span></div>
-                  )) : <div className="text-center py-4 text-xs font-bold text-slate-400">Sem dados no período</div>}
-                </div>
-              </div>
-              <div className="summary-box glass-card">
-                <h3>Composição de Saídas</h3>
-                <div className="progress-list">
-                  {topOutflows.length > 0 ? topOutflows.map((item, i) => (
-                    <div key={i} className="progress-item"><span>{item.name}</span><span>{item.percent}%</span></div>
-                  )) : <div className="text-center py-4 text-xs font-bold text-slate-400">Sem dados no período</div>}
-                </div>
-              </div>
-              <div className="summary-box glass-card tauze-insight-box">
-                <h3>Tauze Copilot Intelligence</h3>
-                <div className="progress-list">
-                  <div className="progress-item insight-success">
-                    <span>Projeção de Saldo</span>
-                    <span>{transactions.reduce((acc, t) => acc + t.amount, 0) >= 0 ? '+ Positivo' : '- Atenção'}</span>
-                  </div>
-                  <div className="progress-item">
-                    <span>Índice de Cobertura</span>
-                    <span>{((Number(totalInflow) / Number(totalOutflow)) * 100).toFixed(1)}%</span>
-                  </div>
-                  <div className="progress-item insight-warning">
-                    <span>Concentração Risco</span>
-                    <span>{topOutflows[0]?.percent || 0}% em {topOutflows[0]?.name || 'N/A'}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div 
-            key="operational"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
+      <div className="operational-view-content animate-slide-up" style={{ animationDelay: '0.1s' }}>
             <div className="tauze-controls-row">
               <div className="tauze-tab-group">
                 <button className={`tauze-tab-item ${activeTab === 'ALL' ? 'active' : ''}`} onClick={() => setActiveTab('ALL')}>Livro Caixa</button>
@@ -522,9 +385,7 @@ export const CashFlow: React.FC = () => {
                 )}
               />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </div>
 
       <TransactionForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} type={selectedTransaction?.type === 'inflow' ? 'receivable' : 'payable'} onSubmit={handleSubmit} initialData={selectedTransaction} />
       <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} title="Dossiê de Fluxo" subtitle="Rastreabilidade completa" items={historyItems} />

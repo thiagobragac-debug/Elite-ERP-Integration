@@ -1863,8 +1863,16 @@ export const UserManagement: React.FC = () => {
 
         .user-cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+        }
+
+        @media (max-width: 1400px) {
+          .user-cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 900px) {
+          .user-cards-grid { grid-template-columns: 1fr; }
         }
 
         .user-card-premium {

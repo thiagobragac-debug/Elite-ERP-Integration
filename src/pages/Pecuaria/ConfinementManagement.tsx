@@ -471,14 +471,16 @@ export const ConfinementManagement: React.FC = () => {
                   </div>
 
                   <div className="card-main-content">
-                    <div className="card-header-info">
-                      <div className="title-row">
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>{p.nome_curral}</h3>
+                    <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                      <div className="title-row" style={{ width: '100%' }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{p.nome_curral}</h3>
+                      </div>
+                      <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span className={`status-pill mini ${badgeClass}`}>
                           {badgeText}
                         </span>
+                        <div className="card-type-meta">Lote: {p.lotes?.nome || 'Vazio'}</div>
                       </div>
-                      <div className="card-type-meta">Lote: {p.lotes?.nome || 'Vazio'}</div>
                     </div>
 
                     <div className="card-occupation-section">
@@ -614,8 +616,8 @@ export const ConfinementManagement: React.FC = () => {
         .card-avatar {
           width: 56px;
           height: 56px;
-          background: #0f172a;
-          color: white;
+          background: hsl(var(--bg-card));
+          color: hsl(var(--brand));
           border-radius: 18px;
           display: flex;
           align-items: center;
@@ -623,23 +625,44 @@ export const ConfinementManagement: React.FC = () => {
           font-size: 24px;
           font-weight: 900;
           margin-bottom: 8px;
-          box-shadow: 0 8px 16px rgba(15, 23, 42, 0.2);
+          box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+          border: 1px solid hsl(var(--border));
         }
 
         .card-main-content {
           flex: 1;
-          padding: 12px 18px;
+          padding: 12px 16px;
           display: flex;
           flex-direction: column;
           justify-content: space-between;
+          min-width: 0;
         }
 
-        .card-header-info h3 {
+        .confinement-card-premium .card-header-info {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 6px;
+        }
+
+        .confinement-card-premium .title-row {
+          display: flex;
+          justify-content: flex-start;
+          align-items: center;
+          margin-bottom: 2px;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .confinement-card-premium .card-header-info h3 {
           font-size: 16px;
           font-weight: 900;
-          color: hsl(var(--text-main));
-          margin-bottom: 4px;
           letter-spacing: -0.02em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0;
+          flex: 0 1 auto;
         }
 
         .card-role-badge {
@@ -806,6 +829,45 @@ export const ConfinementManagement: React.FC = () => {
         }
 
         .add-confinement-card-premium span { font-size: 11px; font-weight: 900; letter-spacing: 0.05em; }
+
+        .card-occupation-section {
+          margin: 4px 0;
+        }
+
+        .occ-header {
+          display: flex;
+          justify-content: space-between;
+          font-size: 10px;
+          font-weight: 800;
+          margin-bottom: 4px;
+          color: #64748b;
+        }
+
+        .occ-header .critical { color: #ef4444; }
+
+        .occ-bar-container {
+          height: 6px;
+          background: #f1f5f9;
+          border-radius: 3px;
+          overflow: hidden;
+          margin-bottom: 4px;
+        }
+
+        .occ-bar-fill {
+          height: 100%;
+          background: #3b82f6;
+          border-radius: 3px;
+          transition: 0.5s;
+        }
+
+        .occ-bar-fill.warning { background: #f59e0b; }
+
+        .occ-footer {
+          font-size: 10px;
+          font-weight: 700;
+          color: #94a3b8;
+          text-align: right;
+        }
 
         [data-theme='dark'] .confinement-card-premium,
         [data-theme='dark'] .add-confinement-card-premium {

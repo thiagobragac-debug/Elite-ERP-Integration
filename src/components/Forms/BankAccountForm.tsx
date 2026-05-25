@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Building2, 
   CreditCard,
@@ -9,6 +9,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { FormModal } from './FormModal';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface BankAccountFormProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ interface BankAccountFormProps {
 }
 
 export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+  const { companies, activeCompany } = useTenant();
+  
   const [formData, setFormData] = useState({
     banco: '',
     agencia: '',
@@ -26,7 +29,9 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
     saldo_inicial: '0',
     limite_credito: '0',
     benchmark_rendimento: '',
-    descricao: ''
+    descricao: '',
+    unidade_id: activeCompany?.id || null as string | null,
+    is_global: false
   });
 
   const [loading, setLoading] = useState(false);
@@ -41,7 +46,9 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
         saldo_inicial: initialData.saldo_atual?.toString() || '0',
         limite_credito: initialData.limite_credito?.toString() || '0',
         benchmark_rendimento: initialData.benchmark_rendimento || '',
-        descricao: initialData.descricao || ''
+        descricao: initialData.descricao || '',
+        unidade_id: initialData.is_global ? null : (initialData.unidade_id || activeCompany?.id || null),
+        is_global: initialData.is_global || false
       });
     } else {
       setFormData({
@@ -52,10 +59,12 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
         saldo_inicial: '0',
         limite_credito: '0',
         benchmark_rendimento: '',
-        descricao: ''
+        descricao: '',
+        unidade_id: activeCompany?.id || null,
+        is_global: false
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, activeCompany]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,7 +87,29 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Conta"}
     >
-      <div className="form-group full-width">
+      <div className="form-group">
+        <label><Building2 size={14} /> Vinculação (CNPJ / Empresa)</label>
+        <select
+          className="tauze-select"
+          value={formData.is_global ? 'GLOBAL' : (formData.unidade_id || '')}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (val === 'GLOBAL') {
+              setFormData({...formData, is_global: true, unidade_id: null});
+            } else {
+              setFormData({...formData, is_global: false, unidade_id: val});
+            }
+          }}
+          style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))', fontSize: '14px', outline: 'none' }}
+        >
+          <option value="GLOBAL">Uso Global (Todos os CNPJs do Grupo)</option>
+          {companies.map(c => (
+            <option key={c.id} value={c.id}>{c.name} - {c.document}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="form-group">
         <label><Building2 size={14} /> Banco / Instituição</label>
         <input 
           type="text" 
@@ -113,7 +144,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
 
       <div className="form-group full-width">
         <label><Activity size={14} /> Tipo de Conta</label>
-        <div className="tauze-form-radio-group">
+        <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <div 
             className={`tauze-form-radio-item ${formData.tipo === 'CORRENTE' ? 'active' : ''}`}
             onClick={() => setFormData({...formData, tipo: 'CORRENTE'})}
@@ -145,42 +176,45 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
         </div>
       </div>
 
-      <div className="form-group">
-        <label><CreditCard size={14} /> Saldo Inicial (R$)</label>
-        <input 
-          type="number" 
-          step="0.01"
-          placeholder="0,00" 
-          value={formData.saldo_inicial}
-          onChange={(e) => setFormData({...formData, saldo_inicial: e.target.value})}
-          required
-        />
-      </div>
+      <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '16px', width: '100%' }}>
+        <div className="form-group" style={{ flex: 1 }}>
+          <label><CreditCard size={14} /> Saldo Inicial (R$)</label>
+          <input 
+            type="number" 
+            step="0.01"
+            placeholder="0,00" 
+            value={formData.saldo_inicial}
+            onChange={(e) => setFormData({...formData, saldo_inicial: e.target.value})}
+            required
+          />
+        </div>
 
-      <div className="form-group">
-        <label><ShieldCheck size={14} /> Limite de Crédito (R$)</label>
-        <input 
-          type="number" 
-          step="0.01"
-          placeholder="0,00" 
-          value={formData.limite_credito}
-          onChange={(e) => setFormData({...formData, limite_credito: e.target.value})}
-        />
-      </div>
+        <div className="form-group" style={{ flex: 1 }}>
+          <label><ShieldCheck size={14} /> Limite de Crédito (R$)</label>
+          <input 
+            type="number" 
+            step="0.01"
+            placeholder="0,00" 
+            value={formData.limite_credito}
+            onChange={(e) => setFormData({...formData, limite_credito: e.target.value})}
+          />
+        </div>
 
-      <div className="form-group">
-        <label><TrendingUp size={14} /> Benchmark Rendimento</label>
-        <select 
-          className="tauze-select"
-          value={formData.benchmark_rendimento}
-          onChange={(e) => setFormData({...formData, benchmark_rendimento: e.target.value})}
-        >
-          <option value="">Nenhum</option>
-          <option value="100% CDI">100% CDI</option>
-          <option value="95% CDI">95% CDI</option>
-          <option value="Poupança">Poupança</option>
-          <option value="IPCA+">IPCA+</option>
-        </select>
+        <div className="form-group" style={{ flex: 1 }}>
+          <label><TrendingUp size={14} /> Benchmark Rendimento</label>
+          <select 
+            className="tauze-select"
+            value={formData.benchmark_rendimento}
+            onChange={(e) => setFormData({...formData, benchmark_rendimento: e.target.value})}
+            style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))', fontSize: '14px', outline: 'none' }}
+          >
+            <option value="">Nenhum</option>
+            <option value="100% CDI">100% CDI</option>
+            <option value="95% CDI">95% CDI</option>
+            <option value="Poupança">Poupança</option>
+            <option value="IPCA+">IPCA+</option>
+          </select>
+        </div>
       </div>
 
       <div className="form-group full-width">

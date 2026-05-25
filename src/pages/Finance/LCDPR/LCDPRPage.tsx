@@ -1,15 +1,17 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   BookOpen, Plus, Download, RefreshCw, FileText,
   ChevronDown, ChevronUp, Trash2, Edit3, CheckCircle,
   AlertCircle, Filter, BarChart3, ArrowUpRight, ArrowDownRight,
-  Calendar, Building2, Hash
+  Calendar, Building2, Hash, Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../contexts/TenantContext';
 import { NATUREZAS_LCDPR, NATUREZAS_RECEITA, NATUREZAS_DESPESA } from './utils/lcdprNaturezas';
 import { buildLCDPRFile, downloadLCDPRFile } from './utils/lcdprFileBuilder';
+import { TauzeStatCard } from '../../../components/Cards/TauzeStatCard';
+import { ModernTable } from '../../../components/DataTable/ModernTable';
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const ANO_ATUAL = new Date().getFullYear();
@@ -300,26 +302,90 @@ export const LCDPRPage: React.FC = () => {
 
   const fmtBRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+  const columns = [
+    {
+      header: 'Data',
+      accessor: (l: any) => (
+        <div style={{ fontWeight: 600, fontSize: 13, color: 'hsl(var(--text-main))' }}>
+          {new Date(l.data_lancamento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Fazenda',
+      accessor: (l: any) => {
+        const faz = fazendas.find(f => f.id === l.fazenda_id);
+        return <div style={{ fontSize: 12, color: 'hsl(var(--text-muted))' }}>{faz?.nome || '—'}</div>;
+      },
+      align: 'left' as const
+    },
+    {
+      header: 'Tipo',
+      accessor: (l: any) => (
+        <div style={{ display: 'flex' }}>
+          <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 800, background: l.tipo==='R'?'#10b98118':'#ef444418', color: l.tipo==='R'?'#10b981':'#ef4444' }}>
+            {l.tipo==='R' ? '↑ RECEITA' : '↓ DESPESA'}
+          </span>
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Natureza',
+      accessor: (l: any) => {
+        const nat = NATUREZAS_LCDPR.find(n => n.codigo === l.cod_natureza);
+        return (
+          <div style={{ fontSize: 12 }}>
+            <span style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}>{l.cod_natureza}</span>
+            <span style={{ color: 'hsl(var(--text-muted))', marginLeft: 6, fontSize: 11 }}>{nat?.descricao.slice(0,28)}...</span>
+          </div>
+        );
+      },
+      align: 'left' as const
+    },
+    {
+      header: 'Descrição',
+      accessor: (l: any) => (
+        <div style={{ fontSize: 13, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'hsl(var(--text-main))' }}>
+          {l.descricao || '—'}
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Participante',
+      accessor: (l: any) => (
+        <div style={{ fontSize: 12, color: 'hsl(var(--text-muted))' }}>
+          {l.nome_participante || '—'}
+        </div>
+      ),
+      align: 'left' as const
+    },
+    {
+      header: 'Valor Líquido',
+      accessor: (l: any) => (
+        <div style={{ fontSize: 14, fontWeight: 800, color: l.tipo==='R'?'#10b981':'#ef4444', display: 'flex', justifyContent: 'flex-end' }}>
+          {l.tipo==='R' ? '+' : '-'} {fmtBRL(Number(l.valor))}
+        </div>
+      ),
+      align: 'right' as const
+    }
+  ];
+
   return (
     <div className="admin-page animate-slide-up">
       {/* Header */}
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: '#0f172a', color: '#10b981', border: '1px solid #10b98130' }}>
-            <BookOpen size={14} />
-            <span>LCDPR</span>
+          <div className="brand-badge premium">
+            <BookOpen size={14} fill="currentColor" />
+            <span>TAUZE LCDPR</span>
           </div>
           <h1 className="page-title">Livro Caixa Digital do Produtor Rural</h1>
           <p className="page-subtitle">Escrituração fiscal da atividade rural · Geração do arquivo para entrega à Receita Federal</p>
         </div>
         <div className="page-actions" style={{ gap: 10 }}>
-          <select
-            value={anoCalendario}
-            onChange={e => setAnoCalendario(Number(e.target.value))}
-            style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-card))', color: 'hsl(var(--text-main))', fontWeight: 700, fontSize: 13 }}
-          >
-            {[ANO_ATUAL, ANO_ATUAL-1, ANO_ATUAL-2].map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
           <button className="glass-btn secondary sm" onClick={handleImportFinanceiro} disabled={generating}>
             <RefreshCw size={15} /> Importar Financeiro
           </button>
@@ -330,25 +396,22 @@ export const LCDPRPage: React.FC = () => {
       </header>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }}>
+      <div className="next-gen-kpi-grid" style={{ marginBottom: 24 }}>
         {[
-          { label: 'Total Receitas', value: fmtBRL(kpis.receitas), color: '#10b981', Icon: ArrowUpRight, sub: `${lancamentos.filter(l=>l.tipo==='R').length} lançamentos` },
-          { label: 'Total Despesas', value: fmtBRL(kpis.despesas), color: '#ef4444', Icon: ArrowDownRight, sub: `${lancamentos.filter(l=>l.tipo==='D').length} lançamentos` },
-          { label: 'Resultado Líquido', value: fmtBRL(kpis.saldo), color: kpis.saldo >= 0 ? '#10b981' : '#ef4444', Icon: BarChart3, sub: kpis.saldo >= 0 ? 'Superávit' : 'Déficit' },
-          { label: 'Total Lançamentos', value: String(kpis.total), color: '#6366f1', Icon: FileText, sub: `Ano ${anoCalendario}` },
-        ].map(({ label, value, color, Icon, sub }) => (
-          <div key={label} style={{ background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: 16, padding: '20px 24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{label}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color, lineHeight: 1.2 }}>{value}</div>
-                <div style={{ fontSize: 11, color: 'hsl(var(--text-muted))', marginTop: 4 }}>{sub}</div>
-              </div>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon size={20} color={color} />
-              </div>
-            </div>
-          </div>
+          { label: 'Total Receitas', value: fmtBRL(kpis.receitas), color: '#10b981', Icon: ArrowUpRight, sub: `${lancamentos.filter(l=>l.tipo==='R').length} lançamentos`, sparkline: resumoMensal.map(m => ({ value: m.rec, label: m.mes })) },
+          { label: 'Total Despesas', value: fmtBRL(kpis.despesas), color: '#ef4444', Icon: ArrowDownRight, sub: `${lancamentos.filter(l=>l.tipo==='D').length} lançamentos`, sparkline: resumoMensal.map(m => ({ value: m.desp, label: m.mes })) },
+          { label: 'Resultado Líquido', value: fmtBRL(kpis.saldo), color: kpis.saldo >= 0 ? '#10b981' : '#ef4444', Icon: BarChart3, sub: kpis.saldo >= 0 ? 'Superávit' : 'Déficit', sparkline: resumoMensal.map(m => ({ value: m.rec - m.desp, label: m.mes })) },
+          { label: 'Total Lançamentos', value: String(kpis.total), color: '#6366f1', Icon: FileText, sub: `Ano ${anoCalendario}`, sparkline: resumoMensal.map(m => ({ value: m.count, label: m.mes })) },
+        ].map(({ label, value, color, Icon, sub, sparkline }) => (
+          <TauzeStatCard 
+            key={label}
+            label={label}
+            value={value}
+            color={color}
+            icon={Icon}
+            periodLabel={sub}
+            sparkline={sparkline}
+          />
         ))}
       </div>
 
@@ -358,6 +421,16 @@ export const LCDPRPage: React.FC = () => {
           {([['lancamentos','Lançamentos (Q100)'],['resumo','Resumo Mensal (Q200)'],['gerar','Gerar Arquivo']] as const).map(([id,label]) => (
             <button key={id} className={`tauze-tab-item ${activeTab===id?'active':''}`} onClick={() => setActiveTab(id)}>{label}</button>
           ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', marginLeft: activeTab !== 'lancamentos' ? 'auto' : 16 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'hsl(var(--text-muted))', marginRight: 8, textTransform: 'uppercase' }}>Ano Base:</span>
+          <select
+            value={anoCalendario}
+            onChange={e => setAnoCalendario(Number(e.target.value))}
+            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))', fontWeight: 700, fontSize: 13, outline: 'none' }}
+          >
+            {[ANO_ATUAL, ANO_ATUAL-1, ANO_ATUAL-2].map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
         </div>
         {activeTab === 'lancamentos' && (
           <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
@@ -383,47 +456,17 @@ export const LCDPRPage: React.FC = () => {
               <p style={{ color: 'hsl(var(--text-muted))', fontSize: 13, marginTop: 4 }}>Use "Importar Financeiro" ou adicione manualmente</p>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))' }}>
-                  {['Data','Fazenda','Tipo','Natureza','Descrição','Participante','Valor','Ações'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 11, fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLancs.map((l, i) => {
-                  const nat = NATUREZAS_LCDPR.find(n => n.codigo === l.cod_natureza);
-                  const faz = fazendas.find(f => f.id === l.fazenda_id);
-                  return (
-                    <tr key={l.id} style={{ borderBottom: '1px solid hsl(var(--border))', background: i%2===0?'transparent':'hsl(var(--bg-main)/0.3)' }}>
-                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600 }}>{new Date(l.data_lancamento).toLocaleDateString('pt-BR')}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'hsl(var(--text-muted))' }}>{faz?.nome || '—'}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 800, background: l.tipo==='R'?'#10b98118':'#ef444418', color: l.tipo==='R'?'#10b981':'#ef4444' }}>
-                          {l.tipo==='R' ? '↑ RECEITA' : '↓ DESPESA'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 12 }}>
-                        <span style={{ fontWeight: 700 }}>{l.cod_natureza}</span>
-                        <span style={{ color: 'hsl(var(--text-muted))', marginLeft: 6, fontSize: 11 }}>{nat?.descricao.slice(0,28)}...</span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, maxWidth: 200 }}>{l.descricao || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 12, color: 'hsl(var(--text-muted))' }}>{l.nome_participante || '—'}</td>
-                      <td style={{ padding: '12px 16px', fontSize: 14, fontWeight: 800, color: l.tipo==='R'?'#10b981':'#ef4444' }}>
-                        {l.tipo==='R' ? '+' : '-'} {fmtBRL(Number(l.valor))}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => openEdit(l)} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--brand))' }}><Edit3 size={14} /></button>
-                          <button onClick={() => handleDelete(l.id)} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid #ef444430', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><Trash2 size={14} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <ModernTable
+              data={filteredLancs}
+              columns={columns}
+              loading={loading}
+              actions={(l) => (
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                  <button onClick={() => openEdit(l)} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid hsl(var(--border))', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--brand))' }}><Edit3 size={14} /></button>
+                  <button onClick={() => handleDelete(l.id)} style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid #ef444430', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}><Trash2 size={14} /></button>
+                </div>
+              )}
+            />
           )}
         </div>
       )}

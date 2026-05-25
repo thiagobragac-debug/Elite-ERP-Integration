@@ -386,6 +386,7 @@ export const HealthManagement: React.FC = () => {
                 <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar"><Edit3 size={18} /></button>
                 <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir"><Trash2 size={18} /></button>
               </div>
+            )}
           />
       </div>
 
