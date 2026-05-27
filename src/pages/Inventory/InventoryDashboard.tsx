@@ -29,14 +29,10 @@ export const InventoryDashboard: React.FC = () => {
   const [recentMovements, setRecentMovements] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Patrimônio em Insumos', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Calculando...',
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Ruptura de Estoque', value: '0', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'stable' as const, change: 'Verificando...',
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Maturidade (30d)', value: '0 itens', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'stable' as const, change: 'Auditando...',
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Giro de Estoque', value: '0.0x', icon: Zap, color: '#3b82f6', progress: 0, trend: 'stable' as const, change: 'Sincronizando...',
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) }
+    { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Calculando...', sparkline: [] },
+    { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'stable' as const, change: 'Verificando...', sparkline: [] },
+    { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'stable' as const, change: 'Auditando...', sparkline: [] },
+    { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#3b82f6', progress: 0, trend: 'stable' as const, change: 'Sincronizando...', sparkline: [] }
   ]);
 
   useEffect(() => {
@@ -94,7 +90,7 @@ export const InventoryDashboard: React.FC = () => {
         // Giro de estoque (Stock Turnover): saídas nos últimos 30 dias sobre patrimônio atual
         const totalOutgoingValue = outMovements.reduce((acc: number, m: any) => acc + (Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0)), 0);
         const calculatedTurnover = totalValue > 0 ? (totalOutgoingValue / totalValue) : 0;
-        const turnover = calculatedTurnover > 0 ? calculatedTurnover : 1.4; // fallback premium se estoque zerado ou sem saídas
+        const turnover = calculatedTurnover > 0 ? calculatedTurnover : 0;
 
         // Sparkline for Outgoing Movements (Giro)
         const sparklineGiro = Array.from({ length: 30 }).map((_, i) => {
@@ -110,11 +106,12 @@ export const InventoryDashboard: React.FC = () => {
         setStats([
           { 
             label: 'Patrimônio em Insumos', 
-            value: `R$ ${totalValue.toLocaleString('pt-BR')}`, 
+            value: totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR')}` : '---', 
             icon: DollarSign, 
             color: '#10b981', 
-            progress: 85,
-            change: 'Capital Imobilizado'
+            progress: totalValue > 0 ? 85 : 0,
+            change: 'Capital Imobilizado',
+            sparkline: []
           },
           { 
             label: 'Ruptura de Estoque', 
@@ -123,7 +120,8 @@ export const InventoryDashboard: React.FC = () => {
             color: '#ef4444', 
             progress: products.length > 0 ? (criticalCount / products.length) * 100 : 0,
             trend: criticalCount > 0 ? 'up' : 'stable',
-            change: 'Itens p/ Reposição'
+            change: 'Itens p/ Reposição',
+            sparkline: []
           },
           { 
             label: 'Maturidade (30d)', 
@@ -132,17 +130,18 @@ export const InventoryDashboard: React.FC = () => {
             color: '#f59e0b', 
             progress: products.length > 0 ? (maturityCount / products.length) * 100 : 0,
             trend: maturityCount > 0 ? 'up' : 'stable',
-            change: 'Risco de Perda'
+            change: 'Risco de Perda',
+            sparkline: []
           },
           { 
             label: 'Giro de Estoque', 
-            value: `${turnover.toFixed(1)}x`, 
+            value: turnover > 0 ? `${turnover.toFixed(1)}x` : '---', 
             icon: Zap, 
             color: '#3b82f6', 
             progress: Math.min(Number((turnover * 30).toFixed(0)), 100),
             trend: turnover > 1.0 ? 'up' : 'stable',
             change: 'Eficiência Logística',
-            sparkline: sparklineGiro
+            sparkline: turnover > 0 ? sparklineGiro : []
           },
         ]);
 
@@ -163,23 +162,15 @@ export const InventoryDashboard: React.FC = () => {
       }
 
     } catch (err) {
-      console.warn("InventoryDashboard: Using Emergency Mock Data.", err);
+      console.warn("InventoryDashboard: Fetch error:", err);
       setStats([
-        { label: 'Patrimônio em Insumos', value: 'R$ 450.000,00', icon: DollarSign, color: '#10b981', progress: 85, change: 'MOCK ACTIVE',
-          sparkline: [225000,270000,315000,360000,396000,427500,450000].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-        { label: 'Ruptura de Estoque', value: '2', icon: AlertTriangle, color: '#ef4444', progress: 10, change: 'MOCK ACTIVE',
-          sparkline: [5,4,4,3,3,2,2].map((v,i) => ({ value: v, label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })) },
-        { label: 'Maturidade (30d)', value: '5 itens', icon: FlaskConical, color: '#f59e0b', progress: 30, change: 'MOCK ACTIVE',
-          sparkline: [2,3,3,4,4,5,5].map((v,i) => ({ value: v, label: `${v} itens` })) },
-        { label: 'Giro de Estoque', value: '1.4x', icon: Zap, color: '#3b82f6', progress: 45, change: 'MOCK ACTIVE',
-          sparkline: [0.8,0.9,1.0,1.1,1.2,1.3,1.4].map((v,i) => ({ value: v, label: `${v}x` })) }
+        { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Erro de Conexão', sparkline: [] },
+        { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Erro de Conexão', sparkline: [] },
+        { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#ef4444', progress: 0, change: 'Erro de Conexão', sparkline: [] },
+        { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#ef4444', progress: 0, change: 'Erro de Conexão', sparkline: [] }
       ]);
-      setCriticalItems([
-        { id: 'm1', nome: 'MOCK: Sal Mineral', estoque_atual: 5, estoque_minimo: 20, unidade: 'Sacos', categoria: 'Nutrição' }
-      ]);
-      setRecentMovements([
-        { type: 'in', date: new Date().toISOString(), title: 'MOCK: Entrada Insumo', subtitle: '100 Kg • Admin', value: 'Entrada' }
-      ]);
+      setCriticalItems([]);
+      setRecentMovements([]);
     } finally {
       setLoading(false);
     }
@@ -309,6 +300,9 @@ export const InventoryDashboard: React.FC = () => {
           </div>
 
           <div className="activity-list">
+            {recentMovements.length === 0 && (
+              <div className="text-center py-4 text-xs font-bold text-slate-400">Nenhuma movimentação recente</div>
+            )}
             {recentMovements.map((act, i) => (
               <div key={i} className="activity-item-tauze">
                 <div className={`act-icon-wrapper ${act.type === 'in' ? 'fuel' : 'maint'}`}>

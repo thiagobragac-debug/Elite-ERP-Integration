@@ -33,6 +33,8 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { SupplierNetworkMapModal } from '../../components/Modals/SupplierNetworkMapModal';
 import { SupplierFilterModal } from './components/SupplierFilterModal';
+import { useViewMode } from '../../hooks/useViewMode';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import './SupplierManagement.css';
 
 export const SupplierManagement: React.FC = () => {
@@ -47,7 +49,7 @@ export const SupplierManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useViewMode('purchasing-supplier-management', 'grid');
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -582,6 +584,23 @@ export const SupplierManagement: React.FC = () => {
             currentPage={page}
             onPageChange={setPage}
             itemsPerPage={pageSize}
+            emptyState={
+              !searchTerm ? (
+                <EmptyState
+                  title={activeTab === 'HOMOLOGADO' ? "Nenhum fornecedor homologado" : "Nenhum fornecedor pendente"}
+                  description={activeTab === 'HOMOLOGADO' ? "Você não possui fornecedores ativos cadastrados nesta unidade." : "Não há fornecedores com pendências de cadastro no momento."}
+                  actionLabel="Novo Fornecedor"
+                  onAction={handleOpenCreate}
+                  icon={Building2}
+                />
+              ) : (
+                <EmptyState
+                  title="Nenhum registro encontrado"
+                  description="Sua busca não retornou resultados."
+                  icon={Search}
+                />
+              )
+            }
             actions={(item) => (
               <div className="modern-actions">
                 <button className="action-dot info" onClick={() => handleViewHistory(item)} title="Dossiê">
@@ -602,8 +621,58 @@ export const SupplierManagement: React.FC = () => {
             animate={{ opacity: 1 }}
             className="user-cards-grid"
           >
-            {suppliers
-              .map(sup => (
+            {suppliers.length === 0 ? (
+              <div 
+                className="user-card-premium"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  padding: '20px',
+                  background: 'hsl(var(--bg-card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '24px',
+                  gap: '6px',
+                  minHeight: '180px',
+                  height: '100%',
+                  boxShadow: 'none'
+                }}
+              >
+                <div 
+                  style={{ 
+                    width: '40px', 
+                    height: '40px', 
+                    background: 'rgba(16, 185, 129, 0.1)', 
+                    color: '#10b981', 
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {!searchTerm ? <Building2 size={22} style={{ color: 'hsl(var(--brand))' }} /> : <Search size={22} />}
+                </div>
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                  {!searchTerm ? (activeTab === 'HOMOLOGADO' ? 'Nenhum fornecedor homologado' : 'Nenhum fornecedor pendente') : 'Nenhum registro encontrado'}
+                </h3>
+                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                  {!searchTerm ? (activeTab === 'HOMOLOGADO' ? 'Você não possui fornecedores ativos cadastrados nesta unidade.' : 'Não há fornecedores com pendências de cadastro no momento.') : 'Sua busca não retornou resultados.'}
+                </p>
+                {!searchTerm && (
+                  <button 
+                    className="primary-btn" 
+                    onClick={handleOpenCreate}
+                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                  >
+                    <Plus size={12} />
+                    <span>NOVO FORNECEDOR</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              suppliers.map(sup => (
                 <motion.div 
                   key={sup.id} 
                   initial={{ opacity: 0, y: 10 }}
@@ -655,7 +724,12 @@ export const SupplierManagement: React.FC = () => {
                     </div>
                   </div>
                 </motion.div>
-              ))}
+              ))
+            )}
+            <button className="add-supplier-card-premium" onClick={handleOpenCreate}>
+              <Plus size={32} />
+              <span>NOVO FORNECEDOR</span>
+            </button>
           </motion.div>
         )}
       </div>
@@ -858,6 +932,36 @@ export const SupplierManagement: React.FC = () => {
           background: #ef4444;
           border-color: #ef4444;
           color: white;
+        }
+
+        .add-supplier-card-premium {
+          border: 2px dashed #e2e8f0;
+          border-radius: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          background: transparent;
+          cursor: pointer;
+          color: #94a3b8;
+          transition: 0.2s;
+          min-height: 180px;
+          height: 100%;
+        }
+
+        .add-supplier-card-premium:hover {
+          border-color: #10b981;
+          color: #10b981;
+          background: rgba(16, 185, 129, 0.02);
+        }
+
+        .add-supplier-card-premium span { font-size: 11px; font-weight: 900; letter-spacing: 0.05em; }
+
+        [data-theme='dark'] .add-supplier-card-premium {
+          background: hsl(var(--bg-main)) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--text-main)) !important;
         }
       `}</style>
 

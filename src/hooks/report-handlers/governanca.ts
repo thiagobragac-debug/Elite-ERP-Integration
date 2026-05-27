@@ -221,6 +221,7 @@ export const adminOverview: ReportHandler = async (tenantId, fazendaId) => {
     };
   } catch (error) {
     console.error('[AdminOverview] Critical Failure:', error);
-    return { data: [], stats: mockData.stats, columns: mockData.columns, totalCount: 0 };
+    return { data: [], stats: [], columns: mockData.columns, totalCount: 0 };
   }
 };
+

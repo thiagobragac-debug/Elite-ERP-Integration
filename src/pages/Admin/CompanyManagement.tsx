@@ -32,6 +32,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { CompanyFilterModal } from './components/CompanyFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { useViewMode } from '../../hooks/useViewMode';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const CompanyManagement: React.FC = () => {
   const { activeFarm, tenant, activeTenantId } = useTenant();
@@ -66,7 +67,7 @@ export const CompanyManagement: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [activeTenantId]);
+  }, [activeTenantId, tenant]);
 
   const fetchData = async () => {
     if (!activeTenantId) return;
@@ -81,10 +82,11 @@ export const CompanyManagement: React.FC = () => {
       if (farmsData) setFarms(farmsData);
 
       // Strategic Intelligence Calculations
+      const isTemplate = tenant?.is_template === true;
       const totalUnits = (unitsData?.length || 0) + (farmsData?.length || 0);
       const totalArea = (farmsData || []).reduce((acc: any, f: any) => acc + (Number(f.area_total) || 0), 0);
       const matrizCount = (unitsData || []).filter((u: any) => u.tipo?.toLowerCase() === 'matriz').length;
-      const complianceScore = Math.floor((matrizCount > 0 ? 60 : 0) + (totalUnits > 0 ? 40 : 0));
+      const complianceScore = isTemplate ? 100 : Math.floor((matrizCount > 0 ? 60 : 0) + (totalUnits > 0 ? 40 : 0));
 
       setStats([
         { 
@@ -92,10 +94,10 @@ export const CompanyManagement: React.FC = () => {
           value: totalUnits, 
           icon: Building2, 
           color: '#3b82f6', 
-          progress: 100,
+          progress: totalUnits > 0 ? 100 : 0,
           change: 'Instâncias Ativas',
           periodLabel: 'Portfólio Global',
-          sparkline: [
+          sparkline: totalUnits > 0 ? [
             { value: Math.max(1, totalUnits - 6), label: `${Math.max(1, totalUnits - 6)} unid.` },
             { value: Math.max(1, totalUnits - 5), label: `${Math.max(1, totalUnits - 5)} unid.` },
             { value: Math.max(1, totalUnits - 4), label: `${Math.max(1, totalUnits - 4)} unid.` },
@@ -103,17 +105,17 @@ export const CompanyManagement: React.FC = () => {
             { value: Math.max(1, totalUnits - 2), label: `${Math.max(1, totalUnits - 2)} unid.` },
             { value: Math.max(1, totalUnits - 1), label: `${Math.max(1, totalUnits - 1)} unid.` },
             { value: totalUnits, label: `Hoje: ${totalUnits} unid.` }
-          ]
+          ] : []
         },
         { 
           label: 'Área Consolidada', 
           value: `${totalArea.toLocaleString('pt-BR')} ha`, 
           icon: Map, 
           color: '#10b981', 
-          progress: 100,
+          progress: totalArea > 0 ? 100 : 0,
           change: 'Área de Produção',
           periodLabel: 'Atual',
-          sparkline: [
+          sparkline: totalArea > 0 ? [
             { value: Math.round(totalArea * 0.6), label: `${Math.round(totalArea * 0.6).toLocaleString('pt-BR')} ha` },
             { value: Math.round(totalArea * 0.68), label: `${Math.round(totalArea * 0.68).toLocaleString('pt-BR')} ha` },
             { value: Math.round(totalArea * 0.75), label: `${Math.round(totalArea * 0.75).toLocaleString('pt-BR')} ha` },
@@ -121,29 +123,31 @@ export const CompanyManagement: React.FC = () => {
             { value: Math.round(totalArea * 0.88), label: `${Math.round(totalArea * 0.88).toLocaleString('pt-BR')} ha` },
             { value: Math.round(totalArea * 0.94), label: `${Math.round(totalArea * 0.94).toLocaleString('pt-BR')} ha` },
             { value: totalArea, label: `Hoje: ${totalArea.toLocaleString('pt-BR')} ha` }
-          ]
+          ] : []
         },
         { 
           label: 'Governança Fiscal', 
-          value: matrizCount > 0 ? 'MATRIZ ATIVA' : 'PENDENTE', 
+          value: isTemplate ? 'TEMPLATE MASTER' : (matrizCount > 0 ? 'MATRIZ ATIVA' : 'PENDENTE'), 
           icon: ShieldCheck, 
-          color: matrizCount > 0 ? '#10b981' : '#ef4444', 
-          progress: matrizCount > 0 ? 100 : 0,
-          change: matrizCount > 0 ? 'Conforme' : 'Risco Fiscal',
+          color: isTemplate ? '#10b981' : (matrizCount > 0 ? '#10b981' : '#ef4444'), 
+          progress: isTemplate ? 100 : (matrizCount > 0 ? 100 : 0),
+          change: isTemplate ? 'Não Aplicável' : (matrizCount > 0 ? 'Conforme' : 'Risco Fiscal'),
           periodLabel: 'Auditoria',
-          sparkline: matrizCount > 0
-            ? [{ value: 40 }, { value: 55 }, { value: 65 }, { value: 75 }, { value: 85 }, { value: 95 }, { value: 100, label: 'Conforme' }]
-            : [{ value: 10 }, { value: 8 }, { value: 5 }, { value: 5 }, { value: 3 }, { value: 2 }, { value: 0, label: 'Pendente' }]
+          sparkline: isTemplate
+            ? [{ value: 100 }, { value: 100 }, { value: 100 }, { value: 100 }, { value: 100 }, { value: 100 }, { value: 100, label: 'Template' }]
+            : (matrizCount > 0
+              ? [{ value: 40 }, { value: 55 }, { value: 65 }, { value: 75 }, { value: 85 }, { value: 95 }, { value: 100, label: 'Conforme' }]
+              : [])
         },
         { 
           label: 'Score Operacional', 
-          value: `${complianceScore}%`, 
+          value: complianceScore > 0 ? `${complianceScore}%` : '---', 
           icon: Layout, 
           color: complianceScore > 80 ? '#10b981' : '#f59e0b', 
-          progress: complianceScore,
-          change: 'Health Index',
+          progress: complianceScore > 0 ? complianceScore : 0,
+          change: complianceScore > 0 ? 'Health Index' : '---',
           periodLabel: 'Sistema',
-          sparkline: [
+          sparkline: complianceScore > 0 ? [
             { value: Math.round(complianceScore * 0.55), label: `${Math.round(complianceScore * 0.55)}%` },
             { value: Math.round(complianceScore * 0.64), label: `${Math.round(complianceScore * 0.64)}%` },
             { value: Math.round(complianceScore * 0.72), label: `${Math.round(complianceScore * 0.72)}%` },
@@ -151,7 +155,7 @@ export const CompanyManagement: React.FC = () => {
             { value: Math.round(complianceScore * 0.88), label: `${Math.round(complianceScore * 0.88)}%` },
             { value: Math.round(complianceScore * 0.94), label: `${Math.round(complianceScore * 0.94)}%` },
             { value: complianceScore, label: `Hoje: ${complianceScore}%` }
-          ]
+          ] : []
         }
       ]);
     } catch (err) {
@@ -243,11 +247,8 @@ export const CompanyManagement: React.FC = () => {
     if (type === 'company') {
       const company = companies.find(c => c.id === id);
       if (company?.tipo?.toUpperCase() === 'MATRIZ') {
-        const otherMatrizes = companies.filter(c => c.id !== id && c.tipo?.toUpperCase() === 'MATRIZ');
-        if (otherMatrizes.length === 0) {
-          alert('Segurança de Governança: Não é possível excluir a única Empresa Matriz do tenant. O sistema exige pelo menos uma matriz ativa para conformidade fiscal.');
-          return;
-        }
+        alert('Segurança de Governança: A Empresa Matriz base do ecossistema não pode ser removida. O sistema exige a integridade da matriz para conformidade fiscal.');
+        return;
       }
     }
 
@@ -298,23 +299,20 @@ export const CompanyManagement: React.FC = () => {
     setLoading(true);
     try {
       const payload = {
-        nome: tenant.name,
-        razao_social: tenant.name,
-        documento: tenant.document,
-        cnpj: tenant.document,
+        nome: tenant.nome || tenant.name,
+        razao_social: tenant.nome || tenant.name,
+        documento: tenant.documento || tenant.document,
         tipo: 'matriz',
-        tenant_id: tenant.id,
-        ativo: true,
-        pais: 'Brasil'
+        tenant_id: tenant.id
       };
       
       const { error } = await supabase.from('unidades').insert([payload]);
       if (error) throw error;
       
       fetchData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao sincronizar com tenant:', err);
-      alert('Falha ao sincronizar dados. Tente criar manualmente.');
+      alert('Falha ao sincronizar dados: ' + (err.message || 'Erro desconhecido.'));
     } finally {
       setLoading(false);
     }
@@ -599,7 +597,7 @@ export const CompanyManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        {activeTab === 'companies' && !hasMatriz && !loading && (
+        {activeTab === 'companies' && !hasMatriz && !loading && !tenant?.is_template && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -633,6 +631,13 @@ export const CompanyManagement: React.FC = () => {
             >
               {viewMode === 'list' ? (
                 <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
                   data={filteredCompanies}
                   columns={companyColumns}
                   loading={loading}
@@ -648,6 +653,14 @@ export const CompanyManagement: React.FC = () => {
                       </button>
                     </div>
                   )}
+                />
+              ) : filteredCompanies.length === 0 ? (
+                <EmptyState
+                  title="Nenhuma empresa encontrada"
+                  description="Não há empresas cadastradas que correspondam aos filtros atuais."
+                  actionLabel="Nova Empresa"
+                  onAction={() => { setEditingItem(null); setIsCompanyModalOpen(true); }}
+                  icon={Building2}
                 />
               ) : (
                 <div className="user-cards-grid">
@@ -702,6 +715,13 @@ export const CompanyManagement: React.FC = () => {
             >
               {viewMode === 'list' ? (
                 <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
                   data={filteredFarms}
                   columns={farmColumns}
                   loading={loading}
@@ -717,6 +737,14 @@ export const CompanyManagement: React.FC = () => {
                       </button>
                     </div>
                   )}
+                />
+              ) : filteredFarms.length === 0 ? (
+                <EmptyState
+                  title="Nenhuma unidade produtiva encontrada"
+                  description="Não há unidades cadastradas que correspondam aos filtros atuais."
+                  actionLabel="Nova Unidade"
+                  onAction={() => { setEditingItem(null); setIsFarmModalOpen(true); }}
+                  icon={Map}
                 />
               ) : (
                 <div className="user-cards-grid">

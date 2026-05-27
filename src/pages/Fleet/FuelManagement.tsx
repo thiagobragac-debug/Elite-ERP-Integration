@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Fuel, 
   Plus, 
@@ -120,16 +120,16 @@ export const FuelManagement: React.FC = () => {
         },
       ]);
     } catch (err) {
-      console.warn('[Fuel] Using mock fallback due to error or timeout:', err);
+      console.warn('[Fuel] Fetch error:', err);
       setLogs([]);
       setStats([
-        { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0, change: 'OFFLINE',
+        { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0, change: '',
           sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: 'OFFLINE',
+        { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '',
           sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0, change: 'OFFLINE',
+        { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0, change: '',
           sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0, change: 'OFFLINE',
+        { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0, change: '',
           sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
       ]);
     } finally {
@@ -413,6 +413,15 @@ export const FuelManagement: React.FC = () => {
 
       <div className="management-content">
         <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum abastecimento encontrado"
+              description="Não há registros de abastecimento que correspondam à sua busca."
+              actionLabel="Novo Registro"
+              onAction={handleOpenCreate}
+              icon={Fuel}
+            />
+          }
           data={logs.filter(l => {
             const matchesSearch = (l.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (l.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'LOG' ? true : l.tipo_combustivel === 'Especial'; // Fixed logic

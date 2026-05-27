@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Search, 
@@ -31,9 +31,12 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { PurchasingFilterModal } from './components/PurchasingFilterModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useApprovalQueue } from '../../hooks/useApprovalQueue';
 
 export const PurchaseOrder: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { submitForApproval } = useApprovalQueue();
   const [searchTerm, setSearchTerm] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -208,8 +211,18 @@ export const PurchaseOrder: React.FC = () => {
         const { error } = await supabase.from('pedidos_compra').update(payload).eq('id', selectedOrder.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('pedidos_compra').insert([payload]);
+        const { data: newRecord, error } = await supabase.from('pedidos_compra').insert([payload]).select().single();
         if (error) throw error;
+        
+        const { data: userData } = await supabase.auth.getUser();
+        await submitForApproval(
+          'Pedidos de Compra',
+          newRecord.id,
+          'pedidos_compra',
+          payload.valor_total,
+          `Pedido ${payload.numero_pedido}`,
+          userData.user?.email || 'Usuário'
+        );
       }
       
       setIsModalOpen(false); 
@@ -457,6 +470,23 @@ export const PurchaseOrder: React.FC = () => {
 
       <div className="management-content">
         <ModernTable 
+          emptyState={
+            !searchTerm && filterValues.status === 'all' && filterValues.minAmount === 0 && !filterValues.dateStart && !filterValues.dateEnd && !filterValues.onlyDelayed ? (
+              <EmptyState
+                title={activeTab === 'OPEN' ? "Nenhuma ordem de compra em aberto" : "Nenhuma ordem no histórico"}
+                description={activeTab === 'OPEN' ? "Não há ordens de compra em andamento no momento." : "Não há histórico de compras registrado nesta unidade."}
+                actionLabel="Nova Ordem"
+                onAction={handleOpenCreate}
+                icon={ShoppingCart}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={orders}
           columns={columns}
           loading={loading}

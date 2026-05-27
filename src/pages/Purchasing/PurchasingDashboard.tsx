@@ -41,14 +41,10 @@ export const PurchasingDashboard: React.FC = () => {
   const [topSuppliers, setTopSuppliers] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Saving Acumulado', value: 'R$ 0,00', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' as const,
-      sparkline: [0,0,0,0,0,0,0].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-    { label: 'Exposição de Caixa', value: 'R$ 0,0k', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...',
-      sparkline: [0,0,0,0,0,0,0].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-    { label: 'Agilidade de Fluxo', value: '0.0 dias', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...',
-      sparkline: [0,0,0,0,0,0,0].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-    { label: 'Acuracidade Orç.', value: '0.0%', icon: Target, color: '#166534', progress: 0, change: 'Auditando...',
-      sparkline: [0,0,0,0,0,0,0].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) }
+    { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' as const, sparkline: [] },
+    { label: 'Exposição de Caixa', value: '---', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...', sparkline: [] },
+    { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...', sparkline: [] },
+    { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Auditando...', sparkline: [] }
   ]);
 
   useEffect(() => {
@@ -134,35 +130,27 @@ export const PurchasingDashboard: React.FC = () => {
         const pendingValue = orders.filter((o: any) => o.status !== 'received').reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
 
         setStats([
-          { label: 'Saving Acumulado', value: `R$ ${totalSaving.toLocaleString('pt-BR')}`, icon: TrendingDown, color: '#10b981', progress: 100, change: 'Economia Real', trend: 'down' as const,
-            sparkline: [
+          { label: 'Saving Acumulado', value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---', icon: TrendingDown, color: '#10b981', progress: totalSaving > 0 ? 100 : 0, change: 'Economia Real', trend: 'down' as const,
+            sparkline: totalSaving > 0 ? [
               { value: Math.round(totalSaving * 0.45) }, { value: Math.round(totalSaving * 0.55) },
               { value: Math.round(totalSaving * 0.65) }, { value: Math.round(totalSaving * 0.75) },
               { value: Math.round(totalSaving * 0.85) }, { value: Math.round(totalSaving * 0.92) },
               { value: Math.round(totalSaving), label: 'Hoje' }
-            ]
+            ] : []
           },
-          { label: 'Exposição de Caixa', value: `R$ ${(pendingValue / 1000).toFixed(1)}k`, icon: DollarSign, color: '#3b82f6', progress: (pendingValue / (totalSpend || 1)) * 100, change: 'Pedidos Abertos',
-            sparkline: [
+          { label: 'Exposição de Caixa', value: pendingValue > 0 ? `R$ ${(pendingValue / 1000).toFixed(1)}k` : '---', icon: DollarSign, color: '#3b82f6', progress: totalSpend > 0 ? (pendingValue / totalSpend) * 100 : 0, change: 'Pedidos Abertos',
+            sparkline: pendingValue > 0 ? [
               { value: Math.round(pendingValue * 0.50) }, { value: Math.round(pendingValue * 0.60) },
               { value: Math.round(pendingValue * 0.70) }, { value: Math.round(pendingValue * 0.78) },
               { value: Math.round(pendingValue * 0.86) }, { value: Math.round(pendingValue * 0.93) },
               { value: Math.round(pendingValue), label: 'Hoje' }
-            ]
+            ] : []
           },
-          { label: 'Agilidade de Fluxo', value: '1.8 dias', icon: Clock, color: '#f59e0b', progress: 85, change: 'SLA Aprovação',
-            sparkline: [
-              { value: 3.2, label: '3.2d' }, { value: 2.8, label: '2.8d' }, { value: 2.5, label: '2.5d' },
-              { value: 2.2, label: '2.2d' }, { value: 2.0, label: '2.0d' }, { value: 1.9, label: '1.9d' },
-              { value: 1.8, label: 'Hoje: 1.8d' }
-            ]
+          { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA Aprovação',
+            sparkline: []
           },
-          { label: 'Acuracidade Orç.', value: '96.4%', icon: Target, color: '#166534', progress: 96, change: 'Real vs Planejado',
-            sparkline: [
-              { value: 91, label: '91%' }, { value: 92, label: '92%' }, { value: 93, label: '93%' },
-              { value: 94, label: '94%' }, { value: 95, label: '95%' }, { value: 96, label: '96%' },
-              { value: 96.4, label: 'Hoje: 96.4%' }
-            ]
+          { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Real vs Planejado',
+            sparkline: []
           }
         ]);
 
@@ -193,27 +181,16 @@ export const PurchasingDashboard: React.FC = () => {
           .slice(0, 5));
       }
     } catch (err) {
-      console.warn('[PurchasingDashboard] Usando dados mock devido a atraso na rede ou erro:', err);
-      setFunnelData([
-        { name: 'Requisições', value: 12, color: '#6366f1' },
-        { name: 'Cotações', value: 8, color: '#3b82f6' },
-        { name: 'Pedidos (OC)', value: 5, color: '#10b981' },
-        { name: 'Recebidos', value: 3, color: '#166534' }
-      ]);
+      console.warn('[PurchasingDashboard] Erro na rede ou ausência de dados:', err);
+      setFunnelData([]);
       setStats([
-        { label: 'Saving Acumulado', value: 'R$ 42.500', icon: TrendingDown, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', trend: 'down' as const,
-          sparkline: [19125,23375,28900,33200,37800,40800,42500].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-        { label: 'Exposição de Caixa', value: 'R$ 150k', icon: DollarSign, color: '#3b82f6', progress: 65, change: 'MOCK ACTIVE',
-          sparkline: [75000,90000,105000,118000,132000,143000,150000].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-        { label: 'Agilidade de Fluxo', value: '2.1 dias', icon: Clock, color: '#f59e0b', progress: 85, change: 'MOCK ACTIVE',
-          sparkline: [3.8,3.4,3.0,2.7,2.4,2.2,2.1].map((v,i) => ({ value: v, label: `${v}d` })) },
-        { label: 'Acuracidade Orç.', value: '94.5%', icon: Target, color: '#166534', progress: 96, change: 'MOCK ACTIVE',
-          sparkline: [88,90,91,92,93,94,94.5].map((v,i) => ({ value: v, label: `${v}%` })) }
+        { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#ef4444', progress: 0, change: 'Indisponível', trend: 'down' as const, sparkline: [] },
+        { label: 'Exposição de Caixa', value: '---', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Indisponível', sparkline: [] },
+        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#ef4444', progress: 0, change: 'Indisponível', sparkline: [] },
+        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#ef4444', progress: 0, change: 'Indisponível', sparkline: [] }
       ]);
-      setRecentRequests([
-        { id: 'm1', title: 'Ração Concentrada', dept: 'Pecuária', value: 15000, status: 'pending', priority: 'Urgente' }
-      ]);
-      setTopSuppliers([{ name: 'Parceiro Mock Alpha', value: 50000 }]);
+      setRecentRequests([]);
+      setTopSuppliers([]);
     } finally {
       setLoading(false);
     }
@@ -336,6 +313,13 @@ export const PurchasingDashboard: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
+                  {recentRequests.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="text-center py-4 text-xs font-bold text-slate-400">
+                        Nenhuma requisição recente
+                      </td>
+                    </tr>
+                  )}
                   {recentRequests.map((req, idx) => (
                     <tr key={idx}>
                       <td>
@@ -375,6 +359,9 @@ export const PurchasingDashboard: React.FC = () => {
             </div>
             
             <div className="supplier-bars">
+              {topSuppliers.length === 0 && (
+                <div className="text-center py-4 text-xs font-bold text-slate-400">Nenhum parceiro encontrado</div>
+              )}
               {topSuppliers.map((sup, idx) => (
                 <div key={idx} className="bar-item">
                   <div className="bar-header">
@@ -401,11 +388,8 @@ export const PurchasingDashboard: React.FC = () => {
             </div>
             <h3>Insights do Copilot</h3>
             <div className="insight-list">
-              <div className="insight-item">
-                <p>🚀 <strong>Oportunidade de Saving:</strong> Identificados 3 mapas com variação de preço {'>'} 15% entre bids. Recomendada revisão de cotação.</p>
-              </div>
-              <div className="insight-item">
-                <p>⚠️ <strong>Alerta Logístico:</strong> 2 ordens de compra apresentam atraso superior a 48h. Verifique a saúde do canal de suprimentos.</p>
+              <div className="insight-item text-center text-slate-400 font-bold py-4 text-xs">
+                Nenhum insight disponível no momento
               </div>
             </div>
           </section>

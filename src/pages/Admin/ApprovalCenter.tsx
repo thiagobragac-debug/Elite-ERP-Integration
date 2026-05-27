@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle, 
@@ -26,11 +26,15 @@ import {
   Calendar,
   Archive
 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { RuleFormModal } from './components/RuleFormModal';
 import { ApprovalFilterModal } from './components/ApprovalFilterModal';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { useViewMode } from '../../hooks/useViewMode';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 type TabType = 'pendencies' | 'rules';
 
@@ -51,25 +55,16 @@ interface PendingItem {
   status: 'pending' | 'approved' | 'rejected';
   stage: number;
   totalStages: number;
+  db_id?: string;
+  reference_id?: string;
 }
 
-const initialPendencies: PendingItem[] = [
-  { id: 'PC-2026', type: 'Pedido de Compra', requester: 'João (Suprimentos)', date: '23/05/2026', amount: 12500, status: 'pending', stage: 1, totalStages: 2 },
-  { id: 'CP-1992', type: 'Contas a Pagar', requester: 'Maria (Financeiro)', date: '22/05/2026', amount: 4500, status: 'pending', stage: 1, totalStages: 1 },
-  { id: 'CV-105', type: 'Contrato de Venda', requester: 'Carlos (Comercial)', date: '21/05/2026', amount: 85000, status: 'approved', stage: 1, totalStages: 1 }
-];
-
-const initialRules: ApprovalRule[] = [
-  { id: '1', module: 'Contas a Pagar', condition: 'Valor > R$ 10.000,00', stages: 2, active: true },
-  { id: '2', module: 'Pedidos de Compra', condition: 'Qualquer Valor', stages: 1, active: true },
-  { id: '3', module: 'Contratos de Venda', condition: 'Volume > 500 @', stages: 1, active: false }
-];
-
 export const ApprovalCenter: React.FC = () => {
+  const { activeTenantId } = useTenant();
   const [activeTab, setActiveTab] = useState<TabType>('pendencies');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useViewMode('admin-approval-center', 'grid');
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [filters, setFilters] = useState({
@@ -84,50 +79,147 @@ export const ApprovalCenter: React.FC = () => {
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
   const [selectedRule, setSelectedRule] = useState<ApprovalRule | null>(null);
   
-  const [rules, setRules] = useState<ApprovalRule[]>(initialRules);
-  const [pendencies, setPendencies] = useState<PendingItem[]>(initialPendencies);
+  const [rules, setRules] = useState<ApprovalRule[]>([]);
+  const [pendencies, setPendencies] = useState<PendingItem[]>([]);
+
+  useEffect(() => {
+    if (activeTenantId) {
+      fetchData();
+    }
+  }, [activeTenantId]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [rulesRes, queueRes] = await Promise.all([
+        supabase.from('approval_rules').select('*').eq('tenant_id', activeTenantId).order('created_at', { ascending: false }),
+        supabase.from('approval_queue').select('*').eq('tenant_id', activeTenantId).order('created_at', { ascending: false })
+      ]);
+
+      if (rulesRes.data) {
+        setRules(rulesRes.data.map((r: any) => ({
+          id: r.id,
+          module: r.module,
+          condition: r.condition_label,
+          stages: r.stages,
+          active: r.active
+        })));
+      }
+
+      if (queueRes.data) {
+        setPendencies(queueRes.data.map((q: any) => ({
+          db_id: q.id,
+          id: q.id.slice(0, 8).toUpperCase(),
+          type: q.type,
+          requester: q.requester,
+          date: new Date(q.created_at).toLocaleDateString('pt-BR'),
+          amount: parseFloat(q.amount) || 0,
+          status: q.status,
+          stage: q.current_stage,
+          totalStages: q.total_stages,
+          reference_id: q.reference_id
+        })));
+      }
+    } catch (err) {
+      console.error('Error fetching approval data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
   };
 
-  const handleToggleRule = (id: string) => {
+  const handleToggleRule = async (id: string) => {
+    const rule = rules.find(r => r.id === id);
+    if (!rule) return;
     setRules(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r));
+    await supabase.from('approval_rules').update({ active: !rule.active }).eq('id', id);
   };
 
-  const handleDeleteRule = (id: string) => {
+  const handleDeleteRule = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta regra?')) {
       setRules(prev => prev.filter(r => r.id !== id));
+      await supabase.from('approval_rules').delete().eq('id', id);
     }
   };
 
-  const handleSaveRule = (data: any) => {
-    if (selectedRule) {
-      setRules(prev => prev.map(r => r.id === selectedRule.id ? { ...data, id: selectedRule.id } : r));
-    } else {
-      const newRule = { ...data, id: Math.random().toString(36).substring(7) };
-      setRules(prev => [...prev, newRule]);
-    }
-    setIsRuleModalOpen(false);
-  };
+  const handleSaveRule = async (data: any) => {
+    try {
+      const payload = {
+        tenant_id: activeTenantId,
+        module: data.module,
+        condition_label: data.condition,
+        min_amount: data.min_amount || 0,
+        stages: data.stages || 1,
+        active: data.active ?? true
+      };
 
-  const handleApprove = (id: string) => {
-    setPendencies(prev => prev.map(p => {
-      if (p.id !== id) return p;
-      if (p.stage < p.totalStages) {
-        return { ...p, stage: p.stage + 1 };
+      if (selectedRule) {
+        await supabase.from('approval_rules').update(payload).eq('id', selectedRule.id);
+      } else {
+        await supabase.from('approval_rules').insert([payload]);
       }
-      return { ...p, status: 'approved' };
-    }));
+      fetchData();
+      setIsRuleModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar regra.');
+    }
   };
 
-  const handleReject = (id: string) => {
-    setPendencies(prev => prev.map(p => p.id === id ? { ...p, status: 'rejected' } : p));
+  const handleApprove = async (item: PendingItem) => {
+    if (!item.db_id) return;
+    try {
+      let nextStage = item.stage;
+      let newStatus = item.status;
+
+      if (item.stage < item.totalStages) {
+        nextStage = item.stage + 1;
+      } else {
+        newStatus = 'approved';
+      }
+
+      setPendencies(prev => prev.map(p => p.db_id === item.db_id ? { ...p, stage: nextStage, status: newStatus } : p));
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('approval_queue').update({
+        current_stage: nextStage,
+        status: newStatus,
+        approved_by: user?.id,
+        approved_at: newStatus === 'approved' ? new Date().toISOString() : null
+      }).eq('id', item.db_id);
+
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleRevert = (id: string) => {
+  const handleReject = async (item: PendingItem) => {
+    if (!item.db_id) return;
+    try {
+      setPendencies(prev => prev.map(p => p.db_id === item.db_id ? { ...p, status: 'rejected' } : p));
+      await supabase.from('approval_queue').update({ status: 'rejected' }).eq('id', item.db_id);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleRevert = async (item: PendingItem) => {
+    if (!item.db_id) return;
     if (!confirm('Tem certeza que deseja reverter esta decisão? O status voltará para pendente.')) return;
-    setPendencies(prev => prev.map(p => p.id === id ? { ...p, status: 'pending', stage: 1 } : p));
+    try {
+      setPendencies(prev => prev.map(p => p.db_id === item.db_id ? { ...p, status: 'pending', stage: 1 } : p));
+      await supabase.from('approval_queue').update({ 
+        status: 'pending', 
+        current_stage: 1, 
+        approved_by: null, 
+        approved_at: null 
+      }).eq('id', item.db_id);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const pendingCount = pendencies.filter(p => p.status === 'pending').length;
@@ -139,23 +231,23 @@ export const ApprovalCenter: React.FC = () => {
   const stats = [
     { 
       label: 'Aguardando', value: pendingCount, icon: Clock, color: '#eab308', 
-      progress: 100, change: 'Revisão', periodLabel: 'Requisições pendentes',
-      sparkline: [{ value: 5 }, { value: 3 }, { value: 4 }, { value: 2 }, { value: pendingCount }]
+      progress: pendingCount > 0 ? 100 : 0, change: 'Revisão', periodLabel: 'Requisições pendentes',
+      sparkline: pendingCount > 0 ? [{ value: 5 }, { value: 3 }, { value: 4 }, { value: 2 }, { value: pendingCount }] : []
     },
     { 
       label: 'Volume Pendente', value: formatCurrency(pendingAmount), icon: DollarSign, color: '#3b82f6', 
-      progress: 100, change: 'Capital', periodLabel: 'Impacto financeiro retido',
-      sparkline: [{ value: 10000 }, { value: 15000 }, { value: 12000 }, { value: 17000 }, { value: pendingAmount }]
+      progress: pendingAmount > 0 ? 100 : 0, change: 'Capital', periodLabel: 'Impacto financeiro retido',
+      sparkline: pendingAmount > 0 ? [{ value: 10000 }, { value: 15000 }, { value: 12000 }, { value: 17000 }, { value: pendingAmount }] : []
     },
     { 
       label: 'Aprovados', value: approvedCount, icon: CheckCircle, color: '#22c55e', 
-      progress: 100, change: 'Concluído', periodLabel: 'Nos últimos 7 dias',
-      sparkline: [{ value: 10 }, { value: 12 }, { value: 9 }, { value: 11 }, { value: approvedCount }]
+      progress: approvedCount > 0 ? 100 : 0, change: 'Concluído', periodLabel: 'Nos últimos 7 dias',
+      sparkline: approvedCount > 0 ? [{ value: 10 }, { value: 12 }, { value: 9 }, { value: 11 }, { value: approvedCount }] : []
     },
     { 
       label: 'Recusados', value: rejectedCount, icon: XCircle, color: '#ef4444', 
-      progress: 100, change: 'Bloqueado', periodLabel: 'Nos últimos 7 dias',
-      sparkline: [{ value: 0 }, { value: 1 }, { value: 0 }, { value: 2 }, { value: rejectedCount }]
+      progress: rejectedCount > 0 ? 100 : 0, change: 'Bloqueado', periodLabel: 'Nos últimos 7 dias',
+      sparkline: rejectedCount > 0 ? [{ value: 0 }, { value: 1 }, { value: 0 }, { value: 2 }, { value: rejectedCount }] : []
     }
   ];
 
@@ -436,6 +528,21 @@ export const ApprovalCenter: React.FC = () => {
                 loading={loading}
                 hideHeader={true}
                 searchPlaceholder="Buscar pendências..."
+                emptyState={
+                  pendencies.length === 0 ? (
+                    <EmptyState
+                      title="Nenhuma pendência na fila"
+                      description="Não há solicitações aguardando aprovação no momento."
+                      icon={CheckCircle}
+                    />
+                  ) : (
+                    <EmptyState
+                      title="Nenhum registro encontrado"
+                      description="Sua busca não retornou resultados."
+                      icon={Search}
+                    />
+                  )
+                }
                 actions={(item) => (
                   <div className="modern-actions" style={{ justifyContent: 'flex-end', width: '100%' }}>
                     {item.status === 'pending' ? (
@@ -444,7 +551,7 @@ export const ApprovalCenter: React.FC = () => {
                           className="action-dot" 
                           style={{ background: '#22c55e20', color: '#22c55e', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
                           title="Aprovar"
-                          onClick={() => handleApprove(item.id)}
+                          onClick={() => handleApprove(item)}
                         >
                           Aprovar
                         </button>
@@ -452,7 +559,7 @@ export const ApprovalCenter: React.FC = () => {
                           className="action-dot" 
                           style={{ background: '#ef444420', color: '#ef4444', width: 'auto', padding: '0 12px', borderRadius: '6px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase' }} 
                           title="Rejeitar"
-                          onClick={() => handleReject(item.id)}
+                          onClick={() => handleReject(item)}
                         >
                           Rejeitar
                         </button>
@@ -474,7 +581,7 @@ export const ApprovalCenter: React.FC = () => {
                           className="action-dot" 
                           style={{ background: '#f59e0b20', color: '#f59e0b', width: '28px', height: '28px', padding: 0, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} 
                           title="Reverter Decisão"
-                          onClick={() => handleRevert(item.id)}
+                          onClick={() => handleRevert(item)}
                         >
                           <RefreshCw size={14} />
                         </button>
@@ -498,6 +605,23 @@ export const ApprovalCenter: React.FC = () => {
                   loading={loading}
                   hideHeader={true}
                   searchPlaceholder="Buscar regras..."
+                  emptyState={
+                    rules.length === 0 ? (
+                      <EmptyState
+                        title="Nenhuma regra cadastrada"
+                        description="Você ainda não possui regras de aprovação cadastradas. Crie a primeira para gerenciar alçadas."
+                        actionLabel="Nova Regra"
+                        onAction={() => { setSelectedRule(null); setIsRuleModalOpen(true); }}
+                        icon={Shield}
+                      />
+                    ) : (
+                      <EmptyState
+                        title="Nenhum registro encontrado"
+                        description="Sua busca não retornou resultados."
+                        icon={Search}
+                      />
+                    )
+                  }
                   actions={(item) => (
                     <div className="modern-actions">
                       <button className="action-dot info" title="Visualizar"><Eye size={18} /></button>
@@ -515,81 +639,133 @@ export const ApprovalCenter: React.FC = () => {
                 />
               ) : (
                 <div className="rule-cards-grid">
-                  {filteredRules.map(rule => {
-                    const badgeClass = rule.active ? 'active' : 'stopped';
-                    const badgeText = rule.active ? 'ATIVA' : 'INATIVA';
-                    const borderClass = rule.active ? 'active' : 'danger-badge';
-
-                    return (
-                      <motion.div 
-                        key={rule.id} 
-                        layout
-                        className={`rule-card-premium ${borderClass}`}
+                  {filteredRules.length === 0 ? (
+                    <div 
+                      className="rule-card-premium"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        padding: '20px',
+                        background: 'hsl(var(--bg-card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '24px',
+                        gap: '6px',
+                        minHeight: '180px',
+                        height: '100%',
+                        boxShadow: 'none'
+                      }}
+                    >
+                      <div 
+                        style={{ 
+                          width: '40px', 
+                          height: '40px', 
+                          background: 'rgba(16, 185, 129, 0.1)', 
+                          color: '#10b981', 
+                          borderRadius: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
                       >
-                        <div className="card-left-section">
-                          <div className="card-avatar">
-                            <Shield size={28} />
-                          </div>
-                          <div className="card-bottom-actions">
-                            <button className="action-icon-btn info" title="Visualizar"><Eye size={14} /></button>
-                            <button className="action-icon-btn edit" onClick={() => { setSelectedRule(rule); setIsRuleModalOpen(true); }} title="Editar"><Edit3 size={14} /></button>
-                            <button 
-                              className={`action-icon-btn ${rule.active ? 'warning' : 'success'}`} 
-                              onClick={() => handleToggleRule(rule.id)} 
-                              title={rule.active ? 'Desativar Regra' : 'Ativar Regra'}
-                            >
-                              {rule.active ? <Archive size={14} /> : <RefreshCw size={14} />}
-                            </button>
-                            <button className="action-icon-btn delete" onClick={() => handleDeleteRule(rule.id)} title="Excluir"><Trash2 size={14} /></button>
-                          </div>
-                        </div>
+                        {rules.length === 0 ? <Shield size={22} style={{ color: 'hsl(var(--brand))' }} /> : <Search size={22} />}
+                      </div>
+                      <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                        {rules.length === 0 ? 'Nenhuma regra cadastrada' : 'Nenhum registro encontrado'}
+                      </h3>
+                      <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                        {rules.length === 0 ? 'Você ainda não possui regras de aprovação cadastradas.' : 'Sua busca não retornou resultados.'}
+                      </p>
+                      {rules.length === 0 && (
+                        <button 
+                          className="primary-btn" 
+                          onClick={() => { setSelectedRule(null); setIsRuleModalOpen(true); }}
+                          style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                        >
+                          <Plus size={12} />
+                          <span>NOVA REGRA</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    filteredRules.map(rule => {
+                      const badgeClass = rule.active ? 'active' : 'stopped';
+                      const badgeText = rule.active ? 'ATIVA' : 'INATIVA';
+                      const borderClass = rule.active ? 'active' : 'danger-badge';
 
-                        <div className="card-main-content">
-                          <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
-                            <div className="title-row" style={{ width: '100%' }}>
-                              <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{rule.module}</h3>
+                      return (
+                        <motion.div 
+                          key={rule.id} 
+                          layout
+                          className={`rule-card-premium ${borderClass}`}
+                        >
+                          <div className="card-left-section">
+                            <div className="card-avatar">
+                              <Shield size={28} />
                             </div>
-                            <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <span className={`status-pill mini ${badgeClass}`}>
-                                {badgeText}
-                              </span>
-                              <div className="card-type-meta">REGRA DE APROVAÇÃO</div>
-                            </div>
-                          </div>
-
-                          <div className="card-occupation-section">
-                            <div className="occ-header">
-                              <span>HIERARQUIA</span>
-                              <span>
-                                {rule.stages} {rule.stages === 1 ? 'NÍVEL' : 'NÍVEIS'}
-                              </span>
-                            </div>
-                            <div className="occ-bar-container">
-                              <div 
-                                className={`occ-bar-fill`}
-                                style={{ width: `${Math.min((rule.stages / 3) * 100, 100)}%` }}
-                              />
-                            </div>
-                            <div className="occ-footer" style={{ marginTop: '4px' }}>
-                              Condição: {rule.condition}
+                            <div className="card-bottom-actions">
+                              <button className="action-icon-btn info" title="Visualizar"><Eye size={14} /></button>
+                              <button className="action-icon-btn edit" onClick={() => { setSelectedRule(rule); setIsRuleModalOpen(true); }} title="Editar"><Edit3 size={14} /></button>
+                              <button 
+                                className={`action-icon-btn ${rule.active ? 'warning' : 'success'}`} 
+                                onClick={() => handleToggleRule(rule.id)} 
+                                title={rule.active ? 'Desativar Regra' : 'Ativar Regra'}
+                              >
+                                {rule.active ? <Archive size={14} /> : <RefreshCw size={14} />}
+                              </button>
+                              <button className="action-icon-btn delete" onClick={() => handleDeleteRule(rule.id)} title="Excluir"><Trash2 size={14} /></button>
                             </div>
                           </div>
 
-                          <div className="card-footer-meta">
-                            <div className="meta-item">
-                              <TrendingUp size={12} />
-                              <span>Gatilho Automático</span>
+                          <div className="card-main-content">
+                            <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                              <div className="title-row" style={{ width: '100%' }}>
+                                <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{rule.module}</h3>
+                              </div>
+                              <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className={`status-pill mini ${badgeClass}`}>
+                                  {badgeText}
+                                </span>
+                                <div className="card-type-meta">REGRA DE APROVAÇÃO</div>
+                              </div>
                             </div>
-                            <div className="meta-item">
-                              <Activity size={12} />
-                              <span className="card-farm-meta">Módulo Base</span>
+
+                            <div className="card-occupation-section">
+                              <div className="occ-header">
+                                <span>HIERARQUIA</span>
+                                <span>
+                                  {rule.stages} {rule.stages === 1 ? 'NÍVEL' : 'NÍVEIS'}
+                                </span>
+                              </div>
+                              <div className="occ-bar-container">
+                                <div 
+                                  className={`occ-bar-fill`}
+                                  style={{ width: `${Math.min((rule.stages / 3) * 100, 100)}%` }}
+                                />
+                              </div>
+                              <div className="occ-footer" style={{ marginTop: '4px' }}>
+                                Condição: {rule.condition}
+                              </div>
+                            </div>
+
+                            <div className="card-footer-meta">
+                              <div className="meta-item">
+                                <TrendingUp size={12} />
+                                <span>Gatilho Automático</span>
+                              </div>
+                              <div className="meta-item">
+                                <Activity size={12} />
+                                <span className="card-farm-meta">Módulo Base</span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                  <button className="add-rule-card-premium" onClick={() => {}}>
+                        </motion.div>
+                      );
+                    })
+                  )}
+                  <button className="add-rule-card-premium" onClick={() => { setSelectedRule(null); setIsRuleModalOpen(true); }}>
                     <Plus size={32} />
                     <span>NOVA REGRA</span>
                   </button>

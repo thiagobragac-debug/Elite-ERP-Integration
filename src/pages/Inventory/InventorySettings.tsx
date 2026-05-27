@@ -5,6 +5,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { FormModal } from '../../components/Forms/FormModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 interface NCM {
   id: string;
@@ -117,14 +118,8 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
       if (error) throw error;
       setNcms(data || []);
     } catch (err) {
-      console.warn('[InventorySettings] Resilience Pattern Engaged:', err);
-      // Fallback mock data if the table doesn't exist yet
-      const mockNcms: NCM[] = [
-        { id: '1', codigo: '3105.20.00', descricao: 'Adubos ou Fertilizantes', is_active: true },
-        { id: '2', codigo: '3808.91.19', descricao: 'Inseticidas', is_active: true },
-        { id: '3', codigo: '1005.90.10', descricao: 'Milho em Grão', is_active: true },
-      ];
-      setNcms(mockNcms);
+      console.warn('[InventorySettings] Fetch error:', err);
+      setNcms([]);
     } finally {
       setLoading(false);
     }
@@ -221,6 +216,23 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
     <div className="tab-content-wrapper animate-slide-up">
       <main className="hub-content" style={{ padding: 0 }}>
         <ModernTable 
+          emptyState={
+            ncms.length === 0 ? (
+              <EmptyState
+                title="Nenhum NCM cadastrado"
+                description="Você ainda não possui códigos NCM cadastrados no sistema. Cadastre manualmente ou importe da Receita Federal."
+                actionLabel="Importar da Receita"
+                onAction={() => setIsImportModalOpen(true)}
+                icon={Hash}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={filtered}
           columns={columns}
           loading={loading}
@@ -307,7 +319,6 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
           subtitle="Busque e adicione códigos NCM oficiais."
           icon={CloudDownload}
           submitLabel="Fechar"
-          hideFooter={true} // Custom handling
           size="medium"
         >
           <form onSubmit={handleSearchReceita} className="tauze-field-group" style={{ gridColumn: '1 / -1', marginBottom: '16px' }}>

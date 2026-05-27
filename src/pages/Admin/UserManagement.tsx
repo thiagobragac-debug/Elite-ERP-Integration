@@ -46,6 +46,7 @@ import { useSearchParams } from 'react-router-dom';
 import { UserFilterModal } from './components/UserFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const UserManagement: React.FC = () => {
   const { activeFarm, userProfile, refreshProfile } = useTenant();
@@ -361,8 +362,8 @@ export const UserManagement: React.FC = () => {
       setStats([
         { 
           label: 'Licenças Ativas', value: `${totalUsers}/25`, icon: Users, color: '#10b981', 
-          progress: (totalUsers / 25) * 100, change: 'Plano Enterprise', periodLabel: 'Consumo de Seats',
-          sparkline: [
+          progress: totalUsers > 0 ? (totalUsers / 25) * 100 : 0, change: 'Plano Enterprise', periodLabel: 'Consumo de Seats',
+          sparkline: totalUsers > 0 ? [
             { value: Math.max(1, totalUsers - 5), label: `${Math.max(1, totalUsers - 5)} users` },
             { value: Math.max(1, totalUsers - 4), label: `${Math.max(1, totalUsers - 4)} users` },
             { value: Math.max(1, totalUsers - 3), label: `${Math.max(1, totalUsers - 3)} users` },
@@ -370,12 +371,12 @@ export const UserManagement: React.FC = () => {
             { value: Math.max(1, totalUsers - 1), label: `${Math.max(1, totalUsers - 1)} users` },
             { value: totalUsers, label: `${totalUsers} users` },
             { value: totalUsers, label: `Hoje: ${totalUsers}/25` }
-          ]
+          ] : []
         },
         { 
-          label: 'Acessos Hoje', value: activeToday, icon: Monitor, color: '#3b82f6', 
-          progress: 100, change: 'Sessões Ativas', periodLabel: 'Sessões Ativas',
-          sparkline: [
+          label: 'Acessos Hoje', value: activeToday > 1 ? activeToday : 0, icon: Monitor, color: '#3b82f6', 
+          progress: activeToday > 1 ? 100 : 0, change: 'Sessões Ativas', periodLabel: 'Sessões Ativas',
+          sparkline: activeToday > 1 ? [
             { value: Math.max(1, activeToday - 5), label: `${Math.max(1, activeToday - 5)} sess.` },
             { value: Math.max(1, activeToday - 4), label: `${Math.max(1, activeToday - 4)} sess.` },
             { value: Math.max(1, activeToday - 3), label: `${Math.max(1, activeToday - 3)} sess.` },
@@ -383,13 +384,13 @@ export const UserManagement: React.FC = () => {
             { value: Math.max(1, activeToday - 1), label: `${Math.max(1, activeToday - 1)} sess.` },
             { value: activeToday, label: `${activeToday} sess.` },
             { value: activeToday, label: `Hoje: ${activeToday}` }
-          ]
+          ] : []
         },
         { 
-          label: 'Compliance Segurança', value: `${securityScore}%`, icon: ShieldCheck, 
-          color: securityScore > 80 ? '#10b981' : '#f59e0b', progress: securityScore, 
-          change: securityScore > 80 ? 'Excelente' : 'Ação Requerida', periodLabel: 'Score Atual',
-          sparkline: [
+          label: 'Compliance Segurança', value: securityScore > 0 ? `${securityScore}%` : '---', icon: ShieldCheck, 
+          color: securityScore > 80 ? '#10b981' : '#f59e0b', progress: securityScore > 0 ? securityScore : 0, 
+          change: securityScore > 0 ? (securityScore > 80 ? 'Excelente' : 'Ação Requerida') : '---', periodLabel: 'Score Atual',
+          sparkline: securityScore > 0 ? [
             { value: Math.max(10, securityScore - 20), label: `${Math.max(10, securityScore - 20)}%` },
             { value: Math.max(15, securityScore - 15), label: `${Math.max(15, securityScore - 15)}%` },
             { value: Math.max(20, securityScore - 10), label: `${Math.max(20, securityScore - 10)}%` },
@@ -397,12 +398,12 @@ export const UserManagement: React.FC = () => {
             { value: Math.max(40, securityScore - 4), label: `${Math.max(40, securityScore - 4)}%` },
             { value: Math.max(50, securityScore - 2), label: `${Math.max(50, securityScore - 2)}%` },
             { value: securityScore, label: `Hoje: ${securityScore}%` }
-          ]
+          ] : []
         },
         { 
           label: 'Proteção MFA', value: `${mfaCompliant} usuários`, icon: Lock, color: '#8b5cf6', 
-          progress: (mfaCompliant / (totalUsers || 1)) * 100, change: '2FA Habilitado', periodLabel: 'Autenticação Forte',
-          sparkline: [
+          progress: mfaCompliant > 0 ? (mfaCompliant / (totalUsers || 1)) * 100 : 0, change: '2FA Habilitado', periodLabel: 'Autenticação Forte',
+          sparkline: mfaCompliant > 0 ? [
             { value: 0, label: '0 MFA' },
             { value: Math.round(mfaCompliant * 0.2), label: `${Math.round(mfaCompliant * 0.2)} MFA` },
             { value: Math.round(mfaCompliant * 0.4), label: `${Math.round(mfaCompliant * 0.4)} MFA` },
@@ -410,7 +411,7 @@ export const UserManagement: React.FC = () => {
             { value: Math.round(mfaCompliant * 0.75), label: `${Math.round(mfaCompliant * 0.75)} MFA` },
             { value: Math.round(mfaCompliant * 0.9), label: `${Math.round(mfaCompliant * 0.9)} MFA` },
             { value: mfaCompliant, label: `Hoje: ${mfaCompliant} users` }
-          ]
+          ] : []
         }
       ]);
     } catch (err: any) {
@@ -420,7 +421,7 @@ export const UserManagement: React.FC = () => {
       setStats([
         { label: 'Licenças Ativas', value: '0/25', icon: Users, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
         { label: 'Acessos Hoje', value: 0, icon: Monitor, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
-        { label: 'Compliance Segurança', value: '0%', icon: ShieldCheck, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Compliance Segurança', value: '---', icon: ShieldCheck, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
         { label: 'Proteção MFA', value: '0 usuários', icon: Lock, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] }
       ]);
     } finally {
@@ -682,6 +683,21 @@ export const UserManagement: React.FC = () => {
     }
   ];
 
+  const filteredUsers = usersList.filter(u => {
+    const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                         (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = filterValues.status === 'all' || u.status === filterValues.status;
+    const matchesProfile = filterValues.profileId === 'all' || u.perfil_id === filterValues.profileId;
+    const matchesMFA = !filterValues.mfaOnly || u.mfa_enabled;
+    const matchesDate = (!filterValues.dateStart || new Date(u.created_at) >= new Date(filterValues.dateStart)) &&
+                       (!filterValues.dateEnd || new Date(u.created_at) <= new Date(filterValues.dateEnd));
+
+    return matchesSearch && matchesStatus && matchesProfile && matchesMFA && matchesDate;
+  });
+
+  const filteredProfiles = profilesList.filter(p => (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()));
+
   return (
     <div className="admin-page animate-slide-up">
       <header className="page-header">
@@ -837,22 +853,28 @@ export const UserManagement: React.FC = () => {
         {activeTab === 'users' ? (
           viewMode === 'list' ? (
             <ModernTable 
-              data={usersList.filter(u => {
-                const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                     (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-                
-                const matchesStatus = filterValues.status === 'all' || u.status === filterValues.status;
-                const matchesProfile = filterValues.profileId === 'all' || u.perfil_id === filterValues.profileId;
-                const matchesMFA = !filterValues.mfaOnly || u.mfa_enabled;
-                const matchesDate = (!filterValues.dateStart || new Date(u.created_at) >= new Date(filterValues.dateStart)) &&
-                                   (!filterValues.dateEnd || new Date(u.created_at) <= new Date(filterValues.dateEnd));
-
-                return matchesSearch && matchesStatus && matchesProfile && matchesMFA && matchesDate;
-              })}
+              data={filteredUsers}
               columns={userColumns}
               loading={loading}
               hideHeader={true}
               searchPlaceholder="Buscar por nome, email..."
+              emptyState={
+                usersList.length === 0 ? (
+                  <EmptyState
+                    title="Nenhum usuário cadastrado"
+                    description="Não há usuários cadastrados nesta unidade. Comece cadastrando o primeiro."
+                    actionLabel="Novo Usuário"
+                    onAction={() => setIsUserModalOpen(true)}
+                    icon={Users}
+                  />
+                ) : (
+                  <EmptyState
+                    title="Nenhum registro encontrado"
+                    description="Sua busca não retornou resultados."
+                    icon={Search}
+                  />
+                )
+              }
               actions={(item) => (
                 <div className="modern-actions">
                   <button className="action-dot info" onClick={() => handleViewUserLogs(item)} title="Logs">
@@ -870,20 +892,58 @@ export const UserManagement: React.FC = () => {
               animate={{ opacity: 1 }}
               className="user-cards-grid"
             >
-              {usersList
-                .filter(u => {
-                  const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                       (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-                  
-                  const matchesStatus = filterValues.status === 'all' || u.status === filterValues.status;
-                  const matchesProfile = filterValues.profileId === 'all' || u.perfil_id === filterValues.profileId;
-                  const matchesMFA = !filterValues.mfaOnly || u.mfa_enabled;
-                  const matchesDate = (!filterValues.dateStart || new Date(u.created_at) >= new Date(filterValues.dateStart)) &&
-                                     (!filterValues.dateEnd || new Date(u.created_at) <= new Date(filterValues.dateEnd));
-
-                  return matchesSearch && matchesStatus && matchesProfile && matchesMFA && matchesDate;
-                })
-                .map(user => (
+              {filteredUsers.length === 0 ? (
+                <div 
+                  className="user-card-premium"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    padding: '20px',
+                    background: 'hsl(var(--bg-card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '24px',
+                    gap: '6px',
+                    minHeight: '180px',
+                    height: '100%',
+                    boxShadow: 'none'
+                  }}
+                >
+                  <div 
+                    style={{ 
+                      width: '40px', 
+                      height: '40px', 
+                      background: 'rgba(16, 185, 129, 0.1)', 
+                      color: '#10b981', 
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {usersList.length === 0 ? <Users size={22} style={{ color: 'hsl(var(--brand))' }} /> : <Search size={22} />}
+                  </div>
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                    {usersList.length === 0 ? 'Nenhum usuário cadastrado' : 'Nenhum registro encontrado'}
+                  </h3>
+                  <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                    {usersList.length === 0 ? 'Não há usuários cadastrados nesta unidade.' : 'Sua busca não retornou resultados.'}
+                  </p>
+                  {usersList.length === 0 && (
+                    <button 
+                      className="primary-btn" 
+                      onClick={() => setIsUserModalOpen(true)}
+                      style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                    >
+                      <Plus size={12} />
+                      <span>NOVO USUÁRIO</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                filteredUsers.map(user => (
                   <motion.div 
                     key={user.id} 
                     initial={{ opacity: 0, y: 10 }}
@@ -941,7 +1001,8 @@ export const UserManagement: React.FC = () => {
                       </div>
                     </div>
                   </motion.div>
-                ))}
+                ))
+              )}
               <button className="add-user-card-premium" onClick={() => setIsUserModalOpen(true)}>
                 <Plus size={32} />
                 <span>NOVO USUÁRIO</span>
@@ -957,6 +1018,23 @@ export const UserManagement: React.FC = () => {
                 loading={loading}
                 hideHeader={true}
                 searchPlaceholder="Buscar perfil..."
+                emptyState={
+                  profilesList.length === 0 ? (
+                    <EmptyState
+                      title="Nenhum perfil cadastrado"
+                      description="Você ainda não possui perfis de permissão cadastrados. Crie o primeiro para gerenciar permissões."
+                      actionLabel="Novo Perfil"
+                      onAction={() => setIsProfileModalOpen(true)}
+                      icon={Shield}
+                    />
+                  ) : (
+                    <EmptyState
+                      title="Nenhum registro encontrado"
+                      description="Sua busca não retornou resultados."
+                      icon={Search}
+                    />
+                  )
+                }
                 actions={(item) => (
                   <div className="modern-actions">
                     <button className="action-dot edit" onClick={() => handleOpenEditProfile(item)} title="Editar">
@@ -974,9 +1052,62 @@ export const UserManagement: React.FC = () => {
                 animate={{ opacity: 1 }}
                 className="user-cards-grid"
               >
-                {profilesList
-                  .filter(p => (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map(profile => (
+                {(() => {
+                  if (filteredProfiles.length === 0) {
+                    return (
+                      <div 
+                        className="user-card-premium"
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          textAlign: 'center',
+                          padding: '20px',
+                          background: 'hsl(var(--bg-card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '24px',
+                          gap: '6px',
+                          minHeight: '180px',
+                          height: '100%',
+                          boxShadow: 'none'
+                        }}
+                      >
+                        <div 
+                          style={{ 
+                            width: '40px', 
+                            height: '40px', 
+                            background: 'rgba(16, 185, 129, 0.1)', 
+                            color: '#10b981', 
+                            borderRadius: '12px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {profilesList.length === 0 ? <Shield size={22} style={{ color: 'hsl(var(--brand))' }} /> : <Search size={22} />}
+                        </div>
+                        <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                          {profilesList.length === 0 ? 'Nenhum perfil cadastrado' : 'Nenhum registro encontrado'}
+                        </h3>
+                        <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                          {profilesList.length === 0 ? 'Você ainda não possui perfis de permissão cadastrados.' : 'Sua busca não retornou resultados.'}
+                        </p>
+                        {profilesList.length === 0 && (
+                          <button 
+                            className="primary-btn" 
+                            onClick={() => setIsProfileModalOpen(true)}
+                            style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                          >
+                            <Plus size={12} />
+                            <span>NOVO PERFIL</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return filteredProfiles.map(profile => (
                     <motion.div 
                       key={profile.id} 
                       initial={{ opacity: 0, y: 10 }}
@@ -1018,7 +1149,8 @@ export const UserManagement: React.FC = () => {
                         </div>
                       </div>
                     </motion.div>
-                  ))}
+                  ));
+                })()}
                 <button className="add-user-card-premium" onClick={() => setIsProfileModalOpen(true)}>
                   <Plus size={32} />
                   <span>NOVO PERFIL</span>

@@ -30,13 +30,14 @@ import { useTenant } from '../../contexts/TenantContext';
 import { MachineForm } from '../../components/Forms/MachineForm';
 import { MaintenanceForm } from '../../components/Forms/MaintenanceForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { formatNumber } from '../../utils/format';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
-import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { FleetFilterModal } from './components/FleetFilterModal';
+import { useViewMode } from '../../hooks/useViewMode';
 
 export const FleetManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -62,7 +63,7 @@ export const FleetManagement: React.FC = () => {
     minYear: '',
     maxYear: ''
   });
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useViewMode('fleet-management', 'grid');
 
   useEffect(() => {
     const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
@@ -205,7 +206,7 @@ export const FleetManagement: React.FC = () => {
       fetchMachines();
     } catch (err) {
       console.error('Error saving machine:', err);
-      alert(`Erro ao salvar máquina: ${err?.message || JSON.stringify(err)}`);
+      alert(`Erro ao salvar máquina: ${(err as Error)?.message || JSON.stringify(err)}`);
     } finally {
       setLoading(false);
     }
@@ -546,8 +547,8 @@ export const FleetManagement: React.FC = () => {
           />
         ) : (
           <div className="user-cards-grid">
-            {machines
-              .filter(m => {
+            {(() => {
+              const filteredMachines = machines.filter(m => {
                 const matchesSearch = (
                   (m.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                   (m.placa || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -565,8 +566,61 @@ export const FleetManagement: React.FC = () => {
                                    (!filterValues.maxYear || machineYear <= parseInt(filterValues.maxYear));
 
                 return matchesSearch && matchesCategory && matchesStatus && matchesMarcas && matchesUsage && matchesYear;
-              })
-              .map(m => (
+              });
+
+              if (filteredMachines.length === 0) {
+                return (
+                  <div 
+                    className="user-card-premium"
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      textAlign: 'center',
+                      padding: '20px',
+                      background: 'hsl(var(--bg-card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '24px',
+                      gap: '6px',
+                      minHeight: '180px',
+                      height: '100%',
+                      boxShadow: 'none'
+                    }}
+                  >
+                    <div 
+                      style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        background: 'rgba(16, 185, 129, 0.1)', 
+                        color: '#10b981', 
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Truck size={22} />
+                    </div>
+                    <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                      Nenhum ativo encontrado
+                    </h3>
+                    <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                      Não há maquinários que correspondam aos filtros atuais.
+                    </p>
+                    <button 
+                      className="primary-btn" 
+                      onClick={handleOpenCreate}
+                      style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                    >
+                      <Plus size={12} />
+                      <span>NOVO ATIVO</span>
+                    </button>
+                  </div>
+                );
+              }
+
+              return filteredMachines.map(m => (
                 <div 
                   key={m.id} 
                   className={`user-card-premium ${m.status === 'active' ? 'active' : m.status === 'maintenance' ? 'warning-badge' : 'danger-badge'}`}
@@ -631,7 +685,8 @@ export const FleetManagement: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              ));
+            })()}
             <button className="add-user-card-premium" onClick={handleOpenCreate}>
               <Plus size={32} />
               <span>NOVA MÁQUINA</span>

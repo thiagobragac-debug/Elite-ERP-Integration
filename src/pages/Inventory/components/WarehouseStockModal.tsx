@@ -4,6 +4,7 @@ import { X, Search, Package, DollarSign, ArrowDownRight, ArrowUpRight, Calendar,
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { ModernTable } from '../../../components/DataTable/ModernTable';
+import { EmptyState } from '../../../components/Feedback/EmptyState';
 
 interface WarehouseStockModalProps {
   isOpen: boolean;
@@ -260,6 +261,13 @@ export const WarehouseStockModal: React.FC<WarehouseStockModalProps> = ({
           <div style={{ flex: 1, minHeight: '400px', overflowY: 'auto', background: 'white', border: '1px solid #f1f5f9', borderRadius: '16px' }}>
             {activeTab === 'stock' ? (
               <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
                 data={filteredStock}
                 columns={stockColumns}
                 loading={loading}
@@ -267,6 +275,13 @@ export const WarehouseStockModal: React.FC<WarehouseStockModalProps> = ({
               />
             ) : (
               <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
                 data={filteredHistory}
                 columns={historyColumns}
                 loading={loading}

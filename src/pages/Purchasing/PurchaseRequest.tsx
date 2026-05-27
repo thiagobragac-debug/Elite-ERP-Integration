@@ -31,6 +31,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { PurchaseRequestFilterModal } from './components/PurchaseRequestFilterModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const PurchaseRequest: React.FC = () => {
   const { activeTenantId } = useTenant();
@@ -418,6 +419,23 @@ export const PurchaseRequest: React.FC = () => {
 
       <div className="management-content">
         <ModernTable 
+          emptyState={
+            requests.filter(r => (activeTab === 'PENDING' ? r.status === 'pending' : r.status === 'approved')).length === 0 ? (
+              <EmptyState
+                title={activeTab === 'PENDING' ? "Nenhuma solicitação aguardando triagem" : "Nenhuma solicitação em cotação"}
+                description={activeTab === 'PENDING' ? "Não há solicitações de compra aguardando triagem no momento." : "Não há solicitações de compra em cotação de mercado."}
+                actionLabel="Nova Requisição"
+                onAction={handleOpenCreate}
+                icon={ShoppingCart}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={requests.filter(r => {
             const matchesSearch = (r.id || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                                  (r.titulo || '').toLowerCase().includes(searchTerm.toLowerCase());

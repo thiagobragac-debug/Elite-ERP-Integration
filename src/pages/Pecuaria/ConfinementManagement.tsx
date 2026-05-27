@@ -36,6 +36,7 @@ import { CheckOutModal } from './components/CheckOutModal';
 import { ConfinementFilterModal } from './components/ConfinementFilterModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useViewMode } from '../../hooks/useViewMode';
 
 export const ConfinementManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload, isGlobalMode } = useFarmFilter();
@@ -45,7 +46,7 @@ export const ConfinementManagement: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useViewMode('pecuaria-confinamento', 'grid');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -406,13 +407,23 @@ export const ConfinementManagement: React.FC = () => {
       <div className="management-content">
         {viewMode === 'list' ? (
           <ModernTable 
-            emptyState={<EmptyState
-              title="Nenhum ciclo de confinamento"
-              description="Não há currais ativos para esta unidade. Inicie a terminação intensiva realizando o primeiro check-in."
-              actionLabel="Novo Check-in"
-              onAction={() => setIsModalOpen(true)}
-              icon={Building2}
-            />}
+            emptyState={
+              confinements.length === 0 ? (
+                <EmptyState
+                  title="Nenhum ciclo de confinamento"
+                  description="Não há currais ativos para esta unidade. Inicie a terminação intensiva realizando o primeiro check-in."
+                  actionLabel="Novo Check-in"
+                  onAction={() => setIsModalOpen(true)}
+                  icon={Building2}
+                />
+              ) : (
+                <EmptyState
+                  title="Nenhum registro encontrado"
+                  description="Sua busca não retornou resultados."
+                  icon={Search}
+                />
+              )
+            }
             data={filteredConfinements}
             columns={tableColumns}
             loading={loading}
@@ -438,83 +449,133 @@ export const ConfinementManagement: React.FC = () => {
           />
         ) : (
           <div className="confinement-cards-grid animate-fade-in">
-            {filteredConfinements.map(p => {
-              const progress = p.progress || 0;
-              let badgeClass = 'active'; // green
-              let badgeText = 'ENGORDA';
-              let borderClass = 'active';
-              
-              if (progress > 90) {
-                badgeClass = 'warning-badge';
-                badgeText = 'TERMINAÇÃO';
-                borderClass = 'warning-badge';
-              } else if (p.status === 'archived') {
-                badgeClass = 'stopped';
-                badgeText = 'ARQUIVADO';
-                borderClass = 'danger-badge';
-              }
-
-              return (
+            {filteredConfinements.length === 0 ? (
+              <div 
+                className="confinement-card-premium" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  gap: '6px',
+                  minHeight: '180px',
+                  height: '100%',
+                  boxShadow: 'none'
+                }}
+              >
                 <div 
-                  key={p.id} 
-                  className={`confinement-card-premium ${borderClass}`}
+                  style={{ 
+                    margin: 0, 
+                    width: '40px', 
+                    height: '40px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
                 >
-                  <div className="card-left-section">
-                    <div className="card-avatar">
-                      <Building2 size={28} />
-                    </div>
-                    <div className="card-bottom-actions">
-                      <button className="action-icon-btn info" onClick={() => handleViewDetails(p)} title="Histórico"><History size={14} /></button>
-                      <button className="action-icon-btn edit" onClick={() => {}} title="Editar"><Edit3 size={14} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(p.id)} title="Excluir"><Trash2 size={14} /></button>
-                    </div>
-                  </div>
-
-                  <div className="card-main-content">
-                    <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
-                      <div className="title-row" style={{ width: '100%' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{p.nome_curral}</h3>
-                      </div>
-                      <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className={`status-pill mini ${badgeClass}`}>
-                          {badgeText}
-                        </span>
-                        <div className="card-type-meta">Lote: {p.lotes?.nome || 'Vazio'}</div>
-                      </div>
-                    </div>
-
-                    <div className="card-occupation-section">
-                      <div className="occ-header">
-                        <span>DOF / PROCESSO</span>
-                        <span className={progress > 90 ? 'critical' : ''}>
-                          {Math.round(progress)}%
-                        </span>
-                      </div>
-                      <div className="occ-bar-container">
-                        <div 
-                          className={`occ-bar-fill ${progress > 90 ? 'warning' : ''}`}
-                          style={{ width: `${Math.min(progress, 100)}%` }}
-                        />
-                      </div>
-                      <div className="occ-footer">
-                        {p.dof}d / {p.dof_alvo}d DOF
-                      </div>
-                    </div>
-
-                    <div className="card-footer-meta">
-                      <div className="meta-item">
-                        <Activity size={12} />
-                        <span>{p.capacidade_animais || 0} cab.</span>
-                      </div>
-                      <div className="meta-item">
-                        <TrendingUp size={12} />
-                        <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
-                      </div>
-                    </div>
-                  </div>
+                  {confinements.length === 0 ? <Building2 size={22} /> : <Search size={22} />}
                 </div>
-              );
-            })}
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                  {confinements.length === 0 ? 'Nenhum ciclo de confinamento' : 'Nenhum registro encontrado'}
+                </h3>
+                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                  {confinements.length === 0 ? 'Não há currais ativos para esta unidade.' : 'Sua busca não retornou resultados.'}
+                </p>
+                {confinements.length === 0 && (
+                  <button 
+                    className="primary-btn" 
+                    onClick={() => setIsModalOpen(true)}
+                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                  >
+                    <Plus size={12} />
+                    <span>NOVO CHECK-IN</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              filteredConfinements.map(p => {
+                const progress = p.progress || 0;
+                let badgeClass = 'active'; // green
+                let badgeText = 'ENGORDA';
+                let borderClass = 'active';
+                
+                if (progress > 90) {
+                  badgeClass = 'warning-badge';
+                  badgeText = 'TERMINAÇÃO';
+                  borderClass = 'warning-badge';
+                } else if (p.status === 'archived') {
+                  badgeClass = 'stopped';
+                  badgeText = 'ARQUIVADO';
+                  borderClass = 'danger-badge';
+                }
+
+                return (
+                  <div 
+                    key={p.id} 
+                    className={`confinement-card-premium ${borderClass}`}
+                  >
+                    <div className="card-left-section">
+                      <div className="card-avatar">
+                        <Building2 size={28} />
+                      </div>
+                      <div className="card-bottom-actions">
+                        <button className="action-icon-btn info" onClick={() => handleViewDetails(p)} title="Histórico"><History size={14} /></button>
+                        <button className="action-icon-btn edit" onClick={() => {}} title="Editar"><Edit3 size={14} /></button>
+                        <button className="action-icon-btn delete" onClick={() => handleDelete(p.id)} title="Excluir"><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+
+                    <div className="card-main-content">
+                      <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                        <div className="title-row" style={{ width: '100%' }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{p.nome_curral}</h3>
+                        </div>
+                        <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className={`status-pill mini ${badgeClass}`}>
+                            {badgeText}
+                          </span>
+                          <div className="card-type-meta">Lote: {p.lotes?.nome || 'Vazio'}</div>
+                        </div>
+                      </div>
+
+                      <div className="card-occupation-section">
+                        <div className="occ-header">
+                          <span>DOF / PROCESSO</span>
+                          <span className={progress > 90 ? 'critical' : ''}>
+                            {Math.round(progress)}%
+                          </span>
+                        </div>
+                        <div className="occ-bar-container">
+                          <div 
+                            className={`occ-bar-fill ${progress > 90 ? 'warning' : ''}`}
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                          />
+                        </div>
+                        <div className="occ-footer">
+                          {p.dof}d / {p.dof_alvo}d DOF
+                        </div>
+                      </div>
+
+                      <div className="card-footer-meta">
+                        <div className="meta-item">
+                          <Activity size={12} />
+                          <span>{p.capacidade_animais || 0} cab.</span>
+                        </div>
+                        <div className="meta-item">
+                          <TrendingUp size={12} />
+                          <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
             <button className="add-confinement-card-premium" onClick={() => setIsModalOpen(true)}>
               <Plus size={32} />
               <span>NOVO CHECK-IN</span>

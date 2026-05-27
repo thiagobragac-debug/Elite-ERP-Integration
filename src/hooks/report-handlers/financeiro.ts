@@ -400,7 +400,7 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
     const currentRatio = totalPayable > 0 ? (totalBalance + totalReceivable) / totalPayable : 9.9;
     const runway = totalPayable > 0 ? (totalBalance / (totalPayable / 3)).toFixed(1) : '∞';
 
-    const insights = [
+    const insights = (totalBalance > 0 || totalPayable > 0 || totalReceivable > 0) ? [
       {
         id: 1,
         type: 'opportunity',
@@ -417,7 +417,7 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
         impact: 'MÉDIO',
         color: '#f59e0b'
       }
-    ];
+    ] : [];
 
     return {
       data: insights,
@@ -425,36 +425,46 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
         { 
           id: 'patrimonio',
           label: 'Patrimônio Líquido Real', 
-          value: totalBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-          change: '+4.2%', 
-          trend: 'up' as const, 
+          value: totalBalance > 0 ? totalBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+          change: totalBalance > 0 ? '+4.2%' : 'Sem Dados', 
+          trend: 'neutral' as const, 
           color: '#10b981', 
-          progress: 100,
-          periodLabel: 'Consolidado Tauze'
+          progress: totalBalance > 0 ? 100 : 0,
+          periodLabel: 'Consolidado Tauze',
+          sparkline: []
         },
         { 
           id: 'ebitda',
-          label: 'EBITDA Projetado', sparkline: (() => {  const valStr = String((totalReceivable * 0.22).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: (totalReceivable * 0.22).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), change: '+1.5%', 
-          trend: 'up' as const, 
+          label: 'EBITDA Projetado', 
+          value: totalReceivable > 0 ? (totalReceivable * 0.22).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+          change: totalReceivable > 0 ? '+1.5%' : 'Sem Dados', 
+          trend: 'neutral' as const, 
           color: '#3b82f6', 
-          progress: 75,
-          periodLabel: 'Margem Op. 22%'
+          progress: totalReceivable > 0 ? 75 : 0,
+          periodLabel: 'Margem Op. 22%',
+          sparkline: []
         },
         { 
           id: 'runway',
-          label: 'Runway (Fôlego)', sparkline: (() => {  const valStr = String(`${runway} meses`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}m` }; }); })(), value: `${runway} meses`, change: 'Estável', 
-          trend: 'up' as const, 
+          label: 'Runway (Fôlego)', 
+          value: totalPayable > 0 ? `${runway} meses` : '---', 
+          change: totalPayable > 0 ? 'Estável' : 'Sem Dados', 
+          trend: 'neutral' as const, 
           color: '#8b5cf6', 
-          progress: Math.min(100, (parseFloat(runway) / 24) * 100),
-          periodLabel: 'Autonomia de Caixa'
+          progress: totalPayable > 0 ? Math.min(100, (parseFloat(runway) / 24) * 100) : 0,
+          periodLabel: 'Autonomia de Caixa',
+          sparkline: []
         },
         { 
           id: 'liquidez',
-          label: 'Índice de Liquidez', sparkline: (() => {  const valStr = String(currentRatio.toFixed(2)); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}x` }; }); })(), value: currentRatio.toFixed(2), change: currentRatio > 1.5 ? 'Saudável' : 'Atenção', 
-          trend: currentRatio > 1.5 ? 'up' : 'down', 
+          label: 'Índice de Liquidez', 
+          value: totalPayable > 0 ? currentRatio.toFixed(2) : '---', 
+          change: totalPayable > 0 ? (currentRatio > 1.5 ? 'Saudável' : 'Atenção') : 'Sem Dados', 
+          trend: totalPayable > 0 ? (currentRatio > 1.5 ? 'up' : 'down') : 'neutral', 
           color: '#f59e0b', 
-          progress: Math.min(100, (currentRatio / 3) * 100),
-          periodLabel: 'Meta: > 1.50'
+          progress: totalPayable > 0 ? Math.min(100, (currentRatio / 3) * 100) : 0,
+          periodLabel: 'Meta: > 1.50',
+          sparkline: []
         }
       ],
       columns: mockData.columns,
@@ -463,6 +473,6 @@ export const financeOverview: ReportHandler = async (tenantId, fazendaId) => {
     };
   } catch (error) {
     console.error('[FinanceOverview] Critical Failure:', error);
-    return { data: [], stats: mockData.stats, columns: mockData.columns, totalCount: 0 };
+    return { data: [], stats: [], columns: mockData.columns, totalCount: 0 };
   }
 };

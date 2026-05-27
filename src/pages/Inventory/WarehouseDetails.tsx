@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
-import { 
+import { Search, 
   ArrowLeft, 
   Layout, 
   Boxes, 
@@ -15,6 +15,7 @@ import {
 import { motion } from 'framer-motion';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const WarehouseDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -312,6 +313,13 @@ export const WarehouseDetails: React.FC = () => {
               </div>
             </div>
             <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
               data={stockItems}
               columns={stockColumns}
               loading={loading}
@@ -335,6 +343,13 @@ export const WarehouseDetails: React.FC = () => {
               </div>
             </div>
             <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
               data={history}
               columns={historyColumns}
               loading={loading}

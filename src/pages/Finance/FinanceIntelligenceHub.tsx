@@ -283,7 +283,11 @@ export const FinanceIntelligenceHub: React.FC = () => {
                 <span className="subtitle">Análise preditiva baseada em IA</span>
               </div>
               <div className="insights-list">
-                {insights?.map((insight: any) => {
+                {!insights || insights.length === 0 ? (
+                  <div className="text-center py-4 text-xs font-bold text-slate-400">
+                    Nenhum insight disponível no momento
+                  </div>
+                ) : insights.map((insight: any) => {
                   const Icon = getInsightIcon(insight.type);
                   return (
                     <motion.div 

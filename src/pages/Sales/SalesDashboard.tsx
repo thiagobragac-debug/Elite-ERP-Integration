@@ -31,15 +31,12 @@ export const SalesDashboard: React.FC = () => {
   const [triggeredAlerts, setTriggeredAlerts] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up' as const, periodLabel: '...',
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...',
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...',
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Margem Operacional', value: '0.0%', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up' as const, periodLabel: '...',
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) }
+    { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up' as const, periodLabel: '...', sparkline: [] },
+    { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...', sparkline: [] },
+    { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...', sparkline: [] },
+    { label: 'Margem Operacional', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up' as const, periodLabel: '...', sparkline: [] }
   ]);
+  const [funnelData, setFunnelData] = useState<any>({ opps: 0, orders: 0, revenue: 0 });
 
   useEffect(() => {
     const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
@@ -194,11 +191,11 @@ export const SalesDashboard: React.FC = () => {
             value: totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
             icon: DollarSign, 
             color: '#10b981', 
-            progress: 100,
-            change: `${revChange > 0 ? '+' : ''}${revChange.toFixed(1)}%`,
+            progress: totalRevenue > 0 ? 100 : 0,
+            change: totalRevenue > 0 ? `${revChange > 0 ? '+' : ''}${revChange.toFixed(1)}%` : '---',
             trend: revChange >= 0 ? 'up' : 'down',
             periodLabel: 'Acumulado Safra',
-            sparkline: sparklineData
+            sparkline: totalRevenue > 0 ? sparklineData : []
           },
           { 
             label: 'Pipeline Ativo', 
@@ -206,10 +203,10 @@ export const SalesDashboard: React.FC = () => {
             icon: Target, 
             color: '#3b82f6', 
             progress: totalRevenue > 0 ? Math.min((pendingValue / totalRevenue) * 100, 100) : 0,
-            change: `${pendChange > 0 ? '+' : ''}${pendChange.toFixed(1)}% novas`,
+            change: pendingValue > 0 ? `${pendChange > 0 ? '+' : ''}${pendChange.toFixed(1)}% novas` : '---',
             trend: pendChange >= 0 ? 'up' : 'down',
             periodLabel: 'Volume a Faturar',
-            sparkline: sparklinePipeline
+            sparkline: pendingValue > 0 ? sparklinePipeline : []
           },
           { 
             label: 'Carteira de Parceiros', 
@@ -220,30 +217,32 @@ export const SalesDashboard: React.FC = () => {
             change: `Ativos: ${activeClients}`,
             trend: 'up' as const,
             periodLabel: 'Base CRM',
-            sparkline: (() => {
+            sparkline: clients?.length > 0 ? (() => {
               const total = clients?.length || 0;
               return [
                 Math.max(total - 6, 0), Math.max(total - 5, 0), Math.max(total - 4, 0),
                 Math.max(total - 3, 0), Math.max(total - 2, 0), Math.max(total - 1, 0), total
               ].map((v, i) => ({ value: v, label: i < 6 ? `Sem ${i+1}` : `Hoje: ${v}` }));
-            })()
+            })() : []
           },
           { 
             label: 'Margem Operacional', 
-            value: '28.4%', 
+            value: '---', 
             icon: TrendingUp, 
             color: '#f59e0b', 
-            progress: 56.8,
-            change: '+2.1%',
+            progress: 0,
+            change: '---',
             trend: 'up' as const,
             periodLabel: 'vs Safra Anterior',
-            sparkline: [
-              { value: 22.0, label: '22.0%' }, { value: 23.5, label: '23.5%' }, { value: 24.8, label: '24.8%' },
-              { value: 25.9, label: '25.9%' }, { value: 26.8, label: '26.8%' }, { value: 27.6, label: '27.6%' },
-              { value: 28.4, label: 'Hoje: 28.4%' }
-            ]
+            sparkline: []
           }
         ]);
+        
+        setFunnelData({
+          opps: totalRevenue + pendingValue + (pendingValue * 0.3),
+          orders: pendingValue + totalRevenue,
+          revenue: totalRevenue
+        });
       }
 
       if (orders) {
@@ -257,20 +256,14 @@ export const SalesDashboard: React.FC = () => {
         setRecentOrders(enrichedOrders);
       }
     } catch (err) {
-      console.warn("SalesDashboard: Using Emergency Mock Data.", err);
+      console.warn("SalesDashboard: Error fetching data.", err);
       setStats([
-        { label: 'Faturamento Bruto', value: 'R$ 842.500,00', icon: DollarSign, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', trend: 'up' as const, periodLabel: 'Modo Simulação',
-          sparkline: [437700,514725,573300,624050,691850,764475,842500].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-        { label: 'Pipeline Ativo', value: 'R$ 150.000,00', icon: Target, color: '#3b82f6', progress: 20, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação',
-          sparkline: [75000,90000,105000,118000,132000,143000,150000].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-        { label: 'Carteira de Parceiros', value: '124', icon: Users, color: '#8b5cf6', progress: 85, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação',
-          sparkline: [108,112,115,118,120,122,124].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-        { label: 'Margem Operacional', value: '28.4%', icon: TrendingUp, color: '#f59e0b', progress: 56, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação',
-          sparkline: [22.0,23.5,24.8,25.9,26.8,27.6,28.4].map((v,i) => ({ value: v, label: `${v}%` })) }
+        { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Erro de Conexão', trend: 'up' as const, periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
+        { label: 'Margem Operacional', value: '---', icon: TrendingUp, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] }
       ]);
-      setRecentOrders([
-        { id: 'm1', client_name: 'MOCK: Agro Export LTDA', valor_total: 25000, created_at: new Date().toISOString(), status: 'pending' }
-      ]);
+      setRecentOrders([]);
     } finally {
       setLoading(false);
     }
@@ -358,19 +351,19 @@ export const SalesDashboard: React.FC = () => {
               <div className="funnel-step lead">
                 <div className="step-bar" style={{ height: '100%' }}>
                   <span className="step-label">OPORTUNIDADES</span>
-                  <span className="step-value">R$ 1.2M</span>
+                  <span className="step-value">{funnelData.opps.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</span>
                 </div>
               </div>
               <div className="funnel-step order">
-                <div className="step-bar" style={{ height: '75%' }}>
+                <div className="step-bar" style={{ height: funnelData.opps > 0 ? `${(funnelData.orders / funnelData.opps) * 100}%` : '0%' }}>
                   <span className="step-label">PEDIDOS</span>
-                  <span className="step-value">R$ 850K</span>
+                  <span className="step-value">{funnelData.orders.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</span>
                 </div>
               </div>
               <div className="funnel-step delivered">
-                <div className="step-bar" style={{ height: '52%' }}>
+                <div className="step-bar" style={{ height: funnelData.opps > 0 ? `${(funnelData.revenue / funnelData.opps) * 100}%` : '0%' }}>
                   <span className="step-label">FATURADO</span>
-                  <span className="step-value">R$ 620K</span>
+                  <span className="step-value">{funnelData.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}</span>
                 </div>
               </div>
             </div>
@@ -452,33 +445,7 @@ export const SalesDashboard: React.FC = () => {
             </div>
           </div>
           <div className="distribution-list">
-            <div className="dist-item">
-              <div className="dist-info">
-                <span>VIP / Ouro</span>
-                <span>45%</span>
-              </div>
-              <div className="dist-bar-bg">
-                <div className="dist-bar-fill" style={{ width: '45%', background: '#8b5cf6' }} />
-              </div>
-            </div>
-            <div className="dist-item">
-              <div className="dist-info">
-                <span>Recorrente / Prata</span>
-                <span>38%</span>
-              </div>
-              <div className="dist-bar-bg">
-                <div className="dist-bar-fill" style={{ width: '38%', background: '#3b82f6' }} />
-              </div>
-            </div>
-            <div className="dist-item">
-              <div className="dist-info">
-                <span>Leads / Novos</span>
-                <span>17%</span>
-              </div>
-              <div className="dist-bar-bg">
-                <div className="dist-bar-fill" style={{ width: '17%', background: '#10b981' }} />
-              </div>
-            </div>
+            <div className="text-center py-4 text-xs font-bold text-slate-400">Nenhuma distribuição disponível</div>
           </div>
         </section>
       </div>

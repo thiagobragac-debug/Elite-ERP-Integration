@@ -26,13 +26,15 @@ export const SuperAdminGuard: React.FC<{ children: React.ReactNode }> = ({ child
 
         if (error) throw error;
         
-        // Apenas roles autorizadas ('admin' ou 'superadmin') podem gerenciar a infraestrutura global SaaS
-        const isSuperAdmin = data?.role === 'admin' || data?.role === 'superadmin';
+        // Apenas roles autorizadas ('admin' ou 'superadmin' ou 'saas_admin') podem gerenciar a infraestrutura global SaaS
+        const userRole = data?.role?.toLowerCase();
+        const isSuperAdmin = userRole === 'admin' || userRole === 'superadmin' || userRole === 'saas_admin';
         setIsAuthorized(isSuperAdmin);
       } catch (error) {
         console.error('Erro ao verificar status de governança superadmin:', error);
         // Fallback resiliente para o estado local do contexto de autenticação em caso de erro de rede ou de tabela inexistente
-        const isLocalAdmin = (user as any)?.role === 'admin' || (user as any)?.role === 'superadmin';
+        const localRole = (user as any)?.role?.toLowerCase();
+        const isLocalAdmin = localRole === 'admin' || localRole === 'superadmin' || localRole === 'saas_admin';
         console.warn('SuperAdminGuard: Usando fallback de permissão local:', isLocalAdmin);
         setIsAuthorized(isLocalAdmin);
       }

@@ -33,6 +33,7 @@ import { MaintenanceForm } from '../../components/Forms/MaintenanceForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import { MaintenanceFilterModal } from './components/MaintenanceFilterModal';
 
 export const MaintenanceManagement: React.FC = () => {
@@ -123,17 +124,17 @@ export const MaintenanceManagement: React.FC = () => {
         ]);
       }
     } catch (err) {
-      console.warn('[Maintenance] Usando dados mock devido a atraso na rede ou erro:', err);
+      console.warn('[Maintenance] Fetch error:', err);
       setOrders([]);
       setStats([
-        { label: 'OS em Aberto', value: 3, icon: AlertCircle, color: '#ed6c02', progress: 45, change: 'MOCK ACTIVE',
-          sparkline: [7,6,6,5,4,3,3].map((v,i) => ({ value: v, label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })) },
-        { label: 'TCO (Manutenção)', value: 'R$ 12.450', icon: DollarSign, color: '#ef4444', progress: 65, trend: 'up' as const, change: 'MOCK ACTIVE',
-          sparkline: [6200,7800,9100,10200,11000,11900,12450].map((v,i) => ({ value: v, label: `R$${v}` })) },
-        { label: 'MTBF (Confiabilidade)', value: '520h', icon: Zap, color: '#10b981', progress: 92, trend: 'up' as const, change: 'MOCK ACTIVE',
-          sparkline: [380,420,450,472,490,506,520].map((v,i) => ({ value: v, label: `${v}h` })) },
-        { label: 'MTTR (Eficiência)', value: '14h', icon: Clock, color: '#3b82f6', progress: 75, trend: 'down' as const, change: 'MOCK ACTIVE',
-          sparkline: [22,20,19,18,16,15,14].map((v,i) => ({ value: v, label: `${v}h` })) },
+        { label: 'OS em Aberto', value: 0, icon: AlertCircle, color: '#ed6c02', progress: 0, change: '',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: i<6?`Sem ${i+1}`:`Hoje: 0` })) },
+        { label: 'TCO (Manutenção)', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `R$0` })) },
+        { label: 'MTBF (Confiabilidade)', value: '0h', icon: Zap, color: '#10b981', progress: 0, change: '',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `0h` })) },
+        { label: 'MTTR (Eficiência)', value: '0h', icon: Clock, color: '#3b82f6', progress: 0, change: '',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `0h` })) },
       ]);
     } finally {
       setLoading(false);
@@ -514,49 +515,157 @@ export const MaintenanceManagement: React.FC = () => {
 
       <div className="management-content">
         {activeTab === 'PLANS' ? (
-          <div className="plans-grid animate-fade-in">
-            {[
-              { id: 1, title: 'Revisão Motor Pesado', freq: '250', unit: 'H', assets: 4, items: ['Óleo 15W40', 'Filtro Óleo', 'Filtro Combustível'] },
-              { id: 2, title: 'Manutenção Caminhões', freq: '10.000', unit: 'KM', assets: 2, items: ['Alinhamento', 'Balanceamento', 'Lubrificação'] },
-              { id: 3, title: 'Preventiva Semanal', freq: '50', unit: 'H', assets: 12, items: ['Engraxamento', 'Limpeza Radiador'] },
-            ].map(plan => (
-              <div key={plan.id} className="plan-card">
-                <div className="plan-status-active">ATIVO</div>
-                <div className="plan-main">
-                  <div className="plan-icon">
-                    <Clock size={20} />
+          viewMode === 'list' ? (
+            <div className="animate-fade-in">
+              <ModernTable 
+                emptyState={
+                  <EmptyState 
+                    title="Nenhum Plano Preventivo"
+                    description="Você ainda não configurou planos automáticos de manutenção para a sua frota."
+                    actionLabel="Criar Novo Plano"
+                    onAction={() => {
+                      setSelectedPlan(null);
+                      setIsPlanModalOpen(true);
+                    }}
+                    icon={Calendar}
+                  />
+                }
+                data={[]}
+                columns={[
+                  {
+                    header: 'Plano Preventivo',
+                    accessor: (item: any) => (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '36px', height: '36px', background: 'hsl(var(--bg-main))', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--text-muted))' }}>
+                          <Clock size={18} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: 800, color: 'hsl(var(--text-main))' }}>{item.title}</span>
+                          <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Frequência: {item.freq} {item.unit}</span>
+                        </div>
+                      </div>
+                    ),
+                    align: 'left'
+                  },
+                  {
+                    header: 'Ativos Vinculados',
+                    accessor: (item: any) => (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'hsl(var(--text-muted))', fontSize: '12px', fontWeight: 600 }}>
+                        <Truck size={14} />
+                        <span>{item.assets} Ativos</span>
+                      </div>
+                    ),
+                    align: 'center'
+                  },
+                  {
+                    header: 'Itens de Verificação',
+                    accessor: (item: any) => (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'hsl(var(--text-muted))', fontSize: '12px', fontWeight: 600 }}>
+                        <FileText size={14} />
+                        <span>{item.items?.length || 0} Itens</span>
+                      </div>
+                    ),
+                    align: 'center'
+                  },
+                  {
+                    header: 'Status',
+                    accessor: (item: any) => (
+                      <span className="status-pill active">Ativo</span>
+                    ),
+                    align: 'center'
+                  }
+                ]}
+                loading={false}
+                hideHeader={true}
+                searchPlaceholder="Buscar planos preventivos..."
+                actions={(item) => (
+                  <div className="modern-actions">
+                    <button className="action-dot edit" onClick={() => {
+                      setSelectedPlan(item);
+                      setIsPlanModalOpen(true);
+                    }} title="Configurar Plano">
+                      <Settings size={18} />
+                    </button>
                   </div>
-                  <div className="plan-info">
-                    <h3>{plan.title}</h3>
-                    <p>Frequência: <strong>{plan.freq} {plan.unit}</strong></p>
+                )}
+              />
+            </div>
+          ) : (
+            <div className="plans-grid animate-fade-in">
+              {[].length === 0 ? (
+                <div 
+                  className="plan-card" 
+                  style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    textAlign: 'center', 
+                    padding: '20px', 
+                    background: 'hsl(var(--bg-card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '24px',
+                    gap: '6px',
+                    minHeight: '180px',
+                    height: '100%',
+                    boxShadow: 'none'
+                  }}
+                >
+                  <div style={{ width: '40px', height: '40px', backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10b981', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Calendar size={22} />
                   </div>
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                    Nenhum Plano Preventivo
+                  </h3>
+                  <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                    Você ainda não configurou planos automáticos de manutenção para a sua frota.
+                  </p>
+                  <button className="primary-btn" onClick={() => { setSelectedPlan(null); setIsPlanModalOpen(true); }} style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}>
+                    <Plus size={12} />
+                    <span>CRIAR NOVO PLANO</span>
+                  </button>
                 </div>
-                <div className="plan-stats">
-                  <div className="p-stat">
-                    <Truck size={14} />
-                    <span>{plan.assets} Ativos</span>
-                  </div>
-                  <div className="p-stat">
-                    <FileText size={14} />
-                    <span>{plan.items.length} Itens</span>
-                  </div>
-                </div>
-                <div className="plan-actions">
-                  <button className="plan-btn-edit" onClick={() => {
-                    setSelectedPlan(plan);
-                    setIsPlanModalOpen(true);
-                  }}>CONFIGURAR PLANO</button>
-                </div>
-              </div>
-            ))}
-            <button className="add-plan-card" onClick={() => {
-              setSelectedPlan(null);
-              setIsPlanModalOpen(true);
-            }}>
-              <Plus size={32} />
-              <span>CRIAR NOVO PLANO</span>
-            </button>
-          </div>
+              ) : (
+                  [].map((plan: any) => (
+                    <div key={plan.id} className="plan-card">
+                      <div className="plan-status-active">ATIVO</div>
+                      <div className="plan-main">
+                        <div className="plan-icon">
+                          <Clock size={20} />
+                        </div>
+                        <div className="plan-info">
+                          <h3>{plan.title}</h3>
+                          <p>Frequência: <strong>{plan.freq} {plan.unit}</strong></p>
+                        </div>
+                      </div>
+                      <div className="plan-stats">
+                        <div className="p-stat">
+                          <Truck size={14} />
+                          <span>{plan.assets} Ativos</span>
+                        </div>
+                        <div className="p-stat">
+                          <FileText size={14} />
+                          <span>{plan.items.length} Itens</span>
+                        </div>
+                      </div>
+                      <div className="plan-actions">
+                        <button className="plan-btn-edit" onClick={() => {
+                          setSelectedPlan(plan);
+                          setIsPlanModalOpen(true);
+                        }}>CONFIGURAR PLANO</button>
+                      </div>
+                    </div>
+                  ))
+              )}
+              <button className="add-plan-card" onClick={() => {
+                setSelectedPlan(null);
+                setIsPlanModalOpen(true);
+              }}>
+                <Plus size={32} />
+                <span>CRIAR NOVO PLANO</span>
+              </button>
+            </div>
+          )
         ) : viewMode === 'kanban' ? (
           <div className="kanban-board animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'start' }}>
             {[
@@ -566,7 +675,10 @@ export const MaintenanceManagement: React.FC = () => {
                 nextStatus: 'oficina',
                 btnText: 'Iniciar Trabalho',
                 color: '#f59e0b',
-                bg: 'rgba(245, 158, 11, 0.05)'
+                bg: 'rgba(245, 158, 11, 0.05)',
+                emptyTitle: 'Nenhuma OS Pendente',
+                emptyDesc: 'Não há ordens aguardando.',
+                emptyIcon: Clock
               },
               {
                 title: '🛠️ Em Oficina',
@@ -574,7 +686,10 @@ export const MaintenanceManagement: React.FC = () => {
                 nextStatus: 'completed',
                 btnText: 'Finalizar OS',
                 color: '#3b82f6',
-                bg: 'rgba(59, 130, 246, 0.05)'
+                bg: 'rgba(59, 130, 246, 0.05)',
+                emptyTitle: 'Oficina Vazia',
+                emptyDesc: 'Nenhum ativo em manutenção.',
+                emptyIcon: Wrench
               },
               {
                 title: '✅ Concluída',
@@ -582,7 +697,10 @@ export const MaintenanceManagement: React.FC = () => {
                 nextStatus: null,
                 btnText: null,
                 color: '#10b981',
-                bg: 'rgba(16, 185, 129, 0.05)'
+                bg: 'rgba(16, 185, 129, 0.05)',
+                emptyTitle: 'Nenhuma OS Concluída',
+                emptyDesc: 'As finalizadas aparecerão aqui.',
+                emptyIcon: CheckCircle2
               }
             ].map(col => {
               const colOrders = orders.filter(o => {
@@ -625,8 +743,12 @@ export const MaintenanceManagement: React.FC = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '600px', overflowY: 'auto', paddingRight: '4px' }}>
                     <AnimatePresence>
                       {colOrders.length === 0 ? (
-                        <div style={{ padding: '40px 20px', textAlign: 'center', color: 'hsl(var(--text-muted))', fontSize: '12px', border: '1px dashed hsl(var(--border))', borderRadius: '16px' }}>
-                          Nenhuma OS aqui
+                        <div style={{ padding: '20px 0' }}>
+                          <EmptyState 
+                            title={col.emptyTitle} 
+                            description={col.emptyDesc} 
+                            icon={col.emptyIcon} 
+                          />
                         </div>
                       ) : (
                         colOrders.map(o => {
@@ -760,6 +882,15 @@ export const MaintenanceManagement: React.FC = () => {
           </div>
         ) : (
           <ModernTable 
+            emptyState={
+              <EmptyState
+                title="Nenhuma manutenção encontrada"
+                description="Não há ordens de serviço que correspondam à sua busca."
+                actionLabel="Nova OS"
+                onAction={handleOpenCreate}
+                icon={Wrench}
+              />
+            }
             data={orders.filter(o => {
               const matchesSearch = (o.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
               const isCompleted = o.status === 'completed' || o.status === 'CONCLUIDA' || o.status === 'finalizada';
@@ -917,23 +1048,23 @@ export const MaintenanceManagement: React.FC = () => {
       </FormModal>
 
       <style>{`
-        .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .plan-card { background: white; border-radius: 20px; border: 1px solid #e2e8f0; padding: 24px; position: relative; transition: 0.3s; }
+        .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        .plan-card { background: hsl(var(--bg-card)); border-radius: 24px; border: 1px solid hsl(var(--border)); padding: 24px; position: relative; transition: 0.3s; }
         .plan-card:hover { transform: translateY(-5px); border-color: hsl(var(--brand)); box-shadow: 0 12px 24px -10px rgba(0,0,0,0.1); }
-        .plan-status-active { position: absolute; top: 20px; right: 20px; font-size: 9px; font-weight: 900; background: #ecfdf5; color: #059669; padding: 4px 8px; border-radius: 6px; }
+        .plan-status-active { position: absolute; top: 20px; right: 20px; font-size: 9px; font-weight: 900; background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 4px 8px; border-radius: 6px; }
         .plan-main { display: flex; gap: 16px; align-items: center; margin-bottom: 24px; }
-        .plan-icon { width: 44px; height: 44px; border-radius: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0; color: #64748b; }
-        .plan-info h3 { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; }
-        .plan-info p { font-size: 12px; color: #64748b; margin: 4px 0 0; }
-        .plan-stats { display: flex; gap: 16px; margin-bottom: 24px; padding: 16px; background: #f8fafc; border-radius: 12px; }
-        .p-stat { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: #475569; }
+        .plan-icon { width: 44px; height: 44px; border-radius: 12px; background: hsl(var(--bg-main)); display: flex; align-items: center; justify-content: center; border: 1px solid hsl(var(--border)); color: hsl(var(--text-muted)); }
+        .plan-info h3 { font-size: 16px; font-weight: 800; color: hsl(var(--text-main)); margin: 0; }
+        .plan-info p { font-size: 12px; color: hsl(var(--text-muted)); margin: 4px 0 0; }
+        .plan-stats { display: flex; gap: 16px; margin-bottom: 24px; padding: 16px; background: hsl(var(--bg-main)); border-radius: 12px; }
+        .p-stat { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: hsl(var(--text-muted)); }
         .plan-actions { display: flex; }
-        .plan-btn-edit { width: 100%; padding: 12px; border-radius: 12px; background: #f1f5f9; color: #1e293b; font-size: 11px; font-weight: 800; border: none; cursor: pointer; transition: 0.2s; text-transform: uppercase; }
-        .plan-btn-edit:hover { background: #e2e8f0; }
+        .plan-btn-edit { width: 100%; padding: 12px; border-radius: 12px; background: hsl(var(--bg-main)); color: hsl(var(--text-main)); font-size: 11px; font-weight: 800; border: 1px solid hsl(var(--border)); cursor: pointer; transition: 0.2s; text-transform: uppercase; }
+        .plan-btn-edit:hover { background: hsl(var(--brand) / 0.1); color: hsl(var(--brand)); border-color: hsl(var(--brand)); }
         
-        .add-plan-card { border: 2px dashed #e2e8f0; border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 240px; color: #94a3b8; transition: 0.2s; background: transparent; cursor: pointer; }
-        .add-plan-card:hover { background: #f8fafc; border-color: hsl(var(--brand)); color: hsl(var(--brand)); }
-        .add-plan-card span { font-size: 12px; font-weight: 900; }
+        .add-plan-card { border: 2px dashed #e2e8f0; border-radius: 24px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 180px; height: 100%; color: #94a3b8; transition: 0.2s; background: transparent; cursor: pointer; }
+        .add-plan-card:hover { background: rgba(16, 185, 129, 0.02); border-color: #10b981; color: #10b981; }
+        .add-plan-card span { font-size: 11px; font-weight: 900; letter-spacing: 0.05em; }
       `}</style>
 
     </div>

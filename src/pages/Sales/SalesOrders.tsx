@@ -807,9 +807,15 @@ export const SalesOrders: React.FC = () => {
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', flex: 1, maxHeight: '600px' }}>
-                <AnimatePresence>
-                  {orders.filter(o => o.status === 'pending').map((order, idx) => renderKanbanCard(order, idx))}
-                </AnimatePresence>
+                {orders.filter(o => o.status === 'pending').length === 0 ? (
+                  <div style={{ padding: '20px 0' }}>
+                    <EmptyState title="Nenhum pedido pendente" description="Não há pedidos aguardando." icon={Clock} />
+                  </div>
+                ) : (
+                  <AnimatePresence>
+                    {orders.filter(o => o.status === 'pending').map((order, idx) => renderKanbanCard(order, idx))}
+                  </AnimatePresence>
+                )}
               </div>
             </div>
 
@@ -824,9 +830,15 @@ export const SalesOrders: React.FC = () => {
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', flex: 1, maxHeight: '600px' }}>
-                <AnimatePresence>
-                  {orders.filter(o => o.status === 'delivered').map((order, idx) => renderKanbanCard(order, idx))}
-                </AnimatePresence>
+                {orders.filter(o => o.status === 'delivered').length === 0 ? (
+                  <div style={{ padding: '20px 0' }}>
+                    <EmptyState title="Nenhum pedido entregue" description="Pedidos faturados aparecerão aqui." icon={CheckCircle2} />
+                  </div>
+                ) : (
+                  <AnimatePresence>
+                    {orders.filter(o => o.status === 'delivered').map((order, idx) => renderKanbanCard(order, idx))}
+                  </AnimatePresence>
+                )}
               </div>
             </div>
 
@@ -841,9 +853,15 @@ export const SalesOrders: React.FC = () => {
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', flex: 1, maxHeight: '600px' }}>
-                <AnimatePresence>
-                  {orders.filter(o => o.status === 'canceled').map((order, idx) => renderKanbanCard(order, idx))}
-                </AnimatePresence>
+                {orders.filter(o => o.status === 'canceled').length === 0 ? (
+                  <div style={{ padding: '20px 0' }}>
+                    <EmptyState title="Nenhum cancelamento" description="Histórico de cancelamentos vazio." icon={AlertTriangle} />
+                  </div>
+                ) : (
+                  <AnimatePresence>
+                    {orders.filter(o => o.status === 'canceled').map((order, idx) => renderKanbanCard(order, idx))}
+                  </AnimatePresence>
+                )}
               </div>
             </div>
           </div>

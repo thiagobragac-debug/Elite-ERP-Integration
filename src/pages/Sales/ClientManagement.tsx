@@ -29,6 +29,8 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { useSearchParams } from 'react-router-dom';
 import { ClientFilterModal } from './components/ClientFilterModal';
 import { useDebounce } from '../../hooks/useDebounce';
+import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useViewMode } from '../../hooks/useViewMode';
 
 export const ClientManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
@@ -42,7 +44,7 @@ export const ClientManagement: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useViewMode('sales-client-management', 'grid');
   const [selectedSegment, setSelectedSegment] = useState('TODOS');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -527,6 +529,15 @@ export const ClientManagement: React.FC = () => {
       <div className="management-content">
         {viewMode === 'list' ? (
           <ModernTable 
+            emptyState={
+              <EmptyState
+                title="Nenhum cliente encontrado"
+                description={activeTab === 'ATIVO' ? 'Não há clientes ativos que correspondam à sua busca. Cadastre um novo cliente.' : 'Não há leads ou prospectos que correspondam à sua busca.'}
+                actionLabel="Novo Cliente"
+                onAction={handleOpenCreate}
+                icon={Users}
+              />
+            }
             data={clients.filter(client => {
               const matchesSearch = (client.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (client.tipo || '').toLowerCase().includes(searchTerm.toLowerCase());
               const matchesTab = activeTab === 'ATIVO' ? client.status?.toUpperCase() === 'ATIVO' : client.status?.toUpperCase() !== 'ATIVO';
@@ -558,28 +569,39 @@ export const ClientManagement: React.FC = () => {
               </div>
             )}
           />
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="user-cards-grid"
-          >
-            {clients
-              .filter(client => {
-                const matchesSearch = (client.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (client.tipo || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesTab = activeTab === 'ATIVO' ? client.status?.toUpperCase() === 'ATIVO' : client.status?.toUpperCase() !== 'ATIVO';
-                const matchesFarm = isGlobalMode || client.is_global || (activeFarm && client.fazendas_vinculadas?.includes(activeFarm.id));
-                const matchesSegmentTab = selectedSegment === 'TODOS' ? true : client.segmento === selectedSegment;
-                
-                const matchesStatus = filterValues.status === 'all' || client.status === filterValues.status;
-                const matchesRating = filterValues.rating === 'all' || client.rating === filterValues.rating;
-                const matchesLtv = (client.ltv || 0) <= filterValues.maxLtv;
-                const matchesChurn = filterValues.onlyChurnRisk ? client.churnRisk : true;
-                const matchesSegments = filterValues.segments.length === 0 || filterValues.segments.includes(client.segmento);
+        ) : (() => {
+          const filteredClients = clients.filter(client => {
+            const matchesSearch = (client.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (client.tipo || '').toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesTab = activeTab === 'ATIVO' ? client.status?.toUpperCase() === 'ATIVO' : client.status?.toUpperCase() !== 'ATIVO';
+            const matchesFarm = isGlobalMode || client.is_global || (activeFarm && client.fazendas_vinculadas?.includes(activeFarm.id));
+            const matchesSegmentTab = selectedSegment === 'TODOS' ? true : client.segmento === selectedSegment;
+            const matchesStatus = filterValues.status === 'all' || client.status === filterValues.status;
+            const matchesRating = filterValues.rating === 'all' || client.rating === filterValues.rating;
+            const matchesLtv = (client.ltv || 0) <= filterValues.maxLtv;
+            const matchesChurn = filterValues.onlyChurnRisk ? client.churnRisk : true;
+            const matchesSegments = filterValues.segments.length === 0 || filterValues.segments.includes(client.segmento);
+            return matchesSearch && matchesTab && matchesFarm && matchesSegmentTab && matchesStatus && matchesRating && matchesLtv && matchesChurn && matchesSegments;
+          });
 
-                return matchesSearch && matchesTab && matchesFarm && matchesSegmentTab && matchesStatus && matchesRating && matchesLtv && matchesChurn && matchesSegments;
-              })
-              .map(client => (
+          if (!loading && filteredClients.length === 0) {
+            return (
+              <EmptyState
+                title="Nenhum cliente encontrado"
+                description={activeTab === 'ATIVO' ? 'Não há clientes ativos. Cadastre um novo cliente para começar.' : 'Não há leads ou prospectos cadastrados ainda.'}
+                actionLabel="Novo Cliente"
+                onAction={handleOpenCreate}
+                icon={Users}
+              />
+            );
+          }
+
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="user-cards-grid"
+            >
+              {filteredClients.map(client => (
                 <motion.div 
                   key={client.id} 
                   initial={{ opacity: 0, y: 10 }}
@@ -629,8 +651,9 @@ export const ClientManagement: React.FC = () => {
                   </div>
                 </motion.div>
               ))}
-          </motion.div>
-        )}
+            </motion.div>
+          );
+        })()}
       </div>
 
       <style>{`

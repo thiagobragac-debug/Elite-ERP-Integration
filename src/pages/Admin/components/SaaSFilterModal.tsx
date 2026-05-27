@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, Filter, Globe, CreditCard, Activity, Calendar } from 'lucide-react';
+import { X, Filter, Globe, CreditCard, Activity, Calendar, DollarSign, HardDrive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface SaaSFilterModalProps {
@@ -13,6 +13,10 @@ interface SaaSFilterModalProps {
     maxUsers: number;
     dateStart: string;
     dateEnd: string;
+    minPrice?: number;
+    maxPrice?: number;
+    minStorage?: number;
+    maxStorage?: number;
   };
   setFilters: (filters: any) => void;
   activeTab: string;
@@ -25,100 +29,242 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
   setFilters,
   activeTab
 }) => {
+  const getButtonStyle = (isSelected: boolean, colorType: 'indigo' | 'amber' | 'emerald') => {
+    let activeColor = '#6366f1';
+    let shadowColor = 'rgba(99, 102, 241, 0.15)';
+    if (colorType === 'amber') {
+      activeColor = '#f59e0b';
+      shadowColor = 'rgba(245, 158, 11, 0.15)';
+    } else if (colorType === 'emerald') {
+      activeColor = '#10b981';
+      shadowColor = 'rgba(16, 185, 129, 0.15)';
+    }
+
+    return {
+      padding: '12px 16px',
+      borderRadius: '12px',
+      fontSize: '11px',
+      fontWeight: 700,
+      border: '1px solid',
+      cursor: 'pointer',
+      transition: 'all 0.2s',
+      background: isSelected ? activeColor : '#ffffff',
+      color: isSelected ? '#ffffff' : '#64748b',
+      borderColor: isSelected ? activeColor : '#e2e8f0',
+      boxShadow: isSelected ? `0 4px 12px ${shadowColor}` : 'none',
+      outline: 'none',
+      width: '100%',
+      textAlign: 'center' as const
+    };
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    border: '1px solid #e2e8f0',
+    outline: 'none',
+    fontSize: '12px',
+    fontWeight: 700,
+    color: '#334155',
+    background: '#ffffff',
+    transition: 'all 0.2s'
+  };
+
   return createPortal(
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 999999,
+          display: 'flex',
+          justifyContent: 'flex-end',
+          pointerEvents: 'auto'
+        }}>
+          {/* Backdrop Blur */}
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="bg-white rounded-[32px] shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'rgba(15, 23, 42, 0.4)',
+              backdropFilter: 'blur(4px)'
+            }}
+          />
+
+          {/* Sliding Drawer Content */}
+          <motion.div 
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: '400px',
+              height: '100vh',
+              background: '#ffffff',
+              boxShadow: '-10px 0 50px rgba(0, 0, 0, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 1000000,
+              borderTopLeftRadius: '24px',
+              borderBottomLeftRadius: '24px',
+              overflow: 'hidden'
+            }}
           >
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-200">
-                  <Filter size={20} />
+            {/* Header */}
+            <div style={{
+              padding: '28px 24px',
+              background: '#0b1329', // Dark Navy background
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid rgba(255,255,255,0.05)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#10b981'
+                }}>
+                  <Filter size={18} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight">Filtros Inteligentes</h2>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">SaaS Infrastructure v5.0</p>
+                  <h2 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+                    {activeTab === 'plans' ? 'Filtros de Planos' : activeTab === 'billing' ? 'Filtros de Cobrança' : 'Filtros de Tenants'}
+                  </h2>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '10px', fontWeight: '700', color: '#64748b' }}>
+                    Refine a busca por critérios de governança.
+                  </p>
                 </div>
               </div>
               <button 
                 onClick={onClose}
-                className="w-10 h-10 rounded-2xl flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-all"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#475569',
+                  background: '#ffffff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                }}
               >
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
-            <div className="p-8 space-y-8 max-h-[60vh] overflow-y-auto">
+            {/* Scrollable Form Content */}
+            <div style={{
+              flex: 1,
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '24px',
+              overflowY: 'auto'
+            }}>
+              
+              {/* 1. TAB TENANTS */}
               {activeTab === 'tenants' && (
                 <>
-                  <div className="space-y-4">
-                    <label className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-wider">
-                      <Activity size={14} className="text-indigo-500" /> Status da Instância
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Status da Instância <span style={{ color: '#94a3b8' }}>⚡</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {['all', 'Ativo', 'Bloqueado', 'Suspenso'].map((s) => (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                      {['all', 'Ativo', 'Suspenso'].map((s) => (
                         <button
                           key={s}
                           onClick={() => setFilters({ ...filters, status: s })}
-                          className={`px-4 py-3 rounded-2xl text-xs font-bold transition-all border ${
-                            filters.status === s 
-                              ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100' 
-                              : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
-                          }`}
+                          style={getButtonStyle(filters.status === s, 'indigo')}
                         >
-                          {s === 'all' ? 'Todos Status' : s}
+                          {s === 'all' ? 'TODOS STATUS' : s.toUpperCase()}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <label className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-wider">
-                      <CreditCard size={14} className="text-amber-500" /> Plano Assinado
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Plano Assinado <span style={{ color: '#94a3b8' }}>💎</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {['all', 'Starter', 'Pro', 'Enterprise'].map((p) => (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                      {['all', 'Starter', 'Pro', 'Enterprise', 'DEMO'].map((p) => (
                         <button
                           key={p}
                           onClick={() => setFilters({ ...filters, plan: p })}
-                          className={`px-4 py-3 rounded-2xl text-xs font-bold transition-all border ${
-                            filters.plan === p 
-                              ? 'bg-amber-500 text-white border-amber-500 shadow-lg shadow-amber-100' 
-                              : 'bg-white text-slate-600 border-slate-200 hover:border-amber-300'
-                          }`}
+                          style={getButtonStyle(filters.plan === p, 'amber')}
                         >
-                          {p === 'all' ? 'Todos Planos' : p}
+                          {p === 'all' ? 'TODOS PLANOS' : p.toUpperCase()}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <label className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-wider">
-                      <Globe size={14} className="text-emerald-500" /> Volume de Usuários
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Volume de Usuários <span style={{ color: '#94a3b8' }}>👥</span>
                     </label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-slate-500">Mínimo</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO</span>
                         <input 
                           type="number" 
                           value={filters.minUsers}
                           onChange={(e) => setFilters({ ...filters, minUsers: Number(e.target.value) })}
-                          className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50/50 outline-none font-bold text-slate-700 transition-all"
+                          style={inputStyle}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-slate-500">Máximo</span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO</span>
                         <input 
                           type="number" 
                           value={filters.maxUsers}
                           onChange={(e) => setFilters({ ...filters, maxUsers: Number(e.target.value) })}
-                          className="w-full px-4 py-3 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50/50 outline-none font-bold text-slate-700 transition-all"
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Janela de Provisionamento <span style={{ color: '#94a3b8' }}>📅</span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>INÍCIO</span>
+                        <input 
+                          type="date" 
+                          value={filters.dateStart}
+                          onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>FIM</span>
+                        <input 
+                          type="date" 
+                          value={filters.dateEnd}
+                          onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
+                          style={inputStyle}
                         />
                       </div>
                     </div>
@@ -126,28 +272,178 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                 </>
               )}
 
-              <div className="space-y-4">
-                <label className="flex items-center gap-2 text-[11px] font-black text-slate-400 uppercase tracking-wider">
-                  <Calendar size={14} className="text-indigo-500" /> Janela de Provisionamento
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <input 
-                    type="date" 
-                    value={filters.dateStart}
-                    onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
-                    className="px-4 py-3 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50/50 outline-none font-bold text-slate-700 transition-all"
-                  />
-                  <input 
-                    type="date" 
-                    value={filters.dateEnd}
-                    onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
-                    className="px-4 py-3 rounded-2xl border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50/50 outline-none font-bold text-slate-700 transition-all"
-                  />
-                </div>
-              </div>
+              {/* 2. TAB PLANS */}
+              {activeTab === 'plans' && (
+                <>
+                  {/* Price Range */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <DollarSign size={14} style={{ color: '#10b981' }} /> Faixa de Preço (Mensal)
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO (R$)</span>
+                        <input 
+                          type="number" 
+                          value={filters.minPrice ?? 0}
+                          onChange={(e) => setFilters({ ...filters, minPrice: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO (R$)</span>
+                        <input 
+                          type="number" 
+                          value={filters.maxPrice ?? 10000}
+                          onChange={(e) => setFilters({ ...filters, maxPrice: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Users limit */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <Globe size={14} style={{ color: '#6366f1' }} /> Limite de Usuários do Plano
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO</span>
+                        <input 
+                          type="number" 
+                          value={filters.minUsers}
+                          onChange={(e) => setFilters({ ...filters, minUsers: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO</span>
+                        <input 
+                          type="number" 
+                          value={filters.maxUsers}
+                          onChange={(e) => setFilters({ ...filters, maxUsers: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Storage Limit */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <HardDrive size={14} style={{ color: '#f59e0b' }} /> Limite de Storage (GB)
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO (GB)</span>
+                        <input 
+                          type="number" 
+                          value={filters.minStorage ?? 0}
+                          onChange={(e) => setFilters({ ...filters, minStorage: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO (GB)</span>
+                        <input 
+                          type="number" 
+                          value={filters.maxStorage ?? 1000}
+                          onChange={(e) => setFilters({ ...filters, maxStorage: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* 3. TAB BILLING */}
+              {activeTab === 'billing' && (
+                <>
+                  {/* Invoice Status */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Status da Fatura <span style={{ color: '#94a3b8' }}>⚡</span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                      {['all', 'paga', 'pendente', 'atrasada'].map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setFilters({ ...filters, status: s })}
+                          style={getButtonStyle(filters.status === s, 'emerald')}
+                        >
+                          {s === 'all' ? 'TODAS FATURAS' : s.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Invoice Amount Range */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <DollarSign size={14} style={{ color: '#10b981' }} /> Valor da Cobrança (R$)
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO</span>
+                        <input 
+                          type="number" 
+                          value={filters.minPrice ?? 0}
+                          onChange={(e) => setFilters({ ...filters, minPrice: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO</span>
+                        <input 
+                          type="number" 
+                          value={filters.maxPrice ?? 10000}
+                          onChange={(e) => setFilters({ ...filters, maxPrice: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Invoice Due Date Window */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Janela de Vencimento <span style={{ color: '#94a3b8' }}>📅</span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>INÍCIO</span>
+                        <input 
+                          type="date" 
+                          value={filters.dateStart}
+                          onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>FIM</span>
+                        <input 
+                          type="date" 
+                          value={filters.dateEnd}
+                          onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className="p-8 bg-slate-50 border-t border-slate-100 flex gap-4">
+            {/* Bottom Actions */}
+            <div style={{
+              padding: '20px 24px',
+              background: '#f8fafc',
+              borderTop: '1px solid #e2e8f0',
+              display: 'flex',
+              gap: '12px'
+            }}>
               <button 
                 onClick={() => {
                   setFilters({
@@ -156,18 +452,49 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     minUsers: 0,
                     maxUsers: 1000,
                     dateStart: '',
-                    dateEnd: ''
+                    dateEnd: '',
+                    minPrice: 0,
+                    maxPrice: 10000,
+                    minStorage: 0,
+                    maxStorage: 1000
                   });
                 }}
-                className="flex-1 px-6 py-4 rounded-2xl text-xs font-black text-slate-500 hover:bg-slate-200 transition-all tracking-widest"
+                style={{
+                  flex: 1,
+                  padding: '14px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  fontWeight: 900,
+                  color: '#64748b',
+                  border: '1px solid #e2e8f0',
+                  background: '#ffffff',
+                  cursor: 'pointer',
+                  letterSpacing: '0.05em',
+                  transition: 'all 0.2s',
+                  outline: 'none'
+                }}
               >
                 LIMPAR TUDO
               </button>
               <button 
                 onClick={onClose}
-                className="flex-[2] px-6 py-4 rounded-2xl text-xs font-black bg-indigo-600 text-white shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all tracking-widest"
+                style={{
+                  flex: 2,
+                  padding: '14px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  fontWeight: 900,
+                  color: '#ffffff',
+                  border: 'none',
+                  background: '#10b981', // Clean Emerald Green
+                  cursor: 'pointer',
+                  letterSpacing: '0.05em',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                  transition: 'all 0.2s',
+                  outline: 'none'
+                }}
               >
-                APLICAR INTELIGÊNCIA
+                {activeTab === 'plans' ? 'FILTRAR PLANOS' : activeTab === 'billing' ? 'FILTRAR COBRANÇAS' : 'FILTRAR TENANTS'}
               </button>
             </div>
           </motion.div>

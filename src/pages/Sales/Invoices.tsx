@@ -31,6 +31,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { OutputInvoiceFilterModal } from './components/OutputInvoiceFilterModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const Invoices: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -38,6 +39,7 @@ export const Invoices: React.FC = () => {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'ISSUED' | 'CANCELED'>('ISSUED');
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -344,14 +346,14 @@ export const Invoices: React.FC = () => {
       <div className="tauze-controls-row">
         <div className="tauze-tab-group">
           <button 
-            className="tauze-tab-item active"
-            onClick={() => {}}
+            className={`tauze-tab-item ${activeTab === 'ISSUED' ? 'active' : ''}`}
+            onClick={() => setActiveTab('ISSUED')}
           >
             Emitidas
           </button>
           <button 
-            className="tauze-tab-item"
-            onClick={() => {}}
+            className={`tauze-tab-item ${activeTab === 'CANCELED' ? 'active' : ''}`}
+            onClick={() => setActiveTab('CANCELED')}
           >
             Canceladas
           </button>
@@ -405,17 +407,37 @@ export const Invoices: React.FC = () => {
 
       <div className="management-content">
         <ModernTable 
+          emptyState={
+            !searchTerm && filterValues.status === 'all' && filterValues.minAmount === 0 && filterValues.maxAmount === 1000000 && !filterValues.dateStart && !filterValues.dateEnd && !filterValues.onlyConciliated ? (
+              <EmptyState
+                title={activeTab === 'ISSUED' ? "Nenhuma nota fiscal emitida" : "Nenhuma nota fiscal cancelada"}
+                description={activeTab === 'ISSUED' ? "Você não possui notas fiscais de saída emitidas no momento." : "Não há histórico de notas fiscais canceladas."}
+                actionLabel={activeTab === 'ISSUED' ? "Emitir Nova NF-e" : undefined}
+                onAction={activeTab === 'ISSUED' ? handleOpenCreate : undefined}
+                icon={FileText}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={invoices.filter(inv => {
             const matchesSearch = (inv.numero_nota || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                                  (inv.parceiros?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
             
+            // Dummy logic for active tab since backend might not have status=canceled in mock data yet
+            const matchesTab = activeTab === 'ISSUED' ? inv.status !== 'canceled' : inv.status === 'canceled';
+
             const matchesStatus = filterValues.status === 'all' || inv.status === filterValues.status || (filterValues.status === 'pending' && inv.status !== 'authorized');
             const matchesAmount = Number(inv.valor_total) <= filterValues.maxAmount;
             const matchesConciliation = filterValues.onlyConciliated ? inv.hasFinancialLink : true;
             const matchesDate = (!filterValues.dateStart || new Date(inv.data_emissao) >= new Date(filterValues.dateStart)) &&
                                (!filterValues.dateEnd || new Date(inv.data_emissao) <= new Date(filterValues.dateEnd));
 
-            return matchesSearch && matchesStatus && matchesAmount && matchesConciliation && matchesDate;
+            return matchesSearch && matchesTab && matchesStatus && matchesAmount && matchesConciliation && matchesDate;
           })}
           columns={columns}
           loading={loading}

@@ -40,6 +40,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { InventoryFilterModal } from './components/InventoryFilterModal';
 import { formatNumber } from '../../utils/format';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useViewMode } from '../../hooks/useViewMode';
 
 export const InventoryManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
@@ -53,7 +54,7 @@ export const InventoryManagement: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useViewMode('inventory-management', 'grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     categoria: 'all', // Corrected singular field
@@ -123,11 +124,8 @@ export const InventoryManagement: React.FC = () => {
       setTotalCount(count);
     } catch (err) {
       console.warn('[Inventory] Resilience Pattern Engaged:', err);
-      const mockProducts = [
-        { id: 'm1', nome: 'MOCK: Sal Mineral 80', categoria: 'Suplemento', unidade: 'kg', estoque_atual: 500, estoque_minimo: 200, custo_medio: 4.5 }
-      ];
-      setProducts(mockProducts);
-      setTotalCount(1);
+      setProducts([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }
@@ -643,13 +641,23 @@ export const InventoryManagement: React.FC = () => {
       <div className="management-content">
         {viewMode === 'list' ? (
           <ModernTable 
-            emptyState={<EmptyState
-              title="Nenhum insumo cadastrado"
-              description="A frota desta unidade ainda não possui insumos registrados. Cadastre o primeiro maquinário para iniciar o monitoramento telemetria."
-              actionLabel="Novo Insumo"
-              onAction={handleOpenCreate}
-              icon={Package}
-            />}
+            emptyState={
+              (!searchTerm && filterValues.categoria === 'all') ? (
+                <EmptyState
+                  title="Nenhum insumo cadastrado"
+                  description="A frota desta unidade ainda não possui insumos registrados. Cadastre o primeiro insumo para iniciar o monitoramento."
+                  actionLabel="Novo Insumo"
+                  onAction={handleOpenCreate}
+                  icon={Package}
+                />
+              ) : (
+                <EmptyState
+                  title="Nenhum registro encontrado"
+                  description="Sua busca não retornou resultados."
+                  icon={Search}
+                />
+              )
+            }
             data={products}
             columns={columns}
             loading={loading}
@@ -717,8 +725,56 @@ export const InventoryManagement: React.FC = () => {
             animate={{ opacity: 1 }}
             className="user-cards-grid"
           >
-            {products
-              .map(p => {
+            {products.length === 0 ? (
+              <div 
+                className="user-card-premium" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  gap: '6px',
+                  minHeight: '180px',
+                  height: '100%',
+                  boxShadow: 'none'
+                }}
+              >
+                <div 
+                  style={{ 
+                    margin: 0, 
+                    width: '40px', 
+                    height: '40px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {(!searchTerm && filterValues.categoria === 'all') ? <Package size={22} /> : <Search size={22} />}
+                </div>
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                  {(!searchTerm && filterValues.categoria === 'all') ? 'Nenhum insumo cadastrado' : 'Nenhum registro encontrado'}
+                </h3>
+                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                  {(!searchTerm && filterValues.categoria === 'all') ? 'Não há insumos cadastrados nesta unidade.' : 'Sua busca não retornou resultados.'}
+                </p>
+                {(!searchTerm && filterValues.categoria === 'all') && (
+                  <button 
+                    className="primary-btn" 
+                    onClick={handleOpenCreate}
+                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                  >
+                    <Plus size={12} />
+                    <span>NOVO INSUMO</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              products.map(p => {
                 const isCritical = Number(p.estoque_atual) <= Number(p.estoque_minimo);
                 
                 const getIcon = (cat: string) => {
@@ -831,7 +887,8 @@ export const InventoryManagement: React.FC = () => {
                     </div>
                   </motion.div>
                 );
-              })}
+              })
+            )}
             <button className="add-product-card-premium" onClick={handleOpenCreate}>
               <Plus size={32} />
               <span>NOVO INSUMO</span>

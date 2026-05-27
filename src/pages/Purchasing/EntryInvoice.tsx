@@ -28,6 +28,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { PurchasingFilterModal } from './components/PurchasingFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const EntryInvoice: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -425,6 +426,23 @@ export const EntryInvoice: React.FC = () => {
 
       <div className="management-content">
         <ModernTable 
+          emptyState={
+            !searchTerm && filterValues.status === 'all' && filterValues.minAmount === 0 && !filterValues.dateStart && !filterValues.dateEnd && !filterValues.onlyDelayed ? (
+              <EmptyState
+                title={activeTab === 'INVOICES' ? "Nenhuma nota de entrada registrada" : "Nenhuma nota aguardando processamento fiscal"}
+                description={activeTab === 'INVOICES' ? "Não há notas fiscais lançadas no momento." : "As rotinas fiscais estão em dia."}
+                actionLabel={activeTab === 'INVOICES' ? "Lançar Nota" : undefined}
+                onAction={activeTab === 'INVOICES' ? handleOpenCreate : undefined}
+                icon={FileText}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={invoices}
           columns={tableColumns}
           loading={loading}

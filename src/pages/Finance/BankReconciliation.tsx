@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowRightLeft, 
   CheckCircle2, 
@@ -29,6 +29,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { FormModal } from '../../components/Forms/FormModal';
 import { ReconFilterModal } from './components/ReconFilterModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Filter } from 'lucide-react';
 
 export const BankReconciliation: React.FC = () => {
@@ -114,53 +115,39 @@ export const BankReconciliation: React.FC = () => {
 
       if (error) throw error;
       
-      // Simulação de Dados para demonstração V5.0 (Em produção viria do banco)
-      const mockBank = [
-        { id: 'b1', date: '2024-05-02', description: 'PIX RECEBIDO - JBS S.A.', amount: 350000.00 },
-        { id: 'b2', date: '2024-05-01', description: 'PAGTO BOLETO - FERT SUL', amount: -45200.00 },
-        { id: 'b3', date: '2024-04-30', description: 'TARIFA BANCARIA CESTA', amount: -45.00 },
-        { id: 'b4', date: '2024-05-03', description: 'TED RECEBIDA - FRIGORIFICO SUL', amount: 120500.00 },
-      ];
-
-      const mockInternal = [
-        { id: 'i1', date: '2024-05-02', description: 'Venda Gado Lote A1', amount: 350000.00 },
-        { id: 'i2', date: '2024-05-01', description: 'Compra NPK 04-14', amount: -45200.00 },
-        { id: 'i3', date: '2024-05-03', description: 'Venda Couro Export', amount: 120500.00 },
-      ];
-
-      setBankRecords(mockBank);
-      setInternalRecords(mockInternal);
+      setBankRecords([]);
+      setInternalRecords([]);
 
       const totalConciliado = dbRecons?.filter(r => r.status === 'completed').length || 0;
-      const pendentes = mockBank.length;
+      const pendentes = 0;
       
       setStats([
         { 
           label: 'Automação Pareamento', 
-          value: '85.4%', 
+          value: '0%', 
           icon: Zap, 
           color: '#8b5cf6', 
-          progress: 85,
-          change: '+12.5%',
-          periodLabel: 'Eficiência Tauze IA',
-          sparkline: [{ value: 60, label: '60' }, { value: 85, label: '85' }]
+          progress: 0,
+          change: 'Eficiência Tauze IA',
+          periodLabel: 'Sem dados',
+          sparkline: [{ value: 0, label: '0' }, { value: 0, label: '0' }]
         },
         { 
           label: 'Volume Auditado', 
-          value: mockBank.length, 
+          value: 0, 
           icon: FileText, 
           color: '#3b82f6', 
-          progress: 100,
+          progress: 0,
           change: 'Fluxo em Dia',
           periodLabel: 'Mês Atual',
-          sparkline: [{ value: 40, label: '40' }, { value: 85, label: '85' }]
+          sparkline: [{ value: 0, label: '0' }, { value: 0, label: '0' }]
         },
         { 
           label: 'Pendências Críticas', 
           value: pendentes, 
           icon: HelpCircle, 
           color: '#f59e0b', 
-          progress: 30,
+          progress: 0,
           change: 'Aguardando Conciliação',
           periodLabel: 'Próximas 24h'
         },
@@ -396,7 +383,7 @@ export const BankReconciliation: React.FC = () => {
           <label className="glass-btn primary cursor-pointer">
             <Upload size={18} />
             <span>IMPORTAR EXTRATO (OFX/CSV)</span>
-            <input type="file" className="hidden" accept=".ofx,.csv" onChange={handleFileUpload} />
+            <input type="file" style={{ display: 'none' }} accept=".ofx,.csv" onChange={handleFileUpload} />
           </label>
         </div>
       </div>
@@ -419,20 +406,33 @@ export const BankReconciliation: React.FC = () => {
           </div>
 
           <div className="records-grid-tauze">
-            {bankRecords.filter(rec => {
-              const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
-              
-              const matchesAmount = Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount;
-              const matchesDate = (!filterValues.dateStart || new Date(rec.date) >= new Date(filterValues.dateStart)) &&
-                                 (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
-              
-              const internalMatches = internalRecords.filter(ir => calculateMatchScore(rec, ir) >= 60);
-              const matchesStatus = filterValues.status === 'all' || 
-                                   (filterValues.status === 'matched' && internalMatches.length > 0) ||
-                                   (filterValues.status === 'pending' && internalMatches.length === 0);
+            {(() => {
+              const filteredBankRecords = bankRecords.filter(rec => {
+                const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
+                
+                const matchesAmount = Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount;
+                const matchesDate = (!filterValues.dateStart || new Date(rec.date) >= new Date(filterValues.dateStart)) &&
+                                   (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
+                
+                const internalMatches = internalRecords.filter(ir => calculateMatchScore(rec, ir) >= 60);
+                const matchesStatus = filterValues.status === 'all' || 
+                                     (filterValues.status === 'matched' && internalMatches.length > 0) ||
+                                     (filterValues.status === 'pending' && internalMatches.length === 0);
 
-              return matchesSearch && matchesAmount && matchesDate && matchesStatus;
-            }).map((rec) => {
+                return matchesSearch && matchesAmount && matchesDate && matchesStatus;
+              });
+
+              if (filteredBankRecords.length === 0) {
+                return (
+                  <EmptyState
+                    title={searchTerm ? "Nenhum registro encontrado" : "Nenhum extrato importado"}
+                    description={searchTerm ? "Sua busca não retornou resultados no extrato." : "Importe um arquivo OFX/CSV para iniciar a conciliação."}
+                    icon={Banknote}
+                  />
+                );
+              }
+
+              return filteredBankRecords.map((rec) => {
               const matches = internalRecords
                 .map(ir => ({ ir, score: calculateMatchScore(rec, ir) }))
                 .filter(m => m.score >= 60)
@@ -517,7 +517,8 @@ export const BankReconciliation: React.FC = () => {
                   </div>
                 </motion.div>
               );
-            })}
+            });
+          })()}
           </div>
         </div>
 
@@ -535,14 +536,27 @@ export const BankReconciliation: React.FC = () => {
           </div>
 
           <div className="records-grid-tauze">
-            {internalRecords.filter(rec => {
-              const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
-              const matchesAmount = Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount;
-              const matchesDate = (!filterValues.dateStart || new Date(rec.date) >= new Date(filterValues.dateStart)) &&
-                                 (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
-              
-              return matchesSearch && matchesAmount && matchesDate;
-            }).map((rec) => (
+            {(() => {
+              const filteredInternalRecords = internalRecords.filter(rec => {
+                const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
+                const matchesAmount = Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount;
+                const matchesDate = (!filterValues.dateStart || new Date(rec.date) >= new Date(filterValues.dateStart)) &&
+                                   (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
+                
+                return matchesSearch && matchesAmount && matchesDate;
+              });
+
+              if (filteredInternalRecords.length === 0) {
+                return (
+                  <EmptyState
+                    title={searchTerm ? "Nenhum registro encontrado" : "Nenhum lançamento no ERP"}
+                    description={searchTerm ? "Sua busca não retornou resultados no financeiro." : "Não há movimentações financeiras pendentes."}
+                    icon={FileText}
+                  />
+                );
+              }
+
+              return filteredInternalRecords.map((rec) => (
               <motion.div 
                 key={rec.id} 
                 className="tauze-report-card mini success"
@@ -571,7 +585,8 @@ export const BankReconciliation: React.FC = () => {
                   </button>
                 </div>
               </motion.div>
-            ))}
+            ));
+          })()}
           </div>
         </div>
       </div>

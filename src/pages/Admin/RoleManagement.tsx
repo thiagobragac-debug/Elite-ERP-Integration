@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Briefcase, Edit2, Trash2 } from 'lucide-react';
+import { Search, Briefcase, Edit2, Trash2 } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { FormModal } from '../../components/Forms/FormModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 interface Cargo {
   id: string;
@@ -160,6 +161,23 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numb
     <div className="hub-content fade-in">
       <main className="recent-activity-section" style={{ marginTop: 0, padding: 0, border: 'none', background: 'transparent' }}>
         <ModernTable 
+          emptyState={
+            cargos.length === 0 ? (
+              <EmptyState
+                title="Nenhum cargo cadastrado"
+                description="Você ainda não possui cargos cadastrados. Crie o primeiro para organizar a estrutura da empresa."
+                actionLabel="Novo Cargo"
+                onAction={handleOpenCreate}
+                icon={Briefcase}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={filteredData}
           columns={columns}
           loading={loading}

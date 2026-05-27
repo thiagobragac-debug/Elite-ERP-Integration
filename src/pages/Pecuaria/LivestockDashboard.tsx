@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Beef, 
   TrendingUp, 
@@ -39,16 +39,9 @@ export const LivestockDashboard: React.FC = () => {
   const operationalQueue = rawQueue || [];
 
   const { activeFarmId, activeTenantId, isGlobalMode, applyFarmFilter } = useFarmFilter();
-  const [reproStats, setReproStats] = useState<any>({ taxa_sucesso: 82.4 });
-  const [autonomyDays, setAutonomyDays] = useState<number>(12);
-  const [performanceData, setPerformanceData] = useState<any[]>([
-    { label: 'Sem 01', value: 0.78 },
-    { label: 'Sem 02', value: 0.82 },
-    { label: 'Sem 03', value: 0.80 },
-    { label: 'Sem 04', value: 0.85 },
-    { label: 'Sem 05', value: 0.88 },
-    { label: 'Sem 06', value: 0.842 },
-  ]);
+  const [reproStats, setReproStats] = useState<any>({ taxa_sucesso: 0 });
+  const [autonomyDays, setAutonomyDays] = useState<number>(0);
+  const [performanceData, setPerformanceData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchExtraData = async () => {
@@ -109,7 +102,7 @@ export const LivestockDashboard: React.FC = () => {
         const dailyConsumption = totalAnimals * 10; // 10kg/dia por animal
         const calculatedAutonomy = (dailyConsumption > 0 && nutritionStock > 0)
           ? Math.ceil(nutritionStock / dailyConsumption)
-          : 12; // Fallback premium de 12 dias se rebanho/estoque vazio
+          : 0;
         setAutonomyDays(calculatedAutonomy);
 
         // 3. Weekly GMD calculation
@@ -141,7 +134,7 @@ export const LivestockDashboard: React.FC = () => {
           }
           
           if (calculatedGMD <= 0 || calculatedGMD > 2) {
-            calculatedGMD = 0.78 + (i * 0.02) + (Math.sin(i) * 0.03); // Curve premium fallback
+            calculatedGMD = 0;
           }
 
           return {
@@ -274,16 +267,16 @@ export const LivestockDashboard: React.FC = () => {
           <div className="quick-stats-mini">
             <div className="mini-card success">
               <span className="m-label">Taxa de Prenhez</span>
-              <span className="m-value">{Number(reproStats?.taxa_sucesso || 82.4).toFixed(1)}%</span>
+              <span className="m-value">{reproStats?.taxa_sucesso > 0 ? `${Number(reproStats.taxa_sucesso).toFixed(1)}%` : '---'}</span>
               <div className="m-trend">
                 <ArrowUpRight size={12} /> Real (IA)
               </div>
             </div>
             <div className="mini-card warning">
               <span className="m-label">Autonomia Silo</span>
-              <span className="m-value">{autonomyDays} dias</span>
+              <span className="m-value">{autonomyDays > 0 ? `${autonomyDays} dias` : '---'}</span>
               <div className={`m-trend ${autonomyDays < 15 ? 'text-danger' : 'text-success'}`}>
-                {autonomyDays < 15 ? 'Risco de Ruptura' : 'Nível Seguro'}
+                {autonomyDays > 0 ? (autonomyDays < 15 ? 'Risco de Ruptura' : 'Nível Seguro') : 'Sem dados'}
               </div>
             </div>
           </div>

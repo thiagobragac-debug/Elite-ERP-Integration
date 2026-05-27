@@ -27,6 +27,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { MovementFilterModal } from './components/MovementFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const MovementManagement: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, activeFarm } = useFarmFilter();
@@ -556,6 +557,23 @@ export const MovementManagement: React.FC = () => {
 
       <div className="management-content">
           <ModernTable 
+          emptyState={
+            !searchTerm && filterValues.type === 'all' && filterValues.minAmount === 0 && filterValues.maxAmount === 1000000 && !filterValues.dateStart && !filterValues.dateEnd ? (
+              <EmptyState
+                title={activeTab === 'LOG' ? "Nenhum movimento registrado" : "Nenhuma análise disponível"}
+                description={activeTab === 'LOG' ? "O log de movimentações está vazio no momento." : "Não há dados suficientes para a análise de fluxo."}
+                actionLabel={activeTab === 'LOG' ? "Lançar Entrada" : undefined}
+                onAction={activeTab === 'LOG' ? () => handleOpenCreate('in') : undefined}
+                icon={ArrowRightLeft}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={movements}
           columns={columns}
           loading={loading}

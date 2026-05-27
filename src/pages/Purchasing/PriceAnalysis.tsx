@@ -18,6 +18,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const PriceAnalysis: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -250,6 +251,13 @@ export const PriceAnalysis: React.FC = () => {
           </div>
           
           <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
             data={priceHistory.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))}
             columns={tableColumns}
             loading={loading}

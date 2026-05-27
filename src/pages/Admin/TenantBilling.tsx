@@ -22,6 +22,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { isValidUUID } from '../../utils/validation';
 import { BillingFilterModal } from './components/BillingFilterModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const TenantBilling: React.FC = () => {
   const { tenant } = useTenant();
@@ -554,6 +555,13 @@ export const TenantBilling: React.FC = () => {
               />
 
               <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
                 data={invoices}
                 columns={invoiceColumns}
                 loading={invoicesLoading}

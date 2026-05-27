@@ -96,9 +96,9 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       .single();
     
     let finalProfile = profileData;
-    if (user.email === 'thiagobraga.c@gmail.com') {
+    if (user.email === 'thiagobraga.c@gmail.com' || finalProfile?.role === 'SAAS_ADMIN') {
       finalProfile = finalProfile || { id: user.id };
-      finalProfile.role = 'ADMIN';
+      finalProfile.role = finalProfile.role === 'SAAS_ADMIN' ? 'SAAS_ADMIN' : 'ADMIN';
       finalProfile.permissoes = ['all'];
       finalProfile.permissions = ['all'];
     }

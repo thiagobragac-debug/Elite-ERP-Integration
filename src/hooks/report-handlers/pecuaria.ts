@@ -417,7 +417,7 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
     };
   } catch (error) {
     console.error('[dashboardOverview] Critical Failure:', error);
-    return { data: [], stats: mockData.stats, columns: mockData.columns, totalCount: 0 };
+    return { data: [], stats: [], columns: mockData.columns, totalCount: 0 };
   }
 };
 
@@ -465,7 +465,7 @@ export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageS
         custoMS: Number(d.custo_por_kg || 0) / ((d.percentual_ms || 88) / 100)
       })),
       columns: mockData.columns,
-      stats: mockData.stats, // Stats are static for now, could be improved with RPC
+      stats: [],
       totalCount: count || 0
     };
   } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
@@ -650,7 +650,7 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
     const { data, count, error } = await withTimeout((query.order('data_evento', { ascending: false }).range(from, to) as unknown) as Promise<any>) as any;
     if (error) throw error;
 
-    const rawData = data || mockData.data;
+    const rawData = data || [];
     const enrichedData = (rawData || []).map((item: any) => {
       let previsaoParto = null;
       let progressoGestacao = 0;
@@ -675,19 +675,12 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
     return {
       data: enrichedData,
       columns: mockData.columns,
-      stats: mockData.stats,
-      totalCount: count || (data ? data.length : mockData.data.length)
+      stats: [],
+      totalCount: count || 0
     };
   } catch (error) {
     console.warn('[Reproducao] Resilience Pattern Engaged:', error);
-    // Apply enrichment to mock data even in catch block
-    const fallbackEnriched = mockData.data.map(item => {
-      const dataConcepcao = new Date(item.data_evento);
-      const previsaoParto = new Date(dataConcepcao);
-      previsaoParto.setDate(previsaoParto.getDate() + 285);
-      return { ...item, previsaoParto, progressoGestacao: 30, diasGestacao: 85 };
-    });
-    return { ...mockData, data: fallbackEnriched };
+    return { data: [], stats: [], columns: mockData.columns, totalCount: 0 };
   }
 };
 
@@ -696,23 +689,15 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
  */
 export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
   const mockData = {
-    data: [
-      { id: 'w1', peso: 450, data_pesagem: new Date().toISOString(), animais: { brinco: 'BR 1234' }, gmd: 1.2 },
-      { id: 'w2', peso: 480, data_pesagem: new Date().toISOString(), animais: { brinco: 'BR 5678' }, gmd: 0.9 }
-    ],
+    data: [],
     columns: [
       { header: 'Brinco', accessor: (row: any) => row.animais?.brinco || 'N/A' },
       { header: 'Peso', accessor: (row: any) => row.peso ? `${Number(row.peso).toFixed(1)} kg` : 'N/A' },
       { header: 'GMD Médio', accessor: (row: any) => row.gmd ? `${Number(row.gmd).toFixed(3)} kg/dia` : 'N/A' },
       { header: 'Data da Pesagem', accessor: (row: any) => row.data_pesagem ? new Date(row.data_pesagem).toLocaleDateString('pt-BR') : 'N/A' }
     ],
-    stats: [
-      { label: 'Peso Médio', sparkline: (() => {  const valStr = String('465 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '465 kg', change: '+12kg', trend: 'up' as const, icon: Scale, color: 'hsl(var(--brand))' },
-      { label: 'GMD Médio', sparkline: (() => {  const valStr = String('1.050 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '1.050 kg', change: '+0.1kg', trend: 'up' as const, icon: TrendingUp, color: 'hsl(var(--success))' },
-      { label: 'Sincronização', sparkline: (() => {  const valStr = String('Online'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: 'Online', change: 'Tempo Real', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--warning))' },
-      { label: 'Peso de Saída', sparkline: (() => {  const valStr = String('540 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '540 kg', change: 'Projetado', trend: 'neutral' as const, icon: Scale, color: 'hsl(var(--brand))' }
-    ],
-    totalCount: 2
+    stats: [],
+    totalCount: 0
   };
 
   try {
@@ -741,7 +726,7 @@ export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pag
     return {
       data: enrichedData,
       columns: mockData.columns,
-      stats: mockData.stats,
+      stats: [],
       totalCount: count || 0
     };
   } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { 
+import { Search, 
   User, 
   Mail, 
   Shield, 
@@ -15,6 +15,7 @@ import {
 import { motion } from 'framer-motion';
 import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const ProfilePage: React.FC = () => {
   const { userProfile } = useTenant();
@@ -196,6 +197,13 @@ export const ProfilePage: React.FC = () => {
               
               <div className="security-content">
                 <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
                   data={loginHistory}
                   columns={[
                     { header: 'Evento', accessor: 'event' },

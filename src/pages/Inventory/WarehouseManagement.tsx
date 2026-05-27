@@ -28,6 +28,8 @@ import { FormModal } from '../../components/Forms/FormModal';
 import { WarehouseFilterModal } from './components/WarehouseFilterModal';
 import { WarehouseStockModal } from './components/WarehouseStockModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { useViewMode } from '../../hooks/useViewMode';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 export const WarehouseManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -35,7 +37,7 @@ export const WarehouseManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useViewMode('inventory-warehouse-management', 'grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [activeTab, setActiveTab] = useState('Todos');
   const [filterValues, setFilterValues] = useState({
@@ -453,6 +455,26 @@ export const WarehouseManagement: React.FC = () => {
       <div className="management-content">
         {viewMode === 'list' ? (
           <ModernTable 
+            emptyState={
+              warehouses.length === 0 ? (
+                <EmptyState
+                  title="Nenhum depósito cadastrado"
+                  description="Não há áreas de armazenagem registradas nesta unidade. Comece cadastrando o primeiro depósito."
+                  actionLabel="Novo Depósito"
+                  onAction={() => {
+                    setSelectedWarehouse(null);
+                    setIsModalOpen(true);
+                  }}
+                  icon={Boxes}
+                />
+              ) : (
+                <EmptyState
+                  title="Nenhum registro encontrado"
+                  description="Sua busca não retornou resultados."
+                  icon={Search}
+                />
+              )
+            }
             data={filteredWarehouses}
             columns={columns}
             loading={loading}
@@ -473,42 +495,94 @@ export const WarehouseManagement: React.FC = () => {
           />
         ) : (
           <div className="warehouse-cards-grid animate-fade-in">
-            {filteredWarehouses.map(w => (
-              <div key={w.id} className={`warehouse-card-premium ${w.status === 'ativo' ? 'active' : ''}`}>
-                <div className="card-left-section">
-                  <div className="card-avatar">
-                    {w.tipo?.includes('Silo') ? <Boxes size={28} /> : <Layout size={28} />}
-                  </div>
-                  <div className="card-bottom-actions">
-                    <button className="action-icon-btn edit" onClick={() => {
-                      setStockModalWarehouseId(w.id);
-                      setStockModalWarehouseName(w.nome || w.name);
-                      setIsStockModalOpen(true);
-                    }} title="Ver Detalhes"><ListIcon size={14} /></button>
-                    <button className="action-icon-btn edit" onClick={() => {
-                      setSelectedWarehouse(w);
-                      setIsModalOpen(true);
-                    }} title="Editar"><Edit3 size={14} /></button>
-                    <button className="action-icon-btn delete" onClick={() => handleDelete(w.id)} title="Excluir"><Trash2 size={14} /></button>
-                  </div>
+            {filteredWarehouses.length === 0 ? (
+              <div 
+                className="warehouse-card-premium" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  gap: '6px',
+                  minHeight: '180px',
+                  height: '100%',
+                  boxShadow: 'none'
+                }}
+              >
+                <div 
+                  style={{ 
+                    margin: 0, 
+                    width: '40px', 
+                    height: '40px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {warehouses.length === 0 ? <Boxes size={22} /> : <Search size={22} />}
                 </div>
-
-                <div className="card-main-content">
-                  <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
-                    <div className="title-row" style={{ width: '100%', cursor: 'pointer' }} onClick={() => {
-                      setStockModalWarehouseId(w.id);
-                      setStockModalWarehouseName(w.nome || w.name);
-                      setIsStockModalOpen(true);
-                    }}>
-                      <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#3b82f6', width: '100%' }}>{w.name || w.nome}</h3>
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                  {warehouses.length === 0 ? 'Nenhum depósito cadastrado' : 'Nenhum registro encontrado'}
+                </h3>
+                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                  {warehouses.length === 0 ? 'Não há áreas de armazenagem registradas nesta unidade.' : 'Sua busca não retornou resultados.'}
+                </p>
+                {warehouses.length === 0 && (
+                  <button 
+                    className="primary-btn" 
+                    onClick={() => {
+                      setSelectedWarehouse(null);
+                      setIsModalOpen(true);
+                    }}
+                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                  >
+                    <Plus size={12} />
+                    <span>NOVO DEPÓSITO</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              filteredWarehouses.map(w => (
+                <div key={w.id} className={`warehouse-card-premium ${w.status === 'ativo' ? 'active' : ''}`}>
+                  <div className="card-left-section">
+                    <div className="card-avatar">
+                      {w.tipo?.includes('Silo') ? <Boxes size={28} /> : <Layout size={28} />}
                     </div>
-                    <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={`status-pill mini ${w.status === 'ativo' ? 'active' : ''}`}>
-                        {w.status === 'ativo' ? 'ATIVO' : 'INATIVO'}
-                      </span>
-                      <div className="card-type-meta">{w.tipo || 'DEPÓSITO GERAL'}</div>
+                    <div className="card-bottom-actions">
+                      <button className="action-icon-btn edit" onClick={() => {
+                        setStockModalWarehouseId(w.id);
+                        setStockModalWarehouseName(w.nome || w.name);
+                        setIsStockModalOpen(true);
+                      }} title="Ver Detalhes"><ListIcon size={14} /></button>
+                      <button className="action-icon-btn edit" onClick={() => {
+                        setSelectedWarehouse(w);
+                        setIsModalOpen(true);
+                      }} title="Editar"><Edit3 size={14} /></button>
+                      <button className="action-icon-btn delete" onClick={() => handleDelete(w.id)} title="Excluir"><Trash2 size={14} /></button>
                     </div>
                   </div>
+
+                  <div className="card-main-content">
+                    <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                      <div className="title-row" style={{ width: '100%', cursor: 'pointer' }} onClick={() => {
+                        setStockModalWarehouseId(w.id);
+                        setStockModalWarehouseName(w.nome || w.name);
+                        setIsStockModalOpen(true);
+                      }}>
+                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#3b82f6', width: '100%' }}>{w.name || w.nome}</h3>
+                      </div>
+                      <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className={`status-pill mini ${w.status === 'ativo' ? 'active' : ''}`}>
+                          {w.status === 'ativo' ? 'ATIVO' : 'INATIVO'}
+                        </span>
+                        <div className="card-type-meta">{w.tipo || 'DEPÓSITO GERAL'}</div>
+                      </div>
+                    </div>
 
                   <div className="card-occupation-section">
                     <div className="occ-header">
@@ -542,7 +616,8 @@ export const WarehouseManagement: React.FC = () => {
                   </div>
                 </div>
               </div>
-            ))}
+              ))
+            )}
             <button className="add-warehouse-card-premium" onClick={() => {
               setSelectedWarehouse(null);
               setIsModalOpen(true);

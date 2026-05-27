@@ -20,6 +20,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { useTenant } from '../../contexts/TenantContext';
+import { supabase } from '../../lib/supabase';
 import './Sidebar.css';
 
 interface NavItem {
@@ -168,7 +169,34 @@ export const Sidebar: React.FC = () => {
   });
 
   const [isFarmSelectorOpen, setIsFarmSelectorOpen] = useState(false);
-  const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode, userProfile, tenant } = useTenant();
+  const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode, userProfile, tenant, activeTenantId } = useTenant();
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+
+  useEffect(() => {
+    if (!activeTenantId) return;
+    const fetchPending = async () => {
+      const { count } = await supabase
+        .from('approval_queue')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', activeTenantId)
+        .eq('status', 'pending');
+      
+      setPendingApprovals(count || 0);
+    };
+    fetchPending();
+
+    const subscription = supabase
+      .channel('approval-queue-sidebar')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'approval_queue', 
+        filter: `tenant_id=eq.${activeTenantId}` 
+      }, fetchPending)
+      .subscribe();
+
+    return () => { subscription.unsubscribe(); };
+  }, [activeTenantId]);
 
   const auditEnabled = tenant?.settings?.security?.auditLogsEnabled ?? true;
 
@@ -259,8 +287,23 @@ export const Sidebar: React.FC = () => {
                           key={sub.title} 
                           to={sub.href}
                           className={`submenu-item ${location.pathname === sub.href ? 'active' : ''}`}
+                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                         >
-                          {sub.title}
+                          <span>{sub.title}</span>
+                          {sub.title === 'Aprovações' && pendingApprovals > 0 && (
+                            <span style={{ 
+                              background: '#ef4444', 
+                              color: 'white', 
+                              padding: '2px 6px', 
+                              borderRadius: '4px', 
+                              fontSize: '9px', 
+                              fontWeight: 800,
+                              minWidth: '18px',
+                              textAlign: 'center'
+                            }}>
+                              {pendingApprovals}
+                            </span>
+                          )}
                         </Link>
                       ))}
                     </motion.div>

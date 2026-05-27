@@ -452,6 +452,13 @@ export const AuditLog: React.FC = () => {
             })}
             <div className="pagination-wrapper" style={{ padding: '12px 14px', borderTop: '1px solid hsl(var(--border))' }}>
               <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
                 data={[]}
                 columns={[]}
                 loading={false}

@@ -579,13 +579,23 @@ const PastureManagement: React.FC = () => {
       <div className="management-content">
         {viewMode === 'list' ? (
           <ModernTable 
-            emptyState={<EmptyState
-              title="Nenhum pasto cadastrado"
-              description="Não há áreas de pastagem registradas. Comece cadastrando seus piquetes para monitorar a lotação."
-              actionLabel="Novo Pasto"
-              onAction={handleOpenCreate}
-              icon={Trees}
-            />}
+            emptyState={
+              localPastures.length === 0 ? (
+                <EmptyState
+                  title="Nenhum pasto cadastrado"
+                  description="Não há áreas de pastagem registradas. Comece cadastrando seus piquetes para monitorar a lotação."
+                  actionLabel="Novo Pasto"
+                  onAction={handleOpenCreate}
+                  icon={Trees}
+                />
+              ) : (
+                <EmptyState
+                  title="Nenhum registro encontrado"
+                  description="Sua busca não retornou resultados."
+                  icon={Search}
+                />
+              )
+            }
             data={filteredPastures}
             columns={tableColumns}
             loading={loading}
@@ -605,93 +615,143 @@ const PastureManagement: React.FC = () => {
           />
         ) : (
           <div className="pasture-cards-grid animate-fade-in">
-            {filteredPastures.map((p) => {
-              const uas = parseFloat(p.lotacao || '0');
-              const area = parseFloat(p.area || '0');
-              const capacityUa = p.capacidade_ua || 2.5;
-              const maxUa = area * capacityUa;
-              const occupancyPercent = maxUa > 0 ? (uas / maxUa) * 100 : 0;
-              
-              let badgeClass = 'active'; // green
-              let badgeText = 'IDEAL';
-              let borderClass = 'active';
-              
-              if (uas === 0) {
-                badgeClass = 'info-badge';
-                badgeText = 'DESCANSO';
-                borderClass = 'info-badge';
-              } else if (occupancyPercent > 100) {
-                badgeClass = 'stopped';
-                badgeText = 'SUPERLOTAÇÃO';
-                borderClass = 'danger-badge';
-              } else if (occupancyPercent > 80) {
-                badgeClass = 'warning-badge';
-                badgeText = 'ATENÇÃO';
-                borderClass = 'warning-badge';
-              }
- 
-              return (
+            {filteredPastures.length === 0 ? (
+              <div 
+                className="pasture-card-premium" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  gap: '6px',
+                  minHeight: '180px',
+                  height: '100%',
+                  boxShadow: 'none'
+                }}
+              >
                 <div 
-                  key={p.id} 
-                  className={`pasture-card-premium ${borderClass}`}
+                  style={{ 
+                    margin: 0, 
+                    width: '40px', 
+                    height: '40px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
                 >
-                  <div className="card-left-section">
-                    <div className="card-avatar">
-                      <Trees size={28} />
-                    </div>
-                    <div className="card-bottom-actions">
-                      <button className="action-icon-btn info" title="Manejo / Rotação" onClick={() => handleOpenManejo(p)}><Maximize2 size={14} /></button>
-                      <button className="action-icon-btn success" title="Histórico" onClick={() => handleOpenHistory(p)}><History size={14} /></button>
-                      <button className="action-icon-btn" title="Editar" onClick={() => handleOpenEdit(p)}><Edit3 size={14} /></button>
-                      <button className="action-icon-btn delete" title="Excluir" onClick={() => handleDelete(p.id)}><Trash2 size={14} /></button>
-                    </div>
-                  </div>
-
-                  <div className="card-main-content">
-                    <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
-                      <div className="title-row" style={{ width: '100%' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{p.nome}</h3>
-                      </div>
-                      <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className={`status-pill mini ${badgeClass}`}>
-                          {badgeText}
-                        </span>
-                        <div className="card-type-meta">{p.tipo_capim || 'Capim Padrão'}</div>
-                      </div>
-                    </div>
-
-                    <div className="card-occupation-section">
-                      <div className="occ-header">
-                        <span>OCUPAÇÃO ATUAL</span>
-                        <span className={occupancyPercent > 100 ? 'critical' : ''}>
-                          {Math.round(occupancyPercent)}%
-                        </span>
-                      </div>
-                      <div className="occ-bar-container">
-                        <div 
-                          className={`occ-bar-fill ${occupancyPercent > 100 ? 'critical' : occupancyPercent > 80 ? 'warning' : ''}`}
-                          style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
-                        />
-                      </div>
-                      <div className="occ-footer">
-                        {uas.toFixed(2)} / {maxUa > 0 ? maxUa.toFixed(2) : '∞'} UA
-                      </div>
-                    </div>
-
-                    <div className="card-footer-meta">
-                      <div className="meta-item">
-                        <Map size={12} />
-                        <span>{area.toFixed(2)} ha</span>
-                      </div>
-                      <div className="meta-item">
-                        <Activity size={12} />
-                        <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
-                      </div>
-                    </div>
-                  </div>
+                  {localPastures.length === 0 ? <Trees size={22} /> : <Search size={22} />}
                 </div>
-              );
-            })}
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                  {localPastures.length === 0 ? 'Nenhum pasto cadastrado' : 'Nenhum registro encontrado'}
+                </h3>
+                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                  {localPastures.length === 0 ? 'Não há áreas de pastagem registradas nesta unidade.' : 'Sua busca não retornou resultados.'}
+                </p>
+                {localPastures.length === 0 && (
+                  <button 
+                    className="primary-btn" 
+                    onClick={handleOpenCreate}
+                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                  >
+                    <Plus size={12} />
+                    <span>NOVO PASTO</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              filteredPastures.map((p) => {
+                const uas = parseFloat(p.lotacao || '0');
+                const area = parseFloat(p.area || '0');
+                const capacityUa = p.capacidade_ua || 2.5;
+                const maxUa = area * capacityUa;
+                const occupancyPercent = maxUa > 0 ? (uas / maxUa) * 100 : 0;
+                
+                let badgeClass = 'active'; // green
+                let badgeText = 'IDEAL';
+                let borderClass = 'active';
+                
+                if (uas === 0) {
+                  badgeClass = 'info-badge';
+                  badgeText = 'DESCANSO';
+                  borderClass = 'info-badge';
+                } else if (occupancyPercent > 100) {
+                  badgeClass = 'stopped';
+                  badgeText = 'SUPERLOTAÇÃO';
+                  borderClass = 'danger-badge';
+                } else if (occupancyPercent > 80) {
+                  badgeClass = 'warning-badge';
+                  badgeText = 'ATENÇÃO';
+                  borderClass = 'warning-badge';
+                }
+   
+                return (
+                  <div 
+                    key={p.id} 
+                    className={`pasture-card-premium ${borderClass}`}
+                  >
+                    <div className="card-left-section">
+                      <div className="card-avatar">
+                        <Trees size={28} />
+                      </div>
+                      <div className="card-bottom-actions">
+                        <button className="action-icon-btn info" title="Manejo / Rotação" onClick={() => handleOpenManejo(p)}><Maximize2 size={14} /></button>
+                        <button className="action-icon-btn success" title="Histórico" onClick={() => handleOpenHistory(p)}><History size={14} /></button>
+                        <button className="action-icon-btn" title="Editar" onClick={() => handleOpenEdit(p)}><Edit3 size={14} /></button>
+                        <button className="action-icon-btn delete" title="Excluir" onClick={() => handleDelete(p.id)}><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+   
+                    <div className="card-main-content">
+                      <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                        <div className="title-row" style={{ width: '100%' }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{p.nome}</h3>
+                        </div>
+                        <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className={`status-pill mini ${badgeClass}`}>
+                            {badgeText}
+                          </span>
+                          <div className="card-type-meta">{p.tipo_capim || 'Capim Padrão'}</div>
+                        </div>
+                      </div>
+   
+                      <div className="card-occupation-section">
+                        <div className="occ-header">
+                          <span>OCUPAÇÃO ATUAL</span>
+                          <span className={occupancyPercent > 100 ? 'critical' : ''}>
+                            {Math.round(occupancyPercent)}%
+                          </span>
+                        </div>
+                        <div className="occ-bar-container">
+                          <div 
+                            className={`occ-bar-fill ${occupancyPercent > 100 ? 'critical' : occupancyPercent > 80 ? 'warning' : ''}`}
+                            style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
+                          />
+                        </div>
+                        <div className="occ-footer">
+                          {uas.toFixed(2)} / {maxUa > 0 ? maxUa.toFixed(2) : '∞'} UA
+                        </div>
+                      </div>
+   
+                      <div className="card-footer-meta">
+                        <div className="meta-item">
+                          <Map size={12} />
+                          <span>{area.toFixed(2)} ha</span>
+                        </div>
+                        <div className="meta-item">
+                          <Activity size={12} />
+                          <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
             <button className="add-pasture-card-premium" onClick={handleOpenCreate}>
               <Plus size={32} />
               <span>NOVO PASTO</span>

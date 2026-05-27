@@ -22,151 +22,194 @@ export const DatabaseSeeder: React.FC = () => {
 
       try {
         // 1. Financeiro - Conta Bancária
-        const { data: contas } = await supabase.from('contas_bancarias').select('id').match(payloadBase).limit(1);
-        if (!contas || contas.length === 0) {
-          await supabase.from('contas_bancarias').insert([{
-            ...payloadBase,
-            banco: 'Banco Safra',
-            agencia: '0001',
-            conta: '12345-6',
-            saldo_atual: 150000.00,
-            tipo: 'Corrente',
-            status: 'ATIVA'
-          }]);
+        try {
+          const { data: contas } = await supabase.from('contas_bancarias').select('id').match(payloadBase).limit(1);
+          if (!contas || contas.length === 0) {
+            await supabase.from('contas_bancarias').insert([{
+              ...payloadBase,
+              banco: 'Banco Safra',
+              agencia: '0001',
+              conta: '12345-6',
+              saldo_atual: 150000.00,
+              tipo: 'Corrente',
+              status: 'ATIVA'
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed contas_bancarias:', e);
         }
 
         // 2. Financeiro - Contas a Pagar
-        const { data: pagar } = await supabase.from('contas_pagar').select('id').match(payloadBase).limit(1);
-        if (!pagar || pagar.length === 0) {
-          await supabase.from('contas_pagar').insert([{
-            ...payloadBase,
-            descricao: 'SEED: Aquisição de Sementes',
-            valor_total: 45000,
-            data_vencimento: new Date().toISOString(),
-            status: 'PENDENTE',
-            categoria: 'Insumos'
-          }]);
+        try {
+          const { data: pagar } = await supabase.from('contas_pagar').select('id').match(payloadBase).limit(1);
+          if (!pagar || pagar.length === 0) {
+            await supabase.from('contas_pagar').insert([{
+              ...payloadBase,
+              descricao: 'SEED: Aquisição de Sementes',
+              valor_total: 45000,
+              data_vencimento: new Date().toISOString(),
+              status: 'PENDENTE',
+              categoria: 'Insumos'
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed contas_pagar:', e);
         }
 
         // 3. Financeiro - Contas a Receber
-        const { data: receber } = await supabase.from('contas_receber').select('id').match(payloadBase).limit(1);
-        if (!receber || receber.length === 0) {
-          await supabase.from('contas_receber').insert([{
-            ...payloadBase,
-            descricao: 'SEED: Venda de Bezerros',
-            valor_total: 120000,
-            data_vencimento: new Date(Date.now() + 86400000 * 5).toISOString(),
-            status: 'PENDENTE',
-            categoria: 'Receita Pecuária'
-          }]);
+        try {
+          const { data: receber } = await supabase.from('contas_receber').select('id').match(payloadBase).limit(1);
+          if (!receber || receber.length === 0) {
+            await supabase.from('contas_receber').insert([{
+              ...payloadBase,
+              descricao: 'SEED: Venda de Bezerros',
+              valor_total: 120000,
+              data_vencimento: new Date(Date.now() + 86400000 * 5).toISOString(),
+              status: 'PENDENTE',
+              categoria: 'Receita Pecuária'
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed contas_receber:', e);
         }
 
         // 4. Compras - Mapa de Cotação
-        const { data: mapas } = await supabase.from('mapas_cotacao').select('id').match(payloadBase).limit(1);
-        if (!mapas || mapas.length === 0) {
-          await supabase.from('mapas_cotacao').insert([{
-            ...payloadBase,
-            produto_id: 'SEED: Adubo NPK 10-20-10',
-            quantidade: 50,
-            unidade: 'Ton',
-            status: 'analyzing',
-            dados_fornecedores: [
-              { name: 'AgroSul', price: 2100 },
-              { name: 'Fertilizantes BR', price: 1950 }
-            ],
-            titulo: 'Cotação de Adubo Base'
-          }]);
+        try {
+          const { data: mapas } = await supabase.from('mapas_cotacao').select('id').match(payloadBase).limit(1);
+          if (!mapas || mapas.length === 0) {
+            await supabase.from('mapas_cotacao').insert([{
+              ...payloadBase,
+              produto_id: 'SEED: Adubo NPK 10-20-10',
+              quantidade: 50,
+              unidade: 'Ton',
+              status: 'analyzing',
+              dados_fornecedores: [
+                { name: 'AgroSul', price: 2100 },
+                { name: 'Fertilizantes BR', price: 1950 }
+              ],
+              titulo: 'Cotação de Adubo Base'
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed mapas_cotacao:', e);
         }
 
         // 5. Pecuária - Animais (Simples)
-        // Assume we just insert an animal to make it non-empty. Wait, if animais requires raca_id, we might fail. We'll try.
-        const { data: animais } = await supabase.from('animais').select('id').match(payloadBase).limit(1);
-        if (!animais || animais.length === 0) {
-          await supabase.from('animais').insert([{
-            ...payloadBase,
-            identificacao: 'SEED-001',
-            brinco_eletronico: '900000000000001',
-            tipo_identificacao: 'visual',
-            sexo: 'M',
-            status: 'ativo'
-          }]).catch(() => {}); // ignore FK errors if they exist
+        try {
+          const { data: animais } = await supabase.from('animais').select('id').match(payloadBase).limit(1);
+          if (!animais || animais.length === 0) {
+            await supabase.from('animais').insert([{
+              ...payloadBase,
+              identificacao: 'SEED-001',
+              brinco_eletronico: '900000000000001',
+              tipo_identificacao: 'visual',
+              sexo: 'M',
+              status: 'ativo'
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed animais:', e);
         }
 
         // 6. Frota - Máquinas
-        const { data: maq } = await supabase.from('maquinas').select('id').match(payloadBase).limit(1);
-        if (!maq || maq.length === 0) {
-          await supabase.from('maquinas').insert([{
-            ...payloadBase,
-            nome: 'SEED: Trator JD 7J',
-            tipo: 'Trator',
-            marca: 'John Deere',
-            modelo: '7J',
-            ano: 2023,
-            status: 'operacional'
-          }]).catch(() => {});
+        try {
+          const { data: maq } = await supabase.from('maquinas').select('id').match(payloadBase).limit(1);
+          if (!maq || maq.length === 0) {
+            await supabase.from('maquinas').insert([{
+              ...payloadBase,
+              nome: 'SEED: Trator JD 7J',
+              tipo: 'Trator',
+              marca: 'John Deere',
+              modelo: '7J',
+              ano: 2023,
+              status: 'operacional'
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed maquinas:', e);
         }
 
         // 7. Estoque - Produtos
-        const { data: prod } = await supabase.from('produtos').select('id').match(payloadBase).limit(1);
-        if (!prod || prod.length === 0) {
-          await supabase.from('produtos').insert([{
-            ...payloadBase,
-            nome: 'SEED: Sal Mineral 80',
-            categoria: 'Nutrição',
-            unidade: 'kg',
-            estoque_atual: 100,
-            estoque_minimo: 20,
-            custo_medio: 5.50,
-            is_active: true
-          }]).catch(() => {});
+        try {
+          const { data: prod } = await supabase.from('produtos').select('id').match(payloadBase).limit(1);
+          if (!prod || prod.length === 0) {
+            await supabase.from('produtos').insert([{
+              ...payloadBase,
+              nome: 'SEED: Sal Mineral 80',
+              categoria: 'Nutrição',
+              unidade: 'kg',
+              estoque_atual: 100,
+              estoque_minimo: 20,
+              custo_medio: 5.50,
+              is_active: true
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed produtos:', e);
         }
 
         // 8. Parceiros (Fornecedor e Cliente)
-        const { data: parc } = await supabase.from('parceiros').select('id').match(payloadBase).limit(1);
-        if (!parc || parc.length === 0) {
-          await supabase.from('parceiros').insert([{
-            ...payloadBase,
-            nome: 'SEED: Agro Parceiro S/A',
-            cnpj_cpf: '00000000000000',
-            categoria: 'Misto',
-            is_supplier: true,
-            is_customer: true,
-            status: 'ATIVO'
-          }]).catch(() => {});
+        try {
+          const { data: parc } = await supabase.from('parceiros').select('id').match(payloadBase).limit(1);
+          if (!parc || parc.length === 0) {
+            await supabase.from('parceiros').insert([{
+              ...payloadBase,
+              nome: 'SEED: Agro Parceiro S/A',
+              cnpj_cpf: '00000000000000',
+              categoria: 'Misto',
+              is_supplier: true,
+              is_customer: true,
+              status: 'ATIVO'
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed parceiros:', e);
         }
 
         // 9. Vendas - Pedidos
-        const { data: ped } = await supabase.from('pedidos_venda').select('id').match(payloadBase).limit(1);
-        if (!ped || ped.length === 0) {
-          await supabase.from('pedidos_venda').insert([{
-            ...payloadBase,
-            numero_pedido: 'PED-SEED-001',
-            valor_total: 150000,
-            status: 'pending'
-          }]).catch(() => {});
+        try {
+          const { data: ped } = await supabase.from('pedidos_venda').select('id').match(payloadBase).limit(1);
+          if (!ped || ped.length === 0) {
+            await supabase.from('pedidos_venda').insert([{
+              ...payloadBase,
+              numero_pedido: 'PED-SEED-001',
+              valor_total: 150000,
+              status: 'pending'
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed pedidos_venda:', e);
         }
 
         // 10. Frota - Manutenção
-        const { data: man } = await supabase.from('manutencao_frota').select('id').match(payloadBase).limit(1);
-        if (!man || man.length === 0) {
-          await supabase.from('manutencao_frota').insert([{
-            ...payloadBase,
-            descricao: 'SEED: Revisão 1000h Trator',
-            tipo: 'preventiva',
-            status: 'open',
-            custo: 5000
-          }]).catch(() => {});
+        try {
+          const { data: man } = await supabase.from('manutencao_frota').select('id').match(payloadBase).limit(1);
+          if (!man || man.length === 0) {
+            await supabase.from('manutencao_frota').insert([{
+              ...payloadBase,
+              descricao: 'SEED: Revisão 1000h Trator',
+              tipo: 'preventiva',
+              status: 'open',
+              custo: 5000
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed manutencao_frota:', e);
         }
 
         // 11. Estoque - Auditoria
-        const { data: aud } = await supabase.from('auditorias_estoque').select('id').match(payloadBase).limit(1);
-        if (!aud || aud.length === 0) {
-          await supabase.from('auditorias_estoque').insert([{
-            ...payloadBase,
-            titulo: 'SEED: Auditoria Anual',
-            status: 'completed',
-            accuracy: 98.5
-          }]).catch(() => {});
+        try {
+          const { data: aud } = await supabase.from('auditorias_estoque').select('id').match(payloadBase).limit(1);
+          if (!aud || aud.length === 0) {
+            await supabase.from('auditorias_estoque').insert([{
+              ...payloadBase,
+              titulo: 'SEED: Auditoria Anual',
+              status: 'completed',
+              accuracy: 98.5
+            }]);
+          }
+        } catch (e) {
+          console.warn('Failed to seed auditorias_estoque:', e);
         }
 
         localStorage.setItem('tauze_seed_done_v2', 'true');

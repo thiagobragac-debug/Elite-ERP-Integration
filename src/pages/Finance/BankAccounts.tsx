@@ -34,6 +34,7 @@ import { BankAccountFilterModal } from './components/BankAccountFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { isValidUUID } from '../../utils/validation';
+import { useViewMode } from '../../hooks/useViewMode';
 
 import { useTenant } from '../../contexts/TenantContext';
 
@@ -49,7 +50,7 @@ export const BankAccounts: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useViewMode('finance-bank-accounts', 'grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     type: 'all',
@@ -140,21 +141,16 @@ export const BankAccounts: React.FC = () => {
         },
       ]);
     } catch (err) {
-      console.warn("BankAccounts: Network timeout or error. Using Mock Fallback:", err);
-      const mockAccounts = [
-        { id: '1', banco: 'Banco do Brasil', agencia: '0001', conta: '12345-6', saldo_atual: 250000, limit_credito: 500000, tipo_conta: 'Corrente' },
-        { id: '2', banco: 'Itaú BBA', agencia: '0002', conta: '98765-4', saldo_atual: 1500000, limit_credito: 2000000, tipo_conta: 'Investimento' }
-      ];
-      setAccounts(mockAccounts);
+      setAccounts([]);
       setStats([
-        { label: 'Liquidez Disponível', value: 'R$ 1.750.000,00', icon: Wallet, color: '#10b981', progress: 100, change: 'MOCK ACTIVE', periodLabel: 'Modo Simulação',
-          sparkline: [875000,1050000,1225000,1400000,1540000,1662500,1750000].map((v,i) => ({ value: v, label: `Sem ${i+1}` })) },
-        { label: 'Utilização de Limites', value: '0%', icon: CreditCard, color: '#ef4444', progress: 0, change: 'R$ 2.500.000,00', periodLabel: 'Crédito Tomado',
+        { label: 'Liquidez Disponível', value: 'R$ 0,00', icon: Wallet, color: '#10b981', progress: 0, change: 'Sem dados', periodLabel: 'Modo Real',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Utilização de Limites', value: '0%', icon: CreditCard, color: '#ef4444', progress: 0, change: 'Sem dados', periodLabel: 'Crédito Tomado',
           sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i}%` })) },
-        { label: 'Custódia Bancária', value: '2', icon: Building, color: '#3b82f6', progress: 100, change: 'Simulação', periodLabel: 'Pontos de Contato',
-          sparkline: [2,2,2,2,2,2,2].map((v,i) => ({ value: v, label: `${v} contas` })) },
-        { label: 'Yield Estratégico', value: '+1.02%', icon: TrendingUp, color: '#f59e0b', progress: 85, trend: 'up' as const, change: 'Mês Atual', periodLabel: 'Rendimento Médio',
-          sparkline: [0.65,0.72,0.80,0.86,0.91,0.97,1.02].map((v,i) => ({ value: v, label: `+${v}%` })) },
+        { label: 'Custódia Bancária', value: '0', icon: Building, color: '#3b82f6', progress: 0, change: 'Sem dados', periodLabel: 'Pontos de Contato',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i} contas` })) },
+        { label: 'Yield Estratégico', value: '0.00%', icon: TrendingUp, color: '#f59e0b', progress: 0, trend: 'up' as const, change: 'Sem dados', periodLabel: 'Rendimento Médio',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `+0%` })) },
       ]);
     } finally {
       setLoading(false);
@@ -517,13 +513,23 @@ export const BankAccounts: React.FC = () => {
       <div className="management-content">
         {viewMode === 'list' ? (
            <ModernTable 
-            emptyState={<EmptyState
-              title="Nenhuma conta bancária"
-              description="Você ainda não possui contas bancárias cadastradas para esta unidade. Comece adicionando sua primeira conta para gerir a tesouraria."
-              actionLabel="Nova Conta"
-              onAction={handleOpenCreate}
-              icon={Building2}
-            />}
+            emptyState={
+              accounts.length === 0 ? (
+                <EmptyState
+                  title="Nenhuma conta bancária"
+                  description="Você ainda não possui contas bancárias cadastradas para esta unidade. Comece adicionando sua primeira conta para gerir a tesouraria."
+                  actionLabel="Nova Conta"
+                  onAction={handleOpenCreate}
+                  icon={Building2}
+                />
+              ) : (
+                <EmptyState
+                  title="Nenhum registro encontrado"
+                  description="Sua busca não retornou resultados."
+                  icon={Search}
+                />
+              )
+            }
             data={accounts.filter(acc => {
               const matchesSearch = (acc.banco || '').toLowerCase().includes(searchTerm.toLowerCase()) || (acc.conta || '').toLowerCase().includes(searchTerm.toLowerCase());
               const matchesTab = activeTab === 'BALANCES' ? true : (acc.saldo_atual > 0);
@@ -558,21 +564,76 @@ export const BankAccounts: React.FC = () => {
             animate={{ opacity: 1 }}
             className="user-cards-grid"
           >
-             {accounts
-              .filter(acc => {
-                const matchesSearch = (acc.banco || '').toLowerCase().includes(searchTerm.toLowerCase()) || (acc.conta || '').toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesTab = activeTab === 'BALANCES' ? true : (acc.saldo_atual > 0);
-                
-                const matchesType = filterValues.type === 'all' || acc.tipo === filterValues.type;
-                const matchesBalance = filterValues.balanceStatus === 'all' || 
-                                      (filterValues.balanceStatus === 'positive' ? acc.saldo_atual >= 0 : acc.saldo_atual < 0);
-                const matchesInst = filterValues.institution === 'all' || (acc.banco || '').toLowerCase().includes(filterValues.institution.toLowerCase());
+             {(() => {
+                const filteredAccounts = accounts.filter(acc => {
+                  const matchesSearch = (acc.banco || '').toLowerCase().includes(searchTerm.toLowerCase()) || (acc.conta || '').toLowerCase().includes(searchTerm.toLowerCase());
+                  const matchesTab = activeTab === 'BALANCES' ? true : (acc.saldo_atual > 0);
+                  
+                  const matchesType = filterValues.type === 'all' || acc.tipo === filterValues.type;
+                  const matchesBalance = filterValues.balanceStatus === 'all' || 
+                                        (filterValues.balanceStatus === 'positive' ? acc.saldo_atual >= 0 : acc.saldo_atual < 0);
+                  const matchesInst = filterValues.institution === 'all' || (acc.banco || '').toLowerCase().includes(filterValues.institution.toLowerCase());
 
-                return matchesSearch && matchesTab && matchesType && matchesBalance && matchesInst;
-              })
-              .map(acc => (
-                <motion.div 
-                  key={acc.id} 
+                  return matchesSearch && matchesTab && matchesType && matchesBalance && matchesInst;
+                });
+
+                if (filteredAccounts.length === 0) {
+                  return (
+                    <div 
+                      className="user-card-premium"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        padding: '20px',
+                        background: 'hsl(var(--bg-card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '24px',
+                        gap: '6px',
+                        minHeight: '180px',
+                        height: '100%',
+                        boxShadow: 'none'
+                      }}
+                    >
+                      <div 
+                        style={{ 
+                          width: '40px', 
+                          height: '40px', 
+                          background: 'rgba(16, 185, 129, 0.1)', 
+                          color: '#10b981', 
+                          borderRadius: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <Building2 size={22} style={{ color: 'hsl(var(--brand))' }} />
+                      </div>
+                      <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                        Nenhuma conta bancária encontrada
+                      </h3>
+                      <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                        Não há contas que correspondam aos filtros atuais.
+                      </p>
+                      {!searchTerm && (
+                        <button 
+                          className="primary-btn" 
+                          onClick={handleOpenCreate}
+                          style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                        >
+                          <Plus size={12} />
+                          <span>NOVA CONTA</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
+
+                return filteredAccounts.map(acc => (
+                  <motion.div 
+                    key={acc.id} 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`user-card-premium active`}
@@ -632,7 +693,12 @@ export const BankAccounts: React.FC = () => {
                     </div>
                   </div>
                 </motion.div>
-              ))}
+              ));
+            })()}
+            <button className="add-account-card-premium" onClick={handleOpenCreate}>
+              <Plus size={32} />
+              <span>NOVA CONTA</span>
+            </button>
           </motion.div>
         )}
       </div>
@@ -664,14 +730,52 @@ export const BankAccounts: React.FC = () => {
         .view-btn.active {
           background: hsl(var(--bg-card));
           color: hsl(var(--brand));
-          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.2);
+        }
+
+        .add-account-card-premium {
+          border: 2px dashed #e2e8f0;
+          border-radius: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          background: transparent;
+          cursor: pointer;
+          color: #94a3b8;
+          transition: 0.2s;
+          min-height: 180px;
+          height: 100%;
+        }
+
+        .add-account-card-premium:hover {
+          border-color: #10b981;
+          color: #10b981;
+          background: rgba(16, 185, 129, 0.02);
+        }
+
+        .add-account-card-premium span { font-size: 11px; font-weight: 900; letter-spacing: 0.05em; }
+
+        [data-theme='dark'] .add-account-card-premium {
+          background: hsl(var(--bg-main)) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--text-main)) !important;
         }
 
         .user-cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
           padding: 8px;
+        }
+
+        @media (max-width: 1400px) {
+          .user-cards-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 900px) {
+          .user-cards-grid { grid-template-columns: 1fr; }
         }
 
         .user-card-premium {

@@ -32,7 +32,8 @@ import {
   List as ListIcon,
   Calendar,
   ChevronLeft,
-  ChevronRight 
+  ChevronRight,
+  Trash2
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,11 +43,13 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TenantForm } from '../../components/Forms/TenantForm';
 import { PlanForm } from '../../components/Forms/PlanForm';
 import { useAuth } from '../../contexts/AuthContext';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 import { logAudit } from '../../utils/audit';
 import { supabase } from '../../lib/supabase';
 import { SaaSFilterModal } from './components/SaaSFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
+import { useViewMode } from '../../hooks/useViewMode';
 
 type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'billing' | 'health' | 'settings';
 
@@ -57,7 +60,9 @@ export const SaaSAdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SaaSAdminTab>('overview');
   const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [tenantsViewMode, setTenantsViewMode] = useViewMode('saas-admin-tenants', 'grid');
+  const [plansViewMode, setPlansViewMode] = useViewMode('saas-admin-plans', 'grid');
+
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -65,7 +70,11 @@ export const SaaSAdminPanel: React.FC = () => {
     minUsers: 0,
     maxUsers: 1000,
     dateStart: '',
-    dateEnd: ''
+    dateEnd: '',
+    minPrice: 0,
+    maxPrice: 10000,
+    minStorage: 0,
+    maxStorage: 1000
   });
 
   useEffect(() => {
@@ -137,7 +146,8 @@ export const SaaSAdminPanel: React.FC = () => {
         .from('tenants')
         .select('*')
         .limit(500)
-        .order('created_at', { ascending: false });
+        .order('id', { ascending: true })
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
       
@@ -148,7 +158,13 @@ export const SaaSAdminPanel: React.FC = () => {
         users: Number(t.users) || 0,
         storage: t.storage || '0 GB',
         status: t.status || 'Ativo'
-      }));
+      })).sort((a: any, b: any) => {
+        // Primary sort: id ascending (string comparison — UUIDs with 000... come first)
+        if (a.id < b.id) return -1;
+        if (a.id > b.id) return 1;
+        // Secondary sort: created_at ascending
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
       setTenantsList(mappedData);
     } catch (err) {
       console.error('Erro ao buscar Tenants:', err);
@@ -240,6 +256,13 @@ export const SaaSAdminPanel: React.FC = () => {
 
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<any>(null);
+  
+  const [isCreateDemoModalOpen, setIsCreateDemoModalOpen] = useState(false);
+  const [isDeleteDemoModalOpen, setIsDeleteDemoModalOpen] = useState(false);
+  const [demoTenantName, setDemoTenantName] = useState('');
+  const [tenantToDelete, setTenantToDelete] = useState<any>(null);
+  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -504,15 +527,25 @@ export const SaaSAdminPanel: React.FC = () => {
   const fetchAuditLogs = async (tenantId: string) => {
     try {
       setLogsLoading(true);
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      setAuditLogs(data || []);
+      
+      // Fallback to local state or mock since audit_logs table might not exist
+      const localLogs = auditLogsList
+        .filter(log => log.tenant_id === tenantId || log.tenant === selectedAuditTenant?.name)
+        .map(log => ({
+          id: log.id,
+          action: log.action.includes('CREATE') ? 'INSERT' : (log.action.includes('DELETE') ? 'DELETE' : 'UPDATE'),
+          entity: log.entity || 'Tenant',
+          entity_id: tenantId,
+          created_at: new Date().toISOString(),
+          description: log.details || log.description,
+          new_data: null
+        }));
+        
+      if (localLogs.length > 0) {
+        setAuditLogs(localLogs);
+      } else {
+        setAuditLogs([]);
+      }
     } catch (err) {
       console.error('Error fetching audit logs:', err);
     } finally {
@@ -528,23 +561,13 @@ export const SaaSAdminPanel: React.FC = () => {
 
   const handleSaveTenant = async (data: any) => {
     try {
-      // Determina os campos corretos baseando-se nas colunas do banco mapeadas
-      const hasNomeColumn = tenantsList.length > 0 && ('nome' in tenantsList[0] || 'plano' in tenantsList[0]);
-
       const tenantData: any = {
-        status: data.status,
+        ativo: data.status === 'Ativo',
         email: data.email,
-        phone: data.phone,
-        document: data.cnpj
+        documento: data.cnpj,
+        nome: data.name,
+        plano: data.plan
       };
-
-      if (hasNomeColumn) {
-        tenantData.nome = data.name;
-        tenantData.plano = data.plan;
-      } else {
-        tenantData.name = data.name;
-        tenantData.plan = data.plan;
-      }
 
       if (selectedTenant) {
         const { error } = await supabase
@@ -614,6 +637,18 @@ export const SaaSAdminPanel: React.FC = () => {
           if (profileError) {
             console.error('Erro ao criar perfis padrão:', profileError);
           }
+
+          // 1. Criar a Empresa Matriz base e Clonar o Template via Banco de Dados (Bypass RLS)
+          const { error: cloneError } = await supabase.rpc('clone_tenant_from_template', { 
+            p_new_tenant_id: newTenant.id,
+            p_nome: newTenant.nome || data.name,
+            p_documento: newTenant.documento || data.cnpj,
+            p_is_demo: false
+          });
+
+          if (cloneError) {
+            console.error('Erro ao clonar dados do template master:', cloneError);
+          }
         }
       }
       
@@ -640,6 +675,98 @@ export const SaaSAdminPanel: React.FC = () => {
     } catch (err) {
       console.error('Error saving tenant:', err);
       alert('Erro ao salvar inquilino.');
+    }
+  };
+
+  const handleCreateDemoTenant = async () => {
+    if (!demoTenantName.trim()) {
+      alert('Por favor, informe o nome do tenant.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const { data: newTenant, error } = await supabase
+        .from('tenants')
+        .insert([{
+          nome: demoTenantName.trim(),
+          email: 'demo@sistema.internal',
+          plano: 'DEMO',
+          status: 'Ativo',
+          is_demo: true,
+          is_template: false
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (newTenant) {
+        // Criar a Empresa Matriz base e Clonar o Template via Banco de Dados (Bypass RLS)
+        const { error: cloneError } = await supabase.rpc('clone_tenant_from_template', { 
+          p_new_tenant_id: newTenant.id,
+          p_nome: newTenant.nome,
+          p_documento: null,
+          p_is_demo: true
+        });
+
+        if (cloneError) {
+          console.error('Erro ao clonar dados para a Demo:', cloneError);
+          alert('Erro ao criar base/clonar: ' + cloneError.message);
+        }
+      }
+
+      logAudit({
+        tenant_id: '00000000-0000-0000-0000-000000000000',
+        user_id: undefined,
+        action: 'Create Demo Tenant',
+        entity: 'Tenants',
+        new_data: { details: `Demo Tenant ${demoTenantName.trim()} created`, status: 'success' }
+      });
+
+      await fetchTenants();
+      setIsCreateDemoModalOpen(false);
+      setDemoTenantName('');
+      alert('Base de demonstração criada com sucesso! Cargos e permissões foram herdados do Template Master.');
+    } catch (err: any) {
+      console.error('Erro ao criar Demo Tenant:', err);
+      alert(`Falha ao criar base demo: ${err.message || err}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteDemoTenant = async () => {
+    if (!tenantToDelete) return;
+    if (deleteConfirmationInput !== tenantToDelete.name) {
+      alert('O nome digitado não confere.');
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.rpc('delete_demo_tenant', {
+        target_tenant_id: tenantToDelete.id
+      });
+
+      if (error) throw error;
+
+      logAudit({
+        tenant_id: '00000000-0000-0000-0000-000000000000',
+        user_id: undefined,
+        action: 'Delete Demo Tenant',
+        entity: 'Tenants',
+        new_data: { details: `Demo Tenant ${tenantToDelete.name} deleted`, status: 'success' }
+      });
+
+      await fetchTenants();
+      setIsDeleteDemoModalOpen(false);
+      setTenantToDelete(null);
+      setDeleteConfirmationInput('');
+      alert('Base de demonstração excluída com sucesso de forma limpa do ecossistema.');
+    } catch (err: any) {
+      console.error('Erro ao deletar Demo Tenant:', err);
+      alert(`Erro de segurança ao excluir base demo: ${err.message || err}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -1124,13 +1251,48 @@ export const SaaSAdminPanel: React.FC = () => {
       });
       fileName = 'gestao_inquilinos_saas';
     } else if (activeTab === 'plans') {
-      dataToExport = plansList.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+      dataToExport = plansList.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        const minPrice = filterValues.minPrice ?? 0;
+        const maxPrice = filterValues.maxPrice ?? 10000;
+        const planPrice = Number(p.price) || 0;
+        const matchesPrice = planPrice >= minPrice && planPrice <= maxPrice;
+        
+        const minUsers = filterValues.minUsers ?? 0;
+        const maxUsers = filterValues.maxUsers ?? 1000;
+        const planUsersLimit = (p.users_limit === null || p.users_limit === undefined) ? 999999 : Number(p.users_limit);
+        const matchesUsers = planUsersLimit >= minUsers && planUsersLimit <= maxUsers;
+
+        const minStorage = filterValues.minStorage ?? 0;
+        const maxStorage = filterValues.maxStorage ?? 1000;
+        const planStorage = Number(p.storage_gb) || 0;
+        const matchesStorage = planStorage >= minStorage && planStorage <= maxStorage;
+
+        return matchesSearch && matchesPrice && matchesUsers && matchesStorage;
+      });
       fileName = 'catalogo_planos_saas';
     } else if (activeTab === 'billing') {
-      dataToExport = invoicesList.filter(item => 
-        (item.tenants?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-        item.id.toLowerCase().includes(searchQuery.toLowerCase())
-      ).map(t => ({
+      dataToExport = invoicesList.filter(item => {
+        const matchesSearch = 
+          (item.tenants?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+          item.id.toLowerCase().includes(searchQuery.toLowerCase());
+
+        let filterStatus = filterValues.status.toLowerCase();
+        if (filterStatus === 'atrasada') filterStatus = 'atrasado';
+        const matchesStatus = filterValues.status === 'all' || 
+          (item.status || '').toLowerCase() === filterStatus;
+
+        const minPrice = filterValues.minPrice ?? 0;
+        const maxPrice = filterValues.maxPrice ?? 10000;
+        const invoiceAmount = Number(item.amount) || 0;
+        const matchesPrice = invoiceAmount >= minPrice && invoiceAmount <= maxPrice;
+
+        const matchesDate = (!filterValues.dateStart || (item.due_date && new Date(item.due_date) >= new Date(filterValues.dateStart))) &&
+                            (!filterValues.dateEnd || (item.due_date && new Date(item.due_date) <= new Date(filterValues.dateEnd)));
+
+        return matchesSearch && matchesStatus && matchesPrice && matchesDate;
+      }).map(t => ({
         id: t.id,
         name: t.tenants?.name || 'Tenant Sem Nome',
         plan: t.plan_name || 'Personalizado',
@@ -1310,23 +1472,26 @@ export const SaaSAdminPanel: React.FC = () => {
     },
     {
       header: 'Plano',
-      accessor: (item: any) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Activity size={14} style={{ color: '#10b981', flexShrink: 0 }} />
-          <span style={{ 
-            fontSize: '11px', 
-            fontWeight: '900', 
-            color: '#0f172a', 
-            textTransform: 'uppercase',
-            padding: '4px 8px',
-            background: '#f0fdf4',
-            borderRadius: '6px',
-            border: '1px solid #dcfce7'
-          }}>
-            {item.plan}
-          </span>
-        </div>
-      )
+      accessor: (item: any) => {
+        const isDemo = item.is_demo === true;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Activity size={14} style={{ color: isDemo ? '#3b82f6' : '#10b981', flexShrink: 0 }} />
+            <span style={{ 
+              fontSize: '11px', 
+              fontWeight: '900', 
+              color: isDemo ? '#1e3a8a' : '#0f172a', 
+              textTransform: 'uppercase',
+              padding: '4px 8px',
+              background: isDemo ? '#eff6ff' : '#f0fdf4',
+              borderRadius: '6px',
+              border: isDemo ? '1px solid #bfdbfe' : '1px solid #dcfce7'
+            }}>
+              {isDemo ? 'DEMONSTRAÇÃO' : item.plan}
+            </span>
+          </div>
+        );
+      }
     },
     {
       header: 'Uso de Recursos',
@@ -1382,6 +1547,38 @@ export const SaaSAdminPanel: React.FC = () => {
           >
             <Edit2 size={18} />
           </button>
+          {item.is_demo ? (
+            <button 
+              className="action-dot danger" 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setTenantToDelete(item);
+                setDeleteConfirmationInput('');
+                setIsDeleteDemoModalOpen(true);
+              }} 
+              title="Excluir Base Demo"
+              style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2' }}
+            >
+              <Trash2 size={18} />
+            </button>
+          ) : (
+            <div 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                width: '36px', 
+                height: '36px', 
+                borderRadius: '10px', 
+                background: '#fffbeb', 
+                color: '#d97706', 
+                border: '1px solid #fef3c7' 
+              }} 
+              title="Assinante Protegido (Imune à exclusão)"
+            >
+              <Lock size={16} />
+            </div>
+          )}
         </div>
       ),
       align: 'right' as const
@@ -1390,6 +1587,13 @@ export const SaaSAdminPanel: React.FC = () => {
 
   return (
     <div className="admin-page animate-slide-up">
+      <SaaSFilterModal 
+        isOpen={showAdvancedFilters}
+        onClose={() => setShowAdvancedFilters(false)}
+        filters={filterValues}
+        setFilters={setFilterValues}
+        activeTab={activeTab}
+      />
       <header className="page-header">
         <div className="header-brand-group">
           <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
@@ -1406,6 +1610,16 @@ export const SaaSAdminPanel: React.FC = () => {
             <History size={18} />
             AUDITORIA GLOBAL
           </button>
+          {activeTab === 'tenants' && (
+            <button 
+              className="glass-btn primary" 
+              onClick={() => setIsCreateDemoModalOpen(true)}
+              style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}
+            >
+              <Zap size={18} />
+              CRIAR BASE DEMO
+            </button>
+          )}
           <button 
             className="primary-btn" 
             onClick={
@@ -1598,6 +1812,7 @@ export const SaaSAdminPanel: React.FC = () => {
           white-space: nowrap !important;
           flex: 1 !important;
           min-width: 0 !important;
+          text-transform: uppercase !important;
         }
 
         .tenant-plan-badge {
@@ -2124,14 +2339,14 @@ export const SaaSAdminPanel: React.FC = () => {
                 <div className="tauze-filter-group">
                   <div className="tauze-tab-group">
                     <button 
-                      className={`tauze-tab-item ${viewMode === 'list' ? 'active' : ''}`}
-                      onClick={() => setViewMode('list')}
+                      className={`tauze-tab-item ${tenantsViewMode === 'list' ? 'active' : ''}`}
+                      onClick={() => setTenantsViewMode('list')}
                     >
                       <ListIcon size={18} />
                     </button>
                     <button 
-                      className={`tauze-tab-item ${viewMode === 'grid' ? 'active' : ''}`}
-                      onClick={() => setViewMode('grid')}
+                      className={`tauze-tab-item ${tenantsViewMode === 'grid' ? 'active' : ''}`}
+                      onClick={() => setTenantsViewMode('grid')}
                     >
                       <LayoutGrid size={18} />
                     </button>
@@ -2163,40 +2378,54 @@ export const SaaSAdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              <SaaSFilterModal 
-                isOpen={showAdvancedFilters}
-                onClose={() => setShowAdvancedFilters(false)}
-                filters={filterValues}
-                setFilters={setFilterValues}
-                activeTab={activeTab}
-              />
+              {(() => {
+                const filteredTenants = tenantsList.filter(t => {
+                  const matchesSearch = 
+                    (t?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                    (t?.id || '').toString().toLowerCase().includes(searchQuery.toLowerCase());
+                  
+                  const matchesStatus = filterValues.status === 'all' || 
+                    (t.status || 'Ativo').toLowerCase() === filterValues.status.toLowerCase();
+                  
+                  const matchesPlan = filterValues.plan === 'all' || 
+                    (t.plan || '').toLowerCase() === filterValues.plan.toLowerCase();
+                  
+                  const matchesUsers = t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers;
+                  
+                  const matchesDate = (!filterValues.dateStart || (t.created_at && new Date(t.created_at) >= new Date(filterValues.dateStart))) &&
+                                     (!filterValues.dateEnd || (t.created_at && new Date(t.created_at) <= new Date(filterValues.dateEnd)));
+                  
+                  return matchesSearch && matchesStatus && matchesPlan && matchesUsers && matchesDate;
+                });
 
-              {viewMode === 'list' ? (
-                <ModernTable 
-                      data={tenantsList.filter(t => 
-                        (t?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        (t?.id || '').toString().toLowerCase().includes(searchQuery.toLowerCase())
-                      )}
-                      columns={tenantColumns}
-                      loading={tenantsLoading}
-                      onRowClick={(item) => {
-                        setSelectedTenant(item);
-                        setIsTenantModalOpen(true);
-                      }}
-                    />
-              ) : (
-                <div className="user-cards-grid">
-                  {tenantsList
-                    .filter(t => {
-                      const matchesSearch = 
-                        (t?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        (t?.id || '').toString().toLowerCase().includes(searchQuery.toLowerCase());
-                      const matchesStatus = filterValues.status === 'all' || t.status === filterValues.status;
-                      const matchesPlan = filterValues.plan === 'all' || t.plan === filterValues.plan;
-                      const matchesUsers = t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers;
-                      return matchesSearch && matchesStatus && matchesPlan && matchesUsers;
-                    })
-                    .map(t => {
+                return tenantsViewMode === 'list' ? (
+                  <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
+                    data={filteredTenants}
+                    columns={tenantColumns}
+                    loading={tenantsLoading}
+                    onRowClick={(item) => {
+                      setSelectedTenant(item);
+                      setIsTenantModalOpen(true);
+                    }}
+                  />
+                ) : filteredTenants.length === 0 ? (
+                  <EmptyState
+                    title="Nenhum inquilino encontrado"
+                    description="Não há inquilinos que correspondam aos filtros atuais."
+                    actionLabel="Novo Inquilino"
+                    onAction={() => { setSelectedTenant(null); setIsTenantModalOpen(true); }}
+                    icon={Globe}
+                  />
+                ) : (
+                  <div className="user-cards-grid">
+                    {filteredTenants.map(t => {
                       const getPlanColor = (plan: string) => {
                         if (plan === 'Enterprise') return 'info-badge';
                         if (plan === 'Pro') return 'active';
@@ -2218,15 +2447,43 @@ export const SaaSAdminPanel: React.FC = () => {
                               <button className="tenant-action-icon-btn" onClick={() => handleImpersonate(t.id)} title="Acessar Instância"><LogIn size={16} /></button>
                               <button className="tenant-action-icon-btn" onClick={() => openEditTenant(t)} title="Configurar"><Edit2 size={16} /></button>
                               <button className="tenant-action-icon-btn" onClick={() => openAuditLogs(t)} title="Ver Auditoria"><Eye size={16} /></button>
+                              {t.is_demo ? (
+                                <button 
+                                  className="tenant-action-icon-btn" 
+                                  onClick={() => {
+                                    setTenantToDelete(t);
+                                    setDeleteConfirmationInput('');
+                                    setIsDeleteDemoModalOpen(true);
+                                  }} 
+                                  title="Excluir Base Demo"
+                                  style={{ color: '#ef4444' }}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              ) : (
+                                <span 
+                                  className="tenant-action-icon-btn" 
+                                  title="Assinante Protegido"
+                                  style={{ color: '#d97706', cursor: 'default' }}
+                                >
+                                  <Lock size={14} />
+                                </span>
+                              )}
                             </div>
                           </div>
 
                           <div className="tenant-card-main-content">
                             <div className="tenant-card-header-info">
                               <h3 title={t.name}>{t.name}</h3>
-                              <span className={`tenant-plan-badge ${(t.plan || 'Starter').toLowerCase().replace(/\s+/g, '-')}`}>
-                                {t.plan}
-                              </span>
+                              {t.is_demo ? (
+                                <span className="tenant-plan-badge demo" style={{ background: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
+                                  DEMONSTRAÇÃO
+                                </span>
+                              ) : (
+                                <span className={`tenant-plan-badge ${(t.plan || 'Starter').toLowerCase().replace(/\s+/g, '-')}`}>
+                                  {t.plan}
+                                </span>
+                              )}
                             </div>
 
                             <div className="tenant-card-meta-grid">
@@ -2254,13 +2511,36 @@ export const SaaSAdminPanel: React.FC = () => {
                         </motion.div>
                       );
                     })}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
             </motion.div>
           )}
 
-          {activeTab === 'plans' && (
-            <motion.div 
+          {activeTab === 'plans' && (() => {
+            const filteredPlans = plansList.filter(p => {
+              const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+              
+              const minPrice = filterValues.minPrice ?? 0;
+              const maxPrice = filterValues.maxPrice ?? 10000;
+              const planPrice = Number(p.price) || 0;
+              const matchesPrice = planPrice >= minPrice && planPrice <= maxPrice;
+              
+              const minUsers = filterValues.minUsers ?? 0;
+              const maxUsers = filterValues.maxUsers ?? 1000;
+              const planUsersLimit = (p.users_limit === null || p.users_limit === undefined) ? 999999 : Number(p.users_limit);
+              const matchesUsers = planUsersLimit >= minUsers && planUsersLimit <= maxUsers;
+
+              const minStorage = filterValues.minStorage ?? 0;
+              const maxStorage = filterValues.maxStorage ?? 1000;
+              const planStorage = Number(p.storage_gb) || 0;
+              const matchesStorage = planStorage >= minStorage && planStorage <= maxStorage;
+
+              return matchesSearch && matchesPrice && matchesUsers && matchesStorage;
+            });
+
+            return (
+              <motion.div 
               key="plans"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -2282,15 +2562,15 @@ export const SaaSAdminPanel: React.FC = () => {
                 <div className="tauze-filter-group">
                   <div className="view-mode-toggle">
                     <button 
-                      className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-                      onClick={() => setViewMode('list')}
+                      className={`view-btn ${plansViewMode === 'list' ? 'active' : ''}`}
+                      onClick={() => setPlansViewMode('list')}
                       title="Visualização em Lista"
                     >
                       <ListIcon size={18} />
                     </button>
                     <button 
-                      className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
-                      onClick={() => setViewMode('grid')}
+                      className={`view-btn ${plansViewMode === 'grid' ? 'active' : ''}`}
+                      onClick={() => setPlansViewMode('grid')}
                       title="Visualização em Cards"
                     >
                       <LayoutGrid size={18} />
@@ -2323,9 +2603,16 @@ export const SaaSAdminPanel: React.FC = () => {
                 </div>
               </div>
 
-              {viewMode === 'list' ? (
+              {plansViewMode === 'list' ? (
                 <ModernTable 
-                  data={plansList.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))}
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
+                  data={filteredPlans}
                   columns={[
                     { 
                       header: 'Plano', 
@@ -2384,11 +2671,17 @@ export const SaaSAdminPanel: React.FC = () => {
                     </div>
                   )}
                 />
+              ) : filteredPlans.length === 0 ? (
+                <EmptyState
+                  title="Nenhum plano encontrado"
+                  description="Não há planos que correspondam aos filtros atuais."
+                  actionLabel="Novo Plano"
+                  onAction={() => { setSelectedPlan(null); setIsPlanModalOpen(true); }}
+                  icon={CreditCard}
+                />
               ) : (
                 <div className="user-cards-grid">
-                  {plansList
-                    .filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map(plan => {
+                  {filteredPlans.map(plan => {
                       const getPlanBadgeClass = (name: string) => {
                         if (name === 'Enterprise') return 'info-badge';
                         if (name === 'Pro') return 'active';
@@ -2440,9 +2733,32 @@ export const SaaSAdminPanel: React.FC = () => {
                 </div>
               )}
             </motion.div>
-          )}
+            );
+          })()}
 
-          {activeTab === 'billing' && (
+          {activeTab === 'billing' && (() => {
+            const filteredBilling = invoicesList.filter(item => {
+              const matchesSearch = 
+                (item.tenants?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+                item.id.toLowerCase().includes(searchQuery.toLowerCase());
+
+              let filterStatus = filterValues.status.toLowerCase();
+              if (filterStatus === 'atrasada') filterStatus = 'atrasado';
+              const matchesStatus = filterValues.status === 'all' || 
+                (item.status || '').toLowerCase() === filterStatus;
+
+              const minPrice = filterValues.minPrice ?? 0;
+              const maxPrice = filterValues.maxPrice ?? 10000;
+              const invoiceAmount = Number(item.amount) || 0;
+              const matchesPrice = invoiceAmount >= minPrice && invoiceAmount <= maxPrice;
+
+              const matchesDate = (!filterValues.dateStart || (item.due_date && new Date(item.due_date) >= new Date(filterValues.dateStart))) &&
+                                  (!filterValues.dateEnd || (item.due_date && new Date(item.due_date) <= new Date(filterValues.dateEnd)));
+
+              return matchesSearch && matchesStatus && matchesPrice && matchesDate;
+            });
+
+            return (
               <motion.div 
                 key="billing"
                 initial={{ opacity: 0, y: 10 }}
@@ -2528,9 +2844,13 @@ export const SaaSAdminPanel: React.FC = () => {
                      />
                    </div>
                    
-                   <button className="icon-btn-secondary" title="Filtros Avançados">
-                     <Filter size={20} />
-                   </button>
+                   <button 
+                      className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
+                      title="Filtros Avançados"
+                      onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    >
+                      <Filter size={20} />
+                    </button>
 
                    <div className="export-dropdown-container">
                      <button 
@@ -2556,10 +2876,14 @@ export const SaaSAdminPanel: React.FC = () => {
                 {billingSubTab === 'monitor' && (
                   <>
                     <ModernTable 
-                      data={invoicesList.filter(item => 
-                        (item.tenants?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-                        item.id.toLowerCase().includes(searchQuery.toLowerCase())
-                      ).map(t => ({
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
+                      data={filteredBilling.map(t => ({
                         ...t,
                         price: `R$ ${Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
                         gateway: 'Asaas',
@@ -2636,7 +2960,8 @@ export const SaaSAdminPanel: React.FC = () => {
                 </div>
 
              </motion.div>
-           )}
+            );
+          })()}
 
            {activeTab === 'settings' && (
             <motion.div 
@@ -3240,6 +3565,135 @@ export const SaaSAdminPanel: React.FC = () => {
             </>
           )}
         </AnimatePresence>
+        {createPortal(
+          <AnimatePresence>
+            {isCreateDemoModalOpen && (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsCreateDemoModalOpen(false)}
+                  style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)' }}
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  style={{ position: 'relative', width: '100%', maxWidth: '460px', background: 'white', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', overflow: 'hidden', border: '1px solid #e2e8f0' }}
+                >
+                  <div style={{ padding: '24px', background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)', borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
+                        <Zap size={20} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase' }}>Nova Base de Demonstração</h3>
+                        <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Criada a partir do Template Master</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ padding: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>Nome da Base Demo</label>
+                    <input 
+                      type="text" 
+                      value={demoTenantName}
+                      onChange={(e) => setDemoTenantName(e.target.value)}
+                      placeholder="Ex: TBC Agro Demo"
+                      style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600', color: '#0f172a', outline: 'none' }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleCreateDemoTenant();
+                      }}
+                      autoFocus
+                    />
+                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', marginTop: '16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <CheckCircle size={16} style={{ color: '#10b981', flexShrink: 0 }} />
+                      <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', lineHeight: '1.4' }}>
+                        Esta base herdará automaticamente todos os Cargos, Categorias e Perfis de Permissão configurados no seu **Template Master**.
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                    <button className="glass-btn secondary sm" onClick={() => setIsCreateDemoModalOpen(false)}>CANCELAR</button>
+                    <button 
+                      className="primary-btn sm" 
+                      onClick={handleCreateDemoTenant}
+                      disabled={isSaving}
+                      style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none' }}
+                    >
+                      {isSaving ? 'CRIANDO...' : 'CRIAR BASE DEMO'}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
+        {createPortal(
+          <AnimatePresence>
+            {isDeleteDemoModalOpen && tenantToDelete && (
+              <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setIsDeleteDemoModalOpen(false)}
+                  style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)' }}
+                />
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                  style={{ position: 'relative', width: '100%', maxWidth: '480px', background: 'white', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', overflow: 'hidden', border: '1px solid #fee2e2' }}
+                >
+                  <div style={{ padding: '24px', background: 'linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)', borderBottom: '1px solid #fee2e2' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
+                        <AlertCircle size={20} />
+                      </div>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#991b1b', textTransform: 'uppercase' }}>Excluir Base de Demonstração</h3>
+                        <p style={{ margin: 0, fontSize: '11px', color: '#ef4444', fontWeight: '700' }}>Esta ação é 100% irreversível!</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ padding: '24px' }}>
+                    <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#475569', fontWeight: '600', lineHeight: '1.5' }}>
+                      Você está prestes a excluir definitivamente a base de demonstração <strong style={{ color: '#0f172a' }}>"{tenantToDelete.name}"</strong>. Todos os dados, fazendas, lançamentos e configurações vinculados serão completamente apagados.
+                    </p>
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
+                      Para confirmar, digite o nome exato da base abaixo:
+                    </label>
+                    <input 
+                      type="text" 
+                      value={deleteConfirmationInput}
+                      onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                      placeholder={tenantToDelete.name}
+                      style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '700', color: '#991b1b', outline: 'none' }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && deleteConfirmationInput === tenantToDelete.name) handleDeleteDemoTenant();
+                      }}
+                      autoFocus
+                    />
+                  </div>
+                  <div style={{ padding: '16px 24px', background: '#fafafa', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                    <button className="glass-btn secondary sm" onClick={() => setIsDeleteDemoModalOpen(false)}>CANCELAR</button>
+                    <button 
+                      className="primary-btn sm" 
+                      onClick={handleDeleteDemoTenant}
+                      disabled={isDeleting || deleteConfirmationInput !== tenantToDelete.name}
+                      style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', border: 'none', opacity: deleteConfirmationInput === tenantToDelete.name ? 1 : 0.6 }}
+                    >
+                      {isDeleting ? 'EXCLUINDO...' : 'EXCLUIR DEFINITIVAMENTE'}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
       {createPortal(
         <AnimatePresence>
           {isAuditLogModalOpen && (

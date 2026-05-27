@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { 
   FileText, 
@@ -43,6 +43,8 @@ import { exportToExcel } from '../../utils/exportUtils';
 import { ScheduleModal } from './components/ScheduleModal';
 import { PeriodSelectorModal } from './components/PeriodSelectorModal';
 import { ReportFilterModal } from './components/ReportFilterModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useViewMode } from '../../hooks/useViewMode';
 
 
 export const Reports: React.FC = () => {
@@ -54,7 +56,7 @@ export const Reports: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useViewMode('reports-overview', 'grid');
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [reportToSchedule, setReportToSchedule] = useState<any>(null);
   const [isPeriodModalOpen, setIsPeriodModalOpen] = useState(false);
@@ -423,7 +425,15 @@ export const Reports: React.FC = () => {
                 </div>
 
                 <div className={`document-rows ${viewMode}`}>
-                    {filteredReports.map((report, idx) => (
+                    {filteredReports.length === 0 ? (
+                      <EmptyState
+                        title="Nenhum relatório encontrado"
+                        description="Sua busca ou filtro não retornou resultados. Tente ajustar os filtros ou limpar a pesquisa."
+                        actionLabel="Limpar filtros"
+                        onAction={() => { setSearchTerm(''); setActiveCategory('all'); setAdvancedFilters({ tags: [], complexity: 'all', onlyFavorites: false, minIntegrity: 0 }); }}
+                        icon={FileText}
+                      />
+                    ) : filteredReports.map((report, idx) => (
                       <motion.div 
                         key={report.id}
                         initial={{ opacity: 0, x: -10 }}
@@ -505,7 +515,7 @@ export const Reports: React.FC = () => {
                           </button>
                         </div>
                     </motion.div>
-                  ))}
+                    ))}
                 </div>
               </main>
             </div>

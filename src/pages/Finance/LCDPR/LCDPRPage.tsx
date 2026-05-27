@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
+import { Search,
   BookOpen, Plus, Download, RefreshCw, FileText,
   ChevronDown, ChevronUp, Trash2, Edit3, CheckCircle,
   AlertCircle, Filter, BarChart3, ArrowUpRight, ArrowDownRight,
@@ -12,6 +12,7 @@ import { NATUREZAS_LCDPR, NATUREZAS_RECEITA, NATUREZAS_DESPESA } from './utils/l
 import { buildLCDPRFile, downloadLCDPRFile } from './utils/lcdprFileBuilder';
 import { TauzeStatCard } from '../../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../../components/DataTable/ModernTable';
+import { EmptyState } from '../../../components/Feedback/EmptyState';
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const ANO_ATUAL = new Date().getFullYear();
@@ -450,13 +451,20 @@ export const LCDPRPage: React.FC = () => {
           {loading ? (
             <div style={{ padding: 40, textAlign: 'center', color: 'hsl(var(--text-muted))' }}>Carregando lançamentos...</div>
           ) : filteredLancs.length === 0 ? (
-            <div style={{ padding: 60, textAlign: 'center' }}>
-              <BookOpen size={48} style={{ margin: '0 auto 16px', color: 'hsl(var(--text-muted))' }} />
-              <p style={{ color: 'hsl(var(--text-muted))', fontWeight: 600 }}>Nenhum lançamento em {anoCalendario}</p>
-              <p style={{ color: 'hsl(var(--text-muted))', fontSize: 13, marginTop: 4 }}>Use "Importar Financeiro" ou adicione manualmente</p>
-            </div>
+            <EmptyState
+              title={`Nenhum lançamento em ${anoCalendario}`}
+              description="Use &quot;Importar Financeiro&quot; ou adicione manualmente"
+              icon={BookOpen}
+            />
           ) : (
-            <ModernTable
+            <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          }
               data={filteredLancs}
               columns={columns}
               loading={loading}

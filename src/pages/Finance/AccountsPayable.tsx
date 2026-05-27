@@ -44,9 +44,11 @@ import './AccountsPayable.css';
 
 import { useReportData } from '../../hooks/useReportData';
 import { useDebounce } from '../../hooks/useDebounce';
+import { useApprovalQueue } from '../../hooks/useApprovalQueue';
 
 export const AccountsPayable: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
+  const { submitForApproval } = useApprovalQueue();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'TODAS' | 'PENDENTE' | 'PAGO'>('TODAS');
   const [selectedBill, setSelectedBill] = useState<any>(null);
@@ -136,11 +138,23 @@ export const AccountsPayable: React.FC = () => {
         setIsModalOpen(false);
         refresh();
       } else {
-        const { error } = await supabase
+        const { data: newRecord, error } = await supabase
           .from('contas_pagar')
-          .insert([{ ...payload, ...insertPayload }]);
+          .insert([{ ...payload, ...insertPayload }])
+          .select()
+          .single();
 
         if (error) throw error;
+        
+        const { data: userData } = await supabase.auth.getUser();
+        await submitForApproval(
+          'Contas a Pagar',
+          newRecord.id,
+          'contas_pagar',
+          payload.valor_total,
+          payload.descricao || 'Nova Conta a Pagar',
+          userData.user?.email || 'Usuário'
+        );
         
         setIsModalOpen(false);
         refresh();

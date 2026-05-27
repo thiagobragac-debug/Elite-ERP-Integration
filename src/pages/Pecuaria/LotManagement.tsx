@@ -37,6 +37,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { LotFilterModal } from './components/LotFilterModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
+import { useViewMode } from '../../hooks/useViewMode';
 import './LotManagement.css';
 
 export const LotManagement: React.FC = () => {
@@ -59,7 +60,7 @@ export const LotManagement: React.FC = () => {
     minOccupancy: 0,
     uniformityLevel: 'all'
   });
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useViewMode('pecuaria-lot-management', 'grid');
   
   const [page, setPage] = useState(1);
   const pageSize = 12;
@@ -482,13 +483,23 @@ export const LotManagement: React.FC = () => {
       <div className="management-content">
         {viewMode === 'list' ? (
           <ModernTable 
-            emptyState={<EmptyState
-              title="Nenhum lote cadastrado"
-              description="Nenhum lote operacional foi criado para esta fazenda. Organize o rebanho criando o primeiro lote de manejo."
-              actionLabel="Novo Lote"
-              onAction={handleOpenCreate}
-              icon={Layers}
-            />}
+            emptyState={
+              localLots.length === 0 ? (
+                <EmptyState
+                  title="Nenhum lote cadastrado"
+                  description="Nenhum lote operacional foi criado para esta fazenda. Organize o rebanho criando o primeiro lote de manejo."
+                  actionLabel="Novo Lote"
+                  onAction={handleOpenCreate}
+                  icon={Layers}
+                />
+              ) : (
+                <EmptyState
+                  title="Nenhum registro encontrado"
+                  description="Sua busca não retornou resultados."
+                  icon={Search}
+                />
+              )
+            }
             data={filteredLots}
             columns={tableColumns}
             loading={loading}
@@ -515,97 +526,147 @@ export const LotManagement: React.FC = () => {
           />
         ) : (
           <div className="lot-cards-grid animate-fade-in">
-            {filteredLots.map(l => {
-              const totalAnimals = l.quantidade_animais !== undefined ? l.quantidade_animais : 0;
-              const capacity = l.capacidade || 100;
-              const occupancyPercent = capacity > 0 ? (totalAnimals / capacity) * 100 : 0;
-              
-              let badgeClass = 'active'; // green
-              let badgeText = 'ATIVO';
-              let borderClass = 'active';
-              
-              if (l.status?.toUpperCase() === 'ARQUIVADO') {
-                badgeClass = 'stopped';
-                badgeText = 'ARQUIVADO';
-                borderClass = 'danger-badge';
-              } else if (occupancyPercent > 100) {
-                badgeClass = 'stopped';
-                badgeText = 'LIMITADO';
-                borderClass = 'danger-badge';
-              } else if (occupancyPercent > 80) {
-                badgeClass = 'warning-badge';
-                badgeText = 'ATENÇÃO';
-                borderClass = 'warning-badge';
-              }
-
-              return (
+            {filteredLots.length === 0 ? (
+              <div 
+                className="lot-card-premium" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  gap: '6px',
+                  minHeight: '180px',
+                  height: '100%',
+                  boxShadow: 'none'
+                }}
+              >
                 <div 
-                  key={l.id} 
-                  className={`lot-card-premium ${borderClass}`}
+                  style={{ 
+                    margin: 0, 
+                    width: '40px', 
+                    height: '40px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
                 >
-                  <div className="card-left-section">
-                    <div className="card-avatar">
-                      <Layers size={28} />
-                    </div>
-                    <div className="card-bottom-actions">
-                      <button className="action-icon-btn info" onClick={() => handleViewDetails(l)} title="Detalhes"><Eye size={14} /></button>
-                      <button className="action-icon-btn edit" onClick={() => handleOpenEdit(l)} title="Editar"><Edit3 size={14} /></button>
-                      <button 
-                        className={`action-icon-btn ${l.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`} 
-                        onClick={() => handleToggleArchive(l)} 
-                        title={l.status?.toUpperCase() === 'ARQUIVADO' ? 'Reativar Lote' : 'Arquivar Lote'}
-                      >
-                        {l.status?.toUpperCase() === 'ARQUIVADO' ? <RefreshCw size={14} /> : <Archive size={14} />}
-                      </button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(l.id)} title="Excluir"><Trash2 size={14} /></button>
-                    </div>
-                  </div>
-
-                  <div className="card-main-content">
-                    <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
-                      <div className="title-row" style={{ width: '100%' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{l.nome}</h3>
-                      </div>
-                      <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className={`status-pill mini ${badgeClass}`}>
-                          {badgeText}
-                        </span>
-                        <div className="card-type-meta">{l.finalidade || 'Manejo Geral'}</div>
-                      </div>
-                    </div>
-
-                    <div className="card-occupation-section">
-                      <div className="occ-header">
-                        <span>OCUPAÇÃO ATUAL</span>
-                        <span className={occupancyPercent > 100 ? 'critical' : ''}>
-                          {Math.round(occupancyPercent)}%
-                        </span>
-                      </div>
-                      <div className="occ-bar-container">
-                        <div 
-                          className={`occ-bar-fill ${occupancyPercent > 100 ? 'critical' : occupancyPercent > 80 ? 'warning' : ''}`}
-                          style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
-                        />
-                      </div>
-                      <div className="occ-footer">
-                        {totalAnimals} / {capacity} Cabeças
-                      </div>
-                    </div>
-
-                    <div className="card-footer-meta">
-                      <div className="meta-item">
-                        <TrendingUp size={12} />
-                        <span>CV: 6.8%</span>
-                      </div>
-                      <div className="meta-item">
-                        <Activity size={12} />
-                        <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
-                      </div>
-                    </div>
-                  </div>
+                  {localLots.length === 0 ? <Layers size={22} /> : <Search size={22} />}
                 </div>
-              );
-            })}
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                  {localLots.length === 0 ? 'Nenhum lote cadastrado' : 'Nenhum registro encontrado'}
+                </h3>
+                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                  {localLots.length === 0 ? 'Não há lotes operacionais registrados.' : 'Sua busca não retornou resultados.'}
+                </p>
+                {localLots.length === 0 && (
+                  <button 
+                    className="primary-btn" 
+                    onClick={handleOpenCreate}
+                    style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                  >
+                    <Plus size={12} />
+                    <span>NOVO LOTE</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              filteredLots.map(l => {
+                const totalAnimals = l.quantidade_animais !== undefined ? l.quantidade_animais : 0;
+                const capacity = l.capacidade || 100;
+                const occupancyPercent = capacity > 0 ? (totalAnimals / capacity) * 100 : 0;
+                
+                let badgeClass = 'active'; // green
+                let badgeText = 'ATIVO';
+                let borderClass = 'active';
+                
+                if (l.status?.toUpperCase() === 'ARQUIVADO') {
+                  badgeClass = 'stopped';
+                  badgeText = 'ARQUIVADO';
+                  borderClass = 'danger-badge';
+                } else if (occupancyPercent > 100) {
+                  badgeClass = 'stopped';
+                  badgeText = 'LIMITADO';
+                  borderClass = 'danger-badge';
+                } else if (occupancyPercent > 80) {
+                  badgeClass = 'warning-badge';
+                  badgeText = 'ATENÇÃO';
+                  borderClass = 'warning-badge';
+                }
+
+                return (
+                  <div 
+                    key={l.id} 
+                    className={`lot-card-premium ${borderClass}`}
+                  >
+                    <div className="card-left-section">
+                      <div className="card-avatar">
+                        <Layers size={28} />
+                      </div>
+                      <div className="card-bottom-actions">
+                        <button className="action-icon-btn info" onClick={() => handleViewDetails(l)} title="Detalhes"><Eye size={14} /></button>
+                        <button className="action-icon-btn edit" onClick={() => handleOpenEdit(l)} title="Editar"><Edit3 size={14} /></button>
+                        <button 
+                          className={`action-icon-btn ${l.status?.toUpperCase() === 'ARQUIVADO' ? 'success' : 'warning'}`} 
+                          onClick={() => handleToggleArchive(l)} 
+                          title={l.status?.toUpperCase() === 'ARQUIVADO' ? 'Reativar Lote' : 'Arquivar Lote'}
+                        >
+                          {l.status?.toUpperCase() === 'ARQUIVADO' ? <RefreshCw size={14} /> : <Archive size={14} />}
+                        </button>
+                        <button className="action-icon-btn delete" onClick={() => handleDelete(l.id)} title="Excluir"><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+
+                    <div className="card-main-content">
+                      <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                        <div className="title-row" style={{ width: '100%' }}>
+                          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{l.nome}</h3>
+                        </div>
+                        <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className={`status-pill mini ${badgeClass}`}>
+                            {badgeText}
+                          </span>
+                          <div className="card-type-meta">{l.finalidade || 'Manejo Geral'}</div>
+                        </div>
+                      </div>
+
+                      <div className="card-occupation-section">
+                        <div className="occ-header">
+                          <span>OCUPAÇÃO ATUAL</span>
+                          <span className={occupancyPercent > 100 ? 'critical' : ''}>
+                            {Math.round(occupancyPercent)}%
+                          </span>
+                        </div>
+                        <div className="occ-bar-container">
+                          <div 
+                            className={`occ-bar-fill ${occupancyPercent > 100 ? 'critical' : occupancyPercent > 80 ? 'warning' : ''}`}
+                            style={{ width: `${Math.min(occupancyPercent, 100)}%` }}
+                          />
+                        </div>
+                        <div className="occ-footer">
+                          {totalAnimals} / {capacity} Cabeças
+                        </div>
+                      </div>
+
+                      <div className="card-footer-meta">
+                        <div className="meta-item">
+                          <TrendingUp size={12} />
+                          <span>CV: 6.8%</span>
+                        </div>
+                        <div className="meta-item">
+                          <Activity size={12} />
+                          <span className="card-farm-meta">{isGlobalMode ? 'Multi-Fazenda' : (activeFarm?.name || 'Fazenda 01')}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
             <button className="add-lot-card-premium" onClick={handleOpenCreate}>
               <Plus size={32} />
               <span>NOVO LOTE</span>

@@ -81,7 +81,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
   };
 
   const getStats = () => {
-    if (!data || data.length === 0) return { current: 0, min: 0, max: 0, avg: 0, variation: 0 };
+    if (!data || data.length === 0) return { current: 0, min: 0, max: 0, avg: 0, variation: 0, isEmpty: true };
     
     const values = data.map(d => d.value);
     const min = Math.min(...values);
@@ -92,7 +92,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
     const last = data[data.length - 1].value;
     const variation = ((last - first) / first) * 100;
 
-    return { current: last, min, max, avg, variation };
+    return { current: last, min, max, avg, variation, isEmpty: false };
   };
 
   const stats = getStats();
@@ -158,41 +158,41 @@ export const MarketIntelligenceDashboard: React.FC = () => {
           <>
             <TauzeStatCard 
               label="Preço Atual (Último)" 
-              value={`R$ ${stats.current.toFixed(2)}`} 
+              value={stats.isEmpty ? '---' : `R$ ${stats.current.toFixed(2)}`} 
               icon={DollarSign} 
-              color={stats.variation >= 0 ? '#10b981' : '#ef4444'} 
-              change={`${Math.abs(stats.variation).toFixed(2)}%`} 
-              trend={stats.variation >= 0 ? 'up' : 'down'}
-              progress={85}
+              color={stats.isEmpty ? '#ef4444' : (stats.variation >= 0 ? '#10b981' : '#ef4444')} 
+              change={stats.isEmpty ? 'Sem Dados' : `${Math.abs(stats.variation).toFixed(2)}%`} 
+              trend={stats.isEmpty ? undefined : (stats.variation >= 0 ? 'up' : 'down')}
+              progress={stats.isEmpty ? 0 : 85}
               periodLabel={periodLabel}
-              sparkline={sparklineData}
+              sparkline={stats.isEmpty ? [] : sparklineData}
             />
             <TauzeStatCard 
               label="Máxima no Período" 
-              value={`R$ ${stats.max.toFixed(2)}`} 
+              value={stats.isEmpty ? '---' : `R$ ${stats.max.toFixed(2)}`} 
               icon={TrendingUp} 
-              color="#3b82f6"
-              progress={100}
+              color={stats.isEmpty ? '#ef4444' : "#3b82f6"}
+              progress={stats.isEmpty ? 0 : 100}
               periodLabel={periodLabel}
-              sparkline={sparklineData}
+              sparkline={stats.isEmpty ? [] : sparklineData}
             />
             <TauzeStatCard 
               label="Mínima no Período" 
-              value={`R$ ${stats.min.toFixed(2)}`} 
+              value={stats.isEmpty ? '---' : `R$ ${stats.min.toFixed(2)}`} 
               icon={TrendingDown} 
-              color="#f59e0b"
-              progress={40}
+              color={stats.isEmpty ? '#ef4444' : "#f59e0b"}
+              progress={stats.isEmpty ? 0 : 40}
               periodLabel={periodLabel}
-              sparkline={sparklineData}
+              sparkline={stats.isEmpty ? [] : sparklineData}
             />
             <TauzeStatCard 
               label="Preço Médio" 
-              value={`R$ ${stats.avg.toFixed(2)}`} 
+              value={stats.isEmpty ? '---' : `R$ ${stats.avg.toFixed(2)}`} 
               icon={Activity} 
-              color="#8b5cf6"
-              progress={75}
+              color={stats.isEmpty ? '#ef4444' : "#8b5cf6"}
+              progress={stats.isEmpty ? 0 : 75}
               periodLabel={periodLabel}
-              sparkline={sparklineData}
+              sparkline={stats.isEmpty ? [] : sparklineData}
             />
           </>
         )}
@@ -216,6 +216,10 @@ export const MarketIntelligenceDashboard: React.FC = () => {
             {loading ? (
               <div style={{ height: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span className="loading-text">Carregando dados do gráfico...</span>
+              </div>
+            ) : data.length === 0 ? (
+              <div style={{ height: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span className="text-slate-400 font-bold text-sm">Nenhum dado histórico encontrado para o período.</span>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={350}>

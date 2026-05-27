@@ -30,6 +30,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useViewMode } from '../../hooks/useViewMode';
 
 export const AnimalManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -53,7 +54,7 @@ export const AnimalManagement: React.FC = () => {
   const [page, setPage] = useState(1);
   const pageSize = 12;
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useViewMode('pecuaria-animal-management', 'grid');
 
   const { 
     data: animals = [], 
@@ -435,7 +436,54 @@ export const AnimalManagement: React.FC = () => {
           />
         ) : (
           <div className="animal-cards-grid animate-fade-in">
-            {filteredAnimals.map(a => {
+            {filteredAnimals.length === 0 ? (
+              <div 
+                className="animal-card-premium" 
+                style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '20px', 
+                  textAlign: 'center', 
+                  gap: '6px',
+                  minHeight: '180px',
+                  height: '100%',
+                  boxShadow: 'none'
+                }}
+              >
+                <div 
+                  style={{ 
+                    margin: 0, 
+                    width: '40px', 
+                    height: '40px',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <Beef size={22} style={{ color: 'hsl(var(--brand))' }} />
+                </div>
+                <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                  Nenhum animal cadastrado
+                </h3>
+                <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                  Não há animais registrados para esta unidade. Inicie o controle do rebanho cadastrando o primeiro animal.
+                </p>
+                <button 
+                  className="primary-btn" 
+                  onClick={handleOpenCreate}
+                  style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                >
+                  <Plus size={12} />
+                  <span>NOVO ANIMAL</span>
+                </button>
+              </div>
+            ) : (
+              filteredAnimals.map(a => {
               const statusStr = a.status || 'Ativo';
               let badgeClass = 'active'; // green
               let badgeText = statusStr.toUpperCase();
@@ -557,7 +605,8 @@ export const AnimalManagement: React.FC = () => {
                   </div>
                 </div>
               );
-            })}
+             })
+            )}
             <button className="add-animal-card-premium" onClick={handleOpenCreate}>
               <Plus size={32} />
               <span>NOVO ANIMAL</span>

@@ -82,7 +82,7 @@ export const consumoFrotas: ReportHandler = async (tenantId, fazendaId, page = 1
     };
   } catch (error) {
     console.warn('[ConsumoFrotas] Resilience Pattern Engaged. Reason:', error instanceof Error ? error.message : 'Unknown');
-    return { data: [], stats: mockData.stats, columns: mockData.columns, totalCount: 0 };
+    return { data: [], stats: [], columns: mockData.columns, totalCount: 0 };
   }
 };
 
@@ -310,3 +310,4 @@ export const pedidosCompra: ReportHandler = async (tenantId, fazendaId, page = 1
     };
   } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
 };
+

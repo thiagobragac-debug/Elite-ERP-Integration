@@ -36,6 +36,7 @@ import { FinanceFilterModal } from './components/FinanceFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import './CashFlow.css';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 interface Transaction {
   id: string;
@@ -358,6 +359,13 @@ export const CashFlow: React.FC = () => {
 
             <div className="management-content">
               <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
                 data={transactions.filter(t => {
                   const matchesSearch = (t.description || '').toLowerCase().includes(searchTerm.toLowerCase());
                   const matchesTab = activeTab === 'ALL' || (activeTab === 'INFLOW' ? t.type === 'inflow' : t.type === 'outflow');

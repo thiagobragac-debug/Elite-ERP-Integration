@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Plus, 
@@ -30,9 +30,12 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { HedgeSimulationModal } from './components/HedgeSimulationModal';
 import { ContractFilterModal } from './components/ContractFilterModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useApprovalQueue } from '../../hooks/useApprovalQueue';
 
 export const Contracts: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { submitForApproval } = useApprovalQueue();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [contracts, setContracts] = useState<any[]>([]);
@@ -183,8 +186,20 @@ export const Contracts: React.FC = () => {
       const { error } = await supabase.from('contratos').update(payload).eq('id', selectedContract.id);
       if (!error) { setIsModalOpen(false); fetchContracts(); }
     } else {
-      const { error } = await supabase.from('contratos').insert([{ ...payload, ...insertPayload }]);
-      if (!error) { setIsModalOpen(false); fetchContracts(); }
+      const { data: newRecord, error } = await supabase.from('contratos').insert([{ ...payload, ...insertPayload }]).select().single();
+      if (!error) { 
+        const { data: userData } = await supabase.auth.getUser();
+        await submitForApproval(
+          'Contratos de Venda',
+          newRecord.id,
+          'contratos',
+          payload.valor_total,
+          `Contrato ${payload.numero_contrato}`,
+          userData.user?.email || 'Usuário'
+        );
+        setIsModalOpen(false); 
+        fetchContracts(); 
+      }
     }
   };
 
@@ -429,6 +444,23 @@ export const Contracts: React.FC = () => {
 
       <div className="management-content">
         <ModernTable 
+          emptyState={
+            !searchTerm && filterValues.status === 'all' && filterValues.priceType === 'all' && filterValues.minProgress === 0 && !filterValues.dateStart && !filterValues.dateEnd ? (
+              <EmptyState
+                title={activeTab === 'ACTIVE' ? "Nenhum contrato vigente" : "Nenhum contrato encerrado"}
+                description={activeTab === 'ACTIVE' ? "Você não possui contratos de venda ou hedge ativos no momento." : "Não há histórico de contratos encerrados."}
+                actionLabel={activeTab === 'ACTIVE' ? "Novo Contrato" : undefined}
+                onAction={activeTab === 'ACTIVE' ? handleOpenCreate : undefined}
+                icon={ShieldCheck}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={contracts.filter(c => {
             const matchesSearch = (c.numero_contrato || '').toLowerCase().includes(searchTerm.toLowerCase()) || (c.parceiros?.nome || c.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'ACTIVE' ? c.status === 'active' : c.status === 'completed';

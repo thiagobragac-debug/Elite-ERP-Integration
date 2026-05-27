@@ -2,7 +2,7 @@
 import { createPortal } from 'react-dom';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
-import { 
+import { Search, 
   X, 
   Download, 
   Printer, 
@@ -22,6 +22,7 @@ import { useTenant } from '../../../contexts/TenantContext';
 import { supabase } from '../../../lib/supabase';
 import { useReportData } from '../../../hooks/useReportData';
 import { exportToExcel } from '../../../utils/exportUtils';
+import { EmptyState } from '../../../components/Feedback/EmptyState';
 
 interface ReportViewerProps {
   report: any;
@@ -383,6 +384,13 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
               </div>
             ) : (
               <ModernTable 
+          emptyState={
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description="Sua busca não retornou resultados."
+              icon={Search}
+            />
+          } 
                 data={data || []}
                 columns={columns || []}
                 hideHeader={false}

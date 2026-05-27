@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ClipboardCheck, 
   Plus, 
@@ -29,6 +29,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { AuditFilterModal } from './components/AuditFilterModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 export const AuditManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
@@ -111,16 +112,16 @@ export const AuditManagement: React.FC = () => {
         ]);
       }
     } catch (err) {
-      console.warn('[Audits] Using mock fallbacks:', err);
+      console.warn('[Audits] Fetch error:', err);
       setAudits([]);
       setStats([
-        { label: 'Auditorias Concluídas', value: 12, icon: ClipboardCheck, color: '#10b981', progress: 100, change: 'MOCK',
-          sparkline: [6,8,9,10,11,12,12].map((v,i) => ({ value: v, label: `${v}` })) },
-        { label: 'Acuracidade Média', value: '98.5%', icon: Target, color: '#3b82f6', progress: 98, change: 'MOCK',
-          sparkline: [94,95,96,97,97.5,98,98.5].map((v,i) => ({ value: v, label: `${v}%` })) },
-        { label: 'Itens Auditados', value: '1.240', icon: Package, color: '#f59e0b', progress: 85, change: 'MOCK',
-          sparkline: [620,744,868,992,1054,1178,1240].map((v,i) => ({ value: v, label: `${v}` })) },
-        { label: 'Sessões Ativas', value: 0, icon: History, color: '#6366f1', progress: 100, change: 'MOCK',
+        { label: 'Auditorias Concluídas', value: 0, icon: ClipboardCheck, color: '#10b981', progress: 0, change: '',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i}` })) },
+        { label: 'Acuracidade Média', value: '0%', icon: Target, color: '#3b82f6', progress: 0, change: '',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `0%` })) },
+        { label: 'Itens Auditados', value: '0', icon: Package, color: '#f59e0b', progress: 0, change: '',
+          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `0` })) },
+        { label: 'Sessões Ativas', value: 0, icon: History, color: '#6366f1', progress: 0, change: '',
           sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i}` })) },
       ]);
     } finally {
@@ -407,6 +408,23 @@ export const AuditManagement: React.FC = () => {
 
       <div className="management-content">
          <ModernTable 
+          emptyState={
+            !searchTerm && filterValues.status === 'all' && filterValues.accuracyRange === 'all' && !filterValues.dateStart && !filterValues.dateEnd ? (
+              <EmptyState
+                title={activeTab === 'HISTORY' ? "Nenhuma auditoria registrada" : "Nenhum item crítico"}
+                description={activeTab === 'HISTORY' ? "Você não possui histórico de inventário no momento." : "Não há auditorias com acuracidade crítica."}
+                actionLabel={activeTab === 'HISTORY' ? "Novo Inventário" : undefined}
+                onAction={activeTab === 'HISTORY' ? handleOpenCreate : undefined}
+                icon={ClipboardCheck}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={audits.filter(a => {
             const matchesSearch = (a.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) || (a.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
             const matchesTab = activeTab === 'HISTORY' ? true : (Number(a.accuracy || 100) < 95);

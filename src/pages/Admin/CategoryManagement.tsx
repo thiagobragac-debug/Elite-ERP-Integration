@@ -5,6 +5,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { FormModal } from '../../components/Forms/FormModal';
+import { EmptyState } from '../../components/Feedback/EmptyState';
 
 interface Categoria {
   id: string;
@@ -161,17 +162,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
 
       setCategorias(fetchedData);
     } catch (err) {
-      console.warn('[CategoryManagement] Resilience Pattern Engaged:', err);
-      // Fallback mock data if the table doesn't exist yet
-      const mockCategorias: Categoria[] = [
-        { id: '1', modulo: 'estoque', nome: 'Semente', cor: '#10b981', is_active: true },
-        { id: '2', modulo: 'estoque', nome: 'Adubo', cor: '#8b5cf6', is_active: true },
-        { id: '3', modulo: 'estoque', nome: 'Defensivo', cor: '#ef4444', is_active: false },
-        { id: '4', modulo: 'financeiro', nome: 'Receita Operacional', cor: '#10b981', is_active: true },
-        { id: '5', modulo: 'financeiro', nome: 'Despesa Administrativa', cor: '#f59e0b', is_active: true },
-        { id: '6', modulo: 'parceiros', nome: 'Fornecedor', cor: '#3b82f6', is_active: true },
-      ];
-      setCategorias(mockCategorias);
+      console.warn('[CategoryManagement] Fetch error:', err);
+      setCategorias([]);
     } finally {
       setLoading(false);
     }
@@ -311,6 +303,23 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
     <div className="tab-content-wrapper animate-slide-up">
       <main className="hub-content" style={{ padding: 0 }}>
         <ModernTable 
+          emptyState={
+            categorias.filter(c => c.modulo === modulo).length === 0 ? (
+              <EmptyState
+                title="Nenhuma categoria cadastrada"
+                description="Você ainda não possui categorias cadastradas para este módulo. Crie a primeira para começar."
+                actionLabel="Nova Categoria"
+                onAction={handleOpenCreate}
+                icon={Tag}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum registro encontrado"
+                description="Sua busca não retornou resultados."
+                icon={Search}
+              />
+            )
+          } 
           data={filtered}
           columns={columns}
           loading={loading}
