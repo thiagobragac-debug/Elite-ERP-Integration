@@ -52,7 +52,7 @@ async function run() {
     const { count: countSaasLogs, error: errSaasLogs } = await supabase
       .from('saas_audit_logs')
       .delete({ count: 'exact' })
-      .eq('tenant_id', tenant.id);
+      .eq('target_tenant_id', tenant.id);
       
     if (errSaasLogs) {
       console.error(`Error clearing saas_audit_logs:`, errSaasLogs);
