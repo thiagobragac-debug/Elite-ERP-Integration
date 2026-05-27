@@ -365,111 +365,123 @@ export const AuditLog: React.FC = () => {
           </div>
         ) : (
           <div className="premium-card audit-card" style={{ padding: '8px' }}>
-            {logs.map((log, i) => {
-              const ac = ACTION_CONFIG[log.action] || ACTION_CONFIG['INSERT'];
-              const ModuleIcon = MODULE_ICONS[log.table_name] || FileText;
-              const ActionIcon = ac.Icon;
+            {logs.length === 0 ? (
+              <div style={{ padding: '60px 20px', display: 'flex', justifyContent: 'center', width: '100%' }}>
+                <EmptyState
+                  title="Histórico de Auditoria Limpo"
+                  description="Nenhum evento registrado nesta base de dados."
+                  icon={Shield}
+                />
+              </div>
+            ) : (
+              <>
+                {logs.map((log, i) => {
+                  const ac = ACTION_CONFIG[log.action] || ACTION_CONFIG['INSERT'];
+                  const ModuleIcon = MODULE_ICONS[log.table_name] || FileText;
+                  const ActionIcon = ac.Icon;
 
-              return (
-                <div
-                  key={log.id + i}
-                  className="audit-entry interactive"
-                  onPointerDown={(e) => {
-                    // Prevenir problemas de foco que podem bloquear cliques em alguns browsers
-                  }}
-                  onClick={() => {
-                    const tableName = log.table_name;
-                    const entityId = log.entity_id;
-                    const logData = log.new_data || log.old_data;
-                    
-                    (window as any).__lastAuditLog = log;
+                  return (
+                    <div
+                      key={log.id + i}
+                      className="audit-entry interactive"
+                      onPointerDown={(e) => {
+                        // Prevenir problemas de foco que podem bloquear cliques em alguns browsers
+                      }}
+                      onClick={() => {
+                        const tableName = log.table_name;
+                        const entityId = log.entity_id;
+                        const logData = log.new_data || log.old_data;
+                        
+                        (window as any).__lastAuditLog = log;
 
-                    if (logData && Object.keys(logData).length > 0) {
-                      openFormForTable(tableName, logData, entityId);
-                    } else {
-                      setSelectedLog(log);
-                    }
-                  }}
-                >
-                  {/* Ícone do módulo */}
-                  <div
-                    className="audit-entry-icon"
-                    style={{ background: ac.color + '12', border: `1.5px solid ${ac.color}30` }}
-                    title={"Módulo: " + (MODULE_LABELS[log.table_name] || log.table_name)}
-                  >
-                    <ModuleIcon size={15} style={{ color: ac.color }} />
-                  </div>
+                        if (logData && Object.keys(logData).length > 0) {
+                          openFormForTable(tableName, logData, entityId);
+                        } else {
+                          setSelectedLog(log);
+                        }
+                      }}
+                    >
+                      {/* Ícone do módulo */}
+                      <div
+                        className="audit-entry-icon"
+                        style={{ background: ac.color + '12', border: `1.5px solid ${ac.color}30` }}
+                        title={"Módulo: " + (MODULE_LABELS[log.table_name] || log.table_name)}
+                      >
+                        <ModuleIcon size={15} style={{ color: ac.color }} />
+                      </div>
 
-                  {/* Conteúdo */}
-                  <div className="audit-entry-body">
-                    {/* Linha 1: módulo · pill · timestamp */}
-                    <div className="audit-entry-row">
-                      <span className="audit-module-name">
-                        {MODULE_LABELS[log.table_name] || log.table_name}
-                      </span>
-                      <span className="audit-action-pill" style={{ background: ac.color + '18', color: ac.color }}>
-                        <ActionIcon size={10} />
-                        {ac.label}
-                      </span>
-                      <span className="audit-dot">·</span>
-                      <span className="audit-user-tag">
-                        <User size={10} />
-                        {log.user_name}
-                      </span>
-                      <span className="audit-timestamp">
-                        <Clock size={10} />
-                        {new Date(log.timestamp).toLocaleString('pt-BR', {
-                          day: '2-digit', month: '2-digit',
-                          hour: '2-digit', minute: '2-digit',
-                        })}
-                      </span>
-                    </div>
-                    {/* Linha 2: descrição e sublabel */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <p className="audit-desc">{log.description}</p>
-                      {log.sublabel && (
-                        <>
+                      {/* Conteúdo */}
+                      <div className="audit-entry-body">
+                        {/* Linha 1: módulo · pill · timestamp */}
+                        <div className="audit-entry-row">
+                          <span className="audit-module-name">
+                            {MODULE_LABELS[log.table_name] || log.table_name}
+                          </span>
+                          <span className="audit-action-pill" style={{ background: ac.color + '18', color: ac.color }}>
+                            <ActionIcon size={10} />
+                            {ac.label}
+                          </span>
                           <span className="audit-dot">·</span>
-                          <span className="audit-sublabel">{log.sublabel}</span>
-                        </>
-                      )}
-                      {(log.old_data || log.new_data) && (
-                        <div className="audit-details-indicator">
-                          <History size={11} />
-                          <span>Dossiê</span>
+                          <span className="audit-user-tag">
+                            <User size={10} />
+                            {log.user_name}
+                          </span>
+                          <span className="audit-timestamp">
+                            <Clock size={10} />
+                            {new Date(log.timestamp).toLocaleString('pt-BR', {
+                              day: '2-digit', month: '2-digit',
+                              hour: '2-digit', minute: '2-digit',
+                            })}
+                          </span>
                         </div>
-                      )}
+                        {/* Linha 2: descrição e sublabel */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <p className="audit-desc">{log.description}</p>
+                          {log.sublabel && (
+                            <>
+                              <span className="audit-dot">·</span>
+                              <span className="audit-sublabel">{log.sublabel}</span>
+                            </>
+                          )}
+                          {(log.old_data || log.new_data) && (
+                            <div className="audit-details-indicator">
+                              <History size={11} />
+                              <span>Dossiê</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Botão Explícito de Dossiê */}
+                      <div className="audit-jump-action">
+                        <History size={11} />
+                        <span>Dossiê</span>
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Botão Explícito de Dossiê */}
-                  <div className="audit-jump-action">
-                    <History size={11} />
-                    <span>Dossiê</span>
-                  </div>
+                  );
+                })}
+                <div className="pagination-wrapper" style={{ padding: '12px 14px', borderTop: '1px solid hsl(var(--border))' }}>
+                  <ModernTable 
+                    emptyState={
+                      <EmptyState
+                        title="Nenhum registro encontrado"
+                        description="Sua busca não retornou resultados."
+                        icon={Search}
+                      />
+                    } 
+                    data={[]}
+                    columns={[]}
+                    loading={false}
+                    totalCount={totalCount}
+                    currentPage={page}
+                    onPageChange={setPage}
+                    itemsPerPage={pageSize}
+                    hideHeader={true}
+                    onlyPagination={true}
+                  />
                 </div>
-              );
-            })}
-            <div className="pagination-wrapper" style={{ padding: '12px 14px', borderTop: '1px solid hsl(var(--border))' }}>
-              <ModernTable 
-          emptyState={
-            <EmptyState
-              title="Nenhum registro encontrado"
-              description="Sua busca não retornou resultados."
-              icon={Search}
-            />
-          } 
-                data={[]}
-                columns={[]}
-                loading={false}
-                totalCount={totalCount}
-                currentPage={page}
-                onPageChange={setPage}
-                itemsPerPage={pageSize}
-                hideHeader={true}
-                onlyPagination={true}
-              />
-            </div>
+              </>
+            )}
           </div>
         )}
       </div>

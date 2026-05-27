@@ -53,5 +53,10 @@ BEGIN
             EXECUTE v_sql;
         END IF;
     END LOOP;
+
+    -- 3. Limpar logs de auditoria gerados durante o processo de seed/clonagem
+    DELETE FROM public.audit_logs WHERE tenant_id = p_new_tenant_id;
+    DELETE FROM public.saas_audit_logs WHERE tenant_id = p_new_tenant_id;
 END;
 $$;
+

@@ -116,9 +116,42 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       tenantQuery = tenantQuery.limit(1);
     }
     
-    const { data: tenantData } = await tenantQuery.single();
+    let { data: tenantData, error: tenantErr } = await tenantQuery.single();
+    
+    // Se a base simulada foi excluída e não existe mais no banco
+    if (impersonateId && !tenantData) {
+      console.warn('[TenantContext] O tenant simulado não existe mais no banco (foi excluído). Limpando simulação.');
+      localStorage.removeItem('saas_impersonate_tenant_id');
+      
+      // Se for o administrador do SaaS, redireciona diretamente para a tela de gerenciamento de Tenants do SaaS
+      if (finalProfile?.role === 'SAAS_ADMIN') {
+        window.location.href = '/saas/tenants';
+        return;
+      }
+      
+      // Fallback para o tenant real padrão do usuário comum
+      let fallbackQuery = supabase.from('tenants').select('*');
+      if (finalProfile?.tenant_id) {
+        fallbackQuery = fallbackQuery.eq('id', finalProfile.tenant_id);
+      } else {
+        fallbackQuery = fallbackQuery.limit(1);
+      }
+      const { data: fallbackData } = await fallbackQuery.single();
+      tenantData = fallbackData;
+    }
+
+    console.log('[TenantContext Debug]', {
+      userEmail: user?.email,
+      impersonateId,
+      profileRole: finalProfile?.role,
+      tenantIdLoaded: tenantData?.id,
+      tenantNomeLoaded: tenantData?.nome
+    });
 
     if (tenantData) {
+      // Se o tenant mudou, resetamos a empresa e fazenda antigas para evitar vazamento de contexto
+      const isDifferentTenant = tenant?.id && tenant.id !== tenantData.id;
+      
       setTenant(tenantData);
 
       const { data: unidadesData } = await supabase
@@ -135,7 +168,16 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           razao_social: u.razao_social
         }));
         setCompanies(mappedCompanies);
-        if (!activeCompany && mappedCompanies.length > 0) setActiveCompany(mappedCompanies[0]);
+        
+        // Seleciona a primeira empresa do novo tenant
+        if (mappedCompanies.length > 0) {
+          setActiveCompany(mappedCompanies[0]);
+        } else {
+          setActiveCompany(null);
+        }
+      } else {
+        setCompanies([]);
+        setActiveCompany(null);
       }
 
       const { data: farmData } = await supabase
@@ -159,10 +201,16 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         }
         
         setFarms(mappedFarms);
-        // Only auto-select if NOT in global mode
-        if (!activeFarm && mappedFarms.length > 0 && !isGlobalMode) {
+        
+        // Auto-seleciona a primeira fazenda do novo tenant (se não estiver em visão global)
+        if (mappedFarms.length > 0 && !isGlobalMode) {
           setActiveFarmState(mappedFarms[0]);
+        } else {
+          setActiveFarmState(null);
         }
+      } else {
+        setFarms([]);
+        setActiveFarmState(null);
       }
     }
     setLoading(false);

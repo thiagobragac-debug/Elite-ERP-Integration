@@ -653,6 +653,10 @@ export const SaaSAdminPanel: React.FC = () => {
           if (cloneError) {
             console.error('Erro ao clonar dados do template master:', cloneError);
           } else {
+            // Limpar logs de auditoria gerados durante o processo de seed/clonagem
+            await supabase.from('audit_logs').delete().eq('tenant_id', newTenant.id);
+            await supabase.from('saas_audit_logs').delete().eq('tenant_id', newTenant.id);
+
             // Restore is_template back to false after successful cloning
             await supabase
               .from('tenants')
@@ -727,6 +731,10 @@ export const SaaSAdminPanel: React.FC = () => {
           console.error('Erro ao clonar dados para a Demo:', cloneError);
           alert('Erro ao criar base/clonar: ' + cloneError.message);
         } else {
+          // Limpar logs de auditoria gerados durante o processo de seed/clonagem
+          await supabase.from('audit_logs').delete().eq('tenant_id', newTenant.id);
+          await supabase.from('saas_audit_logs').delete().eq('tenant_id', newTenant.id);
+
           // Restore is_template back to false after successful cloning
           await supabase
             .from('tenants')
@@ -1254,7 +1262,7 @@ export const SaaSAdminPanel: React.FC = () => {
       details: { source: 'SaaSAdminPanel' }
     });
 
-    window.location.href = '/dashboard'; // Force a full reload to reset context states
+    window.open('/dashboard', '_blank');
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {

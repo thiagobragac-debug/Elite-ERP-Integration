@@ -63,8 +63,8 @@ export const SuperAdminGuard: React.FC<{ children: React.ReactNode }> = ({ child
     return <Navigate to="/" state={{ from: location }} replace />;
   }
 
-  // If authorized and entering SaaS Panel, ensure they are no longer impersonating anyone
-  localStorage.removeItem('saas_impersonate_tenant_id');
+  // If authorized and entering SaaS Panel, we don't clear impersonation automatically here to avoid race conditions with window.open
+  // localStorage.removeItem('saas_impersonate_tenant_id');
 
   return <>{children}</>;
 };
