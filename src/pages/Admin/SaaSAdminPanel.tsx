@@ -638,6 +638,10 @@ export const SaaSAdminPanel: React.FC = () => {
             console.error('Erro ao criar perfis padrão:', profileError);
           }
 
+          // Clean auto-cloned categories and profiles before running RPC
+          await supabase.from('categorias_sistema').delete().eq('tenant_id', newTenant.id);
+          await supabase.from('perfis_usuario').delete().eq('tenant_id', newTenant.id);
+
           // 1. Criar a Empresa Matriz base e Clonar o Template via Banco de Dados (Bypass RLS)
           const { error: cloneError } = await supabase.rpc('clone_tenant_from_template', { 
             p_new_tenant_id: newTenant.id,
@@ -707,6 +711,10 @@ export const SaaSAdminPanel: React.FC = () => {
       if (error) throw error;
 
       if (newTenant) {
+        // Clean auto-cloned categories and profiles before running RPC
+        await supabase.from('categorias_sistema').delete().eq('tenant_id', newTenant.id);
+        await supabase.from('perfis_usuario').delete().eq('tenant_id', newTenant.id);
+
         // Criar a Empresa Matriz base e Clonar o Template via Banco de Dados (Bypass RLS)
         const { error: cloneError } = await supabase.rpc('clone_tenant_from_template', { 
           p_new_tenant_id: newTenant.id,
