@@ -530,13 +530,21 @@ export const ClientManagement: React.FC = () => {
         {viewMode === 'list' ? (
           <ModernTable 
             emptyState={
-              <EmptyState
-                title="Nenhum cliente encontrado"
-                description={activeTab === 'ATIVO' ? 'Não há clientes ativos que correspondam à sua busca. Cadastre um novo cliente.' : 'Não há leads ou prospectos que correspondam à sua busca.'}
-                actionLabel="Novo Cliente"
-                onAction={handleOpenCreate}
-                icon={Users}
-              />
+              !searchTerm ? (
+                <EmptyState
+                  title={activeTab === 'ATIVO' ? "Nenhum cliente homologado" : "Nenhum lead pendente"}
+                  description={activeTab === 'ATIVO' ? "Você não possui clientes ativos cadastrados nesta unidade." : "Não há leads ou prospectos com pendências de cadastro no momento."}
+                  actionLabel="Novo Cliente"
+                  onAction={handleOpenCreate}
+                  icon={Users}
+                />
+              ) : (
+                <EmptyState
+                  title="Nenhum registro encontrado"
+                  description="Sua busca não retornou resultados."
+                  icon={Search}
+                />
+              )
             }
             data={clients.filter(client => {
               const matchesSearch = (client.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (client.tipo || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -583,74 +591,118 @@ export const ClientManagement: React.FC = () => {
             return matchesSearch && matchesTab && matchesFarm && matchesSegmentTab && matchesStatus && matchesRating && matchesLtv && matchesChurn && matchesSegments;
           });
 
-          if (!loading && filteredClients.length === 0) {
-            return (
-              <EmptyState
-                title="Nenhum cliente encontrado"
-                description={activeTab === 'ATIVO' ? 'Não há clientes ativos. Cadastre um novo cliente para começar.' : 'Não há leads ou prospectos cadastrados ainda.'}
-                actionLabel="Novo Cliente"
-                onAction={handleOpenCreate}
-                icon={Users}
-              />
-            );
-          }
-
           return (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="user-cards-grid"
             >
-              {filteredClients.map(client => (
-                <motion.div 
-                  key={client.id} 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`user-card-premium ${client.status?.toUpperCase() === 'ATIVO' ? 'active' : 'warning-badge'}`}
+              {filteredClients.length === 0 ? (
+                <div 
+                  className="user-card-premium"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    padding: '20px',
+                    background: 'hsl(var(--bg-card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '24px',
+                    gap: '6px',
+                    minHeight: '180px',
+                    height: '100%',
+                    boxShadow: 'none'
+                  }}
                 >
-                  <div className="card-left-section">
-                    <div className="card-avatar">
-                      {client.nome?.charAt(0) || 'C'}
-                    </div>
-                    <div className="card-bottom-actions">
-                      <button className="action-icon-btn info" onClick={() => handleViewHistory(client)} title="Dossiê"><History size={14} /></button>
-                      <button className="action-icon-btn edit" onClick={() => handleOpenEdit(client)} title="Editar"><Edit3 size={14} /></button>
-                      <button className="action-icon-btn delete" onClick={() => handleDelete(client.id)} title="Excluir"><Trash2 size={14} /></button>
-                    </div>
+                  <div 
+                    style={{ 
+                      width: '40px', 
+                      height: '40px', 
+                      background: 'rgba(16, 185, 129, 0.1)', 
+                      color: '#10b981', 
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {!searchTerm ? <Users size={22} style={{ color: 'hsl(var(--brand))' }} /> : <Search size={22} />}
                   </div>
-
-                  <div className="card-main-content">
-                    <div className="card-header-info">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <h3>{client.nome}</h3>
-                        {client.segmento === 'Ouro/VIP' && <Star size={16} fill="#eab308" color="#eab308" style={{ filter: 'drop-shadow(0 0 5px rgba(234, 179, 8, 0.4))' }} />}
+                  <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
+                    {!searchTerm ? (activeTab === 'ATIVO' ? 'Nenhum cliente homologado' : 'Nenhum lead pendente') : 'Nenhum registro encontrado'}
+                  </h3>
+                  <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
+                    {!searchTerm ? (activeTab === 'ATIVO' ? 'Você não possui clientes ativos cadastrados nesta unidade.' : 'Não há leads ou prospectos com pendências de cadastro no momento.') : 'Sua busca não retornou resultados.'}
+                  </p>
+                  {!searchTerm && (
+                    <button 
+                      className="primary-btn" 
+                      onClick={handleOpenCreate}
+                      style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
+                    >
+                      <Plus size={12} />
+                      <span>NOVO CLIENTE</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                filteredClients.map(client => (
+                  <motion.div 
+                    key={client.id} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`user-card-premium ${client.status?.toUpperCase() === 'ATIVO' ? 'active' : 'warning-badge'}`}
+                  >
+                    <div className="card-left-section">
+                      <div className="card-avatar">
+                        {client.nome?.charAt(0) || 'C'}
                       </div>
-                      <span className="card-role-badge">{client.tipo || 'Parceiro'}</span>
+                      <div className="card-bottom-actions">
+                        <button className="action-icon-btn info" onClick={() => handleViewHistory(client)} title="Dossiê"><History size={14} /></button>
+                        <button className="action-icon-btn edit" onClick={() => handleOpenEdit(client)} title="Editar"><Edit3 size={14} /></button>
+                        <button className="action-icon-btn delete" onClick={() => handleDelete(client.id)} title="Excluir"><Trash2 size={14} /></button>
+                      </div>
                     </div>
 
-                    <div className="card-meta-grid">
-                      <div className="meta-item">
-                        <FileText size={14} className="meta-icon" />
-                        <span>{client.documento || 'Sem Documento'}</span>
+                    <div className="card-main-content">
+                      <div className="card-header-info">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <h3>{client.nome}</h3>
+                          {client.segmento === 'Ouro/VIP' && <Star size={16} fill="#eab308" color="#eab308" style={{ filter: 'drop-shadow(0 0 5px rgba(234, 179, 8, 0.4))' }} />}
+                        </div>
+                        <span className="card-role-badge">{client.tipo || 'Parceiro'}</span>
                       </div>
-                      <div className="meta-item">
-                        <MapPin size={14} className="meta-icon" />
-                        <span>{client.cidade ? `${client.cidade}/${client.estado}` : 'N/A'}</span>
+
+                      <div className="card-meta-grid">
+                        <div className="meta-item">
+                          <FileText size={14} className="meta-icon" />
+                          <span>{client.documento || 'Sem Documento'}</span>
+                        </div>
+                        <div className="meta-item">
+                          <MapPin size={14} className="meta-icon" />
+                          <span>{client.cidade ? `${client.cidade}/${client.estado}` : 'N/A'}</span>
+                        </div>
+                        <div className="meta-item">
+                          <Phone size={14} className="meta-icon" />
+                          <span>{client.telefone || 'Sem telefone'}</span>
+                        </div>
                       </div>
-                      <div className="meta-item">
-                        <Phone size={14} className="meta-icon" />
-                        <span>{client.telefone || 'Sem telefone'}</span>
+                      <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '4px', marginTop: '6px' }}>
+                        <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
+                          <Target size={12} style={{ color: 'hsl(var(--brand))' }} />
+                          <span>Seg: {client.segmento || 'Geral'}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '4px', marginTop: '6px' }}>
-                      <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
-                        <Target size={12} style={{ color: 'hsl(var(--brand))' }} />
-                        <span>Seg: {client.segmento || 'Geral'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))
+              )}
+              <button className="add-client-card-premium" onClick={handleOpenCreate}>
+                <Plus size={32} />
+                <span>NOVO CLIENTE</span>
+              </button>
             </motion.div>
           );
         })()}
@@ -855,6 +907,36 @@ export const ClientManagement: React.FC = () => {
           background: #ef4444;
           border-color: #ef4444;
           color: white;
+        }
+
+        .add-client-card-premium {
+          border: 2px dashed #e2e8f0;
+          border-radius: 24px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          background: transparent;
+          cursor: pointer;
+          color: #94a3b8;
+          transition: 0.2s;
+          min-height: 180px;
+          height: 100%;
+        }
+
+        .add-client-card-premium:hover {
+          border-color: #10b981;
+          color: #10b981;
+          background: rgba(16, 185, 129, 0.02);
+        }
+
+        .add-client-card-premium span { font-size: 11px; font-weight: 900; letter-spacing: 0.05em; }
+
+        [data-theme='dark'] .add-client-card-premium {
+          background: hsl(var(--bg-main)) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--text-main)) !important;
         }
       `}</style>
 
