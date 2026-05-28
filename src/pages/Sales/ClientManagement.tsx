@@ -195,14 +195,14 @@ export const ClientManagement: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm && !selectedClient) return;
+    if (!activeTenantId && !activeFarm && !selectedClient) return;
     
     setIsSubmitting(true);
     try {
       const payload = {
         nome: formData.name,
-        documento: formData.cnpj,
-        tipo: formData.type,
+        cnpj_cpf: formData.cnpj,
+        fantasia: formData.type,
         email: formData.email,
         telefone: formData.phone,
         cep: formData.cep,
@@ -214,9 +214,7 @@ export const ClientManagement: React.FC = () => {
         cidade: formData.cidade,
         estado: formData.estado,
         pais: formData.pais,
-        limite_credito: formData.creditLimit,
         status: formData.status,
-        segmento: formData.segment
       };
 
       if (selectedClient) {

@@ -239,7 +239,7 @@ export const SupplierManagement: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm && !selectedSupplier) return;
+    if (!activeTenantId && !activeFarm && !selectedSupplier) return;
     
     setIsSubmitting(true);
     try {
@@ -248,7 +248,6 @@ export const SupplierManagement: React.FC = () => {
         cnpj_cpf: formData.cnpj,
         contato: formData.contato,
         email: formData.email,
-        categoria: formData.categoria,
         cep: formData.cep,
         tipo_logradouro: formData.tipo_logradouro,
         logradouro: formData.logradouro,

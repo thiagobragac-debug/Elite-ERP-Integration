@@ -55,6 +55,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
   const { farms, activeTenantId } = useTenant();
   const [isFarmDropdownOpen, setIsFarmDropdownOpen] = useState(false);
 
+  // Validação em tempo real de CPF/CNPJ
+  const docStatus = (() => {
+    const clean = formData.cnpj.replace(/\D/g, '');
+    if (!clean) return 'empty';
+    if (clean.length < 11) return 'typing';
+    return isValidDocument(formData.cnpj) ? 'valid' : 'invalid';
+  })();
+
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
 
@@ -200,7 +208,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Parceiro"}
     >
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 190px', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><User size={14} /> Nome / Razão Social</label>
           <input 
@@ -222,6 +230,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
               onChange={(e) => setFormData({...formData, cnpj: maskCPFCNPJ(e.target.value)})}
               onBlur={handleCNPJSearch}
               className="flex-1"
+              style={{
+                borderColor: docStatus === 'valid' ? '#10b981' : docStatus === 'invalid' ? '#ef4444' : undefined,
+              }}
             />
             <button 
               type="button"
@@ -233,6 +244,16 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
               {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
             </button>
           </div>
+          {docStatus === 'valid' && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 11, fontWeight: 700, color: '#10b981' }}>
+              ✓ CPF/CNPJ válido
+            </span>
+          )}
+          {docStatus === 'invalid' && (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 11, fontWeight: 700, color: '#ef4444' }}>
+              ✗ CPF/CNPJ inválido. Verifique os dígitos.
+            </span>
+          )}
         </div>
       </div>
 

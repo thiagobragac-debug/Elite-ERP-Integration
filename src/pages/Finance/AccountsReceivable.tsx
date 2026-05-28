@@ -104,7 +104,7 @@ export const AccountsReceivable: React.FC = () => {
         descricao: formData.description,
         valor_total: parseFloat(formData.value),
         data_vencimento: formData.dueDate,
-        categoria: formData.category,
+        categoria_id: formData.category || null,
         cliente_id: formData.entityId || null,
         metodo_recebimento: formData.paymentMethod,
         status: formData.status

@@ -121,7 +121,7 @@ export const AccountsPayable: React.FC = () => {
         descricao: formData.description,
         valor_total: parseFloat(formData.value),
         data_vencimento: formData.dueDate,
-        categoria: formData.category,
+        categoria_id: formData.category || null,
         fornecedor_id: formData.entityId || null,
         metodo_pagamento: formData.paymentMethod,
         status: formData.status
