@@ -5,7 +5,8 @@
  * 3. Interpola para no mínimo 15 pontos se o array for muito curto
  */
 export function normalizeSparkline(
-  input?: { value: number; label?: string }[]
+  input?: { value: number; label?: string }[],
+  interpolate = false
 ): { value: number; label: string }[] {
   if (!input || input.length === 0) return [];
 
@@ -14,7 +15,7 @@ export function normalizeSparkline(
     label: s.label ?? ''
   }));
 
-  if (withLabels.length >= 5) return withLabels;
+  if (!interpolate || withLabels.length >= 5) return withLabels;
 
   const targetCount = 15;
 

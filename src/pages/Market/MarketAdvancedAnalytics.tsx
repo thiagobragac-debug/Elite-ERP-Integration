@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { supabase } from '../../lib/supabase';
 import { fetchHistoricalQuotes } from '../../lib/marketQueries';
 import {
@@ -227,7 +244,7 @@ export const MarketAdvancedAnalytics: React.FC = () => {
       color: '#ef4444',
       progress: 100,
       change: extremePoints?.max ? extremePoints.max.displayDate : 'â€”',
-      sparkline: maxValue ? [maxValue*0.7,maxValue*0.78,maxValue*0.84,maxValue*0.89,maxValue*0.93,maxValue*0.97,maxValue].map((v,i) => ({ value: v, label: `${i+1}` })) : undefined,
+      sparkline: sparkFromData(),
       periodLabel: extremePoints?.max ? extremePoints.max.displayDate : 'Período'
     },
     {
@@ -237,7 +254,7 @@ export const MarketAdvancedAnalytics: React.FC = () => {
       color: '#3b82f6',
       progress: 0,
       change: extremePoints?.min ? extremePoints.min.displayDate : 'â€”',
-      sparkline: minValue ? [minValue,minValue*1.05,minValue*1.08,minValue*1.06,minValue*1.04,minValue*1.02,minValue].map((v,i) => ({ value: v, label: `${i+1}` })) : undefined,
+      sparkline: sparkFromData(),
       periodLabel: extremePoints?.min ? extremePoints.min.displayDate : 'Período'
     },
     {
@@ -247,7 +264,7 @@ export const MarketAdvancedAnalytics: React.FC = () => {
       color: '#f59e0b',
       progress: volatility !== null ? Math.min(volatility * 5, 100) : 0,
       change: volatility !== null ? (volatility < 5 ? 'Mercado Estável' : volatility < 15 ? 'Volatilidade Moderada' : 'Alta Volatilidade') : 'â€”',
-      sparkline: volatility !== null ? [volatility*0.5,volatility*0.65,volatility*0.75,volatility*0.85,volatility*0.9,volatility*0.95,volatility].map((v,i) => ({ value: v, label: `${v.toFixed(1)}%` })) : undefined,
+      sparkline: buildSparkline(data || [], 'data', 'preco'),
       periodLabel: 'Análise Técnica'
     }
   ];

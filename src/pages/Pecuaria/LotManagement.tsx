@@ -184,6 +184,7 @@ export const LotManagement: React.FC = () => {
     
     const payload = {
       nome: data.nome,
+      finalidade: data.finalidade || '',
       descricao: data.descricao,
       status: data.status || 'ATIVO',
       capacidade: parseInt(data.capacidade) || 0,
@@ -191,7 +192,8 @@ export const LotManagement: React.FC = () => {
       data_fim_prevista: data.data_fim_prevista || null,
       gmd_alvo: parseFloat(data.gmd_alvo) || 0,
       peso_alvo: parseFloat(data.peso_alvo) || 0,
-      pasto_id: data.pasto_id || null
+      pasto_id: data.pasto_id || null,
+      cor: data.cor || '#6366f1'
     };
 
     if (selectedLot) {
@@ -269,11 +271,23 @@ export const LotManagement: React.FC = () => {
     { 
       header: 'Lote / Código', 
       accessor: (item: any) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
-          <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
-            ID: {item.id?.slice(0, 8).toUpperCase()}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', textAlign: 'left' }}>
+          <div 
+            style={{ 
+              width: '10px', 
+              height: '10px', 
+              borderRadius: '50%', 
+              backgroundColor: item.cor || '#6366f1', 
+              flexShrink: 0,
+              boxShadow: `0 0 6px ${(item.cor || '#6366f1')}66`
+            }} 
+          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
+            <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
+              ID: {item.id?.slice(0, 8).toUpperCase()}
+            </span>
+          </div>
         </div>
       ),
       align: 'left' as const
@@ -283,7 +297,7 @@ export const LotManagement: React.FC = () => {
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-            {item.descricao || 'Recria'}
+            {item.finalidade || item.descricao || '---'}
           </span>
           <span className="sub-meta" style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', fontWeight: 700, fontSize: '9px', letterSpacing: '0.05em', color: '#94a3b8' }}>
             <Tag size={10} /> Bovinos
@@ -316,7 +330,7 @@ export const LotManagement: React.FC = () => {
               />
             </div>
             <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8', marginTop: '2px' }}>
-              {currentAnimals} / {item.capacidade || 100} cabeças
+              {currentAnimals} / {item.capacidade ? `${item.capacidade} cabeças` : '--- (capacidade não definida)'}
             </span>
           </div>
         );
@@ -577,7 +591,7 @@ export const LotManagement: React.FC = () => {
             ) : (
               filteredLots.map(l => {
                 const totalAnimals = l.quantidade_animais !== undefined ? l.quantidade_animais : 0;
-                const capacity = l.capacidade || 100;
+                const capacity = l.capacidade || 0;
                 const occupancyPercent = capacity > 0 ? (totalAnimals / capacity) * 100 : 0;
                 
                 let badgeClass = 'active'; // green
@@ -603,8 +617,29 @@ export const LotManagement: React.FC = () => {
                     key={l.id} 
                     className={`lot-card-premium ${borderClass}`}
                   >
+                    {/* Indicador de cor vertical personalizado */}
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: '6px',
+                        backgroundColor: l.cor || (l.status?.toUpperCase() === 'ARQUIVADO' ? '#94a3b8' : '#10b981'),
+                        boxShadow: `4px 0 15px ${(l.cor || '#10b981')}55`,
+                        zIndex: 2
+                      }}
+                    />
                     <div className="card-left-section">
-                      <div className="card-avatar">
+                      <div 
+                        className="card-avatar"
+                        style={{
+                          backgroundColor: l.cor ? `${l.cor}15` : undefined,
+                          color: l.cor || 'var(--brand)',
+                          borderColor: l.cor ? `${l.cor}33` : undefined,
+                          boxShadow: l.cor ? `0 8px 20px ${l.cor}15` : undefined
+                        }}
+                      >
                         <Layers size={28} />
                       </div>
                       <div className="card-bottom-actions">
@@ -630,7 +665,7 @@ export const LotManagement: React.FC = () => {
                           <span className={`status-pill mini ${badgeClass}`}>
                             {badgeText}
                           </span>
-                          <div className="card-type-meta">{l.finalidade || 'Manejo Geral'}</div>
+                          <div className="card-type-meta">{l.finalidade || l.descricao || '---'}</div>
                         </div>
                       </div>
 
@@ -648,7 +683,7 @@ export const LotManagement: React.FC = () => {
                           />
                         </div>
                         <div className="occ-footer">
-                          {totalAnimals} / {capacity} Cabeças
+                          {totalAnimals} / {capacity > 0 ? `${capacity} Cabeças` : '--- Cabeças'}
                         </div>
                       </div>
 

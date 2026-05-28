@@ -216,6 +216,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
               placeholder="00.000.000/0000-00" 
               value={formData.cnpj}
               onChange={(e) => setFormData({...formData, cnpj: maskCPFCNPJ(e.target.value)})}
+              onBlur={handleCNPJSearch}
               className="flex-1"
             />
             <button 

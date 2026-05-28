@@ -563,6 +563,7 @@ export const SaaSAdminPanel: React.FC = () => {
     try {
       const tenantData: any = {
         ativo: data.status === 'Ativo',
+        status: data.status,
         email: data.email,
         documento: data.cnpj,
         nome: data.name,
@@ -776,6 +777,12 @@ export const SaaSAdminPanel: React.FC = () => {
       });
 
       if (error) throw error;
+
+      // Se a base deletada for a que estamos simulando no momento, limpa o localStorage
+      if (localStorage.getItem('saas_impersonate_tenant_id') === tenantToDelete.id) {
+        console.log('[SaaSAdminPanel] Limpando simulação da base demo excluída.');
+        localStorage.removeItem('saas_impersonate_tenant_id');
+      }
 
       logAudit({
         tenant_id: '00000000-0000-0000-0000-000000000000',
@@ -1262,7 +1269,7 @@ export const SaaSAdminPanel: React.FC = () => {
       details: { source: 'SaaSAdminPanel' }
     });
 
-    window.open('/dashboard', '_blank');
+    window.open('/pecuaria/dashboard', '_blank');
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -1539,14 +1546,16 @@ export const SaaSAdminPanel: React.FC = () => {
     {
       header: 'Status',
       accessor: (item: any) => (
-        <ToggleSwitch
-          checked={(item.status || 'Ativo').toLowerCase() === 'ativo'}
-          onChange={(val) => handleToggleTenant(item, val)}
-          size="sm"
-          labelOn="Ativo"
-          labelOff="Suspenso"
-          showStatus
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <ToggleSwitch
+            checked={(item.status || 'Ativo').toLowerCase() === 'ativo'}
+            onChange={(val) => handleToggleTenant(item, val)}
+            size="sm"
+            labelOn="Ativo"
+            labelOff="Suspenso"
+            showStatus
+          />
+        </div>
       ),
       align: 'center' as const
     },
@@ -2523,7 +2532,7 @@ export const SaaSAdminPanel: React.FC = () => {
                                 <HardDrive size={14} className="tenant-meta-icon" style={{ marginRight: "8px" }} />
                                 <span>{t.storage} Alocados</span>
                               </div>
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTop: '1px solid hsl(var(--border) / 0.5)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, paddingTop: 8, borderTop: '1px solid hsl(var(--border) / 0.5)' }} onClick={(e) => e.stopPropagation()}>
                                 <span style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</span>
                                 <ToggleSwitch
                                   checked={(t.status || 'Ativo').toLowerCase() === 'ativo'}

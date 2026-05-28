@@ -16,6 +16,7 @@ interface AuthContextType {
   aal: 'aal1' | 'aal2' | null;
   setAal: (level: 'aal1' | 'aal2' | null) => void;
   login: (email: string, password: string) => Promise<{ error: any }>;
+  loginWithGoogle: () => Promise<{ error: any }>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -102,13 +103,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { error };
   };
 
+  const loginWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+    return { error };
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, aal, setAal, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, aal, setAal, login, loginWithGoogle, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

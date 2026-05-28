@@ -1,4 +1,21 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   Users, 
   UserPlus, 

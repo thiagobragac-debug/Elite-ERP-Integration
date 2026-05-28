@@ -28,6 +28,7 @@ export const AnimalDetail: React.FC = () => {
   const [animal, setAnimal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [weightHistory, setWeightHistory] = useState<any[]>([]);
+  const [gmdHistory, setGmdHistory] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
 
   useEffect(() => {
@@ -59,9 +60,26 @@ export const AnimalDetail: React.FC = () => {
         if (weights) {
           const chartFormatted = weights.map((w: any) => ({
             label: new Date(w.data_pesagem).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-            value: w.peso
+            value: w.peso,
+            date: w.data_pesagem
           }));
           setWeightHistory(chartFormatted);
+
+          // Calcular histórico de GMD real entre pesagens consecutivas
+          const gmdHistoryData: any[] = [];
+          for (let i = 1; i < weights.length; i++) {
+            const prev = weights[i - 1];
+            const curr = weights[i];
+            const wDiff = curr.peso - prev.peso;
+            const tDiff = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / (1000 * 3600 * 24);
+            const days = Math.max(1, Math.floor(tDiff));
+            const gmdVal = wDiff / days;
+            gmdHistoryData.push({
+              value: Number(gmdVal.toFixed(3)),
+              label: new Date(curr.data_pesagem).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+            });
+          }
+          setGmdHistory(gmdHistoryData);
         }
 
         // Fetch other events (mocking for now, could be from other tables)
@@ -99,16 +117,16 @@ export const AnimalDetail: React.FC = () => {
 
   const currentWeight = animal.peso_atual || animal.peso_inicial || 0;
   
-  // Cálculo Real de GMD
+  // Cálculo Real de GMD: baseado na diferença entre a primeira e a última pesagem
   const calculateRealGMD = () => {
     if (weightHistory.length < 2) return 0;
     const first = weightHistory[0];
     const last = weightHistory[weightHistory.length - 1];
     const weightDiff = last.value - first.value;
     
-    // Parse dates to get day diff
-    const d1 = new Date(animal.created_at);
-    const d2 = new Date(); // Today
+    // Parse dates of the actual weigh-ins
+    const d1 = new Date(first.date);
+    const d2 = new Date(last.date);
     const dayDiff = Math.max(1, Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)));
     
     return weightDiff / dayDiff;
@@ -121,6 +139,25 @@ export const AnimalDetail: React.FC = () => {
   const remainingWeight = Math.max(0, targetWeight - currentWeight);
   const daysToTarget = realGmd > 0 ? Math.ceil(remainingWeight / realGmd) : 0;
   const estimatedDate = daysToTarget > 0 ? new Date(Date.now() + daysToTarget * 24 * 60 * 60 * 1000) : null;
+
+  const getProjectionSparkline = () => {
+    if (realGmd <= 0 || currentWeight >= targetWeight) return [];
+    const projection: any[] = [];
+    const steps = 6;
+    const weightStep = remainingWeight / (steps - 1);
+    for (let i = 0; i < steps; i++) {
+      const projectedWeight = currentWeight + weightStep * i;
+      const days = realGmd > 0 ? Math.ceil((projectedWeight - currentWeight) / realGmd) : 0;
+      const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      projection.push({
+        value: Number(projectedWeight.toFixed(1)),
+        label: date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+      });
+    }
+    return projection;
+  };
+
+  const projectionSparkline = getProjectionSparkline();
 
   // Regra de Negócio: Carência Sanitária (Simulando verificação em registros de manejo)
   const isUnderGracePeriod = events.some(e => e.type === 'MEDICAMENTO' && new Date(e.expiryDate) > new Date());
@@ -156,7 +193,8 @@ export const AnimalDetail: React.FC = () => {
           change={`${formatNumber(currentWeight - animal.peso_inicial)}kg total`}
           trend="up"
           periodLabel="Última Pesagem"
-          sparkline={weightHistory.length > 0 ? weightHistory.slice(-7).map((w: any, i: number) => ({ value: Number(w.peso) || 0, label: w.data_pesagem ? new Date(w.data_pesagem).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'}) : String(i+1) })) : [currentWeight*0.7,currentWeight*0.78,currentWeight*0.84,currentWeight*0.89,currentWeight*0.93,currentWeight*0.97,currentWeight].map((v,i) => ({ value: Math.round(v), label: 'Sem '+String(i+1) }))}
+          sparkline={weightHistory}
+          interpolate={false}
         />
         <TauzeStatCard 
           label="GMD Médio Real" 
@@ -167,18 +205,32 @@ export const AnimalDetail: React.FC = () => {
           change={realGmd > 0.8 ? "Meta Atingida" : "Abaixo da Meta"}
           trend={realGmd > 0.7 ? "up" : "down"}
           periodLabel="Desde a Entrada"
-          sparkline={[realGmd*0.6,realGmd*0.7,realGmd*0.8,realGmd*0.87,realGmd*0.92,realGmd*0.97,realGmd].map((v,i) => ({ value: Number(v.toFixed(3)), label: 'Sem '+String(i+1) }))}
+          sparkline={gmdHistory}
+          interpolate={false}
         />
         <TauzeStatCard 
           label="Previsão de Abate" 
-          value={estimatedDate ? estimatedDate.toLocaleDateString() : 'Sem Dados'} 
+          value={currentWeight >= targetWeight 
+            ? 'Meta Atingida' 
+            : estimatedDate 
+              ? estimatedDate.toLocaleDateString() 
+              : 'Sem Dados'} 
           icon={Calendar} 
           color="#8b5cf6" 
-          progress={daysToTarget > 0 ? Math.max(10, 100 - (daysToTarget / 3)) : 100}
-          change={daysToTarget > 0 ? `${daysToTarget} dias restantes` : "Pronto para Abate"}
+          progress={currentWeight >= targetWeight 
+            ? 100 
+            : daysToTarget > 0 
+              ? Math.max(10, Math.min(95, 100 - (daysToTarget / 15))) 
+              : 0}
+          change={currentWeight >= targetWeight 
+            ? "Pronto para Abate" 
+            : daysToTarget > 0 
+              ? `${daysToTarget} dias restantes` 
+              : "Requer min. 2 pesagens"}
           trend="up"
           periodLabel="Meta: 600kg (20@)"
-          sparkline={[10,20,35,50,65,80,daysToTarget > 0 ? Math.max(10, 100 - (daysToTarget / 3)) : 100].map((v,i) => ({ value: v, label: String(i+1) }))}
+          sparkline={projectionSparkline}
+          interpolate={false}
         />
         <TauzeStatCard 
           label="Segurança Sanitária" 
@@ -188,7 +240,14 @@ export const AnimalDetail: React.FC = () => {
           progress={isUnderGracePeriod ? 40 : 100}
           change={isUnderGracePeriod ? "Carência Ativa" : "Sem Restrições"}
           periodLabel="Manejo Sanitário"
-          sparkline={isUnderGracePeriod ? [100,80,60,50,40,40,40].map((v,i) => ({ value: v, label: String(i+1) })) : [60,70,80,85,90,95,100].map((v,i) => ({ value: v, label: String(i+1) }))}
+          sparkline={isUnderGracePeriod ? [] : [
+            { value: 100, label: 'Livre' },
+            { value: 100, label: 'Livre' },
+            { value: 100, label: 'Livre' },
+            { value: 100, label: 'Livre' },
+            { value: 100, label: 'Livre' }
+          ]}
+          interpolate={false}
         />
       </div>
 
@@ -200,9 +259,15 @@ export const AnimalDetail: React.FC = () => {
               <button className="text-btn">Ciclo Completo</button>
             </div>
           </div>
-          <div className="chart-container-tauze" style={{ padding: '0 24px 24px' }}>
+          <div className="chart-container-tauze">
             {weightHistory.length > 0 ? (
-              <TauzeMainChart data={weightHistory} color="#3b82f6" height={350} />
+              <TauzeMainChart 
+                data={weightHistory} 
+                color="#3b82f6" 
+                height="100%"
+                unit="kg"
+              />
+
             ) : (
               <div className="empty-chart-placeholder">
                 <p>Nenhuma pesagem registrada para este animal.</p>

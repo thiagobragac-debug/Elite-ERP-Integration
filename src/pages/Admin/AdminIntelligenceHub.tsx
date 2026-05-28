@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Shield, 
   Users, 
@@ -18,11 +18,13 @@ import {
 import { motion } from 'framer-motion';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
+import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 
 export const AdminIntelligenceHub: React.FC = () => {
+  const { tenant } = useTenant();
   const { stats: reportStats, data: auditLogs, loading, error, refresh } = useReportData('admin-overview');
 
   if (error) {
@@ -40,10 +42,56 @@ export const AdminIntelligenceHub: React.FC = () => {
   };
 
   const activityData = [
-    { label: '00:00', value: 5 }, { label: '04:00', value: 2 }, 
-    { label: '08:00', value: 45 }, { label: '12:00', value: 85 }, 
-    { label: '16:00', value: 65 }, { label: '20:00', value: 30 }
+    { label: '00:00', value: 0 }, { label: '04:00', value: 0 }, 
+    { label: '08:00', value: 0 }, { label: '12:00', value: 0 }, 
+    { label: '16:00', value: 0 }, { label: '20:00', value: 0 }
   ];
+
+  if (auditLogs && auditLogs.length > 0) {
+    auditLogs.forEach((log: any) => {
+      const h = new Date(log.created_at).getHours();
+      let bucket = 0;
+      if (h >= 0 && h < 4) bucket = 0;
+      else if (h >= 4 && h < 8) bucket = 1;
+      else if (h >= 8 && h < 12) bucket = 2;
+      else if (h >= 12 && h < 16) bucket = 3;
+      else if (h >= 16 && h < 20) bucket = 4;
+      else bucket = 5;
+      activityData[bucket].value += 1;
+    });
+
+    const maxActivity = Math.max(...activityData.map(d => d.value));
+    if (maxActivity > 0) {
+      activityData.forEach(d => {
+        d.value = Math.round((d.value / maxActivity) * 100);
+      });
+    }
+  }
+
+  const secSettings = tenant?.settings?.security || {};
+  const checklist = [
+    { label: 'Autenticação de Dois Fatores (MFA)', status: secSettings.mfaEnabled ? 'active' : 'warning', desc: secSettings.mfaEnabled ? 'Habilitado' : 'Recomendado' },
+    { label: 'Política de Senhas Fortes', status: secSettings.strongPasswords ? 'active' : 'warning', desc: secSettings.strongPasswords ? '8+ chars, Especial' : 'Padrão básico' },
+    { label: 'Bloqueio de Brute Force', status: secSettings.bruteForceProtection ? 'active' : 'warning', desc: secSettings.bruteForceProtection ? 'Ativo após 5 tentativas' : 'Não configurado' },
+    { label: 'Logs de Auditoria Full', status: secSettings.auditLogsEnabled !== false ? 'active' : 'warning', desc: secSettings.auditLogsEnabled !== false ? 'Retenção ativada' : 'Desabilitada' },
+    { label: 'Sessões Simultâneas', status: secSettings.blockMultipleSessions ? 'active' : 'warning', desc: secSettings.blockMultipleSessions ? 'Bloqueio ativo' : 'Múltiplos logins permitidos' }
+  ];
+
+  const criticalEventsList = auditLogs && auditLogs.length > 0 
+    ? auditLogs.slice(0, 4).map((l: any) => {
+        const isDelete = l.action === 'DELETE';
+        const isSecurity = l.action === 'SECURITY_ALERT';
+        const level = isSecurity ? 'high' : (isDelete ? 'medium' : 'low');
+        const time = new Date(l.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        
+        return {
+          event: l.description || `${l.action} em ${l.entity}`,
+          user: 'Sistema',
+          time,
+          level
+        };
+      })
+    : [];
 
   return (
     <div className="admin-intelligence-page animate-slide-up">
@@ -115,13 +163,7 @@ export const AdminIntelligenceHub: React.FC = () => {
             </div>
           </div>
           <div className="security-checklist">
-            {[
-              { label: 'Autenticação de Dois Fatores (MFA)', status: 'active', desc: 'Habilitado para admins' },
-              { label: 'Política de Senhas Fortes', status: 'active', desc: '8+ chars, Especial, Números' },
-              { label: 'Bloqueio de Brute Force', status: 'active', desc: 'Ativo após 5 tentativas' },
-              { label: 'Logs de Auditoria Full', status: 'active', desc: 'Retenção de 365 dias' },
-              { label: 'Sessões Simultâneas', status: 'warning', desc: 'Múltiplos logins permitidos' }
-            ].map((item, i) => (
+            {checklist.map((item, i) => (
               <div key={i} className="checklist-item">
                 <div className={`check-icon ${item.status}`}>
                   <CheckCircle2 size={16} />
@@ -146,21 +188,24 @@ export const AdminIntelligenceHub: React.FC = () => {
             </div>
           </div>
           <div className="critical-events-list">
-            {[
-              { event: 'Tentativa de Login Inválido', user: 'root@unknown', time: '14:22', level: 'high' },
-              { event: 'Exclusão de Lote em Massa', user: 'Admin Master', time: '12:05', level: 'medium' },
-              { event: 'Alteração de Permissões', user: 'Thiago Costa', time: '10:45', level: 'low' },
-              { event: 'Exportação de Dados Financeiros', user: 'Diretoria', time: '09:12', level: 'medium' }
-            ].map((e, i) => (
-              <div key={i} className="event-item">
-                <div className={`level-indicator ${e.level}`} />
-                <div className="event-info">
-                  <span className="event-name">{e.event}</span>
-                  <span className="event-meta">{e.user} • {e.time}</span>
+            {criticalEventsList.length > 0 ? (
+              criticalEventsList.map((e: any, i: number) => (
+                <div key={i} className="event-item">
+                  <div className={`level-indicator ${e.level}`} />
+                  <div className="event-info">
+                    <span className="event-name">{e.event}</span>
+                    <span className="event-meta">{e.user} • {e.time}</span>
+                  </div>
+                  <ArrowRight size={14} className="event-arrow" />
                 </div>
-                <ArrowRight size={14} className="event-arrow" />
+              ))
+            ) : (
+              <div className="empty-state-small" style={{ textAlign: 'center', padding: '20px 0', color: '#94a3b8' }}>
+                <Shield size={24} style={{ margin: '0 auto 8px', opacity: 0.5 }} />
+                <span style={{ fontSize: '12px', display: 'block' }}>Nenhum evento registrado</span>
+                <span style={{ fontSize: '10px' }}>---</span>
               </div>
-            ))}
+            )}
           </div>
         </section>
       </div>

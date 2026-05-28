@@ -1,4 +1,21 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -86,21 +103,54 @@ export const PriceAnalysis: React.FC = () => {
 
       setPriceHistory(analysis);
 
-      // KPI Calculation
-      const totalSaving = analysis.reduce((acc, p) => acc + (p.avgPrice - p.minPrice), 0);
+      // KPI Calculation — all real, no fake data
+      const totalSaving = analysis.reduce((acc: number, p: any) => acc + Math.max(0, p.avgPrice - p.minPrice), 0);
       
       setStats([
-        { label: 'Saving Acumulado', value: totalSaving.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#10b981', progress: 100, trend: 'up' as const, change: 'Economia Total',
-          sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(totalSaving*m), label: `Sem ${i+1}` }))
+        { 
+          label: 'Saving Acumulado', 
+          value: totalSaving > 0 ? totalSaving.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+          icon: DollarSign, color: '#10b981', 
+          progress: totalSaving > 0 ? 100 : 0, 
+          trend: totalSaving > 0 ? 'up' as const : 'neutral' as const, 
+          change: totalSaving > 0 ? 'Economia Total' : 'Sem dados',
+          sparkline: buildSparkline(data || [], 'created_at', 'preco')
         },
-        { label: 'Itens em Monitoramento', value: analysis.length, icon: Package, color: '#3b82f6', progress: 85, change: 'Insumos ativos',
-          sparkline: (() => { const n = analysis.length; return [n-4,n-3,n-2,n-1,n,n,n].map((v,i) => ({ value: Math.max(v,0), label: `${v}` })); })()
+        { 
+          label: 'Itens em Monitoramento', 
+          value: analysis.length > 0 ? analysis.length : '---', 
+          icon: Package, color: '#3b82f6', 
+          progress: analysis.length > 0 ? 100 : 0, 
+          change: analysis.length > 0 ? 'Insumos com histórico' : 'Sem insumos',
+          sparkline: buildSparkline(data || [], 'created_at', 'preco')
         },
-        { label: 'Volatilidade Média', value: '8.4%', icon: Activity, color: '#f59e0b', progress: 45, trend: 'up' as const, change: 'vs. mês anterior',
-          sparkline: [5.1,6.2,7.0,7.5,7.9,8.2,8.4].map((v,i) => ({ value: v, label: `${v}%` }))
+        { 
+          label: 'Maior Variação', 
+          value: (() => {
+            if (analysis.length === 0) return '---';
+            const maxDiff = Math.max(...analysis.map((p: any) => Math.abs(p.diffPercent)));
+            return `${maxDiff.toFixed(1)}%`;
+          })(),
+          icon: Activity, color: '#f59e0b', 
+          progress: (() => {
+            if (analysis.length === 0) return 0;
+            const maxDiff = Math.max(...analysis.map((p: any) => Math.abs(p.diffPercent)));
+            return Math.min(100, maxDiff * 5);
+          })(),
+          trend: 'up' as const, 
+          change: analysis.length > 0 ? 'Máx. desvio do médio' : 'Sem dados',
+          sparkline: buildSparkline(data || [], 'created_at', 'preco')
         },
-        { label: 'Acuracidade de Custo', value: '99.2%', icon: Target, color: '#166534', progress: 99, change: 'Precisão histórica',
-          sparkline: [96,97,97.5,98,98.5,98.9,99.2].map((v,i) => ({ value: v, label: `${v}%` }))
+        { 
+          label: 'Itens em Alta', 
+          value: (() => {
+            const alta = analysis.filter((p: any) => p.variation === 'up').length;
+            return alta > 0 ? alta : '---';
+          })(),
+          icon: Target, color: '#166534', 
+          progress: analysis.length > 0 ? (analysis.filter((p: any) => p.variation === 'up').length / analysis.length) * 100 : 0, 
+          change: analysis.length > 0 ? 'Preço acima da média' : 'Sem dados',
+          sparkline: buildSparkline(data || [], 'created_at', 'preco')
         },
       ]);
     }
@@ -177,7 +227,7 @@ export const PriceAnalysis: React.FC = () => {
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span className={`status-pill ${item.variation === 'up' ? 'stopped' : item.variation === 'down' ? 'active' : 'warning'}`} style={{ fontSize: '10px', padding: '2px 8px', fontWeight: 900 }}>
-            {item.variation === 'up' ? `? +${item.diffPercent.toFixed(1)}%` : item.variation === 'down' ? `" ${item.diffPercent.toFixed(1)}%` : 'ESTÁVEL'}
+            {item.variation === 'up' ? `↑ +${item.diffPercent.toFixed(1)}%` : item.variation === 'down' ? `↓ ${item.diffPercent.toFixed(1)}%` : 'ESTÁVEL'}
           </span>
         </div>
       ),

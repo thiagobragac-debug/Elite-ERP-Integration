@@ -1,5 +1,16 @@
-﻿import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  BarChart,
+  Bar,
+  Cell,
+} from 'recharts';
 
 interface DataPoint {
   label: string;
@@ -9,185 +20,181 @@ interface DataPoint {
 interface TauzeMainChartProps {
   data: DataPoint[];
   color?: string;
-  height?: number;
+  height?: number | string;
   mode?: 'line' | 'bar';
+  unit?: string;
 }
 
-export const TauzeMainChart: React.FC<TauzeMainChartProps> = ({ 
-  data, 
-  color = '#10b981', 
-  height = 400,
-  mode = 'line'
+// ── Custom Tooltip ──────────────────────────────────────────────────────────
+const CustomTooltip = ({ active, payload, label, unit, color }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{
+      background: 'white',
+      border: `1.5px solid ${color}`,
+      borderRadius: '10px',
+      padding: '8px 14px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+      fontSize: '12px',
+      fontFamily: 'Inter, sans-serif',
+    }}>
+      <div style={{ color: '#94a3b8', fontWeight: 600, fontSize: '10px', marginBottom: '2px' }}>
+        {payload[0]?.payload?.label}
+      </div>
+      <div style={{ color, fontWeight: 800, fontSize: '15px' }}>
+        {payload[0]?.value}{unit}
+      </div>
+    </div>
+  );
+};
+
+// ── Main Component ──────────────────────────────────────────────────────────
+export const TauzeMainChart: React.FC<TauzeMainChartProps> = ({
+  data,
+  color = '#10b981',
+  height = 260,
+  mode = 'line',
+  unit = '',
 }) => {
-  const [hoveredPoint, setHoveredPoint] = useState<number | null>(null);
-  
-  const max = Math.max(...data.map(d => d.value), 2.0); 
-  const targetStartValue = 1.2;
-  const targetEndValue = 1.45;
+  if (!data || data.length === 0) {
+    return (
+      <div style={{
+        height: typeof height === 'number' ? `${height}px` : height ?? '100%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#94a3b8',
+        fontSize: '13px',
+        fontWeight: 600,
+      }}>
+        Sem dados para exibir
+      </div>
+    );
+  }
 
-  const yLabels = [0, 0.4, 0.8, 1.2, 1.6].filter(v => v <= max);
-  if (max > 1.6) yLabels.push(Number(max.toFixed(1)));
+  // Smart Y-axis domain with padding
+  const vals = data.map(d => d.value);
+  const rawMax = Math.max(...vals);
+  const rawMin = Math.min(...vals);
+  const range = rawMax - rawMin || rawMax || 1;
+  const pad = range * 0.18;
+  const domainMin = Math.max(0, Math.floor(rawMin - pad));
+  const domainMax = Math.ceil(rawMax + pad * 0.5);
 
-  // Cubic Bezier Curve Calculation
-  const getPath = (isArea = false) => {
-    if (data.length < 2) return '';
-    
-    let d = `M 0,${100 - (data[0].value / max) * 100}`;
-    
-    for (let i = 0; i < data.length - 1; i++) {
-      const x1 = (i / (data.length - 1)) * 100;
-      const y1 = 100 - (data[i].value / max) * 100;
-      const x2 = ((i + 1) / (data.length - 1)) * 100;
-      const y2 = 100 - (data[i + 1].value / max) * 100;
-      
-      const cx = (x1 + x2) / 2;
-      d += ` C ${cx},${y1} ${cx},${y2} ${x2},${y2}`;
-    }
-    
-    if (isArea) {
-      d += ` L 100,100 L 0,100 Z`;
-    }
-    return d;
-  };
+  // Recharts needs { label, value } → use as-is (recharts uses dataKey)
+  const chartData = data.map(d => ({ name: d.label, value: d.value }));
+
+  // X-axis tick selector: show max 7 ticks
+  const tickInterval = Math.max(0, Math.floor((data.length - 1) / 6));
+
+  const gradId = `grad-${color.replace('#', '')}`;
+
+  if (mode === 'bar') {
+    return (
+    <div style={{ flex: 1, minHeight: 0, width: '100%' }}>
+
+      <ResponsiveContainer width="100%" height={typeof height === 'number' ? height : '100%'}>
+        <BarChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 20 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+          <XAxis
+            dataKey="name"
+            tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+            tickLine={false}
+            axisLine={{ stroke: '#e2e8f0' }}
+            interval={tickInterval}
+          />
+          <YAxis
+            domain={[domainMin, domainMax]}
+            tickFormatter={(v) => `${v}${unit}`}
+            tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+            tickLine={false}
+            axisLine={false}
+            width={50}
+          />
+          <Tooltip content={<CustomTooltip unit={unit} color={color} />} />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+            {chartData.map((_, i) => (
+              <Cell key={i} fill={color} fillOpacity={0.25 + (i / chartData.length) * 0.75} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+    );
+  }
 
   return (
-    <div className="tauze-premium-chart" style={{ height: `${height}px`, width: '100%', position: 'relative', padding: '0px' }}>
-      <svg viewBox="-12 -5 122 120" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+    <div style={{ flex: 1, minHeight: 0, width: '100%' }}>
+    <ResponsiveContainer width="100%" height={typeof height === 'number' ? height : '100%'}>
+      <AreaChart data={chartData} margin={{ top: 12, right: 16, left: 0, bottom: 20 }}>
         <defs>
-          <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.1" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor={color} stopOpacity={0.18} />
+            <stop offset="75%"  stopColor={color} stopOpacity={0.05} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
           </linearGradient>
         </defs>
 
-        {/* Grid Lines and Y Labels */}
-        {yLabels.map((val, idx) => {
-          const y = 100 - (val / max) * 100;
-          return (
-            <g key={idx}>
-              <line 
-                x1="0" y1={y} x2="100" y2={y} 
-                stroke="#f1f5f9" strokeWidth="0.15" 
-              />
-              <text 
-                x="-5" y={y + 0.8} 
-                fill="#94a3b8" 
-                style={{ fontSize: '2.2px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-                textAnchor="end"
-              >
-                {val.toFixed(1)}
-              </text>
-            </g>
-          );
-        })}
-
-        {/* Sloped Target Line (Blue Dashed) */}
-        <line 
-          x1="0" y1={100 - (targetStartValue / max) * 100} 
-          x2="100" y2={100 - (targetEndValue / max) * 100} 
-          stroke="#3b82f6" 
-          strokeWidth="0.3" 
-          strokeDasharray="1,1" 
-          opacity="0.6"
+        <CartesianGrid
+          strokeDasharray="3 3"
+          stroke="#f1f5f9"
+          vertical={false}
         />
 
-        {mode === 'line' ? (
-          <>
-            {/* Area */}
-            <motion.path
-              d={getPath(true)}
-              fill="url(#areaGradient)"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 1.5 }}
-            />
+        <XAxis
+          dataKey="name"
+          tick={(props: any) => {
+            // Start at index 1, then every `step` — gives Sem 02, Sem 04, Sem 06...
+            const step = Math.max(1, tickInterval + 1);
+            const show = props.index > 0 && (props.index - 1) % step === 0;
+            if (!show) return <g />;
+            return (
+              <text
+                x={props.x}
+                y={props.y + 10}
+                fill="#94a3b8"
+                fontSize={10}
+                fontFamily="Inter, sans-serif"
+                fontWeight={600}
+                textAnchor="middle"
+              >
+                {props.payload.value}
+              </text>
+            );
+          }}
+          tickLine={false}
+          axisLine={{ stroke: '#e2e8f0' }}
+          interval={0}
+        />
 
-            {/* Line */}
-            <motion.path
-              d={getPath()}
-              fill="none"
-              stroke={color}
-              strokeWidth="0.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 2, ease: "easeInOut" }}
-            />
+        <YAxis
+          domain={[domainMin, domainMax]}
+          tickFormatter={(v) => `${v}${unit}`}
+          tick={{ fontSize: 10, fill: '#94a3b8', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
+          tickLine={false}
+          axisLine={false}
+          width={52}
+          tickCount={5}
+        />
 
-            {/* Dots */}
-            {data.map((d, i) => {
-              const x = (i / (data.length - 1)) * 100;
-              const y = 100 - (d.value / max) * 100;
-              return (
-                <circle
-                  key={i}
-                  cx={x} cy={y}
-                  r="0.6"
-                  fill="white"
-                  stroke={color}
-                  strokeWidth="0.3"
-                  onMouseEnter={() => setHoveredPoint(i)}
-                  onMouseLeave={() => setHoveredPoint(null)}
-                />
-              );
-            })}
-          </>
-        ) : (
-          /* Bar Mode with Heat Map */
-          <g>
-            {data.map((d, i) => {
-              const width = 100 / data.length;
-              const barWidth = width * 0.7;
-              const x = (i * width) + (width - barWidth) / 2;
-              const h = (d.value / max) * 100;
-              const y = 100 - h;
-              
-              // Heat map opacity logic
-              const opacity = 0.2 + (d.value / max) * 0.8;
+        <Tooltip
+          content={<CustomTooltip unit={unit} color={color} />}
+          cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.4 }}
+        />
 
-              return (
-                <motion.rect
-                  key={i}
-                  x={x}
-                  y={100}
-                  width={barWidth}
-                  height={0}
-                  initial={{ height: 0, y: 100 }}
-                  animate={{ height: h, y: y }}
-                  transition={{ delay: i * 0.1, duration: 0.8 }}
-                  fill={color}
-                  opacity={opacity}
-                  rx="0.5"
-                  onMouseEnter={() => setHoveredPoint(i)}
-                  onMouseLeave={() => setHoveredPoint(null)}
-                >
-                  <title>{d.label}: {d.value}</title>
-                </motion.rect>
-              );
-            })}
-          </g>
-        )}
-
-        {/* X Labels */}
-        {data.map((d, i) => {
-          const width = 100 / data.length;
-          const x = mode === 'line' 
-            ? (i / (data.length - 1)) * 100 
-            : (i * width) + width / 2;
-          return (
-            <text
-              key={i}
-              x={x} y="110"
-              fill="#94a3b8"
-              style={{ fontSize: '2.2px', fontWeight: 400, fontFamily: 'Inter, sans-serif' }}
-              textAnchor="middle"
-            >
-              {d.label}
-            </text>
-          );
-        })}
-      </svg>
+        <Area
+          type="monotone"
+          dataKey="value"
+          stroke={color}
+          strokeWidth={2.5}
+          fill={`url(#${gradId})`}
+          dot={{ r: 4, fill: 'white', stroke: color, strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: color, stroke: 'white', strokeWidth: 2 }}
+          animationDuration={1400}
+          animationEasing="ease-in-out"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
     </div>
   );
 };

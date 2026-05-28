@@ -1,4 +1,4 @@
-﻿import React, { useRef } from 'react';
+import React, { useRef } from 'react';
 import { createPortal } from 'react-dom';
 // @ts-ignore
 import html2pdf from 'html2pdf.js';
@@ -7,11 +7,8 @@ import { Search,
   Download, 
   Printer, 
   Share2, 
-  Maximize2, 
   TrendingUp, 
   TrendingDown,
-  Activity,
-  DollarSign,
   ChevronLeft,
   CheckCircle2
 } from 'lucide-react';
@@ -29,7 +26,7 @@ interface ReportViewerProps {
   onClose: () => void;
 }
 
-// Sub-componente para o Layout de Impressão/PDF para evitar duplicação
+// Sub-componente para o Layout de Impressão/PDF
 const ReportPrintLayout: React.FC<{
   report: any;
   data: any[];
@@ -88,10 +85,10 @@ const ReportPrintLayout: React.FC<{
              </div>
              <div className="stat-value" style={{ color: '#0f172a' }}>{s.value}</div>
              <div className={`stat-trend ${s.trend}`}>
-               {s.change} vs mês ant.
+               {s.change}
              </div>
            </div>
-        )})}
+        );})}
       </div>
 
       <div className="print-data-full export-visible">
@@ -138,10 +135,10 @@ const ReportPrintLayout: React.FC<{
 
       <div className="print-only-footer">
         <div className="footer-left">
-          <strong>Tauze Intelligence Engine</strong> â€¢ Documento gerado eletronicamente
+          <strong>Tauze Intelligence Engine</strong> • Documento gerado eletronicamente
         </div>
         <div className="footer-right">
-          Protocolo: {Math.random().toString(36).substring(7).toUpperCase()} â€¢ Página 1 de 1
+          Protocolo: {(() => { const t = Date.now(); return (t.toString(36).toUpperCase() + '-' + (t % 99991).toString(36).toUpperCase()).slice(0, 12); })()} • Página 1 de 1
         </div>
       </div>
     </div>
@@ -353,29 +350,16 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
                change={s.change}
                trend={s.trend === 'down' ? 'down' : 'up'}
                sparkline={s.sparkline}
-             
                periodLabel="Periodo Atual"
              />
-            )) : (
-              <>
-                <TauzeStatCard label="Volume Processado" value="1.420" icon={Activity} color="#10b981" progress={100} change="+4.2%" trend="up" sparkline={[710,852,994,1136,1278,1349,1420].map((v,i) => ({ value: v, label: 'Sem '+String(i+1) }))} 
-            periodLabel="Periodo Atual"
-          />
-                <TauzeStatCard label="Performance Global" value="92.4%" icon={TrendingUp} color="#3b82f6" progress={92} change="+1.5%" trend="up" sparkline={[87,88,89,90,91,92,92.4].map((v,i) => ({ value: v, label: String(v)+'%' }))} 
-            periodLabel="Periodo Atual"
-          />
-                <TauzeStatCard label="Custo Médio / Un" value="R$ 12.40" icon={DollarSign} color="#f59e0b" progress={60} change="-0.8%" trend="down" sparkline={[13.2,13.0,12.9,12.8,12.7,12.5,12.4].map((v,i) => ({ value: v, label: 'R$'+String(v) }))} 
-            periodLabel="Periodo Atual"
-          />
-              </>
-            )}
+            )) : null}
           </div>
 
           <div className="viewer-main-analytics">
             <div className="analytics-card">
               <div className="card-header">
                 <h3>Detalhamento de Registros</h3>
-                <span className="subtitle">Dados paginados em tempo real â€¢ Escala Comercial</span>
+                <span className="subtitle">Dados paginados em tempo real • Escala Comercial</span>
               </div>
             {error ? (
               <div className="report-error">
@@ -384,13 +368,13 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
               </div>
             ) : (
               <ModernTable 
-          emptyState={
-            <EmptyState
-              title="Nenhum registro encontrado"
-              description="Sua busca não retornou resultados."
-              icon={Search}
-            />
-          } 
+                emptyState={
+                  <EmptyState
+                    title="Nenhum registro encontrado"
+                    description="Sua busca não retornou resultados."
+                    icon={Search}
+                  />
+                } 
                 data={data || []}
                 columns={columns || []}
                 hideHeader={false}
@@ -407,7 +391,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
         </div>
         </motion.div>
 
-        {/* CONTAINER OCULTO PARA GERAÇÃO DE PDF - Evita flicker na UI mas permite renderização correta pelo html2canvas */}
+        {/* CONTAINER OCULTO PARA GERAÇÃO DE PDF */}
         <div 
           className="pdf-export-engine-container" 
           style={{ position: 'absolute', top: 0, left: 0, width: '1120px', zIndex: -100, opacity: 0, pointerEvents: 'none' }}

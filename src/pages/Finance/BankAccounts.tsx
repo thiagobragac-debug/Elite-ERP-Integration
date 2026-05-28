@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   Building2, 
   Plus, 
@@ -59,14 +76,10 @@ export const BankAccounts: React.FC = () => {
   });
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Liquidez Disponível', value: 'R$ 0,00', icon: Wallet, color: '#10b981', progress: 0,
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Utilização de Limites', value: '0%', icon: CreditCard, color: '#ef4444', progress: 0,
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Custódia Bancária', value: '0', icon: Building, color: '#3b82f6', progress: 0,
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Yield Estratégico', value: '0.00%', icon: TrendingUp, color: '#f59e0b', progress: 0,
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Liquidez Disponível', value: '---', icon: Wallet, color: '#10b981', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
+    { label: 'Utilização de Limites', value: '---', icon: CreditCard, color: '#ef4444', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
+    { label: 'Custódia Bancária', value: '---', icon: Building, color: '#3b82f6', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
+    { label: 'Yield Estratégico', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
   ]);
 
   useEffect(() => {
@@ -109,11 +122,11 @@ export const BankAccounts: React.FC = () => {
 
       const data: any = await Promise.race([fetchPromise, timeoutPromise]);
       
-      const safeData = data || [];
-      setAccounts(safeData);
+      const [] = data || [];
+      setAccounts([]);
 
-      const totalSaldos = safeData.reduce((acc: number, curr: any) => acc + Number(curr.saldo_atual || 0), 0);
-      const totalLimites = safeData.reduce((acc: number, curr: any) => acc + Number(curr.limite_credito || 0), 0);
+      const totalSaldos = [].reduce((acc: number, curr: any) => acc + Number(curr.saldo_atual || 0), 0);
+      const totalLimites = [].reduce((acc: number, curr: any) => acc + Number(curr.limite_credito || 0), 0);
       const liquidezTotal = totalSaldos + totalLimites;
       
       setStats([
@@ -121,36 +134,50 @@ export const BankAccounts: React.FC = () => {
           label: 'Liquidez Disponível', 
           value: liquidezTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
           icon: Wallet, color: '#10b981', progress: 100, change: 'Saldos + Limites', periodLabel: 'Real-Time',
-          sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(liquidezTotal*m), label: `Sem ${i+1}` }))
+          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
         },
         { 
           label: 'Utilização de Limites', 
-          value: totalLimites > 0 ? `${((Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100).toFixed(1)}%` : '0%', 
+          value: totalLimites > 0 ? `${((Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100).toFixed(1)}%` : '---', 
           icon: CreditCard, color: '#ef4444', 
           progress: totalLimites > 0 ? (Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100 : 0,
-          change: totalLimites.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), periodLabel: 'Crédito Tomado',
-          sparkline: (() => { const p = totalLimites > 0 ? (Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100 : 0; return [p*0.3,p*0.4,p*0.55,p*0.65,p*0.75,p*0.88,p].map((v,i) => ({ value: Math.round(v), label: `${Math.round(v)}%` })); })()
+          change: totalLimites > 0 ? totalLimites.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Sem limites cadastrados', periodLabel: 'Crédito Tomado',
+          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
         },
         { 
-          label: 'Custódia Bancária', value: safeData.length, icon: Building, color: '#3b82f6', progress: 100, change: 'Instituições', periodLabel: 'Pontos de Contato',
-          sparkline: (() => { const n = safeData.length; return [n,n,n,n,n,n,n].map((v,i) => ({ value: v, label: `${v} contas` })); })()
+          label: 'Custódia Bancária', value: [].length > 0 ? [].length : '---', icon: Building, color: '#3b82f6', 
+          progress: [].length > 0 ? 100 : 0, 
+          change: [].length > 0 ? 'Instituições' : 'Sem contas', periodLabel: 'Pontos de Contato',
+          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
         },
         { 
-          label: 'Yield Estratégico', value: '+1.02%', icon: TrendingUp, color: '#f59e0b', progress: 85, trend: 'up' as const, change: 'Mês Atual', periodLabel: 'Rendimento Médio',
-          sparkline: [0.65,0.72,0.80,0.86,0.91,0.97,1.02].map((v,i) => ({ value: v, label: `+${v}%` }))
+          label: 'Benchmark Médio', 
+          value: (() => {
+            const withBenchmark = [].filter((a: any) => a.benchmark_rendimento);
+            if (withBenchmark.length === 0) return '---';
+            const avg = withBenchmark.reduce((acc: number, a: any) => acc + Number(a.benchmark_rendimento || 0), 0) / withBenchmark.length;
+            return avg > 0 ? `${avg.toFixed(2)}%` : '---';
+          })(),
+          icon: TrendingUp, color: '#f59e0b', 
+          progress: (() => {
+            const withBenchmark = [].filter((a: any) => a.benchmark_rendimento);
+            if (withBenchmark.length === 0) return 0;
+            const avg = withBenchmark.reduce((acc: number, a: any) => acc + Number(a.benchmark_rendimento || 0), 0) / withBenchmark.length;
+            return Math.min(100, avg * 10);
+          })(),
+          trend: 'up' as const, 
+          change: [].filter((a: any) => a.benchmark_rendimento).length > 0 ? 'Rendimento cadastrado' : 'Sem benchmark', 
+          periodLabel: 'Rendimento Médio',
+          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
         },
       ]);
     } catch (err) {
       setAccounts([]);
       setStats([
-        { label: 'Liquidez Disponível', value: 'R$ 0,00', icon: Wallet, color: '#10b981', progress: 0, change: 'Sem dados', periodLabel: 'Modo Real',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Utilização de Limites', value: '0%', icon: CreditCard, color: '#ef4444', progress: 0, change: 'Sem dados', periodLabel: 'Crédito Tomado',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i}%` })) },
-        { label: 'Custódia Bancária', value: '0', icon: Building, color: '#3b82f6', progress: 0, change: 'Sem dados', periodLabel: 'Pontos de Contato',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i} contas` })) },
-        { label: 'Yield Estratégico', value: '0.00%', icon: TrendingUp, color: '#f59e0b', progress: 0, trend: 'up' as const, change: 'Sem dados', periodLabel: 'Rendimento Médio',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `+0%` })) },
+        { label: 'Liquidez Disponível', value: '---', icon: Wallet, color: '#10b981', progress: 0, change: 'Erro de Conexão', periodLabel: 'Modo Real', sparkline: [] },
+        { label: 'Utilização de Limites', value: '---', icon: CreditCard, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Crédito Tomado', sparkline: [] },
+        { label: 'Custódia Bancária', value: '---', icon: Building, color: '#3b82f6', progress: 0, change: 'Erro de Conexão', periodLabel: 'Pontos de Contato', sparkline: [] },
+        { label: 'Yield Estratégico', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, trend: 'up' as const, change: 'Erro de Conexão', periodLabel: 'Rendimento Médio', sparkline: [] },
       ]);
     } finally {
       setLoading(false);
@@ -423,7 +450,7 @@ export const BankAccounts: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change={stat.change || '+1.5%'}
+            change={stat.change || '---'}
             trend={stat.trend || 'up'}
             sparkline={stat.sparkline}
             periodLabel={stat.periodLabel}

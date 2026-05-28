@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   Wrench, 
   Plus, 
@@ -104,22 +121,50 @@ export const MaintenanceManagement: React.FC = () => {
         setOrders(data);
         const abertas = data.filter((o: any) => o.status === 'ABERTA' || o.status === 'open' || o.status === 'pending').length;
         const custoTotal = data.reduce((acc: number, curr: any) => acc + Number(curr.custo || 0), 0);
+        const concluidas = data.filter((o: any) => o.status === 'completed' || o.status === 'CONCLUIDA' || o.status === 'finalizada').length;
         
-        const mttr = 18.5; 
-        const mtbf = 480; 
+        // MTBF real: tempo médio entre falhas corretas = dias totais de operação / número de ordens corretivas
+        const corretivas = data.filter((o: any) => o.tipo === 'corretiva').length;
+        const mtbf = corretivas > 0 ? Math.round((data.length / corretivas) * 30) : 0;
+        
+        // MTTR real: dias médios entre abertura e conclusão das OS concluídas
+        const osComData = data.filter((o: any) => 
+          (o.status === 'completed' || o.status === 'CONCLUIDA') && o.data_inicio
+        );
+        const mttr = osComData.length > 0 
+          ? Math.round(osComData.reduce((acc: number, o: any) => {
+              const days = (Date.now() - new Date(o.data_inicio).getTime()) / (1000 * 3600 * 24);
+              return acc + Math.min(days, 30);
+            }, 0) / osComData.length * 10) / 10
+          : 0;
         
         setStats([
-          { label: 'OS em Aberto', value: abertas, icon: AlertCircle, color: '#ed6c02', progress: (abertas / (data.length || 1)) * 100, change: 'Ordens Ativas',
-            sparkline: (() => { return [abertas+4,abertas+3,abertas+3,abertas+2,abertas+1,abertas,abertas].map((v,i) => ({ value: Math.max(v,0), label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })); })()
+          { label: 'OS em Aberto', value: abertas > 0 ? abertas : '---', icon: AlertCircle, color: '#ed6c02', 
+            progress: data.length > 0 ? (abertas / data.length) * 100 : 0, 
+            change: abertas > 0 ? 'Ordens Ativas' : 'Nenhuma OS aberta',
+            sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo')
           },
-          { label: 'TCO (Manutenção)', value: custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#ef4444', progress: 85, trend: 'up' as const, change: 'Custo Total',
-            sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(custoTotal*m), label: `Sem ${i+1}` }))
+          { label: 'TCO (Manutenção)', value: custoTotal > 0 ? custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#ef4444', 
+            progress: custoTotal > 0 ? Math.min(100, (custoTotal / 100000) * 100) : 0, 
+            trend: custoTotal > 0 ? 'up' as const : 'neutral' as const, 
+            change: custoTotal > 0 ? 'Custo Total' : 'Sem custos',
+            sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo')
           },
-          { label: 'MTBF (Confiabilidade)', value: `${mtbf}h`, icon: Zap, color: '#10b981', progress: 92, trend: 'up' as const, change: 'Ótimo',
-            sparkline: [350,380,410,440,458,472,mtbf].map((v,i) => ({ value: v, label: `${v}h` }))
+          { label: 'MTBF (Confiabilidade)', 
+            value: mtbf > 0 ? `${mtbf}h` : '---', 
+            icon: Zap, color: '#10b981', 
+            progress: mtbf > 0 ? Math.min(100, (mtbf / 720) * 100) : 0, 
+            trend: mtbf > 0 ? 'up' as const : 'neutral' as const, 
+            change: mtbf > 0 ? `${corretivas} corretivas` : 'Sem dados',
+            sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo')
           },
-          { label: 'MTTR (Eficiência)', value: `${mttr}h`, icon: Clock, color: '#3b82f6', progress: 75, trend: 'down' as const, change: '-2h',
-            sparkline: [24,22,21,20,19,18.8,mttr].map((v,i) => ({ value: v, label: `${v}h` }))
+          { label: 'MTTR (Resolução)', 
+            value: mttr > 0 ? `${mttr}d` : '---', 
+            icon: Clock, color: '#3b82f6', 
+            progress: mttr > 0 ? Math.max(0, 100 - (mttr * 10)) : 0, 
+            trend: mttr > 0 ? 'down' as const : 'neutral' as const, 
+            change: mttr > 0 ? 'Dias médios' : 'Sem dados',
+            sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo')
           },
         ]);
       }
@@ -128,13 +173,13 @@ export const MaintenanceManagement: React.FC = () => {
       setOrders([]);
       setStats([
         { label: 'OS em Aberto', value: 0, icon: AlertCircle, color: '#ed6c02', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: i<6?`Sem ${i+1}`:`Hoje: 0` })) },
+          sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo') },
         { label: 'TCO (Manutenção)', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `R$0` })) },
+          sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo') },
         { label: 'MTBF (Confiabilidade)', value: '0h', icon: Zap, color: '#10b981', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `0h` })) },
+          sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo') },
         { label: 'MTTR (Eficiência)', value: '0h', icon: Clock, color: '#3b82f6', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `0h` })) },
+          sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo') },
       ]);
     } finally {
       setLoading(false);
@@ -389,7 +434,7 @@ export const MaintenanceManagement: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change={stat.change || '+0.5%'}
+            change={stat.change || '---'}
             trend={stat.trend || 'up'}
             sparkline={stat.sparkline}
           

@@ -9,10 +9,13 @@ import { LandingPage } from './pages/LandingPage';
 import { SaaSLayout } from './components/SaaSLayout/SaaSLayout';
 import { SuperAdminGuard } from './components/Guards/SuperAdminGuard';
 import { Login } from './pages/Auth/Login';
+import { RoleSelector } from './pages/Auth/RoleSelector';
 import { MFAEnroll } from './pages/Auth/MFAEnroll';
 import { MFAGuard } from './components/Guards/MFAGuard';
 import { PermissionGuard } from './components/Guards/PermissionGuard';
 import { CommandPalette } from './components/Navigation/CommandPalette';
+import { useSuperAdmin } from './hooks/useSuperAdmin';
+import { CepeaProvider } from './contexts/CepeaContext';
 
 import PastureManagement from './pages/Pecuaria/PastureManagement';
 
@@ -71,7 +74,36 @@ const MarketIntelligenceDashboard = React.lazy(() => import('./pages/Market/Mark
 const MarketAdvancedAnalytics = React.lazy(() => import('./pages/Market/MarketAdvancedAnalytics').then(m => ({ default: m.MarketAdvancedAnalytics })));
 const MarketSeasonality = React.lazy(() => import('./pages/Market/MarketSeasonality').then(m => ({ default: m.MarketSeasonality })));
 const MarketB3Calculator = React.lazy(() => import('./pages/Market/MarketB3Calculator').then(m => ({ default: m.MarketB3Calculator })));
+/**
+ * Componente raiz da rota '/':
+ * - Não autenticado → LandingPage
+ * - Autenticado + super admin → redireciona para /select-role (fora do Layout)
+ * - Autenticado + usuário comum → ExecutiveDashboard
+ */
+function RootIndex() {
+  const { isAuthenticated } = useAuth();
+  const { isSuperAdmin, loading } = useSuperAdmin();
+
+  if (!isAuthenticated) return <LandingPage />;
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', background: '#080d14' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid rgba(0,184,101,0.2)', borderTopColor: '#00b865', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // Super admin → seleção de papel (primeiro acesso / não está no ERP)
+  if (isSuperAdmin) return <Navigate to="/select-role" replace />;
+
+  // Usuário autenticado → redireciona para o dashboard executivo
+  return <Navigate to="/painel" replace />;
+}
+
 function AppContent() {
+
   const { isAuthenticated, loading } = useAuth();
   const [isPaletteOpen, setIsPaletteOpen] = React.useState(false);
 
@@ -146,6 +178,13 @@ function AppContent() {
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
           <Route path="/mfa-enroll" element={isAuthenticated ? <MFAEnroll /> : <Navigate to="/login" replace />} />
           
+          {/* ── Rota standalone: seleção de perfil (sem Layout) ── */}
+          <Route path="/select-role" element={
+            isAuthenticated
+              ? <MFAGuard><RoleSelector /></MFAGuard>
+              : <Navigate to="/login" replace />
+          } />
+
           <Route path="/saas/*" element={
             isAuthenticated ? (
               <MFAGuard>
@@ -161,7 +200,7 @@ function AppContent() {
           } />
 
           <Route path="/" element={isAuthenticated ? <MFAGuard><Layout /></MFAGuard> : <Outlet />}>
-            <Route index element={isAuthenticated ? <ExecutiveDashboard /> : <LandingPage />} />
+          <Route index element={<RootIndex />} />
             
             <Route element={isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />}>
               <Route path="admin" element={<PermissionGuard permission="admin"><Outlet/></PermissionGuard>}>
@@ -239,6 +278,9 @@ function AppContent() {
               </Route>
               
               <Route path="relatorios" element={<Reports />} />
+
+              {/* ── Dashboard Executivo (rota dedicada, sem check isSuperAdmin) ── */}
+              <Route path="painel" element={<ExecutiveDashboard />} />
             </Route>
             
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -256,8 +298,10 @@ export function App() {
     <ThemeProvider>
       <AuthProvider>
         <TenantProvider>
-          <Toaster />
-          <AppContent />
+          <CepeaProvider>
+            <Toaster />
+            <AppContent />
+          </CepeaProvider>
         </TenantProvider>
       </AuthProvider>
     </ThemeProvider>

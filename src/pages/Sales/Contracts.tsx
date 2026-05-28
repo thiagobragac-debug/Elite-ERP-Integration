@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   ShieldCheck, 
   Plus, 
@@ -106,7 +123,7 @@ export const Contracts: React.FC = () => {
             isFixed,
             physicalProgress,
             priceType: isFixed ? 'PREÇO FIXO' : 'A FIXAR',
-            marketDelta: isFixed ? (Math.random() * 10 - 5).toFixed(1) : 'N/A'
+            marketDelta: '---' // delta real requer integração com B3/cotação de mercado
           };
         });
 
@@ -114,37 +131,32 @@ export const Contracts: React.FC = () => {
         const totalValor = data.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
         const fixedCount = enrichedContracts.filter((c: any) => c.isFixed).length;
         
+        const totalAtivos = enrichedContracts.filter((c: any) => c.status === 'active').length;
+        const pctAtivos = data.length > 0 ? ((totalAtivos / data.length) * 100).toFixed(1) + '%' : '---';
+        
         setStats([
-          { label: 'Exposição Safra', value: '64.2%', icon: TrendingUp, color: '#10b981', progress: 64, change: 'Compromissado', trend: 'up' as const,
-            sparkline: [48,53,56,59,61,63,64.2].map((v,i) => ({ value: v, label: `${v}%` })) },
-          { label: 'Valor em Hedge', value: totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#3b82f6', progress: 85, change: 'Volume Bloqueado',
-            sparkline: [
-              { value: Math.round(totalValor*0.50) }, { value: Math.round(totalValor*0.60) }, { value: Math.round(totalValor*0.68) },
-              { value: Math.round(totalValor*0.76) }, { value: Math.round(totalValor*0.83) }, { value: Math.round(totalValor*0.91) },
-              { value: Math.round(totalValor), label: 'Hoje' }
-            ]
+          { label: 'Contratos Ativos', value: pctAtivos, icon: TrendingUp, color: '#10b981', progress: totalAtivos > 0 ? (totalAtivos / data.length) * 100 : 0, change: `${totalAtivos} de ${data.length} total`, trend: 'up' as const, sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
+          { label: 'Valor em Hedge', value: totalValor > 0 ? totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#3b82f6', progress: totalValor > 0 ? 100 : 0, change: totalValor > 0 ? 'Volume bloqueado' : 'Sem contratos',
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
-          { label: 'Fixação de Preço', value: `${fixedCount}/${data.length}`, icon: ShieldCheck, color: '#166534', progress: (fixedCount / (data.length || 1)) * 100, change: 'Contratos Liquidados',
-            sparkline: (() => {
-              const pct = (fixedCount / (data.length || 1)) * 100;
-              return [pct*0.5, pct*0.6, pct*0.7, pct*0.8, pct*0.87, pct*0.94, pct].map((v,i) => ({ value: Math.round(v), label: `${Math.round(v)}%` }));
-            })()
+          { label: 'Fixação de Preço', value: `${fixedCount}/${data.length}`, icon: ShieldCheck, color: '#166534', progress: data.length > 0 ? (fixedCount / data.length) * 100 : 0, change: fixedCount > 0 ? 'Preço fixado' : 'A fixar',
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
-          { label: 'Eficiência Hedge', value: '+4.8%', icon: BarChart2, color: '#f59e0b', progress: 92, change: 'vs Média Mercado',
-            sparkline: [1.2,1.9,2.5,3.1,3.7,4.3,4.8].map((v,i) => ({ value: v, label: `+${v}%` }))
+          { label: 'Eficiência Hedge', value: '---', icon: BarChart2, color: '#f59e0b', progress: 0, change: 'Requer integração B3',
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
         ]);
       } else {
         setContracts([]);
         setStats([
           { label: 'Exposição Safra', value: 'â€”', icon: TrendingUp, color: '#10b981', progress: 0, change: 'Sem dados',
-            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
           { label: 'Valor em Hedge', value: 'R$ 0,00', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Sem dados',
-            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
           { label: 'Fixação de Preço', value: '0/0', icon: ShieldCheck, color: '#166534', progress: 0, change: 'Sem dados',
-            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
           { label: 'Eficiência Hedge', value: 'â€”', icon: BarChart2, color: '#f59e0b', progress: 0, change: 'Sem dados',
-            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
         ]);
       }
     } catch (err) {
@@ -370,7 +382,7 @@ export const Contracts: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change={stat.change || '+1.8%'}
+            change={stat.change || '---'}
             trend={stat.trend}
             sparkline={stat.sparkline}
           

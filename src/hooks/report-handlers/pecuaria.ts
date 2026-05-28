@@ -2,6 +2,33 @@ import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 import { Beef, Scale, Skull, TrendingUp, Activity, Map as MapIcon, Calendar } from 'lucide-react';
 
+const todayBR = () => new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const monthYearBR = () => new Date().toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+
+const fmtDateBR = (dateStr?: string | null): string => {
+  if (!dateStr) return todayBR();
+  try { return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+  catch { return todayBR(); }
+};
+const latestDate = (records: any[], dateField: string): string | null => {
+  if (!records || records.length === 0) return null;
+  const sorted = [...records].filter(r => r[dateField])
+    .sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
+  return sorted.length > 0 ? fmtDateBR(sorted[0][dateField]) : null;
+};
+const earliestPending = (records: any[], dateField: string, pendingStatuses = ['PENDENTE','pendente','aberto','ABERTO']): string | null => {
+  const pending = records.filter(r => r[dateField] && pendingStatuses.includes(r.status || ''));
+  if (pending.length === 0) return null;
+  const sorted = pending.sort((a: any, b: any) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  return fmtDateBR(sorted[0][dateField]);
+};
+const latestPaid = (records: any[], dateField: string, paidStatuses = ['PAGO','pago','LIQUIDADO','liquidado','RECEBIDO','recebido']): string | null => {
+  const paid = records.filter(r => r[dateField] && paidStatuses.includes(r.status || ''));
+  if (paid.length === 0) return null;
+  const sorted = paid.sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
+  return fmtDateBR(sorted[0][dateField]);
+};
+
 const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
@@ -11,156 +38,223 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
   ]);
 };
 
-// Helper para aplicar filtros de tenant/fazenda de forma consistente
-const applyFilters = (query: any, tenantId: string, fazendaId?: string) => {
+const applyScope = (query: any, tenantId: string, fazendaId?: string) => {
   if (fazendaId) return query.eq('fazenda_id', fazendaId);
   return query.eq('tenant_id', tenantId);
 };
 
-/**
- * Pecuária: Performance Ponderal (GMD)
- */
+// Gera sparkline a partir de registros reais agrupados por data
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets: number = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records]
+    .filter(r => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v = inBucket.length === 0
+      ? 0
+      : valueField
+        ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+        : inBucket.length;
+    const d = new Date(bStart + bucketMs / 2);
+    return {
+      value: Number(v.toFixed(2)),
+      label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    };
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Performance Ponderal (GMD)
+// ─────────────────────────────────────────────────────────────
 export const performancePonderal: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [
-      { id: 'p1', brinco: 'BR 4520', evolucao: '540 kg', gmd: '1.250 kg/dia', data: '12/05/2026' },
-      { id: 'p2', brinco: 'BR 8891', evolucao: '490 kg', gmd: '0.980 kg/dia', data: '10/05/2026' }
-    ],
-    columns: [
-      { header: 'Animal / Brinco', accessor: 'brinco' },
-      { header: 'Peso Atual', accessor: 'evolucao' },
-      { header: 'GMD Médio', accessor: 'gmd' },
-      { header: 'Última Pesagem', accessor: 'data' }
-    ],
-    stats: [
-      { label: 'GMD Médio Global', sparkline: (() => {  const valStr = String('1.120 kg/dia'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.120 kg/dia', change: '+5.2%', trend: 'up' as const, icon: TrendingUp, color: 'hsl(var(--success))' },
-      { label: 'Peso Total Rebanho', sparkline: (() => {  const valStr = String('450.5 ton'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '450.5 ton', change: '+3.4%', trend: 'up' as const, icon: Scale, color: 'hsl(var(--brand))' },
-      { label: 'Eficiência Conversão', sparkline: (() => {  const valStr = String('Alta'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}:1` }; }); })(), value: 'Alta', change: 'Ref. Geral', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--warning))' },
-      { label: 'GMD Projetado', sparkline: (() => {  const valStr = String('1.250 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '1.250 kg', change: 'Próx. Ciclo', trend: 'up' as const, icon: TrendingUp, color: 'hsl(var(--success))' }
-    ],
-    totalCount: 2
-  };
+  const columns = [
+    { header: 'Animal / Brinco', accessor: 'brinco' },
+    { header: 'Peso Atual', accessor: 'evolucao' },
+    { header: 'GMD Calculado', accessor: 'gmd' },
+    { header: 'Última Pesagem', accessor: 'data' }
+  ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-
-    const fetchPesagens = supabase
-      .from('pesagens')
-      .select('id, animal_id, data_pesagem, peso, animais(brinco, lote_id)', { count: 'exact' })
-      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
-      .order('data_pesagem', { ascending: false })
-      .range(from, to);
-
-    const fetchGmd = supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId });
-    const fetchWeight = supabase.rpc('get_herd_total_weight', { p_tenant_id: tenantId, p_fazenda_id: fazendaId });
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
     const [pesagensRes, gmdRes, weightRes] = await Promise.all([
-      withTimeout((fetchPesagens as unknown) as Promise<any>) as any,
-      withTimeout((fetchGmd as unknown) as Promise<any>) as any,
-      withTimeout((fetchWeight as unknown) as Promise<any>) as any
+      withTimeout(supabase
+        .from('pesagens')
+        .select('id, animal_id, data_pesagem, peso, animais(brinco, lote_id)', { count: 'exact' })
+        .match(scope)
+        .order('data_pesagem', { ascending: false })
+        .range(from, to) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('get_herd_total_weight', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>)
     ]);
 
     if (pesagensRes.error) throw pesagensRes.error;
 
-    const enrichedData = (pesagensRes.data || []).map((curr: any, idx: number) => {
-      const prev = (pesagensRes.data || []).slice(idx + 1).find((w: any) => w.animal_id === curr.animal_id);
-      
-      let gmdVal = 0.85 + Math.random() * 0.4; // Estimativa de fallback realista
+    const pesagens = pesagensRes.data || [];
+    const gmdGlobal = Number(gmdRes.data || 0);
+    const pesoTotal = Number(weightRes.data || 0);
+
+    // GMD por animal: (peso atual - peso anterior) / dias entre pesagens
+    // Se não há pesagem anterior, exibe '---' (sem Math.random)
+    const enrichedData = pesagens.map((curr: any, idx: number) => {
+      const prev = pesagens.slice(idx + 1).find((w: any) => w.animal_id === curr.animal_id);
+      let gmdVal: number | null = null;
       if (prev) {
-        const days = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / (1000 * 60 * 60 * 24);
-        if (days > 0) {
-          gmdVal = (Number(curr.peso) - Number(prev.peso)) / days;
-        }
+        const days = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / 86400000;
+        if (days > 0) gmdVal = (Number(curr.peso) - Number(prev.peso)) / days;
       }
-      
+      const animal = Array.isArray(curr.animais) ? curr.animais[0] : curr.animais;
       return {
         id: curr.id,
-        brinco: (curr.animais as any)?.brinco || 'N/A',
-        evolucao: `${Number(curr.peso || 0).toFixed(1)} kg`,
-        gmd: `${gmdVal.toFixed(3)} kg/dia`,
-        data: new Date(curr.data_pesagem).toLocaleDateString('pt-BR')
+        brinco: animal?.brinco || '---',
+        evolucao: curr.peso ? `${Number(curr.peso).toFixed(1)} kg` : '---',
+        gmd: gmdVal !== null ? `${gmdVal.toFixed(3)} kg/dia` : '---',
+        data: curr.data_pesagem ? new Date(curr.data_pesagem).toLocaleDateString('pt-BR') : '---'
       };
     });
 
+    // GMD projetado = GMD atual * 1.05 (projeção de 5% melhora no próximo ciclo)
+    const gmdProjetado = gmdGlobal > 0 ? gmdGlobal * 1.05 : null;
+    const _lastWeighDate1 = pesagens.length > 0 ? fmtDateBR(pesagens[0].data_pesagem) : null;
+
     return {
       data: enrichedData,
-      columns: mockData.columns,
+      columns,
       stats: [
-        { label: 'GMD Médio Global', sparkline: (() => {  const valStr = String(`${Number(gmdRes.data || 0).toFixed(3)} kg/dia`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${Number(gmdRes.data || 0).toFixed(3)} kg/dia`, change: 'Atual', trend: 'neutral' as const, icon: TrendingUp, color: 'hsl(var(--success))' },
-        { label: 'Peso Total Rebanho', sparkline: (() => {  const valStr = String(`${(Number(weightRes.data || 0) / 1000).toFixed(1)} ton`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${(Number(weightRes.data || 0) / 1000).toFixed(1)} ton`, change: '+3.4%', trend: 'up' as const, icon: Scale, color: 'hsl(var(--brand))' },
-        { label: 'Eficiência Conversão', sparkline: (() => {  const valStr = String('Real-time'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}:1` }; }); })(), value: 'Real-time', change: 'Ref. Geral', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--warning))' },
-        { label: 'GMD Projetado', sparkline: (() => {  const valStr = String('0.000 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '0.000 kg', change: 'Calculando', trend: 'neutral' as const, icon: TrendingUp, color: 'hsl(var(--success))' }
+        {
+          label: 'GMD Médio Global',
+          subtitle: _lastWeighDate1 ? `Última pesagem em ${_lastWeighDate1}` : `Calculado em ${todayBR()}`,
+          sparkline: buildSparkline(pesagens, 'data_pesagem', 'peso'),
+          value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
+          change: gmdGlobal > 0 ? 'Calculado do rebanho' : 'Sem pesagens',
+          trend: 'neutral' as const,
+          icon: TrendingUp,
+          color: 'hsl(var(--success))'
+        },
+        {
+          label: 'Peso Total Rebanho',
+          subtitle: _lastWeighDate1 ? `Apurado em ${_lastWeighDate1}` : `Inventário em ${todayBR()}`,
+          sparkline: buildSparkline(pesagens, 'data_pesagem', 'peso'),
+          value: pesoTotal > 0 ? `${(pesoTotal / 1000).toFixed(1)} ton` : '---',
+          change: pesoTotal > 0 ? 'Soma pesagens' : 'Sem dados',
+          trend: 'neutral' as const,
+          icon: Scale,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'Total Pesagens',
+          subtitle: _lastWeighDate1 ? `Última pesagem em ${_lastWeighDate1}` : 'Sem pesagens registradas',
+          sparkline: buildSparkline(pesagens, 'data_pesagem', null),
+          value: pesagensRes.count !== null && pesagensRes.count > 0 ? String(pesagensRes.count) : '---',
+          change: pesagensRes.count > 0 ? 'Registros no período' : 'Sem pesagens',
+          trend: 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--warning))'
+        },
+        {
+          label: 'GMD Projetado',
+          subtitle: 'Proje\u00e7\u00e3o baseada em hist\u00f3rico',
+          sparkline: buildSparkline(pesagens, 'data_pesagem', 'peso'),
+          value: gmdProjetado ? `${gmdProjetado.toFixed(3)} kg/dia` : '---',
+          change: gmdProjetado ? 'Projeção +5% próx. ciclo' : 'Sem base de cálculo',
+          trend: gmdProjetado ? 'up' as const : 'neutral' as const,
+          icon: TrendingUp,
+          color: 'hsl(var(--success))'
+        }
       ],
       totalCount: pesagensRes.count || 0
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };
 
-/**
- * Pecuária: Sanidade Animal
- */
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Sanidade Animal
+// ─────────────────────────────────────────────────────────────
 export const sanidadeAnimal: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [
-      { id: 's1', vacina: 'Aftosa - Campanha', lote: 'LT 2026-A', data: '14/05/2026', status: 'Concluído' },
-      { id: 's2', vacina: 'Vermifugação Global', lote: 'LT 2026-B', data: '10/05/2026', status: 'Concluído' }
-    ],
-    columns: [
-      { header: 'Manejo / Vacina', accessor: 'vacina' },
-      { header: 'Alvo', accessor: 'targetName' },
-      { header: 'Tipo', accessor: 'targetType' },
-      { header: 'Lote Aplicado', accessor: 'lote' },
-      { header: 'Data Manejo', accessor: 'data' },
-      { header: 'Carência', accessor: (row: any) => row.carencia_dias ? `${row.carencia_dias} dias` : 'Isento' },
-      { header: 'Status Consumo', accessor: (row: any) => row.isBlocked ? `⚠️ Bloqueado (${row.diasRestantes}d)` : '✅ Liberado' }
-    ],
-    stats: [
-      { label: 'Cobertura Sanitária', sparkline: (() => {  const valStr = String('98.5%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '98.5%', change: '+0.5%', trend: 'up' as const, icon: Activity, color: 'hsl(var(--success))' },
-      { label: 'Aplicações (Mês)', sparkline: (() => {  const valStr = String('1.240'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.240', change: '+15%', trend: 'up' as const, icon: Scale, color: 'hsl(var(--brand))' },
-      { label: 'Custo Sanitário / UA', sparkline: (() => {  const valStr = String('R$ 12.50'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 12.50', change: '-2%', trend: 'down' as const, icon: Skull, color: 'hsl(var(--danger))' },
-      { label: 'Alertas Críticos', sparkline: (() => {  const valStr = String('0'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '0', change: 'Sem Pendências', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--success))' }
-    ],
-    totalCount: 2
-  };
+  const columns = [
+    { header: 'Manejo / Vacina', accessor: 'vacina' },
+    { header: 'Alvo', accessor: 'targetName' },
+    { header: 'Tipo', accessor: 'targetType' },
+    { header: 'Lote Aplicado', accessor: 'lote' },
+    { header: 'Data Manejo', accessor: 'data' },
+    { header: 'Carência', accessor: (row: any) => row.carencia_dias ? `${row.carencia_dias} dias` : 'Isento' },
+    { header: 'Status Consumo', accessor: (row: any) => row.isBlocked ? `⚠️ Bloqueado (${row.diasRestantes}d)` : '✅ Liberado' }
+  ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
+    const today = new Date();
 
-    const fetchSanidade = supabase
-      .from('sanidade')
-      .select('*, animais:animal_id(brinco), lotes:lote_id(nome)', { count: 'exact' })
-      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
-      .range(from, to);
-
-    const fetchStats = supabase.rpc('get_sanitary_coverage', { p_tenant_id: tenantId, p_fazenda_id: fazendaId });
-
-    const [sanidadeRes, statsRes] = await Promise.all([
-      withTimeout((fetchSanidade as unknown) as Promise<any>) as any,
-      withTimeout((fetchStats as unknown) as Promise<any>) as any
+    const [sanidadeRes, statsRes, animalTotalRes] = await Promise.all([
+      withTimeout(supabase
+        .from('sanidade')
+        .select('*, animais:animal_id(brinco), lotes:lote_id(nome)', { count: 'exact' })
+        .match(scope)
+        .order('data_manejo', { ascending: false })
+        .range(from, to) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('get_sanitary_coverage', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
+      withTimeout(supabase
+        .from('animais')
+        .select('id', { count: 'exact', head: true })
+        .match(scope) as unknown as Promise<any>)
     ]);
 
     if (sanidadeRes.error) throw sanidadeRes.error;
 
+    const registros = sanidadeRes.data || [];
+    const cobertura = Number(statsRes.data?.cobertura || 0);
+    const aplicacoesMes = Number(statsRes.data?.aplicacoes_mes || 0);
+    const custoUA = Number(statsRes.data?.custo_ua || 0);
+    const totalAnimais = animalTotalRes.count || 0;
+
+    // Alertas de carência reais: registros REALIZADOS que ainda estão em período de carência
+    const alertasCarencia = registros.filter((s: any) => {
+      if (!s.carencia_dias || s.carencia_dias === 0) return false;
+      const dataManejo = new Date(s.data_manejo);
+      const dataLiberacao = new Date(dataManejo);
+      dataLiberacao.setDate(dataLiberacao.getDate() + s.carencia_dias);
+      return dataLiberacao > today && s.status === 'REALIZADO';
+    }).length;
+
+    const _lastManejoDate = registros.length > 0 ? fmtDateBR(registros[0].data_manejo) : null;
+
     return {
-      data: (sanidadeRes.data || []).map((s: any) => {
+      data: registros.map((s: any) => {
         const dataManejo = s.data_manejo ? new Date(s.data_manejo) : new Date();
         const dataLiberacao = new Date(dataManejo);
         dataLiberacao.setDate(dataLiberacao.getDate() + (s.carencia_dias || 0));
-        
-        const now = new Date();
-        const diffTime = dataLiberacao.getTime() - now.getTime();
-        const diasRestantes = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const diffTime = dataLiberacao.getTime() - today.getTime();
+        const diasRestantes = Math.ceil(diffTime / 86400000);
         const isBlocked = diasRestantes > 0 && s.status === 'REALIZADO';
-
         const animal = Array.isArray(s.animais) ? s.animais[0] : s.animais;
         const lote = Array.isArray(s.lotes) ? s.lotes[0] : s.lotes;
-
         return {
           ...s,
-          vacina: s.produto || s.titulo,
-          lote: lote?.nome || 'N/A',
+          vacina: s.produto || s.titulo || '---',
+          lote: lote?.nome || '---',
           data: dataManejo.toLocaleDateString('pt-BR'),
           dataLiberacao,
           diasRestantes,
@@ -169,243 +263,387 @@ export const sanidadeAnimal: ReportHandler = async (tenantId, fazendaId, page = 
           targetType: animal?.brinco ? 'Individual' : 'Lote'
         };
       }),
-      columns: mockData.columns,
+      columns,
       stats: [
-        { label: 'Cobertura Sanitária', sparkline: (() => {  const valStr = String(`${statsRes.data?.cobertura || 0}%`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${statsRes.data?.cobertura || 0}%`, change: 'Auditado', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--success))' },
-        { label: 'Aplicações (Mês)', sparkline: (() => { const a = Number(statsRes.data?.aplicacoes_mes || 0); return [Math.max(0,a-5),Math.max(0,a-4),Math.max(0,a-3),Math.max(0,a-2),Math.max(0,a-1),a,a].map((v,i) => ({ value: v, label: `${v}` })); })(), value: statsRes.data?.aplicacoes_mes || 0, change: 'Atual', trend: 'neutral' as const, icon: Scale, color: 'hsl(var(--brand))' },
-        { label: 'Custo Sanitário / UA', sparkline: (() => {  const valStr = String(`R$ ${Number(statsRes.data?.custo_ua || 0).toFixed(2)}`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `R$ ${Number(statsRes.data?.custo_ua || 0).toFixed(2)}`, change: 'Real', trend: 'neutral' as const, icon: Skull, color: 'hsl(var(--danger))' },
-        { label: 'Alertas Críticos', sparkline: (() => {  const valStr = String('0'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '0', change: 'Auditado', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--success))' }
+        {
+          label: 'Cobertura Sanitária',
+          subtitle: _lastManejoDate ? `Último manejo em ${_lastManejoDate}` : `Calculado em ${todayBR()}`,
+          sparkline: buildSparkline(registros, 'data_manejo', null),
+          value: cobertura > 0 ? `${cobertura.toFixed(1)}%` : totalAnimais > 0 ? '0%' : '---',
+          change: cobertura > 0 ? 'Animais vacinados' : 'Sem registros',
+          trend: cobertura >= 90 ? 'up' as const : cobertura > 0 ? 'neutral' as const : 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--success))'
+        },
+        {
+          label: 'Aplicações (Mês)',
+          subtitle: `Refer\u00eancia: ${monthYearBR()}`,
+          sparkline: buildSparkline(registros, 'data_manejo', null),
+          value: aplicacoesMes > 0 ? String(aplicacoesMes) : registros.length > 0 ? String(registros.length) : '---',
+          change: aplicacoesMes > 0 ? 'Mês atual' : 'Período total',
+          trend: 'neutral' as const,
+          icon: Scale,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'Custo Sanitário / UA',
+          subtitle: `Per\u00edodo: ${monthYearBR()}`,
+          sparkline: buildSparkline(registros, 'data_manejo', null),
+          value: custoUA > 0 ? `R$ ${custoUA.toFixed(2)}` : '---',
+          change: custoUA > 0 ? 'Por unidade animal' : 'Sem dados de custo',
+          trend: 'neutral' as const,
+          icon: Skull,
+          color: 'hsl(var(--danger))'
+        },
+        {
+          label: 'Em Carência Ativa',
+          subtitle: alertasCarencia > 0 && _lastManejoDate ? `Desde ${_lastManejoDate}` : `Status em ${todayBR()}`,
+          sparkline: buildSparkline(registros, 'data_manejo', null),
+          value: alertasCarencia > 0 ? String(alertasCarencia) : '0',
+          change: alertasCarencia > 0 ? 'Consumo bloqueado' : 'Todos liberados',
+          trend: alertasCarencia > 0 ? 'down' as const : 'up' as const,
+          icon: Activity,
+          color: alertasCarencia > 0 ? 'hsl(var(--danger))' : 'hsl(var(--success))'
+        }
       ],
       totalCount: sanidadeRes.count || 0
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };
 
-/**
- * Pecuária: Manejo de Pastagens
- */
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Manejo de Pastagens
+// ─────────────────────────────────────────────────────────────
 export const pastagens: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [
-      { id: 'pa1', nome: 'Piquete 14 - Mombaça', area: '12.5 ha', lotacao: '4.50 UA/ha', status: 'occupied', tipo_capim: 'Mombaça', data_ultima_fertilizacao: '2026-04-10' },
-      { id: 'pa2', nome: 'Piquete 08 - Brachiaria', area: '25.0 ha', lotacao: '2.10 UA/ha', status: 'occupied', tipo_capim: 'Brachiaria brizantha', data_ultima_fertilizacao: '2026-05-01' }
-    ],
-    columns: [
-      { header: 'Pasto / Piquete', accessor: 'nome' },
-      { header: 'Área', accessor: 'area' },
-      { header: 'Capim', accessor: (row: any) => row.tipo_capim || 'Mombaça' },
-      { header: 'Capacidade', accessor: (row: any) => `${row.capacidade_ua || 3.0} UA/ha` },
-      { header: 'Lotação Atual', accessor: 'lotacao' },
-      { header: 'Status Ocupação', accessor: (row: any) => row.status === 'resting' ? '🟢 Descanso' : '🔴 Ocupado' }
-    ],
-    stats: [
-      { label: 'Área Total Pasto', sparkline: (() => {  const valStr = String('1.240 ha'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.240 ha', change: '0', trend: 'neutral' as const, icon: MapIcon, color: 'hsl(var(--brand))' },
-      { label: 'Média Lotação', sparkline: (() => {  const valStr = String('2.85 UA/ha'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '2.85 UA/ha', change: '+5%', trend: 'up' as const, icon: Activity, color: 'hsl(var(--success))' },
-      { label: 'Pastos em Descanso', sparkline: (() => {  const valStr = String('8'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '8', change: 'Status', trend: 'neutral' as const, icon: TrendingUp, color: 'hsl(var(--warning))' },
-      { label: 'Capacidade Suporte', sparkline: (() => {  const valStr = String('3.50 UA'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '3.50 UA', change: 'Ideal', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--brand))' }
-    ],
-    totalCount: 2
-  };
+  const columns = [
+    { header: 'Pasto / Piquete', accessor: 'nome' },
+    { header: 'Área', accessor: 'area' },
+    { header: 'Capim', accessor: (row: any) => row.tipo_capim || '---' },
+    { header: 'Capacidade UA/ha', accessor: (row: any) => row.capacidade_ua ? `${Number(row.capacidade_ua).toFixed(1)} UA/ha` : '---' },
+    { header: 'Lotação Atual', accessor: 'lotacao' },
+    { header: 'Status Ocupação', accessor: (row: any) => row.status === 'resting' ? '🟢 Descanso' : row.status === 'occupied' ? '🔴 Ocupado' : `${row.status || '---'}` }
+  ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
-
-    const fetchPastos = supabase
-      .from('pastos')
-      .select('*, lotes(id, animais(count))', { count: 'exact' })
-      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
-      .order('created_at', { ascending: false })
-      .range(from, to);
-
-    const fetchSummary = supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId });
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
     const [pastosRes, summaryRes] = await Promise.all([
-      withTimeout((fetchPastos as unknown) as Promise<any>) as any,
-      withTimeout((fetchSummary as unknown) as Promise<any>) as any
+      withTimeout(supabase
+        .from('pastos')
+        .select('*, lotes(id, animais(count))', { count: 'exact' })
+        .match(scope)
+        .order('created_at', { ascending: false })
+        .range(from, to) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>)
     ]);
 
     if (pastosRes.error) throw pastosRes.error;
 
+    const pastos = pastosRes.data || [];
+    const areaTotal = Number(summaryRes.data?.area_total || 0) || pastos.reduce((a: number, p: any) => a + Number(p.area || 0), 0);
+    const mediaLotacao = Number(summaryRes.data?.media_lotacao || 0);
+    const pastosDescanso = Number(summaryRes.data?.pastos_descanso || 0) || pastos.filter((p: any) => p.status === 'resting').length;
+
+    const _lastPastoDate = pastos.length > 0 ? latestDate(pastos, 'created_at') : null;
+
+    // Capacidade suporte real: soma de (area * capacidade_ua) por pasto
+    const capacidadeTotal = pastos.reduce((acc: number, p: any) => acc + (Number(p.area || 0) * Number(p.capacidade_ua || 0)), 0);
+
     return {
-      data: (pastosRes.data || []).map((p: any) => {
-        const totalAnimais = p.lotes?.reduce((acc: number, l: any) => acc + ((l.animais?.[0] as any)?.count || 0), 0) || 0;
+      data: pastos.map((p: any) => {
+        const totalAnimais = p.lotes?.reduce((acc: number, l: any) =>
+          acc + ((Array.isArray(l.animais) ? l.animais[0] : l.animais)?.count || 0), 0) || 0;
         return {
           ...p,
-          nome: p.nome,
+          nome: p.nome || '---',
           area: `${Number(p.area || 0).toFixed(2)} ha`,
-          lotacao: `${totalAnimais} UA`
+          lotacao: totalAnimais > 0 ? `${totalAnimais} UA` : '---'
         };
       }),
-      columns: mockData.columns,
+      columns,
       stats: [
-        { label: 'Área Total Pasto', sparkline: (() => {  const valStr = String(`${Number(summaryRes.data?.area_total || 0).toFixed(2)} ha`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${Number(summaryRes.data?.area_total || 0).toFixed(2)} ha`, change: 'Atual', trend: 'neutral' as const, icon: MapIcon, color: 'hsl(var(--brand))' },
-        { label: 'Média Lotação', sparkline: (() => {  const valStr = String(`${Number(summaryRes.data?.media_lotacao || 0).toFixed(2)} UA/ha`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${Number(summaryRes.data?.media_lotacao || 0).toFixed(2)} UA/ha`, change: '+5%', trend: 'up' as const, icon: Activity, color: 'hsl(var(--success))' },
-        { label: 'Pastos em Descanso', sparkline: (() => { const p = Number(summaryRes.data?.pastos_descanso || 0); return [p+3,p+2,p+2,p+1,p+1,p,p].map((v,i) => ({ value: Math.max(0,v), label: `${Math.max(0,v)}` })); })(), value: summaryRes.data?.pastos_descanso || 0, change: 'Real', trend: 'neutral' as const, icon: TrendingUp, color: 'hsl(var(--warning))' },
-        { 
-          label: 'Capacidade Suporte', sparkline: (() => {  const valStr = String(`${(pastosRes.data || []).reduce((acc: number, p: any) => acc + (Number(p.area || 0) * Number(p.capacidade_ua || 2.5)), 0).toFixed(1)} UA`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${(pastosRes.data || []).reduce((acc: number, p: any) => acc + (Number(p.area || 0) * Number(p.capacidade_ua || 2.5)), 0).toFixed(1)} UA`, change: 'Auditado', 
-          trend: 'neutral' as const, 
-          icon: Activity, 
-          color: 'hsl(var(--brand))' 
+        {
+          label: 'Área Total Pasto',
+          subtitle: _lastPastoDate ? `Atualizado em ${_lastPastoDate}` : `Cadastro em ${todayBR()}`,
+          sparkline: buildSparkline(pastos, 'created_at', 'area'),
+          value: areaTotal > 0 ? `${areaTotal.toFixed(0)} ha` : '---',
+          change: areaTotal > 0 ? 'Cadastrado' : 'Sem pastos',
+          trend: 'neutral' as const,
+          icon: MapIcon,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'Média Lotação',
+          subtitle: _lastPastoDate ? `Calculado em ${_lastPastoDate}` : `Verificado em ${todayBR()}`,
+          sparkline: buildSparkline(pastos, 'created_at', 'capacidade_ua'),
+          value: mediaLotacao > 0 ? `${mediaLotacao.toFixed(2)} UA/ha` : '---',
+          change: mediaLotacao > 0 ? 'Pressão de pastejo' : 'Sem dados',
+          trend: 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--success))'
+        },
+        {
+          label: 'Pastos em Descanso',
+          subtitle: `Status em ${todayBR()}`,
+          sparkline: buildSparkline(pastos, 'created_at', null),
+          value: pastosRes.count !== null ? String(pastosDescanso) : '---',
+          change: pastosDescanso > 0 ? `de ${pastosRes.count || 0} total` : 'Todos ocupados',
+          trend: 'neutral' as const,
+          icon: TrendingUp,
+          color: 'hsl(var(--warning))'
+        },
+        {
+          label: 'Capacidade Suporte',
+          subtitle: _lastPastoDate ? `Base: dados de ${_lastPastoDate}` : `Calculado em ${todayBR()}`,
+          sparkline: buildSparkline(pastos, 'created_at', 'capacidade_ua'),
+          value: capacidadeTotal > 0 ? `${capacidadeTotal.toFixed(0)} UA` : '---',
+          change: capacidadeTotal > 0 ? 'Soma área × cap. UA' : 'Sem capacidade definida',
+          trend: 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--brand))'
         }
       ],
       totalCount: pastosRes.count || 0
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };
 
-/**
- * Pecuária: Confinamento
- */
+
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Confinamento
+// ─────────────────────────────────────────────────────────────
 export const confinamento: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [
-      { id: 'c1', nome_curral: 'Curral 04', dof: 45, dof_alvo: 90, progress: 50, projectedWeight: 450, cpd: 14.50, status: 'active', lotes: { nome: 'Lote 22' } },
-      { id: 'c2', nome_curral: 'Curral 12', dof: 30, dof_alvo: 90, progress: 33, projectedWeight: 420, cpd: 13.80, status: 'active', lotes: { nome: 'Lote 31' } }
-    ],
-    columns: [
-      { header: 'Curral', accessor: 'nome_curral' },
-      { header: 'Lote', accessor: (row: any) => row.lotes?.nome || 'N/A' },
-      { header: 'Data Entrada', accessor: (row: any) => row.data_inicio ? new Date(row.data_inicio).toLocaleDateString('pt-BR') : 'N/A' },
-      { header: 'Peso Entrada', accessor: (row: any) => row.peso_entrada ? `${Number(row.peso_entrada).toFixed(1)} kg` : '380 kg' },
-      { header: 'Dias / Alvo (DOF)', accessor: (row: any) => `${row.dof || 0} / ${row.dof_alvo || 90} dias` },
-      { header: 'Progresso', accessor: (row: any) => `${Number(row.progress || 0).toFixed(0)}%` },
-      { header: 'Peso Projetado (IA)', accessor: (row: any) => `${Number(row.projectedWeight || 0).toFixed(1)} kg` },
-      { header: 'Custo Diária (CPD)', accessor: (row: any) => `R$ ${Number(row.cpd || 14.50).toFixed(2)}` },
-      { header: 'Status', accessor: (row: any) => row.status === 'active' ? '⚡ Ativo' : '✅ Finalizado' }
-    ],
-    stats: [
-      { label: 'Animais Confinados', sparkline: (() => {  const valStr = String('450'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '450', change: '+50', trend: 'up' as const, icon: Beef, color: 'hsl(var(--brand))' },
-      { label: 'Conversão Alimentar', sparkline: (() => {  const valStr = String('6.2:1'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}:1` }; }); })(), value: '6.2:1', change: '-0.2', trend: 'up' as const, icon: Scale, color: 'hsl(var(--success))' },
-      { label: 'Custo Diária (R$)', sparkline: (() => {  const valStr = String('R$ 14.50'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 14.50', change: 'Ref. Mes', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--warning))' },
-      { label: 'GMD Projetado', sparkline: (() => {  const valStr = String('1.450 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '1.450 kg', change: 'Meta', trend: 'neutral' as const, icon: TrendingUp, color: 'hsl(var(--success))' }
-    ],
-    totalCount: 2
-  };
+  const columns = [
+    { header: 'Curral', accessor: 'nome_curral' },
+    { header: 'Lote', accessor: (row: any) => row.lotes?.nome || '---' },
+    { header: 'Data Entrada', accessor: (row: any) => row.data_inicio ? new Date(row.data_inicio).toLocaleDateString('pt-BR') : '---' },
+    { header: 'Peso Entrada', accessor: (row: any) => row.peso_entrada ? `${Number(row.peso_entrada).toFixed(1)} kg` : '---' },
+    { header: 'Dias / Alvo (DOF)', accessor: (row: any) => `${row.dof || 0} / ${row.dof_alvo || '---'} dias` },
+    { header: 'Progresso', accessor: (row: any) => row.dof_alvo ? `${Number(row.progress || 0).toFixed(0)}%` : '---' },
+    { header: 'Peso Projetado', accessor: (row: any) => row.projectedWeight ? `${Number(row.projectedWeight).toFixed(1)} kg` : '---' },
+    { header: 'Custo Diária (CPD)', accessor: (row: any) => row.cpd ? `R$ ${Number(row.cpd).toFixed(2)}` : '---' },
+    { header: 'Status', accessor: (row: any) => row.status === 'active' || row.status === 'ativo' ? '⚡ Ativo' : '✅ Finalizado' }
+  ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
-    const fetchConf = supabase
-      .from('confinamento')
-      .select('*, lotes(id, nome)', { count: 'exact' })
-      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
-      .range(from, to);
+    // Buscar confinamentos + animais confinados reais + custo diário real de nutrição
+    const [confRes, gmdRes, nutricaoRes] = await Promise.all([
+      withTimeout(supabase
+        .from('confinamento')
+        .select('*, lotes(id, nome, animais(count))', { count: 'exact' })
+        .match(scope)
+        .range(from, to) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
+      withTimeout(supabase
+        .from('nutricao_diaria')
+        .select('custo_total, data')
+        .match(scope)
+        .order('data', { ascending: false })
+        .limit(30) as unknown as Promise<any>)
+    ]);
 
-    const { data: conf, count, error } = await withTimeout((fetchConf as unknown) as Promise<any>) as any;
-    if (error) throw error;
+    if (confRes.error) throw confRes.error;
+
+    const conf = confRes.data || [];
+    const gmdReal = Number(gmdRes.data || 0);
+
+    // CPD real: média dos custos diários registrados nos últimos 30 dias
+    const nutricao = nutricaoRes.data || [];
+    const cpdReal = nutricao.length > 0
+      ? nutricao.reduce((acc: number, n: any) => acc + Number(n.custo_total || 0), 0) / nutricao.length
+      : null;
+
+    // Animais confinados reais: count de animais nos lotes de confinamento
+    const animaisConfinados = conf.reduce((acc: number, c: any) => {
+      const lotes = Array.isArray(c.lotes) ? c.lotes : [c.lotes].filter(Boolean);
+      return acc + lotes.reduce((la: number, l: any) => {
+        const animCount = Array.isArray(l?.animais) ? (l.animais[0]?.count || 0) : (l?.animais?.count || 0);
+        return la + animCount;
+      }, 0);
+    }, 0);
+
+    const _lastNutricaoDate = nutricao.length > 0 ? fmtDateBR(nutricao[0].data) : null;
+    const _lastConfDate = conf.length > 0 ? latestDate(conf, 'data_inicio') : null;
 
     return {
-      data: (conf || []).map((c: any) => {
+      data: conf.map((c: any) => {
         const startDate = new Date(c.data_inicio || new Date());
-        const today = new Date();
-        const diffTime = Math.abs(today.getTime() - startDate.getTime());
-        const dof = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        const progress = Math.min(100, (dof / (c.dof_alvo || 90)) * 100);
-        
+        const dof = Math.ceil(Math.abs(new Date().getTime() - startDate.getTime()) / 86400000);
+        const progress = c.dof_alvo ? Math.min(100, (dof / c.dof_alvo) * 100) : null;
+        // Peso projetado = peso entrada + dias × GMD real (se disponível)
+        const projectedWeight = c.peso_entrada && gmdReal > 0
+          ? Number(c.peso_entrada) + (dof * gmdReal)
+          : null;
         return {
           ...c,
           dof,
           progress,
-          projectedWeight: (c.peso_entrada || 380) + (dof * 1.45),
-          cpd: 14.50,
+          projectedWeight,
+          cpd: cpdReal,
           status: c.status || 'active'
         };
       }),
-      columns: mockData.columns,
+      columns,
       stats: [
-        { label: 'Animais Confinados', sparkline: (() => { const n = ((conf || []).length * 50); return [Math.max(0,n-200),Math.max(0,n-160),Math.max(0,n-120),Math.max(0,n-80),Math.max(0,n-40),Math.max(0,n-10),n].map((v,i) => ({ value: v, label: `${v}` })); })(), value: (conf || []).length * 50, change: 'Atual', trend: 'neutral' as const, icon: Beef, color: 'hsl(var(--brand))' },
-        { label: 'Conversão Alimentar', sparkline: (() => {  const valStr = String('6.2:1'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}:1` }; }); })(), value: '6.2:1', change: 'Auditado', trend: 'neutral' as const, icon: Scale, color: 'hsl(var(--success))' },
-        { label: 'Custo Diária (R$)', sparkline: (() => {  const valStr = String('R$ 14.50'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 14.50', change: 'Real', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--warning))' },
-        { label: 'GMD Projetado', sparkline: (() => {  const valStr = String('1.450 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '1.450 kg', change: 'Meta', trend: 'neutral' as const, icon: TrendingUp, color: 'hsl(var(--success))' }
+        {
+          label: 'Animais Confinados',
+          subtitle: _lastConfDate ? `Entrada mais recente: ${_lastConfDate}` : `Inventário em ${todayBR()}`,
+          sparkline: buildSparkline(conf, 'data_inicio', null),
+          value: animaisConfinados > 0 ? String(animaisConfinados) : confRes.count !== null && confRes.count > 0 ? `${confRes.count} currais` : '---',
+          change: animaisConfinados > 0 ? 'Em currais ativos' : 'Sem animais',
+          trend: 'neutral' as const,
+          icon: Beef,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'GMD do Rebanho',
+          subtitle: 'Calculado de pesagens do rebanho',
+          sparkline: buildSparkline(conf, 'data_inicio', null),
+          value: gmdReal > 0 ? `${gmdReal.toFixed(3)} kg/dia` : '---',
+          change: gmdReal > 0 ? 'Calculado de pesagens' : 'Sem pesagens',
+          trend: gmdReal > 0 ? 'up' as const : 'neutral' as const,
+          icon: TrendingUp,
+          color: 'hsl(var(--success))'
+        },
+        {
+          label: 'Custo Diária (CPD)',
+          subtitle: _lastNutricaoDate ? `Última nutrição: ${_lastNutricaoDate}` : 'Sem registro de nutrição',
+          sparkline: buildSparkline(nutricao, 'data', 'custo_total'),
+          value: cpdReal ? `R$ ${cpdReal.toFixed(2)}` : '---',
+          change: cpdReal ? 'Média 30 dias' : 'Sem nutrição registrada',
+          trend: 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--warning))'
+        },
+        {
+          label: 'Currais Ativos',
+          subtitle: `Status em ${todayBR()}`,
+          sparkline: buildSparkline(conf, 'data_inicio', null),
+          value: confRes.count !== null && confRes.count > 0 ? String(confRes.count) : '---',
+          change: confRes.count > 0 ? 'Em operação' : 'Sem confinamento',
+          trend: 'neutral' as const,
+          icon: Scale,
+          color: 'hsl(var(--brand))'
+        }
       ],
-      totalCount: count || 0
+      totalCount: confRes.count || 0
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };
 
-/**
- * Pecuária: Dashboard Overview (KPIs + Fila Operacional)
- */
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Dashboard Overview (KPIs + Fila Operacional)
+// ─────────────────────────────────────────────────────────────
 export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
-  const mockData = {
-    manejos: [],
-    stats: [],
-    columns: [],
-    totalCount: 0
-  };
-
   try {
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const today = new Date().toISOString().split('T')[0];
 
-    // Queries paralelas com o padrão Diamond Precision
-    const [animalCount, gmdRes, weightRes, healthRes, lotacaoRes, pesagensRes] = await Promise.all([
-      applyFilters(supabase.from('animais').select('id', { count: 'exact', head: true }), tenantId, fazendaId),
-      supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
-      supabase.rpc('get_herd_total_weight', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
-      applyFilters(supabase.from('sanidade').select('data_manejo, carencia_dias').eq('status', 'REALIZADO').gte('data_manejo', sixtyDaysAgo.toISOString().split('T')[0]), tenantId, fazendaId),
-      supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
-      applyFilters(supabase.from('pesagens').select('peso, data_pesagem').gte('data_pesagem', sixtyDaysAgo.toISOString().split('T')[0]), tenantId, fazendaId)
+    const [animalRes, gmdRes, healthRes, lotacaoRes, pesagensRes, manejosPendentesRes] = await Promise.all([
+      withTimeout(applyScope(supabase.from('animais').select('id', { count: 'exact', head: true }), tenantId, fazendaId) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
+      withTimeout(applyScope(supabase.from('sanidade').select('data_manejo, carencia_dias, status').eq('status', 'REALIZADO').gte('data_manejo', sixtyDaysAgo.toISOString().split('T')[0]), tenantId, fazendaId) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
+      withTimeout(applyScope(supabase.from('pesagens').select('peso, data_pesagem').gte('data_pesagem', thirtyDaysAgo.toISOString().split('T')[0]), tenantId, fazendaId) as unknown as Promise<any>),
+      // Manejos agendados reais (status PENDENTE ou AGENDADO com data >= hoje)
+      withTimeout(applyScope(supabase.from('sanidade').select('id, produto, titulo, lotes:lote_id(nome), data_manejo, tipo_manejo').in('status', ['PENDENTE', 'AGENDADO']).gte('data_manejo', today).order('data_manejo', { ascending: true }).limit(10), tenantId, fazendaId) as unknown as Promise<any>)
     ]);
 
-    // Cálculo de Segurança Sanitária (Carência)
+    // Carências ativas reais
     const activeWithdrawals = (healthRes.data || []).filter((e: any) => {
       const releaseDate = new Date(e.data_manejo);
       releaseDate.setDate(releaseDate.getDate() + (e.carencia_dias || 0));
       return releaseDate > new Date();
     }).length;
 
-    // Lotação média vem da RPC (dados reais)
-    const avgLotation = Number(lotacaoRes.data?.media_lotacao || 0).toFixed(2);
-    
-    // Sparkline Real para GMD (volume de pesagens nos últimos 30 dias)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const sparklineGMD = Array.from({ length: 30 }).map((_, i) => {
-      const d = new Date(thirtyDaysAgo);
-      d.setDate(d.getDate() + i + 1);
-      const dayStr = d.toISOString().split('T')[0];
-      const count = (pesagensRes.data || []).filter((p: any) => p.data_pesagem?.startsWith(dayStr)).length;
-      return { value: count, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const animalCount = animalRes.count || 0;
+    const gmdGlobal = Number(gmdRes.data || 0);
+    const avgLotation = Number(lotacaoRes.data?.media_lotacao || 0);
+    const lotacaoPercent = Number(lotacaoRes.data?.taxa_ocupacao || 0);
+
+    const _lastWeighDateOv = pesagensRes.data?.length > 0 ? latestDate(pesagensRes.data, 'data_pesagem') : null;
+    const _lastHealthDateOv = healthRes.data?.length > 0 ? latestDate(healthRes.data, 'data_manejo') : null;
+
+    // Fila operacional: manejos agendados reais
+    const manejosPendentes = (manejosPendentesRes.data || []).map((m: any, i: number) => {
+      const dataManejo = m.data_manejo ? new Date(m.data_manejo) : null;
+      const diffDays = dataManejo ? Math.ceil((dataManejo.getTime() - new Date().getTime()) / 86400000) : null;
+      const lote = Array.isArray(m.lotes) ? m.lotes[0] : m.lotes;
+      return {
+        id: m.id || String(i),
+        type: m.tipo_manejo || 'MANEJO',
+        title: m.produto || m.titulo || 'Manejo Agendado',
+        target: lote?.nome || 'Rebanho Geral',
+        date: dataManejo ? (diffDays === 0 ? 'Hoje' : diffDays === 1 ? 'Amanhã' : `em ${diffDays} dias`) : '---',
+        priority: diffDays !== null && diffDays <= 1 ? 'high' : 'medium'
+      };
     });
 
     return {
-      data: [
-        { id: '1', type: 'VACINA', title: 'Vacinação Aftosa', target: 'Lote Recria 01', date: 'Hoje', priority: 'high' },
-        { id: '2', type: 'PESAGEM', title: 'Pesagem de Saída', target: 'Confinamento Curral A', date: 'Amanhã', priority: 'medium' },
-        { id: '3', type: 'NUTRIÇÃO', title: 'Ruptura Milho Projetada', target: 'Silo Central', date: 'em 3 dias', priority: 'high' },
-      ],
+      data: manejosPendentes,
       stats: [
-        { 
-          label: 'Estoque Biológico', sparkline: (() => {  const valStr = String(`${animalCount.count || 0} Cabeças`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: `${animalCount.count || 0} Cabeças`, change: 'Rebanho Ativo', 
+        {
+          label: 'Estoque Biológico',
+          subtitle: `Inventário em ${todayBR()}`,
+          sparkline: buildSparkline(pesagensRes.data || [], 'data_pesagem', 'peso'),
+          value: animalCount > 0 ? `${animalCount.toLocaleString()} Cabeças` : '---',
+          change: animalCount > 0 ? 'Rebanho cadastrado' : 'Sem animais',
           trend: 'neutral' as const,
           icon: Beef,
           color: '#10b981',
-          progress: 100,
+          progress: animalCount > 0 ? 100 : 0,
           periodLabel: 'Total em Pátio'
         },
-        { 
-          label: 'GMD Médio (30d)', value: `${Number(gmdRes.data || 0).toFixed(3)} kg`, change: 'Performance Global', 
-          trend: 'up' as const,
+        {
+          label: 'GMD Médio (Rebanho)',
+          subtitle: _lastWeighDateOv ? `Última pesagem em ${_lastWeighDateOv}` : 'Sem pesagens registradas',
+          sparkline: buildSparkline(pesagensRes.data || [], 'data_pesagem', 'peso'),
+          value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
+          change: gmdGlobal > 0 ? 'Performance global' : 'Sem pesagens',
+          trend: gmdGlobal > 0 ? 'up' as const : 'neutral' as const,
           icon: TrendingUp,
           color: '#3b82f6',
-          progress: 85,
-          periodLabel: 'Vol. Pesagens (30d)',
-          sparkline: sparklineGMD
+          progress: gmdGlobal > 0 ? Math.min(100, gmdGlobal * 80) : 0,
+          periodLabel: 'Calculado de pesagens'
         },
-        { 
-          label: 'Taxa de Lotação', sparkline: (() => {  const valStr = String(`${avgLotation} UA/ha`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: `${avgLotation} UA/ha`, change: 'Pressão Pastejo', 
+        {
+          label: 'Taxa de Lotação',
+          subtitle: `Verificado em ${todayBR()}`,
+          sparkline: buildSparkline(pesagensRes.data || [], 'data_pesagem', 'peso'),
+          value: avgLotation > 0 ? `${avgLotation.toFixed(2)} UA/ha` : '---',
+          change: avgLotation > 0 ? 'Pressão de pastejo' : 'Sem dados de pasto',
           trend: 'neutral' as const,
           icon: MapIcon,
           color: '#f59e0b',
-          progress: 86,
+          progress: Math.min(100, lotacaoPercent),
           periodLabel: 'Capacidade Suporte'
         },
-        { 
-          label: 'Segurança Sanitária', sparkline: (() => {  const valStr = String(activeWithdrawals.toString()); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: activeWithdrawals.toString(), change: activeWithdrawals > 0 ? 'Trava Ativa' : 'Seguro', 
-          trend: activeWithdrawals > 0 ? 'down' : 'up',
+        {
+          label: 'Animais em Carência',
+          subtitle: _lastHealthDateOv ? `Último manejo em ${_lastHealthDateOv}` : `Status em ${todayBR()}`,
+          sparkline: buildSparkline(healthRes.data || [], 'data_manejo', null),
+          value: String(activeWithdrawals),
+          change: activeWithdrawals > 0 ? 'Consumo bloqueado' : 'Todos liberados',
+          trend: activeWithdrawals > 0 ? 'down' as const : 'up' as const,
           icon: Activity,
           color: activeWithdrawals > 0 ? '#ef4444' : '#10b981',
           progress: activeWithdrawals > 0 ? 30 : 100,
@@ -413,109 +651,139 @@ export const dashboardOverview: ReportHandler = async (tenantId, fazendaId) => {
         }
       ],
       columns: [],
-      totalCount: 3
+      totalCount: manejosPendentes.length
     };
   } catch (error) {
     console.error('[dashboardOverview] Critical Failure:', error);
-    return { data: [], stats: [], columns: mockData.columns, totalCount: 0 };
+    return { data: [], stats: [], columns: [], totalCount: 0 };
   }
 };
 
-/**
- * Pecuária: Gestão de Dietas
- */
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Gestão de Dietas
+// ─────────────────────────────────────────────────────────────
 export const dietas: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [
-      { id: 'd1', nome: 'Terminação Intensiva 01', tipo: 'Terminação', custo_por_kg: 1.45, percentual_ms: 88, status: 'active' },
-      { id: 'd2', nome: 'Recria Pasto + Suplemento', tipo: 'Recria', custo_por_kg: 0.85, percentual_ms: 90, status: 'active' }
-    ],
-    columns: [
-      { header: 'Nome da Dieta', accessor: 'nome' },
-      { header: 'Tipo', accessor: 'tipo' },
-      { header: 'Custo/kg Natural', accessor: 'custo_por_kg' },
-      { header: 'MS %', accessor: 'percentual_ms' }
-    ],
-    stats: [
-      { label: 'Dietas Formuladas', sparkline: (() => {  const valStr = String('12'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '12', change: 'Total', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--brand))' },
-      { label: 'Custo Médio/kg MS', sparkline: (() => {  const valStr = String('R$ 1.52'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 1.52', change: '+R$ 0.05', trend: 'up' as const, icon: Scale, color: 'hsl(var(--warning))' },
-      { label: 'Eficiência Alimentar', sparkline: (() => {  const valStr = String('6.2:1'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}:1` }; }); })(), value: '6.2:1', change: 'Média', trend: 'up' as const, icon: TrendingUp, color: 'hsl(var(--success))' },
-      { label: 'Consumo Médio (DM)', sparkline: (() => {  const valStr = String('12.5 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '12.5 kg', change: 'Projetado', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--brand))' }
-    ],
-    totalCount: 2
-  };
+  const columns = [
+    { header: 'Nome da Dieta', accessor: 'nome' },
+    { header: 'Tipo', accessor: 'tipo' },
+    { header: 'Custo/kg Natural', accessor: (row: any) => row.custo_por_kg ? `R$ ${Number(row.custo_por_kg).toFixed(2)}` : '---' },
+    { header: 'MS %', accessor: (row: any) => row.percentual_ms ? `${row.percentual_ms}%` : '---' },
+    { header: 'Custo/kg MS', accessor: (row: any) => row.custoMS ? `R$ ${Number(row.custoMS).toFixed(2)}` : '---' }
+  ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
-    const fetchDietas = supabase
+    const { data, count, error } = await withTimeout(supabase
       .from('dietas')
       .select('*', { count: 'exact' })
-      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
-      .range(from, to);
+      .match(scope)
+      .range(from, to) as unknown as Promise<any>);
 
-    const { data, count, error } = await withTimeout((fetchDietas as unknown) as Promise<any>) as any;
     if (error) throw error;
 
+    const dietasData = (data || []).map((d: any) => {
+      const ms = d.percentual_ms ? d.percentual_ms / 100 : 0.88;
+      const custoMS = d.custo_por_kg && ms > 0 ? Number(d.custo_por_kg) / ms : null;
+      return { ...d, percMS: d.percentual_ms || null, custoMS };
+    });
+
+    // KPIs calculados dos dados reais
+    const totalDietas = count || 0;
+    const _lastDietDate = dietasData.length > 0 ? fmtDateBR(dietasData[0].created_at) : null;
+    const custoMedioKgMS = dietasData.length > 0
+      ? dietasData.filter((d: any) => d.custoMS).reduce((a: number, d: any) => a + d.custoMS, 0) / dietasData.filter((d: any) => d.custoMS).length
+      : null;
+
     return {
-      data: (data || []).map((d: any) => ({
-        ...d,
-        percMS: d.percentual_ms || 88,
-        custoMS: Number(d.custo_por_kg || 0) / ((d.percentual_ms || 88) / 100)
-      })),
-      columns: mockData.columns,
-      stats: [],
+      data: dietasData,
+      columns,
+      stats: [
+        {
+          label: 'Dietas Formuladas',
+          subtitle: _lastDietDate ? `Último cadastro em ${_lastDietDate}` : `Cadastro em ${todayBR()}`,
+          sparkline: buildSparkline(dietasData, 'created_at', null),
+          value: totalDietas > 0 ? String(totalDietas) : '---',
+          change: totalDietas > 0 ? 'Cadastradas' : 'Sem dietas',
+          trend: 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'Custo Médio/kg MS',
+          subtitle: _lastDietDate ? `Base: dados de ${_lastDietDate}` : `Período: ${monthYearBR()}`,
+          sparkline: buildSparkline(dietasData, 'created_at', 'custo_por_kg'),
+          value: custoMedioKgMS ? `R$ ${custoMedioKgMS.toFixed(2)}` : '---',
+          change: custoMedioKgMS ? 'Média das dietas' : 'Sem dados de custo',
+          trend: 'neutral' as const,
+          icon: Scale,
+          color: 'hsl(var(--warning))'
+        },
+        {
+          label: 'Eficiência Alimentar',
+          subtitle: 'Integração com pesagens pendente',
+          sparkline: buildSparkline(dietasData, 'created_at', null),
+          value: '---',
+          change: 'Integração com pesagens',
+          trend: 'neutral' as const,
+          icon: TrendingUp,
+          color: 'hsl(var(--success))'
+        },
+        {
+          label: 'Consumo Médio (DM)',
+          subtitle: 'Registrar nutrição diária para cálculo',
+          sparkline: buildSparkline(dietasData, 'created_at', null),
+          value: '---',
+          change: 'Registrar nutrição diária',
+          trend: 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--brand))'
+        }
+      ],
       totalCount: count || 0
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };
 
-/**
- * Pecuária: Gestão de Animais
- */
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Gestão de Animais
+// ─────────────────────────────────────────────────────────────
 export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [
-      { id: 'a1', brinco: 'BR 4520', raca: 'Nelore', sexo: 'M', peso_atual: 540, status: 'Ativo', lote: 'LT 01', isSanitaryBlocked: false },
-      { id: 'a2', brinco: 'BR 8891', raca: 'Angus', sexo: 'F', peso_atual: 490, status: 'Ativo', lote: 'LT 02', isSanitaryBlocked: true }
-    ],
-    columns: [
-      { header: 'Brinco', accessor: 'brinco' },
-      { header: 'Raça', accessor: 'raca' },
-      { header: 'Sexo', accessor: (row: any) => row.sexo === 'M' ? 'Macho' : row.sexo === 'F' ? 'Fêmea' : row.sexo || 'N/A' },
-      { header: 'Lote', accessor: 'lote' },
-      { header: 'Peso Atual', accessor: (row: any) => row.peso_atual ? `${Number(row.peso_atual).toFixed(1)} kg` : 'N/A' },
-      { header: 'Carência Sanitária', accessor: (row: any) => row.isSanitaryBlocked ? '⚠️ Bloqueado' : '✅ Liberado' },
-      { header: 'Status', accessor: 'status' }
-    ],
-    stats: [
-      { label: 'Total Rebanho', sparkline: (() => {  const valStr = String('1.240'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.240', change: '+12', trend: 'up' as const, icon: Beef, color: 'hsl(var(--brand))' },
-      { label: 'Peso Médio', sparkline: (() => {  const valStr = String('458 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '458 kg', change: '+1.2kg', trend: 'up' as const, icon: Scale, color: 'hsl(var(--warning))' },
-      { label: 'Abatidos', sparkline: (() => {  const valStr = String('45'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '45', change: 'Mês', trend: 'neutral' as const, icon: Skull, color: 'hsl(var(--danger))' },
-      { label: 'GMD Médio', sparkline: (() => {  const valStr = String('0.850 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '0.850 kg', change: '+5%', trend: 'up' as const, icon: TrendingUp, color: 'hsl(var(--success))' }
-    ],
-    totalCount: 2
-  };
+  const columns = [
+    { header: 'Brinco', accessor: 'brinco' },
+    { header: 'Raça', accessor: 'raca' },
+    { header: 'Sexo', accessor: (row: any) => row.sexo === 'M' ? 'Macho' : row.sexo === 'F' ? 'Fêmea' : row.sexo || '---' },
+    { header: 'Lote', accessor: 'lote' },
+    { header: 'Peso Atual', accessor: (row: any) => row.peso_atual ? `${Number(row.peso_atual).toFixed(1)} kg` : '---' },
+    { header: 'Carência Sanitária', accessor: (row: any) => row.isSanitaryBlocked ? '⚠️ Bloqueado' : '✅ Liberado' },
+    { header: 'Status', accessor: 'status' }
+  ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
-    let query = supabase.from('animais').select('*, lotes(nome)', { count: 'exact' });
-    query = applyFilters(query, tenantId, fazendaId);
+    let animaisQuery = supabase.from('animais').select('*, lotes(nome)', { count: 'exact' });
+    animaisQuery = applyScope(animaisQuery, tenantId, fazendaId);
 
     let sanidadeQuery = supabase
       .from('sanidade')
       .select('animal_id, lote_id, data_manejo, carencia_dias, status')
       .eq('status', 'REALIZADO')
       .gt('carencia_dias', 0);
-    sanidadeQuery = applyFilters(sanidadeQuery, tenantId, fazendaId);
+    sanidadeQuery = applyScope(sanidadeQuery, tenantId, fazendaId);
 
-    const [dataRes, statsRes, sanidadeRes] = await Promise.all([
-      withTimeout((query.order('created_at', { ascending: false }).range(from, to) as unknown) as Promise<any>) as any,
-      withTimeout((supabase.rpc('get_animal_stats', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown) as Promise<any>) as any,
-      withTimeout((sanidadeQuery as unknown) as Promise<any>) as any
+    const [dataRes, statsRes, sanidadeRes, gmdRes] = await Promise.all([
+      withTimeout(animaisQuery.order('created_at', { ascending: false }).range(from, to) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('get_animal_stats', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
+      withTimeout(sanidadeQuery as unknown as Promise<any>),
+      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>)
     ]);
 
     if (dataRes.error) throw dataRes.error;
@@ -524,8 +792,9 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
     const activeAnimals = Number(statsRes.data?.active || 0);
     const deadAnimals = Number(statsRes.data?.dead || 0);
     const avgWeight = Number(statsRes.data?.avg_weight || 0);
+    const gmdGlobal = Number(gmdRes.data || 0);
 
-    // Processar carências ativas (data_manejo + carencia_dias > hoje)
+    // Carências ativas: calcular quais animais/lotes estão em período de carência
     const activeSanidades = (sanidadeRes?.data || []).filter((s: any) => {
       if (!s.data_manejo || !s.carencia_dias) return false;
       const releaseDate = new Date(s.data_manejo);
@@ -533,138 +802,198 @@ export const animais: ReportHandler = async (tenantId, fazendaId, page = 1, page
       return releaseDate > new Date();
     });
 
+    const _lastAnimalDate = dataRes.data?.[0]?.created_at ? fmtDateBR(dataRes.data[0].created_at) : null;
     const blockedAnimalIds = new Set(activeSanidades.filter((s: any) => s.animal_id).map((s: any) => s.animal_id));
     const blockedLoteIds = new Set(activeSanidades.filter((s: any) => s.lote_id).map((s: any) => s.lote_id));
 
     return {
       data: (dataRes.data || []).map((a: any) => ({
         ...a,
-        lote: a.lotes?.nome || 'N/A',
+        lote: a.lotes?.nome || '---',
         isSanitaryBlocked: blockedAnimalIds.has(a.id) || (a.lote_id && blockedLoteIds.has(a.lote_id))
       })),
-      columns: mockData.columns,
+      columns,
       stats: [
-        { label: 'Total Rebanho', sparkline: (() => {  const valStr = String(String(totalAnimals)); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: String(totalAnimals), change: `${activeAnimals} ativos`, trend: 'neutral' as const, icon: Beef, color: 'hsl(var(--brand))' },
-        { label: 'Peso Médio', sparkline: (() => {  const valStr = String(`${avgWeight.toFixed(1)} kg`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: `${avgWeight.toFixed(1)} kg`, change: `${((avgWeight * totalAnimals) / 1000).toFixed(1)} ton total`, trend: 'up' as const, icon: Scale, color: 'hsl(var(--warning))' },
-        { label: 'Abatidos', sparkline: (() => {  const valStr = String(String(deadAnimals)); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: String(deadAnimals), change: 'Histórico', trend: 'neutral' as const, icon: Skull, color: 'hsl(var(--danger))' },
-        { label: 'GMD Médio', sparkline: (() => {  const valStr = String('0.0 kg'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}kg` }; }); })(), value: '0.0 kg', change: 'Mês Atual', trend: 'neutral' as const, icon: TrendingUp, color: 'hsl(var(--success))' }
+        {
+          label: 'Total Rebanho',
+          subtitle: _lastAnimalDate ? `Último cadastro em ${_lastAnimalDate}` : `Inventário em ${todayBR()}`,
+          sparkline: buildSparkline(dataRes.data || [], 'created_at', null),
+          value: totalAnimals > 0 ? totalAnimals.toLocaleString() : '---',
+          change: activeAnimals > 0 ? `${activeAnimals} ativos` : 'Sem animais',
+          trend: 'neutral' as const,
+          icon: Beef,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'Peso Médio',
+          subtitle: 'Calculado de pesagens do rebanho',
+          sparkline: buildSparkline(dataRes.data || [], 'created_at', 'peso_atual'),
+          value: avgWeight > 0 ? `${avgWeight.toFixed(1)} kg` : '---',
+          change: avgWeight > 0 ? `${((avgWeight * totalAnimals) / 1000).toFixed(1)} ton total` : 'Sem pesagens',
+          trend: avgWeight > 0 ? 'up' as const : 'neutral' as const,
+          icon: Scale,
+          color: 'hsl(var(--warning))'
+        },
+        {
+          label: 'Saídas / Abatidos',
+          subtitle: `Histórico até ${todayBR()}`,
+          sparkline: buildSparkline(dataRes.data || [], 'created_at', null),
+          value: deadAnimals > 0 ? String(deadAnimals) : '0',
+          change: deadAnimals > 0 ? 'Histórico registrado' : 'Nenhum registrado',
+          trend: 'neutral' as const,
+          icon: Skull,
+          color: 'hsl(var(--danger))'
+        },
+        {
+          label: 'GMD Médio',
+          subtitle: 'Calculado de pesagens do rebanho',
+          sparkline: buildSparkline(dataRes.data || [], 'created_at', null),
+          value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
+          change: gmdGlobal > 0 ? 'Calculado de pesagens' : 'Sem pesagens registradas',
+          trend: gmdGlobal > 0 ? 'up' as const : 'neutral' as const,
+          icon: TrendingUp,
+          color: 'hsl(var(--success))'
+        }
       ],
       totalCount: totalAnimals
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };
 
-/**
- * Pecuária: Gestão de Lotes
- */
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Gestão de Lotes
+// ─────────────────────────────────────────────────────────────
 export const lotes: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [
-      { id: 'l1', nome: 'Lote Terminação 01', quantidade_animais: 150, fase: 'Terminação', status: 'Ativo' },
-      { id: 'l2', nome: 'Lote Recria 02', quantidade_animais: 120, fase: 'Recria', status: 'Ativo' }
-    ],
-    columns: [
-      { header: 'Nome do Lote', accessor: 'nome' },
-      { header: 'Animais', accessor: (row: any) => `${row.quantidade_animais || 0} cab` },
-      { header: 'Fase', accessor: (row: any) => row.fase || 'Recria' },
-      { header: 'Status', accessor: (row: any) => row.status || 'Ativo' }
-    ],
-    stats: [
-      { label: 'Lotes Operacionais', sparkline: (() => {  const valStr = String('12'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '12', change: '8 ativos', trend: 'neutral' as const, icon: MapIcon, color: 'hsl(var(--brand))' },
-      { label: 'Taxa de Ocupação', sparkline: (() => {  const valStr = String('84%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '84%', change: 'Lotação Ideal', trend: 'up' as const, icon: Activity, color: 'hsl(var(--success))' },
-      { label: 'Uniformidade', sparkline: (() => {  const valStr = String('92%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '92%', change: 'Alta', trend: 'up' as const, icon: TrendingUp, color: 'hsl(var(--warning))' },
-      { label: 'Animais Totais', sparkline: (() => {  const valStr = String('1.240'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.240', change: 'Em Lotes', trend: 'neutral' as const, icon: Beef, color: 'hsl(var(--brand))' }
-    ],
-    totalCount: 2
-  };
+  const columns = [
+    { header: 'Nome do Lote', accessor: 'nome' },
+    { header: 'Animais', accessor: (row: any) => row.quantidade_animais > 0 ? `${row.quantidade_animais} cab` : '---' },
+    { header: 'Fase', accessor: (row: any) => row.fase || '---' },
+    { header: 'Status', accessor: (row: any) => row.status || '---' }
+  ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase.from('lotes').select('*, animais(count)', { count: 'exact' });
-    query = applyFilters(query, tenantId, fazendaId);
+    query = applyScope(query, tenantId, fazendaId);
 
-    const { data, count, error } = await withTimeout((query.order('created_at', { ascending: false }).range(from, to) as unknown) as Promise<any>) as any;
+    const { data, count, error } = await withTimeout(
+      query.order('created_at', { ascending: false }).range(from, to) as unknown as Promise<any>
+    );
     if (error) throw error;
 
     const mappedData = (data || []).map((l: any) => {
       const animalCount = Array.isArray(l.animais) ? (l.animais[0]?.count || 0) : (l.animais?.count || 0);
-      return {
-        ...l,
-        quantidade_animais: animalCount
-      };
+      return { ...l, quantidade_animais: animalCount };
     });
 
+    // KPIs calculados dos dados reais
     const activeLots = mappedData.filter((l: any) => l.status?.toUpperCase() !== 'ARQUIVADO').length;
     const totalAnimalsInLots = mappedData.reduce((acc: number, l: any) => acc + (l.quantidade_animais || 0), 0);
 
+    const _lastLoteDate = mappedData.length > 0 ? fmtDateBR(mappedData[0].created_at) : null;
+
+    // Taxa de ocupação = lotes com animais / total de lotes
+    const lotesComAnimais = mappedData.filter((l: any) => l.quantidade_animais > 0).length;
+    const taxaOcupacao = count && count > 0 ? ((lotesComAnimais / count) * 100).toFixed(0) + '%' : '---';
+
     return {
       data: mappedData,
-      columns: mockData.columns,
+      columns,
       stats: [
-        { label: 'Lotes Operacionais', sparkline: (() => {  const valStr = String(String(count || 0)); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: String(count || 0), change: `${activeLots} ativos`, trend: 'neutral' as const, icon: MapIcon, color: 'hsl(var(--brand))' },
-        { label: 'Taxa de Ocupação', sparkline: (() => {  const valStr = String('84%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '84%', change: 'Lotação Ideal', trend: 'up' as const, icon: Activity, color: 'hsl(var(--success))' },
-        { label: 'Uniformidade', sparkline: (() => {  const valStr = String('92%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '92%', change: 'Alta', trend: 'up' as const, icon: TrendingUp, color: 'hsl(var(--warning))' },
-        { label: 'Animais Totais', sparkline: (() => { const t = totalAnimalsInLots; return [Math.max(0,t-200),Math.max(0,t-160),Math.max(0,t-120),Math.max(0,t-80),Math.max(0,t-40),Math.max(0,t-10),t].map((v,i) => ({ value: v, label: `${v}` })); })(), value: String(totalAnimalsInLots), change: 'Em Lotes', trend: 'neutral' as const, icon: Beef, color: 'hsl(var(--brand))' }
+        {
+          label: 'Lotes Operacionais',
+          subtitle: _lastLoteDate ? `Último cadastro em ${_lastLoteDate}` : `Status em ${todayBR()}`,
+          sparkline: buildSparkline(mappedData, 'created_at', null),
+          value: count !== null && count > 0 ? String(count) : '---',
+          change: activeLots > 0 ? `${activeLots} ativos` : 'Sem lotes',
+          trend: 'neutral' as const,
+          icon: MapIcon,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'Taxa de Ocupação',
+          subtitle: `Verificado em ${todayBR()}`,
+          sparkline: buildSparkline(mappedData, 'created_at', 'quantidade_animais'),
+          value: taxaOcupacao,
+          change: taxaOcupacao !== '---' ? 'Lotes com animais' : 'Sem dados',
+          trend: 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--success))'
+        },
+        {
+          label: 'Animais Totais',
+          subtitle: `Inventário em ${todayBR()}`,
+          sparkline: buildSparkline(mappedData, 'created_at', 'quantidade_animais'),
+          value: totalAnimalsInLots > 0 ? totalAnimalsInLots.toLocaleString() : '---',
+          change: totalAnimalsInLots > 0 ? 'Em lotes ativos' : 'Sem animais',
+          trend: 'neutral' as const,
+          icon: Beef,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'Uniformidade Lotes',
+          subtitle: 'Calcular via pesagens do rebanho',
+          sparkline: buildSparkline(mappedData, 'created_at', null),
+          value: '---',
+          change: 'Calcular via pesagens',
+          trend: 'neutral' as const,
+          icon: TrendingUp,
+          color: 'hsl(var(--warning))'
+        }
       ],
       totalCount: count || 0
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };
 
-/**
- * Pecuária: Gestão de Reprodução
- */
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Gestão de Reprodução
+// ─────────────────────────────────────────────────────────────
 export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [
-      { id: 'r1', tipo_evento: 'IATF', data_evento: new Date().toISOString(), outcome: 'Prenha', resultado: 'Prenha', animais: { brinco: 'BR 1234' }, previsaoParto: new Date(Date.now() + 200 * 24 * 60 * 60 * 1000), progressoGestacao: 30, diasGestacao: 85 },
-      { id: 'r2', tipo_evento: 'Toque', data_evento: new Date().toISOString(), outcome: 'Vazia', resultado: 'Vazia', animais: { brinco: 'BR 5678' }, previsaoParto: null, progressoGestacao: 0, diasGestacao: 0 }
-    ],
-    columns: [
-      { header: 'Matriz / Brinco', accessor: (row: any) => row.animais?.brinco || 'N/A' },
-      { header: 'Tipo Evento', accessor: 'tipo_evento' },
-      { header: 'Data Evento', accessor: (row: any) => row.data_evento ? new Date(row.data_evento).toLocaleDateString('pt-BR') : 'N/A' },
-      { header: 'Resultado', accessor: 'resultado' },
-      { header: 'Dias de Gestação', accessor: (row: any) => row.resultado === 'Prenha' ? `${row.diasGestacao || 0} dias` : '-' },
-      { header: 'Previsão Parto', accessor: (row: any) => row.previsaoParto ? new Date(row.previsaoParto).toLocaleDateString('pt-BR') : '-' },
-      { header: 'Progresso Gestação', accessor: (row: any) => row.resultado === 'Prenha' ? `${Number(row.progressoGestacao || 0).toFixed(0)}%` : '-' }
-    ],
-    stats: [
-      { label: 'Taxa de Prenhez', sparkline: (() => {  const valStr = String('82%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '82%', change: '+5%', trend: 'up' as const, icon: TrendingUp, color: 'hsl(var(--success))' },
-      { label: 'Previsão Partos', sparkline: (() => {  const valStr = String('124'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '124', change: 'Próximos 30 dias', trend: 'neutral' as const, icon: Activity, color: 'hsl(var(--brand))' },
-      { label: 'Eficiência', sparkline: (() => {  const valStr = String('94%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '94%', change: 'Alta', trend: 'up' as const, icon: Scale, color: 'hsl(var(--warning))' },
-      { label: 'Intervalo Partos', sparkline: (() => {  const valStr = String('13.5 meses'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}m` }; }); })(), value: '13.5 meses', change: 'Meta', trend: 'neutral' as const, icon: Calendar, color: 'hsl(var(--brand))' }
-    ],
-    totalCount: 2
-  };
+  const columns = [
+    { header: 'Matriz / Brinco', accessor: (row: any) => row.animais?.brinco ? `#${row.animais.brinco}` : '---' },
+    { header: 'Tipo Evento', accessor: 'tipo_evento' },
+    { header: 'Data Evento', accessor: (row: any) => row.data_evento ? new Date(row.data_evento).toLocaleDateString('pt-BR') : '---' },
+    { header: 'Resultado', accessor: 'resultado' },
+    { header: 'Dias de Gestação', accessor: (row: any) => row.resultado === 'Prenha' ? `${row.diasGestacao || 0} dias` : '---' },
+    { header: 'Previsão Parto', accessor: (row: any) => row.previsaoParto ? new Date(row.previsaoParto).toLocaleDateString('pt-BR') : '---' },
+    { header: 'Progresso Gestação', accessor: (row: any) => row.resultado === 'Prenha' ? `${Number(row.progressoGestacao || 0).toFixed(0)}%` : '---' }
+  ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
     let query = supabase.from('eventos_reprodutivos').select('*, animais(id, brinco)', { count: 'exact' });
-    query = applyFilters(query, tenantId, fazendaId);
+    query = applyScope(query, tenantId, fazendaId);
 
-    const { data, count, error } = await withTimeout((query.order('data_evento', { ascending: false }).range(from, to) as unknown) as Promise<any>) as any;
+    const { data, count, error } = await withTimeout(
+      query.order('data_evento', { ascending: false }).range(from, to) as unknown as Promise<any>
+    );
     if (error) throw error;
 
     const rawData = data || [];
-    const enrichedData = (rawData || []).map((item: any) => {
+    const gestacaoMedia = 285; // dias de gestação bovina padrão
+
+    const enrichedData = rawData.map((item: any) => {
       let previsaoParto = null;
       let progressoGestacao = 0;
       let diasGestacao = 0;
 
-      if (item.resultado === 'Prenha') {
-        const gestacaoMedia = 285;
-        const dataConcepcao = item.data_evento ? new Date(item.data_evento) : new Date();
+      if (item.resultado === 'Prenha' && item.data_evento) {
+        const dataConcepcao = new Date(item.data_evento);
         previsaoParto = new Date(dataConcepcao);
         previsaoParto.setDate(previsaoParto.getDate() + gestacaoMedia);
-        
-        const now = new Date();
-        const diffTime = Math.max(0, now.getTime() - dataConcepcao.getTime());
-        diasGestacao = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffTime = Math.max(0, new Date().getTime() - dataConcepcao.getTime());
+        diasGestacao = Math.floor(diffTime / 86400000);
         progressoGestacao = Math.min(100, (diasGestacao / gestacaoMedia) * 100);
       }
 
@@ -672,62 +1001,172 @@ export const reproducao: ReportHandler = async (tenantId, fazendaId, page = 1, p
       return { ...item, previsaoParto, progressoGestacao, diasGestacao, animais: animal };
     });
 
+    const _lastEventDate = rawData.length > 0 ? fmtDateBR(rawData[0].data_evento) : null;
+
+    // KPIs calculados dos dados reais
+    const prenhas = rawData.filter((r: any) => r.resultado === 'Prenha').length;
+    const totalEventos = count || rawData.length;
+    const taxaPrenhez = totalEventos > 0 ? ((prenhas / totalEventos) * 100).toFixed(1) + '%' : '---';
+
+    // Partos previstos nos próximos 30 dias
+    const hoje = new Date();
+    const daqui30 = new Date();
+    daqui30.setDate(daqui30.getDate() + 30);
+    const partosPrevistosProximo = enrichedData.filter((e: any) =>
+      e.previsaoParto && e.previsaoParto >= hoje && e.previsaoParto <= daqui30
+    ).length;
+
     return {
       data: enrichedData,
-      columns: mockData.columns,
-      stats: [],
+      columns,
+      stats: [
+        {
+          label: 'Taxa de Prenhez',
+          subtitle: _lastEventDate ? `Último evento em ${_lastEventDate}` : `Apurada em ${todayBR()}`,
+          sparkline: buildSparkline(rawData, 'data_evento', null),
+          value: taxaPrenhez,
+          change: totalEventos > 0 ? `${prenhas} prenhas de ${totalEventos}` : 'Sem eventos',
+          trend: prenhas > 0 ? 'up' as const : 'neutral' as const,
+          icon: TrendingUp,
+          color: 'hsl(var(--success))'
+        },
+        {
+          label: 'Partos Previstos (30d)',
+          subtitle: 'Previsão: próximos 30 dias',
+          sparkline: buildSparkline(rawData, 'data_evento', null),
+          value: totalEventos > 0 ? String(partosPrevistosProximo) : '---',
+          change: partosPrevistosProximo > 0 ? 'Próximos 30 dias' : 'Nenhum previsto',
+          trend: 'neutral' as const,
+          icon: Calendar,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'Total Prenhas',
+          subtitle: _lastEventDate ? `Base: evento de ${_lastEventDate}` : `Inventário em ${todayBR()}`,
+          sparkline: buildSparkline(rawData, 'data_evento', null),
+          value: prenhas > 0 ? String(prenhas) : '---',
+          change: prenhas > 0 ? 'Em gestação' : 'Sem prenhas',
+          trend: 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--warning))'
+        },
+        {
+          label: 'Intervalo Entre Partos',
+          subtitle: 'Requer histórico de partos registrados',
+          sparkline: buildSparkline(rawData, 'data_evento', null),
+          value: '---',
+          change: 'Requer histórico de partos',
+          trend: 'neutral' as const,
+          icon: Scale,
+          color: 'hsl(var(--brand))'
+        }
+      ],
       totalCount: count || 0
     };
   } catch (error) {
-    console.warn('[Reproducao] Resilience Pattern Engaged:', error);
-    return { data: [], stats: [], columns: mockData.columns, totalCount: 0 };
+    console.error('[Reproducao] Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
   }
 };
 
-/**
- * Pecuária: Gestão de Pesagens
- */
+// ─────────────────────────────────────────────────────────────
+// Pecuária: Gestão de Pesagens
+// ─────────────────────────────────────────────────────────────
 export const pesagens: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [],
-    columns: [
-      { header: 'Brinco', accessor: (row: any) => row.animais?.brinco || 'N/A' },
-      { header: 'Peso', accessor: (row: any) => row.peso ? `${Number(row.peso).toFixed(1)} kg` : 'N/A' },
-      { header: 'GMD Médio', accessor: (row: any) => row.gmd ? `${Number(row.gmd).toFixed(3)} kg/dia` : 'N/A' },
-      { header: 'Data da Pesagem', accessor: (row: any) => row.data_pesagem ? new Date(row.data_pesagem).toLocaleDateString('pt-BR') : 'N/A' }
-    ],
-    stats: [],
-    totalCount: 0
-  };
+  const columns = [
+    { header: 'Brinco', accessor: (row: any) => row.animais?.brinco ? `#${row.animais.brinco}` : '---' },
+    { header: 'Peso', accessor: (row: any) => row.peso ? `${Number(row.peso).toFixed(1)} kg` : '---' },
+    { header: 'GMD Calculado', accessor: (row: any) => row.gmd !== null && row.gmd !== undefined ? `${Number(row.gmd).toFixed(3)} kg/dia` : '---' },
+    { header: 'Data da Pesagem', accessor: (row: any) => row.data_pesagem ? new Date(row.data_pesagem).toLocaleDateString('pt-BR') : '---' }
+  ];
 
   try {
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
-    let query = supabase.from('pesagens').select('*, animais(id, brinco, lote_id)', { count: 'exact' });
-    query = applyFilters(query, tenantId, fazendaId);
+    const [pesagensRes, gmdRes, weightRes] = await Promise.all([
+      withTimeout(applyScope(supabase.from('pesagens').select('*, animais(id, brinco, lote_id)', { count: 'exact' }), tenantId, fazendaId)
+        .order('data_pesagem', { ascending: false })
+        .range(from, to) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('get_herd_total_weight', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }) as unknown as Promise<any>)
+    ]);
 
-    const { data, count, error } = await withTimeout((query.order('data_pesagem', { ascending: false }).range(from, to) as unknown) as Promise<any>) as any;
-    if (error) throw error;
+    if (pesagensRes.error) throw pesagensRes.error;
 
-    const enrichedData = (data || []).map((curr: any, idx: number) => {
-      const prev = (data || []).slice(idx + 1).find((w: any) => w.animal_id === curr.animal_id);
-      
-      let gmd = 0;
+    const data = pesagensRes.data || [];
+    const gmdGlobal = Number(gmdRes.data || 0);
+    const pesoTotal = Number(weightRes.data || 0);
+
+    // GMD por pesagem: diferença em relação à pesagem anterior do mesmo animal
+    const enrichedData = data.map((curr: any, idx: number) => {
+      const prev = data.slice(idx + 1).find((w: any) => w.animal_id === curr.animal_id);
+      let gmd: number | null = null;
       if (prev) {
-        const days = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / (1000 * 60 * 60 * 24);
-        gmd = days > 0 ? (Number(curr.peso) - Number(prev.peso)) / days : 0;
+        const days = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / 86400000;
+        if (days > 0) gmd = (Number(curr.peso) - Number(prev.peso)) / days;
       }
-
       const animal = Array.isArray(curr.animais) ? curr.animais[0] : curr.animais;
       return { ...curr, gmd, animais: animal };
     });
 
+    const _lastPesagemDate = data.length > 0 ? fmtDateBR(data[0].data_pesagem) : null;
+
+    // Peso médio dos dados da página atual
+    const pesoMedioPagina = data.length > 0
+      ? data.reduce((a: number, p: any) => a + Number(p.peso || 0), 0) / data.length
+      : 0;
+
     return {
       data: enrichedData,
-      columns: mockData.columns,
-      stats: [],
-      totalCount: count || 0
+      columns,
+      stats: [
+        {
+          label: 'Total de Pesagens',
+          subtitle: _lastPesagemDate ? `Última pesagem em ${_lastPesagemDate}` : 'Sem pesagens',
+          sparkline: buildSparkline(data, 'data_pesagem', null),
+          value: pesagensRes.count !== null && pesagensRes.count > 0 ? pesagensRes.count.toLocaleString() : '---',
+          change: pesagensRes.count > 0 ? 'Registros no banco' : 'Sem pesagens',
+          trend: 'neutral' as const,
+          icon: Scale,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'GMD Médio Global',
+          subtitle: _lastPesagemDate ? `Base: pesagem de ${_lastPesagemDate}` : 'Sem base de cálculo',
+          sparkline: buildSparkline(data, 'data_pesagem', 'peso'),
+          value: gmdGlobal > 0 ? `${gmdGlobal.toFixed(3)} kg/dia` : '---',
+          change: gmdGlobal > 0 ? 'Rebanho completo' : 'Sem base de cálculo',
+          trend: gmdGlobal > 0 ? 'up' as const : 'neutral' as const,
+          icon: TrendingUp,
+          color: 'hsl(var(--success))'
+        },
+        {
+          label: 'Peso Total Rebanho',
+          subtitle: _lastPesagemDate ? `Apurado em ${_lastPesagemDate}` : `Inventário em ${todayBR()}`,
+          sparkline: buildSparkline(data, 'data_pesagem', 'peso'),
+          value: pesoTotal > 0 ? `${(pesoTotal / 1000).toFixed(1)} ton` : '---',
+          change: pesoTotal > 0 ? 'Soma última pesagem' : 'Sem dados',
+          trend: 'neutral' as const,
+          icon: Beef,
+          color: 'hsl(var(--brand))'
+        },
+        {
+          label: 'Peso Médio (Página)',
+          subtitle: _lastPesagemDate ? `Última pesagem: ${_lastPesagemDate}` : `Média em ${todayBR()}`,
+          sparkline: buildSparkline(data, 'data_pesagem', 'peso'),
+          value: pesoMedioPagina > 0 ? `${pesoMedioPagina.toFixed(1)} kg` : '---',
+          change: pesoMedioPagina > 0 ? `${data.length} registros exibidos` : 'Sem dados',
+          trend: 'neutral' as const,
+          icon: Activity,
+          color: 'hsl(var(--warning))'
+        }
+      ],
+      totalCount: pesagensRes.count || 0
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };

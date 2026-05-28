@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   FileText, 
   Plus, 
@@ -146,30 +163,14 @@ export const SalesOrders: React.FC = () => {
             label: 'Pipeline Comercial', 
             value: valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
             icon: DollarSign, color: '#10b981', progress: 100, change: `${finalOrders.length} ordens`, periodLabel: 'Faturamento Bruto',
-            sparkline: [
-              { value: Math.round(valorTotal * 0.52), label: 'Sem 1' },
-              { value: Math.round(valorTotal * 0.61), label: 'Sem 2' },
-              { value: Math.round(valorTotal * 0.68), label: 'Sem 3' },
-              { value: Math.round(valorTotal * 0.74), label: 'Sem 4' },
-              { value: Math.round(valorTotal * 0.82), label: 'Sem 5' },
-              { value: Math.round(valorTotal * 0.91), label: 'Sem 6' },
-              { value: Math.round(valorTotal), label: 'Hoje' },
-            ]
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
           { 
             label: 'Saúde da Margem', 
             value: `${avgMargin.toFixed(1)}%`, 
             icon: TrendingUp, color: avgMargin > 20 ? '#10b981' : '#f59e0b', 
-            progress: avgMargin * 2, change: 'Margem Operacional', periodLabel: 'Lucratividade Est.',
-            sparkline: [
-              { value: Math.round(avgMargin * 0.60), label: `${(avgMargin * 0.60).toFixed(1)}%` },
-              { value: Math.round(avgMargin * 0.68), label: `${(avgMargin * 0.68).toFixed(1)}%` },
-              { value: Math.round(avgMargin * 0.75), label: `${(avgMargin * 0.75).toFixed(1)}%` },
-              { value: Math.round(avgMargin * 0.82), label: `${(avgMargin * 0.82).toFixed(1)}%` },
-              { value: Math.round(avgMargin * 0.88), label: `${(avgMargin * 0.88).toFixed(1)}%` },
-              { value: Math.round(avgMargin * 0.94), label: `${(avgMargin * 0.94).toFixed(1)}%` },
-              { value: Math.round(avgMargin), label: `Hoje: ${avgMargin.toFixed(1)}%` },
-            ]
+            progress: Math.min(avgMargin * 2, 100), change: 'Margem Operacional', periodLabel: 'Lucratividade Est.',
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
           { 
             label: 'Exposição de Risco', 
@@ -177,41 +178,32 @@ export const SalesOrders: React.FC = () => {
             icon: AlertTriangle, color: '#ef4444', 
             progress: (enrichedOrders.filter((o: any) => o.isHighRisk).length / (data.length || 1)) * 100, 
             change: 'Acima do Limite', periodLabel: 'Auditoria',
-            sparkline: (() => {
-              const riskCount = enrichedOrders.filter((o: any) => o.isHighRisk).length;
-              const base = Math.max(riskCount - 3, 0);
-              return [
-                { value: base, label: `${base} risco` },
-                { value: base, label: `${base} risco` },
-                { value: Math.max(base - 1, 0), label: `${Math.max(base - 1, 0)} risco` },
-                { value: base + 1, label: `${base + 1} risco` },
-                { value: base + 1, label: `${base + 1} risco` },
-                { value: riskCount, label: `${riskCount} risco` },
-                { value: riskCount, label: `Hoje: ${riskCount}` },
-              ];
-            })()
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
           { 
-            label: 'Taxa de Conversão', value: '84%', icon: Zap, color: '#3b82f6', 
-            progress: 84, trend: 'up' as const, change: 'Meta: 90%', periodLabel: 'Mensal',
-            sparkline: [
-              { value: 71, label: '71%' }, { value: 74, label: '74%' }, { value: 76, label: '76%' },
-              { value: 79, label: '79%' }, { value: 80, label: '80%' }, { value: 82, label: '82%' },
-              { value: 84, label: 'Hoje: 84%' },
-            ]
+            label: 'Taxa de Conclusão', 
+            value: (() => {
+              const entregues = data.filter((o: any) => o.status === 'delivered').length;
+              return data.length > 0 ? `${((entregues / data.length) * 100).toFixed(0)}%` : '---';
+            })(),
+            icon: Zap, color: '#3b82f6', 
+            progress: (() => {
+              const entregues = data.filter((o: any) => o.status === 'delivered').length;
+              return data.length > 0 ? (entregues / data.length) * 100 : 0;
+            })(),
+            trend: 'up' as const, 
+            change: `${data.filter((o: any) => o.status === 'delivered').length} pedidos entregues`, 
+            periodLabel: 'Concluído',
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
         ]);
       } else {
         setOrders([]);
         setStats([
-          { label: 'Pipeline Comercial', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Sem pedidos', periodLabel: 'Faturamento Bruto',
-            sparkline: Array(7).fill(null).map((_, i) => ({ value: 0, label: `Sem ${i + 1}` })) },
-          { label: 'Saúde da Margem', value: '0%', icon: TrendingUp, color: '#f59e0b', progress: 0, change: 'â€”', periodLabel: 'Lucratividade Est.',
-            sparkline: Array(7).fill(null).map((_, i) => ({ value: 0, label: `Sem ${i + 1}` })) },
-          { label: 'Exposição de Risco', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'â€”', periodLabel: 'Auditoria',
-            sparkline: Array(7).fill(null).map((_, i) => ({ value: 0, label: `Sem ${i + 1}` })) },
-          { label: 'Taxa de Conversão', value: 'â€”', icon: Zap, color: '#3b82f6', progress: 0, change: 'Sem dados', periodLabel: 'Mensal',
-            sparkline: Array(7).fill(null).map((_, i) => ({ value: 0, label: `Sem ${i + 1}` })) },
+          { label: 'Pipeline Comercial', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Sem pedidos', periodLabel: 'Faturamento Bruto', sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
+          { label: 'Saúde da Margem', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '---', periodLabel: 'Lucratividade Est.', sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
+          { label: 'Exposição de Risco', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: '---', periodLabel: 'Auditoria', sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
+          { label: 'Taxa de Conclusão', value: '---', icon: Zap, color: '#3b82f6', progress: 0, change: 'Sem dados', periodLabel: 'Concluído', sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
         ]);
       }
     } catch (err) {

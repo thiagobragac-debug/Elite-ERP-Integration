@@ -198,6 +198,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
               placeholder={formData.tipo_documento === 'CNPJ' ? '00.000.000/0000-00' : '000.000.000-00'}
               value={formData.document}
               onChange={(e) => setFormData({...formData, document: maskCPFCNPJ(e.target.value)})}
+              onBlur={handleCNPJSearch}
               required />
             {formData.tipo_documento === 'CNPJ' && (
               <button type="button" className="action-trigger-btn" onClick={handleCNPJSearch}

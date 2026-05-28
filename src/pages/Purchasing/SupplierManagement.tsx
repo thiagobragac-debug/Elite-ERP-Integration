@@ -1,4 +1,21 @@
 import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   Building2, 
   Plus, 
@@ -156,55 +173,56 @@ export const SupplierManagement: React.FC = () => {
           { 
             label: 'Fornecedores Ativos', value: count || 0, icon: Building2, color: '#10b981', 
             progress: 100, change: 'Homologados',
-            sparkline: [
-              { value: Math.max(1, (count||0) - 5), label: `${Math.max(1,(count||0)-5)} forn.` },
-              { value: Math.max(1, (count||0) - 4), label: `${Math.max(1,(count||0)-4)} forn.` },
-              { value: Math.max(1, (count||0) - 3), label: `${Math.max(1,(count||0)-3)} forn.` },
-              { value: Math.max(1, (count||0) - 2), label: `${Math.max(1,(count||0)-2)} forn.` },
-              { value: Math.max(1, (count||0) - 1), label: `${Math.max(1,(count||0)-1)} forn.` },
-              { value: count||0, label: `${count||0} forn.` },
-              { value: count||0, label: `Hoje: ${count||0}` }
-            ]
+            sparkline: buildSparkline(supplierData || [], 'created_at', null)
           },
           { 
-            label: 'Volume Procurement', value: `R$ ${(totalSpend / 1000).toFixed(1)}k`, 
-            icon: TrendingUp, color: '#3b82f6', progress: 75, trend: 'up', change: 'Total Compras',
-            sparkline: [
-              { value: Math.round(totalSpend * 0.55 / 1000), label: `R$${(totalSpend * 0.55/1000).toFixed(0)}k` },
-              { value: Math.round(totalSpend * 0.62 / 1000), label: `R$${(totalSpend * 0.62/1000).toFixed(0)}k` },
-              { value: Math.round(totalSpend * 0.68 / 1000), label: `R$${(totalSpend * 0.68/1000).toFixed(0)}k` },
-              { value: Math.round(totalSpend * 0.74 / 1000), label: `R$${(totalSpend * 0.74/1000).toFixed(0)}k` },
-              { value: Math.round(totalSpend * 0.80 / 1000), label: `R$${(totalSpend * 0.80/1000).toFixed(0)}k` },
-              { value: Math.round(totalSpend * 0.88 / 1000), label: `R$${(totalSpend * 0.88/1000).toFixed(0)}k` },
-              { value: Math.round(totalSpend / 1000), label: `Hoje: R$${(totalSpend/1000).toFixed(1)}k` }
-            ]
+            label: 'Volume Procurement', value: totalSpend > 0 ? `R$ ${(totalSpend / 1000).toFixed(1)}k` : '---', 
+            icon: TrendingUp, color: '#3b82f6', 
+            progress: totalSpend > 0 ? 100 : 0, 
+            trend: 'up', change: 'Total Compras',
+            sparkline: buildSparkline(supplierData || [], 'created_at', null)
           },
           { 
-            label: 'Risco Concentração', value: '18.4%', icon: AlertCircle, color: '#f59e0b', 
-            progress: 18, change: 'Concentração Lead',
-            sparkline: [
-              { value: 28, label: '22.8%' }, { value: 26, label: '21.6%' }, { value: 25, label: '21.0%' },
-              { value: 22, label: '20.2%' }, { value: 20, label: '19.4%' }, { value: 19, label: '18.8%' },
-              { value: 18, label: 'Hoje: 18.4%' }
-            ]
+            label: 'Risco Concentração', 
+            value: (() => {
+              if (totalSpend <= 0 || processedSuppliers.length === 0) return '---';
+              const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
+              const pct = (topSpend / totalSpend) * 100;
+              return `${pct.toFixed(1)}%`;
+            })(),
+            icon: AlertCircle, color: '#f59e0b', 
+            progress: (() => {
+              if (totalSpend <= 0 || processedSuppliers.length === 0) return 0;
+              const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
+              return Math.min(100, (topSpend / totalSpend) * 100);
+            })(),
+            change: 'Concentração Lead',
+            sparkline: buildSparkline(supplierData || [], 'created_at', null)
           },
           { 
-            label: 'SLA Médio Rede', value: '4.8', icon: Star, color: '#166534', 
-            progress: 96, change: 'Rating Eficiência',
-            sparkline: [
-              { value: 72, label: '4.2' }, { value: 76, label: '4.3' }, { value: 80, label: '4.4' },
-              { value: 84, label: '4.5' }, { value: 88, label: '4.6' }, { value: 92, label: '4.7' },
-              { value: 96, label: 'Hoje: 4.8' }
-            ]
+            label: 'Rating Médio Rede', 
+            value: (() => {
+              const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
+              if (withRating.length === 0) return '---';
+              const avg = withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
+              return avg.toFixed(1);
+            })(),
+            icon: Star, color: '#166534', 
+            progress: (() => {
+              const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
+              if (withRating.length === 0) return 0;
+              const avg = withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
+              return Math.min(100, avg * 20);
+            })(),
+            change: 'Rating Eficiência',
+            sparkline: buildSparkline(supplierData || [], 'created_at', null)
           },
         ]);
       }
     } catch (err) {
-      console.warn('[SupplierManagement] Resilience Pattern Engaged:', err);
-      setSuppliers([
-        { id: 'm1', nome: 'MOCK: Parceiro Alpha', categoria: 'Ração', status: 'ATIVO', totalSpend: 5000, rating: 4.5 }
-      ]);
-      setTotalCount(1);
+      console.error('[SupplierManagement] Error fetching suppliers:', err);
+      setSuppliers([]);
+      setTotalCount(0);
     } finally {
       setLoading(false);
     }

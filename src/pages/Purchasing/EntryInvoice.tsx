@@ -1,4 +1,21 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { useNavigate } from 'react-router-dom';
 import { 
   Activity,
@@ -126,17 +143,32 @@ export const EntryInvoice: React.FC = () => {
         const fiscalCredits = totalValor * 0.12;
         
         setStats([
-          { label: 'Notas Processadas', value: count || 0, icon: FileText, color: '#10b981', progress: 100, change: 'Total Localizado',
-            sparkline: (() => { const n = count || 0; return [n-5,n-4,n-3,n-2,n-1,n,n].map((v,i) => ({ value: Math.max(v,0), label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })); })()
+          { label: 'Notas Processadas', value: (count ?? 0) > 0 ? count : '---', icon: FileText, color: '#10b981', 
+            progress: (count ?? 0) > 0 ? 100 : 0, 
+            change: (count ?? 0) > 0 ? 'Total Localizado' : 'Sem notas',
+            sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
           },
-          { label: 'Créditos Fiscais (Est.)', value: fiscalCredits.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#3b82f6', progress: 85, trend: 'up' as const, change: 'ICMS/PIS/COFINS',
-            sparkline: [0.50,0.60,0.70,0.78,0.85,0.92,1.0].map((m,i) => ({ value: Math.round(fiscalCredits*m), label: `Sem ${i+1}` }))
+          { label: 'Créditos Fiscais (Est.)', 
+            value: fiscalCredits > 0 ? fiscalCredits.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+            icon: DollarSign, color: '#3b82f6', 
+            progress: fiscalCredits > 0 ? Math.min(100, (fiscalCredits / totalValor) * 100) : 0, 
+            trend: fiscalCredits > 0 ? 'up' as const : 'neutral' as const, 
+            change: fiscalCredits > 0 ? 'Estimativa 12% s/Valor' : 'Sem notas para calcular',
+            sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
           },
-          { label: 'Aderência ao Pedido', value: `${((matchedWithOC / (data.length || 1)) * 100).toFixed(0)}%`, icon: CheckCircle2, color: '#166634', progress: (matchedWithOC / (data.length || 1)) * 100, change: 'Compliance OC',
-            sparkline: [75,80,83,86,88,90,Math.round((matchedWithOC/(data.length||1))*100)].map((v,i) => ({ value: v, label: `${v}%` }))
+          { label: 'Aderência ao Pedido', 
+            value: data.length > 0 ? `${((matchedWithOC / (data.length || 1)) * 100).toFixed(0)}%` : '---', 
+            icon: CheckCircle2, color: '#166634', 
+            progress: data.length > 0 ? (matchedWithOC / (data.length || 1)) * 100 : 0, 
+            change: data.length > 0 ? 'Compliance OC' : 'Sem notas',
+            sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
           },
-          { label: 'Ajuste de Custo Médio', value: '+1.2%', icon: Barcode, color: '#f59e0b', progress: 15, trend: 'up' as const, change: 'Inflação Insumos',
-            sparkline: [0.3,0.5,0.6,0.8,0.9,1.1,1.2].map((v,i) => ({ value: v, label: `+${v}%` }))
+          { label: 'Ticket Médio NF', 
+            value: data.length > 0 && totalValor > 0 ? (totalValor / data.length).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+            icon: Barcode, color: '#f59e0b', 
+            progress: 0, 
+            change: data.length > 0 ? 'Valor médio por nota' : 'Sem notas',
+            sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
           },
         ]);
       }
@@ -145,13 +177,13 @@ export const EntryInvoice: React.FC = () => {
       setInvoices([]);
       setStats([
         { label: 'Notas Processadas', value: 0, icon: FileText, color: '#10b981', progress: 0, change: 'Erro',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total') },
         { label: 'Créditos Fiscais (Est.)', value: 'R$ 0,00', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Erro',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total') },
         { label: 'Aderência ao Pedido', value: '0%', icon: CheckCircle2, color: '#166634', progress: 0, change: 'Erro',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total') },
         { label: 'Ajuste de Custo Médio', value: '0%', icon: Barcode, color: '#f59e0b', progress: 0, change: 'Erro',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total') },
       ]);
     } finally {
       setLoading(false);
@@ -353,7 +385,7 @@ export const EntryInvoice: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change={stat.change || '+1.5%'}
+            change={stat.change || '---'}
             trend={stat.trend}
             sparkline={stat.sparkline}
           

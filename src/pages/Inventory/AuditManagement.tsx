@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   ClipboardCheck, 
   Plus, 
@@ -97,17 +114,25 @@ export const AuditManagement: React.FC = () => {
         const totalItems = data.reduce((acc: number, curr: any) => acc + (curr.items_count || 0), 0);
         
         setStats([
-          { label: 'Auditorias Concluídas', value: concluidas, icon: ClipboardCheck, color: '#10b981', progress: 100, change: 'Concluídas',
-            sparkline: (() => { return [concluidas-4,concluidas-3,concluidas-2,concluidas-1,concluidas,concluidas,concluidas].map((v,i) => ({ value: Math.max(v,0), label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })); })()
+          { label: 'Auditorias Concluídas', value: concluidas > 0 ? concluidas : '---', icon: ClipboardCheck, color: '#10b981', 
+            progress: data.length > 0 ? (concluidas / data.length) * 100 : 0, 
+            change: concluidas > 0 ? 'Concluídas' : 'Nenhuma concluída',
+            sparkline: buildSparkline(auditData || [], 'created_at', null)
           },
-          { label: 'Acuracidade Média', value: `${avgAccuracy.toFixed(1)}%`, icon: Target, color: '#3b82f6', progress: avgAccuracy, change: 'Média',
-            sparkline: [avgAccuracy-5,avgAccuracy-3,avgAccuracy-2,avgAccuracy-1,avgAccuracy-0.5,avgAccuracy-0.2,avgAccuracy].map((v,i) => ({ value: Math.max(v,0), label: `${v.toFixed(1)}%` }))
+          { label: 'Acuracidade Média', value: avgAccuracy > 0 ? `${avgAccuracy.toFixed(1)}%` : '---', icon: Target, color: '#3b82f6', 
+            progress: avgAccuracy, 
+            change: avgAccuracy > 0 ? 'Média real' : 'Sem dados de acuracidade',
+            sparkline: buildSparkline(auditData || [], 'created_at', null)
           },
-          { label: 'Itens Auditados', value: totalItems.toLocaleString(), icon: Package, color: '#f59e0b', progress: 85, change: 'Total',
-            sparkline: [totalItems*0.50,totalItems*0.62,totalItems*0.71,totalItems*0.79,totalItems*0.86,totalItems*0.93,totalItems].map((v,i) => ({ value: Math.round(v), label: `Sem ${i+1}` }))
+          { label: 'Itens Auditados', value: totalItems > 0 ? totalItems.toLocaleString() : '---', icon: Package, color: '#f59e0b', 
+            progress: totalItems > 0 ? Math.min(100, (totalItems / 1000) * 100) : 0, 
+            change: totalItems > 0 ? 'Total contabilizado' : 'Sem itens',
+            sparkline: buildSparkline(auditData || [], 'created_at', null)
           },
-          { label: 'Sessões Ativas', value: emAndamento, icon: History, color: '#6366f1', progress: 100, change: 'Em progresso',
-            sparkline: [0,0,1,1,emAndamento,emAndamento,emAndamento].map((v,i) => ({ value: v, label: i<6?`Sem ${i+1}`:`Hoje: ${v}` }))
+          { label: 'Sessões Ativas', value: emAndamento > 0 ? emAndamento : '---', icon: History, color: '#6366f1', 
+            progress: data.length > 0 ? (emAndamento / data.length) * 100 : 0, 
+            change: emAndamento > 0 ? 'Em progresso' : 'Nenhuma ativa',
+            sparkline: buildSparkline(auditData || [], 'created_at', null)
           },
         ]);
       }
@@ -116,13 +141,13 @@ export const AuditManagement: React.FC = () => {
       setAudits([]);
       setStats([
         { label: 'Auditorias Concluídas', value: 0, icon: ClipboardCheck, color: '#10b981', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i}` })) },
+          sparkline: buildSparkline(auditData || [], 'created_at', null) },
         { label: 'Acuracidade Média', value: '0%', icon: Target, color: '#3b82f6', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `0%` })) },
+          sparkline: buildSparkline(auditData || [], 'created_at', null) },
         { label: 'Itens Auditados', value: '0', icon: Package, color: '#f59e0b', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `0` })) },
+          sparkline: buildSparkline(auditData || [], 'created_at', null) },
         { label: 'Sessões Ativas', value: 0, icon: History, color: '#6366f1', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `${i}` })) },
+          sparkline: buildSparkline(auditData || [], 'created_at', null) },
       ]);
     } finally {
       setLoading(false);
@@ -335,7 +360,7 @@ export const AuditManagement: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change={stat.change || '+2.4%'}
+            change={stat.change || '---'}
             trend={stat.trend || 'up'}
             sparkline={stat.sparkline}
           

@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   FileText, 
   Plus, 
@@ -109,30 +126,52 @@ export const Invoices: React.FC = () => {
         const totalTax = enrichedInvoices.reduce((acc, curr) => acc + curr.taxValue, 0);
         
         setStats([
-          { label: 'Faturamento Bruto', value: totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#10b981', progress: 100, change: 'Vendas Emitidas', trend: 'up' as const,
-            sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(totalValor*m), label: `Sem ${i+1}` }))
+          { label: 'Faturamento Bruto', 
+            value: totalValor > 0 ? totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+            icon: DollarSign, color: '#10b981', 
+            progress: totalValor > 0 ? 100 : 0, 
+            change: totalValor > 0 ? 'Vendas Emitidas' : 'Sem notas emitidas', 
+            trend: 'up' as const,
+            sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total')
           },
-          { label: 'Carga Tributária', value: totalTax.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: ShieldCheck, color: '#ef4444', progress: (totalTax / (totalValor || 1)) * 100, change: 'Est. Funrural/ICMS',
-            sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(totalTax*m), label: `Sem ${i+1}` }))
+          { label: 'Carga Tributária', 
+            value: totalTax > 0 ? totalTax.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+            icon: ShieldCheck, color: '#ef4444', 
+            progress: totalValor > 0 ? (totalTax / totalValor) * 100 : 0, 
+            change: totalValor > 0 ? `${((totalTax/totalValor)*100).toFixed(1)}% sobre faturamento` : 'Sem dados',
+            sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total')
           },
-          { label: 'Eficiência Fiscal', value: '98.2%', icon: CheckCircle2, color: '#3b82f6', progress: 98, change: 'Protocolos SEFAZ',
-            sparkline: [93,94,95,96,97,97.8,98.2].map((v,i) => ({ value: v, label: `${v}%` }))
+          { label: 'Eficiência Fiscal', 
+            value: (() => {
+              const autorizadas = data.filter(d => d.status === 'authorized').length;
+              return data.length > 0 ? `${((autorizadas / data.length) * 100).toFixed(0)}%` : '---';
+            })(),
+            icon: CheckCircle2, color: '#3b82f6', 
+            progress: (() => {
+              const autorizadas = data.filter(d => d.status === 'authorized').length;
+              return data.length > 0 ? (autorizadas / data.length) * 100 : 0;
+            })(),
+            change: 'Protocolos Autorizados',
+            sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total')
           },
-          { label: 'Integração Financeira', value: '100%', icon: Activity, color: '#f59e0b', progress: 100, change: 'Fluxo de Caixa',
-            sparkline: [90,94,96,97,98,99,100].map((v,i) => ({ value: v, label: `${v}%` }))
+          { label: 'Nota de Maior Valor', 
+            value: (() => {
+              const max = Math.max(...data.map(d => Number(d.valor_total || 0)));
+              return max > 0 ? max.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---';
+            })(),
+            icon: Activity, color: '#f59e0b', 
+            progress: 0,
+            change: data.length > 0 ? 'Maior NF emitida' : 'Sem dados',
+            sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total')
           },
         ]);
       } else {
         setInvoices([]);
         setStats([
-          { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Sem dados', trend: 'up' as const,
-            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-          { label: 'Carga Tributária', value: 'R$ 0,00', icon: ShieldCheck, color: '#ef4444', progress: 0, change: 'Sem dados',
-            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-          { label: 'Eficiência Fiscal', value: '—', icon: CheckCircle2, color: '#3b82f6', progress: 0, change: 'Sem dados',
-            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-          { label: 'Integração Financeira', value: '—', icon: Activity, color: '#f59e0b', progress: 0, change: 'Sem dados',
-            sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          { label: 'Faturamento Bruto', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Sem dados', trend: 'up' as const, sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total') },
+          { label: 'Carga Tributária', value: '---', icon: ShieldCheck, color: '#ef4444', progress: 0, change: 'Sem dados', sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total') },
+          { label: 'Eficiência Fiscal', value: '---', icon: CheckCircle2, color: '#3b82f6', progress: 0, change: 'Sem dados', sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total') },
+          { label: 'Nota de Maior Valor', value: '---', icon: Activity, color: '#f59e0b', progress: 0, change: 'Sem dados', sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total') },
         ]);
       }
     } catch (err) {
@@ -337,7 +376,7 @@ export const Invoices: React.FC = () => {
               icon={stat.icon}
               color={stat.color}
               progress={stat.progress}
-              change={stat.change || '+2.4%'}
+              change={stat.change || '---'}
               trend={stat.trend}
               sparkline={stat.sparkline}
              periodLabel="Mês Atual" />

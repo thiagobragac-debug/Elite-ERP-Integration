@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { useNavigate } from 'react-router-dom';
 import { 
   ShoppingCart, 
@@ -67,13 +84,13 @@ export const PurchaseRequest: React.FC = () => {
       // Initialize default stats while waiting for farm selection
       setStats([
         { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Aguardando',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(requests || [], 'created_at', null) },
         { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Aguardando',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(requests || [], 'created_at', null) },
         { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(requests || [], 'created_at', null) },
         { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(requests || [], 'created_at', null) },
       ]);
     }
   }, [activeFarmId, isGlobalMode, activeTenantId]);
@@ -94,31 +111,35 @@ export const PurchaseRequest: React.FC = () => {
         const avgValue = valorTotal / totalRequests;
         
         setStats([
-          { label: 'Requisições Ativas', value: abertas, icon: ShoppingCart, color: '#10b981', progress: 100, change: 'Volume de Entrada',
-            sparkline: [
-              { value: Math.max(abertas - 4, 0) }, { value: Math.max(abertas - 3, 0) }, { value: Math.max(abertas - 2, 0) },
-              { value: Math.max(abertas - 1, 0) }, { value: abertas }, { value: abertas }, { value: abertas, label: `Hoje: ${abertas}` }
-            ]
+          { label: 'Requisições Ativas', value: abertas > 0 ? abertas : '---', icon: ShoppingCart, color: '#10b981', progress: abertas > 0 ? 100 : 0, change: abertas > 0 ? 'Volume de Entrada' : 'Sem requisições',
+            sparkline: buildSparkline(requests || [], 'created_at', null)
           },
-          { label: 'Ticket Médio (Est.)', value: avgValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: Zap, color: '#3b82f6', progress: 100, change: 'Impacto Financeiro',
-            sparkline: [
-              { value: Math.round(avgValue * 0.55) }, { value: Math.round(avgValue * 0.65) }, { value: Math.round(avgValue * 0.73) },
-              { value: Math.round(avgValue * 0.81) }, { value: Math.round(avgValue * 0.88) }, { value: Math.round(avgValue * 0.94) },
-              { value: Math.round(avgValue), label: 'Hoje' }
-            ]
+          { label: 'Ticket Médio (Est.)', value: avgValue > 0 ? avgValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: Zap, color: '#3b82f6', progress: avgValue > 0 ? 100 : 0, change: avgValue > 0 ? 'Impacto Financeiro' : 'Sem valores',
+            sparkline: buildSparkline(requests || [], 'created_at', null)
           },
-          { label: 'Agilidade de Fluxo', value: '1.4 dias', icon: Clock, color: '#f59e0b', progress: 85, trend: 'up' as const, change: 'SLA Aprovação',
-            sparkline: [
-              { value: 3.1, label: '3.1d' }, { value: 2.7, label: '2.7d' }, { value: 2.3, label: '2.3d' },
-              { value: 2.0, label: '2.0d' }, { value: 1.8, label: '1.8d' }, { value: 1.6, label: '1.6d' },
-              { value: 1.4, label: 'Hoje: 1.4d' }
-            ]
+          { label: 'SLA Médio (dias)', 
+            value: (() => {
+              const pendentes = data.filter((r: any) => r.status === 'pending');
+              if (pendentes.length === 0) return '---';
+              const mediaMs = pendentes.reduce((acc: number, r: any) => acc + (Date.now() - new Date(r.created_at).getTime()), 0) / pendentes.length;
+              const mediaDias = mediaMs / (1000 * 3600 * 24);
+              return `${mediaDias.toFixed(1)} dias`;
+            })(),
+            icon: Clock, color: '#f59e0b', 
+            progress: (() => {
+              const pendentes = data.filter((r: any) => r.status === 'pending');
+              if (pendentes.length === 0) return 0;
+              const mediaMs = pendentes.reduce((acc: number, r: any) => acc + (Date.now() - new Date(r.created_at).getTime()), 0) / pendentes.length;
+              const mediaDias = mediaMs / (1000 * 3600 * 24);
+              // Progresso inverso: quanto menor o SLA, mais perto de 100%
+              return Math.max(0, Math.min(100, 100 - (mediaDias * 10)));
+            })(),
+            trend: 'up' as const, 
+            change: 'Tempo Médio de Espera',
+            sparkline: buildSparkline(requests || [], 'created_at', null)
           },
-          { label: 'Nível de Urgência', value: urgentes, icon: AlertTriangle, color: '#ef4444', progress: (urgentes / totalRequests) * 100, trend: 'up' as const, change: 'Prioridade Alta',
-            sparkline: [
-              { value: Math.max(urgentes - 2, 0) }, { value: Math.max(urgentes - 2, 0) }, { value: Math.max(urgentes - 1, 0) },
-              { value: urgentes }, { value: urgentes }, { value: urgentes }, { value: urgentes, label: `Hoje: ${urgentes}` }
-            ]
+          { label: 'Nível de Urgência', value: urgentes > 0 ? urgentes : '---', icon: AlertTriangle, color: '#ef4444', progress: totalRequests > 1 ? (urgentes / totalRequests) * 100 : 0, trend: urgentes > 0 ? 'up' as const : 'neutral' as const, change: urgentes > 0 ? 'Prioridade Alta' : 'Sem urgêntes',
+            sparkline: buildSparkline(requests || [], 'created_at', null)
           },
         ]);
       }
@@ -126,13 +147,13 @@ export const PurchaseRequest: React.FC = () => {
       console.error('[PurchaseRequest] Error:', err);
       setStats([
         { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Sem dados',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(requests || [], 'created_at', null) },
         { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Sem dados',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(requests || [], 'created_at', null) },
         { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(requests || [], 'created_at', null) },
         { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+          sparkline: buildSparkline(requests || [], 'created_at', null) },
       ]);
     } finally {
       setLoading(false);

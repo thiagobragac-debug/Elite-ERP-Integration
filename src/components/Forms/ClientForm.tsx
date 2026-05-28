@@ -220,6 +220,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
               placeholder="00.000.000/0000-00" 
               value={formData.cnpj}
               onChange={(e) => setFormData({...formData, cnpj: maskCPFCNPJ(e.target.value)})}
+              onBlur={handleCNPJSearch}
               className="flex-1"
             />
             <button 

@@ -1,4 +1,21 @@
 import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   Users, 
   Plus, 
@@ -133,17 +150,34 @@ export const ClientManagement: React.FC = () => {
       const activeCount = enrichedClients.filter(c => c.status?.toUpperCase() === 'ATIVO').length;
 
       setStats([
-        { label: 'Rede de Parceiros', value: enrichedClients.length, icon: Users, color: '#10b981', progress: 100, change: 'Base Total',
-          sparkline: (() => { const n = enrichedClients.length; return [n-6,n-5,n-4,n-3,n-2,n-1,n].map((v,i) => ({ value: Math.max(v,0), label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })); })()
+        { label: 'Rede de Parceiros', 
+          value: enrichedClients.length > 0 ? enrichedClients.length : '---', 
+          icon: Users, color: '#10b981', 
+          progress: enrichedClients.length > 0 ? 100 : 0, 
+          change: enrichedClients.length > 0 ? 'Base Total' : 'Sem clientes',
+          sparkline: buildSparkline(enrichedClients, 'created_at', null)
         },
-        { label: 'Receita Retida (LTV)', value: `R$ ${(totalSales / 1000).toFixed(1)}k`, icon: TrendingUp, color: '#3b82f6', progress: 85, trend: 'up' as const, change: 'Total Histórico',
-          sparkline: [0.50,0.60,0.70,0.78,0.85,0.92,1.0].map((m,i) => ({ value: Math.round(totalSales*m/1000), label: `Sem ${i+1}` }))
+        { label: 'Receita Retida (LTV)', 
+          value: totalSales > 0 ? `R$ ${(totalSales / 1000).toFixed(1)}k` : '---', 
+          icon: TrendingUp, color: '#3b82f6', 
+          progress: totalSales > 0 ? Math.min(100, Math.log10(totalSales + 1) * 15) : 0, 
+          trend: totalSales > 0 ? 'up' as const : 'neutral' as const, 
+          change: totalSales > 0 ? 'Total Histórico' : 'Sem vendas',
+          sparkline: buildSparkline(enrichedClients, 'created_at', null)
         },
-        { label: 'Risco de Churn', value: enrichedClients.filter(c => c.churnRisk).length, icon: AlertTriangle, color: '#ef4444', progress: 12, change: 'Inativos >90d',
-          sparkline: (() => { const ch = enrichedClients.filter(c => c.churnRisk).length; return [ch+3,ch+2,ch+2,ch+1,ch+1,ch,ch].map((v,i) => ({ value: Math.max(v,0), label: i<6?`Sem ${i+1}`:`Hoje: ${v}` })); })()
+        { label: 'Risco de Churn', 
+          value: (() => { const ch = enrichedClients.filter(c => c.churnRisk).length; return ch > 0 ? ch : '---'; })(),
+          icon: AlertTriangle, color: '#ef4444', 
+          progress: enrichedClients.length > 0 ? (enrichedClients.filter(c => c.churnRisk).length / enrichedClients.length) * 100 : 0, 
+          change: enrichedClients.filter(c => c.churnRisk).length > 0 ? 'Inativos >90d' : 'Nenhum em risco',
+          sparkline: buildSparkline(enrichedClients, 'created_at', null)
         },
-        { label: 'Aderência VIP', value: `${((enrichedClients.filter(c => String(c.rating || '').startsWith('A')).length / (enrichedClients.length || 1)) * 100).toFixed(0)}%`, icon: Star, color: '#f59e0b', progress: 98, change: 'Rating A+',
-          sparkline: [88,91,93,95,96,97,98].map((v,i) => ({ value: v, label: `${v}%` }))
+        { label: 'Aderência VIP', 
+          value: enrichedClients.length > 0 ? `${((enrichedClients.filter(c => String(c.rating || '').startsWith('A')).length / (enrichedClients.length || 1)) * 100).toFixed(0)}%` : '---',
+          icon: Star, color: '#f59e0b', 
+          progress: enrichedClients.length > 0 ? (enrichedClients.filter(c => String(c.rating || '').startsWith('A')).length / enrichedClients.length) * 100 : 0, 
+          change: enrichedClients.length > 0 ? 'Rating A+' : 'Sem dados',
+          sparkline: buildSparkline(enrichedClients, 'created_at', null)
         },
       ]);
     }
@@ -438,7 +472,7 @@ export const ClientManagement: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change={stat.change || '+5.2%'}
+            change={stat.change || '---'}
             trend={stat.trend}
             sparkline={stat.sparkline}
           

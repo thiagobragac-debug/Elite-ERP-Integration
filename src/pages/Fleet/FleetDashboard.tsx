@@ -24,6 +24,23 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
+
 export const FleetDashboard: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, activeTenantId } = useFarmFilter();
   const [loading, setLoading] = useState(true);
@@ -111,63 +128,41 @@ export const FleetDashboard: React.FC = () => {
             icon: Truck, 
             color: 'hsl(var(--brand))', 
             progress: availability,
-            change: 'Uptime Geral',
-            sparkline: availability > 0 ? [
-              { value: Math.max(20, availability - 12), label: `${(availability - 12).toFixed(1)}%` },
-              { value: Math.max(30, availability - 9), label: `${(availability - 9).toFixed(1)}%` },
-              { value: Math.max(40, availability - 6), label: `${(availability - 6).toFixed(1)}%` },
-              { value: Math.max(55, availability - 4), label: `${(availability - 4).toFixed(1)}%` },
-              { value: Math.max(65, availability - 2), label: `${(availability - 2).toFixed(1)}%` },
-              { value: Math.max(75, availability - 1), label: `${(availability - 1).toFixed(1)}%` },
-              { value: availability, label: `Hoje: ${availability.toFixed(1)}%` }
-            ] : []
+            change: availability > 0 ? 'Uptime calculado' : 'Sem dados',
+            sparkline: buildSparkline(machines, 'created_at', null)
           },
           { 
             label: 'Custo Total Frota (TCO)', 
             value: totalTCO > 0 ? `R$ ${(totalTCO / 1000).toFixed(1)}k` : '---', 
             icon: DollarSign, 
             color: '#ef4444', 
-            progress: totalTCO > 0 ? 82 : 0,
-            trend: 'up',
-            change: 'Combustível + Oficina',
+            progress: totalTCO > 0 ? Math.min(100, (totalTCO / 500000) * 100) : 0,
+            trend: totalTCO > 0 ? 'up' : 'none',
+            change: totalTCO > 0 ? 'Combustível + Oficina' : 'Sem custos registrados',
             periodLabel: 'Custo Acumulado',
-            sparkline: totalTCO > 0 ? [
-              { value: 55, label: 'R$190k' }, { value: 60, label: 'R$195k' }, { value: 65, label: 'R$200k' },
-              { value: 70, label: 'R$204k' }, { value: 74, label: 'R$208k' }, { value: 78, label: 'R$211k' },
-              { value: 82, label: `Hoje: ${totalTCO > 0 ? `R$${(totalTCO/1000).toFixed(1)}k` : 'R$214k'}` }
-            ] : []
+            sparkline: buildSparkline(fuelings, 'data', 'valor_total')
           },
           { 
             label: 'MTBF (Confiabilidade)', 
             value: mtbf > 0 ? `${mtbf}h` : '---', 
             icon: Zap, 
             color: '#10b981', 
-            progress: mtbf > 0 ? 90 : 0,
-            trend: 'up',
-            change: 'Eficiente',
+            progress: mtbf > 0 ? Math.min(100, (mtbf / 1000) * 100) : 0,
+            trend: mtbf > 0 ? 'up' : 'none',
+            change: mtbf > 0 ? `${failures} ocorrências registradas` : 'Sem manutenções',
             periodLabel: 'Ciclo Falhas',
-            sparkline: mtbf > 0 ? [
-              { value: 60, label: `${Math.round(mtbf * 0.65)}h` }, { value: 66, label: `${Math.round(mtbf * 0.72)}h` },
-              { value: 72, label: `${Math.round(mtbf * 0.78)}h` }, { value: 78, label: `${Math.round(mtbf * 0.84)}h` },
-              { value: 83, label: `${Math.round(mtbf * 0.89)}h` }, { value: 87, label: `${Math.round(mtbf * 0.95)}h` },
-              { value: 90, label: `Hoje: ${mtbf}h` }
-            ] : []
+            sparkline: buildSparkline(maintenance, 'data_inicio', 'custo')
           },
           { 
             label: 'Eficiência Diesel', 
             value: avgDiesel > 0 ? `${avgDiesel.toFixed(1)} L/abast.` : '---', 
             icon: Droplets, 
             color: '#f59e0b', 
-            progress: avgDiesel > 0 ? 75 : 0,
-            trend: 'down',
-            change: 'Média Consumo',
+            progress: avgDiesel > 0 ? Math.min(100, (avgDiesel / 200) * 100) : 0,
+            trend: avgDiesel > 0 ? 'up' : 'none',
+            change: avgDiesel > 0 ? 'Média real de abastecimentos' : 'Sem abastecimentos',
             periodLabel: 'Consumo Médio',
-            sparkline: avgDiesel > 0 ? [
-              { value: 90, label: `${(avgDiesel + 2.4).toFixed(1)}L` }, { value: 86, label: `${(avgDiesel + 1.8).toFixed(1)}L` },
-              { value: 83, label: `${(avgDiesel + 1.2).toFixed(1)}L` }, { value: 80, label: `${(avgDiesel + 0.8).toFixed(1)}L` },
-              { value: 78, label: `${(avgDiesel + 0.4).toFixed(1)}L` }, { value: 76, label: `${(avgDiesel + 0.1).toFixed(1)}L` },
-              { value: 75, label: `Hoje: ${avgDiesel.toFixed(1)}L` }
-            ] : []
+            sparkline: buildSparkline(fuelings, 'data', 'litros')
           },
         ]);
 

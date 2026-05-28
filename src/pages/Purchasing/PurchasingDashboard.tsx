@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   ShoppingCart, 
   TrendingUp, 
@@ -41,10 +58,10 @@ export const PurchasingDashboard: React.FC = () => {
   const [topSuppliers, setTopSuppliers] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' as const, sparkline: [] },
-    { label: 'Exposição de Caixa', value: '---', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...', sparkline: [] },
-    { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...', sparkline: [] },
-    { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Auditando...', sparkline: [] }
+    { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' as const, sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
+    { label: 'Exposição de Caixa', value: '---', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
+    { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
+    { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Auditando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') }
   ]);
 
   useEffect(() => {
@@ -147,10 +164,10 @@ export const PurchasingDashboard: React.FC = () => {
             ] : []
           },
           { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA Aprovação',
-            sparkline: []
+            sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total')
           },
           { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Real vs Planejado',
-            sparkline: []
+            sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total')
           }
         ]);
 

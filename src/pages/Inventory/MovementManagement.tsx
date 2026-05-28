@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   ArrowRightLeft, 
   Plus, 
@@ -42,14 +59,10 @@ export const MovementManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([
-    { label: 'Movimentações', value: '0', icon: ArrowDownLeft, color: '#10b981', progress: 0, change: 'Volume de Log',
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Página Atual', value: '1', icon: ArrowUpRight, color: '#3b82f6', progress: 100, change: 'Visão de Grade',
-      sparkline: [1,1,1,1,1,1,1].map((v,i) => ({ value: v, label: `Pag ${v}` })) },
-    { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências',
-      sparkline: [96,97,98,98,99,99,100].map((v,i) => ({ value: v, label: `${v}%` })) },
-    { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real',
-      sparkline: [100,100,100,100,100,100,100].map((v,i) => ({ value: v, label: `${v}%` })) },
+    { label: 'Movimentações', value: '---', icon: ArrowDownLeft, color: '#10b981', progress: 0, change: 'Volume de Log', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
+    { label: 'Entradas (Pag.)', value: '---', icon: ArrowUpRight, color: '#3b82f6', progress: 0, change: 'Entradas', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
+    { label: 'Saídas (Pag.)', value: '---', icon: Activity, color: '#166534', progress: 0, change: 'Saídas', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
+    { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
   ]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -110,20 +123,29 @@ export const MovementManagement: React.FC = () => {
       if (data) {
         setMovements(data);
         setTotalCount(count || 0);
-        
-        setStats([
-          { label: 'Movimentações', value: String(count || 0), icon: ArrowDownLeft, color: '#10b981', progress: 100, change: 'Volume de Log',
-            sparkline: (() => { const n = count || 0; return [n*0.50,n*0.60,n*0.70,n*0.78,n*0.86,n*0.93,n].map((v,i) => ({ value: Math.round(v), label: `Sem ${i+1}` })); })()
+            setStats([
+          { label: 'Movimentações', 
+            value: (count ?? 0) > 0 ? String(count) : '---', 
+            icon: ArrowDownLeft, color: '#10b981', 
+            progress: (count ?? 0) > 0 ? 100 : 0, 
+            change: (count ?? 0) > 0 ? 'Volume de Log' : 'Sem movimentações',
+            sparkline: buildSparkline(movements || [], 'data', 'quantidade')
           },
-          { label: 'Página Atual', value: `${page}`, icon: ArrowUpRight, color: '#3b82f6', progress: 100, change: 'Visão de Grade',
-            sparkline: [1,1,1,1,1,1,page].map((v,i) => ({ value: v, label: `Pag ${v}` }))
+          { label: 'Entradas (Pág.)', 
+            value: (() => { const n = data.filter((m: any) => m.tipo === 'in').length; return n > 0 ? n : '---'; })(), 
+            icon: ArrowUpRight, color: '#10b981', 
+            progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'in').length / data.length) * 100 : 0, 
+            change: 'Entradas desta página',
+            sparkline: buildSparkline(movements || [], 'data', 'quantidade')
           },
-          { label: 'Integridade Audit', value: '100%', icon: Activity, color: '#166534', progress: 100, change: 'Sem Divergências',
-            sparkline: [96,97,98,98,99,99,100].map((v,i) => ({ value: v, label: `${v}%` }))
+          { label: 'Saídas (Pág.)', 
+            value: (() => { const n = data.filter((m: any) => m.tipo === 'out').length; return n > 0 ? n : '---'; })(), 
+            icon: Activity, color: '#ef4444', 
+            progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'out').length / data.length) * 100 : 0, 
+            change: 'Saídas desta página',
+            sparkline: buildSparkline(movements || [], 'data', 'quantidade')
           },
-          { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real',
-            sparkline: [100,100,100,100,100,100,100].map((v,i) => ({ value: v, label: `${v}%` }))
-          },
+          { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
         ]);
       }
     } catch (err) {

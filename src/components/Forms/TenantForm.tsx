@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Building2, CreditCard, Mail, Phone, Lock } from 'lucide-react';
@@ -25,13 +25,17 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
 
   useEffect(() => {
     if (initialData) {
+      const normalizedStatus = initialData.status 
+        ? initialData.status.charAt(0).toUpperCase() + initialData.status.slice(1).toLowerCase() 
+        : 'Ativo';
+
       setFormData({
         name: initialData.name || '',
         cnpj: initialData.document || initialData.id || '',
         email: initialData.email || '',
         phone: initialData.phone || '',
         plan: initialData.plan || 'Starter',
-        status: initialData.status || 'Ativo',
+        status: ['Ativo', 'Suspenso', 'Cancelado'].includes(normalizedStatus) ? normalizedStatus : 'Ativo',
         adminName: '', // Em edição, talvez não se edite o admin root aqui
         adminEmail: ''
       });
@@ -146,7 +150,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
                       onChange={e => setFormData({...formData, status: e.target.value})}
                     >
                       <option value="Ativo">Ativo</option>
-                      <option value="Bloqueado">Bloqueado (Inadimplência)</option>
+                      <option value="Suspenso">Suspenso</option>
                       <option value="Cancelado">Cancelado</option>
                     </select>
                   </div>

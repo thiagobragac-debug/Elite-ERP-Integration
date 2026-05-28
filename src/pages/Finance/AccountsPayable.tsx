@@ -350,7 +350,7 @@ export const AccountsPayable: React.FC = () => {
             icon={stat.icon || getIcon(stat.label)}
             color={stat.color || 'brand'}
             progress={stat.progress}
-            change={stat.change || '+2.1%'}
+            change={stat.change || '---'}
             trend={stat.trend === 'neutral' ? undefined : stat.trend}
             sparkline={stat.sparkline}
           

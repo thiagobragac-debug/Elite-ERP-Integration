@@ -32,7 +32,7 @@ interface NavItem {
 }
 
 const menuItems: NavItem[] = [
-  { title: 'Dashboard', icon: LayoutDashboard, href: '/' },
+  { title: 'Dashboard', icon: LayoutDashboard, href: '/painel' },
   { 
     title: 'Administração', 
     icon: Settings,

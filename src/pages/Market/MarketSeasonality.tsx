@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { supabase } from '../../lib/supabase';
 import { fetchHistoricalQuotes } from '../../lib/marketQueries';
 import {
@@ -163,9 +180,8 @@ export const MarketSeasonality: React.FC = () => {
 
   // Build a 7-point sparkline from last 7 data entries for each KPI
   const sparkLastN = (year: string | null, n: number = 7) => {
-    if (!year) return [0,0,0,0,0,0,0].map((v,i) => ({ value: 0, label: `${i+1}` }));
+    if (!year) return [];
     const vals = data.filter(d => d[year] != null).slice(-n).map((d,i) => ({ value: d[year] as number, label: d.displayDate || `${i+1}` }));
-    while (vals.length < n) vals.unshift({ value: vals[0]?.value ?? 0, label: '-' });
     return vals;
   };
 
@@ -188,7 +204,7 @@ export const MarketSeasonality: React.FC = () => {
       color: '#ef4444',
       progress: 100,
       change: `${selectedYears.length} anos comparados`,
-      sparkline: maxVal ? [maxVal*0.7,maxVal*0.78,maxVal*0.84,maxVal*0.89,maxVal*0.93,maxVal*0.97,maxVal].map((v,i) => ({ value: v, label: `${i+1}` })) : undefined,
+      sparkline: sparkLastN(latestYear),
       periodLabel: selectedYears.length > 0 ? `${selectedYears.length} anos` : 'Série Completa'
     },
     {
@@ -198,7 +214,7 @@ export const MarketSeasonality: React.FC = () => {
       color: '#3b82f6',
       progress: 0,
       change: `Amplitude: ${fmtVal(amplitude)}`,
-      sparkline: minVal ? [minVal,minVal*1.05,minVal*1.08,minVal*1.06,minVal*1.04,minVal*1.02,minVal].map((v,i) => ({ value: v, label: `${i+1}` })) : undefined,
+      sparkline: sparkLastN(latestYear),
       periodLabel: selectedYears.length > 0 ? `${selectedYears.length} anos` : 'Série Completa'
     },
     {
@@ -209,7 +225,7 @@ export const MarketSeasonality: React.FC = () => {
       progress: yoyChange !== null ? Math.min(Math.abs(yoyChange) * 5, 100) : 0,
       change: yoyChange !== null ? (yoyChange >= 0 ? 'Acima do ano anterior' : 'Abaixo do ano anterior') : 'Selecione 2+ anos',
       trend: yoyChange !== null ? (yoyChange >= 0 ? 'up' : 'down') : undefined,
-      sparkline: yoyChange !== null ? [-5,-3,-2,0,1,2,yoyChange].map((v,i) => ({ value: v, label: `${v.toFixed(1)}%` })) : undefined,
+      sparkline: buildSparkline(data || [], 'data', 'preco'),
       periodLabel: latestYear && prevYear ? `${prevYear} → ${latestYear}` : 'Ano a Ano'
     }
   ];

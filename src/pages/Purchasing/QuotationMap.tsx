@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { useNavigate } from 'react-router-dom';
 import { 
   BarChart2, 
@@ -64,14 +81,10 @@ export const QuotationMap: React.FC = () => {
     } else {
       setLoading(false);
       setStats([
-        { label: 'Mapas em Análise', value: 0, icon: BarChart2, color: '#10b981', progress: 0, change: 'Aguardando',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Saving Acumulado', value: 'R$ 0,00', icon: TrendingDown, color: '#3b82f6', progress: 0, change: 'Aguardando',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Densidade de Rede', value: '0 propostas', icon: Building2, color: '#f59e0b', progress: 0, change: 'Aguardando',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Aguardando',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Mapas em Análise', value: '---', icon: BarChart2, color: '#10b981', progress: 0, change: 'Aguardando', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
+        { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#3b82f6', progress: 0, change: 'Aguardando', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
+        { label: 'Densidade de Rede', value: '---', icon: Building2, color: '#f59e0b', progress: 0, change: 'Aguardando', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
+        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Aguardando', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
       ]);
     }
   }, [activeFarmId, isGlobalMode, activeTenantId]);
@@ -104,37 +117,43 @@ export const QuotationMap: React.FC = () => {
         const avgBids = data.length > 0 ? (totalBids / data.length).toFixed(1) : 0;
         
         setStats([
-          { label: 'Mapas em Análise', value: abertas, icon: BarChart2, color: '#10b981', progress: 100, change: 'Processos Ativos',
-            sparkline: [
-              { value: Math.max(abertas-4,0) }, { value: Math.max(abertas-3,0) }, { value: Math.max(abertas-2,0) },
-              { value: Math.max(abertas-1,0) }, { value: abertas }, { value: abertas }, { value: abertas, label: `Hoje: ${abertas}` }
-            ]
+          { label: 'Mapas em Análise', 
+            value: abertas > 0 ? abertas : '---', 
+            icon: BarChart2, color: '#10b981', 
+            progress: data.length > 0 ? (abertas / data.length) * 100 : 0, 
+            change: abertas > 0 ? 'Processos Ativos' : 'Nenhum ativo',
+            sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
           },
-          { label: 'Saving Acumulado', value: `R$ ${totalSaving.toLocaleString('pt-BR')}`, icon: TrendingDown, color: '#3b82f6', progress: 85, trend: 'down' as const, change: 'Economia Real',
-            sparkline: [
-              { value: Math.round(totalSaving*0.40) }, { value: Math.round(totalSaving*0.53) }, { value: Math.round(totalSaving*0.64) },
-              { value: Math.round(totalSaving*0.74) }, { value: Math.round(totalSaving*0.83) }, { value: Math.round(totalSaving*0.91) },
-              { value: Math.round(totalSaving), label: 'Hoje' }
-            ]
+          { label: 'Saving Acumulado', 
+            value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---', 
+            icon: TrendingDown, color: '#3b82f6', 
+            progress: totalSaving > 0 ? Math.min(100, Math.log10(totalSaving + 1) * 20) : 0, 
+            trend: totalSaving > 0 ? 'down' as const : 'neutral' as const, 
+            change: totalSaving > 0 ? 'Economia Real' : 'Sem saving',
+            sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
           },
-          { label: 'Densidade de Rede', value: `${avgBids} propostas`, icon: Building2, color: '#f59e0b', progress: 100, change: 'Média por Mapa',
-            sparkline: [2,2,3,3,3,3,Number(avgBids)].map((v,i) => ({ value: v, label: i<6?`Sem ${i+1}`:`Hoje: ${v}` }))
+          { label: 'Densidade de Rede', 
+            value: data.length > 0 && totalBids > 0 ? `${avgBids} propostas` : '---', 
+            icon: Building2, color: '#f59e0b', 
+            progress: data.length > 0 ? Math.min(100, Number(avgBids) * 20) : 0, 
+            change: data.length > 0 ? 'Média por Mapa' : 'Sem cotações',
+            sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
           },
-          { label: 'Acuracidade Orç.', value: '98%', icon: Target, color: '#166534', progress: 98, change: 'Precisão Lead',
-            sparkline: [93,94,95,96,97,97,98].map((v,i) => ({ value: v, label: `${v}%` }))
+          { label: 'Cotações Fechadas', 
+            value: (() => { const fechadas = data.filter(q => q.status === 'closed').length; return fechadas > 0 ? fechadas : '---'; })(),
+            icon: Target, color: '#166534', 
+            progress: data.length > 0 ? (data.filter(q => q.status === 'closed').length / data.length) * 100 : 0, 
+            change: data.length > 0 ? 'Contratos firmados' : 'Sem dados',
+            sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
           },
         ]);
         if (data.length === 0) {
           setQuotations([]);
           setStats([
-            { label: 'Mapas em Análise', value: 0, icon: BarChart2, color: '#10b981', progress: 0, change: 'Sem Processos',
-              sparkline: [0,0,0,0,0,0,0].map((_, i) => ({ value: 0, label: `Sem ${i+1}` })) },
-            { label: 'Saving Acumulado', value: 'R$ 0', icon: TrendingDown, color: '#3b82f6', progress: 0, trend: 'neutral' as const, change: 'Sem Economia',
-              sparkline: [0,0,0,0,0,0,0].map((_, i) => ({ value: 0, label: `Sem ${i+1}` })) },
-            { label: 'Densidade de Rede', value: '0 propostas', icon: Building2, color: '#f59e0b', progress: 0, change: 'Sem Média',
-              sparkline: [0,0,0,0,0,0,0].map((_, i) => ({ value: 0, label: `Sem ${i+1}` })) },
-            { label: 'Acuracidade Orç.', value: '0%', icon: Target, color: '#166534', progress: 0, change: 'Sem Acuracidade',
-              sparkline: [0,0,0,0,0,0,0].map((_, i) => ({ value: 0, label: `0%` })) },
+            { label: 'Mapas em Análise', value: '---', icon: BarChart2, color: '#10b981', progress: 0, change: 'Sem Processos', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
+            { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#3b82f6', progress: 0, trend: 'neutral' as const, change: 'Sem Economia', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
+            { label: 'Densidade de Rede', value: '---', icon: Building2, color: '#f59e0b', progress: 0, change: 'Sem Média', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
+            { label: 'Cotações Fechadas', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Sem Acuracidade', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
           ]);
         }
       }

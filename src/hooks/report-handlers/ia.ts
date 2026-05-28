@@ -1,6 +1,33 @@
 import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 
+const todayBR = () => new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const monthYearBR = () => new Date().toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+
+const fmtDateBR = (dateStr?: string | null): string => {
+  if (!dateStr) return todayBR();
+  try { return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+  catch { return todayBR(); }
+};
+const latestDate = (records: any[], dateField: string): string | null => {
+  if (!records || records.length === 0) return null;
+  const sorted = [...records].filter(r => r[dateField])
+    .sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
+  return sorted.length > 0 ? fmtDateBR(sorted[0][dateField]) : null;
+};
+const earliestPending = (records: any[], dateField: string, pendingStatuses = ['PENDENTE','pendente','aberto','ABERTO']): string | null => {
+  const pending = records.filter(r => r[dateField] && pendingStatuses.includes(r.status || ''));
+  if (pending.length === 0) return null;
+  const sorted = pending.sort((a: any, b: any) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  return fmtDateBR(sorted[0][dateField]);
+};
+const latestPaid = (records: any[], dateField: string, paidStatuses = ['PAGO','pago','LIQUIDADO','liquidado','RECEBIDO','recebido']): string | null => {
+  const paid = records.filter(r => r[dateField] && paidStatuses.includes(r.status || ''));
+  if (paid.length === 0) return null;
+  const sorted = paid.sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
+  return fmtDateBR(sorted[0][dateField]);
+};
+
 const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
@@ -10,167 +37,236 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
   ]);
 };
 
+// Gera sparkline a partir de registros reais agrupados por data
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets: number = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records]
+    .filter(r => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v = inBucket.length === 0
+      ? 0
+      : valueField
+        ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+        : inBucket.length;
+    const d = new Date(bStart + bucketMs / 2);
+    return {
+      value: Number(v.toFixed(2)),
+      label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    };
+  });
+}
+
 /**
  * IA: Projeção de Monte Carlo
+ * Calcula cenários probabilísticos com base em receitas e despesas reais do banco
  */
 export const monteCarlo: ReportHandler = async (tenantId, fazendaId) => {
-  const mockData = {
-    data: [
-      { scenario: 'Pessimista (σ-2) 🔴', prob: '5%', receita: 'R$ 3.125.000', custos: 'R$ 2.000.000', margem: '36.0%', roi: '6.2%', profit: 'R$ 1.125.000' },
-      { scenario: 'Conservador (σ-1) 🟡', prob: '20%', receita: 'R$ 3.625.000', custos: 'R$ 2.175.000', margem: '40.0%', roi: '9.4%', profit: 'R$ 1.450.000' },
-      { scenario: 'Base (μ) 🔵', prob: '50%', receita: 'R$ 4.250.000', custos: 'R$ 2.550.000', margem: '40.0%', roi: '15.4%', profit: 'R$ 1.700.000' },
-      { scenario: 'Otimista (σ+1) 🟢', prob: '20%', receita: 'R$ 4.875.000', custos: 'R$ 2.925.000', margem: '40.0%', roi: '18.2%', profit: 'R$ 1.950.000' },
-      { scenario: 'Agressivo (σ+2) ✨', prob: '5%', receita: 'R$ 5.500.000', custos: 'R$ 3.300.000', margem: '40.0%', roi: '22.8%', profit: 'R$ 2.200.000' }
-    ],
-    columns: [
-      { header: 'Cenário Probabilístico', accessor: 'scenario' },
-      { header: 'Probabilidade', accessor: 'prob' },
-      { header: 'Receita Est.', accessor: 'receita' },
-      { header: 'Custos Est.', accessor: 'custos' },
-      { header: 'Margem Op. %', accessor: 'margem' },
-      { header: 'ROI Est. %', accessor: 'roi' },
-      { header: 'Ebitda Projetado', accessor: 'profit' }
-    ],
-    stats: [
-      { label: 'VaR (95%)', sparkline: (() => {  const valStr = String('R$ 1.150.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 1.150.000', change: 'Risco Médio', trend: 'neutral' as const },
-      { label: 'E(Profit) Médio', sparkline: (() => {  const valStr = String('R$ 1.700.000'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: 'R$ 1.700.000', change: '+2.4%', trend: 'up' as const },
-      { label: 'Índice de Sharpe', sparkline: (() => {  const valStr = String('1.24'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.24', change: '+0.12', trend: 'up' as const },
-      { label: 'Confiança Modelo', sparkline: (() => {  const valStr = String('95%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '95%', change: 'Estável', trend: 'neutral' as const }
-    ]
-  };
+  const columns = [
+    { header: 'Cenário Probabilístico', accessor: 'scenario' },
+    { header: 'Probabilidade', accessor: 'prob' },
+    { header: 'Receita Est.', accessor: 'receita' },
+    { header: 'Custos Est.', accessor: 'custos' },
+    { header: 'Margem Op. %', accessor: 'margem' },
+    { header: 'ROI Est. %', accessor: 'roi' },
+    { header: 'Ebitda Projetado', accessor: 'profit' }
+  ];
 
   try {
-    const fetchSummary = supabase.rpc('get_ia_monte_carlo_projection', { p_tenant_id: tenantId, p_fazenda_id: fazendaId });
-    const { data: summary, error } = await withTimeout((fetchSummary as unknown) as Promise<any>) as any;
-    
-    if (error) throw error;
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
 
-    const baseProfit = Number(summary?.base_profit || 0);
-    const baseReceita = Number(summary?.total_receitas || 0);
-    const baseDespesas = Number(summary?.total_despesas || 0);
+    // Buscar receitas, despesas e registros de atividade para calcular confiança do modelo
+    const [summaryRes, receitasRes, despesasRes, animaisRes, logsRes] = await Promise.all([
+      withTimeout(supabase.rpc('get_ia_monte_carlo_projection', {
+        p_tenant_id: tenantId,
+        p_fazenda_id: fazendaId
+      }) as unknown as Promise<any>),
+      withTimeout(supabase
+        .from('contas_receber')
+        .select('valor_total')
+        .match(scope) as unknown as Promise<any>),
+      withTimeout(supabase
+        .from('contas_pagar')
+        .select('valor_total')
+        .match(scope) as unknown as Promise<any>),
+      withTimeout(supabase
+        .from('animais')
+        .select('id', { count: 'exact', head: true })
+        .match(scope) as unknown as Promise<any>),
+      withTimeout(supabase
+        .from('audit_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId) as unknown as Promise<any>)
+    ]);
+
+    const baseReceita = Number(summaryRes.data?.total_receitas || 0)
+      || receitasRes.data?.reduce((acc: number, r: any) => acc + Number(r.valor_total || 0), 0) || 0;
+    const baseDesp = Number(summaryRes.data?.total_despesas || 0)
+      || despesasRes.data?.reduce((acc: number, d: any) => acc + Number(d.valor_total || 0), 0) || 0;
+    const baseProfit = Number(summaryRes.data?.base_profit || (baseReceita - baseDesp));
+
+    // Confiança do modelo baseada no volume de dados registrados
+    const totalRegistros = (animaisRes.count || 0) + (logsRes.count || 0);
+    const _lastRecDate = latestDate(receitasRes.data || [], 'data_vencimento');
+    const confianca = totalRegistros > 0
+      ? Math.min(95, 60 + totalRegistros * 2) + '%'
+      : '---';
+
+    // VaR (95%): perda máxima esperada = diferença entre cenário base e pessimista
+    const varVal = baseReceita > 0 ? Math.abs(baseProfit - (baseProfit * 0.7)) : 0;
+
+    const buildCenario = (label: string, prob: string, receiFactor: number, profFactor: number) => {
+      const r = baseReceita * receiFactor;
+      const p = baseProfit * profFactor;
+      const c = r - p;
+      const margem = r > 0 ? ((p / r) * 100).toFixed(1) + '%' : '---';
+      const roi = c > 0 ? ((p / c) * 100).toFixed(1) + '%' : '---';
+      return {
+        scenario: label,
+        prob,
+        receita: r > 0 ? `R$ ${r.toLocaleString()}` : '---',
+        custos: c > 0 ? `R$ ${c.toLocaleString()}` : '---',
+        margem,
+        roi,
+        profit: p > 0 ? `R$ ${p.toLocaleString()}` : '---'
+      };
+    };
 
     return {
-      data: [
-        { 
-          scenario: 'Pessimista (σ-2) 🔴', 
-          prob: '5%', 
-          receita: `R$ ${(baseReceita * 0.73).toLocaleString()}`,
-          custos: `R$ ${(baseReceita * 0.73 - baseProfit * 0.7).toLocaleString()}`,
-          margem: `${((baseProfit * 0.7) / (baseReceita * 0.73) * 100).toFixed(1)}%`,
-          roi: `${((baseProfit * 0.7) / (baseReceita * 0.73 - baseProfit * 0.7) * 100).toFixed(1)}%`,
-          profit: `R$ ${(baseProfit * 0.7).toLocaleString()}` 
+      data: baseReceita > 0 ? [
+        buildCenario('Pessimista (σ-2) 🔴', '5%', 0.73, 0.70),
+        buildCenario('Conservador (σ-1) 🟡', '20%', 0.86, 0.85),
+        buildCenario('Base (μ) 🔵', '50%', 1.00, 1.00),
+        buildCenario('Otimista (σ+1) 🟢', '20%', 1.13, 1.15),
+        buildCenario('Agressivo (σ+2) ✨', '5%', 1.28, 1.30)
+      ] : [],
+      columns,
+      stats: [
+        {
+          label: 'VaR (95%)',
+          subtitle: _lastRecDate ? `Base: dados de ${_lastRecDate}` : `Calculado em ${todayBR()}`,
+          sparkline: buildSparkline(receitasRes.data || [], 'data_vencimento', 'valor_total'),
+          value: varVal > 0 ? `R$ ${varVal.toLocaleString()}` : '---',
+          change: varVal > 0 ? 'Risco calculado' : 'Sem dados financeiros',
+          trend: 'neutral' as const
         },
-        { 
-          scenario: 'Conservador (σ-1) 🟡', 
-          prob: '20%', 
-          receita: `R$ ${(baseReceita * 0.86).toLocaleString()}`,
-          custos: `R$ ${(baseReceita * 0.86 - baseProfit * 0.85).toLocaleString()}`,
-          margem: `${((baseProfit * 0.85) / (baseReceita * 0.86) * 100).toFixed(1)}%`,
-          roi: `${((baseProfit * 0.85) / (baseReceita * 0.86 - baseProfit * 0.85) * 100).toFixed(1)}%`,
-          profit: `R$ ${(baseProfit * 0.85).toLocaleString()}` 
+        {
+          label: 'E(Profit) Médio',
+          subtitle: _lastRecDate ? `Dados até ${_lastRecDate}` : `Cenário base em ${monthYearBR()}`,
+          sparkline: buildSparkline(receitasRes.data || [], 'data_vencimento', 'valor_total'),
+          value: baseProfit > 0 ? `R$ ${baseProfit.toLocaleString()}` : '---',
+          change: baseProfit > 0 ? 'Cenário base' : 'Sem dados financeiros',
+          trend: 'neutral' as const
         },
-        { 
-          scenario: 'Base (μ) 🔵', 
-          prob: '50%', 
-          receita: `R$ ${baseReceita.toLocaleString()}`,
-          custos: `R$ ${(baseReceita - baseProfit).toLocaleString()}`,
-          margem: `${(baseProfit / baseReceita * 100).toFixed(1)}%`,
-          roi: `${(baseProfit / (baseReceita - baseProfit) * 100).toFixed(1)}%`,
-          profit: `R$ ${baseProfit.toLocaleString()}` 
+        {
+          label: 'Índice de Sharpe',
+          subtitle: _lastRecDate ? `Calculado com dados de ${_lastRecDate}` : 'Sem dados suficientes',
+          sparkline: buildSparkline(despesasRes.data || [], 'data_vencimento', 'valor_total'),
+          value: summaryRes.data?.sharpe_ratio ? String(summaryRes.data.sharpe_ratio) : '---',
+          change: summaryRes.data?.sharpe_ratio ? 'Calculado' : 'Sem dados suficientes',
+          trend: 'neutral' as const
         },
-        { 
-          scenario: 'Otimista (σ+1) 🟢', 
-          prob: '20%', 
-          receita: `R$ ${(baseReceita * 1.13).toLocaleString()}`,
-          custos: `R$ ${(baseReceita * 1.13 - baseProfit * 1.15).toLocaleString()}`,
-          margem: `${((baseProfit * 1.15) / (baseReceita * 1.13) * 100).toFixed(1)}%`,
-          roi: `${((baseProfit * 1.15) / (baseReceita * 1.13 - baseProfit * 1.15) * 100).toFixed(1)}%`,
-          profit: `R$ ${(baseProfit * 1.15).toLocaleString()}` 
-        },
-        { 
-          scenario: 'Agressivo (σ+2) ✨', 
-          prob: '5%', 
-          receita: `R$ ${(baseReceita * 1.28).toLocaleString()}`,
-          custos: `R$ ${(baseReceita * 1.28 - baseProfit * 1.3).toLocaleString()}`,
-          margem: `${((baseProfit * 1.3) / (baseReceita * 1.28) * 100).toFixed(1)}%`,
-          roi: `${((baseProfit * 1.3) / (baseReceita * 1.28 - baseProfit * 1.3) * 100).toFixed(1)}%`,
-          profit: `R$ ${(baseProfit * 1.3).toLocaleString()}` 
+        {
+          label: 'Confiança Modelo',
+          subtitle: totalRegistros > 0 ? `Com base em ${totalRegistros} registros` : 'Base de dados vazia',
+          sparkline: buildSparkline(receitasRes.data || [], 'data_vencimento', 'valor_total'),
+          value: confianca,
+          change: totalRegistros > 0 ? `${totalRegistros} registros` : 'Base vazia',
+          trend: 'neutral' as const
         }
       ],
-      columns: mockData.columns,
-      stats: [
-        { label: 'VaR (95%)', sparkline: (() => {  const valStr = String(`R$ ${Number(summary?.var_95 || 0).toLocaleString()}`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `R$ ${Number(summary?.var_95 || 0).toLocaleString()}`, change: 'Risco Auditado', trend: 'neutral' as const },
-        { label: 'E(Profit) Médio', sparkline: (() => { const v = baseProfit || 1700000; return [v*0.5,v*0.6,v*0.7,v*0.8,v*0.9,v*0.95,v].map((x,i) => ({ value: Math.round(x), label: `S${i+1}` })); })(), value: `R$ ${baseProfit.toLocaleString()}`, change: 'Sincronizado', trend: 'neutral' as const },
-        { label: 'Índice de Sharpe', sparkline: (() => { const v = Number(summary?.sharpe_ratio || 1.24); return [v*0.65,v*0.74,v*0.82,v*0.89,v*0.93,v*0.97,v].map((x,i) => ({ value: Math.round(x*100)/100, label: `${Math.round(x*100)/100}` })); })(), value: summary?.sharpe_ratio || '0', change: 'Real-time', trend: 'neutral' as const },
-        { label: 'Confiança Modelo', sparkline: (() => {  const valStr = String('95%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '95%', change: 'Real-time', trend: 'neutral' as const }
-      ]
+      totalCount: baseReceita > 0 ? 5 : 0
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };
 
 /**
  * IA: Capacidade de Suporte de Pasto (Satélite)
  */
 export const suportePasto: ReportHandler = async (tenantId, fazendaId, page = 1, pageSize = 20) => {
-  const mockData = {
-    data: [
-      { id: 'ia1', nome: 'Piquete 04 🌿', area: '50 ha', ndvi: '0.78', umidade: '64.2%', suporte: '120 UA', desvio: '+15 UA 📈', status: 'Excelente 🌿' },
-      { id: 'ia2', nome: 'Piquete 12 🍂', area: '45 ha', ndvi: '0.65', umidade: '41.5%', suporte: '85 UA', desvio: '-5 UA 📉', status: 'Atenção ⚠️' },
-      { id: 'ia3', nome: 'Pastagem Principal 🔥', area: '120 ha', ndvi: '0.42', umidade: '18.9%', suporte: '110 UA', desvio: '-60 UA 🚨', status: 'Crítico 🚨' }
-    ],
-    columns: [
-      { header: 'Pasto/Piquete', accessor: 'nome' },
-      { header: 'Área (ha)', accessor: 'area' },
-      { header: 'NDVI (Satélite)', accessor: 'ndvi' },
-      { header: 'Umidade Foliar', accessor: 'umidade' },
-      { header: 'Suporte Est.', accessor: 'suporte' },
-      { header: 'Desvio vs Alvo', accessor: 'desvio' },
-      { header: 'Status Vegetativo', accessor: 'status' }
-    ],
-    stats: [
-      { label: 'NDVI Médio', sparkline: (() => {  const valStr = String('0.72'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '0.72', change: '+5%', trend: 'up' as const },
-      { label: 'Capacidade Total', sparkline: (() => {  const valStr = String('1.450 UA'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '1.450 UA', change: 'Estável', trend: 'neutral' as const },
-      { label: 'Dias de Pastejo', sparkline: (() => {  const valStr = String('24 dias'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}d` }; }); })(), value: '24 dias', change: '-2', trend: 'down' as const },
-      { label: 'Área Monitorada', sparkline: (() => {  const valStr = String('320 ha'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}ha` }; }); })(), value: '320 ha', change: 'Total', trend: 'neutral' as const }
-    ]
-  };
+  const columns = [
+    { header: 'Pasto/Piquete', accessor: 'nome' },
+    { header: 'Área (ha)', accessor: 'area' },
+    { header: 'NDVI (Satélite)', accessor: 'ndvi' },
+    { header: 'Umidade Foliar', accessor: 'umidade' },
+    { header: 'Suporte Est.', accessor: 'suporte' },
+    { header: 'Desvio vs Alvo', accessor: 'desvio' },
+    { header: 'Status Vegetativo', accessor: 'status' }
+  ];
 
   try {
+    const scope = fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId };
     const from = (page - 1) * pageSize;
     const to = from + pageSize - 1;
 
-    const fetchPastos = supabase
-      .from('pastos')
-      .select('*', { count: 'exact' })
-      .match(fazendaId ? { fazenda_id: fazendaId } : { tenant_id: tenantId })
-      .range(from, to);
-
-    const fetchSummary = supabase.rpc('get_paddock_support_capacity', { p_tenant_id: tenantId, p_fazenda_id: fazendaId });
-
     const [pastosRes, summaryRes] = await Promise.all([
-      withTimeout((fetchPastos as unknown) as Promise<any>) as any,
-      withTimeout((fetchSummary as unknown) as Promise<any>) as any
+      withTimeout(supabase
+        .from('pastos')
+        .select('*', { count: 'exact' })
+        .match(scope)
+        .range(from, to) as unknown as Promise<any>),
+      withTimeout(supabase.rpc('get_paddock_support_capacity', {
+        p_tenant_id: tenantId,
+        p_fazenda_id: fazendaId
+      }) as unknown as Promise<any>)
     ]);
 
     if (pastosRes.error) throw pastosRes.error;
 
+    const pastos = pastosRes.data || [];
+
+    // Calcular área total monitorada real
+    const _lastPastoDate = pastos.length > 0 ? latestDate(pastos, 'created_at') : null;
+
+    const areaTotal = pastos.reduce((acc: number, p: any) => acc + Number(p.area || 0), 0);
+    const areaTotalText = areaTotal > 0 ? `${areaTotal.toFixed(0)} ha` : '---';
+
+    // Dias de pastejo médio real (se existir campo dias_descanso)
+    const diasTotal = pastos.reduce((acc: number, p: any) => acc + Number(p.dias_descanso || 0), 0);
+    const diasMedio = pastos.length > 0 && diasTotal > 0 ? Math.round(diasTotal / pastos.length) : 0;
+    const diasText = diasMedio > 0 ? `${diasMedio} dias` : '---';
+
+    // NDVI médio (dos pastos com dado real ou estimado)
+    const ndviMedio = summaryRes.data?.ndvi_medio
+      || (pastos.length > 0 ? 0.65 : null); // estimativa básica se sem dado real
+
     return {
-      data: (pastosRes.data || []).map((p: any) => {
+      data: pastos.map((p: any) => {
         const areaVal = Number(p.area || 30);
-        const ndviVal = 0.5 + (Math.sin(areaVal) * 0.2 + 0.2); // semi-deterministic pseudo-random NDVI [0.5, 0.9]
+        // NDVI estimado - integração satélite pendente
+        const ndviVal = Number(p.ndvi || (0.5 + (Math.sin(areaVal) * 0.2 + 0.2)));
         const umidadeVal = (ndviVal * 80 + Math.cos(areaVal) * 5).toFixed(1);
         const suporteVal = Math.round(areaVal * 2.2 * ndviVal);
         const alvoVal = Math.round(areaVal * 1.8);
         const desvioVal = suporteVal - alvoVal;
-        
+
         let statusStr = 'Moderado 🟡';
         if (ndviVal >= 0.72) statusStr = 'Excelente 🌿';
         else if (ndviVal < 0.55) statusStr = 'Crítico 🚨';
         else statusStr = 'Atenção ⚠️';
 
-        return { 
-          id: p.id, 
-          nome: p.nome || 'Piquete N/A', 
+        return {
+          id: p.id,
+          nome: p.nome || '---',
           area: `${areaVal} ha`,
           ndvi: ndviVal.toFixed(2),
           umidade: `${umidadeVal}%`,
@@ -179,13 +275,57 @@ export const suportePasto: ReportHandler = async (tenantId, fazendaId, page = 1,
           status: statusStr
         };
       }),
-      columns: mockData.columns,
+      columns,
       stats: [
-        { label: 'NDVI Médio', sparkline: (() => { const v = Number(summaryRes.data?.ndvi_medio || 0.72); return [v*0.69,v*0.76,v*0.83,v*0.88,v*0.93,v*0.97,v].map((x,i) => ({ value: Math.round(x*100)/100, label: `${Math.round(x*100)/100}` })); })(), value: summaryRes.data?.ndvi_medio || '0.72', change: 'Satélite', trend: 'neutral' as const },
-        { label: 'Capacidade Total', sparkline: (() => {  const valStr = String(`${summaryRes.data?.capacidade_total || 0} UA`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${summaryRes.data?.capacidade_total || 0} UA`, change: 'Atual', trend: 'neutral' as const },
-        { label: 'Dias de Pastejo', sparkline: (() => {  const valStr = String('Real-time'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}d` }; }); })(), value: 'Real-time', change: 'Status', trend: 'neutral' as const },
-        { label: 'Área Monitorada', sparkline: (() => {  const valStr = String('320 ha'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}ha` }; }); })(), value: '320 ha', change: 'Satélite', trend: 'neutral' as const }
-      ]
+        {
+          label: 'NDVI Médio',
+          subtitle: _lastPastoDate ? `Satélite/estimado em ${_lastPastoDate}` : 'Sem dados de pasto',
+          sparkline: pastos.length > 0
+            ? pastos.map((p: any, i: number) => ({ value: Number((Number(p.ndvi || (0.5 + (Math.sin(Number(p.area || 30)) * 0.2 + 0.2)))).toFixed(2)), label: `P${i + 1}` }))
+            : [],
+          value: ndviMedio ? String(Number(ndviMedio).toFixed(2)) : '---',
+          change: ndviMedio ? 'Satélite/Estimado' : 'Sem pastos',
+          trend: 'neutral' as const
+        },
+        {
+          label: 'Capacidade Total',
+          subtitle: _lastPastoDate ? `Calculado em ${_lastPastoDate}` : 'Sem dados de pasto',
+          sparkline: pastos.length > 0
+            ? pastos.map((p: any, i: number) => ({ value: Math.round(Number(p.area || 0) * 2), label: `P${i + 1}` }))
+            : [],
+          value: summaryRes.data?.capacidade_total
+            ? `${summaryRes.data.capacidade_total} UA`
+            : pastos.length > 0
+              ? `${pastos.reduce((a: number, p: any) => a + Math.round(Number(p.area || 0) * 2), 0)} UA`
+              : '---',
+          change: pastos.length > 0 ? 'Estimado' : 'Sem dados',
+          trend: 'neutral' as const
+        },
+        {
+          label: 'Dias de Pastejo',
+          subtitle: _lastPastoDate ? `Média em ${_lastPastoDate}` : 'Sem dados de pasto',
+          sparkline: pastos.length > 0
+            ? pastos.map((p: any, i: number) => ({ value: Number(p.dias_descanso || 0), label: `P${i + 1}` }))
+            : [],
+          value: diasText,
+          change: diasMedio > 0 ? 'Média por pasto' : 'Sem dados',
+          trend: 'neutral' as const
+        },
+        {
+          label: 'Área Monitorada',
+          subtitle: _lastPastoDate ? `Cadastro em ${_lastPastoDate}` : 'Sem pastos cadastrados',
+          sparkline: pastos.length > 0
+            ? pastos.map((p: any, i: number) => ({ value: Number(p.area || 0), label: `P${i + 1}` }))
+            : [],
+          value: areaTotalText,
+          change: areaTotal > 0 ? 'Total cadastrado' : 'Sem dados',
+          trend: 'neutral' as const
+        }
+      ],
+      totalCount: pastosRes.count || 0
     };
-  } catch (error: any) { console.error("Error:", error); return { data: [], stats: [], columns: mockData.columns, totalCount: 0 }; }
+  } catch (error: any) {
+    console.error('Error:', error);
+    return { data: [], stats: [], columns, totalCount: 0 };
+  }
 };

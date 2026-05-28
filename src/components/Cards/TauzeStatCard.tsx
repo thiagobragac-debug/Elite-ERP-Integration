@@ -7,6 +7,7 @@ import { normalizeSparkline } from './sparklineUtils';
 interface TauzeStatCardProps {
   label: string;
   value: string | number;
+  subtitle?: string;
   icon: LucideIcon;
   color: string;
   change?: string;
@@ -17,6 +18,7 @@ interface TauzeStatCardProps {
   periodLabel?: string;
   className?: string;
   children?: React.ReactNode;
+  interpolate?: boolean;
 }
 
 const SPARKLINE_H = 44; // px — must match CSS
@@ -24,6 +26,7 @@ const SPARKLINE_H = 44; // px — must match CSS
 export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
   label,
   value,
+  subtitle,
   icon: Icon,
   color,
   change,
@@ -33,9 +36,10 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
   loading = false,
   periodLabel = 'Histórico',
   className = '',
-  children
+  children,
+  interpolate = false
 }) => {
-  const normalizedSparkline = React.useMemo(() => normalizeSparkline(sparkline), [sparkline]);
+  const normalizedSparkline = React.useMemo(() => normalizeSparkline(sparkline, interpolate), [sparkline, interpolate]);
 
   const [mounted, setMounted] = React.useState(false);
   const [hoveredBar, setHoveredBar] = React.useState<number | null>(null);
@@ -82,6 +86,11 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
         <div className="kpi-text-info">
           <span className="kpi-label-tauze">{label}</span>
           <span className="kpi-value-tauze">{value}</span>
+          {subtitle && (
+            <span style={{ fontSize: '10px', fontWeight: 600, color: 'hsl(var(--text-muted, #94a3b8))', letterSpacing: '0.02em', marginTop: 2, display: 'block', lineHeight: 1.4 }}>
+              {subtitle}
+            </span>
+          )}
           {change && (
             <div className={`kpi-trend-tauze ${trend || 'up'}`}>
               {trend === 'down' ? <ArrowDownRight size={14} /> : <ArrowUpRight size={14} />}
@@ -101,104 +110,146 @@ export const TauzeStatCard: React.FC<TauzeStatCardProps> = ({
 
       <div
         className="kpi-footer-tauze"
-        style={{ height: `${SPARKLINE_H}px`, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px', flexShrink: 0 }}
+        style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '16px', flexShrink: 0, minHeight: `${SPARKLINE_H}px` }}
       >
         {normalizedSparkline.length > 0 && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'flex-end',
-              gap: '3px',
-              height: `${SPARKLINE_H}px`,
-              flex: 1,
-              overflow: 'visible',
-              position: 'relative',
-            }}
-          >
-            {/* Tooltip flutuante — aparece imediatamente sem delay do browser */}
-            {hoveredBar !== null && normalizedSparkline[hoveredBar] && (() => {
-              const item = normalizedSparkline[hoveredBar];
-              const displayValue = item.value >= 1000
-                ? item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
-                : item.value % 1 !== 0
-                  ? item.value.toFixed(2)
-                  : item.value.toFixed(0);
-              const tooltipText = item.label && item.label !== String(hoveredBar + 1)
-                ? item.label
-                : displayValue;
+          <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 3 }}>
+            {/* ── Bars area ───────────────────────────────────────────── */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: '3px',
+                height: `${SPARKLINE_H}px`,
+                overflow: 'visible',
+                position: 'relative',
+              }}
+            >
+              {/* Tooltip flutuante — data + valor empilhados */}
+              {hoveredBar !== null && normalizedSparkline[hoveredBar] && (() => {
+                const item = normalizedSparkline[hoveredBar];
+                const displayValue = item.value >= 1000
+                  ? item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+                  : item.value % 1 !== 0
+                    ? item.value.toFixed(2)
+                    : item.value.toFixed(0);
+                const hasLabel = item.label && item.label !== String(hoveredBar + 1);
 
-              // Posição horizontal do tooltip: alinha com a barra, evita sair das bordas
-              const barPct = hoveredBar / Math.max(normalizedSparkline.length - 1, 1);
-              const leftPct = Math.min(Math.max(barPct * 100, 8), 82);
+                const barPct = hoveredBar / Math.max(normalizedSparkline.length - 1, 1);
+                const leftPct = Math.min(Math.max(barPct * 100, 10), 85);
 
+                return (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: `${SPARKLINE_H + 8}px`,
+                      left: `${leftPct}%`,
+                      transform: 'translateX(-50%)',
+                      background: 'rgba(10,16,35,0.96)',
+                      borderRadius: '8px',
+                      padding: '6px 10px',
+                      whiteSpace: 'nowrap',
+                      zIndex: 100,
+                      pointerEvents: 'none',
+                      boxShadow: '0 6px 24px rgba(0,0,0,0.45)',
+                      border: `1px solid ${color}55`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 2,
+                    }}
+                  >
+                    {/* Data no topo */}
+                    {hasLabel && (
+                      <span style={{ fontSize: '9px', fontWeight: 500, color: '#64748b', letterSpacing: '0.04em', lineHeight: 1 }}>
+                        {item.label}
+                      </span>
+                    )}
+                    {/* Valor em destaque */}
+                    <span style={{ fontSize: '13px', fontWeight: 800, color, letterSpacing: '0.01em', lineHeight: 1.1 }}>
+                      {displayValue}
+                    </span>
+                    {/* Seta inferior */}
+                    <div style={{
+                      position: 'absolute',
+                      bottom: -5,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 0,
+                      height: 0,
+                      borderLeft: '5px solid transparent',
+                      borderRight: '5px solid transparent',
+                      borderTop: `5px solid rgba(10,16,35,0.96)`,
+                    }} />
+                  </div>
+                );
+              })()}
+
+              {normalizedSparkline.map((item, i) => {
+                const normalized = range === 0 ? 0.5 : (item.value - minVal) / range;
+                const targetH = Math.max(4, Math.round((0.18 + normalized * 0.82) * SPARKLINE_H));
+                const opacityVal = hoveredBar === i ? 1 : (hoveredBar !== null ? 0.3 : (0.45 + normalized * 0.55));
+
+                return (
+                  <div
+                    key={i}
+                    onMouseEnter={() => setHoveredBar(i)}
+                    onMouseLeave={() => setHoveredBar(null)}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      height: mounted ? `${targetH}px` : '2px',
+                      backgroundColor: color,
+                      opacity: mounted ? opacityVal : 0,
+                      borderRadius: '3px 3px 0 0',
+                      transition: `height ${0.35 + i * 0.02}s ease-out ${i * 0.02}s, opacity 0.15s ease-out`,
+                      position: 'relative',
+                      cursor: 'crosshair',
+                      alignSelf: 'flex-end',
+                      transform: hoveredBar === i ? 'scaleY(1.06)' : 'scaleY(1)',
+                      transformOrigin: 'bottom',
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {/* ── Rótulos de período: primeira e última data ───────── */}
+            {(() => {
+              const first = normalizedSparkline[0]?.label;
+              const last  = normalizedSparkline[normalizedSparkline.length - 1]?.label;
+              if (!first && !last) return null;
               return (
-                <div
-                  style={{
-                    position: 'absolute',
-                    bottom: `${SPARKLINE_H + 6}px`,
-                    left: `${leftPct}%`,
-                    transform: 'translateX(-50%)',
-                    background: 'rgba(15,23,42,0.92)',
-                    color: '#fff',
-                    borderRadius: '6px',
-                    padding: '4px 9px',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                    zIndex: 100,
-                    pointerEvents: 'none',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.35)',
-                    border: `1px solid ${color}44`,
-                    letterSpacing: '0.02em',
-                  }}
-                >
-                  <span style={{ color: color }}>{displayValue}</span>
-                  {item.label && item.label !== tooltipText && (
-                    <span style={{ color: '#94a3b8', marginLeft: 5 }}>{item.label}</span>
-                  )}
-                  {/* seta inferior */}
-                  <div style={{
-                    position: 'absolute',
-                    bottom: -5,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 0,
-                    height: 0,
-                    borderLeft: '5px solid transparent',
-                    borderRight: '5px solid transparent',
-                    borderTop: `5px solid rgba(15,23,42,0.92)`,
-                  }} />
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  paddingTop: 1,
+                }}>
+                  <span style={{
+                    fontSize: '9px',
+                    fontWeight: 600,
+                    color: hoveredBar === 0 ? color : '#475569',
+                    letterSpacing: '0.03em',
+                    lineHeight: 1,
+                    transition: 'color 0.15s',
+                    userSelect: 'none',
+                  }}>
+                    {first}
+                  </span>
+                  <span style={{
+                    fontSize: '9px',
+                    fontWeight: 600,
+                    color: hoveredBar === normalizedSparkline.length - 1 ? color : '#475569',
+                    letterSpacing: '0.03em',
+                    lineHeight: 1,
+                    transition: 'color 0.15s',
+                    userSelect: 'none',
+                  }}>
+                    {last}
+                  </span>
                 </div>
               );
             })()}
-
-            {normalizedSparkline.map((item, i) => {
-              const normalized = range === 0 ? 0.5 : (item.value - minVal) / range;
-              const targetH = Math.max(4, Math.round((0.18 + normalized * 0.82) * SPARKLINE_H));
-              const opacityVal = hoveredBar === i ? 1 : (hoveredBar !== null ? 0.3 : (0.45 + normalized * 0.55));
-
-              return (
-                <div
-                  key={i}
-                  onMouseEnter={() => setHoveredBar(i)}
-                  onMouseLeave={() => setHoveredBar(null)}
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    height: mounted ? `${targetH}px` : '2px',
-                    backgroundColor: color,
-                    opacity: mounted ? opacityVal : 0,
-                    borderRadius: '3px 3px 0 0',
-                    transition: `height ${0.35 + i * 0.02}s ease-out ${i * 0.02}s, opacity 0.15s ease-out`,
-                    position: 'relative',
-                    cursor: 'crosshair',
-                    alignSelf: 'flex-end',
-                    transform: hoveredBar === i ? 'scaleY(1.06)' : 'scaleY(1)',
-                    transformOrigin: 'bottom',
-                  }}
-                />
-              );
-            })}
           </div>
         )}
         <span className="period-badge-tauze">{periodLabel}</span>

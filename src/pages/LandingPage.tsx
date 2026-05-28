@@ -1,967 +1,638 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  Sparkles, 
-  Terminal, 
-  Check, 
-  CheckCircle2,
-  Truck, 
-  TrendingUp, 
-  ArrowRight,
-  ChevronDown,
-  Activity,
-  Layers,
-  Sliders, 
-  DollarSign, 
-  Award, 
-  Map, 
-  Scale, 
-  Calendar, 
-  Compass, 
-  ShoppingCart, 
-  FileText, 
-  PieChart, 
-  Users, 
-  Settings, 
-  RefreshCw,
-  Play,
-  MapPin,
-  ChevronRight,
-  Search,
-  BookOpen
-} from 'lucide-react';
 
-// Tauze official emerald logo (#00b865) with vertical central gap
-const TauzeLogo: React.FC<{ size?: number; className?: string; color?: string }> = ({ size = 24, className, color = '#00b865' }) => (
-  <svg 
-    viewBox="0 0 100 100" 
-    width={size} 
-    height={size} 
-    className={className}
-    style={{ display: 'inline-block', verticalAlign: 'middle', flexShrink: 0 }}
-  >
-    <path 
-      d="M 46,75 C 46,63 45,42 42,34 C 38,24 28,18 12,21 C 6,22 2,25 0,27 C 4,21 12,13 26,13 C 40,13 46,24 46,41 L 46,75 Z" 
-      fill={color} 
-    />
-    <path 
-      d="M 54,75 C 54,63 55,42 58,34 C 62,24 72,18 88,21 C 94,22 98,25 100,27 C 96,21 88,13 74,13 C 60,13 54,24 54,41 L 54,75 Z" 
-      fill={color} 
-    />
+// ─── TAUZE SVG LOGO ──────────────────────────────────────────────────────────
+const TauzeLogo: React.FC<{ size?: number; color?: string }> = ({ size = 32, color = '#00b865' }) => (
+  <svg viewBox="0 0 100 100" width={size} height={size} style={{ display: 'inline-block', flexShrink: 0 }}>
+    <path d="M 46,75 C 46,63 45,42 42,34 C 38,24 28,18 12,21 C 6,22 2,25 0,27 C 4,21 12,13 26,13 C 40,13 46,24 46,41 L 46,75 Z" fill={color} />
+    <path d="M 54,75 C 54,63 55,42 58,34 C 62,24 72,18 88,21 C 94,22 98,25 100,27 C 96,21 88,13 74,13 C 60,13 54,24 54,41 L 54,75 Z" fill={color} />
   </svg>
 );
 
+// ─── SPARKLINE MINI CHART ─────────────────────────────────────────────────────
+const MiniSparkline: React.FC<{ data: number[]; color?: string }> = ({ data, color = '#00b865' }) => {
+  const max = Math.max(...data), min = Math.min(...data);
+  const range = max - min || 1;
+  const w = 80, h = 32;
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / range) * h}`).join(' ');
+  return (
+    <svg width={w} height={h} style={{ overflow: 'visible' }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <polyline points={`0,${h} ${pts} ${w},${h}`} fill={`${color}18`} stroke="none" />
+    </svg>
+  );
+};
+
+// ─── ANIMATED COUNTER ─────────────────────────────────────────────────────────
+const AnimCounter: React.FC<{ end: number; suffix?: string; prefix?: string; duration?: number }> = ({
+  end, suffix = '', prefix = '', duration = 1800
+}) => {
+  const [val, setVal] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) {
+        let start = 0;
+        const step = end / (duration / 16);
+        const timer = setInterval(() => {
+          start = Math.min(start + step, end);
+          setVal(Math.round(start));
+          if (start >= end) clearInterval(timer);
+        }, 16);
+        obs.disconnect();
+      }
+    }, { threshold: 0.3 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, [end, duration]);
+  return <span ref={ref}>{prefix}{val.toLocaleString('pt-BR')}{suffix}</span>;
+};
+
+// ─── FLOATING METRIC CARD ────────────────────────────────────────────────────
+const FloatCard: React.FC<{ label: string; value: string; spark: number[]; color: string; change: string; style?: React.CSSProperties }> = ({
+  label, value, spark, color, change, style
+}) => (
+  <div style={{
+    background: 'rgba(255,255,255,0.04)',
+    border: `1px solid rgba(255,255,255,0.08)`,
+    borderRadius: 20,
+    padding: '18px 20px',
+    backdropFilter: 'blur(20px)',
+    minWidth: 200,
+    ...style
+  }}>
+    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', fontWeight: 700, letterSpacing: '0.06em', marginBottom: 6 }}>{label}</div>
+    <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', marginBottom: 8 }}>{value}</div>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <MiniSparkline data={spark} color={color} />
+      <span style={{ fontSize: 11, fontWeight: 800, color, background: `${color}18`, padding: '3px 8px', borderRadius: 6 }}>{change}</span>
+    </div>
+  </div>
+);
+
+// ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
 export const LandingPage: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [activeModule, setActiveModule] = useState<'agricola' | 'pecuaria' | 'frota' | 'compras' | 'vendas' | 'financas' | 'bi'>('agricola');
+  const [activeTab, setActiveTab] = useState(0);
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
-  
-  // Interactive Flow Timeline Active Step
-  const [flowStep, setFlowStep] = useState<number>(0);
+  const [weighing, setWeighing] = useState(false);
+  const [weight, setWeight] = useState(482.4);
+  const [purchaseStep, setPurchaseStep] = useState(0);
+  const [fuelPct, setFuelPct] = useState(78);
 
-  // Process ROI Calculator states
-  const [herdScale, setHerdScale] = useState(1500);
-  const [harvestHectares, setHarvestHectares] = useState(2500);
-  const [adminTimeSaved, setAdminTimeSaved] = useState(60); // monthly hours saved
-
-  // Module 1: Agricola simulator state
-  const [activeTalhao, setActiveTalhao] = useState<'talhao-1' | 'talhao-2' | 'talhao-3'>('talhao-1');
-  const [isTractorDispatched, setIsTractorDispatched] = useState(false);
-  const [soilProgress, setSoilProgress] = useState(65);
-
-  // Module 2: Pecuária state
-  const [selectedCow, setSelectedCow] = useState<'bov-104' | 'bov-212' | 'bov-309'>('bov-104');
-  const [cowWeight, setCowWeight] = useState(482.4);
-  const [isWeighing, setIsWeighing] = useState(false);
-
-  // Module 3: Fleet active machinery & fuel levels
-  const [activeTractor, setActiveTractor] = useState<'trator-1' | 'colheitadeira-1'>('trator-1');
-  const [fuelLevel, setFuelLevel] = useState(82);
-
-  // Module 4: Compras order approval tracker
-  const [purchaseStep, setPurchaseStep] = useState<'requisicao' | 'cotacao' | 'aprovado'>('requisicao');
-
-  // Module 5: Vendas contract active approval state
-  const [contractApproved, setContractApproved] = useState(false);
-  const [contractLoading, setContractLoading] = useState(false);
-
-  // Module 6: Financas reconciliation active state
-  const [reconciliationStatus, setReconciliationStatus] = useState<'pending' | 'reconciled'>('pending');
-  const [reconciling, setReconciling] = useState(false);
-
-  // Scroll event for navbar elevation
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Tractor fuel consumption simulation
   useEffect(() => {
-    const interval = setInterval(() => {
-      setFuelLevel(prev => {
-        if (prev <= 15) return 92; // auto-refuel
-        return prev - 1;
-      });
-    }, 6000);
-    return () => clearInterval(interval);
+    const t = setInterval(() => setFuelPct(p => p <= 20 ? 95 : p - 1), 4000);
+    return () => clearInterval(t);
   }, []);
 
-  // Dispatch Tractor Action Simulator
-  const handleDispatchTractor = () => {
-    if (isTractorDispatched) return;
-    setIsTractorDispatched(true);
-    let steps = soilProgress;
-    const interval = setInterval(() => {
-      setSoilProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsTractorDispatched(false);
-          return 100;
-        }
-        return prev + 5;
-      });
-    }, 150);
+  const handleWeigh = () => {
+    if (weighing) return;
+    setWeighing(true);
+    const target = 524.8;
+    let v = weight;
+    const t = setInterval(() => {
+      v = v + (target - v) * 0.4;
+      setWeight(parseFloat(v.toFixed(1)));
+      if (Math.abs(target - v) < 0.2) { setWeight(target); clearInterval(t); setWeighing(false); }
+    }, 80);
   };
 
-  // RFID Weighing action simulation
-  const handleWeigh = (cow: 'bov-104' | 'bov-212' | 'bov-309') => {
-    if (isWeighing) return;
-    setSelectedCow(cow);
-    setIsWeighing(true);
-    const targetWeight = cow === 'bov-104' ? 482.4 : cow === 'bov-212' ? 524.8 : 463.1;
+  const modules = [
+    {
+      emoji: '🐄', label: 'Pecuária', tag: 'RFID & GMD',
+      title: 'Pesagem voluntária com RFID — sem estresse no rebanho',
+      desc: 'O animal vai ao bebedouro e o sistema registra o peso automaticamente. Curvas de GMD diárias, previsão de abate e gestão de lotes sem manejo estressante.',
+      bullets: ['Pesagem por brinco RFID sem parar o rebanho', 'Cálculo automático de GMD e previsão de abate', 'Gestão de lotes com entrada/saída e histórico completo'],
+      color: '#00b865',
+      demo: (
+        <div>
+          <div style={{ background: 'rgba(0,184,101,0.06)', border: '1px solid rgba(0,184,101,0.15)', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 700, letterSpacing: '0.08em', marginBottom: 8 }}>ANTENA RFID — BRINCO IDENTIFICADO</div>
+            <div style={{ fontSize: 42, fontWeight: 900, color: '#fff', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ color: weighing ? '#f59e0b' : '#00b865' }}>{weight.toFixed(1)}</span>
+              <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>kg</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>Animal #BR-212 · Lote Pasto B · GMD: +1,22 kg/dia</div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+            {[['Peso Entrada', '380 kg'], ['Meta Abate', '520 kg'], ['Dias em Pasto', '118 dias'], ['Previsão Abate', '12/07/2026']].map(([l, v]) => (
+              <div key={l} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '12px 14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 700, marginBottom: 4 }}>{l}</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: '#fff' }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <button onClick={handleWeigh} style={{
+            width: '100%', padding: '14px', borderRadius: 12, border: 'none', cursor: 'pointer',
+            background: weighing ? 'rgba(245,158,11,0.15)' : 'rgba(0,184,101,0.15)',
+            color: weighing ? '#f59e0b' : '#00b865',
+            fontWeight: 800, fontSize: 13, letterSpacing: '0.04em', transition: 'all 0.3s'
+          }}>
+            {weighing ? '⚡ Registrando pesagem...' : '📡 Simular Passagem pelo RFID'}
+          </button>
+        </div>
+      )
+    },
+    {
+      emoji: '🚜', label: 'Frota', tag: 'Telemetria',
+      title: 'Telemetria de máquinas e controle de diesel em tempo real',
+      desc: 'Monitore consumo de combustível, horímetros e alertas de manutenção de toda a frota. Detecta anomalias de diesel e gera ordens de serviço automáticas.',
+      bullets: ['Rastreamento GPS e horímetro offline-first', 'Detecção de consumo anômalo de diesel', 'OS automáticas por horimetria — sem agenda manual'],
+      color: '#f59e0b',
+      demo: (
+        <div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Trator JD 8R #04 — Combustível</span>
+              <span style={{ fontSize: 14, fontWeight: 900, color: fuelPct > 30 ? '#00b865' : '#ef4444' }}>{fuelPct}%</span>
+            </div>
+            <div style={{ height: 10, background: 'rgba(255,255,255,0.06)', borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${fuelPct}%`, background: fuelPct > 30 ? 'linear-gradient(90deg,#00b865,#34d399)' : 'linear-gradient(90deg,#ef4444,#f97316)', borderRadius: 8, transition: 'width 1s ease' }} />
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+            {[['Horimetro', '4.820 h'], ['Consumo', '14,8 L/h'], ['Próx. Revisão', '38 h'], ['Status', 'OPERANDO']].map(([l, v]) => (
+              <div key={l} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: '12px 14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', fontWeight: 700, marginBottom: 4 }}>{l}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: l === 'Status' ? '#00b865' : '#fff' }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)', borderRadius: 12, padding: '12px 16px' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#f59e0b', marginBottom: 4 }}>⚠ Alerta Preditivo</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Revisão de filtros de ar em 38h. OS gerada automaticamente.</div>
+          </div>
+        </div>
+      )
+    },
+    {
+      emoji: '💰', label: 'Finanças', tag: 'Conciliação',
+      title: 'Conciliação bancária automática via Open Finance',
+      desc: 'Conecte seus bancos via API e elimine a conferência manual de extratos. O sistema casa lançamentos automaticamente e aponta divergências em segundos.',
+      bullets: ['API com 6 bancos parceiros — BB, Itaú, Bradesco, Sicredi, Cresol, BTG', 'Match automático por valor, data e histórico', 'Relatório de compliance e auditoria completa'],
+      color: '#3b82f6',
+      demo: (
+        <div>
+          {[
+            { desc: 'BUNGE ALIMENTOS — TED', val: 'R$ 138.500', status: 'paired', date: '22/05' },
+            { desc: 'NUTRIEN RURAL — NF 9241', val: '- R$ 58.400', status: 'paired', date: '21/05' },
+            { desc: 'DIESEL POSTO CENTRAL', val: '- R$ 12.840', status: 'pending', date: '20/05' },
+          ].map((r, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 12, marginBottom: 8
+            }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                background: r.status === 'paired' ? '#00b865' : '#f59e0b',
+                boxShadow: r.status === 'paired' ? '0 0 8px #00b86580' : '0 0 8px #f59e0b80'
+              }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>{r.desc}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>{r.date}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: r.val.startsWith('-') ? '#ef4444' : '#00b865' }}>{r.val}</div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: r.status === 'paired' ? '#00b865' : '#f59e0b', textAlign: 'right' }}>
+                  {r.status === 'paired' ? '✓ CASADO' : '⏳ PENDENTE'}
+                </div>
+              </div>
+            </div>
+          ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: 'rgba(0,184,101,0.06)', border: '1px solid rgba(0,184,101,0.15)', borderRadius: 12, marginTop: 4 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>Taxa de Conciliação Automática</span>
+            <span style={{ fontSize: 14, fontWeight: 900, color: '#00b865' }}>94,7%</span>
+          </div>
+        </div>
+      )
+    },
+    {
+      emoji: '🛒', label: 'Compras', tag: 'Cotações',
+      title: 'Cotações inteligentes sem planilhas manuais',
+      desc: 'Da requisição à nota de entrada em um fluxo contínuo. O sistema consulta fornecedores cadastrados, compara preços e gera a ordem de compra aprovada automaticamente.',
+      bullets: ['Pipeline: Requisição → Cotação → Aprovação → NF-e entrada', 'Importação automática de XML de NF-e', 'Controle de estoque mínimo com alertas de reposição'],
+      color: '#8b5cf6',
+      demo: (
+        <div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            {['Requisição', 'Cotações', 'Aprovado'].map((s, i) => (
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: purchaseStep >= i ? '#8b5cf6' : 'rgba(255,255,255,0.05)',
+                  border: purchaseStep >= i ? '2px solid #8b5cf6' : '2px solid rgba(255,255,255,0.08)',
+                  fontSize: 13, fontWeight: 900, color: purchaseStep >= i ? '#fff' : 'rgba(255,255,255,0.2)',
+                  transition: 'all 0.4s'
+                }}>{i + 1}</div>
+                <span style={{ fontSize: 10, fontWeight: 700, color: purchaseStep >= i ? '#fff' : 'rgba(255,255,255,0.2)', textAlign: 'center' }}>{s}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 14, padding: 16, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 700, marginBottom: 8 }}>FERTILIZANTE NPK — 12 TONELADAS</div>
+            {purchaseStep === 0 && <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Aguardando consulta de fornecedores...</div>}
+            {purchaseStep >= 1 && (
+              <div>
+                {[['Nutrien Rural', 'R$ 58.400', true], ['Agropecuária XY', 'R$ 61.200', false]].map(([n, v, best], i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: i === 0 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+                    <div style={{ fontSize: 12, color: '#fff', fontWeight: 700 }}>{n as string} {best ? <span style={{ fontSize: 9, background: '#00b86520', color: '#00b865', padding: '2px 6px', borderRadius: 4 }}>MENOR PREÇO</span> : ''}</div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: best ? '#00b865' : 'rgba(255,255,255,0.4)' }}>{v as string}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {purchaseStep === 2 && <div style={{ fontSize: 13, fontWeight: 800, color: '#00b865', marginTop: 8 }}>✓ Ordem de Compra Gerada — NF-e importada</div>}
+          </div>
+          <button onClick={() => setPurchaseStep(p => p < 2 ? p + 1 : 0)} style={{
+            width: '100%', padding: '13px', borderRadius: 12, border: 'none', cursor: 'pointer',
+            background: purchaseStep === 2 ? 'rgba(0,184,101,0.15)' : 'rgba(139,92,246,0.15)',
+            color: purchaseStep === 2 ? '#00b865' : '#8b5cf6',
+            fontWeight: 800, fontSize: 12, letterSpacing: '0.04em'
+          }}>
+            {purchaseStep === 0 ? '🔍 Buscar Fornecedores' : purchaseStep === 1 ? '✅ Aprovar Menor Preço' : '🔄 Reiniciar Demo'}
+          </button>
+        </div>
+      )
+    },
+  ];
 
-    let steps = 0;
-    const interval = setInterval(() => {
-      setCowWeight(prev => {
-        const diff = targetWeight - prev;
-        if (Math.abs(diff) < 0.1 || steps > 12) {
-          clearInterval(interval);
-          setIsWeighing(false);
-          return targetWeight;
-        }
-        steps++;
-        return parseFloat((prev + diff * 0.45).toFixed(1));
-      });
-    }, 85);
-  };
+  const stats = [
+    { label: 'Fazendas Ativas', val: 430, suffix: '+', color: '#00b865' },
+    { label: 'Animais Monitorados', val: 280000, suffix: '+', color: '#3b82f6' },
+    { label: 'Redução em Planilhas', val: 87, suffix: '%', color: '#8b5cf6' },
+    { label: 'Horas Salvas / Mês', val: 240, suffix: 'h', color: '#f59e0b' },
+  ];
 
-  // Contract approval action simulation
-  const handleApproveContract = () => {
-    if (contractApproved || contractLoading) return;
-    setContractLoading(true);
-    setTimeout(() => {
-      setContractLoading(false);
-      setContractApproved(true);
-    }, 1200);
-  };
+  const faqs = [
+    { q: 'O sistema funciona sem internet no campo?', a: 'Sim. O Tauze foi construído offline-first. Todas as pesagens RFID, abastecimentos e registros de campo funcionam sem conexão e sincronizam automaticamente ao retornar ao wi-fi da sede.' },
+    { q: 'Como funciona a integração bancária?', a: 'Conectamos via Open Finance com BB, Itaú, Bradesco, Sicredi, Cresol e BTG. O extrato é importado automaticamente e o sistema casa os lançamentos com seu controle interno sem digitação.' },
+    { q: 'É possível gerenciar múltiplas fazendas?', a: 'Sim. O painel central consolida todas as unidades num único dashboard executivo. Você pode filtrar por fazenda, ver o agregado do grupo ou comparar desempenho entre propriedades.' },
+    { q: 'Quanto tempo leva a implantação?', a: 'A média de go-live completo é de 7 dias úteis. Realizamos a migração dos dados históricos de planilhas, treinamento da equipe e configuração das integrações nesse período.' },
+    { q: 'O sistema emite NF-e e documentos fiscais?', a: 'Sim. NF-e, CT-e e MDF-e de forma integrada ao módulo de vendas e compras. A nota é gerada automaticamente no momento da venda ou da entrada de mercadoria, sem necessidade de outro sistema.' },
+  ];
 
-  // Reconciliation action simulation
-  const handleReconcile = () => {
-    if (reconciliationStatus === 'reconciled' || reconciling) return;
-    setReconciling(true);
-    setTimeout(() => {
-      setReconciling(false);
-      setReconciliationStatus('reconciled');
-    }, 1500);
-  };
-
-  // ROI Calculations
-  const rfidSavingValue = herdScale * 42; // R$42 saved per head
-  const fuelSavingValue = harvestHectares * 22.5; // R$22.5 saved per hectare
-  const adminSavingValue = adminTimeSaved * 12 * 80; // R$80 hourly cost saved
-  const totalProcessSavings = Math.round(rfidSavingValue + fuelSavingValue + adminSavingValue);
+  const features = [
+    { icon: '🐄', title: 'Pecuária & GMD', desc: 'Pesagem RFID, lotes, reprodução e previsão de abate com curvas de engorda automáticas' },
+    { icon: '🌱', title: 'Agrícola & Solo', desc: 'Gestão de talhões, plantios, pulverizações e rendimento físico por safra' },
+    { icon: '🚜', title: 'Frota & Diesel', desc: 'Telemetria, horímetros, OS automáticas e controle de combustível por máquina' },
+    { icon: '🛒', title: 'Compras & Estoque', desc: 'Cotações multi-fornecedor, controle de almoxarifado e importação de NF-e XML' },
+    { icon: '💼', title: 'Vendas & Contratos', desc: 'Gestão de contratos de grãos e gado, NF-e automática e pipeline comercial' },
+    { icon: '💰', title: 'Finanças & Conciliação', desc: 'Fluxo de caixa, DRE, contas a pagar/receber e conciliação bancária automática' },
+    { icon: '📊', title: 'BI & Custos Reais', desc: 'EBITDA, custo por arroba, DRE por safra e dashboards executivos consolidados' },
+    { icon: '🤖', title: 'IA Agropecuária', desc: 'Recomendações de manejo, alertas preditivos e análise de anomalias automatizada' },
+  ];
 
   return (
-    <div className="tauze-erp-matrix">
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", background: '#080d14', color: '#fff', overflowX: 'hidden' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0d1520; }
+        ::-webkit-scrollbar-thumb { background: #00b86540; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00b865; }
 
-      {/* -------------------- DYNAMIC COMMODITY TICKER -------------------- */}
-      <div className="commodities-ticker">
-        <div className="ticker-container">
-          <div className="ticker-slide">
-            <span className="ticker-node"><span className="ticker-indicator"></span> BOI GORDO B3 (BGI): R$ 286,40/@ <span className="text-positive">(+0,85%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> SOJA PARANAGUÁ: R$ 138,50/sc <span className="text-positive">(+1,20%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> MILHO B3 (CCM): R$ 68,10/sc <span className="text-negative">(-0,45%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> DÓLAR COMERCIAL: R$ 5,13 <span className="text-negative">(-0,28%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> IMPORTAÇÃO DE NF-e: XML AUTOMÁTICO</span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> API DE BANCOS PARCEIROS: ATIVA (6 BANCOS)</span>
-          </div>
-          <div className="ticker-slide">
-            <span className="ticker-node"><span className="ticker-indicator"></span> BOI GORDO B3 (BGI): R$ 286,40/@ <span className="text-positive">(+0,85%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> SOJA PARANAGUÁ: R$ 138,50/sc <span className="text-positive">(+1,20%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> MILHO B3 (CCM): R$ 68,10/sc <span className="text-negative">(-0,45%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> DÓLAR COMERCIAL: R$ 5,13 <span className="text-negative">(-0,28%)</span></span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> IMPORTAÇÃO DE NF-e: XML AUTOMÁTICO</span>
-            <span className="ticker-node"><span className="ticker-indicator"></span> API DE BANCOS PARCEIROS: ATIVA (6 BANCOS)</span>
-          </div>
+        @keyframes ticker-scroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @keyframes float-a { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        @keyframes float-b { 0%,100% { transform: translateY(-8px); } 50% { transform: translateY(4px); } }
+        @keyframes glow-pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 0.7; } }
+        @keyframes fade-up { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes gradient-shift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+        .fade-up { animation: fade-up 0.7s ease both; }
+        .d1 { animation-delay: 0.1s; }
+        .d2 { animation-delay: 0.2s; }
+        .d3 { animation-delay: 0.3s; }
+        .d4 { animation-delay: 0.4s; }
+
+        .nav-link { color: rgba(255,255,255,0.55); text-decoration: none; font-size: 14px; font-weight: 600; transition: color 0.2s; }
+        .nav-link:hover { color: #00b865; }
+
+        .btn-primary { display: inline-flex; align-items: center; gap: 10px; padding: 15px 32px; background: #00b865; color: #fff; border-radius: 14px; font-weight: 800; font-size: 15px; text-decoration: none; border: none; cursor: pointer; transition: all 0.25s; box-shadow: 0 8px 32px rgba(0,184,101,0.35); letter-spacing: -0.01em; }
+        .btn-primary:hover { background: #00d474; transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,184,101,0.45); }
+
+        .btn-ghost { display: inline-flex; align-items: center; gap: 8px; padding: 15px 28px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); border-radius: 14px; font-weight: 700; font-size: 15px; text-decoration: none; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: all 0.25s; }
+        .btn-ghost:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff; transform: translateY(-2px); }
+
+        .glass-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 24px; backdrop-filter: blur(20px); }
+
+        .mod-tab { padding: 12px 16px; border-radius: 14px; border: 1px solid transparent; cursor: pointer; transition: all 0.25s; background: transparent; color: rgba(255,255,255,0.45); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 10px; text-align: left; width: 100%; }
+        .mod-tab:hover { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.75); }
+        .mod-tab.active { background: rgba(0,184,101,0.1); border-color: rgba(0,184,101,0.25); color: #00b865; }
+
+        .faq-item { border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .faq-btn { width: 100%; padding: 20px 0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: transparent; border: none; color: #fff; font-size: 15px; font-weight: 700; text-align: left; gap: 16px; }
+        .faq-answer { font-size: 14px; color: rgba(255,255,255,0.55); line-height: 1.8; padding-bottom: 20px; }
+
+        .stat-card { padding: 32px; border-radius: 24px; text-align: center; position: relative; overflow: hidden; }
+        .feature-card { padding: 28px; border-radius: 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s; }
+        .feature-card:hover { background: rgba(255,255,255,0.055); border-color: rgba(0,184,101,0.2); transform: translateY(-4px); }
+      `}</style>
+
+      {/* ──── COMMODITY TICKER ──── */}
+      <div style={{ background: 'rgba(0,184,101,0.07)', borderBottom: '1px solid rgba(0,184,101,0.12)', overflow: 'hidden', height: 36 }}>
+        <div style={{ display: 'flex', animation: 'ticker-scroll 28s linear infinite', width: 'max-content', height: '100%', alignItems: 'center' }}>
+          {[...Array(2)].map((_, r) => (
+            <div key={r} style={{ display: 'flex', gap: 40, paddingRight: 40, alignItems: 'center', height: '100%' }}>
+              {[
+                ['🐂 BOI GORDO B3', 'R$ 286,40/@', '+0,85%', true],
+                ['🌾 SOJA PARANAGUÁ', 'R$ 138,50/sc', '+1,20%', true],
+                ['🌽 MILHO B3', 'R$ 68,10/sc', '-0,45%', false],
+                ['💵 DÓLAR COMERCIAL', 'R$ 5,13', '-0,28%', false],
+                ['🏦 API BANCÁRIA', '6 BANCOS ATIVOS', 'ONLINE', true],
+                ['📋 NF-e XML', 'IMPORTAÇÃO AUTOMÁTICA', '✓', true],
+              ].map(([label, val, chg, up], i) => (
+                <span key={i} style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <span>{label as string}</span>
+                  <span style={{ color: '#fff', fontWeight: 800 }}>{val as string}</span>
+                  <span style={{ color: (up as boolean) ? '#00b865' : '#ef4444' }}>{chg as string}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.15)', margin: '0 8px' }}>|</span>
+                </span>
+              ))}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* -------------------- PREMIUM NAVIGATION NAVBAR -------------------- */}
-      <nav className={`matrix-navbar ${scrolled ? 'elevated' : ''}`}>
-        <div className="navbar-inner">
-          <div className="brand-logo-group">
-            <div className="brand-badge">
-              <TauzeLogo size={34} />
+      {/* ──── NAVBAR ──── */}
+      <nav style={{
+        position: 'sticky', top: 0, zIndex: 1000,
+        background: scrolled ? 'rgba(8,13,20,0.92)' : 'transparent',
+        backdropFilter: scrolled ? 'blur(24px)' : 'none',
+        borderBottom: scrolled ? '1px solid rgba(255,255,255,0.06)' : '1px solid transparent',
+        transition: 'all 0.4s ease',
+        padding: '0 40px',
+      }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', height: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, background: 'rgba(0,184,101,0.12)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(0,184,101,0.2)' }}>
+              <TauzeLogo size={22} />
             </div>
-            <div className="brand-title-column">
-              <span className="brand-name">tauze</span>
-              <span className="brand-description">Sistemas de Gestão Rural</span>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: '-0.04em', color: '#fff' }}>tauze</div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', marginTop: -2 }}>SISTEMAS DE GESTÃO RURAL</div>
             </div>
           </div>
 
-          <div className="navbar-links">
-            <a href="#modulos">Módulos do Sistema</a>
-            <a href="#fluxo-processos">Ciclo de Processos</a>
-            <a href="#simulador-processos">Demonstrativo ROI</a>
-            <a href="#faq">Dúvidas Comuns</a>
+          <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
+            {[['Módulos', '#modulos'], ['Demonstrativo', '#demo'], ['Resultados', '#resultados'], ['FAQ', '#faq']].map(([l, h]) => (
+              <a key={l} href={h} className="nav-link">{l}</a>
+            ))}
           </div>
 
-          <div className="navbar-actions">
-            <Link to="/login" className="btn-access-suite">
-              <Terminal size={14} />
-              <span>Acessar o ERP</span>
-            </Link>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <Link to="/login" className="btn-ghost" style={{ padding: '10px 20px', fontSize: 13 }}>Entrar</Link>
+            <a href="#contato" className="btn-primary" style={{ padding: '10px 20px', fontSize: 13 }}>Solicitar Demo</a>
           </div>
         </div>
       </nav>
 
-      {/* -------------------- MASSIVE OPERATIONAL HERO -------------------- */}
-      <header className="matrix-hero">
-        <div className="radial-glow-layer"></div>
-        <div className="dots-layout-layer"></div>
-
-        <div className="hero-content-box">
-          <span className="hero-eyebrow-badge">
-            <Sparkles size={11} className="badge-spark" />
-            <span>ERP RURAL COMPACTO & OPERACIONAL</span>
-          </span>
-
-          <h1 className="hero-main-title">
-            Foque na operação do seu negócio.<br />
-            Esqueça planilhas e redigitação de dados.
-          </h1>
-
-          <p className="hero-subtext">
-            O <strong>tauze</strong> integra os processos práticos da fazenda. Controle a pesagem por brinco RFID, 
-            monitore a telemetria do maquinário, emita notas fiscais de contratos e automatize a conciliação bancária 
-            em um fluxo contínuo desenvolvido para o produtor rural.
-          </p>
-
-          <div className="hero-actions-row">
-            <a href="#modulos" className="btn-primary-action">
-              <span>Explorar Recursos Operacionais</span>
-              <ArrowRight size={16} />
-            </a>
-            <a href="#simulador-processos" className="btn-secondary-action">
-              <span>Calcular Economia Anual</span>
-            </a>
-          </div>
+      {/* ──── HERO ──── */}
+      <header style={{ position: 'relative', minHeight: '92vh', display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+        {/* background glows */}
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: '-10%', left: '5%', width: 700, height: 700, background: 'radial-gradient(circle, rgba(0,184,101,0.12) 0%, transparent 65%)', animation: 'glow-pulse 6s ease-in-out infinite' }} />
+          <div style={{ position: 'absolute', bottom: '-5%', right: '10%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 65%)', animation: 'glow-pulse 8s ease-in-out infinite 2s' }} />
+          {/* Grid pattern */}
+          <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.03 }}>
+            <defs>
+              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="1" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
         </div>
 
-        {/* Hero Quick Feature Badges */}
-        <div className="hero-quick-features">
-          <div className="quick-item">
-            <Check size={16} className="text-emerald" />
-            <span>Manejo Pecuário Inteligente</span>
+        <div style={{ maxWidth: 1280, margin: '0 auto', padding: '80px 40px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center', width: '100%' }}>
+          {/* Left */}
+          <div>
+            <div className="fade-up" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,184,101,0.1)', border: '1px solid rgba(0,184,101,0.2)', borderRadius: 100, padding: '6px 14px', marginBottom: 28 }}>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#00b865', boxShadow: '0 0 8px #00b865' }} />
+              <span style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.06em' }}>ERP RURAL NATIVO DO CAMPO</span>
+            </div>
+
+            <h1 className="fade-up d1" style={{ fontSize: 'clamp(40px, 5vw, 68px)', fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.03em', marginBottom: 24 }}>
+              O ERP que<br />
+              <span style={{ background: 'linear-gradient(135deg, #00b865, #34d399, #0ea5e9)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundSize: '200% auto', animation: 'gradient-shift 4s linear infinite' }}>
+                o agro merece.
+              </span>
+            </h1>
+
+            <p className="fade-up d2" style={{ fontSize: 17, color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, marginBottom: 36, maxWidth: 480 }}>
+              Do RFID no cocho ao balanço bancário — o <strong style={{ color: '#fff' }}>tauze</strong> integra toda a operação da fazenda num único sistema construído para o produtor rural.
+            </p>
+
+            <div className="fade-up d3" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 48 }}>
+              <a href="#contato" className="btn-primary">
+                <span>Solicitar Demonstração</span>
+                <span style={{ fontSize: 18 }}>→</span>
+              </a>
+              <Link to="/login" className="btn-ghost">
+                <span>Acessar o ERP</span>
+              </Link>
+            </div>
+
+            <div className="fade-up d4" style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
+              {['Sem fidelidade', 'Suporte em PT-BR', 'Funciona offline', 'Implantação em 7 dias'].map(f => (
+                <div key={f} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+                  <span style={{ color: '#00b865', fontSize: 16 }}>✓</span> {f}
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="quick-item">
-            <Check size={16} className="text-emerald" />
-            <span>Telemetria de Campo Sem Internet</span>
-          </div>
-          <div className="quick-item">
-            <Check size={16} className="text-emerald" />
-            <span>Contratos & Emissão Fiscal NF-e</span>
-          </div>
-          <div className="quick-item">
-            <Check size={16} className="text-emerald" />
-            <span>Banco Casado 100% via API</span>
+
+          {/* Right — floating cards */}
+          <div style={{ position: 'relative', height: 520 }}>
+            <div style={{ position: 'absolute', top: 20, left: 0, animation: 'float-a 5s ease-in-out infinite' }}>
+              <FloatCard label="REBANHO ATIVO" value="4.820 cab." spark={[42,44,41,45,48,47,49,52,51,54]} color="#00b865" change="+3,2%" />
+            </div>
+            <div style={{ position: 'absolute', top: 160, right: 0, animation: 'float-b 6s ease-in-out infinite' }}>
+              <FloatCard label="GMD MÉDIO DO LOTE" value="1,42 kg/dia" spark={[1.1,1.2,1.15,1.25,1.3,1.28,1.35,1.4,1.38,1.42]} color="#3b82f6" change="▲ Meta ✓" />
+            </div>
+            <div style={{ position: 'absolute', bottom: 60, left: 20, animation: 'float-a 7s ease-in-out infinite 1s' }}>
+              <FloatCard label="CAIXA CONSOLIDADO" value="R$ 2,4M" spark={[1.8,1.9,1.85,2.0,2.1,2.05,2.2,2.3,2.35,2.4]} color="#8b5cf6" change="+12% mês" />
+            </div>
+            <div style={{ position: 'absolute', bottom: 10, right: 20, animation: 'float-b 5.5s ease-in-out infinite 0.5s' }}>
+              <FloatCard label="CONSUMO DIESEL" value="14,8 L/h" spark={[15.2,14.9,15.1,14.8,14.6,14.9,14.7,14.8,14.9,14.8]} color="#f59e0b" change="Eficiente" />
+            </div>
+            {/* ── ORB CENTRAL entre os floating cards ── */}
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 120, height: 120,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {/* Glow radial pulsante */}
+              <div style={{
+                position: 'absolute', width: 160, height: 160, borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(0,184,101,0.22) 0%, transparent 70%)',
+                animation: 'glow-pulse 3s ease-in-out infinite',
+              }} />
+              {/* Anel externo girando */}
+              <div style={{
+                position: 'absolute', width: 110, height: 110, borderRadius: '50%',
+                border: '1.5px solid rgba(0,184,101,0.3)',
+                animation: 'spin-slow 16s linear infinite',
+              }}>
+                <div style={{
+                  position: 'absolute', top: -5, left: '50%', transform: 'translateX(-50%)',
+                  width: 10, height: 10, borderRadius: '50%',
+                  background: '#00b865',
+                  boxShadow: '0 0 14px #00b865, 0 0 30px rgba(0,184,101,0.7)',
+                }} />
+              </div>
+              {/* Anel médio contra-giro */}
+              <div style={{
+                position: 'absolute', width: 82, height: 82, borderRadius: '50%',
+                border: '1px dashed rgba(0,184,101,0.2)',
+                animation: 'spin-slow 11s linear infinite reverse',
+              }}>
+                <div style={{
+                  position: 'absolute', bottom: -4, left: '50%', transform: 'translateX(-50%)',
+                  width: 7, height: 7, borderRadius: '50%',
+                  background: '#3b82f6',
+                  boxShadow: '0 0 10px #3b82f6, 0 0 20px rgba(59,130,246,0.5)',
+                }} />
+              </div>
+              {/* Badge com logo Tauze */}
+              <div style={{
+                position: 'relative', zIndex: 2,
+                width: 60, height: 60, borderRadius: 18,
+                background: 'rgba(6,10,18,0.95)',
+                border: '1.5px solid rgba(0,184,101,0.45)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 40px rgba(0,184,101,0.3), inset 0 0 24px rgba(0,184,101,0.06)',
+                backdropFilter: 'blur(20px)',
+              }}>
+                <TauzeLogo size={32} />
+              </div>
+            </div>
+
           </div>
         </div>
       </header>
 
-      {/* -------------------- ALL SYSTEM MODULES CONSOLE -------------------- */}
-      <section id="modulos" className="modules-showcase-section">
-        <div className="section-head-centered">
-          <span className="section-pre-title">RECURSOS DO SISTEMA</span>
-          <h2>A Solução Completa para os Processos do Campo</h2>
-          <p>
-            Do preparo do solo ao extrato bancário. Conheça e experimente os recursos dos <strong>7 módulos operacionais</strong> 
-            que integram a rotina física e financeira do seu agronegócio.
-          </p>
+      {/* ──── STATS ──── */}
+      <section id="resultados" style={{ padding: '60px 40px', background: 'rgba(0,184,101,0.04)', borderTop: '1px solid rgba(0,184,101,0.08)', borderBottom: '1px solid rgba(0,184,101,0.08)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 2 }}>
+          {stats.map((s, i) => (
+            <div key={i} style={{ textAlign: 'center', padding: '20px 16px', borderRight: i < 3 ? '1px solid rgba(255,255,255,0.06)' : 'none' }}>
+              <div style={{ fontSize: 44, fontWeight: 900, color: s.color, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                <AnimCounter end={s.val} suffix={s.suffix} />
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginTop: 8 }}>{s.label}</div>
+            </div>
+          ))}
         </div>
+      </section>
 
-        <div className="matrix-console-board">
-          {/* Module Selector Sidebar - 7 modules */}
-          <div className="console-navigation-sidebar">
-            <div className="sidebar-group-title">MÓDULOS DE FLUXO ATIVOS</div>
-            
-            <button 
-              className={`module-tab-btn ${activeModule === 'agricola' ? 'active' : ''}`}
-              onClick={() => setActiveModule('agricola')}
-            >
-              <div className="tab-icon-wrap"><Compass size={16} /></div>
-              <div className="tab-texts">
-                <strong>🌱 Módulo Agrícola & Solo</strong>
-                <span>Plantios, pulverizações e talhões</span>
-              </div>
-            </button>
-
-            <button 
-              className={`module-tab-btn ${activeModule === 'pecuaria' ? 'active' : ''}`}
-              onClick={() => setActiveModule('pecuaria')}
-            >
-              <div className="tab-icon-wrap"><Scale size={16} /></div>
-              <div className="tab-texts">
-                <strong>🌾 Módulo Pecuária & Gado</strong>
-                <span>Leitura RFID e pesagem de passagem</span>
-              </div>
-            </button>
-
-            <button 
-              className={`module-tab-btn ${activeModule === 'frota' ? 'active' : ''}`}
-              onClick={() => setActiveModule('frota')}
-            >
-              <div className="tab-icon-wrap"><Truck size={16} /></div>
-              <div className="tab-texts">
-                <strong>🚜 Módulo Frotas & Telemetria</strong>
-                <span>Trajetos GPS e diesel de máquinas</span>
-              </div>
-            </button>
-
-            <button 
-              className={`module-tab-btn ${activeModule === 'compras' ? 'active' : ''}`}
-              onClick={() => setActiveModule('compras')}
-            >
-              <div className="tab-icon-wrap"><ShoppingCart size={16} /></div>
-              <div className="tab-texts">
-                <strong>🛒 Módulo Compras & Estoque</strong>
-                <span>Cotações, adubos e insumos ativos</span>
-              </div>
-            </button>
-
-            <button 
-              className={`module-tab-btn ${activeModule === 'vendas' ? 'active' : ''}`}
-              onClick={() => setActiveModule('vendas')}
-            >
-              <div className="tab-icon-wrap"><FileText size={16} /></div>
-              <div className="tab-texts">
-                <strong>💼 Módulo Vendas & Safra</strong>
-                <span>Contratos de grãos e saída fiscal</span>
-              </div>
-            </button>
-
-            <button 
-              className={`module-tab-btn ${activeModule === 'financas' ? 'active' : ''}`}
-              onClick={() => setActiveModule('financas')}
-            >
-              <div className="tab-icon-wrap"><DollarSign size={16} /></div>
-              <div className="tab-texts">
-                <strong>💰 Módulo Finanças & Caixa</strong>
-                <span>API de extratos e conciliação direta</span>
-              </div>
-            </button>
-
-            <button 
-              className={`module-tab-btn ${activeModule === 'bi' ? 'active' : ''}`}
-              onClick={() => setActiveModule('bi')}
-            >
-              <div className="tab-icon-wrap"><PieChart size={16} /></div>
-              <div className="tab-texts">
-                <strong>📊 Módulo BI & Custos reais</strong>
-                <span>Lucratividade, EBITDA e DRE da safra</span>
-              </div>
-            </button>
+      {/* ──── ALL FEATURES GRID ──── */}
+      <section style={{ padding: '100px 40px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.1em', marginBottom: 14 }}>MÓDULOS DO SISTEMA</div>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 16 }}>
+              Uma plataforma.<br />Todos os processos do campo.
+            </h2>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.45)', maxWidth: 520, margin: '0 auto', lineHeight: 1.7 }}>
+              Do preparo do solo ao extrato bancário, 8 módulos integrados em um fluxo contínuo para a operação rural.
+            </p>
           </div>
 
-          {/* Dynamic Interactive Simulator Console Display */}
-          <div className="console-display-workspace">
-            <div className="workspace-header-bar">
-              <div className="window-controls">
-                <span className="dot dot-close"></span>
-                <span className="dot dot-minimize"></span>
-                <span className="dot dot-expand"></span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+            {features.map((f, i) => (
+              <div key={i} className="feature-card">
+                <div style={{ fontSize: 28, marginBottom: 14 }}>{f.icon}</div>
+                <h3 style={{ fontSize: 15, fontWeight: 800, marginBottom: 8, color: '#fff' }}>{f.title}</h3>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.65 }}>{f.desc}</p>
               </div>
-              <div className="workspace-path-bar">tauze://erp/modulo-{activeModule}/processamento-real</div>
-              <span className="live-badge">CONEXÃO OPERACIONAL</span>
-            </div>
-
-            <div className="workspace-body-container">
-              
-              {/* MODULE 1: AGRÍCOLA */}
-              {activeModule === 'agricola' && (
-                <div className="module-fade-in agricola-module">
-                  <div className="interface-splits">
-                    <div className="interactive-pane">
-                      <div className="panel-title-row">
-                        <span>ESTRUTURA DE TALHÕES & CULTIVO</span>
-                        <div className="status-badge"><span className="pulse-dot"></span>SATÉLITE ATIVO</div>
-                      </div>
-
-                      <div className="agricola-simulator-box">
-                        <div className="talhao-selector">
-                          <button 
-                            className={`talhao-btn ${activeTalhao === 'talhao-1' ? 'active' : ''}`}
-                            onClick={() => { setActiveTalhao('talhao-1'); setSoilProgress(65); }}
-                          >
-                            Talhão #01 (Soja)
-                          </button>
-                          <button 
-                            className={`talhao-btn ${activeTalhao === 'talhao-2' ? 'active' : ''}`}
-                            onClick={() => { setActiveTalhao('talhao-2'); setSoilProgress(80); }}
-                          >
-                            Talhão #02 (Milho)
-                          </button>
-                          <button 
-                            className={`talhao-btn ${activeTalhao === 'talhao-3' ? 'active' : ''}`}
-                            onClick={() => { setActiveTalhao('talhao-3'); setSoilProgress(45); }}
-                          >
-                            Talhão #03 (Algodão)
-                          </button>
-                        </div>
-
-                        <div className="talhao-progress-card">
-                          <div className="lbl-row">
-                            <span>Progresso do Cultivo (Ciclo Físico):</span>
-                            <strong>{soilProgress}%</strong>
-                          </div>
-                          <div className="progress-bar-container">
-                            <div className="bar" style={{ width: `${soilProgress}%` }}></div>
-                          </div>
-
-                          <div className="specs-small-row">
-                            <div>
-                              <span>Hectares Ativos:</span>
-                              <strong>{activeTalhao === 'talhao-1' ? '820 ha' : activeTalhao === 'talhao-2' ? '1.200 ha' : '480 ha'}</strong>
-                            </div>
-                            <div>
-                              <span>Última Irrigação:</span>
-                              <strong>Hoje, 07:15</strong>
-                            </div>
-                          </div>
-                        </div>
-
-                        <button 
-                          className={`btn-dispatch ${isTractorDispatched ? 'loading' : ''}`}
-                          onClick={handleDispatchTractor}
-                        >
-                          {isTractorDispatched ? 'Simulando Aplicação no Campo...' : 'Simular Aplicação de Insumos'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="feature-description-pane">
-                      <span className="badge-module">PRODUÇÃO AGRÍCOLA</span>
-                      <h3>Controle Completo do Preparo ao Armazenamento</h3>
-                      <p>
-                        Monitore o andamento de cada talhão de terra de forma visual. O módulo agrícola do Tauze 
-                        permite centralizar o cronograma de plantio, programar a pulverização correta contra pragas e 
-                        registrar a colheita, alimentando diretamente o inventário de grãos no almoxarifado.
-                      </p>
-                      
-                      <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Gestão visual de lotes e variedades de sementes</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Previsão de rendimento físico e datas ideais de colheita</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Baixa imediata do estoque ao iniciar plantio</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* MODULE 2: PECUÁRIA */}
-              {activeModule === 'pecuaria' && (
-                <div className="module-fade-in pecuaria-module">
-                  <div className="interface-splits">
-                    <div className="interactive-pane">
-                      <div className="panel-title-row">
-                        <span>MONITORAMENTO DE BRINCOS RFID</span>
-                        <div className="status-badge"><span className="pulse-dot"></span>BALANÇA ONLINE</div>
-                      </div>
-
-                      <div className="rfid-cattle-box">
-                        <div className="weigh-led-card">
-                          <span className="label">BRINCO IDENTIFICADO PELA ANTENA</span>
-                          <strong className={isWeighing ? 'anim-digits' : ''}>{cowWeight.toFixed(1)} <span className="unit">KG</span></strong>
-                          <div className="status-row">
-                            <span className="status-glow"></span>
-                            <span>CÓDIGO INTEGRADO: {selectedCow === 'bov-104' ? '#BR-104' : selectedCow === 'bov-212' ? '#BR-212' : '#BR-309'}</span>
-                          </div>
-                        </div>
-
-                        <div className="cattle-selector-widget">
-                          <span className="widget-label">Aproximar animal da balança de pesagem voluntária:</span>
-                          <div className="cattle-buttons">
-                            <button 
-                              className={`cattle-btn ${selectedCow === 'bov-104' ? 'active' : ''}`}
-                              onClick={() => handleWeigh('bov-104')}
-                            >
-                              <strong>Animal #BR-104 (Lote Pasto A)</strong>
-                              <span>GMD: +1,45 kg/dia</span>
-                            </button>
-                            <button 
-                              className={`cattle-btn ${selectedCow === 'bov-212' ? 'active' : ''}`}
-                              onClick={() => handleWeigh('bov-212')}
-                            >
-                              <strong>Animal #BR-212 (Lote Pasto B)</strong>
-                              <span>GMD: +1,22 kg/dia</span>
-                            </button>
-                            <button 
-                              className={`cattle-btn ${selectedCow === 'bov-309' ? 'active' : ''}`}
-                              onClick={() => handleWeigh('bov-309')}
-                            >
-                              <strong>Animal #BR-309 (Lote Pasto C)</strong>
-                              <span>GMD: +1,15 kg/dia</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="feature-description-pane">
-                      <span className="badge-module">PECUÁRIA DE PRECISÃO</span>
-                      <h3>Pesagem Voluntária no Cocho sem Manejo Estressante</h3>
-                      <p>
-                        O manejo tradicional com gado correndo pelo curral estressa os animais, gerando perda 
-                        física de arrobas no dia do processo. A balança autônoma da Tauze monitora o peso voluntário 
-                        toda vez que o animal vai ao bebedouro, criando a curva de GMD de forma 100% offline e autônoma.
-                      </p>
-                      
-                      <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Curvas de engorda diárias geradas por antenas RFID</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Cálculo automático de rendimento de carcaça projetado</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Previsão de ganho por lote de pasto rotacionado</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* MODULE 3: FLOTA & TELEMETRIA */}
-              {activeModule === 'frota' && (
-                <div className="module-fade-in fleet-module">
-                  <div className="interface-splits">
-                    <div className="interactive-pane">
-                      <div className="panel-title-row">
-                        <span>RASTREAMENTO GPS & CONSUMO DIESEL</span>
-                        <div className="status-badge"><span className="pulse-dot"></span>TELEMETRIA ATIVA</div>
-                      </div>
-
-                      <div className="fleet-machinery-card">
-                        <div className="machinery-selector">
-                          <button 
-                            className={`machinery-tab ${activeTractor === 'trator-1' ? 'active' : ''}`}
-                            onClick={() => { setActiveTractor('trator-1'); setFuelLevel(82); }}
-                          >
-                            Trator JD 8R #04
-                          </button>
-                          <button 
-                            className={`machinery-tab ${activeTractor === 'colheitadeira-1' ? 'active' : ''}`}
-                            onClick={() => { setActiveTractor('colheitadeira-1'); setFuelLevel(58); }}
-                          >
-                            Colheitadeira Case #02
-                          </button>
-                        </div>
-
-                        <div className="machinery-live-specs">
-                          <div className="spec-item">
-                            <span className="lbl">Tanque de Combustível</span>
-                            <strong className="text-emerald">{fuelLevel}%</strong>
-                            <div className="progress-bar-container">
-                              <div className="bar" style={{ width: `${fuelLevel}%` }}></div>
-                            </div>
-                          </div>
-                          
-                          <div className="spec-details-row">
-                            <div>
-                              <span className="lbl">Atividade</span>
-                              <strong className="text-positive">OPERANDO</strong>
-                            </div>
-                            <div>
-                              <span className="lbl">Consumo médio</span>
-                              <strong>{activeTractor === 'trator-1' ? '14,8 L/h' : '26,4 L/h'}</strong>
-                            </div>
-                            <div>
-                              <span className="lbl">Próxima Oficina</span>
-                              <strong>38 Horas</strong>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="feature-description-pane">
-                      <span className="badge-module">FROTAS & MÁQUINAS</span>
-                      <h3>Eficiência Física nos Abastecimentos e Rotas</h3>
-                      <p>
-                        Monitore a operação das suas colheitadeiras e tratores. O sistema calcula a velocidade, 
-                        trajetória de plantio no talhão e detecta de forma instantânea consumos anômalos de diesel, 
-                        evitando desperdícios e gerando alertas de manutenções periódicas automáticas.
-                      </p>
-                      
-                      <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Rastreamento e horímetro de frotas offline-first</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Lançamento simplificado de combustíveis diretamente na bomba</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Histórico operacional por operador e trator</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* MODULE 4: COMPRAS & ESTOQUE */}
-              {activeModule === 'compras' && (
-                <div className="module-fade-in purchasing-module">
-                  <div className="interface-splits">
-                    <div className="interactive-pane">
-                      <div className="panel-title-row">
-                        <span>PIPELINE DE COTAÇÃO MULTI-FORNECEDOR</span>
-                        <div className="status-badge">SUPPLY INTEGRATION</div>
-                      </div>
-
-                      <div className="purchasing-pipeline-box">
-                        <div className="pipeline-visual-steps">
-                          <div className={`step-node ${purchaseStep === 'requisicao' ? 'active' : ''}`}>
-                            <span className="num">01</span>
-                            <span>Requisição</span>
-                          </div>
-                          <div className="step-connector"></div>
-                          <div className={`step-node ${purchaseStep === 'cotacao' ? 'active' : ''}`}>
-                            <span className="num">02</span>
-                            <span>Cotações</span>
-                          </div>
-                          <div className="step-connector"></div>
-                          <div className={`step-node ${purchaseStep === 'aprovado' ? 'active' : ''}`}>
-                            <span className="num">03</span>
-                            <span>Ordem Gerada</span>
-                          </div>
-                        </div>
-
-                        <div className="purchase-info-sheet">
-                          <div className="item-row">
-                            <span>Item Solicitado:</span>
-                            <strong>Fertilizante NPK (12 Toneladas)</strong>
-                          </div>
-                          <div className="item-row">
-                            <span>Melhor Oferta:</span>
-                            <strong className="text-emerald">Nutrien Rural // R$ 58.400,00</strong>
-                          </div>
-                        </div>
-
-                        <div className="pipeline-controls">
-                          {purchaseStep === 'requisicao' && (
-                            <button className="btn-pipeline" onClick={() => setPurchaseStep('cotacao')}>Buscar Fornecedores do Sistema</button>
-                          )}
-                          {purchaseStep === 'cotacao' && (
-                            <button className="btn-pipeline" onClick={() => setPurchaseStep('aprovado')}>Aprovar Menor Preço e Comprar</button>
-                          )}
-                          {purchaseStep === 'aprovado' && (
-                            <button className="btn-pipeline success-btn" onClick={() => setPurchaseStep('requisicao')}>Reiniciar Compra de Insumos</button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="feature-description-pane">
-                      <span className="badge-module">SUPRIMENTOS & ESTOQUES</span>
-                      <h3>Cotações Inteligentes Sem Planilhas Manuais</h3>
-                      <p>
-                        Mantenha o almoxarifado de adubos e defensivos no nível de segurança ideal. Ao abrir uma requisição 
-                        de compras, o sistema dispara consultas de orçamento automáticas aos fornecedores parceiros, 
-                        agrupando os preços em um painel simples e emitindo a nota fiscal de entrada pelo XML sem digitação.
-                      </p>
-                      
-                      <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Integração de compras fiscais de sementes e vacinas</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Rastreabilidade e controle de data de validade de químicos</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Alertas imediatos de estoque mínimo para reposição</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* MODULE 5: VENDAS & SAFRAS */}
-              {activeModule === 'vendas' && (
-                <div className="module-fade-in sales-module">
-                  <div className="interface-splits">
-                    <div className="interactive-pane">
-                      <div className="panel-title-row">
-                        <span>MINUTA DE CONTRATO FUTURO // GRÃOS</span>
-                        <div className="status-badge">COMERCIAL CONCLUÍDO</div>
-                      </div>
-
-                      <div className="sales-contract-interactive-box">
-                        <div className="contract-sheet">
-                          <div className="sheet-row">
-                            <span>Tipo de Contrato:</span>
-                            <strong>Venda de Grãos (Soja) // Safra 2026</strong>
-                          </div>
-                          <div className="sheet-row">
-                            <span>Comprador Comercial:</span>
-                            <strong>Cargill Agrícola S/A</strong>
-                          </div>
-                          <div className="sheet-row">
-                            <span>Volume de Entrega:</span>
-                            <strong>12.000 Sacas (720 Toneladas)</strong>
-                          </div>
-                          <div className="sheet-row">
-                            <span>Preço por Saca:</span>
-                            <strong className="text-emerald">R$ 138,50 / sc</strong>
-                          </div>
-                          <div className="sheet-divider"></div>
-                          <div className="sheet-total">
-                            <span>Faturamento Total Projetado:</span>
-                            <strong>R$ 1.662.000,00</strong>
-                          </div>
-                        </div>
-
-                        <button 
-                          className={`btn-approve-contract ${contractApproved ? 'success' : ''}`}
-                          onClick={handleApproveContract}
-                        >
-                          {contractLoading ? (
-                            <span>Faturando e gerando NF-e...</span>
-                          ) : contractApproved ? (
-                            <span className="flex-row"><Check size={16} /> Contrato Assinado & Nota Fiscal Emitida!</span>
-                          ) : (
-                            <span>Assinar Contrato e Faturar Lote</span>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="feature-description-pane">
-                      <span className="badge-module">VENDAS & CONTRATOS</span>
-                      <h3>Faturamento ágil e Baixa Física no Armazém</h3>
-                      <p>
-                        Formalize suas vendas de safras e contratos futuros com segurança. A plataforma gerencia 
-                        o saldo físico de entregas por cliente, calcula o valor médio de faturamento líquido de impostos e 
-                        emite automaticamente as notas fiscais no momento do carregamento das carretas no silo.
-                      </p>
-                      
-                      <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Emissão rápida de NF-e, CT-e e MDF-e de transporte</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Acompanhamento físico e financeiro de entregas parciais</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Conexão direta com faturamento de boi gordo e grãos</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* MODULE 6: FINANÇAS & CONCILIAÇÃO BANCÁRIA */}
-              {activeModule === 'financas' && (
-                <div className="module-fade-in finance-module">
-                  <div className="interface-splits">
-                    <div className="interactive-pane">
-                      <div className="panel-title-row">
-                        <span>CONCILIAÇÃO BANCÁRIA AUTOMÁTICA</span>
-                        <div className="status-badge">API OPEN FINANCE</div>
-                      </div>
-
-                      <div className="reconciliation-interactive-box">
-                        <div className="reconcile-split-cards">
-                          <div className="reconcile-card bank-statement">
-                            <span className="card-lbl">CONTA CORRENTE BANCO</span>
-                            <div className="entry-row">
-                              <span className="title">BUNGE ALIMENTOS (CRÉDITO)</span>
-                              <strong className="text-positive">R$ 138.500,00</strong>
-                            </div>
-                            <span className="time">Transferência Recebida: 22/05/2026</span>
-                          </div>
-
-                          <div className="reconcile-action-connector">
-                            {reconciliationStatus === 'pending' ? (
-                              <button 
-                                className={`btn-reconcile-trigger ${reconciling ? 'loading' : ''}`}
-                                onClick={handleReconcile}
-                              >
-                                {reconciling ? 'Casando dados...' : 'Conciliar Lote'}
-                              </button>
-                            ) : (
-                              <div className="stamp-success">
-                                <Check size={14} />
-                                <span>100% Casado</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="reconcile-card erp-ledger">
-                            <span className="card-lbl">NF-E DE VENDA REGISTRADA</span>
-                            <div className="entry-row">
-                              <span className="title">Fatura Venda Soja #9254</span>
-                              <strong className="text-positive">R$ 138.500,00</strong>
-                            </div>
-                            <span className="time">Faturamento Fiscal: 21/05/2026</span>
-                          </div>
-                        </div>
-
-                        <div className="reconciliation-progress-indicator">
-                          <span className="title">Acurácia Financeira do Mês Atual:</span>
-                          <div className="progress-bar-reconciled">
-                            <div className={`bar ${reconciliationStatus === 'reconciled' ? 'full' : 'half'}`}></div>
-                          </div>
-                          <span className="percentage">
-                            {reconciliationStatus === 'reconciled' ? '100% das notas e contas conciliadas no extrato!' : '91% das transações casadas'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="feature-description-pane">
-                      <span className="badge-module">FINANCEIRO INTEGRADO</span>
-                      <h3>Conciliação Bancária Automática via API</h3>
-                      <p>
-                        A tarefa cansativa de olhar linha por linha do extrato bancário do agronegócio e bater manualmente 
-                        com o fluxo de caixa acabou. O Tauze conecta-se às contas correntes do seu banco, identifica os 
-                        depósitos recebidos dos compradores e liquida as notas fiscais pendentes de forma imediata.
-                      </p>
-                      
-                      <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Integração de extratos via API com os maiores bancos do país</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Baixa fiscal e do contas a receber automatizada</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Projeção de fluxo de caixa operacional para os próximos 90 dias</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* MODULE 7: BI & BUSINESS INTELLIGENCE */}
-              {activeModule === 'bi' && (
-                <div className="module-fade-in bi-module">
-                  <div className="interface-splits">
-                    <div className="interactive-pane">
-                      <div className="panel-title-row">
-                        <span>DEMONSTRATIVO DE RESULTADOS DA SAFRA</span>
-                        <div className="status-badge">EBITDA REAL</div>
-                      </div>
-
-                      <div className="bi-analytics-box">
-                        <div className="analytics-grid">
-                          <div className="analytic-card">
-                            <span className="lbl">Faturamento Líquido da Safra</span>
-                            <strong>R$ 3.820.000,00</strong>
-                            <span className="subtext text-positive">+16% vs Ano Anterior</span>
-                          </div>
-                          
-                          <div className="analytic-card">
-                            <span className="lbl">Custo Operacional Efetivo</span>
-                            <strong>R$ 2.180.000,00</strong>
-                            <span className="subtext text-negative">-4% com cotações inteligentes</span>
-                          </div>
-
-                          <div className="analytic-card full-card">
-                            <span className="lbl">Resultado EBITDA Consolidado</span>
-                            <div className="ebitda-row">
-                              <strong className="text-emerald">42.9% Margem</strong>
-                              <span className="lbl-status">LUCRO SAUDÁVEL</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="feature-description-pane">
-                      <span className="badge-module">INTELIGÊNCIA & CUSTOS</span>
-                      <h3>Margem Real de Lucratividade Sem Erros</h3>
-                      <p>
-                        A tomada de decisão depende de informações financeiras confiáveis. O módulo de BI do Tauze 
-                        calcula automaticamente seu custo por saca ou por arroba engordada, fornecendo a margem EBITDA 
-                        consolidada e relatórios DRE operacionais detalhados de defensivos, frotas e insumos.
-                      </p>
-                      
-                      <div className="feature-bullets-grid">
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>DRE operacional integrado gerado automaticamente</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Distribuição exata do custo produtivo de cada talhão físico</span></div>
-                        <div className="bullet-row"><CheckCircle2 size={14} className="text-emerald" /> <span>Indicador de lucratividade por safra e lote de animais</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* -------------------- UNIFIED OPERATIONAL FLUID TIMELINE -------------------- */}
-      <section id="fluxo-processos" className="unified-timeline-section">
-        <div className="container-inner-layout">
-          <div className="section-head-centered">
-            <span className="section-pre-title">JORNADA DA OPERAÇÃO</span>
-            <h2>Como os Módulos do ERP Integram Seus Processos</h2>
-            <p>
-              Em sistemas tradicionais, cada setor funciona isolado. No <strong>tauze</strong>, a rotina prática do campo 
-              alimenta de forma imediata o estoque, o faturamento fiscal e a baixa do fluxo de caixa bancário.
+      {/* ──── INTERACTIVE DEMO ──── */}
+      <section id="demo" style={{ padding: '100px 40px', background: 'linear-gradient(180deg, transparent, rgba(0,184,101,0.04), transparent)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.1em', marginBottom: 14 }}>DEMONSTRATIVO INTERATIVO</div>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 46px)', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 16 }}>
+              Experimente antes de contratar
+            </h2>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.45)', maxWidth: 480, margin: '0 auto' }}>
+              Clique nos módulos abaixo e interaja com a interface real do sistema.
             </p>
           </div>
 
-          <div className="operational-flow-visual-hub">
-            {/* Steps Column Left */}
-            <div className="flow-steps-column">
-              {[
-                { title: "1. Entrada de Insumos (Compras)", desc: "Ao receber defensivos ou adubos, a importação da nota fiscal atualiza o inventário físico do almoxarifado automaticamente.", icon: <ShoppingCart size={16} /> },
-                { title: "2. Preparo, Plantio & Manejo", desc: "No campo, as ordens de serviço agrícolas e os brincos RFID das pesagens voluntárias geram consumo e engorda em tempo real.", icon: <Compass size={16} /> },
-                { title: "3. Telemetria Física (Frota)", desc: "As máquinas trabalham. O sistema computa o diesel das bombas e calcula o custo exato de cada talhão ativo de terra.", icon: <Truck size={16} /> },
-                { title: "4. Comercial & Saída Fiscal (Vendas)", desc: "A colheita ou engorda entra no silo. Emite-se a NF-e do contrato comercial de soja ou carne, dando baixa imediata no estoque.", icon: <FileText size={16} /> },
-                { title: "5. Liquidação Bancária (Finanças)", desc: "O pagamento cai na conta corrente. A API bancária cruza os valores recebidos e executa a baixa sem redigitação de extrato.", icon: <DollarSign size={16} /> }
-              ].map((step, idx) => (
-                <button 
-                  key={idx}
-                  className={`flow-selector-btn ${flowStep === idx ? 'active' : ''}`}
-                  onClick={() => setFlowStep(idx)}
-                >
-                  <div className="bullet-num">{idx + 1}</div>
-                  <div className="texts">
-                    <strong>{step.title}</strong>
-                    <span>{step.desc}</span>
+          <div id="modulos" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 24 }}>
+            {/* Sidebar */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {modules.map((m, i) => (
+                <button key={i} className={`mod-tab ${activeTab === i ? 'active' : ''}`} onClick={() => setActiveTab(i)}>
+                  <span style={{ fontSize: 20 }}>{m.emoji}</span>
+                  <div>
+                    <div style={{ fontWeight: 800 }}>{m.label}</div>
+                    <div style={{ fontSize: 10, opacity: 0.6, marginTop: 2 }}>{m.tag}</div>
                   </div>
                 </button>
               ))}
             </div>
 
-            {/* Simulated Live Process Screen Viewer Right */}
-            <div className="flow-screen-viewer">
-              <div className="viewer-card">
-                <div className="card-top-head">
-                  <div className="icon-badge-flow">
-                    {[<ShoppingCart size={18} />, <Compass size={18} />, <Truck size={18} />, <FileText size={18} />, <DollarSign size={18} />][flowStep]}
+            {/* Console */}
+            <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+              {/* top bar */}
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', gap: 12, background: 'rgba(255,255,255,0.02)' }}>
+                <div style={{ display: 'flex', gap: 7 }}>
+                  {['#ef4444', '#f59e0b', '#22c55e'].map(c => <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c }} />)}
+                </div>
+                <div style={{ flex: 1, textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em' }}>
+                  tauze://erp/{modules[activeTab].label.toLowerCase()}/live
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(0,184,101,0.1)', border: '1px solid rgba(0,184,101,0.2)', borderRadius: 6, padding: '3px 10px' }}>
+                  <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#00b865', boxShadow: '0 0 6px #00b865' }} />
+                  <span style={{ fontSize: 9, fontWeight: 800, color: '#00b865', letterSpacing: '0.06em' }}>AO VIVO</span>
+                </div>
+              </div>
+
+              {/* content */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+                {/* Demo pane */}
+                <div style={{ padding: 28, borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.08em', marginBottom: 20 }}>
+                    {modules[activeTab].tag.toUpperCase()} — SIMULAÇÃO INTERATIVA
                   </div>
-                  <strong>FLUXO DE INTEGRAÇÃO RURAL</strong>
+                  {modules[activeTab].demo}
                 </div>
 
-                <div className="card-body-flow">
-                  <h4>
-                    {
-                      [
-                        "Abastecimento Imediato no Almoxarifado",
-                        "Manejo Integrado de Pesagem e Lotes",
-                        "Custos Reais de Telemetria e Máquinas",
-                        "Baixa Automática nos Silos e Notas Fiscais",
-                        "Open Finance Liquidando Fluxo Bancário"
-                      ][flowStep]
-                    }
-                  </h4>
-                  <p>
-                    {
-                      [
-                        "O XML do fertilizante é importado no módulo de Compras. Instantaneamente, o estoque é atualizado por depósito físico e as parcelas a pagar são programadas no contas a pagar financeiro, sem que você precise digitar nenhuma linha.",
-                        "Enquanto os bois passam de forma voluntária nos cochos e as ordens de serviço agrícolas são criadas no campo, o ERP consolida a estimativa de custos de defensivos aplicados por hectare e a evolução diária de peso por lote de pasto.",
-                        "Toda a telemetria física é sincronizada com o ERP. No instante em que os tratores registram consumo de combustível nas bombas da fazenda, o custo unitário por talhão de terra é atualizado no módulo de BI, disparando requisições preventivas.",
-                        "No carregamento dos caminhões de safras ou embarque do gado, o operador fecha a NF-e de saída de grãos/carne. O Tauze calcula os descontos fiscais automáticos e deduz as quantidades colhidas das posições físicas dos silos.",
-                        "O crédito financeiro do comprador é identificado no extrato da sua conta corrente corporativa. As APIs de Open Finance integradas no Tauze realizam a conciliação do lote com a nota emitida, fechando o demonstrativo DRE operacional."
-                      ][flowStep]
-                    }
-                  </p>
-
-                  <div className="flow-interactive-status-badge">
-                    <span className="live-pulse"></span>
-                    <span>INTEGRAÇÃO DO PROCESSO OPERACIONAL CONCLUÍDA</span>
+                {/* Info pane */}
+                <div style={{ padding: 28 }}>
+                  <div style={{ display: 'inline-block', fontSize: 10, fontWeight: 800, color: modules[activeTab].color, background: `${modules[activeTab].color}12`, border: `1px solid ${modules[activeTab].color}25`, borderRadius: 8, padding: '4px 10px', marginBottom: 16, letterSpacing: '0.06em' }}>
+                    {modules[activeTab].label.toUpperCase()}
+                  </div>
+                  <h3 style={{ fontSize: 20, fontWeight: 800, lineHeight: 1.3, marginBottom: 14, letterSpacing: '-0.02em' }}>{modules[activeTab].title}</h3>
+                  <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, marginBottom: 24 }}>{modules[activeTab].desc}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {modules[activeTab].bullets.map((b, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 13, color: 'rgba(255,255,255,0.65)' }}>
+                        <span style={{ color: '#00b865', fontWeight: 900, marginTop: 1, flexShrink: 0 }}>✓</span>
+                        <span>{b}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <Link to="/login" style={{ fontSize: 13, fontWeight: 800, color: modules[activeTab].color, textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      Ver módulo completo no ERP →
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -970,163 +641,109 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* -------------------- DENSE TACTILE PROCESS ROI CALCULATOR -------------------- */}
-      <section id="simulador-processos" className="process-roi-section">
-        <div className="roi-layout-box">
-          <div className="section-head-centered">
-            <span className="section-pre-title">RETORNO SOBRE PROCESSO</span>
-            <h2>Veja o Impacto Financeiro na Operação</h2>
-            <p>
-              Simule a dimensão física da sua fazenda. O demonstrativo de retorno abaixo estima a economia 
-              anual proporcionada ao unificar os processos com o <strong>tauze</strong>.
+      {/* ──── WORKFLOW SECTION ──── */}
+      <section style={{ padding: '100px 40px' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.1em', marginBottom: 14 }}>FLUXO INTEGRADO</div>
+            <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 16 }}>Do campo ao balanço em um único fluxo</h2>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.45)', maxWidth: 500, margin: '0 auto' }}>
+              Cada operação física alimenta automaticamente o financeiro. Sem redigitação.
             </p>
           </div>
 
-          <div className="roi-calculator-layout">
-            {/* Parameters Control Left */}
-            <div className="sliders-control-desk">
-              <span className="desk-eyebrow">MÉTRICAS DO AGRONEGÓCIO</span>
-              <h3>Parâmetros de Produção</h3>
+          <div style={{ position: 'relative' }}>
+            {/* connector line */}
+            <div style={{ position: 'absolute', top: 28, left: 28, right: 28, height: 2, background: 'linear-gradient(90deg, #00b865, #3b82f6, #8b5cf6, #f59e0b)', borderRadius: 2, opacity: 0.3 }} />
 
-              {/* Slider 1: Herd */}
-              <div className="slider-control-group">
-                <div className="label-row">
-                  <span>Rebanho Bovino Ativo:</span>
-                  <strong>{herdScale.toLocaleString('pt-BR')} cabeças</strong>
-                </div>
-                <input 
-                  type="range" 
-                  min="200" 
-                  max="15000" 
-                  step="100" 
-                  value={herdScale} 
-                  onChange={(e) => setHerdScale(parseInt(e.target.value))}
-                  className="matrix-range"
-                />
-              </div>
-
-              {/* Slider 2: Hectares */}
-              <div className="slider-control-group">
-                <div className="label-row">
-                  <span>Área de Cultivo Ativa:</span>
-                  <strong>{harvestHectares.toLocaleString('pt-BR')} hectares</strong>
-                </div>
-                <input 
-                  type="range" 
-                  min="300" 
-                  max="20000" 
-                  step="100" 
-                  value={harvestHectares} 
-                  onChange={(e) => setHarvestHectares(parseInt(e.target.value))}
-                  className="matrix-range"
-                />
-              </div>
-
-              {/* Slider 3: Hours Saved */}
-              <div className="slider-control-group">
-                <div className="label-row">
-                  <span>Horas Adm. Economizadas Mensais:</span>
-                  <strong>{adminTimeSaved} horas</strong>
-                </div>
-                <input 
-                  type="range" 
-                  min="10" 
-                  max="180" 
-                  step="5" 
-                  value={adminTimeSaved} 
-                  onChange={(e) => setAdminTimeSaved(parseInt(e.target.value))}
-                  className="matrix-range"
-                />
-              </div>
-            </div>
-
-            {/* Textured printed invoice card Right */}
-            <div className="printable-invoice-wrapper">
-              <div className="invoice-paper">
-                <div className="invoice-head">
-                  <span className="brand">TAUZE SYSTEMS</span>
-                  <span className="title">DEMONSTRATIVO DE RETORNO SOBRE O INVESTIMENTO</span>
-                  <span className="date">ANÁLISE DE PROCESSO: SAFRA VIGENTE</span>
-                </div>
-
-                <div className="dotted-separator"></div>
-
-                <div className="invoice-entries">
-                  <div className="invoice-entry-row">
-                    <span>Otimização Pecuária (Engorda rápida RFID sem estresse)</span>
-                    <strong className="text-positive">+ R$ {Math.round(rfidSavingValue).toLocaleString('pt-BR')}</strong>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16 }}>
+              {[
+                { step: '01', icon: '🐄', label: 'Campo', desc: 'Pesagem RFID, abastecimentos, colheitas e movimentos físicos registrados no app' },
+                { step: '02', icon: '📊', label: 'ERP', desc: 'Dados sincronizados e organizados por módulo: estoque, frota, pecuária, agrícola' },
+                { step: '03', icon: '💰', label: 'Financeiro', desc: 'DRE, fluxo de caixa e contas gerados automaticamente a partir das operações' },
+                { step: '04', icon: '🤖', label: 'IA + BI', desc: 'Dashboards executivos, alertas preditivos e recomendações baseadas nos seus dados' },
+              ].map((s, i) => (
+                <div key={i} style={{ position: 'relative', textAlign: 'center', padding: '0 16px' }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(0,184,101,0.1)', border: '1px solid rgba(0,184,101,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>
+                    {s.icon}
                   </div>
-                  <div className="invoice-entry-row">
-                    <span>Combustível & Rotas Otimizadas (Telemetria Frota)</span>
-                    <strong className="text-positive">+ R$ {Math.round(fuelSavingValue).toLocaleString('pt-BR')}</strong>
-                  </div>
-                  <div className="invoice-entry-row">
-                    <span>Otimização do Escritório (Conciliação Automática via API)</span>
-                    <strong className="text-positive">+ R$ {Math.round(adminSavingValue).toLocaleString('pt-BR')}</strong>
-                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em', marginBottom: 6 }}>PASSO {s.step}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 8 }}>{s.label}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.65 }}>{s.desc}</div>
                 </div>
-
-                <div className="dotted-separator"></div>
-
-                <div className="invoice-total-section">
-                  <span>RETORNO ESTIMADO ANUAL</span>
-                  <span className="total-val">R$ {totalProcessSavings.toLocaleString('pt-BR')}</span>
-                </div>
-
-                <div className="invoice-footer">
-                  <div className="gold-stamp">
-                    <Award size={14} />
-                    <span>PROCESSOS CERTIFICADOS</span>
-                  </div>
-                  <p>Economia média anual baseada no rendimento operacional coletado junto a produtores parceiros.</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* -------------------- OPERATIONAL FAQ SECTION -------------------- */}
-      <section className="matrix-faq-section" id="faq">
-        <div className="container-inner-layout">
-          <div className="section-head-centered">
-            <span className="section-pre-title">SUPORTE OPERACIONAL</span>
-            <h2>Dúvidas Operacionais Comuns</h2>
-            <p>
-              Entenda como o sistema opera na prática da fazenda, no financeiro e nos processos comerciais diários.
+      {/* ──── WHY TAUZE ──── */}
+      <section style={{ padding: '100px 40px', background: 'rgba(255,255,255,0.015)', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 80, alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.1em', marginBottom: 14 }}>POR QUE O TAUZE</div>
+            <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 42px)', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 20 }}>
+              Construído por quem conhece o campo de perto
+            </h2>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', lineHeight: 1.75, marginBottom: 36 }}>
+              A maioria dos ERPs foi criada para indústrias urbanas e adaptada ao agro com gambiarras. O Tauze nasceu para pecuária e agricultura — com lógicas de lotes, talhões e telemetria de campo no coração do sistema.
             </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {[
+                ['Offline-first', 'Funciona sem internet no campo. Sincroniza automaticamente ao voltar à rede.'],
+                ['Suporte em português real', 'Time de suporte brasileiro, com conhecimento do dia a dia do produtor rural.'],
+                ['Sem telas desnecessárias', 'Interface projetada para o gerente de fazenda usar no celular ou tablet.'],
+              ].map(([t, d]) => (
+                <div key={t} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(0,184,101,0.12)', border: '1px solid rgba(0,184,101,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
+                    <span style={{ color: '#00b865', fontSize: 14, fontWeight: 900 }}>✓</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#fff', marginBottom: 4 }}>{t}</div>
+                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1.6 }}>{d}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="faq-accordion-container">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {[
-              {
-                q: "A balança RFID de pesagem voluntária funciona sem internet no pasto?",
-                a: "Com certeza. A antena RFID e os módulos de pesagem embarcados nos cochos de água operam de forma offline-first. As informações de peso e o ID do brinco do bovino são armazenados localmente e transmitidos via antenas de rádio de longo alcance para a sede da fazenda, sincronizando com os dados em nuvem assim que há conexão disponível."
-              },
-              {
-                q: "O contas a receber liquida a nota fiscal automaticamente via API bancária?",
-                a: "Sim. Por meio de conexões via APIs Open Finance seguras com os maiores bancos comerciais brasileiros (Banco do Brasil, Bradesco, Itaú, Sicredi), a plataforma faz a leitura em tempo real dos extratos. Ao detectar a transferência correspondente ao contrato faturado, o contas a receber liquida o título e atualiza o DRE de forma automática."
-              },
-              {
-                q: "Como a importação de XML no módulo de compras ajuda no estoque de insumos?",
-                a: "No instante em que o fornecedor emite a nota fiscal de sementes, ração ou defensivos para a sua fazenda, a API do Tauze faz a leitura do documento fiscal eletrônico. O sistema atualiza o almoxarifado de depósito correspondente, registra os lotes e datas de validade das vacinas e insumos, e programa as datas no contas a pagar sem digitação."
-              },
-              {
-                q: "O módulo de frotas funciona com o maquinário operando no campo?",
-                a: "Sim. A telemetria física armazena a velocidade, horas de motor aceso e localização no campo. Sempre que o maquinário passa próximo ao Wi-Fi da sede ou sincroniza via redes móveis, o consumo médio de diesel e o histórico são processados, disparando alertas de manutenções preventivas nos tratores antes de apresentarem defeito."
-              }
-            ].map((faq, index) => (
-              <div 
-                key={index} 
-                className={`faq-block ${faqOpen === index ? 'expanded' : ''}`}
-                onClick={() => setFaqOpen(faqOpen === index ? null : index)}
-              >
-                <div className="faq-head-row">
-                  <strong>{faq.q}</strong>
-                  <ChevronDown size={18} className="arrow-icon" />
-                </div>
-                <div className="faq-body-content">
-                  <p>{faq.a}</p>
+              { icon: '⚡', title: 'Implantação em 7 dias', desc: 'Migração de dados, treinamento e configuração de integrações incluídos' },
+              { icon: '🔒', title: 'Dados 100% seus', desc: 'Backup automático, export completo a qualquer momento' },
+              { icon: '📱', title: 'App mobile incluído', desc: 'Android e iOS para uso no campo sem custo adicional' },
+              { icon: '🔧', title: 'Suporte sem chatbot', desc: 'Atendimento humano por WhatsApp em horário comercial' },
+            ].map((c, i) => (
+              <div key={i} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 18, padding: 22 }}>
+                <div style={{ fontSize: 28, marginBottom: 12 }}>{c.icon}</div>
+                <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>{c.title}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{c.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ──── TESTIMONIALS ──── */}
+      <section style={{ padding: '100px 40px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 60 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.1em', marginBottom: 14 }}>DEPOIMENTOS</div>
+            <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 42px)', fontWeight: 900, letterSpacing: '-0.03em' }}>O que dizem os produtores</h2>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 20 }}>
+            {[
+              { name: 'Carlos Mendes', role: 'Pecuarista · 3.200 cabeças · MS', text: 'A pesagem RFID eliminou o estresse do manejo. Antes perdia 2 arrobas por animal no dia da pesagem. Hoje o sistema registra sozinho toda semana.' },
+              { name: 'Adriana Fonseca', role: 'Gestora Agrícola · 8.500 ha · GO', text: 'O controle de diesel foi o que me convenceu. Em 60 dias identificamos um desvio de R$ 38 mil no consumo de combustível que nunca teríamos encontrado em planilha.' },
+              { name: 'Roberto Pinheiro', role: 'Produtor Integrado · MT', text: 'A conciliação bancária economizou 3 dias de trabalho do meu financeiro todo mês. O sistema casa os lançamentos automaticamente com uma taxa de 94% de acerto.' },
+            ].map((t, i) => (
+              <div key={i} className="glass-card" style={{ padding: 28 }}>
+                <div style={{ fontSize: 32, color: 'rgba(0,184,101,0.3)', fontWeight: 900, marginBottom: 16, lineHeight: 1 }}>"</div>
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.8, marginBottom: 24 }}>{t.text}</p>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 18 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{t.name}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 3 }}>{t.role}</div>
                 </div>
               </div>
             ))}
@@ -1134,2052 +751,93 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* -------------------- OPERATIONAL SPEC SHEET -------------------- */}
-      <section className="technical-specs-sheet">
-        <div className="container-inner-layout">
-          <div className="specs-card-matrix">
-            <span className="specs-eyebrow">DIRETRIZES DA PLATAFORMA</span>
-            <h3>Ficha de Capacidades Operacionais do ERP</h3>
-            <p className="specs-sub font-sm">Abaixo da interface elegante, operam integrações de alta engenharia para agronegócio:</p>
-            
-            <div className="specs-matrix-grid">
-              <div className="matrix-row">
-                <span className="property">EMISSÃO E CONFORMIDADE</span>
-                <span className="detail">Suporte completo a NF-e (Produtor Rural), MDF-e, CT-e e NF-e de grãos</span>
+      {/* ──── FAQ ──── */}
+      <section id="faq" style={{ padding: '100px 40px', background: 'rgba(255,255,255,0.015)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 60 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.1em', marginBottom: 14 }}>PERGUNTAS FREQUENTES</div>
+            <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 42px)', fontWeight: 900, letterSpacing: '-0.03em' }}>Dúvidas comuns</h2>
+          </div>
+
+          <div>
+            {faqs.map((f, i) => (
+              <div key={i} className="faq-item">
+                <button className="faq-btn" onClick={() => setFaqOpen(faqOpen === i ? null : i)}>
+                  <span>{f.q}</span>
+                  <span style={{ fontSize: 20, color: 'rgba(255,255,255,0.3)', flexShrink: 0, transform: faqOpen === i ? 'rotate(45deg)' : 'none', transition: 'transform 0.3s' }}>+</span>
+                </button>
+                {faqOpen === i && <div className="faq-answer">{f.a}</div>}
               </div>
-              <div className="matrix-row">
-                <span className="property">CONEXÃO OFF-GRID</span>
-                <span className="detail">Transmissão de balanças e telemetria via rádio de longo alcance (LoraWAN 915 MHz)</span>
-              </div>
-              <div className="matrix-row">
-                <span className="property">APIS OPEN FINANCE</span>
-                <span className="detail">Integração homologada de extrato e liquidação com BB, Itaú, Bradesco e cooperativas</span>
-              </div>
-              <div className="matrix-row">
-                <span className="property">PADRÕES DE PESAGEM</span>
-                <span className="detail">Compatível com brinco de identificação nacional e padrão internacional ISO 11784/11785</span>
-              </div>
-              <div className="matrix-row">
-                <span className="property">TELEMETRIA DE MÁQUINAS</span>
-                <span className="detail">Sensores de nível de tanque em bombas de abastecimento e integração de horímetro</span>
-              </div>
-              <div className="matrix-row">
-                <span className="property">SUPORTE E HARDWARE</span>
-                <span className="detail">Plataforma responsiva para tablets e celulares de campo, operando mesmo sem internet</span>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* -------------------- BRAND FOOTER -------------------- */}
-      <footer className="matrix-footer">
-        <div className="footer-top-columns">
-          <div className="footer-brand-side">
-            <div className="brand-logo-inline">
-              <TauzeLogo size={38} />
-              <span className="title">tauze</span>
-            </div>
-            <p className="desc">
-              Otimizando e automatizando os processos práticos, físicos e financeiros do agronegócio moderno.
-            </p>
-          </div>
-
-          <div className="footer-links-side">
-            <div className="links-column">
-              <h4>Módulos ERP</h4>
-              <a href="#modulos">Agrícola</a>
-              <a href="#modulos">Pecuária</a>
-              <a href="#modulos">Frotas</a>
-              <a href="#modulos">Compras</a>
-            </div>
-            <div className="links-column">
-              <h4>Operações</h4>
-              <span className="text-tag">API Bancária Ativa</span>
-              <span className="text-tag">Emissão de NF-e</span>
-            </div>
-          </div>
+      {/* ──── CTA ──── */}
+      <section id="contato" style={{ padding: '100px 40px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: '-30%', left: '50%', transform: 'translateX(-50%)', width: 800, height: 800, background: 'radial-gradient(circle, rgba(0,184,101,0.1) 0%, transparent 65%)', animation: 'glow-pulse 5s ease-in-out infinite' }} />
         </div>
 
-        <div className="footer-bottom-row">
-          <p>&copy; 2026 Tauze Systems. Todos os direitos reservados. Foco absoluto na operação e produtividade do agronegócio.</p>
+        <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center', position: 'relative' }}>
+          <div style={{ width: 72, height: 72, borderRadius: 22, background: 'rgba(0,184,101,0.12)', border: '1px solid rgba(0,184,101,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 28px' }}>
+            <TauzeLogo size={38} />
+          </div>
+
+          <h2 style={{ fontSize: 'clamp(30px, 5vw, 52px)', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 18, lineHeight: 1.1 }}>
+            Pronto para transformar<br />a gestão da sua fazenda?
+          </h2>
+          <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, marginBottom: 40, maxWidth: 500, margin: '0 auto 40px' }}>
+            Agende uma demonstração de 30 minutos com nossa equipe técnica e veja o sistema funcionando com dados reais do seu negócio.
+          </p>
+
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a
+              href="https://wa.me/5511999999999?text=Olá!%20Tenho%20interesse%20em%20conhecer%20o%20Tauze%20ERP."
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary"
+              style={{ fontSize: 16, padding: '17px 36px' }}
+            >
+              <span>💬</span>
+              <span>Falar no WhatsApp</span>
+            </a>
+            <Link to="/login" className="btn-ghost" style={{ fontSize: 16, padding: '17px 36px' }}>
+              Acessar o ERP agora →
+            </Link>
+          </div>
+
+          <div style={{ marginTop: 32, display: 'flex', gap: 28, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {['Sem cartão de crédito', 'Demo gratuita', 'Dados reais da sua fazenda'].map(t => (
+              <span key={t} style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ color: '#00b865' }}>✓</span> {t}
+              </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ──── FOOTER ──── */}
+      <footer style={{ borderTop: '1px solid rgba(255,255,255,0.06)', padding: '48px 40px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <TauzeLogo size={28} />
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#fff' }}>tauze</div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', fontWeight: 600 }}>Sistemas de Gestão Rural</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+            {['Pecuária', 'Agrícola', 'Frota', 'Finanças', 'Compras', 'BI'].map(l => (
+              <Link key={l} to="/login" style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}
+                onMouseEnter={e => (e.target as HTMLElement).style.color = '#fff'}
+                onMouseLeave={e => (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.35)'}
+              >{l}</Link>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)' }}>© 2026 Tauze · Todos os direitos reservados</div>
         </div>
       </footer>
-
-      {/* -------------------- CUSTOM CSS INLINE STYLES -------------------- */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Outfit:wght@400;500;600;700;800;900&display=swap');
-
-        .tauze-erp-matrix {
-          /* Premium Color Design Tokens */
-          --bg-canvas: #faf9f6;          /* Luxurious warm off-white alabaster */
-          --bg-card: rgba(255, 255, 255, 0.88); /* Clean modern glass */
-          --text-main: #131c16;          /* Deep carbon obsidian text */
-          --text-muted: #4e5651;         /* Readable charcoal graphite */
-          --accent: #00b865;             /* Signature glowing emerald */
-          --accent-hover: #009953;
-          --gold: #c5a073;               /* Elegant brushed light brass/gold */
-          --gold-light: rgba(197, 160, 115, 0.08);
-          --border-premium: rgba(197, 160, 115, 0.22); /* Light gold hairline border */
-          --border-light: rgba(19, 28, 22, 0.06);     /* Micro thin border */
-          --shadow-luxe: 0 25px 50px rgba(19, 28, 22, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-          
-          background-color: var(--bg-canvas);
-          color: var(--text-main);
-          font-family: 'Inter', sans-serif;
-          min-height: 100vh;
-          overflow-x: clip;
-          position: relative;
-          scroll-behavior: smooth;
-        }
-
-        /* Helpers */
-        .text-positive { color: var(--accent); }
-        .text-negative { color: #ff5f56; }
-        .font-sm { font-size: 0.85rem; }
-        .flex-row { display: flex; align-items: center; gap: 6px; }
-
-        /* --- TICKER COMMODITIES BAR --- */
-        .commodities-ticker {
-          background: #0f1411;
-          color: #ffffff;
-          height: 38px;
-          display: flex;
-          align-items: center;
-          overflow: hidden;
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 1001;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        }
-
-        .ticker-container {
-          display: flex;
-          white-space: nowrap;
-          width: max-content;
-        }
-
-        .ticker-slide {
-          display: flex;
-          animation: infiniteTickerSlide 32s linear infinite;
-        }
-
-        @keyframes infiniteTickerSlide {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-
-        .ticker-node {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.72rem;
-          font-weight: 600;
-          margin-right: 48px;
-          letter-spacing: 0.03em;
-          color: rgba(255, 255, 255, 0.75);
-        }
-
-        .ticker-indicator {
-          width: 4px;
-          height: 4px;
-          border-radius: 50%;
-          background: var(--accent);
-          display: inline-block;
-        }
-
-        /* --- NAVIGATION NAVBAR --- */
-        .matrix-navbar {
-          position: fixed;
-          top: 38px;
-          left: 0;
-          right: 0;
-          z-index: 1000;
-          height: 86px;
-          display: flex;
-          align-items: center;
-          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-          border-bottom: 1px solid transparent;
-        }
-
-        .matrix-navbar.elevated {
-          background: rgba(250, 249, 246, 0.85);
-          backdrop-filter: blur(24px);
-          -webkit-backdrop-filter: blur(24px);
-          height: 72px;
-          border-bottom: 1px solid var(--border-premium);
-          box-shadow: 0 10px 30px rgba(19, 28, 22, 0.02);
-        }
-
-        .navbar-inner {
-          max-width: 1240px;
-          width: 100%;
-          margin: 0 auto;
-          padding: 0 24px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .brand-logo-group {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .brand-title-column {
-          display: flex;
-          flex-direction: column;
-          text-align: left;
-        }
-
-        .brand-name {
-          font-family: 'Outfit', sans-serif;
-          font-weight: 900;
-          font-size: 1.6rem;
-          letter-spacing: -0.04em;
-          color: var(--text-main);
-          line-height: 1;
-        }
-
-        .brand-description {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.6rem;
-          font-weight: 700;
-          color: var(--gold);
-          letter-spacing: 0.12em;
-          margin-top: 2px;
-          text-transform: uppercase;
-        }
-
-        .navbar-links {
-          display: flex;
-          gap: 36px;
-        }
-
-        .navbar-links a {
-          font-size: 0.88rem;
-          font-weight: 600;
-          color: var(--text-muted);
-          text-decoration: none;
-          transition: color 0.25s;
-        }
-
-        .navbar-links a:hover {
-          color: var(--text-main);
-        }
-
-        .btn-access-suite {
-          background: var(--text-main);
-          color: #ffffff;
-          padding: 10px 18px;
-          border-radius: 8px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.8rem;
-          font-weight: 700;
-          text-decoration: none;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          transition: all 0.3s;
-        }
-
-        .btn-access-suite:hover {
-          background: #000000;
-          transform: translateY(-1.5px);
-          box-shadow: 0 6px 18px rgba(19, 28, 22, 0.08);
-        }
-
-        /* --- HERO --- */
-        .matrix-hero {
-          position: relative;
-          padding: 200px 24px 80px 24px;
-          min-height: 75vh;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          text-align: center;
-        }
-
-        .radial-glow-layer {
-          position: absolute;
-          width: 600px;
-          height: 600px;
-          background: radial-gradient(circle, rgba(0, 184, 101, 0.04) 0%, transparent 70%);
-          z-index: 1;
-        }
-
-        .dots-layout-layer {
-          position: absolute;
-          inset: 0;
-          background-image: 
-            radial-gradient(var(--border-premium) 1px, transparent 1px);
-          background-size: 32px 32px;
-          opacity: 0.25;
-          z-index: 1;
-        }
-
-        .hero-content-box {
-          position: relative;
-          z-index: 2;
-          max-width: 900px;
-        }
-
-        .hero-eyebrow-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          background: rgba(255, 255, 255, 0.8);
-          border: 1px solid var(--border-premium);
-          padding: 8px 16px;
-          border-radius: 20px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.72rem;
-          font-weight: 800;
-          letter-spacing: 0.08em;
-          color: var(--text-main);
-          margin-bottom: 28px;
-          box-shadow: 0 4px 12px rgba(19, 28, 22, 0.02);
-        }
-
-        .hero-main-title {
-          font-family: 'Lora', serif;
-          font-size: 3.6rem;
-          font-weight: 500;
-          line-height: 1.15;
-          color: var(--text-main);
-          letter-spacing: -0.02em;
-          margin-bottom: 24px;
-        }
-
-        .hero-subtext {
-          font-size: 1.15rem;
-          line-height: 1.7;
-          color: var(--text-muted);
-          max-width: 760px;
-          margin: 0 auto 36px auto;
-        }
-
-        .hero-actions-row {
-          display: flex;
-          justify-content: center;
-          gap: 16px;
-        }
-
-        .btn-primary-action {
-          background: var(--accent);
-          color: #ffffff;
-          padding: 16px 28px;
-          border-radius: 8px;
-          font-family: 'Outfit', sans-serif;
-          font-weight: 700;
-          font-size: 0.9rem;
-          text-decoration: none;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          transition: all 0.3s;
-          box-shadow: 0 10px 25px rgba(0, 184, 101, 0.15);
-        }
-
-        .btn-primary-action:hover {
-          background: var(--accent-hover);
-          transform: translateY(-2px);
-          box-shadow: 0 12px 30px rgba(0, 184, 101, 0.22);
-        }
-
-        .btn-secondary-action {
-          background: rgba(255, 255, 255, 0.9);
-          color: var(--text-main);
-          border: 1px solid var(--border-premium);
-          padding: 16px 28px;
-          border-radius: 8px;
-          font-family: 'Outfit', sans-serif;
-          font-weight: 700;
-          font-size: 0.9rem;
-          text-decoration: none;
-          transition: all 0.3s;
-        }
-
-        .btn-secondary-action:hover {
-          background: #ffffff;
-          border-color: var(--gold);
-          transform: translateY(-2px);
-        }
-
-        .hero-quick-features {
-          position: relative;
-          z-index: 2;
-          display: flex;
-          justify-content: center;
-          flex-wrap: wrap;
-          gap: 36px;
-          max-width: 1100px;
-          width: 100%;
-          margin: 64px auto 0 auto;
-          border-top: 1px solid var(--border-premium);
-          padding-top: 32px;
-        }
-
-        .quick-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.85rem;
-          color: var(--text-main);
-          font-weight: 700;
-        }
-
-        /* --- CONSOLE SHOWCASE SECTION --- */
-        .modules-showcase-section {
-          padding: 100px 24px;
-          max-width: 1240px;
-          margin: 0 auto;
-        }
-
-        .section-head-centered {
-          text-align: center;
-          max-width: 700px;
-          margin: 0 auto 56px auto;
-        }
-
-        .section-pre-title {
-          display: inline-block;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.68rem;
-          font-weight: 800;
-          letter-spacing: 0.1em;
-          color: var(--gold);
-          margin-bottom: 12px;
-          text-transform: uppercase;
-        }
-
-        .section-head-centered h2 {
-          font-family: 'Lora', serif;
-          font-size: 2.4rem;
-          font-weight: 500;
-          letter-spacing: -0.01em;
-          margin-bottom: 16px;
-        }
-
-        .section-head-centered p {
-          color: var(--text-muted);
-          line-height: 1.6;
-        }
-
-        .matrix-console-board {
-          background: var(--bg-card);
-          border: 1px solid var(--border-premium);
-          border-radius: 16px;
-          padding: 24px;
-          display: grid;
-          grid-template-columns: 320px 1fr;
-          gap: 24px;
-          box-shadow: var(--shadow-luxe);
-        }
-
-        .console-navigation-sidebar {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .sidebar-group-title {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.72rem;
-          font-weight: 800;
-          letter-spacing: 0.08em;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          padding-left: 12px;
-          margin-bottom: 8px;
-          text-align: left;
-        }
-
-        .module-tab-btn {
-          position: relative;
-          background: transparent;
-          border: 1px solid transparent;
-          border-radius: 12px;
-          padding: 14px 16px;
-          text-align: left;
-          cursor: pointer;
-          display: flex;
-          align-items: flex-start;
-          gap: 16px;
-          transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-          overflow: hidden;
-        }
-
-        .module-tab-btn .tab-icon-wrap {
-          background: rgba(19, 28, 22, 0.04);
-          color: var(--text-muted);
-          width: 34px;
-          height: 34px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          transition: all 0.3s;
-        }
-
-        .module-tab-btn .tab-texts strong {
-          display: block;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 700;
-          color: var(--text-main);
-          margin-bottom: 4px;
-          transition: color 0.3s;
-        }
-
-        .module-tab-btn .tab-texts span {
-          display: block;
-          font-size: 0.74rem;
-          color: var(--text-muted);
-          line-height: 1.3;
-        }
-
-        .module-tab-btn:hover {
-          background: rgba(255, 255, 255, 0.5);
-          border-color: rgba(197, 160, 115, 0.12);
-        }
-
-        .module-tab-btn.active {
-          background: #ffffff;
-          border-color: var(--border-premium);
-          box-shadow: 0 10px 30px rgba(19, 28, 22, 0.02);
-        }
-
-        .module-tab-btn.active .tab-icon-wrap {
-          background: var(--gold-light);
-          color: var(--accent);
-        }
-
-        .module-tab-btn.active .tab-texts strong {
-          color: var(--accent);
-        }
-
-        /* Console Workspace Frame */
-        .console-display-workspace {
-          background: #ffffff;
-          border: 1px solid var(--border-light);
-          border-radius: 12px;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          min-height: 420px;
-          box-shadow: inset 0 0 40px rgba(19, 28, 22, 0.01);
-        }
-
-        .workspace-header-bar {
-          background: #FAF8F4;
-          height: 40px;
-          padding: 0 16px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          border-bottom: 1px solid var(--border-light);
-        }
-
-        .window-controls {
-          display: flex;
-          gap: 6px;
-        }
-
-        .window-controls .dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-        }
-
-        .dot-close { background: #ff5f56; }
-        .dot-minimize { background: #ffbd2e; }
-        .dot-expand { background: #27c93f; }
-
-        .workspace-path-bar {
-          font-family: monospace;
-          font-size: 0.72rem;
-          color: var(--text-muted);
-        }
-
-        .live-badge {
-          background: var(--gold-light);
-          color: var(--gold);
-          border: 1px solid var(--border-premium);
-          font-size: 0.62rem;
-          font-weight: 800;
-          padding: 2px 8px;
-          border-radius: 12px;
-          letter-spacing: 0.05em;
-        }
-
-        .workspace-body-container {
-          flex: 1;
-          padding: 24px;
-          display: flex;
-          align-items: stretch;
-        }
-
-        .module-fade-in {
-          animation: fadeEffectMatrix 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-          width: 100%;
-        }
-
-        @keyframes fadeEffectMatrix {
-          from { opacity: 0; transform: translateY(6px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* --- STYLES FOR SIMULATORS --- */
-        .interface-splits {
-          display: grid;
-          grid-template-columns: 1fr 340px;
-          gap: 24px;
-          align-items: center;
-          height: 100%;
-          text-align: left;
-        }
-
-        .interactive-pane {
-          background: #FAF9F6;
-          border: 1px solid var(--border-light);
-          border-radius: 8px;
-          padding: 16px;
-          min-height: 320px;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-        }
-
-        .panel-title-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.65rem;
-          font-weight: 800;
-          color: var(--text-muted);
-          letter-spacing: 0.05em;
-          margin-bottom: 16px;
-        }
-
-        .status-badge {
-          font-size: 0.6rem;
-          font-weight: 800;
-          color: var(--accent);
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .pulse-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--accent);
-          animation: heartBeatMatrix 1.8s infinite;
-        }
-
-        @keyframes heartBeatMatrix {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.3); }
-        }
-
-        .feature-description-pane {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
-
-        .badge-module {
-          display: inline-block;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.65rem;
-          font-weight: 800;
-          letter-spacing: 0.08em;
-          color: var(--gold);
-          text-transform: uppercase;
-          margin-bottom: 8px;
-        }
-
-        .feature-description-pane h3 {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.4rem;
-          font-weight: 800;
-          color: var(--text-main);
-          margin-bottom: 12px;
-          line-height: 1.25;
-        }
-
-        .feature-description-pane p {
-          font-size: 0.84rem;
-          line-height: 1.5;
-          color: var(--text-muted);
-          margin-bottom: 20px;
-        }
-
-        .feature-bullets-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .bullet-row {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 0.8rem;
-          color: var(--text-muted);
-        }
-
-        /* 1. Módulo Agrícola */
-        .agricola-simulator-box {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .talhao-selector {
-          display: flex;
-          gap: 6px;
-          background: #ffffff;
-          padding: 4px;
-          border-radius: 6px;
-          border: 1px solid var(--border-light);
-        }
-
-        .talhao-btn {
-          flex: 1;
-          background: transparent;
-          border: none;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.74rem;
-          font-weight: 700;
-          color: var(--text-muted);
-          padding: 6px;
-          cursor: pointer;
-          border-radius: 4px;
-          transition: all 0.2s;
-        }
-
-        .talhao-btn.active {
-          background: var(--gold-light);
-          color: var(--gold);
-        }
-
-        .talhao-progress-card {
-          background: #ffffff;
-          border: 1px solid var(--border-premium);
-          padding: 16px;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(19, 28, 22, 0.01);
-        }
-
-        .talhao-progress-card .lbl-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.74rem;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-
-        .talhao-progress-card strong {
-          color: var(--accent);
-        }
-
-        .specs-small-row {
-          display: flex;
-          justify-content: space-between;
-          border-top: 1px solid var(--border-light);
-          padding-top: 12px;
-          margin-top: 12px;
-        }
-
-        .specs-small-row div {
-          display: flex;
-          flex-direction: column;
-          font-size: 0.72rem;
-        }
-
-        .specs-small-row span {
-          color: var(--text-muted);
-        }
-
-        .specs-small-row strong {
-          color: var(--text-main);
-          font-family: 'Outfit', sans-serif;
-        }
-
-        .btn-dispatch {
-          background: var(--text-main);
-          color: #ffffff;
-          border: none;
-          padding: 10px;
-          border-radius: 6px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.78rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-dispatch:hover {
-          background: #000000;
-        }
-
-        /* 2. Pecuária Simulator */
-        .rfid-cattle-box {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .weigh-led-card {
-          background: #ffffff;
-          border: 1px solid var(--border-premium);
-          border-radius: 8px;
-          padding: 16px;
-          box-shadow: 0 8px 20px rgba(19, 28, 22, 0.02);
-        }
-
-        .weigh-led-card .label {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.62rem;
-          font-weight: 800;
-          letter-spacing: 0.06em;
-          color: var(--text-muted);
-          display: block;
-          margin-bottom: 4px;
-        }
-
-        .weigh-led-card strong {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.8rem;
-          font-weight: 800;
-          color: var(--text-main);
-        }
-
-        .weigh-led-card strong.anim-digits {
-          color: var(--accent);
-          animation: digitWeigh 0.15s infinite alternate;
-        }
-
-        @keyframes digitWeigh {
-          from { opacity: 0.6; }
-          to { opacity: 1; }
-        }
-
-        .weigh-led-card .unit {
-          font-size: 0.9rem;
-          font-weight: 600;
-          color: var(--text-muted);
-        }
-
-        .weigh-led-card .status-row {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.65rem;
-          font-weight: 700;
-          color: var(--text-muted);
-          margin-top: 8px;
-        }
-
-        .status-glow {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--accent);
-        }
-
-        .cattle-selector-widget .widget-label {
-          font-size: 0.74rem;
-          font-weight: 600;
-          color: var(--text-main);
-          display: block;
-          margin-bottom: 8px;
-        }
-
-        .cattle-buttons {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .cattle-btn {
-          background: #ffffff;
-          border: 1px solid var(--border-light);
-          border-radius: 8px;
-          padding: 8px 12px;
-          cursor: pointer;
-          text-align: left;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          transition: all 0.25s;
-        }
-
-        .cattle-btn strong {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.78rem;
-          color: var(--text-main);
-        }
-
-        .cattle-btn span {
-          font-size: 0.72rem;
-          color: var(--text-muted);
-        }
-
-        .cattle-btn:hover {
-          border-color: var(--gold);
-        }
-
-        .cattle-btn.active {
-          border-color: var(--accent);
-          background: var(--gold-light);
-        }
-
-        .cattle-btn.active strong {
-          color: var(--accent);
-        }
-
-        /* 3. Fleet & Telemetria */
-        .fleet-machinery-card {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .machinery-selector {
-          display: flex;
-          gap: 6px;
-          border-bottom: 1px solid var(--border-light);
-          padding-bottom: 8px;
-        }
-
-        .machinery-tab {
-          background: transparent;
-          border: none;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.74rem;
-          font-weight: 700;
-          color: var(--text-muted);
-          cursor: pointer;
-          padding: 4px 8px;
-          border-radius: 4px;
-          transition: all 0.2s;
-        }
-
-        .machinery-tab.active {
-          background: var(--gold-light);
-          color: var(--gold);
-        }
-
-        .machinery-live-specs {
-          background: #ffffff;
-          border: 1px solid var(--border-light);
-          padding: 16px;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(19, 28, 22, 0.01);
-        }
-
-        .machinery-live-specs .lbl {
-          font-size: 0.65rem;
-          color: var(--text-muted);
-          display: block;
-          margin-bottom: 4px;
-        }
-
-        .machinery-live-specs strong {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.15rem;
-          color: var(--text-main);
-        }
-
-        .progress-bar-container {
-          background: var(--border-light);
-          height: 6px;
-          border-radius: 3px;
-          overflow: hidden;
-          margin-top: 8px;
-          margin-bottom: 16px;
-        }
-
-        .progress-bar-container .bar {
-          background: var(--accent);
-          height: 100%;
-          border-radius: 3px;
-          transition: width 0.3s ease;
-        }
-
-        .spec-details-row {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
-          border-top: 1px solid var(--border-light);
-          padding-top: 12px;
-        }
-
-        .spec-details-row strong {
-          font-size: 0.85rem;
-        }
-
-        /* 4. Compras & Estoque */
-        .purchasing-pipeline-box {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .pipeline-visual-steps {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background: #ffffff;
-          padding: 12px;
-          border-radius: 8px;
-          border: 1px solid var(--border-light);
-        }
-
-        .step-node {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          opacity: 0.35;
-          transition: opacity 0.3s;
-        }
-
-        .step-node.active {
-          opacity: 1;
-        }
-
-        .step-node .num {
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: var(--text-main);
-          color: #ffffff;
-          font-size: 0.65rem;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-        }
-
-        .step-node.active .num {
-          background: var(--accent);
-        }
-
-        .step-node span {
-          font-size: 0.65rem;
-          font-weight: 700;
-        }
-
-        .step-connector {
-          flex: 1;
-          height: 2px;
-          background: var(--border-light);
-          margin: 0 8px;
-        }
-
-        .purchase-info-sheet {
-          background: #ffffff;
-          border: 1px solid var(--border-light);
-          padding: 12px;
-          border-radius: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .item-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.78rem;
-        }
-
-        .item-row span {
-          color: var(--text-muted);
-        }
-
-        .item-row strong {
-          color: var(--text-main);
-          font-family: 'Outfit', sans-serif;
-        }
-
-        .btn-pipeline {
-          width: 100%;
-          background: var(--gold);
-          color: #ffffff;
-          border: none;
-          padding: 10px;
-          border-radius: 6px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.78rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
-
-        .btn-pipeline:hover {
-          background: #b5956c;
-        }
-
-        .btn-pipeline.success-btn {
-          background: var(--text-main);
-        }
-
-        /* 5. Vendas & Safra */
-        .sales-contract-interactive-box {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .contract-sheet {
-          background: #ffffff;
-          border: 1px solid var(--border-premium);
-          padding: 16px;
-          border-radius: 8px;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .sheet-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.78rem;
-        }
-
-        .sheet-row span {
-          color: var(--text-muted);
-        }
-
-        .sheet-row strong {
-          color: var(--text-main);
-          font-family: 'Outfit', sans-serif;
-        }
-
-        .sheet-divider {
-          border-top: 1px dashed var(--border-premium);
-          margin: 4px 0;
-        }
-
-        .sheet-total {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 0.85rem;
-        }
-
-        .sheet-total span {
-          font-weight: 700;
-        }
-
-        .sheet-total strong {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.1rem;
-          color: var(--accent);
-        }
-
-        .btn-approve-contract {
-          background: var(--text-main);
-          color: #ffffff;
-          border: none;
-          padding: 12px;
-          border-radius: 8px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.8rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .btn-approve-contract:hover {
-          background: #000000;
-        }
-
-        .btn-approve-contract.success {
-          background: var(--accent);
-          cursor: default;
-        }
-
-        /* 6. Finanças & Caixa */
-        .reconciliation-interactive-box {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .reconcile-split-cards {
-          display: grid;
-          grid-template-columns: 1fr 90px 1fr;
-          gap: 8px;
-          align-items: center;
-        }
-
-        .reconcile-card {
-          background: #ffffff;
-          border: 1px solid var(--border-light);
-          border-radius: 8px;
-          padding: 12px;
-          box-shadow: 0 4px 10px rgba(19, 28, 22, 0.01);
-        }
-
-        .reconcile-card .card-lbl {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.58rem;
-          font-weight: 800;
-          color: var(--text-muted);
-          letter-spacing: 0.05em;
-          display: block;
-          margin-bottom: 6px;
-        }
-
-        .reconcile-card.bank-statement {
-          border-left: 3px solid var(--gold);
-        }
-
-        .reconcile-card.erp-ledger {
-          border-left: 3px solid var(--accent);
-        }
-
-        .entry-row {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .entry-row .title {
-          font-size: 0.74rem;
-          font-weight: 700;
-          color: var(--text-main);
-        }
-
-        .entry-row strong {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.95rem;
-        }
-
-        .reconcile-card .time {
-          font-size: 0.65rem;
-          color: var(--text-muted);
-          display: block;
-          margin-top: 6px;
-        }
-
-        .reconcile-action-connector {
-          display: flex;
-          justify-content: center;
-        }
-
-        .btn-reconcile-trigger {
-          background: var(--text-main);
-          color: #ffffff;
-          border: none;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.68rem;
-          font-weight: 800;
-          padding: 6px 10px;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .btn-reconcile-trigger:hover {
-          background: #000000;
-        }
-
-        .stamp-success {
-          background: rgba(0, 184, 101, 0.08);
-          color: var(--accent);
-          border: 1px solid var(--accent);
-          font-size: 0.65rem;
-          font-weight: 800;
-          padding: 4px 8px;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          transform: rotate(-3deg);
-        }
-
-        .reconciliation-progress-indicator {
-          background: #ffffff;
-          border: 1px solid var(--border-light);
-          padding: 12px;
-          border-radius: 8px;
-        }
-
-        .reconciliation-progress-indicator .title {
-          font-size: 0.74rem;
-          font-weight: 600;
-          display: block;
-          margin-bottom: 6px;
-        }
-
-        .progress-bar-reconciled {
-          background: var(--border-light);
-          height: 6px;
-          border-radius: 3px;
-          overflow: hidden;
-          margin-bottom: 6px;
-        }
-
-        .progress-bar-reconciled .bar {
-          background: var(--accent);
-          height: 100%;
-          border-radius: 3px;
-          transition: width 0.4s ease;
-        }
-
-        .progress-bar-reconciled .bar.half { width: 91%; }
-        .progress-bar-reconciled .bar.full { width: 100%; }
-
-        .reconciliation-progress-indicator .percentage {
-          font-size: 0.68rem;
-          font-weight: 700;
-          color: var(--accent);
-        }
-
-        /* 7. BI & Inteligência */
-        .bi-analytics-box {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .analytics-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-
-        .analytic-card {
-          background: #ffffff;
-          border: 1px solid var(--border-light);
-          border-radius: 8px;
-          padding: 14px;
-        }
-
-        .analytic-card.full-card {
-          grid-column: 1 / span 2;
-        }
-
-        .analytic-card .lbl {
-          font-size: 0.65rem;
-          color: var(--text-muted);
-          display: block;
-          margin-bottom: 4px;
-        }
-
-        .analytic-card strong {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.15rem;
-          color: var(--text-main);
-          display: block;
-        }
-
-        .analytic-card .subtext {
-          font-size: 0.68rem;
-          font-weight: 700;
-          margin-top: 4px;
-          display: block;
-        }
-
-        .ebitda-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .ebitda-row strong {
-          font-size: 1.8rem;
-        }
-
-        .ebitda-row .lbl-status {
-          background: rgba(0, 184, 101, 0.08);
-          color: var(--accent);
-          font-size: 0.65rem;
-          font-weight: 800;
-          padding: 4px 8px;
-          border-radius: 4px;
-        }
-
-        /* --- UNIFIED FLUID TIMELINE --- */
-        .unified-timeline-section {
-          padding: 100px 24px;
-          background: #FAF9F6;
-          border-top: 1px solid var(--border-premium);
-          border-bottom: 1px solid var(--border-premium);
-        }
-
-        .container-inner-layout {
-          max-width: 1040px;
-          margin: 0 auto;
-        }
-
-        .operational-flow-visual-hub {
-          display: grid;
-          grid-template-columns: 1fr 420px;
-          gap: 32px;
-          margin-top: 56px;
-          align-items: center;
-        }
-
-        .flow-steps-column {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .flow-selector-btn {
-          background: #ffffff;
-          border: 1px solid var(--border-light);
-          border-radius: 12px;
-          padding: 16px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-          text-align: left;
-          width: 100%;
-        }
-
-        .flow-selector-btn .bullet-num {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: rgba(19, 28, 22, 0.04);
-          color: var(--text-muted);
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.88rem;
-          font-weight: 800;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s;
-        }
-
-        .flow-selector-btn .texts strong {
-          display: block;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.9rem;
-          color: var(--text-main);
-          margin-bottom: 2px;
-        }
-
-        .flow-selector-btn .texts span {
-          display: block;
-          font-size: 0.74rem;
-          color: var(--text-muted);
-        }
-
-        .flow-selector-btn:hover {
-          border-color: var(--gold);
-        }
-
-        .flow-selector-btn.active {
-          border-color: var(--accent);
-          box-shadow: 0 8px 25px rgba(0, 184, 101, 0.03);
-        }
-
-        .flow-selector-btn.active .bullet-num {
-          background: var(--accent);
-          color: #ffffff;
-        }
-
-        .flow-selector-btn.active .texts strong {
-          color: var(--accent);
-        }
-
-        .flow-screen-viewer {
-          perspective: 1000px;
-        }
-
-        .viewer-card {
-          background: #ffffff;
-          border: 1px solid var(--border-premium);
-          border-radius: 16px;
-          padding: 32px;
-          text-align: left;
-          box-shadow: var(--shadow-luxe);
-          position: relative;
-        }
-
-        .card-top-head {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 24px;
-          border-bottom: 1px solid var(--border-light);
-          padding-bottom: 16px;
-        }
-
-        .icon-badge-flow {
-          background: var(--gold-light);
-          color: var(--gold);
-          width: 38px;
-          height: 38px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .card-top-head strong {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.72rem;
-          font-weight: 800;
-          letter-spacing: 0.06em;
-          color: var(--text-muted);
-        }
-
-        .card-body-flow h4 {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.15rem;
-          font-weight: 800;
-          color: var(--text-main);
-          margin-bottom: 12px;
-        }
-
-        .card-body-flow p {
-          font-size: 0.88rem;
-          line-height: 1.6;
-          color: var(--text-muted);
-          margin-bottom: 24px;
-        }
-
-        .flow-interactive-status-badge {
-          background: rgba(0, 184, 101, 0.08);
-          color: var(--accent);
-          border: 1px solid var(--accent);
-          padding: 8px 12px;
-          border-radius: 6px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.68rem;
-          font-weight: 800;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          letter-spacing: 0.02em;
-        }
-
-        .live-pulse {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--accent);
-          animation: heartBeatMatrix 1.8s infinite;
-        }
-
-        /* --- PROCESS ROI SECTION --- */
-        .process-roi-section {
-          padding: 100px 24px;
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        .roi-calculator-layout {
-          display: grid;
-          grid-template-columns: 1fr 480px;
-          gap: 40px;
-          align-items: center;
-          margin-top: 48px;
-        }
-
-        .sliders-control-desk {
-          background: #ffffff;
-          border: 1px solid var(--border-premium);
-          border-radius: 16px;
-          padding: 36px;
-          text-align: left;
-          box-shadow: var(--shadow-luxe);
-        }
-
-        .desk-eyebrow {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.68rem;
-          font-weight: 800;
-          color: var(--gold);
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          margin-bottom: 12px;
-          display: block;
-        }
-
-        .sliders-control-desk h3 {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.6rem;
-          font-weight: 800;
-          margin-bottom: 28px;
-        }
-
-        .slider-control-group {
-          margin-bottom: 24px;
-        }
-
-        .slider-control-group .label-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.88rem;
-          font-weight: 600;
-          margin-bottom: 8px;
-        }
-
-        .slider-control-group strong {
-          color: var(--accent);
-        }
-
-        .matrix-range {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 100%;
-          height: 4px;
-          border-radius: 2px;
-          background: var(--border-premium);
-          outline: none;
-        }
-
-        .matrix-range::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          background: var(--accent);
-          cursor: pointer;
-          border: 2px solid #ffffff;
-          box-shadow: 0 2px 6px rgba(19, 28, 22, 0.15);
-          transition: transform 0.1s;
-        }
-
-        .matrix-range::-webkit-slider-thumb:hover {
-          transform: scale(1.15);
-        }
-
-        /* Printable Invoice Receipt */
-        .printable-invoice-wrapper {
-          perspective: 1000px;
-        }
-
-        .invoice-paper {
-          background: #fdfcf9;
-          border: 1px solid #e8e3d5;
-          box-shadow: 0 30px 60px rgba(28, 24, 20, 0.05), inset 0 0 100px rgba(197, 160, 115, 0.03);
-          padding: 40px;
-          border-radius: 4px;
-          text-align: left;
-          position: relative;
-          background-image: 
-            linear-gradient(rgba(197, 160, 115, 0.05) 1px, transparent 1px);
-          background-size: 100% 28px;
-        }
-
-        .invoice-head {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          margin-bottom: 24px;
-        }
-
-        .invoice-head .brand {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.72rem;
-          font-weight: 800;
-          letter-spacing: 0.1em;
-          color: var(--text-muted);
-        }
-
-        .invoice-head .title {
-          font-family: 'Lora', serif;
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: var(--text-main);
-        }
-
-        .invoice-head .date {
-          font-family: monospace;
-          font-size: 0.65rem;
-          color: var(--text-muted);
-        }
-
-        .dotted-separator {
-          border-top: 1px dashed rgba(197, 160, 115, 0.4);
-          margin: 16px 0;
-        }
-
-        .invoice-entries {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          margin: 24px 0;
-        }
-
-        .invoice-entry-row {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.84rem;
-          line-height: 1.4;
-        }
-
-        .invoice-entry-row span {
-          color: var(--text-muted);
-          max-width: 280px;
-        }
-
-        .invoice-entry-row strong {
-          font-family: 'Outfit', sans-serif;
-          color: var(--text-main);
-        }
-
-        .invoice-total-section {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin: 24px 0;
-        }
-
-        .invoice-total-section span {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.78rem;
-          font-weight: 800;
-          color: var(--text-main);
-          letter-spacing: 0.05em;
-        }
-
-        .invoice-total-section .total-val {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.8rem;
-          font-weight: 900;
-          color: var(--accent);
-        }
-
-        .invoice-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-top: 32px;
-          border-top: 1px solid rgba(19, 28, 22, 0.05);
-          padding-top: 24px;
-        }
-
-        .gold-stamp {
-          border: 2px double var(--gold);
-          color: var(--gold);
-          padding: 6px 12px;
-          border-radius: 4px;
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.65rem;
-          font-weight: 800;
-          letter-spacing: 0.05em;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transform: rotate(-6deg);
-        }
-
-        .invoice-footer p {
-          font-size: 0.62rem;
-          color: var(--text-muted);
-          max-width: 180px;
-          line-height: 1.4;
-          text-align: right;
-        }
-
-        /* --- OPERATIONAL FAQ --- */
-        .matrix-faq-section {
-          padding: 100px 24px;
-          background: #ffffff;
-          border-top: 1px solid var(--border-premium);
-        }
-
-        .faq-accordion-container {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          margin-top: 48px;
-        }
-
-        .faq-block {
-          background: var(--bg-canvas);
-          border: 1px solid var(--border-light);
-          border-radius: 12px;
-          padding: 24px;
-          cursor: pointer;
-          transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-          text-align: left;
-        }
-
-        .faq-head-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .faq-head-row strong {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.98rem;
-          color: var(--text-main);
-        }
-
-        .faq-block .arrow-icon {
-          color: var(--text-muted);
-          transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .faq-body-content {
-          max-height: 0;
-          overflow: hidden;
-          transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .faq-body-content p {
-          font-size: 0.88rem;
-          line-height: 1.6;
-          color: var(--text-muted);
-          padding-top: 16px;
-          margin: 0;
-        }
-
-        .faq-block.expanded {
-          border-color: var(--gold);
-          background: #ffffff;
-          box-shadow: 0 15px 35px rgba(19, 28, 22, 0.02);
-        }
-
-        .faq-block.expanded .arrow-icon {
-          transform: rotate(180deg);
-          color: var(--accent);
-        }
-
-        .faq-block.expanded .faq-body-content {
-          max-height: 200px;
-        }
-
-        /* --- SPEC SHEET --- */
-        .technical-specs-sheet {
-          padding: 80px 24px;
-          background: #faf9f6;
-          border-top: 1px solid var(--border-premium);
-        }
-
-        .specs-card-matrix {
-          border: 1px solid var(--border-premium);
-          background: #ffffff;
-          border-radius: 12px;
-          padding: 40px;
-          text-align: left;
-          box-shadow: var(--shadow-luxe);
-        }
-
-        .specs-eyebrow {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.65rem;
-          font-weight: 800;
-          color: var(--gold);
-          letter-spacing: 0.1em;
-          display: block;
-          margin-bottom: 12px;
-        }
-
-        .specs-card-matrix h3 {
-          font-family: 'Lora', serif;
-          font-size: 1.8rem;
-          font-weight: 500;
-          color: var(--text-main);
-          margin-bottom: 8px;
-        }
-
-        .specs-sub {
-          color: var(--text-muted);
-          margin-bottom: 32px;
-        }
-
-        .specs-matrix-grid {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .matrix-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 16px 0;
-          border-bottom: 1px solid var(--border-light);
-          font-size: 0.88rem;
-        }
-
-        .matrix-row:last-child {
-          border-bottom: none;
-        }
-
-        .matrix-row .property {
-          font-family: 'Outfit', sans-serif;
-          font-weight: 700;
-          color: var(--gold);
-          letter-spacing: 0.05em;
-        }
-
-        .matrix-row .detail {
-          color: var(--text-main);
-          text-align: right;
-          font-weight: 500;
-        }
-
-        /* --- BRAND FOOTER --- */
-        .matrix-footer {
-          background: #0f1411;
-          color: #ffffff;
-          padding: 80px 24px 40px 24px;
-          border-top: 1px solid rgba(255, 255, 255, 0.04);
-          text-align: left;
-        }
-
-        .footer-top-columns {
-          max-width: 1100px;
-          margin: 0 auto 56px auto;
-          display: grid;
-          grid-template-columns: 1fr 360px;
-          gap: 48px;
-        }
-
-        .footer-brand-side {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .brand-logo-inline {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .brand-logo-inline .title {
-          font-family: 'Outfit', sans-serif;
-          font-size: 1.8rem;
-          font-weight: 900;
-          letter-spacing: -0.04em;
-          color: #ffffff;
-        }
-
-        .footer-brand-side .desc {
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 0.9rem;
-          line-height: 1.6;
-          max-width: 480px;
-        }
-
-        .footer-links-side {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-        }
-
-        .links-column {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .links-column h4 {
-          font-family: 'Outfit', sans-serif;
-          font-size: 0.76rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: var(--gold);
-          margin-bottom: 8px;
-        }
-
-        .links-column a {
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 0.84rem;
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-
-        .links-column a:hover {
-          color: #ffffff;
-        }
-
-        .text-tag {
-          font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.6);
-        }
-
-        .footer-bottom-row {
-          max-width: 1100px;
-          margin: 0 auto;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
-          padding-top: 32px;
-          text-align: center;
-        }
-
-        .footer-bottom-row p {
-          color: rgba(255, 255, 255, 0.4);
-          font-size: 0.76rem;
-        }
-
-        /* --- RESPONSIVE MEDIA QUERIES --- */
-        @media (max-width: 1024px) {
-          .matrix-console-board {
-            grid-template-columns: 1fr;
-          }
-
-          .operational-flow-visual-hub {
-            grid-template-columns: 1fr;
-          }
-
-          .roi-calculator-layout {
-            grid-template-columns: 1fr;
-          }
-
-          .footer-top-columns {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .hero-main-title {
-            font-size: 2.4rem;
-          }
-
-          .hero-subtext {
-            font-size: 1rem;
-          }
-
-          .interface-splits {
-            grid-template-columns: 1fr;
-          }
-
-          .navbar-links {
-            display: none;
-          }
-
-          .reconcile-split-cards {
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-          
-          .reconcile-action-connector {
-            transform: rotate(90deg);
-            margin: 8px 0;
-          }
-        }
-      `}</style>
     </div>
   );
 };
-
-export default LandingPage;

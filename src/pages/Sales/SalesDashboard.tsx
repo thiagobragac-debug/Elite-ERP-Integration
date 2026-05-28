@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   TrendingUp, 
   Users, 
@@ -31,10 +48,10 @@ export const SalesDashboard: React.FC = () => {
   const [triggeredAlerts, setTriggeredAlerts] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up' as const, periodLabel: '...', sparkline: [] },
-    { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...', sparkline: [] },
-    { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...', sparkline: [] },
-    { label: 'Margem Operacional', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up' as const, periodLabel: '...', sparkline: [] }
+    { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up' as const, periodLabel: '...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
+    { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
+    { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
+    { label: 'Margem Operacional', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up' as const, periodLabel: '...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') }
   ]);
   const [funnelData, setFunnelData] = useState<any>({ opps: 0, orders: 0, revenue: 0 });
 
@@ -234,7 +251,7 @@ export const SalesDashboard: React.FC = () => {
             change: '---',
             trend: 'up' as const,
             periodLabel: 'vs Safra Anterior',
-            sparkline: []
+            sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total')
           }
         ]);
         

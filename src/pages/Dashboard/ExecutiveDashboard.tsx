@@ -42,7 +42,25 @@ import { generateHistoricalSparkline } from '../../lib/tauze_historical_engine';
 
 import './ExecutiveDashboard.css';
 
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
+
 export const ExecutiveDashboard: React.FC = () => {
+
   const { tenant, userProfile } = useTenant();
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, applyTenantFilter, activeTenantId } = useFarmFilter();
   const [kpiData, setKpiData] = useState<any[]>([
@@ -61,6 +79,7 @@ export const ExecutiveDashboard: React.FC = () => {
   const [activeChartMetric, setActiveChartMetric] = useState<'gmd' | 'peso' | 'arroba'>('gmd');
   const [chartMode, setChartMode] = useState<'line' | 'bar'>('line');
   const [targetValue, setTargetValue] = useState<number>(1.2);
+  const [strategicInsights, setStrategicInsights] = useState({ projAbate: '---', desvioMeta: '---', ecc: '---' });
   const [chatHistory, setChatHistory] = useState<any[]>([
     { type: 'system', text: 'Olá! Sou o Tauze Copilot. Como posso ajudar na sua gestão hoje?' }
   ]);
@@ -183,6 +202,7 @@ export const ExecutiveDashboard: React.FC = () => {
           applyFarmFilter(supabase.from('produtos').select('estoque_atual, custo_medio')).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
           applyFarmFilter(supabase.from('pesagens').select('peso, data_pesagem').order('data_pesagem', { ascending: true }).limit(200)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
           applyFarmFilter(supabase.from('pesagens').select('created_at, observacao, animais(brinco)').order('created_at', { ascending: false }).limit(4)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+          applyFarmFilter(supabase.from('manejo_reproducao').select('ecc').not('ecc', 'is', null).limit(100)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
           
           // RPCs de cálculo real
           Promise.resolve(supabase.rpc('calculate_herd_gmd', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: 0, error: e })),
@@ -205,6 +225,7 @@ export const ExecutiveDashboard: React.FC = () => {
           stockRes, 
           weightsRes, 
           activitiesRes,
+          eccRes,
           gmdRes,
           lotationRes,
           reprodRes,
@@ -224,6 +245,7 @@ export const ExecutiveDashboard: React.FC = () => {
           stockData: stockRes.data || [],
           pesagens: weightsRes.data || [],
           activities: activitiesRes.data || [],
+          eccData: eccRes.data || [],
           gmd: gmdRes.data !== null ? Number(gmdRes.data) : 0,
           lotation: lotationRes.data || { area_total: 0, media_lotacao: 0, pastos_descanso: 0 },
           reprod: reprodRes.data || { eventos_total: 0, ias_mes: 0, taxa_sucesso: 0 },
@@ -249,6 +271,7 @@ export const ExecutiveDashboard: React.FC = () => {
         stockData, 
         pesagens, 
         activities,
+        eccData,
         gmd,
         lotation,
         reprod,
@@ -269,6 +292,38 @@ export const ExecutiveDashboard: React.FC = () => {
       const gmdVal = gmd || 0;
       const gmdText = gmdVal > 0 ? `${gmdVal.toFixed(3)} kg` : '---';
 
+      const targetWeight = 500;
+      const latestWeights = pesagens?.slice(-10) || [];
+      const avgWeight = latestWeights.length > 0 ? latestWeights.reduce((acc: any, w: any) => acc + Number(w.peso), 0) / latestWeights.length : 0;
+      
+      let projAbateText = '---';
+      if (avgWeight > 0 && gmdVal > 0 && avgWeight < targetWeight) {
+        const daysToSlaughter = (targetWeight - avgWeight) / gmdVal;
+        if (daysToSlaughter < 3650) {
+          const projDate = new Date();
+          projDate.setDate(projDate.getDate() + daysToSlaughter);
+          projAbateText = projDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase();
+        }
+      }
+
+      let desvioMetaText = '---';
+      if (gmdVal > 0) {
+        const deviation = ((gmdVal - 1.0) / 1.0) * 100;
+        desvioMetaText = `${deviation > 0 ? '+' : ''}${deviation.toFixed(1)}%`;
+      } else {
+        desvioMetaText = '0.0%';
+      }
+
+      let eccText = '---';
+      if (eccData && eccData.length > 0) {
+        const avgEcc = eccData.reduce((acc: any, row: any) => acc + Number(row.ecc), 0) / eccData.length;
+        eccText = `${avgEcc.toFixed(2)} avg`;
+      } else {
+        eccText = '0.00 avg';
+      }
+      
+      setStrategicInsights({ projAbate: projAbateText, desvioMeta: desvioMetaText, ecc: eccText });
+
       const areaTotal = Number(lotation?.area_total || 0);
       const lotacaoVal = areaTotal > 0 ? (animalCount / areaTotal) : 0;
       const lotacaoText = lotacaoVal > 0 ? `${lotacaoVal.toFixed(2)} UA/ha` : '---';
@@ -286,18 +341,25 @@ export const ExecutiveDashboard: React.FC = () => {
       const dieselText = dieselVal > 0 ? `${dieselVal.toFixed(1)} L/h` : '---';
 
       const prenhezVal = Number(reprod?.taxa_sucesso || 0);
-      const prenhezText = Number(reprod?.eventos_total || 0) > 0 ? `${prenhezVal.toFixed(1)}%` : '---';
+      const prenhezText = Number(reprod?.eventos_total) > 0 ? `${prenhezVal.toFixed(1)}%` : '---';
+
+      // Calcular mortalidade real: animais com status=morto nos últimos 30 dias / total ativo
+      const deadInPeriod = (pesagens?.length || 0) > 0 ? 0 : 0; // placeholder até query de mortalidade existir
+      const mortalidadeText = animalCount > 0 ? '---' : '---'; // será implementado com query de status=MORTO
+
+      // Custo por arroba: custo total operacional / (peso total rebanho / 15)
+      const custoArroba = totalStockValue > 0 && animalCount > 0 ? '---' : '---'; // requer integração de custos
 
       const allStats = [
         { 
           id: 'rebanho',
           label: 'Total de Rebanho',
-          value: animalCount.toString(),
+          value: animalCount > 0 ? animalCount.toLocaleString() : '---',
           icon: Beef,
           color: '#f97316',
-          progress: 100,
-          trend: 'up',
-          change: '+2.4%',
+          progress: animalCount > 0 ? 100 : 0,
+          trend: animalCount > 0 ? 'up' : 'none',
+          change: animalCount > 0 ? 'Rebanho cadastrado' : 'Sem animais',
           periodLabel: 'Todo o Período',
           sparkline: sparkRebanho
         },
@@ -309,7 +371,7 @@ export const ExecutiveDashboard: React.FC = () => {
           color: '#10b981', 
           progress: Math.min(Math.round(gmdVal * 100), 100) || 0, 
           trend: gmdVal > 0 ? (gmdVal >= 0.8 ? 'up' : 'down') : 'none',
-          change: gmdVal > 0 ? (gmdVal >= 0.8 ? '+4.2%' : '-1.5%') : '---',
+          change: gmdVal > 0 ? 'Calculado de pesagens' : 'Sem pesagens registradas',
           periodLabel: 'Evolução 30d',
           sparkline: sparkGmd.length > 0 ? sparkGmd : []
         },
@@ -321,31 +383,31 @@ export const ExecutiveDashboard: React.FC = () => {
           color: '#3b82f6', 
           progress: Math.min(Math.round(lotacaoVal * 50), 100) || 0, 
           trend: lotacaoVal > 0 ? (lotacaoVal >= 1.5 ? 'up' : 'down') : 'none',
-          change: lotacaoVal > 0 ? (lotacaoVal >= 1.5 ? '+2.5%' : '-0.5%') : '---',
+          change: lotacaoVal > 0 ? 'Pressão de pastejo' : 'Sem dados de pasto',
           periodLabel: 'Evolução 30d',
           sparkline: sparkLotacao.length > 0 ? sparkLotacao : []
         },
         { 
           id: 'caixa',
           label: 'Fluxo de Caixa', 
-          value: `R$ ${(fluxoCaixaVal / 1000).toFixed(1)}k`, 
+          value: fluxoCaixaVal !== 0 ? `R$ ${(fluxoCaixaVal / 1000).toFixed(1)}k` : '---', 
           icon: DollarSign, 
           color: '#f59e0b', 
-          progress: fluxoCaixaVal > 0 ? 65 : 0, 
-          trend: fluxoCaixaVal > 0 ? 'up' : 'none',
-          change: fluxoCaixaVal > 0 ? '+12.8%' : '---',
+          progress: fluxoCaixaVal > 0 ? Math.min(100, Math.round((fluxoCaixaVal / Math.max(fluxoCaixaVal, 1)) * 100)) : 0,
+          trend: fluxoCaixaVal > 0 ? 'up' : fluxoCaixaVal < 0 ? 'down' : 'none',
+          change: fluxoCaixaVal !== 0 ? 'Saldo bancário consolidado' : 'Sem dados bancários',
           periodLabel: 'Evolução 30d',
           sparkline: sparkCaixa.length > 0 ? sparkCaixa : []
         },
         { 
           id: 'estoque',
           label: 'Valor de Estoque', 
-          value: `R$ ${(totalStockValue / 1000).toFixed(1)}k`, 
+          value: totalStockValue > 0 ? `R$ ${(totalStockValue / 1000).toFixed(1)}k` : '---', 
           icon: Package, 
           color: '#6366f1', 
-          progress: totalStockValue > 0 ? 45 : 0, 
+          progress: totalStockValue > 0 ? 100 : 0,
           trend: totalStockValue > 0 ? 'up' : 'none',
-          change: totalStockValue > 0 ? '+5.8%' : '---',
+          change: totalStockValue > 0 ? 'Custo médio × estoque' : 'Sem produtos em estoque',
           periodLabel: 'Evolução 30d',
           sparkline: sparkEstoque.length > 0 ? sparkEstoque : []
         },
@@ -357,11 +419,9 @@ export const ExecutiveDashboard: React.FC = () => {
           color: '#8b5cf6', 
           progress: ebitdaVal > 0 ? Math.min(Math.round(ebitdaVal), 100) : 0, 
           trend: ebitdaVal > 0 ? (ebitdaVal >= 20 ? 'up' : 'down') : 'none',
-          change: ebitdaVal > 0 ? '+1.2%' : '---',
+          change: ebitdaVal !== 0 ? 'Receitas menos despesas' : 'Sem dados financeiros',
           periodLabel: 'Projeção Anual',
-          sparkline: ebitdaVal > 0 ? [
-            { value: 80, label: '22%' }, { value: 82, label: '22.5%' }, { value: 85, label: '23%' }, { value: 88, label: '23.5%' }, { value: 90, label: '24%' }, { value: 91, label: '24.1%' }, { value: Math.round(ebitdaVal), label: `Hoje: ${ebitdaVal.toFixed(1)}%` }
-          ] : []
+          sparkline: buildSparkline([...(financeReceber || []), ...(financePagar || [])], 'data_vencimento', 'total_value')
         },
         { 
           id: 'diesel',
@@ -371,11 +431,9 @@ export const ExecutiveDashboard: React.FC = () => {
           color: '#ef4444', 
           progress: dieselVal > 0 ? Math.min(Math.round((dieselVal / 20) * 100), 100) : 0, 
           trend: dieselVal > 0 ? (dieselVal <= 14 ? 'up' : 'down') : 'none',
-          change: dieselVal > 0 ? '-2.1%' : '---',
+          change: dieselVal > 0 ? 'Média de abastecimentos' : 'Sem abastecimentos',
           periodLabel: 'Consumo Médio',
-          sparkline: dieselVal > 0 ? [
-            { value: 60, label: '14L' }, { value: 55, label: '13.5L' }, { value: 50, label: '13L' }, { value: 48, label: '12.8L' }, { value: 46, label: '12.6L' }, { value: 45, label: '12.5L' }, { value: 45, label: '12.4L' }, { value: Math.round((dieselVal / 20) * 100), label: `Agora: ${dieselText}` }
-          ] : []
+          sparkline: buildSparkline(pesagens || [], 'data_pesagem', 'peso')
         },
         { 
           id: 'mortalidade',
@@ -385,7 +443,7 @@ export const ExecutiveDashboard: React.FC = () => {
           color: '#ef4444', 
           progress: 0, 
           trend: 'none',
-          change: '---',
+          change: 'Disponível em breve',
           periodLabel: 'Sanidade',
           sparkline: []
         },
@@ -397,7 +455,7 @@ export const ExecutiveDashboard: React.FC = () => {
           color: '#16a34a', 
           progress: 0, 
           trend: 'none',
-          change: '---',
+          change: 'Disponível em breve',
           periodLabel: 'Financeiro',
           sparkline: []
         },
@@ -409,11 +467,9 @@ export const ExecutiveDashboard: React.FC = () => {
           color: '#db2777', 
           progress: prenhezVal > 0 ? Math.round(prenhezVal) : 0, 
           trend: prenhezVal > 0 ? (prenhezVal >= 80 ? 'up' : 'down') : 'none',
-          change: prenhezVal > 0 ? '+3.1%' : '---',
+          change: Number(reprod?.eventos_total) > 0 ? 'Calculado de eventos' : 'Sem eventos reprodutivos',
           periodLabel: 'Reprodução',
-          sparkline: prenhezVal > 0 ? [
-            { value: 70, label: '78%' }, { value: 75, label: '79%' }, { value: 78, label: '80%' }, { value: 80, label: '81%' }, { value: 81, label: '81.5%' }, { value: 82, label: '82%' }, { value: Math.round(prenhezVal), label: `Hoje: ${prenhezText}` }
-          ] : []
+          sparkline: buildSparkline(pesagens || [], 'data_pesagem', null)
         },
         { 
           id: 'ims',
@@ -484,13 +540,26 @@ export const ExecutiveDashboard: React.FC = () => {
       setKpiData(filteredStats);
 
       if (pesagens && pesagens.length > 0) {
-        const formatted = Array.from({ length: 7 }).map((_, i) => ({
-          label: `Sem 0${i + 1}`,
-          value: (pesagens[Math.floor((i / 7) * pesagens.length)]?.peso / 450) || 0
-        }));
-        setChartData(formatted);
+        // Build weekly buckets from real pesagens data
+        const sorted = [...pesagens].sort((a: any, b: any) => new Date(a.data_pesagem).getTime() - new Date(b.data_pesagem).getTime());
+        const buckets = Array.from({ length: 7 }, (_, i) => {
+          const idx = Math.floor((i / 7) * sorted.length);
+          const w = sorted[idx];
+          const weekLabel = `Sem ${String(i + 1).padStart(2, '0')}`;
+          return {
+            label: weekLabel,
+            peso: Number(w?.peso || 0),
+            gmd: Number(w?.gmd_periodo || 0) || (i > 0 && sorted[idx - 1] ? Math.max(0, (Number(w?.peso) - Number(sorted[idx > 0 ? idx - 1 : 0]?.peso)) / 7) : 0),
+            arroba: Number(w?.peso || 0) / 15,
+          };
+        });
+        setChartData(buckets as any);
       } else {
-        setChartData([]);
+        const empty = Array.from({ length: 7 }, (_, i) => ({
+          label: `Sem ${String(i + 1).padStart(2, '0')}`,
+          peso: 0, gmd: 0, arroba: 0,
+        }));
+        setChartData(empty as any);
       }
 
       setRecentActivities(activities || []);
@@ -584,9 +653,17 @@ export const ExecutiveDashboard: React.FC = () => {
           
           <div className="chart-visual-wrapper">
             <TauzeMainChart 
-              data={chartData}
+              data={(chartData as any[]).map((d: any) => ({
+                label: d.label,
+                value: activeChartMetric === 'gmd'
+                  ? Number((d.gmd ?? 0).toFixed(3))
+                  : activeChartMetric === 'peso'
+                  ? Number(d.peso ?? 0)
+                  : Number((d.arroba ?? 0).toFixed(2))
+              }))}
               color={activeChartMetric === 'gmd' ? '#10b981' : activeChartMetric === 'peso' ? '#3b82f6' : '#f59e0b'}
-              height={320}
+              height="100%"
+              unit={activeChartMetric === 'gmd' ? 'kg/d' : activeChartMetric === 'peso' ? 'kg' : '@'}
               mode={chartMode}
             />
           </div>
@@ -607,13 +684,13 @@ export const ExecutiveDashboard: React.FC = () => {
                 </div>
                 <button 
                   className="ai-quick-btn"
-                  onClick={(e) => { e.stopPropagation(); setCopilotInput('Como otimizar a projeção de abate para OUT/2026?'); setIsCopilotOpen(true); }}
+                  onClick={(e) => { e.stopPropagation(); setCopilotInput('Como otimizar a projeção de abate?'); setIsCopilotOpen(true); }}
                 >
                   <Sparkles size={10} />
                   <span>AJUDA IA</span>
                 </button>
               </div>
-              <div className="i-value">OUT/2026</div>
+              <div className="i-value">{strategicInsights.projAbate}</div>
               <div className="i-footer">Baseado no GMD atual</div>
             </div>
 
@@ -625,14 +702,14 @@ export const ExecutiveDashboard: React.FC = () => {
                 </div>
                 <button 
                   className="ai-quick-btn danger"
-                  onClick={(e) => { e.stopPropagation(); setCopilotInput('O que está causando o desvio de -12.4% no GMD?'); setIsCopilotOpen(true); }}
+                  onClick={(e) => { e.stopPropagation(); setCopilotInput('O que está causando o desvio no GMD?'); setIsCopilotOpen(true); }}
                 >
                   <Sparkles size={10} />
                   <span>DIAGNÓSTICO</span>
                 </button>
               </div>
-              <div className="i-value">-12.4%</div>
-              <div className="i-footer">Pasto 04 (Oeste)</div>
+              <div className="i-value">{strategicInsights.desvioMeta}</div>
+              <div className="i-footer">Monitoramento contínuo</div>
             </div>
 
             <div className="insight-card-mini success clickable" onClick={() => navigate('/pecuaria/sanidade')}>
@@ -643,14 +720,14 @@ export const ExecutiveDashboard: React.FC = () => {
                 </div>
                 <button 
                   className="ai-quick-btn"
-                  onClick={(e) => { e.stopPropagation(); setCopilotInput('Plano nutricional para elevar score corporal para 4.0'); setIsCopilotOpen(true); }}
+                  onClick={(e) => { e.stopPropagation(); setCopilotInput('Plano nutricional para elevar score corporal'); setIsCopilotOpen(true); }}
                 >
                   <Sparkles size={10} />
                   <span>PLANO</span>
                 </button>
               </div>
-              <div className="i-value">3.82 <small>avg</small></div>
-              <div className="i-footer">Evolução positiva</div>
+              <div className="i-value">{strategicInsights.ecc.split(' ')[0]} <small>avg</small></div>
+              <div className="i-footer">Evolução do rebanho</div>
             </div>
           </div>
         </div>

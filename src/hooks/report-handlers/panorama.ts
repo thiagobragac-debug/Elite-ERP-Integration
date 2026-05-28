@@ -1,6 +1,33 @@
 import { supabase } from '../../lib/supabase';
 import type { ReportHandler } from '../../types/reports';
 
+const todayBR = () => new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const monthYearBR = () => new Date().toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+
+const fmtDateBR = (dateStr?: string | null): string => {
+  if (!dateStr) return todayBR();
+  try { return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
+  catch { return todayBR(); }
+};
+const latestDate = (records: any[], dateField: string): string | null => {
+  if (!records || records.length === 0) return null;
+  const sorted = [...records].filter(r => r[dateField])
+    .sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
+  return sorted.length > 0 ? fmtDateBR(sorted[0][dateField]) : null;
+};
+const earliestPending = (records: any[], dateField: string, pendingStatuses = ['PENDENTE','pendente','aberto','ABERTO']): string | null => {
+  const pending = records.filter(r => r[dateField] && pendingStatuses.includes(r.status || ''));
+  if (pending.length === 0) return null;
+  const sorted = pending.sort((a: any, b: any) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  return fmtDateBR(sorted[0][dateField]);
+};
+const latestPaid = (records: any[], dateField: string, paidStatuses = ['PAGO','pago','LIQUIDADO','liquidado','RECEBIDO','recebido']): string | null => {
+  const paid = records.filter(r => r[dateField] && paidStatuses.includes(r.status || ''));
+  if (paid.length === 0) return null;
+  const sorted = paid.sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
+  return fmtDateBR(sorted[0][dateField]);
+};
+
 const TIMEOUT_MS = 30000;
 
 const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Promise<T> => {
@@ -9,6 +36,42 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), timeoutMs))
   ]);
 };
+
+// Gera sparkline a partir de registros reais agrupados por data
+function buildSparkline(
+  records: any[],
+  dateField: string,
+  valueField: string | null,
+  buckets: number = 7
+): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records]
+    .filter(r => r[dateField])
+    .sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => {
+      const t = new Date(r[dateField]).getTime();
+      return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd;
+    });
+    const v = inBucket.length === 0
+      ? 0
+      : valueField
+        ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
+        : inBucket.length;
+    const d = new Date(bStart + bucketMs / 2);
+    return {
+      value: Number(v.toFixed(2)),
+      label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+    };
+  });
+}
 
 /**
  * Panorama Geral: Visão Consolidada do Ecossistema
@@ -57,40 +120,47 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
       stats: [
         { 
           id: 'gmd', 
-          label: 'Evolução de GMD', sparkline: (() => {  const valStr = String(`${Number(gmdRes.data || 0.842).toFixed(3)} kg`); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: `${Number(gmdRes.data || 0.842).toFixed(3)} kg`, change: '+4.2%', 
-          trend: 'up' as const, 
+          label: 'Evolução de GMD', 
+          subtitle: _lastWeighDatePan ? `Última pesagem em ${_lastWeighDatePan}` : 'Sem pesagens registradas',
+          sparkline: buildSparkline(logsRes.data || [], 'created_at', null),
+          value: gmdRes.data ? `${Number(gmdRes.data).toFixed(3)} kg` : '---', 
+          change: 'kg/dia', 
+          trend: 'neutral' as const, 
           color: '#10b981', 
-          progress: 85
+          progress: gmdRes.data ? Math.min(100, Number(gmdRes.data) * 100) : 0
         },
         { 
           id: 'caixa', 
           label: 'Fluxo de Caixa', 
-          value: (totalBalance / 1000).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + 'k', 
-          change: '+12.8%', 
-          trend: 'up' as const, 
+          subtitle: `Saldo em ${todayBR()}`,
+          sparkline: buildSparkline(logsRes.data || [], 'created_at', null),
+          value: totalBalance !== 0 ? (totalBalance / 1000).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + 'k' : '---', 
+          change: 'Saldo atual', 
+          trend: 'neutral' as const, 
           color: '#f59e0b', 
-          progress: 65,
-          sparkline: [{value: 60}, {value: 40}, {value: 90}]
+          progress: totalBalance > 0 ? Math.min(100, Math.log10(totalBalance) * 20) : 0
         },
         { 
           id: 'rebanho', 
           label: 'Total Rebanho', 
-          value: animalCount.toLocaleString(), 
-          change: 'Cabeças', 
+          subtitle: _lastAnimalDatePan ? `Último cadastro em ${_lastAnimalDatePan}` : `Inventário em ${todayBR()}`,
+          sparkline: buildSparkline(logsRes.data || [], 'created_at', null),
+          value: animalCount > 0 ? animalCount.toLocaleString() : '---', 
+          change: 'Cabeças cadastradas', 
           trend: 'neutral' as const, 
           color: '#6366f1', 
-          progress: 100,
-          sparkline: [{value: 1000}, {value: 1100}, {value: animalCount}]
+          progress: animalCount > 0 ? 100 : 0
         },
         { 
           id: 'lotacao', 
           label: 'Taxa de Lotação', 
-          value: `${Number(lotacaoRes.data?.media_lotacao || 0).toFixed(2)} UA/ha`, 
-          change: `Área: ${Number(lotacaoRes.data?.area_total || 0).toFixed(0)} ha`, 
+          subtitle: `Verificado em ${todayBR()}`,
+          sparkline: buildSparkline(logsRes.data || [], 'created_at', null),
+          value: lotacaoRes.data?.media_lotacao ? `${Number(lotacaoRes.data.media_lotacao).toFixed(2)} UA/ha` : '---', 
+          change: lotacaoRes.data?.area_total ? `Área: ${Number(lotacaoRes.data.area_total).toFixed(0)} ha` : 'Sem dados', 
           trend: 'neutral' as const, 
           color: '#8b5cf6', 
-          progress: Math.min(100, Number(lotacaoRes.data?.taxa_ocupacao || 0)),
-          sparkline: [{value: 1.2}, {value: 1.5}, {value: Number(lotacaoRes.data?.media_lotacao || 1.8)}]
+          progress: Math.min(100, Number(lotacaoRes.data?.taxa_ocupacao || 0))
         }
       ],
       totalCount: activities.length

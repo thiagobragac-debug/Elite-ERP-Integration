@@ -1,4 +1,21 @@
 import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   Fuel, 
   Plus, 
@@ -53,15 +70,13 @@ export const FuelManagement: React.FC = () => {
     dateStart: '',
     dateEnd: ''
   });
+
+  // FIX: `data` only exists inside fetchLogs — use [] as safe initial sparkline
   const [stats, setStats] = useState<any[]>([
-    { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0,
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0,
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0,
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-    { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0,
-      sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+    { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0, sparkline: [] },
+    { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, sparkline: [] },
+    { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0, sparkline: [] },
+    { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0, sparkline: [] },
   ]);
 
   useEffect(() => {
@@ -106,31 +121,51 @@ export const FuelManagement: React.FC = () => {
       const precoMedio = gastoTotal / (totalLitros || 1);
       
       setStats([
-        { label: 'Consumo Energético', value: `${totalLitros.toLocaleString()} L`, icon: Droplets, color: '#10b981', progress: 100, change: 'Total período',
-          sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(totalLitros*m), label: `Sem ${i+1}` }))
+        { label: 'Consumo Energético', value: totalLitros > 0 ? `${totalLitros.toLocaleString()} L` : '---', icon: Droplets, color: '#10b981', progress: totalLitros > 0 ? 100 : 0, change: totalLitros > 0 ? 'Total período' : 'Sem abastecimentos',
+          sparkline: buildSparkline(data, 'data', 'litros')
         },
-        { label: 'Custo de Operação', value: gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#ef4444', progress: 85, trend: 'up' as const, change: 'Gasto Acumulado',
-          sparkline: [0.50,0.60,0.70,0.78,0.86,0.93,1.0].map((m,i) => ({ value: Math.round(gastoTotal*m), label: `Sem ${i+1}` }))
+        { label: 'Custo de Operação', value: gastoTotal > 0 ? gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#ef4444', 
+          progress: gastoTotal > 0 ? Math.min(100, (gastoTotal / 50000) * 100) : 0, 
+          trend: gastoTotal > 0 ? 'up' as const : 'neutral' as const, 
+          change: gastoTotal > 0 ? 'Gasto Acumulado' : 'Sem gastos',
+          sparkline: buildSparkline(data, 'data', 'valor_total')
         },
-        { label: 'Eficiência de Frota', value: '92%', icon: Gauge, color: '#3b82f6', progress: 92, change: 'Diesel S10',
-          sparkline: [82,85,87,89,90,91,92].map((v,i) => ({ value: v, label: `${v}%` }))
+        { 
+          label: 'Eficiência Diesel', 
+          value: (() => {
+            const maquinas = new Set(data.map((l: any) => l.maquina_id).filter(Boolean));
+            const totalMaq = maquinas.size;
+            if (totalMaq === 0 || data.length === 0) return '---';
+            const mediaLitros = totalLitros / data.length;
+            const eficientes = data.filter((l: any) => Number(l.litros || 0) <= mediaLitros).length;
+            const pct = Math.round((eficientes / data.length) * 100);
+            return `${pct}%`;
+          })(),
+          icon: Gauge, color: '#3b82f6', 
+          progress: (() => {
+            if (data.length === 0) return 0;
+            const mediaLitros = totalLitros / data.length;
+            const eficientes = data.filter((l: any) => Number(l.litros || 0) <= mediaLitros).length;
+            return Math.round((eficientes / data.length) * 100);
+          })(),
+          change: data.length > 0 ? 'Diesel abaixo da média' : 'Sem dados',
+          sparkline: buildSparkline(data, 'data', null)
         },
-        { label: 'Preço Médio (L)', value: precoMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: BarChart3, color: '#f59e0b', progress: 45, change: 'Custo/Litro',
-          sparkline: [precoMedio*0.88,precoMedio*0.91,precoMedio*0.94,precoMedio*0.96,precoMedio*0.97,precoMedio*0.99,precoMedio].map((v,i) => ({ value: Math.round(v*100)/100, label: `Sem ${i+1}` }))
+        { label: 'Preço Médio (L)', value: precoMedio > 0 ? precoMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: BarChart3, color: '#f59e0b', 
+          progress: precoMedio > 0 ? Math.min(100, (precoMedio / 10) * 100) : 0, 
+          change: precoMedio > 0 ? 'Custo/Litro' : 'Sem dados',
+          sparkline: buildSparkline(data, 'data', 'valor_total')
         },
       ]);
     } catch (err) {
       console.warn('[Fuel] Fetch error:', err);
       setLogs([]);
+      // FIX: `data` is not in scope here — use empty sparklines
       setStats([
-        { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
-        { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0, change: '',
-          sparkline: [0,0,0,0,0,0,0].map((_,i) => ({ value: 0, label: `Sem ${i+1}` })) },
+        { label: 'Consumo Energético', value: '---', icon: Droplets, color: '#10b981', progress: 0, change: 'Erro ao carregar', sparkline: [] },
+        { label: 'Custo de Operação', value: '---', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Erro ao carregar', sparkline: [] },
+        { label: 'Eficiência de Frota', value: '---', icon: Gauge, color: '#3b82f6', progress: 0, change: 'Erro ao carregar', sparkline: [] },
+        { label: 'Preço Médio (L)', value: '---', icon: BarChart3, color: '#f59e0b', progress: 0, change: 'Erro ao carregar', sparkline: [] },
       ]);
     } finally {
       setLoading(false);
@@ -340,7 +375,7 @@ export const FuelManagement: React.FC = () => {
             icon={stat.icon}
             color={stat.color}
             progress={stat.progress}
-            change={stat.change || '+1.2%'}
+            change={stat.change || '---'}
             trend={stat.trend || 'up'}
             sparkline={stat.sparkline}
           
@@ -424,9 +459,9 @@ export const FuelManagement: React.FC = () => {
           }
           data={logs.filter(l => {
             const matchesSearch = (l.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (l.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
-            const matchesTab = activeTab === 'LOG' ? true : l.tipo_combustivel === 'Especial'; // Fixed logic
+            const matchesTab = activeTab === 'LOG' ? true : l.tipo_combustivel === 'Especial';
             
-            const isEfficient = l.litros / (l.valor_total || 1) < 0.2; // Mocking efficiency logic
+            const isEfficient = l.litros / (l.valor_total || 1) < 0.2;
             const matchesStatus = filterValues.status === 'all' || 
                                  (filterValues.status === 'efficient' && isEfficient) ||
                                  (filterValues.status === 'high-consumption' && !isEfficient);

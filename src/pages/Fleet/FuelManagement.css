@@ -1,4 +1,4 @@
-﻿.fuel-page {
+.fuel-page {
   padding: 24px;
   background: hsl(var(--bg-main));
   min-height: calc(100vh - var(--header-height));
@@ -146,7 +146,7 @@
   border-color: hsl(var(--brand) / 0.3);
 }
 
-.management-content {
+.fuel-page .management-content {
   background: white;
   border-radius: 24px;
   border: 1px solid hsl(var(--border));

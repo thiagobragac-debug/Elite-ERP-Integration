@@ -344,7 +344,7 @@ export const WarehouseManagement: React.FC = () => {
           progress={100}
           change="Unidades de Armazenagem"
           periodLabel="Estrutura Atual"
-          sparkline={[Math.max(0,warehouses.length-4),Math.max(0,warehouses.length-3),Math.max(0,warehouses.length-2),Math.max(0,warehouses.length-1),warehouses.length,warehouses.length,warehouses.length].map((v,i) => ({ value: v, label: String(v) }))}
+          sparkline={[]}
         />
         <TauzeStatCard 
           label="Capacidade Utilizada" 
@@ -357,13 +357,13 @@ export const WarehouseManagement: React.FC = () => {
         />
         <TauzeStatCard 
           label="Alertas de Manutenção" 
-          value="2" 
+          value={warehouses.filter(w => w.status !== 'ativo').length > 0 ? warehouses.filter(w => w.status !== 'ativo').length : (warehouses.length === 0 ? '---' : '0')} 
           icon={AlertTriangle} 
           color="#f59e0b"
-          progress={30}
-          change="Estrutura Física"
+          progress={warehouses.length > 0 ? (warehouses.filter(w => w.status !== 'ativo').length / warehouses.length) * 100 : 0}
+          change={warehouses.filter(w => w.status !== 'ativo').length > 0 ? 'Depósitos Inativos' : 'Todos Operacionais'}
           periodLabel="Pendentes"
-          sparkline={[5,4,4,3,3,2,2].map((v,i) => ({ value: v, label: String(v) }))}
+          sparkline={[]}
         />
         <TauzeStatCard 
           label="Valor Total em Estoque" 
@@ -373,7 +373,7 @@ export const WarehouseManagement: React.FC = () => {
           progress={totalStockValue > 0 ? 100 : 0}
           change="Patrimônio Armazenado"
           periodLabel="Real-Time"
-          sparkline={[totalStockValue*0.5,totalStockValue*0.62,totalStockValue*0.71,totalStockValue*0.8,totalStockValue*0.87,totalStockValue*0.94,totalStockValue].map((v,i) => ({ value: Math.round(v), label: 'Sem '+String(i+1) }))}
+          sparkline={[]}
         />
       </div>
 

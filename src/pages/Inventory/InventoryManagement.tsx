@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -363,47 +380,59 @@ export const InventoryManagement: React.FC = () => {
   const stats = [
     { 
       label: 'Capital Imobilizado', 
-      value: `R$ ${currentProducts.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0).toLocaleString('pt-BR')}`, 
+      value: (() => { 
+        const v = currentProducts.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0); 
+        return v > 0 ? `R$ ${v.toLocaleString('pt-BR')}` : '---'; 
+      })(), 
       icon: DollarSign, 
       color: '#10b981', 
-      progress: 85,
+      progress: (() => { 
+        const v = currentProducts.reduce((acc, curr) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0); 
+        return v > 0 ? Math.min(100, Math.log10(v) * 15) : 0; 
+      })(),
       trend: 'up' as const,
-      change: 'Patrimônio em Insumos',
+      change: currentProducts.length > 0 ? 'Patrimônio em Insumos' : 'Sem insumos',
       periodLabel: 'Atual',
-      sparkline: [{ value: 10, label: '10' }, { value: 15, label: '15' }, { value: 20, label: '20' }, { value: 18, label: '18' }, { value: 25, label: '25' }]
+      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual')
     },
     { 
       label: 'Ruptura de Estoque', 
-      value: currentProducts.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length, 
+      value: (() => { 
+        const n = currentProducts.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length;
+        return n > 0 ? n : '---'; 
+      })(), 
       icon: AlertTriangle, 
       color: '#ef4444', 
       progress: currentProducts.length > 0 ? (currentProducts.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length / currentProducts.length) * 100 : 0, 
       trend: 'down' as const,
-      change: 'Itens abaixo do mínimo',
+      change: currentProducts.filter(p => Number(p.estoque_atual || 0) < Number(p.estoque_minimo)).length > 0 ? 'Itens abaixo do mínimo' : 'Sem rupturas',
       periodLabel: 'Ação Necessária',
-      sparkline: [{ value: 30, label: '30' }, { value: 15, label: '15' }, { value: 25, label: '25' }, { value: 10, label: '10' }, { value: 5, label: '5' }]
+      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual')
     },
     { 
       label: 'Maturidade (30d)', 
-      value: `${currentProducts.filter(p => p.categoria === 'Medicamento' || p.categoria === 'Vacina').length} itens`, 
+      value: (() => { 
+        const n = currentProducts.filter(p => p.categoria === 'Medicamento' || p.categoria === 'Vacina').length;
+        return n > 0 ? `${n} itens` : '---'; 
+      })(), 
       icon: FlaskConical, 
       color: '#f59e0b', 
-      progress: 32,
+      progress: currentProducts.length > 0 ? (currentProducts.filter(p => p.categoria === 'Medicamento' || p.categoria === 'Vacina').length / currentProducts.length) * 100 : 0,
       trend: undefined,
       change: 'Risco de Vencimento',
       periodLabel: 'Monitoramento Lot',
-      sparkline: [{ value: 5, label: '5' }, { value: 8, label: '8' }, { value: 7, label: '7' }, { value: 10, label: '10' }, { value: 6, label: '6' }]
+      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual')
     },
     { 
       label: 'Giro de Estoque', 
-      value: '1.4x', 
+      value: '---', 
       icon: Zap, 
       color: '#3b82f6', 
-      progress: 45,
+      progress: 0,
       trend: 'up' as const,
-      change: 'Velocidade de Consumo',
+      change: 'Calculado no Dashboard',
       periodLabel: 'Média Mensal',
-      sparkline: [{ value: 1.0, label: '1.0' }, { value: 1.2, label: '1.2' }, { value: 1.1, label: '1.1' }, { value: 1.4, label: '1.4' }]
+      sparkline: buildSparkline(currentProducts || [], 'created_at', 'estoque_atual')
     }
   ];
 

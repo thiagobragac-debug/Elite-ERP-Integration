@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   Plus, 
   Search, 
@@ -139,36 +156,38 @@ export const PurchaseOrder: React.FC = () => {
         
         setStats([
           { label: 'Exposição de Caixa', value: exposure.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#3b82f6', progress: 100, change: 'Ordens em Aberto',
-            sparkline: [
-              { value: Math.round(exposure * 0.55), label: 'Sem 1' }, { value: Math.round(exposure * 0.63), label: 'Sem 2' },
-              { value: Math.round(exposure * 0.70), label: 'Sem 3' }, { value: Math.round(exposure * 0.78), label: 'Sem 4' },
-              { value: Math.round(exposure * 0.85), label: 'Sem 5' }, { value: Math.round(exposure * 0.92), label: 'Sem 6' },
-              { value: Math.round(exposure), label: 'Hoje' },
-            ]
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
           { label: 'Investimento Mensal', value: totalPurchased.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: ShoppingCart, color: '#10b981', progress: 100, change: 'Gasto Consolidado',
-            sparkline: [
-              { value: Math.round(totalPurchased * 0.50), label: 'Sem 1' }, { value: Math.round(totalPurchased * 0.60), label: 'Sem 2' },
-              { value: Math.round(totalPurchased * 0.68), label: 'Sem 3' }, { value: Math.round(totalPurchased * 0.76), label: 'Sem 4' },
-              { value: Math.round(totalPurchased * 0.83), label: 'Sem 5' }, { value: Math.round(totalPurchased * 0.91), label: 'Sem 6' },
-              { value: Math.round(totalPurchased), label: 'Hoje' },
-            ]
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
-          { label: 'SLA de Entrega', value: '94%', icon: Truck, color: '#166534', progress: 94, change: 'Pontualidade Rede', trend: 'up' as const,
-            sparkline: [
-              { value: 88, label: '88%' }, { value: 89, label: '89%' }, { value: 90, label: '90%' },
-              { value: 91, label: '91%' }, { value: 92, label: '92%' }, { value: 93, label: '93%' },
-              { value: 94, label: 'Hoje: 94%' },
-            ]
+          { 
+            label: 'SLA de Entrega', 
+            value: (() => {
+              const received = data.filter((o: any) => o.status === 'received').length;
+              return data.length > 0 ? `${((received / data.length) * 100).toFixed(0)}%` : '---';
+            })(),
+            icon: Truck, color: '#166534', 
+            progress: (() => {
+              const received = data.filter((o: any) => o.status === 'received').length;
+              return data.length > 0 ? (received / data.length) * 100 : 0;
+            })(),
+            change: 'Pedidos Recebidos', trend: 'up' as const,
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
-          { label: 'Gargalos Logísticos', value: count ? Math.floor(count / 10) : 0, icon: Clock, color: '#f59e0b', progress: 10, change: 'Pedidos Estimados',
-            sparkline: (() => {
-              const g = count ? Math.floor(count / 10) : 0;
-              return [
-                { value: Math.max(g - 2, 0) }, { value: Math.max(g - 1, 0) }, { value: g },
-                { value: Math.max(g - 1, 0) }, { value: g }, { value: g }, { value: g, label: `Hoje: ${g}` },
-              ];
-            })()
+          { 
+            label: 'Ordens em Atraso', 
+            value: (() => {
+              const delayed = data.filter((o: any) => o.status !== 'received' && o.previsao_entrega && new Date(o.previsao_entrega) < new Date()).length;
+              return delayed > 0 ? delayed : (data.length > 0 ? 0 : '---');
+            })(), 
+            icon: Clock, color: '#f59e0b', 
+            progress: (() => {
+              const delayed = data.filter((o: any) => o.status !== 'received' && o.previsao_entrega && new Date(o.previsao_entrega) < new Date()).length;
+              return data.length > 0 ? (delayed / data.length) * 100 : 0;
+            })(),
+            change: 'Atraso Logístico',
+            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
           },
         ]);
       }

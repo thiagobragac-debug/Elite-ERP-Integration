@@ -1,4 +1,21 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { useNavigate } from 'react-router-dom';
 import { 
   Truck, 
@@ -77,72 +94,80 @@ export const FleetManagement: React.FC = () => {
   const fetchMachines = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('maquinas')
-        .select('*');
-      
-      query = applyFarmFilter(query);
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      const finalData = data || [];
-      const transformedData = finalData.map(m => ({
+      // Buscar máquinas e abastecimentos em paralelo para calcular consumo real
+      let machQuery = supabase.from('maquinas').select('*');
+      machQuery = applyFarmFilter(machQuery);
+
+      let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id');
+      fuelQuery = applyFarmFilter(fuelQuery);
+
+      const [machResult, fuelResult] = await Promise.all([machQuery, fuelQuery]);
+
+      if (machResult.error) throw machResult.error;
+
+      const finalData = machResult.data || [];
+      const transformedData = finalData.map((m: any) => ({
         ...m,
         modelo: m.modelo || 'N/A',
         categoria: m.tipo || 'Geral',
         ano: m.ano || 'N/A',
         status: m.status || 'active'
       }));
-      
+
       setMachines(transformedData);
       const total = transformedData.length;
-      const emManutencao = transformedData.filter(m => m.status === 'maintenance').length;
+      const emManutencao = transformedData.filter((m: any) => m.status === 'maintenance').length;
       const emOperacao = total - emManutencao;
-      const avgEfficiency = 14.2;
-      
+      const disponibilidade = total > 0 ? (emOperacao / total) * 100 : 0;
+
+      // Calcular consumo médio REAL de abastecimentos do banco
+      const fuelData = fuelResult.data || [];
+      const totalLitros = fuelData.reduce((acc: number, f: any) => acc + Number(f.litros || 0), 0);
+      const machinesWithFuel = new Set(fuelData.map((f: any) => f.maquina_id)).size;
+      const avgConsumo = machinesWithFuel > 0 ? totalLitros / machinesWithFuel : 0;
+
       setStats([
-        { 
-          label: 'Frota Operacional', 
-          value: total, 
-          icon: Truck, 
-          color: 'hsl(var(--brand))', 
+        {
+          label: 'Frota Operacional',
+          value: total > 0 ? total : '---',
+          icon: Truck,
+          color: 'hsl(var(--brand))',
           progress: 100,
-          change: `${total} ativos`,
+          change: total > 0 ? `${total} ativos` : 'Sem máquinas',
           periodLabel: 'Frota Geral',
-          sparkline: [Math.max(1,total-4),Math.max(1,total-3),Math.max(1,total-2),Math.max(1,total-1),total,total,total].map((v,i) => ({ value: v, label: String(v) }))
+          sparkline: buildSparkline(machines || [], 'created_at', null)
         },
-        { 
-          label: 'Em Manutenção', 
-          value: emManutencao, 
-          icon: Tool, 
-          color: '#ef4444', 
-          progress: (emManutencao / (total || 1)) * 100,
-          change: 'Crítico',
+        {
+          label: 'Em Manutenção',
+          value: emManutencao,
+          icon: Tool,
+          color: '#ef4444',
+          progress: total > 0 ? (emManutencao / total) * 100 : 0,
+          change: emManutencao > 0 ? 'Parada técnica' : 'Frota operacional',
           periodLabel: 'Parada Técnica',
-          sparkline: [Math.max(0,emManutencao+3),Math.max(0,emManutencao+2),Math.max(0,emManutencao+1),Math.max(0,emManutencao+1),emManutencao,emManutencao,emManutencao].map((v,i) => ({ value: v, label: String(v) }))
+          sparkline: buildSparkline(machines || [], 'created_at', null)
         },
-        { 
-          label: 'Consumo Médio (Global)', 
-          value: `${avgEfficiency} L/h`, 
-          icon: Activity, 
-          color: '#f59e0b', 
-          progress: 72,
-          trend: 'down',
-          change: '-2.5%',
-          periodLabel: 'Consumo Médio',
-          sparkline: [16.2,15.8,15.4,15.0,14.7,14.4,Number(avgEfficiency)||14.2].map((v,i) => ({ value: v, label: v+'L/h' }))
+        {
+          label: 'Consumo Total (L)',
+          value: totalLitros > 0 ? `${totalLitros.toLocaleString('pt-BR')} L` : '---',
+          icon: Activity,
+          color: '#f59e0b',
+          progress: totalLitros > 0 ? Math.min(100, (totalLitros / 1000) * 10) : 0,
+          trend: totalLitros > 0 ? 'up' : 'none',
+          change: avgConsumo > 0 ? `Média: ${avgConsumo.toFixed(0)}L/máq.` : 'Sem abastecimentos',
+          periodLabel: 'Total Abastecido',
+          sparkline: buildSparkline(machines || [], 'created_at', null)
         },
-        { 
-          label: 'Disponibilidade', 
-          value: `${((emOperacao / (total || 1)) * 100).toFixed(1)}%`, 
-          icon: AlertCircle, 
-          color: '#10b981', 
-          progress: (emOperacao / (total || 1)) * 100, 
-          trend: 'up',
-          change: 'Operacional',
+        {
+          label: 'Disponibilidade',
+          value: total > 0 ? `${disponibilidade.toFixed(1)}%` : '---',
+          icon: AlertCircle,
+          color: '#10b981',
+          progress: disponibilidade,
+          trend: disponibilidade >= 80 ? 'up' : 'down',
+          change: total > 0 ? 'Uptime calculado' : 'Sem dados',
           periodLabel: 'Uptime Real',
-          sparkline: [82,84,86,88,90,91,Math.round((emOperacao/(total||1))*100)].map((v,i) => ({ value: v, label: v+'%' }))
+          sparkline: buildSparkline(machines || [], 'created_at', null)
         },
       ]);
     } catch (err) {
@@ -281,14 +306,49 @@ export const FleetManagement: React.FC = () => {
     setHistoryTitle(`Histórico: ${machine.nome}`);
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
-    setTimeout(() => {
-      setHistoryItems([
-        { id: '1', date: new Date().toISOString(), title: 'Manutenção Corretiva', subtitle: 'Troca de óleo e filtros', value: 'R$ 1.250,00', status: 'success' },
-        { id: '2', date: new Date(Date.now() - 86400000 * 5).toISOString(), title: 'Abastecimento', subtitle: '450 litros (Diesel S10)', value: 'R$ 2.700,00', status: 'info' },
-        { id: '3', date: new Date(Date.now() - 86400000 * 15).toISOString(), title: 'Revisão Preventiva', subtitle: 'Checklist 250 horas', value: 'Concluído', status: 'success' },
+    try {
+      // Buscar histórico real de manutenções e abastecimentos do banco
+      const [maintResult, fuelResult] = await Promise.all([
+        supabase.from('manutencao_frota').select('*').eq('maquina_id', machine.id).order('data_inicio', { ascending: false }).limit(10),
+        supabase.from('abastecimentos').select('*').eq('maquina_id', machine.id).order('data', { ascending: false }).limit(10)
       ]);
+
+      const maintItems = (maintResult.data || []).map((m: any) => ({
+        id: m.id,
+        date: m.data_inicio,
+        title: `Manutenção: ${m.tipo || 'Geral'}`,
+        subtitle: m.descricao || 'Sem descrição',
+        value: m.custo > 0 ? Number(m.custo).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Sem custo',
+        status: m.status === 'CONCLUIDO' || m.status === 'completed' ? 'success' : 'warning'
+      }));
+
+      const fuelItems = (fuelResult.data || []).map((f: any) => ({
+        id: f.id,
+        date: f.data,
+        title: `Abastecimento: ${f.litros || 0}L`,
+        subtitle: f.tipo_combustivel || 'Diesel',
+        value: f.valor_total > 0 ? Number(f.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---',
+        status: 'info'
+      }));
+
+      const combined = [...maintItems, ...fuelItems]
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, 10);
+
+      setHistoryItems(combined.length > 0 ? combined : [{
+        id: '0',
+        date: new Date().toISOString(),
+        title: 'Sem registros',
+        subtitle: 'Nenhuma manutenção ou abastecimento encontrado para este ativo.',
+        value: '---',
+        status: 'info'
+      }]);
+    } catch (err) {
+      console.error('[FleetManagement] Erro ao buscar histórico:', err);
+      setHistoryItems([]);
+    } finally {
       setHistoryLoading(false);
-    }, 800);
+    }
   };
 
   const columns = [

@@ -169,11 +169,23 @@ export const AnimalManagement: React.FC = () => {
     { 
       header: 'Brinco / Identificação', 
       accessor: (item: any) => {
-        let category = '';
         const currentWeight = item.peso_atual || item.peso_inicial || 0;
-        if (currentWeight > 500) category = 'Boi Gordo';
-        else if (item.sexo === 'Macho') category = 'Garrote';
-        else category = 'Novilha';
+        let ageMonths = 0;
+        if (item.data_nascimento) {
+          ageMonths = Math.floor((new Date().getTime() - new Date(item.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44));
+        }
+        let category = '';
+        if (item.sexo === 'M') {
+          if (currentWeight > 500 || ageMonths > 36) category = 'Boi Gordo';
+          else if (ageMonths <= 12) category = 'Bezerro';
+          else category = 'Garrote';
+        } else if (item.sexo === 'F') {
+          if (currentWeight > 450 || ageMonths > 36) category = 'Vaca';
+          else if (ageMonths <= 12) category = 'Bezerra';
+          else category = 'Novilha';
+        } else {
+          category = 'N/I';
+        }
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>

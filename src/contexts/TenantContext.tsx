@@ -220,6 +220,21 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     fetchData();
   }, [user]);
 
+  // Sincroniza a simulação de inquilino entre abas em tempo real
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'saas_impersonate_tenant_id') {
+        console.log('[TenantContext] Identificador de simulação de inquilino atualizado em outra aba. Sincronizando dados...');
+        fetchData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   // We no longer force global mode off. Users can use global mode to aggregate their allowed farms.
 
   return (

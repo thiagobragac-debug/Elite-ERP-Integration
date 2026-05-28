@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Fuel, 
   Truck,
@@ -11,6 +11,7 @@ import {
   Package
 } from 'lucide-react';
 import { FormModal } from './FormModal';
+import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 
@@ -74,11 +75,12 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
   const fetchData = async () => {
     if (!activeFarm?.id) return;
     
-    // Fetch Machines with specs
+    // Fetch Machines with specs, only active
     const { data: mData } = await supabase
       .from('maquinas')
       .select('id, nome, tipo, placa')
-      .eq('fazenda_id', activeFarm.id);
+      .eq('fazenda_id', activeFarm.id)
+      .eq('status', 'active');
     if (mData) {
       // Add mock fields for UI compatibility
       const transformed = mData.map(m => ({
@@ -90,11 +92,13 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
       setMachines(transformed);
     }
 
-    // Fetch Inventory Locations (Tanks)
+    // Fetch Inventory Locations (Tanks), active and type Tanque
     const { data: lData } = await supabase
       .from('depositos')
       .select('id, nome')
-      .eq('fazenda_id', activeFarm.id);
+      .eq('fazenda_id', activeFarm.id)
+      .eq('status', 'ativo')
+      .eq('tipo', 'Tanque');
     if (lData) setLocations(lData);
   };
 
@@ -129,18 +133,14 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Registro"}
     >
-      <div className="form-group full-width">
+      <div className="form-group">
         <label><Truck size={14} /> Máquina / Veículo</label>
-        <select 
+        <SearchableSelect 
           value={formData.machine_id}
-          onChange={(e) => setFormData({...formData, machine_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione a máquina...</option>
-          {machines.map(m => (
-            <option key={m.id} value={m.id}>{m.nome}</option>
-          ))}
-        </select>
+          onChange={(val) => setFormData({...formData, machine_id: val})}
+          placeholder="Selecione a máquina..."
+          options={machines.map(m => ({ value: m.id, label: m.nome }))}
+        />
         {selectedMachine && (
           <div className="tauze-field-hint" style={{ color: 'hsl(var(--brand))', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
             Último Horímetro: {selectedMachine.horimetro_atual}h | Cap. Tanque: {selectedMachine.capacidade_tanque}L
@@ -148,18 +148,14 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
         )}
       </div>
 
-      <div className="form-group full-width">
+      <div className="form-group">
         <label><Package size={14} /> Local de Saída (Estoque)</label>
-        <select 
+        <SearchableSelect 
           value={formData.estoque_id}
-          onChange={(e) => setFormData({...formData, estoque_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione o tanque de diesel...</option>
-          {locations.map(l => (
-            <option key={l.id} value={l.id}>{l.nome}</option>
-          ))}
-        </select>
+          onChange={(val) => setFormData({...formData, estoque_id: val})}
+          placeholder="Selecione o tanque de diesel..."
+          options={locations.map(l => ({ value: l.id, label: l.nome }))}
+        />
       </div>
 
       <div className="form-group">

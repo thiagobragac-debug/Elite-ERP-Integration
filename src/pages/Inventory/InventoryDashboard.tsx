@@ -1,4 +1,21 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
+
+function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
+  if (!records || records.length === 0) return [];
+  const sorted = [...records].filter(r => r[dateField]).sort((a, b) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
+  if (sorted.length === 0) return [];
+  const first = new Date(sorted[0][dateField]).getTime();
+  const last = new Date(sorted[sorted.length - 1][dateField]).getTime();
+  const totalMs = Math.max(last - first, 1);
+  const bucketMs = totalMs / buckets;
+  return Array.from({ length: buckets }, (_, i) => {
+    const bStart = first + i * bucketMs;
+    const bEnd = bStart + bucketMs;
+    const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
+    const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
+    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+  });
+}
 import { 
   Package, 
   TrendingUp, 
@@ -29,10 +46,10 @@ export const InventoryDashboard: React.FC = () => {
   const [recentMovements, setRecentMovements] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Calculando...', sparkline: [] },
-    { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'stable' as const, change: 'Verificando...', sparkline: [] },
-    { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'stable' as const, change: 'Auditando...', sparkline: [] },
-    { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#3b82f6', progress: 0, trend: 'stable' as const, change: 'Sincronizando...', sparkline: [] }
+    { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Calculando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual') },
+    { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'stable' as const, change: 'Verificando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual') },
+    { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'stable' as const, change: 'Auditando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual') },
+    { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#3b82f6', progress: 0, trend: 'stable' as const, change: 'Sincronizando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual') }
   ]);
 
   useEffect(() => {
@@ -111,7 +128,7 @@ export const InventoryDashboard: React.FC = () => {
             color: '#10b981', 
             progress: totalValue > 0 ? 85 : 0,
             change: 'Capital Imobilizado',
-            sparkline: []
+            sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual')
           },
           { 
             label: 'Ruptura de Estoque', 
@@ -121,7 +138,7 @@ export const InventoryDashboard: React.FC = () => {
             progress: products.length > 0 ? (criticalCount / products.length) * 100 : 0,
             trend: criticalCount > 0 ? 'up' : 'stable',
             change: 'Itens p/ Reposição',
-            sparkline: []
+            sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual')
           },
           { 
             label: 'Maturidade (30d)', 
@@ -131,7 +148,7 @@ export const InventoryDashboard: React.FC = () => {
             progress: products.length > 0 ? (maturityCount / products.length) * 100 : 0,
             trend: maturityCount > 0 ? 'up' : 'stable',
             change: 'Risco de Perda',
-            sparkline: []
+            sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual')
           },
           { 
             label: 'Giro de Estoque', 
