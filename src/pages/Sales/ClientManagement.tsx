@@ -202,7 +202,7 @@ export const ClientManagement: React.FC = () => {
       const payload = {
         nome: formData.name,
         cnpj_cpf: formData.cnpj,
-        fantasia: formData.type,
+        categoria_id: formData.categoria_id || null,
         email: formData.email,
         telefone: formData.phone,
         cep: formData.cep,
@@ -687,9 +687,16 @@ export const ClientManagement: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className={`user-card-premium ${client.status?.toUpperCase() === 'ATIVO' ? 'active' : 'warning-badge'}`}
                   >
+                    {/* LEFT — avatar + actions */}
                     <div className="card-left-section">
-                      <div className="card-avatar">
-                        {client.nome?.charAt(0) || 'C'}
+                      <div className="card-avatar" style={{
+                        background: 'hsl(var(--brand) / 0.08)',
+                        color: 'hsl(var(--brand))',
+                        border: '1.5px solid hsl(var(--brand) / 0.2)',
+                        borderRadius: '16px',
+                        fontSize: '22px'
+                      }}>
+                        {client.nome?.charAt(0)?.toUpperCase() || 'C'}
                       </div>
                       <div className="card-bottom-actions">
                         <button className="action-icon-btn info" onClick={() => handleViewHistory(client)} title="Dossiê"><History size={14} /></button>
@@ -698,32 +705,56 @@ export const ClientManagement: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* RIGHT — content */}
                     <div className="card-main-content">
-                      <div className="card-header-info">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <h3>{client.nome}</h3>
-                          {client.segmento === 'Ouro/VIP' && <Star size={16} fill="#eab308" color="#eab308" style={{ filter: 'drop-shadow(0 0 5px rgba(234, 179, 8, 0.4))' }} />}
+                      {/* Row 1: Name + status + rating */}
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px', marginBottom: '2px' }}>
+                        <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 900, color: 'hsl(var(--text-main))', lineHeight: 1.3, wordBreak: 'break-word', flex: '1 1 auto', minWidth: 0 }}>
+                          {client.nome}
+                        </h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                          <span style={{
+                            fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase', letterSpacing: '0.05em',
+                            background: client.status?.toUpperCase() === 'ATIVO' ? 'rgba(22,163,74,0.12)' : 'rgba(234,179,8,0.12)',
+                            color: client.status?.toUpperCase() === 'ATIVO' ? '#16a34a' : '#ca8a04'
+                          }}>{client.status || 'ATIVO'}</span>
+                          {client.rating && (
+                            <span style={{ fontSize: '9px', fontWeight: 900, padding: '2px 7px', borderRadius: '20px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))' }}>
+                              {client.rating}
+                            </span>
+                          )}
                         </div>
-                        <span className="card-role-badge">{client.tipo || 'Parceiro'}</span>
                       </div>
 
-                      <div className="card-meta-grid">
-                        <div className="meta-item">
-                          <FileText size={14} className="meta-icon" />
-                          <span>{client.documento || 'Sem Documento'}</span>
-                        </div>
-                        <div className="meta-item">
-                          <MapPin size={14} className="meta-icon" />
-                          <span>{client.cidade ? `${client.cidade}/${client.estado}` : 'N/A'}</span>
-                        </div>
-                        <div className="meta-item">
-                          <Phone size={14} className="meta-icon" />
-                          <span>{client.telefone || 'Sem telefone'}</span>
-                        </div>
+                      {/* Row 2: Category badge */}
+                      <span style={{ display: 'inline-block', fontSize: '9px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>
+                        {client.tipo || 'Parceiro'} {client.cnpj_cpf ? `• ${client.cnpj_cpf}` : ''}
+                      </span>
+
+                      {/* Row 3: LTV metric */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>LTV TOTAL</span>
+                        <span style={{ fontSize: '15px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+                          R$ {(client.ltv || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        </span>
                       </div>
-                      <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '4px', marginTop: '6px' }}>
-                        <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
-                          <Target size={12} style={{ color: 'hsl(var(--brand))' }} />
+
+                      {/* Churn indicator bar */}
+                      <div style={{ height: '3px', borderRadius: '99px', background: 'hsl(var(--border))', marginBottom: '8px', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', borderRadius: '99px', width: client.churnRisk ? '100%' : '30%', background: client.churnRisk ? '#ef4444' : '#10b981', transition: 'width 0.5s' }} />
+                      </div>
+                      {client.churnRisk && (
+                        <span style={{ fontSize: '9px', fontWeight: 700, color: '#ef4444', display: 'block', marginBottom: '6px' }}>⚠ Risco de Churn — inativo &gt;90d</span>
+                      )}
+
+                      {/* Footer: location + phone */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed hsl(var(--border))', paddingTop: '6px', marginTop: '2px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                          <MapPin size={11} style={{ color: 'hsl(var(--brand))' }} />
+                          <span>{client.cidade ? `${client.cidade}/${client.estado}` : 'Sem endereço'}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                          <TrendingUp size={11} style={{ color: '#10b981' }} />
                           <span>Seg: {client.segmento || 'Geral'}</span>
                         </div>
                       </div>
@@ -864,14 +895,15 @@ export const ClientManagement: React.FC = () => {
         }
 
         .card-header-info h3 {
-          font-size: 16px;
+          font-size: 14px;
           font-weight: 900;
           color: hsl(var(--text-main));
           margin-bottom: 2px;
           letter-spacing: -0.02em;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: normal;
+          overflow: visible;
+          word-break: break-word;
+          line-height: 1.3;
         }
 
         .card-role-badge {

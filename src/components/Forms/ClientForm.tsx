@@ -33,7 +33,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
   const [formData, setFormData] = useState({
     name: '',
     cnpj: '',
-    type: 'Frigorífico',
+    categoria_id: '',
     email: '',
     phone: '',
     cep: '',
@@ -87,8 +87,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
     if (initialData) {
       setFormData({
         name: initialData.nome || '',
-        cnpj: initialData.documento || '',
-        type: initialData.tipo || 'Frigorífico',
+        cnpj: initialData.cnpj_cpf || initialData.documento || '',
+        categoria_id: initialData.categoria_id || '',
         email: initialData.email || '',
         phone: initialData.telefone || '',
         cep: initialData.cep || '',
@@ -100,7 +100,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
         cidade: initialData.cidade || '',
         estado: initialData.estado || '',
         pais: initialData.pais || 'Brasil',
-        creditLimit: initialData.limite_credito || '',
+        creditLimit: '',
         status: initialData.status || 'ATIVO',
         segment: initialData.segmento || 'Prata/Recorrente',
         is_global: initialData.is_global !== undefined ? initialData.is_global : true,
@@ -110,7 +110,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
       setFormData({
         name: '',
         cnpj: '',
-        type: 'Frigorífico',
+        categoria_id: '',
         email: '',
         phone: '',
         cep: '',
@@ -261,13 +261,12 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><ShieldCheck size={14} /> Tipo de Parceiro</label>
           <select 
-            value={formData.type}
-            onChange={(e) => setFormData({...formData, type: e.target.value})}
-            required
+            value={formData.categoria_id}
+            onChange={(e) => setFormData({...formData, categoria_id: e.target.value})}
           >
             <option value="">Selecionar...</option>
             {categories.map(cat => (
-              <option key={cat.id} value={cat.nome}>{cat.nome}</option>
+              <option key={cat.id} value={cat.id}>{cat.nome}</option>
             ))}
           </select>
         </div>

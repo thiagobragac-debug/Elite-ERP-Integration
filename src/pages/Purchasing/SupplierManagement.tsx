@@ -696,9 +696,16 @@ export const SupplierManagement: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className={`user-card-premium ${sup.status === 'ATIVO' ? 'active' : ''}`}
                 >
+                  {/* LEFT — avatar + actions */}
                   <div className="card-left-section">
-                    <div className="card-avatar">
-                      {sup.nome?.charAt(0) || 'F'}
+                    <div className="card-avatar" style={{
+                      background: 'hsl(142 71% 45% / 0.08)',
+                      color: '#16a34a',
+                      border: '1.5px solid hsl(142 71% 45% / 0.2)',
+                      borderRadius: '16px',
+                      fontSize: '22px'
+                    }}>
+                      {sup.nome?.charAt(0)?.toUpperCase() || 'F'}
                     </div>
                     <div className="card-bottom-actions">
                       <button className="action-icon-btn info" onClick={() => handleViewHistory(sup)} title="Dossiê"><History size={14} /></button>
@@ -707,35 +714,46 @@ export const SupplierManagement: React.FC = () => {
                     </div>
                   </div>
 
+                  {/* RIGHT — content */}
                   <div className="card-main-content">
-                    <div className="card-header-info">
-                      <div className="flex justify-between items-start">
-                        <h3>{sup.nome}</h3>
-                        <div className="flex items-center gap-1 text-amber-500 font-bold text-sm">
-                          <Star size={14} fill="currentColor" />
-                          {sup.rating?.toFixed(1)}
-                        </div>
-                      </div>
-                      <span className="card-role-badge">{sup.categoria || 'Geral'}</span>
+                    {/* Row 1: Name + status badge */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px', marginBottom: '2px' }}>
+                      <h3 style={{ margin: 0, fontSize: '13px', fontWeight: 900, color: 'hsl(var(--text-main))', lineHeight: 1.3, wordBreak: 'break-word', flex: '1 1 auto', minWidth: 0 }}>
+                        {sup.nome}
+                      </h3>
+                      <span style={{
+                        fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '20px', textTransform: 'uppercase' as const, letterSpacing: '0.05em', flexShrink: 0,
+                        background: sup.status === 'ATIVO' ? 'rgba(22,163,74,0.12)' : 'rgba(234,179,8,0.12)',
+                        color: sup.status === 'ATIVO' ? '#16a34a' : '#ca8a04'
+                      }}>{sup.status || 'ATIVO'}</span>
                     </div>
 
-                    <div className="card-meta-grid">
-                      <div className="meta-item">
-                        <FileText size={14} className="meta-icon" />
-                        <span>{sup.cnpj_cpf || 'Sem Documento'}</span>
-                      </div>
-                      <div className="meta-item">
-                        <DollarSign size={14} className="meta-icon text-emerald-600" />
-                        <span className="font-bold text-emerald-700">R$ {Number(sup.totalSpend || 0).toLocaleString('pt-BR')} consumidos</span>
-                      </div>
-                      <div className="meta-item">
-                        <MapPin size={14} className="meta-icon" />
+                    {/* Row 2: Category + CNPJ */}
+                    <span style={{ display: 'inline-block', fontSize: '9px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' as const, letterSpacing: '0.05em', marginBottom: '10px' }}>
+                      {sup.categoria || 'Geral'}{sup.cnpj_cpf ? ` • ${sup.cnpj_cpf}` : ''}
+                    </span>
+
+                    {/* Row 3: Spend metric */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>VOLUME COMPRAS</span>
+                      <span style={{ fontSize: '15px', fontWeight: 900, color: '#059669' }}>
+                        R$ {Number(sup.totalSpend || 0).toLocaleString('pt-BR')}
+                      </span>
+                    </div>
+
+                    {/* Spend bar */}
+                    <div style={{ height: '3px', borderRadius: '99px', background: 'hsl(var(--border))', marginBottom: '8px', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', borderRadius: '99px', width: `${Math.min(100, (sup.totalSpend || 0) / 1000)}%`, background: '#10b981', transition: 'width 0.5s' }} />
+                    </div>
+
+                    {/* Footer: city + phone */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px dashed hsl(var(--border))', paddingTop: '6px', marginTop: '2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                        <MapPin size={11} style={{ color: 'hsl(var(--brand))' }} />
                         <span>{sup.cidade ? `${sup.cidade}/${sup.estado}` : 'Sem endereço'}</span>
                       </div>
-                    </div>
-                    <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '6px', marginTop: '12px' }}>
-                      <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
-                        <Phone size={12} style={{ color: 'hsl(var(--brand))' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+                        <Phone size={11} style={{ color: 'hsl(var(--brand))' }} />
                         <span>{sup.telefone || 'Sem telefone'}</span>
                       </div>
                     </div>
