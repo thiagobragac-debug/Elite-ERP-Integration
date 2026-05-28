@@ -4,19 +4,18 @@ import {
   Hash, 
   Calendar, 
   Tag, 
-  Layers,
+  Map,
   Info,
   Activity,
   User,
   Users,
   DollarSign,
-  TrendingUp
+  TrendingUp,
+  Building2
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
-import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useTenant } from '../../contexts/TenantContext';
-import { isValidUUID } from '../../utils/validation';
 
 interface AnimalFormProps {
   isOpen: boolean;
@@ -32,7 +31,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     raca: 'Nelore',
     sexo: 'M',
     data_nascimento: '',
-    lote_id: '',
+    fazenda_id: '',
     status: 'Ativo',
     peso_inicial: '',
     pelagem: '',
@@ -43,17 +42,16 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     categoria: 'Boi',
     finalidade: 'Corte'
   });
-  const { applyFarmFilter } = useFarmFilter();
   const { activeTenantId } = useTenant();
-  const [lotes, setLotes] = useState<any[]>([]);
+  const [fazendas, setFazendas] = useState<any[]>([]);
   const [racas, setRacas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [loadingLotes, setLoadingLotes] = useState(false);
+  const [loadingFazendas, setLoadingFazendas] = useState(false);
 
   React.useEffect(() => {
-    fetchLotes();
     if (isOpen && activeTenantId) {
+      fetchFazendas();
       fetchRacas();
       fetchCategorias();
     }
@@ -63,7 +61,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         raca: initialData.raca || 'Nelore',
         sexo: initialData.sexo || 'M',
         data_nascimento: initialData.data_nascimento || '',
-        lote_id: initialData.lote_id || '',
+        fazenda_id: initialData.fazenda_id || '',
         status: initialData.status || 'Ativo',
         peso_inicial: initialData.peso_inicial || '',
         pelagem: initialData.pelagem || '',
@@ -80,7 +78,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         raca: 'Nelore',
         sexo: 'M',
         data_nascimento: '',
-        lote_id: '',
+        fazenda_id: '',
         status: 'Ativo',
         peso_inicial: '',
         pelagem: '',
@@ -92,22 +90,28 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         finalidade: 'Corte'
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, activeTenantId]);
 
-  const fetchLotes = async () => {
-    setLoadingLotes(true);
+  const fetchFazendas = async () => {
+    if (!activeTenantId) return;
+    setLoadingFazendas(true);
     try {
-      const { data, error } = await applyFarmFilter(supabase.from('lotes').select('id, nome')).order('nome');
+      const { data, error } = await supabase
+        .from('fazendas')
+        .select('id, nome')
+        .eq('tenant_id', activeTenantId)
+        .order('nome');
       if (error) throw error;
-      setLotes(data || []);
+      setFazendas(data || []);
     } catch (err) {
-      console.error('[AnimalForm] Erro ao buscar lotes:', err);
+      console.error('[AnimalForm] Erro ao buscar fazendas:', err);
     } finally {
-      setLoadingLotes(false);
+      setLoadingFazendas(false);
     }
   };
 
   const fetchRacas = async () => {
+    if (!activeTenantId) return;
     const { data } = await supabase
       .from('categorias_sistema')
       .select('id, nome')
@@ -119,6 +123,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
   };
 
   const fetchCategorias = async () => {
+    if (!activeTenantId) return;
     const { data } = await supabase
       .from('categorias_sistema')
       .select('id, nome')
@@ -207,17 +212,17 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
       </div>
 
       <div className="tauze-field-group">
-        <label className="tauze-label"><Layers size={14} /> Lote de Destino</label>
+        <label className="tauze-label"><Building2 size={14} /> Fazenda de Destino</label>
         <select 
           className="tauze-input tauze-select"
-          value={formData.lote_id}
-          onChange={(e) => setFormData({...formData, lote_id: e.target.value})}
+          value={formData.fazenda_id}
+          onChange={(e) => setFormData({...formData, fazenda_id: e.target.value})}
           required
-          disabled={loadingLotes}
+          disabled={loadingFazendas}
         >
-          <option value="">{loadingLotes ? 'Carregando lotes...' : 'Selecionar Lote...'}</option>
-          {lotes.map(lote => (
-            <option key={lote.id} value={lote.id}>{lote.nome}</option>
+          <option value="">{loadingFazendas ? 'Carregando fazendas...' : 'Selecionar Fazenda...'}</option>
+          {fazendas.map(f => (
+            <option key={f.id} value={f.id}>{f.nome}</option>
           ))}
         </select>
       </div>

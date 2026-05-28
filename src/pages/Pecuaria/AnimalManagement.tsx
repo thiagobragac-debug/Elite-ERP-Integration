@@ -97,7 +97,7 @@ export const AnimalManagement: React.FC = () => {
         raca: formData.raca,
         sexo: formData.sexo,
         data_nascimento: formData.data_nascimento,
-        lote_id: formData.lote_id || null,
+        fazenda_id: formData.fazenda_id || null,
         status: formData.status || 'Ativo',
         peso_inicial: parseFloat(formData.peso_inicial) || 0,
         pelagem: formData.pelagem,
@@ -113,7 +113,7 @@ export const AnimalManagement: React.FC = () => {
         const { error } = await supabase.from('animais').update(payload).eq('id', selectedAnimal.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('animais').insert([{ ...payload, ...insertPayload }]);
+        const { error } = await supabase.from('animais').insert([{ ...insertPayload, ...payload }]);
         if (error) throw error;
       }
 

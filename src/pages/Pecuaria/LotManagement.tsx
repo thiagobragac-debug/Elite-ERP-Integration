@@ -192,7 +192,7 @@ export const LotManagement: React.FC = () => {
       data_fim_prevista: data.data_fim_prevista || null,
       gmd_alvo: parseFloat(data.gmd_alvo) || 0,
       peso_alvo: parseFloat(data.peso_alvo) || 0,
-      pasto_id: data.pasto_id || null,
+      fazenda_id: data.fazenda_id || null,
       cor: data.cor || '#6366f1'
     };
 
@@ -222,8 +222,8 @@ export const LotManagement: React.FC = () => {
 
       try {
         const { error } = await supabase.from('lotes').insert([{
-          ...payload,
-          ...insertPayload
+          ...insertPayload,
+          ...payload
         }]);
         if (error) throw error;
       } catch (err: any) {

@@ -4,7 +4,7 @@ import {
   Tag,
   Users,
   FileText,
-  MapPin,
+  Building2,
   TrendingUp,
   Activity,
   CheckCircle2,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
+import { useTenant } from '../../contexts/TenantContext';
 
 interface LotFormProps {
   isOpen: boolean;
@@ -43,27 +44,36 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
     data_fim_prevista: '',
     gmd_alvo: '',
     peso_alvo: '',
-    pasto_id: '',
+    fazenda_id: '',
     cor: '#6366f1'
   });
 
-  const [pastures, setPastures] = useState<any[]>([]);
+  const { activeTenantId } = useTenant();
+  const [fazendas, setFazendas] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingFazendas, setLoadingFazendas] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchPastures();
+    if (isOpen && activeTenantId) {
+      fetchFazendas();
     }
-  }, [isOpen]);
+  }, [isOpen, activeTenantId]);
 
-  const fetchPastures = async () => {
+  const fetchFazendas = async () => {
+    if (!activeTenantId) return;
+    setLoadingFazendas(true);
     try {
-      const { data } = await supabase
-        .from('pastos')
-        .select('id, nome, fazendas(nome)');
-      if (data) setPastures(data);
+      const { data, error } = await supabase
+        .from('fazendas')
+        .select('id, nome')
+        .eq('tenant_id', activeTenantId)
+        .order('nome');
+      if (error) throw error;
+      setFazendas(data || []);
     } catch (err) {
-      console.error('Error fetching pastures:', err);
+      console.error('Error fetching fazendas:', err);
+    } finally {
+      setLoadingFazendas(false);
     }
   };
 
@@ -79,7 +89,7 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
         data_fim_prevista: initialData.data_fim_prevista || '',
         gmd_alvo: initialData.gmd_alvo?.toString() || '',
         peso_alvo: initialData.peso_alvo?.toString() || '',
-        pasto_id: initialData.pasto_id || '',
+        fazenda_id: initialData.fazenda_id || '',
         cor: initialData.cor || '#6366f1'
       });
     } else {
@@ -93,7 +103,7 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
         data_fim_prevista: '',
         gmd_alvo: '',
         peso_alvo: '',
-        pasto_id: '',
+        fazenda_id: '',
         cor: '#6366f1'
       });
     }
@@ -151,7 +161,7 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
         </select>
       </div>
 
-      {/* Data Início + Previsão Término + Pasto — mesma linha */}
+      {/* Data Início + Previsão Término + Fazenda — mesma linha */}
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--brand))' }}>
@@ -176,16 +186,18 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--brand))' }}>
-            <MapPin size={14} /> Pasto / Piquete
+            <Building2 size={14} /> Fazenda de Destino
           </label>
           <select 
-            value={formData.pasto_id}
-            onChange={(e) => setFormData({...formData, pasto_id: e.target.value})}
+            value={formData.fazenda_id}
+            onChange={(e) => setFormData({...formData, fazenda_id: e.target.value})}
+            required
+            disabled={loadingFazendas}
           >
-            <option value="">Sem pasto (Livre)</option>
-            {pastures.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.nome} {p.fazendas?.nome ? `(${p.fazendas.nome})` : ''}
+            <option value="">{loadingFazendas ? 'Carregando fazendas...' : 'Selecionar Fazenda...'}</option>
+            {fazendas.map(f => (
+              <option key={f.id} value={f.id}>
+                {f.nome}
               </option>
             ))}
           </select>
