@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -681,45 +681,94 @@ export const CompanyManagement: React.FC = () => {
                 />
               ) : (
                 <div className="user-cards-grid">
-                  {filteredCompanies.map(c => (
-                    <motion.div 
-                      key={c.id} 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`tauze-modern-entity-card ${c.tipo?.toLowerCase() === 'matriz' ? 'matriz' : 'filial'}`}
-                    >
-                      <div className="card-top-banner">
-                        <div className="banner-badge">{c.tipo || 'UNIDADE'}</div>
-                      </div>
-                      <div className="card-avatar-overlap">
-                        <Building2 size={24} />
-                      </div>
-                      <div className="card-body">
-                        <h3 className="entity-name" title={c.razao_social || c.nome}>{c.razao_social || c.nome}</h3>
-                        
-                        <div className="entity-meta-row">
-                          <Globe size={14} />
-                          <span>CNPJ: {c.cnpj || c.documento || '---'}</span>
+                  {filteredCompanies.map(c => {
+                    const farmCount = farms.filter(f => f.unidade_id === c.id).length;
+                    const isMatriz = c.tipo?.toLowerCase() === 'matriz';
+                    const hasCnpj = !!c.cnpj || !!c.documento;
+                    const hasAddress = !!c.cidade;
+                    const healthPercentage = (isMatriz ? 40 : 20) + (hasCnpj ? 30 : 0) + (hasAddress ? 30 : 0);
+
+                    return (
+                      <motion.div 
+                        key={c.id} 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`company-card-premium ${isMatriz ? 'matriz' : 'filial'}`}
+                      >
+                        {/* LEFT SECTION — Brand / Avatar + Quick Actions */}
+                        <div className="card-left-section">
+                          <div className="card-avatar">
+                            <Building2 size={24} />
+                          </div>
+                          <div className="card-bottom-actions">
+                            <button className="action-icon-btn info" onClick={() => handleViewLogs(c)} title="Histórico"><History size={14} /></button>
+                            <button className="action-icon-btn edit" onClick={() => { setEditingItem(c); setIsCompanyModalOpen(true); }} title="Editar"><Edit3 size={14} /></button>
+                            <button className="action-icon-btn delete" onClick={() => handleDelete('company', c.id)} title="Excluir"><XCircle size={14} /></button>
+                          </div>
                         </div>
-                        <div className="entity-meta-row">
-                          <MapPin size={14} />
-                          <span>{c.cidade || 'Sede'} / {c.estado || 'BR'}</span>
+
+                        {/* RIGHT SECTION — Real content with high premium prominence */}
+                        <div className="card-main-content">
+                          <div className="card-header-row">
+                            <h3 className="entity-name" title={c.razao_social || c.nome}>
+                              {c.razao_social || c.nome}
+                            </h3>
+                            <div className="card-badges">
+                              <span className={`status-pill ${c.ativo ? 'active' : 'inactive'}`}>
+                                {c.ativo ? 'ATIVO' : 'INATIVO'}
+                              </span>
+                              <span className={`type-pill ${isMatriz ? 'matriz' : 'filial'}`}>
+                                {c.tipo?.toUpperCase() || 'FILIAL'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="entity-sub-info">
+                            {c.cnpj || c.documento ? `CNPJ: ${c.cnpj || c.documento}` : 'Sem CNPJ registrado'}
+                          </div>
+
+                          {/* Featured Metric Panel (Highlighting value/importance) */}
+                          <div className="featured-metric-panel">
+                            <div className="metric-label">FAZENDAS VINCULADAS</div>
+                            <div className="metric-value">
+                              {farmCount} {farmCount === 1 ? 'Fazenda' : 'Fazendas'}
+                            </div>
+                          </div>
+
+                          {/* Fiscal compliance bar */}
+                          <div className="progress-section">
+                            <div className="progress-label-row">
+                              <span>SAÚDE FISCAL & CADASTROS</span>
+                              <span>{healthPercentage}%</span>
+                            </div>
+                            <div className="premium-progress-bar">
+                              <div 
+                                className="progress-fill" 
+                                style={{ 
+                                  width: `${healthPercentage}%`, 
+                                  background: healthPercentage === 100 ? '#10b981' : healthPercentage >= 50 ? 'hsl(var(--brand))' : '#ca8a04' 
+                                }} 
+                              />
+                            </div>
+                          </div>
+
+                          {/* Footer */}
+                          <div className="card-footer-row">
+                            <div className="footer-meta-item">
+                              <MapPin size={11} />
+                              <span>{c.cidade ? `${c.cidade}/${c.estado || 'BR'}` : 'Localidade pendente'}</span>
+                            </div>
+                            {isMatriz && (
+                              <div className="footer-meta-item highlight">
+                                <ShieldCheck size={11} />
+                                <span>Matriz Fiscal</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <div className="entity-meta-row">
-                          <Calendar size={14} />
-                          <span>Contrato Ativo</span>
-                        </div>
-                        
-                        <div className="card-divider"></div>
-                        
-                        <div className="card-footer-actions">
-                          <button onClick={() => handleViewLogs(c)} title="Logs"><History size={14} /> Logs</button>
-                          <button onClick={() => { setEditingItem(c); setIsCompanyModalOpen(true); }} title="Editar"><Edit3 size={14} /> Editar</button>
-                          <button className="danger" onClick={() => handleDelete('company', c.id)} title="Excluir"><XCircle size={14} /> Excluir</button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               )}
             </motion.div>
@@ -732,13 +781,13 @@ export const CompanyManagement: React.FC = () => {
             >
               {viewMode === 'list' ? (
                 <ModernTable 
-          emptyState={
-            <EmptyState
-              title="Nenhum registro encontrado"
-              description="Sua busca não retornou resultados."
-              icon={Search}
-            />
-          } 
+                  emptyState={
+                    <EmptyState
+                      title="Nenhum registro encontrado"
+                      description="Sua busca não retornou resultados."
+                      icon={Search}
+                    />
+                  } 
                   data={filteredFarms}
                   columns={farmColumns}
                   loading={loading}
@@ -765,44 +814,71 @@ export const CompanyManagement: React.FC = () => {
                 />
               ) : (
                 <div className="user-cards-grid">
-                  {filteredFarms.map(f => (
-                    <motion.div 
-                      key={f.id} 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="tauze-modern-entity-card produtivo"
-                    >
-                      <div className="card-top-banner">
-                        <div className="banner-badge">PRODUTIVA</div>
-                      </div>
-                      <div className="card-avatar-overlap">
-                        <Map size={24} />
-                      </div>
-                      <div className="card-body">
-                        <h3 className="entity-name" title={f.nome}>{f.nome}</h3>
-                        
-                        <div className="entity-meta-row">
-                          <Layout size={14} />
-                          <span>Área: {f.area_total} ha</span>
+                  {filteredFarms.map(f => {
+                    const parentCompany = companies.find(c => c.id === f.unidade_id);
+                    const totalArea = Number(f.area_total || 0);
+
+                    return (
+                      <motion.div 
+                        key={f.id} 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="farm-card-premium"
+                      >
+                        {/* LEFT SECTION — Brand / Avatar + Quick Actions */}
+                        <div className="card-left-section">
+                          <div className="card-avatar">
+                            <Map size={24} />
+                          </div>
+                          <div className="card-bottom-actions">
+                            <button className="action-icon-btn edit" onClick={() => { setEditingItem(f); setIsFarmModalOpen(true); }} title="Editar"><Edit3 size={14} /></button>
+                            <button className="action-icon-btn delete" onClick={() => handleDelete('farm', f.id)} title="Excluir"><XCircle size={14} /></button>
+                          </div>
                         </div>
-                        <div className="entity-meta-row">
-                          <Building2 size={14} />
-                          <span>Empresa: {companies.find(c => c.id === f.unidade_id)?.razao_social || 'N/A'}</span>
+
+                        {/* RIGHT SECTION — Premium layout */}
+                        <div className="card-main-content">
+                          <div className="card-header-row">
+                            <h3 className="entity-name" title={f.nome}>
+                              {f.nome}
+                            </h3>
+                            <span className="status-pill active">PRODUTIVA</span>
+                          </div>
+
+                          <div className="entity-sub-info">
+                            IE: {f.ie_produtor || '---'} {f.nirf ? `• NIRF: ${f.nirf}` : ''}
+                          </div>
+
+                          {/* Featured Area Metric Panel (Premium prominence) */}
+                          <div className="featured-metric-panel area-highlight">
+                            <div className="metric-label">ÁREA TOTAL PRODUTIVA</div>
+                            <div className="metric-value">
+                              {totalArea.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ha
+                            </div>
+                          </div>
+
+                          {/* Associated parent company info */}
+                          <div className="progress-section">
+                            <div className="progress-label-row">
+                              <span>VÍNCULO SOCIETÁRIO</span>
+                            </div>
+                            <div className="parent-link-badge">
+                              <Building2 size={12} />
+                              <span>{parentCompany?.razao_social || 'Nenhuma empresa vinculada'}</span>
+                            </div>
+                          </div>
+
+                          {/* Footer */}
+                          <div className="card-footer-row">
+                            <div className="footer-meta-item">
+                              <MapPin size={11} />
+                              <span>{f.municipio ? `${f.municipio}/${f.uf || 'BR'}` : f.localizacao || 'Sem localização'}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div className="entity-meta-row">
-                          <MapPin size={14} />
-                          <span>{f.localizacao || 'Localização não informada'}</span>
-                        </div>
-                        
-                        <div className="card-divider"></div>
-                        
-                        <div className="card-footer-actions" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-                          <button onClick={() => { setEditingItem(f); setIsFarmModalOpen(true); }} title="Editar"><Edit3 size={14} /> Editar</button>
-                          <button className="danger" onClick={() => handleDelete('farm', f.id)} title="Excluir"><XCircle size={14} /> Excluir</button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               )}
             </motion.div>
@@ -855,6 +931,7 @@ export const CompanyManagement: React.FC = () => {
           border-radius: 12px;
           gap: 4px;
           margin: 0 16px;
+          border: 1px solid hsl(var(--border));
         }
 
         .view-btn {
@@ -892,176 +969,323 @@ export const CompanyManagement: React.FC = () => {
           .user-cards-grid { grid-template-columns: 1fr; }
         }
 
-        .tauze-modern-entity-card {
+        /* PREMIUM COMPANY AND FARM CARDS WITH HIGH VISUAL PROMINENCE */
+        .company-card-premium, .farm-card-premium {
           background: hsl(var(--bg-card));
-          border: 1px solid hsl(var(--border));
-          border-radius: 20px;
+          border-radius: 24px;
+          border: 1.5px solid hsl(var(--border));
+          display: flex;
           overflow: hidden;
-          position: relative;
+          padding: 0;
+          min-height: 220px;
+          height: auto;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+          box-shadow: var(--shadow-md);
+          position: relative;
+          text-align: left;
+        }
+
+        /* Colored Left Accents for Extra Prominence */
+        .company-card-premium::before, .farm-card-premium::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 8px;
+          background: hsl(var(--brand));
+          transition: 0.3s;
+        }
+
+        .company-card-premium.matriz::before {
+          background: #10b981;
+          box-shadow: 4px 0 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .company-card-premium.filial::before {
+          background: #3b82f6;
+          box-shadow: 4px 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .farm-card-premium::before {
+          background: #f59e0b;
+          box-shadow: 4px 0 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .company-card-premium:hover, .farm-card-premium:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 16px 36px rgba(0,0,0,0.12);
+        }
+
+        .company-card-premium.matriz:hover {
+          border-color: #10b98180;
+        }
+        .company-card-premium.filial:hover {
+          border-color: #3b82f680;
+        }
+        .farm-card-premium:hover {
+          border-color: #f59e0b80;
+        }
+
+        .card-left-section {
+          width: 110px;
+          flex-shrink: 0;
+          background: hsl(var(--bg-main) / 0.6);
+          border-right: 1px solid hsl(var(--border) / 0.5);
           display: flex;
           flex-direction: column;
-          min-height: 280px;
+          align-items: center;
+          padding: 20px 10px;
+          justify-content: space-between;
         }
-        .tauze-modern-entity-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 30px rgba(0,0,0,0.08);
-          border-color: hsl(var(--brand) / 0.4);
-        }
-        .tauze-modern-entity-card.matriz { border-color: #10b98140; }
-        .tauze-modern-entity-card.matriz:hover {
-          border-color: #10b981;
-          box-shadow: 0 12px 30px rgba(16,185,129,0.12);
-        }
-        .tauze-modern-entity-card.produtivo { border-color: #10b98130; }
-        .tauze-modern-entity-card.produtivo:hover { border-color: #10b98180; }
-        
-        .card-top-banner {
-          height: 70px;
-          background: linear-gradient(135deg, hsl(var(--bg-main)) 0%, hsl(var(--bg-card)) 100%);
-          border-bottom: 1px solid hsl(var(--border));
-          position: relative;
-          display: flex;
-          justify-content: flex-end;
-          padding: 12px 16px;
-        }
-        .tauze-modern-entity-card.matriz .card-top-banner {
-          background: linear-gradient(135deg, #10b98120 0%, #04785720 100%);
-          border-bottom-color: #10b98130;
-        }
-        .tauze-modern-entity-card.produtivo .card-top-banner {
-          background: linear-gradient(135deg, #10b98110 0%, #10b98105 100%);
-          border-bottom-color: #10b98120;
-        }
-        
-        .banner-badge {
-          background: hsl(var(--bg-card));
-          border: 1px solid hsl(var(--border));
-          padding: 4px 10px;
-          border-radius: 20px;
-          font-size: 10px;
-          font-weight: 800;
-          color: hsl(var(--text-main));
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-          height: max-content;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .tauze-modern-entity-card.matriz .banner-badge {
-          color: #10b981;
-          border-color: #10b98140;
-          background: #10b98110;
-        }
-        .tauze-modern-entity-card.produtivo .banner-badge {
-          color: #10b981;
-          border-color: #10b98130;
-        }
-        
-        .card-avatar-overlap {
-          width: 52px;
-          height: 52px;
-          background: hsl(var(--bg-card));
-          border: 2px solid hsl(var(--border));
-          border-radius: 14px;
+
+        .card-avatar {
+          width: 54px;
+          height: 54px;
+          border-radius: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: hsl(var(--text-main));
-          position: absolute;
-          top: 44px;
-          left: 20px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-          z-index: 2;
+          box-shadow: var(--shadow-sm);
         }
-        .tauze-modern-entity-card.matriz .card-avatar-overlap {
+
+        .company-card-premium.matriz .card-avatar {
+          background: rgba(16, 185, 129, 0.1);
           color: #10b981;
-          border-color: #10b98150;
-          box-shadow: 0 4px 12px rgba(16,185,129,0.15);
+          border: 1.5px solid rgba(16, 185, 129, 0.25);
         }
-        .tauze-modern-entity-card.produtivo .card-avatar-overlap {
-          color: #10b981;
-          border-color: #10b98140;
+
+        .company-card-premium.filial .card-avatar {
+          background: rgba(59, 130, 246, 0.1);
+          color: #3b82f6;
+          border: 1.5px solid rgba(59, 130, 246, 0.25);
         }
-        
-        .card-body {
-          padding: 36px 20px 20px;
+
+        .farm-card-premium .card-avatar {
+          background: rgba(245, 158, 11, 0.1);
+          color: #f59e0b;
+          border: 1.5px solid rgba(245, 158, 11, 0.25);
+        }
+
+        .card-bottom-actions {
           display: flex;
           flex-direction: column;
-          flex: 1;
+          gap: 10px;
+          width: 100%;
+          align-items: center;
         }
-        
+
+        .action-icon-btn {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: 1px solid hsl(var(--border));
+          background: hsl(var(--bg-card));
+          color: hsl(var(--text-muted));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .action-icon-btn:hover {
+          color: hsl(var(--text-main));
+          background: hsl(var(--bg-main));
+          transform: scale(1.05);
+        }
+
+        .action-icon-btn.delete:hover {
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.2);
+          background: rgba(239, 68, 68, 0.05);
+        }
+
+        .card-main-content {
+          flex: 1;
+          padding: 20px;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+
+        .card-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 4px;
+        }
+
         .entity-name {
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 800;
           color: hsl(var(--text-main));
-          margin: 0 0 16px 0;
+          margin: 0;
           line-height: 1.3;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
-        
-        .entity-meta-row {
+
+        .card-badges {
           display: flex;
-          align-items: center;
-          gap: 10px;
-          color: hsl(var(--text-muted));
-          font-size: 13px;
-          font-weight: 600;
-          margin-bottom: 12px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        .entity-meta-row svg {
-          color: hsl(var(--brand));
-          opacity: 0.8;
+          gap: 6px;
           flex-shrink: 0;
+          align-items: center;
         }
-        .tauze-modern-entity-card.matriz .entity-meta-row svg,
-        .tauze-modern-entity-card.produtivo .entity-meta-row svg {
+
+        .status-pill {
+          font-size: 9px;
+          font-weight: 900;
+          padding: 3px 8px;
+          border-radius: 20px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .status-pill.active {
+          background: rgba(22, 163, 74, 0.12);
+          color: #16a34a;
+        }
+
+        .status-pill.inactive {
+          background: rgba(239, 68, 68, 0.12);
+          color: #ef4444;
+        }
+
+        .type-pill {
+          font-size: 9px;
+          font-weight: 900;
+          padding: 3px 8px;
+          border-radius: 20px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .type-pill.matriz {
+          background: rgba(16, 185, 129, 0.12);
           color: #10b981;
         }
-        
-        .card-divider {
-          height: 1px;
-          background: hsl(var(--border));
-          margin: 16px -20px;
+
+        .type-pill.filial {
+          background: rgba(59, 130, 246, 0.12);
+          color: #3b82f6;
         }
-        
-        .card-footer-actions {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
+
+        .entity-sub-info {
+          font-size: 10px;
+          font-weight: 800;
+          color: hsl(var(--text-muted));
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 12px;
+        }
+
+        /* FEATURED METRIC HIGHLIGHTS */
+        .featured-metric-panel {
+          background: hsl(var(--bg-main) / 0.7);
+          border: 1px solid hsl(var(--border) / 0.7);
+          border-radius: 16px;
+          padding: 12px 14px;
+          margin-bottom: 16px;
+        }
+
+        .featured-metric-panel.area-highlight {
+          border-left: 3px solid #f59e0b;
+        }
+
+        .metric-label {
+          font-size: 9px;
+          font-weight: 900;
+          color: hsl(var(--text-muted));
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          margin-bottom: 2px;
+        }
+
+        .metric-value {
+          font-size: 18px;
+          font-weight: 900;
+          color: hsl(var(--text-main));
+          line-height: 1.1;
+        }
+
+        /* Progress bars & linkages */
+        .progress-section {
+          margin-bottom: 16px;
+        }
+
+        .progress-label-row {
+          display: flex;
+          justify-content: space-between;
+          font-size: 9px;
+          font-weight: 900;
+          color: hsl(var(--text-muted));
+          letter-spacing: 0.05em;
+          margin-bottom: 4px;
+        }
+
+        .premium-progress-bar {
+          height: 6px;
+          border-radius: 99px;
+          background: hsl(var(--border) / 0.5);
+          overflow: hidden;
+        }
+
+        .progress-fill {
+          height: 100%;
+          border-radius: 99px;
+          transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .parent-link-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(245, 158, 11, 0.05);
+          border: 1.5px dashed rgba(245, 158, 11, 0.2);
+          color: hsl(var(--text-main));
+          padding: 6px 12px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 700;
+          width: 100%;
+          box-sizing: border-box;
+        }
+
+        .parent-link-badge svg {
+          color: #f59e0b;
+        }
+
+        /* Footer info */
+        .card-footer-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-top: 1px dashed hsl(var(--border));
+          padding-top: 10px;
           margin-top: auto;
         }
-        .card-footer-actions button {
+
+        .footer-meta-item {
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 6px;
-          padding: 10px 0;
-          background: transparent;
-          border: 1px solid hsl(var(--border));
-          border-radius: 10px;
-          color: hsl(var(--text-main));
-          font-size: 12px;
+          gap: 5px;
+          font-size: 10.5px;
           font-weight: 700;
-          cursor: pointer;
-          transition: 0.2s;
+          color: hsl(var(--text-muted));
         }
-        .card-footer-actions button:hover {
-          background: hsl(var(--bg-main));
-          border-color: hsl(var(--text-muted));
+
+        .footer-meta-item svg {
+          color: hsl(var(--brand));
         }
-        .card-footer-actions button.danger {
-          color: #ef4444;
-          border-color: #ef444430;
+
+        .footer-meta-item.highlight {
+          color: #10b981;
         }
-        .card-footer-actions button.danger:hover {
-          background: #ef444410;
-          border-color: #ef4444;
+        .footer-meta-item.highlight svg {
+          color: #10b981;
         }
       `}</style>
 
