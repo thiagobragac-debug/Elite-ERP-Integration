@@ -259,7 +259,7 @@ export const clientes: ReportHandler = async (tenantId, fazendaId, page = 1, pag
         },
         {
           label: 'LTV Médio',
-          subtitle: _lastSaleDate ? `Base: vendas até ${_lastSaleDate}` : `Calculado em ${todayBR()}`,
+          subtitle: ltvMedioText !== '---' ? `Base: vendas do período` : `Calculado em ${todayBR()}`,
           sparkline: buildSparkline(vendas, 'created_at', 'valor_total'),
           value: ltvMedioText,
           change: ltvMedio > 0 ? 'Faturamento/cliente' : 'Sem dados',

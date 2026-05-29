@@ -48,10 +48,10 @@ export const SalesDashboard: React.FC = () => {
   const [triggeredAlerts, setTriggeredAlerts] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up' as const, periodLabel: '...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
-    { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
-    { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
-    { label: 'Margem Operacional', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up' as const, periodLabel: '...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') }
+    { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up' as const, periodLabel: '...', sparkline: [] },
+    { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...', sparkline: [] },
+    { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...', sparkline: [] },
+    { label: 'Margem Operacional', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up' as const, periodLabel: '...', sparkline: [] }
   ]);
   const [funnelData, setFunnelData] = useState<any>({ opps: 0, orders: 0, revenue: 0 });
 
@@ -86,7 +86,7 @@ export const SalesDashboard: React.FC = () => {
 
         let allOrdersQuery = supabase.from('pedidos_venda')
           .select('valor_total, status, created_at')
-          .gte('created_at', new Date(today.getFullYear(), 0, 1).toISOString()) // Acumulado Safra
+          .gte('created_at', new Date(today.getFullYear(), 0, 1).toISOString())
           .limit(5000);
         allOrdersQuery = applyFarmFilter(allOrdersQuery);
         const allOrdersRes = await allOrdersQuery;
@@ -112,8 +112,6 @@ export const SalesDashboard: React.FC = () => {
       
       const boiGordo = cepea?.find((c: any) => c.indicator === 'boi_gordo_cepea');
       const currentCepea = boiGordo ? Number(boiGordo.value) : null;
-      // Let's assume the user's average sale price is something (e.g. Total Revenue / some factor, or we just mock a comparison for now)
-      // Since we don't have exact weight per order, we can simulate an average price of R$ 345,00.
       const userAvgPrice = 345.50;
       const cepeaDelta = currentCepea ? ((userAvgPrice / currentCepea) - 1) * 100 : 0;
       const isAboveCepea = cepeaDelta > 0;
@@ -123,7 +121,6 @@ export const SalesDashboard: React.FC = () => {
         isAbove: isAboveCepea
       });
 
-      // Process Alerts
       if (alerts && alerts.length > 0 && cepea) {
         const triggered = alerts.filter((alert: any) => {
           const quote = cepea.find((c: any) => c.indicator === alert.indicator);
@@ -138,11 +135,6 @@ export const SalesDashboard: React.FC = () => {
         });
         setTriggeredAlerts(triggered);
       }
-      setMarketInsight({
-        cepeaValue: currentCepea,
-        delta: Math.abs(cepeaDelta).toFixed(1),
-        isAbove: isAboveCepea
-      });
       
       if (allOrders) {
         const now = new Date();
@@ -151,7 +143,6 @@ export const SalesDashboard: React.FC = () => {
         const sixtyDaysAgo = new Date(now);
         sixtyDaysAgo.setDate(now.getDate() - 60);
 
-        // Revenue Calculations
         const totalRevenue = allOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
         
         const last30Revenue = allOrders
@@ -164,7 +155,6 @@ export const SalesDashboard: React.FC = () => {
 
         const revChange = prev30Revenue > 0 ? ((last30Revenue / prev30Revenue) - 1) * 100 : 0;
         
-        // Sparkline for Revenue (last 30 days, grouped by day)
         const sparklineData = Array.from({ length: 30 }).map((_, i) => {
           const d = new Date(thirtyDaysAgo);
           d.setDate(d.getDate() + i + 1);
@@ -175,7 +165,6 @@ export const SalesDashboard: React.FC = () => {
           return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
         });
 
-        // Pipeline Calculations
         const pendingOrders = allOrders.filter((o: any) => o.status === 'pending' || o.status === 'OPEN');
         const pendingValue = pendingOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
         
@@ -199,7 +188,6 @@ export const SalesDashboard: React.FC = () => {
           return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
         });
 
-        // Clients
         const activeClients = clients?.filter((c: any) => String(c.status || '').toUpperCase() === 'ATIVO').length || 0;
         
         setStats([
@@ -251,7 +239,7 @@ export const SalesDashboard: React.FC = () => {
             change: '---',
             trend: 'up' as const,
             periodLabel: 'vs Safra Anterior',
-            sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total')
+            sparkline: []
           }
         ]);
         
@@ -316,18 +304,8 @@ export const SalesDashboard: React.FC = () => {
           gap: 20px !important;
           margin-bottom: 32px !important;
         }
-
-        @media (max-width: 1024px) {
-          .next-gen-kpi-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .next-gen-kpi-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
+        @media (max-width: 1024px) { .next-gen-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+        @media (max-width: 640px) { .next-gen-kpi-grid { grid-template-columns: 1fr !important; } }
       `}</style>
 
       <div className="next-gen-kpi-grid">
@@ -356,7 +334,7 @@ export const SalesDashboard: React.FC = () => {
           <div className="card-header">
             <div className="header-info">
               <Activity size={18} className="text-brand" />
-              <h3>Funil de Vendas & Conversão</h3>
+              <h3>Funil de Vendas &amp; Conversão</h3>
             </div>
             <select className="lite-select">
               <option>Últimos 30 Dias</option>
@@ -510,9 +488,6 @@ export const SalesDashboard: React.FC = () => {
         .item-meta { font-size: 11px; color: hsl(var(--text-muted)); font-weight: 600; }
         .item-value { font-size: 14px; font-weight: 900; color: hsl(var(--text-main)); }
         .distribution-list { display: flex; flex-direction: column; gap: 20px; }
-        .dist-info { display: flex; justify-content: space-between; font-size: 13px; font-weight: 800; margin-bottom: 8px; }
-        .dist-bar-bg { height: 8px; background: hsl(var(--bg-main)); border-radius: 100px; overflow: hidden; }
-        .dist-bar-fill { height: 100%; border-radius: 100px; transition: 1s cubic-bezier(0.4, 0, 0.2, 1); }
         @media (max-width: 1200px) { .intelligence-grid { grid-template-columns: 1fr; } }
       `}</style>
     </div>

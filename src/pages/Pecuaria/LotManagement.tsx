@@ -29,6 +29,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { LotForm } from '../../components/Forms/LotForm';
 import { RelocateForm } from '../../components/Forms/RelocateForm';
+import { AssignAnimalForm } from '../../components/Forms/AssignAnimalForm';
 import { AnimalListModal } from '../../components/Modals/AnimalListModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
@@ -47,6 +48,7 @@ export const LotManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isRelocateModalOpen, setIsRelocateModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedLot, setSelectedLot] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [lotToView, setLotToView] = useState<any>(null);
@@ -393,6 +395,10 @@ export const LotManagement: React.FC = () => {
           <p className="page-subtitle">Organização do rebanho, rastreabilidade por grupo e controle de lotação em tempo real.</p>
         </div>
         <div className="page-actions">
+          <button className="glass-btn secondary" onClick={() => setIsAssignModalOpen(true)}>
+            <Users size={18} />
+            ASSOCIAR ANIMAIS
+          </button>
           <button className="glass-btn secondary" onClick={() => setIsRelocateModalOpen(true)}>
             <ArrowRightLeft size={18} />
             REMANEJAR
@@ -725,6 +731,16 @@ export const LotManagement: React.FC = () => {
           refresh();
           setIsRelocateModalOpen(false);
         }}
+      />
+
+      <AssignAnimalForm
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        onSubmit={() => {
+          refresh();
+          setIsAssignModalOpen(false);
+        }}
+        mode="lote"
       />
 
       <AnimalListModal 

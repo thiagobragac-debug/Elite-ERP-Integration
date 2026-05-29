@@ -96,7 +96,7 @@ export const MaintenanceManagement: React.FC = () => {
     }
     setLoading(true);
     try {
-      console.log('[Maintenance] Buscando ordens de serviço resilientes...');
+      console.log('[Maintenance] Buscando ordens de servi�o resilientes...');
       
       const fetchPromise = (async () => {
         let query = supabase
@@ -123,11 +123,11 @@ export const MaintenanceManagement: React.FC = () => {
         const custoTotal = data.reduce((acc: number, curr: any) => acc + Number(curr.custo || 0), 0);
         const concluidas = data.filter((o: any) => o.status === 'completed' || o.status === 'CONCLUIDA' || o.status === 'finalizada').length;
         
-        // MTBF real: tempo médio entre falhas corretas = dias totais de operação / número de ordens corretivas
+        // MTBF real: tempo m�dio entre falhas corretas = dias totais de opera��o / n�mero de ordens corretivas
         const corretivas = data.filter((o: any) => o.tipo === 'corretiva').length;
         const mtbf = corretivas > 0 ? Math.round((data.length / corretivas) * 30) : 0;
         
-        // MTTR real: dias médios entre abertura e conclusão das OS concluídas
+        // MTTR real: dias m�dios entre abertura e conclus�o das OS conclu�das
         const osComData = data.filter((o: any) => 
           (o.status === 'completed' || o.status === 'CONCLUIDA') && o.data_inicio
         );
@@ -142,13 +142,13 @@ export const MaintenanceManagement: React.FC = () => {
           { label: 'OS em Aberto', value: abertas > 0 ? abertas : '---', icon: AlertCircle, color: '#ed6c02', 
             progress: data.length > 0 ? (abertas / data.length) * 100 : 0, 
             change: abertas > 0 ? 'Ordens Ativas' : 'Nenhuma OS aberta',
-            sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo')
+            sparkline: buildSparkline([], 'data_inicio', 'custo')
           },
-          { label: 'TCO (Manutenção)', value: custoTotal > 0 ? custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#ef4444', 
+          { label: 'TCO (Manuten��o)', value: custoTotal > 0 ? custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#ef4444', 
             progress: custoTotal > 0 ? Math.min(100, (custoTotal / 100000) * 100) : 0, 
             trend: custoTotal > 0 ? 'up' as const : 'neutral' as const, 
             change: custoTotal > 0 ? 'Custo Total' : 'Sem custos',
-            sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo')
+            sparkline: buildSparkline([], 'data_inicio', 'custo')
           },
           { label: 'MTBF (Confiabilidade)', 
             value: mtbf > 0 ? `${mtbf}h` : '---', 
@@ -156,15 +156,15 @@ export const MaintenanceManagement: React.FC = () => {
             progress: mtbf > 0 ? Math.min(100, (mtbf / 720) * 100) : 0, 
             trend: mtbf > 0 ? 'up' as const : 'neutral' as const, 
             change: mtbf > 0 ? `${corretivas} corretivas` : 'Sem dados',
-            sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo')
+            sparkline: buildSparkline([], 'data_inicio', 'custo')
           },
-          { label: 'MTTR (Resolução)', 
+          { label: 'MTTR (Resolu��o)', 
             value: mttr > 0 ? `${mttr}d` : '---', 
             icon: Clock, color: '#3b82f6', 
             progress: mttr > 0 ? Math.max(0, 100 - (mttr * 10)) : 0, 
             trend: mttr > 0 ? 'down' as const : 'neutral' as const, 
-            change: mttr > 0 ? 'Dias médios' : 'Sem dados',
-            sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo')
+            change: mttr > 0 ? 'Dias m�dios' : 'Sem dados',
+            sparkline: buildSparkline([], 'data_inicio', 'custo')
           },
         ]);
       }
@@ -173,13 +173,13 @@ export const MaintenanceManagement: React.FC = () => {
       setOrders([]);
       setStats([
         { label: 'OS em Aberto', value: 0, icon: AlertCircle, color: '#ed6c02', progress: 0, change: '',
-          sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo') },
-        { label: 'TCO (Manutenção)', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '',
-          sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo') },
+          sparkline: buildSparkline([], 'data_inicio', 'custo') },
+        { label: 'TCO (Manuten��o)', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '',
+          sparkline: buildSparkline([], 'data_inicio', 'custo') },
         { label: 'MTBF (Confiabilidade)', value: '0h', icon: Zap, color: '#10b981', progress: 0, change: '',
-          sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo') },
-        { label: 'MTTR (Eficiência)', value: '0h', icon: Clock, color: '#3b82f6', progress: 0, change: '',
-          sparkline: buildSparkline(maintenanceData || [], 'data_inicio', 'custo') },
+          sparkline: buildSparkline([], 'data_inicio', 'custo') },
+        { label: 'MTTR (Efici�ncia)', value: '0h', icon: Clock, color: '#3b82f6', progress: 0, change: '',
+          sparkline: buildSparkline([], 'data_inicio', 'custo') },
       ]);
     } finally {
       setLoading(false);
@@ -197,7 +197,7 @@ export const MaintenanceManagement: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta ordem de serviço?')) return;
+    if (!confirm('Deseja excluir esta ordem de servi�o?')) return;
     const { error } = await supabase.from('manutencao_frota').delete().eq('id', id);
     if (!error) fetchOrders();
   };
@@ -235,7 +235,7 @@ export const MaintenanceManagement: React.FC = () => {
 
     if (format === 'csv') exportToCSV(exportData, 'log_manutencao');
     else if (format === 'excel') exportToExcel(exportData, 'log_manutencao');
-    else if (format === 'pdf') exportToPDF(exportData, 'log_manutencao', 'Relatório de Manutenção de Frota');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_manutencao', 'Relat�rio de Manuten��o de Frota');
   };
 
   const handleSubmit = async (data: any) => {
@@ -276,7 +276,7 @@ export const MaintenanceManagement: React.FC = () => {
       );
     } catch (err: any) {
       console.error('[Maintenance] Erro ao transicionar status da OS:', err);
-      alert('âŒ Erro ao atualizar status: ' + (err.message || 'Erro desconhecido'));
+      alert('❌ Erro ao atualizar status: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setUpdatingStatus(prev => ({ ...prev, [orderId]: false }));
     }
@@ -289,9 +289,9 @@ export const MaintenanceManagement: React.FC = () => {
       setHistoryItems([
         { id: '1', date: order.data_inicio, title: 'OS #' + order.id.toString().slice(0,6), subtitle: order.descricao, value: order.custo_pecas ? `R$ ${Number(order.custo_pecas) + Number(order.custo_mao_obra)}` : 'N/A', status: 'info' },
         ...((order.materiais || []).map((m: any, i: number) => (
-          { id: `m-${i}`, date: order.data_inicio, title: `Insumo: ${m.nome || 'Peça'}`, subtitle: `Quantidade: ${m.qtd}`, value: m.preco ? `R$ ${m.preco * m.qtd}` : 'N/A', status: 'success' }
+          { id: `m-${i}`, date: order.data_inicio, title: `Insumo: ${m.nome || 'Pe�a'}`, subtitle: `Quantidade: ${m.qtd}`, value: m.preco ? `R$ ${m.preco * m.qtd}` : 'N/A', status: 'success' }
         ))),
-        { id: '3', date: order.data_inicio, title: 'Mão de Obra', subtitle: order.responsavel, value: order.custo_mao_obra ? `R$ ${order.custo_mao_obra}` : 'CONCLUÍDO', status: 'success' },
+        { id: '3', date: order.data_inicio, title: 'M�o de Obra', subtitle: order.responsavel, value: order.custo_mao_obra ? `R$ ${order.custo_mao_obra}` : 'CONCLU�DO', status: 'success' },
       ]);
       setHistoryLoading(false);
     }, 800);
@@ -313,7 +313,7 @@ export const MaintenanceManagement: React.FC = () => {
       align: 'left' as const
     },
     {
-      header: 'Manutenção / Tipo',
+      header: 'Manuten��o / Tipo',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span style={{ 
@@ -338,26 +338,26 @@ export const MaintenanceManagement: React.FC = () => {
             overflow: 'hidden',
             textOverflow: 'ellipsis'
           }}>
-            {item.descricao || 'Sem descrição'}
+            {item.descricao || 'Sem descri��o'}
           </span>
         </div>
       ),
       align: 'left' as const
     },
     {
-      header: 'Responsável',
+      header: 'Respons�vel',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#334155', fontWeight: 600, fontSize: '12px' }}>
           <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 800 }}>
             {item.responsavel?.charAt(0) || 'U'}
           </div>
-          <span>{item.responsavel || 'Não atribuído'}</span>
+          <span>{item.responsavel || 'N�o atribu�do'}</span>
         </div>
       ),
       align: 'left' as const
     },
     {
-      header: 'Data / Previsão',
+      header: 'Data / Previs�o',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#475569', fontWeight: 600, fontSize: '12px' }}>
           <Calendar size={14} color="#94a3b8" />
@@ -406,8 +406,8 @@ export const MaintenanceManagement: React.FC = () => {
             <Wrench size={14} fill="currentColor" />
             <span>TAUZE FLEET v5.0</span>
           </div>
-          <h1 className="page-title">Manutenção de Frota</h1>
-          <p className="page-subtitle">Rastreabilidade completa de intervenções mecânicas, revisões preventivas e custos em tempo real.</p>
+          <h1 className="page-title">Manuten��o de Frota</h1>
+          <p className="page-subtitle">Rastreabilidade completa de interven��es mec�nicas, revis�es preventivas e custos em tempo real.</p>
         </div>
         <div className="page-actions">
           <button className="glass-btn primary" onClick={() => setIsChecklistOpen(true)}>
@@ -455,7 +455,7 @@ export const MaintenanceManagement: React.FC = () => {
             className={`tauze-tab-item ${activeTab === 'HISTORY' ? 'active' : ''}`}
             onClick={() => setActiveTab('HISTORY')}
           >
-            Histórico Mecânico
+            Hist�rico Mec�nico
           </button>
           <button 
             className={`tauze-tab-item ${activeTab === 'PLANS' ? 'active' : ''}`}
@@ -470,7 +470,7 @@ export const MaintenanceManagement: React.FC = () => {
           <input 
             type="text" 
             className="tauze-search-input"
-            placeholder="Buscar por máquina, descrição ou responsável..." 
+            placeholder="Buscar por m�quina, descri��o ou respons�vel..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -481,7 +481,7 @@ export const MaintenanceManagement: React.FC = () => {
             type="button"
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
-            title="Visualização em Lista"
+            title="Visualiza��o em Lista"
             style={{
               width: '32px',
               height: '32px',
@@ -526,7 +526,7 @@ export const MaintenanceManagement: React.FC = () => {
         <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
-            title="Filtros Avançados"
+            title="Filtros Avan�ados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           >
             <Filter size={20} />
@@ -566,7 +566,7 @@ export const MaintenanceManagement: React.FC = () => {
                 emptyState={
                   <EmptyState 
                     title="Nenhum Plano Preventivo"
-                    description="Você ainda não configurou planos automáticos de manutenção para a sua frota."
+                    description="Voc� ainda n�o configurou planos autom�ticos de manuten��o para a sua frota."
                     actionLabel="Criar Novo Plano"
                     onAction={() => {
                       setSelectedPlan(null);
@@ -586,7 +586,7 @@ export const MaintenanceManagement: React.FC = () => {
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span style={{ fontWeight: 800, color: 'hsl(var(--text-main))' }}>{item.title}</span>
-                          <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Frequência: {item.freq} {item.unit}</span>
+                          <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Frequ�ncia: {item.freq} {item.unit}</span>
                         </div>
                       </div>
                     ),
@@ -603,7 +603,7 @@ export const MaintenanceManagement: React.FC = () => {
                     align: 'center'
                   },
                   {
-                    header: 'Itens de Verificação',
+                    header: 'Itens de Verifica��o',
                     accessor: (item: any) => (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'hsl(var(--text-muted))', fontSize: '12px', fontWeight: 600 }}>
                         <FileText size={14} />
@@ -663,7 +663,7 @@ export const MaintenanceManagement: React.FC = () => {
                     Nenhum Plano Preventivo
                   </h3>
                   <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                    Você ainda não configurou planos automáticos de manutenção para a sua frota.
+                    Voc� ainda n�o configurou planos autom�ticos de manuten��o para a sua frota.
                   </p>
                   <button className="primary-btn" onClick={() => { setSelectedPlan(null); setIsPlanModalOpen(true); }} style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}>
                     <Plus size={12} />
@@ -680,7 +680,7 @@ export const MaintenanceManagement: React.FC = () => {
                         </div>
                         <div className="plan-info">
                           <h3>{plan.title}</h3>
-                          <p>Frequência: <strong>{plan.freq} {plan.unit}</strong></p>
+                          <p>Frequ�ncia: <strong>{plan.freq} {plan.unit}</strong></p>
                         </div>
                       </div>
                       <div className="plan-stats">
@@ -715,36 +715,36 @@ export const MaintenanceManagement: React.FC = () => {
           <div className="kanban-board animate-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', alignItems: 'start' }}>
             {[
               {
-                title: '📌 Pendente',
+                title: '?? Pendente',
                 statusKeys: ['open', 'ABERTA', 'pending'],
                 nextStatus: 'oficina',
                 btnText: 'Iniciar Trabalho',
                 color: '#f59e0b',
                 bg: 'rgba(245, 158, 11, 0.05)',
                 emptyTitle: 'Nenhuma OS Pendente',
-                emptyDesc: 'Não há ordens aguardando.',
+                emptyDesc: 'N�o h� ordens aguardando.',
                 emptyIcon: Clock
               },
               {
-                title: '🛠️ Em Oficina',
+                title: '??? Em Oficina',
                 statusKeys: ['oficina', 'in_progress'],
                 nextStatus: 'completed',
                 btnText: 'Finalizar OS',
                 color: '#3b82f6',
                 bg: 'rgba(59, 130, 246, 0.05)',
                 emptyTitle: 'Oficina Vazia',
-                emptyDesc: 'Nenhum ativo em manutenção.',
+                emptyDesc: 'Nenhum ativo em manuten��o.',
                 emptyIcon: Wrench
               },
               {
-                title: '✅ Concluída',
+                title: '? Conclu�da',
                 statusKeys: ['completed', 'CONCLUIDA', 'finalizada'],
                 nextStatus: null,
                 btnText: null,
                 color: '#10b981',
                 bg: 'rgba(16, 185, 129, 0.05)',
-                emptyTitle: 'Nenhuma OS Concluída',
-                emptyDesc: 'As finalizadas aparecerão aqui.',
+                emptyTitle: 'Nenhuma OS Conclu�da',
+                emptyDesc: 'As finalizadas aparecer�o aqui.',
                 emptyIcon: CheckCircle2
               }
             ].map(col => {
@@ -839,7 +839,7 @@ export const MaintenanceManagement: React.FC = () => {
                               </div>
 
                               <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', margin: 0, fontWeight: 500, lineHeight: '1.4' }}>
-                                {o.descricao || 'Sem descrição'}
+                                {o.descricao || 'Sem descri��o'}
                               </p>
 
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'hsl(var(--text-muted))', borderTop: '1px dashed hsl(var(--border))', paddingTop: '8px', marginTop: '4px' }}>
@@ -854,7 +854,7 @@ export const MaintenanceManagement: React.FC = () => {
 
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid hsl(var(--border) / 0.5)', paddingTop: '10px', marginTop: '4px' }}>
                                 <div style={{ display: 'flex', gap: '6px' }}>
-                                  <button className="action-icon-btn info" style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => handleViewDetails(o)} title="Dossiê">
+                                  <button className="action-icon-btn info" style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => handleViewDetails(o)} title="Dossi�">
                                     <History size={12} />
                                   </button>
                                   <button className="action-icon-btn edit" style={{ width: '28px', height: '28px', borderRadius: '8px', border: '1px solid hsl(var(--border))', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={() => handleOpenEdit(o)} title="Editar">
@@ -929,8 +929,8 @@ export const MaintenanceManagement: React.FC = () => {
           <ModernTable 
             emptyState={
               <EmptyState
-                title="Nenhuma manutenção encontrada"
-                description="Não há ordens de serviço que correspondam à sua busca."
+                title="Nenhuma manuten��o encontrada"
+                description="N�o h� ordens de servi�o que correspondam � sua busca."
                 actionLabel="Nova OS"
                 onAction={handleOpenCreate}
                 icon={Wrench}
@@ -956,10 +956,10 @@ export const MaintenanceManagement: React.FC = () => {
             columns={columns}
             loading={loading}
             hideHeader={true}
-            searchPlaceholder="Buscar por máquina, descrição ou responsável..."
+            searchPlaceholder="Buscar por m�quina, descri��o ou respons�vel..."
             actions={(item) => (
               <div className="modern-actions">
-                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossiê">
+                <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Dossi�">
                   <History size={18} />
                 </button>
                 <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
@@ -984,8 +984,8 @@ export const MaintenanceManagement: React.FC = () => {
       <HistoryModal 
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        title="Dossiê de Manutenção"
-        subtitle="Rastreabilidade de peças, serviços e intervenções técnicas"
+        title="Dossi� de Manuten��o"
+        subtitle="Rastreabilidade de pe�as, servi�os e interven��es t�cnicas"
         items={historyItems}
         loading={historyLoading}
       />
@@ -1000,31 +1000,31 @@ export const MaintenanceManagement: React.FC = () => {
           fetchOrders();
         }}
         title="Checklist Preventivo 100H"
-        subtitle="Inspeção técnica obrigatória para maquinário pesado"
+        subtitle="Inspe��o t�cnica obrigat�ria para maquin�rio pesado"
         icon={Settings}
         submitLabel="Finalizar e Gerar OS"
       >
         <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
           <label className="tauze-label">Selecione o Ativo</label>
           <select className="tauze-input tauze-select">
-            <option value="">Selecione uma máquina...</option>
+            <option value="">Selecione uma m�quina...</option>
             <option value="1">Trator John Deere 7230</option>
             <option value="2">Colheitadeira Case IH 9250</option>
           </select>
         </div>
 
         <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="tauze-label">Itens de Verificação</label>
+          <label className="tauze-label">Itens de Verifica��o</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: 'hsl(var(--bg-main)/0.5)', padding: '20px', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
             {[
-              'Troca de óleo do motor (15W40)',
-              'Substituição do filtro de combustível',
+              'Troca de �leo do motor (15W40)',
+              'Substitui��o do filtro de combust�vel',
               'Limpeza/Troca do filtro de ar',
-              'Lubrificação de pontos de graxa',
-              'Tensão das correias',
+              'Lubrifica��o de pontos de graxa',
+              'Tens�o das correias',
               'Terminais de bateria',
-              'Vazamentos hidráulicos',
-              'Sinalização e Luzes'
+              'Vazamentos hidr�ulicos',
+              'Sinaliza��o e Luzes'
             ].map((item, idx) => (
               <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>
                 <input type="checkbox" style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))' }} />
@@ -1040,21 +1040,21 @@ export const MaintenanceManagement: React.FC = () => {
         onClose={() => setIsPlanModalOpen(false)}
         onSubmit={(e) => {
           e.preventDefault();
-          alert('Plano de Manutenção salvo com sucesso!');
+          alert('Plano de Manuten��o salvo com sucesso!');
           setIsPlanModalOpen(false);
         }}
         title={selectedPlan ? 'Editar Plano' : 'Novo Plano'}
-        subtitle="Defina as regras e itens técnicos da revisão preventiva"
+        subtitle="Defina as regras e itens t�cnicos da revis�o preventiva"
         icon={Settings}
         submitLabel="Salvar Plano e Aplicar"
       >
         <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
           <label className="tauze-label">Nome do Plano</label>
-          <input type="text" className="tauze-input" placeholder="Ex: Revisão 250 Horas" defaultValue={selectedPlan?.title} />
+          <input type="text" className="tauze-input" placeholder="Ex: Revis�o 250 Horas" defaultValue={selectedPlan?.title} />
         </div>
 
         <div className="tauze-field-group">
-          <label className="tauze-label">Frequência</label>
+          <label className="tauze-label">Frequ�ncia</label>
           <input type="text" className="tauze-input" placeholder="Ex: 250" defaultValue={selectedPlan?.freq} />
         </div>
 
@@ -1062,14 +1062,14 @@ export const MaintenanceManagement: React.FC = () => {
           <label className="tauze-label">Unidade</label>
           <select className="tauze-input tauze-select" defaultValue={selectedPlan?.unit}>
             <option value="H">Horas (H)</option>
-            <option value="KM">Quilômetros (KM)</option>
+            <option value="KM">Quil�metros (KM)</option>
           </select>
         </div>
 
         <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="tauze-label">Checklist Técnico</label>
+          <label className="tauze-label">Checklist T�cnico</label>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {(selectedPlan?.items || ['Troca de Óleo', 'Troca de Filtro']).map((item: string, i: number) => (
+            {(selectedPlan?.items || ['Troca de �leo', 'Troca de Filtro']).map((item: string, i: number) => (
               <div key={i} style={{ display: 'flex', gap: '8px' }}>
                 <input type="text" className="tauze-input" style={{ flex: 1, padding: '8px 12px', fontSize: '13px' }} defaultValue={item} />
                 <button type="button" className="action-dot delete" style={{ width: '36px', height: '36px' }}><Trash2 size={14} /></button>

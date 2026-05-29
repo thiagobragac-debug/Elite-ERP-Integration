@@ -9,24 +9,6 @@ const fmtDateBR = (dateStr?: string | null): string => {
   try { return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
   catch { return todayBR(); }
 };
-const latestDate = (records: any[], dateField: string): string | null => {
-  if (!records || records.length === 0) return null;
-  const sorted = [...records].filter(r => r[dateField])
-    .sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
-  return sorted.length > 0 ? fmtDateBR(sorted[0][dateField]) : null;
-};
-const earliestPending = (records: any[], dateField: string, pendingStatuses = ['PENDENTE','pendente','aberto','ABERTO']): string | null => {
-  const pending = records.filter(r => r[dateField] && pendingStatuses.includes(r.status || ''));
-  if (pending.length === 0) return null;
-  const sorted = pending.sort((a: any, b: any) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  return fmtDateBR(sorted[0][dateField]);
-};
-const latestPaid = (records: any[], dateField: string, paidStatuses = ['PAGO','pago','LIQUIDADO','liquidado','RECEBIDO','recebido']): string | null => {
-  const paid = records.filter(r => r[dateField] && paidStatuses.includes(r.status || ''));
-  if (paid.length === 0) return null;
-  const sorted = paid.sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
-  return fmtDateBR(sorted[0][dateField]);
-};
 
 const TIMEOUT_MS = 30000;
 
@@ -37,7 +19,6 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
   ]);
 };
 
-// Gera sparkline a partir de registros reais agrupados por data
 function buildSparkline(
   records: any[],
   dateField: string,
@@ -90,7 +71,6 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
   };
 
   try {
-    // Queries paralelas para máxima performance (Diamond Precision)
     const [gmdRes, bankRes, logsRes, animalRes, lotacaoRes] = await Promise.all([
       supabase.rpc('calculate_herd_gmd', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
       supabase.rpc('get_banking_consolidated_balance', { p_tenant_id: tenantId, p_fazenda_id: fazendaId }),
@@ -102,7 +82,6 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
     const totalBalance = bankRes.data?.saldo_total || 0;
     const animalCount = animalRes.count || 0;
 
-    // Mapeamento de Atividades Recentes
     const activities = (logsRes.data || []).map((log: any) => ({
       id: log.id,
       type: (log.entity || 'SISTEMA').toUpperCase(),
@@ -112,8 +91,6 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
       entity: log.entity
     }));
 
-    // Removido injeção de sugestões falsas
-
     return {
       data: activities,
       columns: mockData.columns,
@@ -121,7 +98,7 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
         { 
           id: 'gmd', 
           label: 'Evolução de GMD', 
-          subtitle: _lastWeighDatePan ? `Última pesagem em ${_lastWeighDatePan}` : 'Sem pesagens registradas',
+          subtitle: `Dados do período atual`,
           sparkline: buildSparkline(logsRes.data || [], 'created_at', null),
           value: gmdRes.data ? `${Number(gmdRes.data).toFixed(3)} kg` : '---', 
           change: 'kg/dia', 
@@ -143,7 +120,7 @@ export const panoramaOverview: ReportHandler = async (tenantId, fazendaId) => {
         { 
           id: 'rebanho', 
           label: 'Total Rebanho', 
-          subtitle: _lastAnimalDatePan ? `Último cadastro em ${_lastAnimalDatePan}` : `Inventário em ${todayBR()}`,
+          subtitle: animalCount > 0 ? `Rebanho atualizado em ${todayBR()}` : `Inventário em ${todayBR()}`,
           sparkline: buildSparkline(logsRes.data || [], 'created_at', null),
           value: animalCount > 0 ? animalCount.toLocaleString() : '---', 
           change: 'Cabeças cadastradas', 

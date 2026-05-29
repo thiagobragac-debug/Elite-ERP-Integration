@@ -29,6 +29,8 @@ import { PastureForm } from '../../components/Forms/PastureForm';
 import { PastureManejoForm } from '../../components/Forms/PastureManejoForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
+import { PastureRelocateForm } from '../../components/Forms/PastureRelocateForm';
+import { AssignAnimalForm } from '../../components/Forms/AssignAnimalForm';
 
 const PastureManagement: React.FC = () => {
   const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } = useFarmFilter();
@@ -56,6 +58,8 @@ const PastureManagement: React.FC = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [selectedPastureName, setSelectedPastureName] = useState('');
+  const [isRelocateOpen, setIsRelocateOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
 
   const handleOpenManejo = (pasture: any) => {
     setManejoPastureId(pasture.id);
@@ -479,9 +483,15 @@ const PastureManagement: React.FC = () => {
           <p className="page-subtitle">Monitoramento de capacidade de suporte, pressão de pastejo e rotação.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={refresh}>
-            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
-            Sincronizar
+          <button className="glass-btn secondary" onClick={() => setIsAssignOpen(true)}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            </span>
+            ASSOCIAR ANIMAIS
+          </button>
+          <button className="glass-btn secondary" onClick={() => setIsRelocateOpen(true)}>
+            <RefreshCw size={18} />
+            REMANEJAR
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
@@ -788,6 +798,25 @@ const PastureManagement: React.FC = () => {
         subtitle="Linha do tempo de ocupação, manejos e manutenções"
         items={historyItems}
         loading={historyLoading}
+      />
+
+      <PastureRelocateForm
+        isOpen={isRelocateOpen}
+        onClose={() => setIsRelocateOpen(false)}
+        onSubmit={() => {
+          refresh();
+          setIsRelocateOpen(false);
+        }}
+      />
+
+      <AssignAnimalForm
+        isOpen={isAssignOpen}
+        onClose={() => setIsAssignOpen(false)}
+        onSubmit={() => {
+          refresh();
+          setIsAssignOpen(false);
+        }}
+        mode="pasto"
       />
       <style>{`
         .pasture-cards-grid {

@@ -9,25 +9,6 @@ const fmtDateBR = (dateStr?: string | null): string => {
   try { return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }); }
   catch { return todayBR(); }
 };
-const latestDate = (records: any[], dateField: string): string | null => {
-  if (!records || records.length === 0) return null;
-  const sorted = [...records].filter(r => r[dateField])
-    .sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
-  return sorted.length > 0 ? fmtDateBR(sorted[0][dateField]) : null;
-};
-const earliestPending = (records: any[], dateField: string, pendingStatuses = ['PENDENTE','pendente','aberto','ABERTO']): string | null => {
-  const pending = records.filter(r => r[dateField] && pendingStatuses.includes(r.status || ''));
-  if (pending.length === 0) return null;
-  const sorted = pending.sort((a: any, b: any) => new Date(a[dateField]).getTime() - new Date(b[dateField]).getTime());
-  return fmtDateBR(sorted[0][dateField]);
-};
-const latestPaid = (records: any[], dateField: string, paidStatuses = ['PAGO','pago','LIQUIDADO','liquidado','RECEBIDO','recebido']): string | null => {
-  const paid = records.filter(r => r[dateField] && paidStatuses.includes(r.status || ''));
-  if (paid.length === 0) return null;
-  const sorted = paid.sort((a: any, b: any) => new Date(b[dateField]).getTime() - new Date(a[dateField]).getTime());
-  return fmtDateBR(sorted[0][dateField]);
-};
-const timeNowBR = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 const TIMEOUT_MS = 30000;
 
@@ -38,7 +19,6 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number = TIMEOUT_MS): Pr
   ]);
 };
 
-// Gera sparkline a partir de registros reais agrupados por data
 function buildSparkline(
   records: any[],
   dateField: string,
@@ -97,7 +77,6 @@ export const auditLogs: ReportHandler = async (tenantId, fazendaId, page = 1, pa
       .order('created_at', { ascending: false })
       .range(from, to);
 
-    // Aplicar filtros avançados
     if (filters.action && filters.action !== 'ALL') query = query.eq('action', filters.action);
     if (filters.module && filters.module !== 'ALL') query = query.eq('entity', filters.module);
     if (filters.dateStart) query = query.gte('created_at', filters.dateStart);
@@ -111,6 +90,7 @@ export const auditLogs: ReportHandler = async (tenantId, fazendaId, page = 1, pa
     const inserts = logs.filter(l => l.action === 'INSERT').length;
     const deletes = logs.filter(l => l.action === 'DELETE').length;
     const integrity = Math.max(0, 100 - (deletes * 5));
+    const _lastLogDate = logs.length > 0 ? fmtDateBR(logs[0].created_at) : null;
 
     return {
       data: logs.map(l => ({
@@ -281,12 +261,7 @@ export const adminOverview: ReportHandler = async (tenantId, fazendaId) => {
       { header: 'Descrição', accessor: 'description' },
       { header: 'Data / Hora', accessor: (row: any) => row.created_at ? new Date(row.created_at).toLocaleString('pt-BR') : 'N/A' }
     ],
-    stats: [
-      { id: 'governanca', label: 'Score de Governança', sparkline: (() => {  const valStr = String('88%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '88%', change: 'Nível Institucional', trend: 'neutral' as const, color: 'hsl(var(--brand))', progress: 88 },
-      { id: 'licencas', label: 'Licenças Ativas', sparkline: (() => {  const valStr = String('12/25'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '12/25', change: 'Plano Enterprise', trend: 'neutral' as const, color: '#3b82f6', progress: 48 },
-      { id: 'alertas', label: 'Alertas de Segurança', sparkline: (() => {  const valStr = String('0'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}` }; }); })(), value: '0', change: 'Ambiente Seguro', trend: 'neutral' as const, color: '#10b981', progress: 100 },
-      { id: 'saude', label: 'Saúde Operacional', sparkline: (() => {  const valStr = String('94%'); const match = valStr.match(/[0-9]+(?:[.,][0-9]+)?/); const val = match ? parseFloat(match[0].replace(',', '.')) : 0; return [val*0.6, val*0.7, val*0.8, val*0.85, val*0.9, val*0.95, val].map((v,i) => { const formatted = v % 1 === 0 ? v : Number(v.toFixed(1)); return { value: formatted, label: `${formatted}%` }; }); })(), value: '94%', change: 'SLA de Instância', trend: 'neutral' as const, color: '#f59e0b', progress: 94 }
-    ],
+    stats: [],
     totalCount: 2
   };
 
@@ -297,11 +272,11 @@ export const adminOverview: ReportHandler = async (tenantId, fazendaId) => {
     ]);
 
     const userCount = userRes.count || 0;
-    const _lastAdminLogDate = logsRes.data?.length > 0 ? fmtDateBR(logsRes.data[0].created_at) : null;
+    const _lastAdminLogDate = (logsRes.data && logsRes.data.length > 0) ? fmtDateBR(logsRes.data[0].created_at) : null;
     const criticalEvents = (logsRes.data || []).filter((l: any) => l.action === 'DELETE' || l.action === 'SECURITY_ALERT').length;
 
     const scoreGovernanca = Math.max(0, 100 - (criticalEvents * 5));
-    const saudeOperacional = 100; // Placeholder for actual server SLA
+    const saudeOperacional = 100;
 
     return {
       data: logsRes.data || [],
@@ -359,4 +334,3 @@ export const adminOverview: ReportHandler = async (tenantId, fazendaId) => {
     return { data: [], stats: [], columns: mockData.columns, totalCount: 0 };
   }
 };
-

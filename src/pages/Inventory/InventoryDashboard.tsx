@@ -46,10 +46,10 @@ export const InventoryDashboard: React.FC = () => {
   const [recentMovements, setRecentMovements] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Calculando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual') },
-    { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'stable' as const, change: 'Verificando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual') },
-    { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'stable' as const, change: 'Auditando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual') },
-    { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#3b82f6', progress: 0, trend: 'stable' as const, change: 'Sincronizando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual') }
+    { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Calculando...', sparkline: [] },
+    { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'stable' as const, change: 'Verificando...', sparkline: [] },
+    { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'stable' as const, change: 'Auditando...', sparkline: [] },
+    { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#3b82f6', progress: 0, trend: 'stable' as const, change: 'Sincronizando...', sparkline: [] }
   ]);
 
   useEffect(() => {
@@ -101,15 +101,12 @@ export const InventoryDashboard: React.FC = () => {
         const totalValue = products.reduce((acc: number, p: any) => acc + (Number(p?.estoque_atual || 0) * Number(p?.custo_medio || 0)), 0);
         const criticalCount = products.filter((p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0)).length;
         
-        // Maturidade (30d): itens com estoque crítico (abaixo de 50% do estoque mínimo de segurança)
         const maturityCount = products.filter((p: any) => Number(p?.estoque_atual || 0) < (Number(p?.estoque_minimo || 0) * 0.5)).length;
 
-        // Giro de estoque (Stock Turnover): saídas nos últimos 30 dias sobre patrimônio atual
         const totalOutgoingValue = outMovements.reduce((acc: number, m: any) => acc + (Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0)), 0);
         const calculatedTurnover = totalValue > 0 ? (totalOutgoingValue / totalValue) : 0;
         const turnover = calculatedTurnover > 0 ? calculatedTurnover : 0;
 
-        // Sparkline for Outgoing Movements (Giro)
         const sparklineGiro = Array.from({ length: 30 }).map((_, i) => {
           const d = new Date();
           d.setDate(d.getDate() - 30 + i + 1);
@@ -128,7 +125,7 @@ export const InventoryDashboard: React.FC = () => {
             color: '#10b981', 
             progress: totalValue > 0 ? 85 : 0,
             change: 'Capital Imobilizado',
-            sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual')
+            sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
           },
           { 
             label: 'Ruptura de Estoque', 
@@ -138,7 +135,7 @@ export const InventoryDashboard: React.FC = () => {
             progress: products.length > 0 ? (criticalCount / products.length) * 100 : 0,
             trend: criticalCount > 0 ? 'up' : 'stable',
             change: 'Itens p/ Reposição',
-            sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual')
+            sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
           },
           { 
             label: 'Maturidade (30d)', 
@@ -148,7 +145,7 @@ export const InventoryDashboard: React.FC = () => {
             progress: products.length > 0 ? (maturityCount / products.length) * 100 : 0,
             trend: maturityCount > 0 ? 'up' : 'stable',
             change: 'Risco de Perda',
-            sparkline: buildSparkline(dashboardData || [], 'created_at', 'estoque_atual')
+            sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
           },
           { 
             label: 'Giro de Estoque', 
@@ -350,281 +347,46 @@ export const InventoryDashboard: React.FC = () => {
       </div>
 
       <style>{`
-        .inventory-hub {
-          padding: 24px;
-        }
-
-        .inventory-hub-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 24px;
-          margin-top: 24px;
-        }
-
-        .hub-section {
-          background: hsl(var(--bg-card));
-          border-radius: 24px;
-          border: 1px solid hsl(var(--border));
-          padding: 24px;
-          box-shadow: var(--shadow-sm);
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-
-        .title-group {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .section-icon {
-          color: hsl(var(--brand));
-        }
-
-        .section-header h3 {
-          font-size: 18px;
-          font-weight: 800;
-          color: hsl(var(--text-main));
-          letter-spacing: -0.02em;
-        }
-
-        .header-meta {
-          font-size: 10px;
-          font-weight: 800;
-          color: #ef4444;
-          background: #ef444415;
-          padding: 4px 10px;
-          border-radius: 8px;
-          text-transform: uppercase;
-        }
-
-        .critical-assets-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 16px;
-        }
-
-        .asset-health-card {
-          background: hsl(var(--bg-main) / 0.3);
-          border-radius: 20px;
-          border: 1px solid hsl(var(--border));
-          padding: 20px;
-          transition: 0.2s;
-        }
-
-        .asset-health-card:hover {
-          border-color: #ef444444;
-          transform: translateY(-4px);
-        }
-
-        .asset-header {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          margin-bottom: 20px;
-        }
-
-        .asset-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .asset-name-group h4 {
-          font-size: 15px;
-          font-weight: 800;
-          color: hsl(var(--text-main));
-          margin: 0;
-        }
-
-        .asset-name-group span {
-          font-size: 11px;
-          color: hsl(var(--text-muted));
-          font-weight: 600;
-          text-transform: uppercase;
-        }
-
-        .health-status-bar {
-          margin-bottom: 16px;
-        }
-
-        .bar-label {
-          display: flex;
-          justify-content: space-between;
-          font-size: 10px;
-          font-weight: 800;
-          margin-bottom: 8px;
-          text-transform: uppercase;
-        }
-
-        .urgent {
-          color: #ef4444;
-        }
-
-        .bar-progress-bg {
-          height: 8px;
-          background: hsl(var(--border));
-          border-radius: 4px;
-          overflow: hidden;
-          margin-bottom: 8px;
-        }
-
-        .bar-progress-fill {
-          height: 100%;
-          border-radius: 4px;
-        }
-
-        .bar-footer {
-          display: flex;
-          justify-content: space-between;
-          font-size: 11px;
-          font-weight: 700;
-          color: hsl(var(--text-muted));
-        }
-
-        .remaining-text {
-          color: #ef4444;
-        }
-
-        .asset-card-actions {
-          display: flex;
-          gap: 12px;
-        }
-
-        .asset-btn {
-          flex: 1;
-          padding: 10px;
-          border-radius: 10px;
-          border: none;
-          background: hsl(var(--brand) / 0.1);
-          color: hsl(var(--brand));
-          font-size: 11px;
-          font-weight: 800;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .asset-btn:hover {
-          background: hsl(var(--brand));
-          color: white;
-        }
-
-        .activity-list {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .activity-item-tauze {
-          display: flex;
-          gap: 16px;
-          padding-bottom: 16px;
-          border-bottom: 1px solid hsl(var(--border));
-        }
-
-        .activity-item-tauze:last-child {
-          border-bottom: none;
-        }
-
-        .act-icon-wrapper {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .act-icon-wrapper.fuel {
-          background: #10b98115;
-          color: #10b981;
-        }
-
-        .act-icon-wrapper.maint {
-          background: #ef444415;
-          color: #ef4444;
-        }
-
-        .act-content {
-          flex: 1;
-        }
-
-        .act-main-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 2px;
-        }
-
-        .act-title {
-          font-size: 13px;
-          font-weight: 800;
-          color: hsl(var(--text-main));
-        }
-
-        .act-value {
-          font-size: 11px;
-          font-weight: 900;
-          text-transform: uppercase;
-        }
-
-        .act-meta-row {
-          display: flex;
-          gap: 8px;
-          font-size: 11px;
-          color: hsl(var(--text-muted));
-          font-weight: 600;
-        }
-
-        .view-all-btn {
-          width: 100%;
-          margin-top: 24px;
-          padding: 14px;
-          border-radius: 16px;
-          border: 1px solid hsl(var(--border));
-          background: hsl(var(--bg-main) / 0.5);
-          color: hsl(var(--text-main));
-          font-size: 12px;
-          font-weight: 800;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .view-all-btn:hover {
-          background: hsl(var(--bg-card));
-          border-color: hsl(var(--brand));
-          color: hsl(var(--brand));
-        }
-
-        .empty-health {
-          grid-column: span 2;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 60px;
-          color: hsl(var(--text-muted));
-          gap: 16px;
-          text-align: center;
-        }
-
-        @media (max-width: 1200px) {
-          .inventory-hub-grid {
-            grid-template-columns: 1fr;
-          }
-        }
+        .inventory-hub { padding: 24px; }
+        .inventory-hub-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 24px; }
+        .hub-section { background: hsl(var(--bg-card)); border-radius: 24px; border: 1px solid hsl(var(--border)); padding: 24px; box-shadow: var(--shadow-sm); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .title-group { display: flex; align-items: center; gap: 12px; }
+        .section-icon { color: hsl(var(--brand)); }
+        .section-header h3 { font-size: 18px; font-weight: 800; color: hsl(var(--text-main)); letter-spacing: -0.02em; }
+        .header-meta { font-size: 10px; font-weight: 800; color: #ef4444; background: #ef444415; padding: 4px 10px; border-radius: 8px; text-transform: uppercase; }
+        .critical-assets-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+        .asset-health-card { background: hsl(var(--bg-main) / 0.3); border-radius: 20px; border: 1px solid hsl(var(--border)); padding: 20px; transition: 0.2s; }
+        .asset-health-card:hover { border-color: #ef444444; transform: translateY(-4px); }
+        .asset-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .asset-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .asset-name-group h4 { font-size: 15px; font-weight: 800; color: hsl(var(--text-main)); margin: 0; }
+        .asset-name-group span { font-size: 11px; color: hsl(var(--text-muted)); font-weight: 600; text-transform: uppercase; }
+        .health-status-bar { margin-bottom: 16px; }
+        .bar-label { display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; margin-bottom: 8px; text-transform: uppercase; }
+        .urgent { color: #ef4444; }
+        .bar-progress-bg { height: 8px; background: hsl(var(--border)); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+        .bar-progress-fill { height: 100%; border-radius: 4px; }
+        .bar-footer { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: hsl(var(--text-muted)); }
+        .remaining-text { color: #ef4444; }
+        .asset-card-actions { display: flex; gap: 12px; }
+        .asset-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; background: hsl(var(--brand) / 0.1); color: hsl(var(--brand)); font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .asset-btn:hover { background: hsl(var(--brand)); color: white; }
+        .activity-list { display: flex; flex-direction: column; gap: 16px; }
+        .activity-item-tauze { display: flex; gap: 16px; padding-bottom: 16px; border-bottom: 1px solid hsl(var(--border)); }
+        .activity-item-tauze:last-child { border-bottom: none; }
+        .act-icon-wrapper { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .act-icon-wrapper.fuel { background: #10b98115; color: #10b981; }
+        .act-icon-wrapper.maint { background: #ef444415; color: #ef4444; }
+        .act-content { flex: 1; }
+        .act-main-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+        .act-title { font-size: 13px; font-weight: 800; color: hsl(var(--text-main)); }
+        .act-value { font-size: 11px; font-weight: 900; text-transform: uppercase; }
+        .act-meta-row { display: flex; gap: 8px; font-size: 11px; color: hsl(var(--text-muted)); font-weight: 600; }
+        .view-all-btn { width: 100%; margin-top: 24px; padding: 14px; border-radius: 16px; border: 1px solid hsl(var(--border)); background: hsl(var(--bg-main) / 0.5); color: hsl(var(--text-main)); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.2s; }
+        .view-all-btn:hover { background: hsl(var(--bg-card)); border-color: hsl(var(--brand)); color: hsl(var(--brand)); }
+        .empty-health { grid-column: span 2; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: hsl(var(--text-muted)); gap: 16px; text-align: center; }
+        @media (max-width: 1200px) { .inventory-hub-grid { grid-template-columns: 1fr; } }
       `}</style>
     </div>
   );

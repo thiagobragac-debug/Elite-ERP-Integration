@@ -18,12 +18,8 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
 }
 import { 
   ShoppingCart, 
-  TrendingUp, 
   TrendingDown, 
   Clock, 
-  CheckCircle2, 
-  AlertTriangle,
-  Zap,
   DollarSign,
   Building2,
   FileText,
@@ -32,7 +28,8 @@ import {
   ArrowRight,
   Target,
   Activity,
-  Plus
+  Plus,
+  Zap
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -58,10 +55,10 @@ export const PurchasingDashboard: React.FC = () => {
   const [topSuppliers, setTopSuppliers] = useState<any[]>([]);
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' as const, sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
-    { label: 'Exposição de Caixa', value: '---', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
-    { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') },
-    { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Auditando...', sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total') }
+    { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' as const, sparkline: [] },
+    { label: 'Exposição de Caixa', value: '---', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...', sparkline: [] },
+    { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...', sparkline: [] },
+    { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Auditando...', sparkline: [] }
   ]);
 
   useEffect(() => {
@@ -163,12 +160,8 @@ export const PurchasingDashboard: React.FC = () => {
               { value: Math.round(pendingValue), label: 'Hoje' }
             ] : []
           },
-          { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA Aprovação',
-            sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total')
-          },
-          { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Real vs Planejado',
-            sparkline: buildSparkline(dashboardData || [], 'created_at', 'valor_total')
-          }
+          { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA Aprovação', sparkline: [] },
+          { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Real vs Planejado', sparkline: [] }
         ]);
 
         setRecentRequests(requests.slice(0, 5).map((r: any) => ({
@@ -181,7 +174,6 @@ export const PurchasingDashboard: React.FC = () => {
         })));
 
         const supMap: Record<string, number> = {};
-        // Buscar nomes dos fornecedores separadamente
         const fornecedorIds = [...new Set(orders.map((o: any) => o.fornecedor_id).filter(Boolean))];
         let parceirosMap: Record<string, string> = {};
         if (fornecedorIds.length > 0) {
@@ -243,18 +235,8 @@ export const PurchasingDashboard: React.FC = () => {
           gap: 20px !important;
           margin-bottom: 32px !important;
         }
-
-        @media (max-width: 1024px) {
-          .next-gen-kpi-grid {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .next-gen-kpi-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
+        @media (max-width: 1024px) { .next-gen-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+        @media (max-width: 640px) { .next-gen-kpi-grid { grid-template-columns: 1fr !important; } }
       `}</style>
 
       <div className="next-gen-kpi-grid">
@@ -425,260 +407,48 @@ export const PurchasingDashboard: React.FC = () => {
       </div>
 
       <style>{`
-        .purchasing-hub {
-          padding: 24px;
-        }
-
-        .purchasing-hub-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr;
-          gap: 24px;
-          margin-top: 24px;
-        }
-
-        .hub-section {
-          background: hsl(var(--bg-card));
-          border-radius: 24px;
-          border: 1px solid hsl(var(--border));
-          padding: 24px;
-          box-shadow: var(--shadow-sm);
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-
-        .title-group {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .section-header h3 {
-          font-size: 16px;
-          font-weight: 800;
-          color: hsl(var(--text-main));
-        }
-
-        .funnel-summary {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
-          margin-top: 24px;
-        }
-
-        .summary-card {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 12px;
-          background: hsl(var(--bg-main) / 0.3);
-          border-radius: 16px;
-          border: 1px solid hsl(var(--border));
-        }
-
-        .summary-card .label {
-          font-size: 10px;
-          font-weight: 800;
-          color: hsl(var(--text-muted));
-          text-transform: uppercase;
-          margin-bottom: 4px;
-        }
-
-        .summary-card .value {
-          font-size: 18px;
-          font-weight: 900;
-          color: hsl(var(--text-main));
-        }
-
-        .tauze-data-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        .tauze-data-table th {
-          text-align: left;
-          font-size: 10px;
-          font-weight: 800;
-          color: hsl(var(--text-muted));
-          text-transform: uppercase;
-          padding: 12px 0;
-          border-bottom: 1px solid hsl(var(--border));
-        }
-
-        .tauze-data-table td {
-          padding: 16px 0;
-          border-bottom: 1px solid hsl(var(--bg-main));
-        }
-
-        .item-info {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .item-name {
-          font-size: 13px;
-          font-weight: 800;
-          color: hsl(var(--text-main));
-        }
-
-        .item-sub {
-          font-size: 10px;
-          font-weight: 700;
-          color: hsl(var(--text-muted));
-          text-transform: uppercase;
-        }
-
-        .item-price {
-          font-size: 13px;
-          font-weight: 800;
-          color: hsl(var(--text-main));
-        }
-
-        .status-tag {
-          font-size: 9px;
-          font-weight: 900;
-          padding: 4px 8px;
-          border-radius: 6px;
-          text-transform: uppercase;
-        }
-
+        .purchasing-hub { padding: 24px; }
+        .purchasing-hub-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 24px; }
+        .hub-section { background: hsl(var(--bg-card)); border-radius: 24px; border: 1px solid hsl(var(--border)); padding: 24px; box-shadow: var(--shadow-sm); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .title-group { display: flex; align-items: center; gap: 12px; }
+        .section-header h3 { font-size: 16px; font-weight: 800; color: hsl(var(--text-main)); }
+        .funnel-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 24px; }
+        .summary-card { display: flex; flex-direction: column; align-items: center; padding: 12px; background: hsl(var(--bg-main) / 0.3); border-radius: 16px; border: 1px solid hsl(var(--border)); }
+        .summary-card .label { font-size: 10px; font-weight: 800; color: hsl(var(--text-muted)); text-transform: uppercase; margin-bottom: 4px; }
+        .summary-card .value { font-size: 18px; font-weight: 900; color: hsl(var(--text-main)); }
+        .tauze-data-table { width: 100%; border-collapse: collapse; }
+        .tauze-data-table th { text-align: left; font-size: 10px; font-weight: 800; color: hsl(var(--text-muted)); text-transform: uppercase; padding: 12px 0; border-bottom: 1px solid hsl(var(--border)); }
+        .tauze-data-table td { padding: 16px 0; border-bottom: 1px solid hsl(var(--bg-main)); }
+        .item-info { display: flex; flex-direction: column; }
+        .item-name { font-size: 13px; font-weight: 800; color: hsl(var(--text-main)); }
+        .item-sub { font-size: 10px; font-weight: 700; color: hsl(var(--text-muted)); text-transform: uppercase; }
+        .item-price { font-size: 13px; font-weight: 800; color: hsl(var(--text-main)); }
+        .status-tag { font-size: 9px; font-weight: 900; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; }
         .status-tag.warning { background: #f59e0b15; color: #f59e0b; }
         .status-tag.success { background: #10b98115; color: #10b981; }
-
-        .priority-tag {
-          font-size: 10px;
-          font-weight: 800;
-          text-transform: uppercase;
-        }
-
+        .priority-tag { font-size: 10px; font-weight: 800; text-transform: uppercase; }
         .priority-tag.critical { color: #ef4444; }
         .priority-tag.normal { color: hsl(var(--text-muted)); }
-
-        .text-link {
-          background: none;
-          border: none;
-          font-size: 10px;
-          font-weight: 900;
-          color: #6366f1;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .supplier-bars {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .bar-item {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .bar-header {
-          display: flex;
-          justify-content: space-between;
-          font-size: 11px;
-          font-weight: 700;
-          color: hsl(var(--text-main));
-        }
-
-        .bar-track {
-          height: 6px;
-          background: hsl(var(--border));
-          border-radius: 3px;
-          overflow: hidden;
-        }
-
-        .bar-fill {
-          height: 100%;
-          border-radius: 3px;
-        }
-
-        .copilot-section {
-          background: #6366f108;
-          border-color: #6366f120;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .copilot-icon-bg {
-          position: absolute;
-          top: -20px;
-          right: -20px;
-          opacity: 0.05;
-          color: #6366f1;
-        }
-
-        .copilot-section h3 {
-          color: #6366f1;
-          margin-bottom: 16px;
-        }
-
-        .insight-list {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .insight-item {
-          background: white;
-          padding: 12px;
-          border-radius: 16px;
-          border: 1px solid #6366f115;
-        }
-
-        .insight-item p {
-          font-size: 11px;
-          font-weight: 600;
-          color: #4338ca;
-          line-height: 1.5;
-        }
-
-        .quick-actions-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-
-        .action-card {
-          background: hsl(var(--bg-card));
-          border: 1px solid hsl(var(--border));
-          border-radius: 20px;
-          padding: 16px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          transition: 0.2s;
-        }
-
-        .action-card:hover {
-          background: hsl(var(--bg-main) / 0.5);
-          border-color: #6366f1;
-          color: #6366f1;
-        }
-
-        .action-card span {
-          font-size: 10px;
-          font-weight: 800;
-          text-transform: uppercase;
-        }
-
+        .text-link { background: none; border: none; font-size: 10px; font-weight: 900; color: #6366f1; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        .supplier-bars { display: flex; flex-direction: column; gap: 20px; }
+        .bar-item { display: flex; flex-direction: column; gap: 8px; }
+        .bar-header { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: hsl(var(--text-main)); }
+        .bar-track { height: 6px; background: hsl(var(--border)); border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 3px; }
+        .copilot-section { background: #6366f108; border-color: #6366f120; position: relative; overflow: hidden; }
+        .copilot-icon-bg { position: absolute; top: -20px; right: -20px; opacity: 0.05; color: #6366f1; }
+        .copilot-section h3 { color: #6366f1; margin-bottom: 16px; }
+        .insight-list { display: flex; flex-direction: column; gap: 12px; }
+        .insight-item { background: white; padding: 12px; border-radius: 16px; border: 1px solid #6366f115; }
+        .insight-item p { font-size: 11px; font-weight: 600; color: #4338ca; line-height: 1.5; }
+        .quick-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .action-card { background: hsl(var(--bg-card)); border: 1px solid hsl(var(--border)); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; }
+        .action-card:hover { background: hsl(var(--bg-main) / 0.5); border-color: #6366f1; color: #6366f1; }
+        .action-card span { font-size: 10px; font-weight: 800; text-transform: uppercase; }
         .mt-6 { margin-top: 24px; }
         .text-right { text-align: right; }
-
-        @media (max-width: 1100px) {
-          .purchasing-hub-grid { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 1100px) { .purchasing-hub-grid { grid-template-columns: 1fr; } }
       `}</style>
     </div>
   );
