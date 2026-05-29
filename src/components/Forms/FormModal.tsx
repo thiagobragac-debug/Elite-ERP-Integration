@@ -1,4 +1,4 @@
-﻿import React, { type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, type LucideIcon } from 'lucide-react';
 
@@ -11,6 +11,7 @@ interface FormModalProps {
   icon: LucideIcon;
   children: ReactNode;
   submitLabel?: string;
+  cancelLabel?: string;
   loading?: boolean;
   size?: 'small' | 'medium' | 'large' | 'xlarge';
   iconSubmit?: LucideIcon;
@@ -89,6 +90,7 @@ export const FormModal: React.FC<FormModalProps> = ({
   icon: Icon, 
   children,
   submitLabel = 'Salvar Alterações',
+  cancelLabel,
   loading = false,
   size = 'medium',
   iconSubmit: IconSubmit = Save,
@@ -247,7 +249,7 @@ export const FormModal: React.FC<FormModalProps> = ({
 
           <div className="tauze-modal-footer">
             <button type="button" className="glass-btn secondary" onClick={onClose}>
-              {actualReadOnly ? 'Fechar' : 'Cancelar'}
+              {actualReadOnly ? 'Fechar' : (cancelLabel || 'Cancelar')}
             </button>
             {!hideSubmit && !actualReadOnly && (
               <button type="submit" className="primary-btn" disabled={loading} style={{ boxShadow: '0 8px 20px hsl(var(--brand) / 0.2)' }}>

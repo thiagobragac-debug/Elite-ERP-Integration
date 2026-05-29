@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Scale, 
   Calendar,
@@ -10,9 +10,7 @@ import {
   Award,
   X,
   CheckCircle2,
-  TrendingUp,
-  ArrowRight,
-  Zap
+  TrendingUp
 } from 'lucide-react';
 import { FormModal } from './FormModal';
 import { supabase } from '../../lib/supabase';
@@ -24,7 +22,6 @@ interface WeightFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   loading?: boolean;
-  onSaveAndNext?: () => void;
 }
 
 // ECC Labels
@@ -36,7 +33,7 @@ const eccLabels: Record<number, { label: string; color: string; bg: string }> = 
   5: { label: 'Gordo', color: 'hsl(210 100% 50%)', bg: 'hsl(210 100% 50% / 0.1)' },
 };
 
-export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmit, initialData, onSaveAndNext }) => {
+export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
   const [animals, setAnimals] = useState<any[]>([]);
   const [lastWeighing, setLastWeighing] = useState<any>(null);
@@ -54,7 +51,6 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [saveAndNext, setSaveAndNext] = useState(false);
   const pesoInputRef = useRef<HTMLInputElement>(null);
 
   // #1 — fetch animals and today count
@@ -200,23 +196,10 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
     setLoading(true);
     try {
       await onSubmit(formData);
-      if (saveAndNext) {
-        resetForm(true); // keep date for batch day
-        fetchTodayCount();
-        setSaveAndNext(false);
-        // #8 — re-focus search
-        setTimeout(() => document.getElementById('animal-search-input')?.focus(), 100);
-      } else {
-        resetForm();
-      }
+      resetForm();
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSaveAndNext = (e: React.FormEvent) => {
-    setSaveAndNext(true);
-    handleSubmit(e);
   };
 
   const filteredAnimals = animals.filter(a => 
@@ -648,55 +631,16 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
           </div>
         </div>
 
-        {/* ── Observações ── */}
+        {/* ── Observações + toggle ── */}
         <div className="form-group full-width">
           <label><FileText size={14} /> Observações</label>
           <textarea
-            placeholder="Notas sobre a condição do animal, etc. (Ctrl+Enter para salvar rápido)"
+            placeholder="Notas sobre a condição do animal... (Ctrl+Enter para salvar)"
             value={formData.observacao}
             onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
             rows={2}
             style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-input)' }}
           />
-        </div>
-
-        {/* ── #2 — Salvar e Próxima button (inline hint) ── */}
-        {!initialData && (
-          <div className="form-group full-width" style={{ gridColumn: 'span 4', margin: 0 }}>
-            <button
-              type="button"
-              onClick={handleSaveAndNext}
-              disabled={loading || !formData.animal_id || !formData.peso}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                padding: '10px 20px', borderRadius: '12px',
-                border: '1.5px solid hsl(var(--brand) / 0.3)',
-                background: 'hsl(var(--brand) / 0.06)',
-                color: 'hsl(var(--brand))', fontWeight: 800, fontSize: '13px',
-                cursor: loading || !formData.animal_id || !formData.peso ? 'not-allowed' : 'pointer',
-                opacity: loading || !formData.animal_id || !formData.peso ? 0.5 : 1,
-                transition: 'all 0.2s',
-                width: '100%', justifyContent: 'center'
-              }}
-            >
-              <Zap size={15} />
-              Salvar e Pesagem Seguinte
-              <ArrowRight size={14} />
-              <span style={{ fontSize: '10px', fontWeight: 600, opacity: 0.7, marginLeft: '4px' }}>
-                (mantém a data atual)
-              </span>
-            </button>
-          </div>
-        )}
-
-        {/* ── #8 — Keyboard shortcut hint ── */}
-        <div className="form-group full-width" style={{ gridColumn: 'span 4', margin: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>
-            <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '4px', padding: '1px 5px', fontFamily: 'monospace', fontSize: '10px' }}>Ctrl</span>
-            +
-            <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '4px', padding: '1px 5px', fontFamily: 'monospace', fontSize: '10px' }}>Enter</span>
-            para salvar rapidamente
-          </div>
         </div>
 
         <style>{`
