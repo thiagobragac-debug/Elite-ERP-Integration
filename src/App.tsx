@@ -9,6 +9,7 @@ import { LandingPage } from './pages/LandingPage';
 import { SaaSLayout } from './components/SaaSLayout/SaaSLayout';
 import { SuperAdminGuard } from './components/Guards/SuperAdminGuard';
 import { Login } from './pages/Auth/Login';
+import { TenantRegistration } from './pages/Auth/TenantRegistration';
 import { RoleSelector } from './pages/Auth/RoleSelector';
 import { MFAEnroll } from './pages/Auth/MFAEnroll';
 import { MFAGuard } from './components/Guards/MFAGuard';
@@ -176,6 +177,7 @@ function AppContent() {
       <React.Suspense fallback={<div style={{padding: '2rem'}}>Carregando módulo Tauze...</div>}>
         <React.Suspense fallback={<div className="loading-overlay" style={{display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--primary)"}}>Carregando módulo...</div>}><React.Suspense fallback={<div className="loading-overlay" style={{display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--primary)"}}>Carregando módulo...</div>}><Routes>
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
+          <Route path="/cadastro" element={!isAuthenticated ? <TenantRegistration /> : <Navigate to="/" replace />} />
           <Route path="/mfa-enroll" element={isAuthenticated ? <MFAEnroll /> : <Navigate to="/login" replace />} />
           
           {/* ── Rota standalone: seleção de perfil (sem Layout) ── */}

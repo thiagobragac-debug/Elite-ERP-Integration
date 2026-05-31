@@ -724,12 +724,12 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         )}
 
         {/* #3 — keyboard hint bar */}
-        {rows.length > 0 && !loadingAnimals && (
+        {activeTab === 'manual' && rows.length > 0 && !loadingAnimals && (
           <div style={{
             padding: '6px 30px',
             background: 'hsl(var(--brand) / 0.04)',
             borderBottom: '1px solid hsl(var(--border) / 0.3)',
-            display: 'flex', alignItems: 'center', gap: '16px'
+            display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '16px'
           }}>
             <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <ArrowDown size={10} />
@@ -968,51 +968,49 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
           borderTop: '1px solid hsl(var(--border) / 0.5)',
           background: 'hsl(var(--bg-card) / 0.3)',
         }}>
-          {/* #1 — Progress bar */}
-          {rows.length > 0 && (
-            <div style={{ padding: '10px 30px 8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '5px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>
-                    Progresso
+          {/* Stats + Buttons row */}
+          <div style={{ padding: '12px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', overflow: 'hidden' }}>
+              {/* Progress bar integrated on the left */}
+              {rows.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '4px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                    Progresso:
                   </span>
-                  <span style={{ fontSize: '11px', fontWeight: 900, color: progressColor }}>
-                    {filledCount}/{rows.length} animais
+                  <span style={{ fontSize: '11.5px', fontWeight: 900, color: progressColor, whiteSpace: 'nowrap' }}>
+                    {filledCount}/{rows.length}
+                  </span>
+                  <div style={{ width: '80px', height: '6px', background: 'hsl(var(--bg-main))', borderRadius: '3px', overflow: 'hidden', display: 'inline-block' }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${progressPct}%`,
+                      background: progressPct === 100
+                        ? 'linear-gradient(90deg, #10b981, #059669)'
+                        : progressPct >= 50
+                        ? 'linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.8))'
+                        : 'linear-gradient(90deg, hsl(38 92% 50%), hsl(38 92% 65%))',
+                      borderRadius: '3px',
+                      transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                    }} />
+                  </div>
+                  <span style={{ fontSize: '11.5px', fontWeight: 900, color: progressColor, whiteSpace: 'nowrap' }}>
+                    {progressPct.toFixed(0)}%
                   </span>
                   {warningCount > 0 && (
-                    <span style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(38 92% 50%)', background: 'hsl(38 92% 50% / 0.1)', padding: '1px 7px', borderRadius: '10px', border: '1px solid hsl(38 92% 50% / 0.2)' }}>
-                      ⚠️ {warningCount} alerta{warningCount > 1 ? 's' : ''}
+                    <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'hsl(38 92% 50%)', background: 'hsl(38 92% 50% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(38 92% 50% / 0.2)', whiteSpace: 'nowrap' }}>
+                      ⚠️ {warningCount}
                     </span>
                   )}
                   {abateCount > 0 && (
-                    <span style={{ fontSize: '10px', fontWeight: 800, color: '#10b981', background: 'hsl(142 71% 45% / 0.1)', padding: '1px 7px', borderRadius: '10px', border: '1px solid hsl(142 71% 45% / 0.2)' }}>
-                      🏆 {abateCount} para abate
+                    <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#10b981', background: 'hsl(142 71% 45% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(142 71% 45% / 0.2)', whiteSpace: 'nowrap' }}>
+                      🏆 {abateCount}
                     </span>
                   )}
+                  <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', marginLeft: '4px' }} />
                 </div>
-                <span style={{ fontSize: '12px', fontWeight: 900, color: progressColor }}>
-                  {progressPct.toFixed(0)}%
-                </span>
-              </div>
-              <div style={{ height: '5px', background: 'hsl(var(--bg-main))', borderRadius: '3px', overflow: 'hidden' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${progressPct}%`,
-                  background: progressPct === 100
-                    ? 'linear-gradient(90deg, #10b981, #059669)'
-                    : progressPct >= 50
-                    ? 'linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.8))'
-                    : 'linear-gradient(90deg, hsl(38 92% 50%), hsl(38 92% 65%))',
-                  borderRadius: '3px',
-                  transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-                }} />
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* Stats + Buttons row */}
-          <div style={{ padding: '12px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: rows.length > 0 ? '1px solid hsl(var(--border) / 0.3)' : 'none' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', overflow: 'hidden' }}>
+              {/* Stats values */}
               {filledCount > 0 ? (
                 <>
                   <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { 
   Globe, 
   Users, 
@@ -7,7 +7,8 @@ import {
   Database,
   ArrowLeft,
   Settings,
-  DollarSign
+  DollarSign,
+  Tag
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import '../Sidebar/Sidebar.css'; // Reusing standard sidebar styles
@@ -23,6 +24,7 @@ const saasMenuItems: NavItem[] = [
   { title: 'Monitor de Assinaturas', icon: DollarSign, href: '/saas/billing' },
   { title: 'Gestão de Tenants', icon: Users, href: '/saas/tenants' },
   { title: 'Planos & Faturamento', icon: CreditCard, href: '/saas/plans' },
+  { title: 'Campanhas & Promoções', icon: Tag, href: '/saas/campaigns' },
   { title: 'Saúde do Sistema', icon: Activity, href: '/saas/health' },
   { title: 'Configurações', icon: Settings, href: '/saas/settings' },
 ];

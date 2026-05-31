@@ -73,15 +73,18 @@ const Pill: React.FC<{ icon: string; text: string; delay?: number }> = ({ icon, 
 );
 
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────────
-export const Login: React.FC = () => {
+export const TenantRegistration: React.FC = () => {
+  const [fullName, setFullName] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
-  const { login, loginWithGoogle } = useAuth();
+  const { loginWithGoogle, registerTenant } = useAuth(); // We might use signUp if it exists, otherwise just mock it
 
   // Animate KPI values slightly over time
   useEffect(() => {
@@ -93,18 +96,40 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
+    setSuccessMessage(null);
     try {
-      const { error } = await login(email, password);
+      const { error } = await registerTenant({
+        email: email.trim().toLowerCase(),
+        password,
+        fullName: fullName.trim(),
+        companyName: companyName.trim()
+      });
+      
       if (error) {
-        // Supabase retorna 'Invalid login credentials' quando o user só tem Google
-        if (error.message?.toLowerCase().includes('invalid login credentials')) {
-          setErrorMessage('E-mail ou senha incorretos. Se você entrou pelo Google antes, use o botão abaixo.');
+        let errorMsg = error.message || '';
+        const lowerMsg = errorMsg.toLowerCase();
+        
+        if (lowerMsg.includes('invalid') && lowerMsg.includes('email')) {
+          errorMsg = 'O endereço de e-mail fornecido é inválido.';
+        } else if (lowerMsg.includes('user already registered') || lowerMsg.includes('already exists')) {
+          errorMsg = 'Este e-mail já está cadastrado em nosso sistema.';
+        } else if (lowerMsg.includes('password should be at least 6 characters')) {
+          errorMsg = 'A senha deve conter pelo menos 6 caracteres.';
+        } else if (lowerMsg.includes('rate limit exceeded') || lowerMsg.includes('too many requests')) {
+          errorMsg = 'Muitas tentativas em um curto período. Por favor, aguarde alguns minutos antes de tentar novamente.';
+        } else if (lowerMsg.includes('database error')) {
+          errorMsg = 'Erro no servidor: não foi possível finalizar seu cadastro. Tente novamente mais tarde.';
         } else {
-          setErrorMessage(error.message);
+          // Caso genérico para traduzir qualquer outro erro
+          errorMsg = `Erro ao criar conta: ${errorMsg}`;
         }
+        
+        setErrorMessage(errorMsg);
+      } else {
+        setSuccessMessage('Conta criada com sucesso! Verifique seu e-mail ou faça login para acessar seu ERP.');
       }
     } catch (err: any) {
-      setErrorMessage('Erro inesperado ao acessar o sistema.');
+      setErrorMessage('Erro inesperado ao criar a conta. Por favor, tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +141,6 @@ export const Login: React.FC = () => {
     try {
       const { error } = await loginWithGoogle();
       if (error) setErrorMessage('Falha ao conectar com Google. Tente novamente.');
-      // Se ok, o browser redireciona — não precisa de setIsGoogleLoading(false)
     } catch {
       setErrorMessage('Erro inesperado ao conectar com Google.');
       setIsGoogleLoading(false);
@@ -148,7 +172,7 @@ export const Login: React.FC = () => {
 
         .login-input {
           width: 100%;
-          padding: 14px 16px 14px 46px;
+          padding: 14px 16px 14px 16px;
           background: rgba(255,255,255,0.05);
           border: 1px solid rgba(255,255,255,0.09);
           border-radius: 13px;
@@ -158,6 +182,9 @@ export const Login: React.FC = () => {
           transition: all 0.25s;
           font-family: inherit;
           caret-color: #00b865;
+        }
+        .login-input.with-icon {
+          padding-left: 46px;
         }
         .login-input::placeholder { color: rgba(255,255,255,0.22); }
         .login-input:focus {
@@ -250,17 +277,17 @@ export const Login: React.FC = () => {
           >
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(0,184,101,0.1)', border: '1px solid rgba(0,184,101,0.2)', borderRadius: 100, padding: '5px 13px', marginBottom: 24 }}>
               <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#00b865', boxShadow: '0 0 8px #00b865' }} />
-              <span style={{ fontSize: 10, fontWeight: 800, color: '#00b865', letterSpacing: '0.07em' }}>DADOS EM TEMPO REAL</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#00b865', letterSpacing: '0.07em' }}>NOVO CADASTRO</span>
             </div>
 
             <h2 style={{ fontSize: 'clamp(28px, 3vw, 42px)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: 14, color: '#fff' }}>
-              Bem-vindo de volta à<br />
+              Transforme o futuro da<br />
               <span style={{ background: 'linear-gradient(135deg, #00b865, #34d399, #0ea5e9)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundSize: '200% auto', animation: 'gradient-shift 4s linear infinite' }}>
-                sua operação.
+                sua fazenda.
               </span>
             </h2>
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', lineHeight: 1.7, maxWidth: 380, marginBottom: 36 }}>
-              Acompanhe rebanho, frota, finanças e colheita em tempo real — tudo em um único painel unificado.
+              O ERP que o agronegócio merece. Acompanhe rebanho, frota e finanças, sem cartão de crédito exigido.
             </p>
           </motion.div>
 
@@ -298,6 +325,7 @@ export const Login: React.FC = () => {
       <div className="right-panel" style={{
         width: 480, flexShrink: 0, display: 'flex', alignItems: 'center',
         justifyContent: 'center', padding: '40px 48px', position: 'relative',
+        overflowY: 'auto'
       }}>
         {/* subtle glow behind form */}
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 400, height: 400, background: 'radial-gradient(circle, rgba(0,184,101,0.07) 0%, transparent 70%)', borderRadius: '50%', pointerEvents: 'none' }} />
@@ -306,23 +334,15 @@ export const Login: React.FC = () => {
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          style={{ width: '100%', maxWidth: 380, position: 'relative', zIndex: 1 }}
+          style={{ width: '100%', maxWidth: 380, position: 'relative', zIndex: 1, margin: 'auto 0' }}
         >
           {/* Form header */}
-          <div style={{ marginBottom: 36 }}>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-              style={{ width: 52, height: 52, background: 'rgba(0,184,101,0.1)', border: '1px solid rgba(0,184,101,0.22)', borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}
-            >
-              <TauzeLogo size={28} />
-            </motion.div>
+          <div style={{ marginBottom: 30 }}>
             <h1 style={{ fontSize: 26, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', marginBottom: 6 }}>
-              Acessar o ERP
+              Crie sua conta
             </h1>
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.38)', lineHeight: 1.6 }}>
-              Entre com suas credenciais para continuar
+              Comece seu teste gratuito de 14 dias hoje
             </p>
           </div>
 
@@ -357,30 +377,61 @@ export const Login: React.FC = () => {
                 <path fill="none" d="M0 0h48v48H0z"/>
               </svg>
             )}
-            <span>{isGoogleLoading ? 'Redirecionando...' : 'Continuar com Google'}</span>
+            <span>{isGoogleLoading ? 'Redirecionando...' : 'Inscrever-se com Google'}</span>
           </button>
 
           {/* ── Separador ── */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '8px 0' }}>
             <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
             <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.06em' }}>OU</span>
             <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              {/* Nome Completo */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
+                  SEU NOME
+                </label>
+                <input
+                  type="text"
+                  className="login-input"
+                  placeholder="Nome Completo"
+                  value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Empresa */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
+                  FAZENDA / EMPRESA
+                </label>
+                <input
+                  type="text"
+                  className="login-input"
+                  placeholder="Nome da Fazenda"
+                  value={companyName}
+                  onChange={e => setCompanyName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
 
             {/* E-mail */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
                 SEU E-MAIL
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail size={16} style={{ position: 'absolute', left: 15, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)' }} />
                 <input
-                  id="login-email"
                   type="email"
-                  className="login-input"
+                  className="login-input with-icon"
                   placeholder="seu@email.com.br"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
@@ -392,25 +443,19 @@ export const Login: React.FC = () => {
 
             {/* Senha */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
-                  SENHA DE ACESSO
-                </label>
-                <a href="#" style={{ fontSize: 12, color: '#00b865', fontWeight: 600, textDecoration: 'none' }}>
-                  Esqueceu?
-                </a>
-              </div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.04em' }}>
+                CRIE UMA SENHA
+              </label>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{ position: 'absolute', left: 15, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.25)' }} />
                 <input
-                  id="login-password"
                   type={showPass ? 'text' : 'password'}
-                  className="login-input"
+                  className="login-input with-icon"
                   placeholder="••••••••••"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                 />
                 <button type="button" className="eye-btn" onClick={() => setShowPass(p => !p)} tabIndex={-1}>
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -440,38 +485,56 @@ export const Login: React.FC = () => {
               </motion.div>
             )}
 
+            {/* Success */}
+            {successMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{
+                  padding: '12px 16px',
+                  background: 'rgba(0,184,101,0.08)',
+                  border: '1px solid rgba(0,184,101,0.2)',
+                  borderRadius: 12,
+                  color: '#00b865',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                <span>✓</span> {successMessage}
+              </motion.div>
+            )}
+
             {/* Submit */}
-            <button type="submit" className="submit-btn" disabled={isLoading} style={{ marginTop: 4 }}>
+            <button type="submit" className="submit-btn" disabled={isLoading || !!successMessage} style={{ marginTop: 8 }}>
               {isLoading ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  <span>Autenticando...</span>
+                  <span>Criando ambiente...</span>
                 </>
               ) : (
                 <>
-                  <span>Entrar no Sistema</span>
+                  <span>Criar Conta Gratuita</span>
                   <ArrowRight size={17} />
                 </>
               )}
             </button>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
+              Ao se cadastrar, você concorda com nossos Termos de Serviço e Política de Privacidade.
+            </div>
           </form>
 
           {/* Footer */}
           <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 100, padding: '7px 16px' }}>
-              <ShieldCheck size={13} style={{ color: '#00b865' }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)' }}>Conexão criptografada AES-256</span>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)' }}>
+              Já tem uma conta? <Link to="/login" style={{ color: '#00b865', fontWeight: 600, textDecoration: 'none' }}>Fazer login</Link>
             </div>
-
-            <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'rgba(255,255,255,0.3)', textDecoration: 'none', fontWeight: 600, transition: 'color 0.2s' }}
-              onMouseEnter={e => (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.7)'}
-              onMouseLeave={e => (e.target as HTMLElement).style.color = 'rgba(255,255,255,0.3)'}
-            >
-              ← Voltar para o site
-            </Link>
           </div>
         </motion.div>
       </div>
     </div>
   );
 };
+

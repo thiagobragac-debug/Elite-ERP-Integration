@@ -33,7 +33,9 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
-  Trash2
+  Trash2,
+  Tag,
+  Edit3
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,6 +44,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TenantForm } from '../../components/Forms/TenantForm';
 import { PlanForm } from '../../components/Forms/PlanForm';
+import { CampaignForm } from '../../components/Forms/CampaignForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { logAudit } from '../../utils/audit';
@@ -51,7 +54,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 import { useViewMode } from '../../hooks/useViewMode';
 
-type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'billing' | 'health' | 'settings';
+type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'campaigns' | 'billing' | 'health' | 'settings';
 
 export const SaaSAdminPanel: React.FC = () => {
   const location = useLocation();
@@ -62,6 +65,7 @@ export const SaaSAdminPanel: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [tenantsViewMode, setTenantsViewMode] = useViewMode('saas-admin-tenants', 'grid');
   const [plansViewMode, setPlansViewMode] = useViewMode('saas-admin-plans', 'grid');
+  const [campaignsViewMode, setCampaignsViewMode] = useViewMode('saas-admin-campaigns', 'grid');
 
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -74,7 +78,9 @@ export const SaaSAdminPanel: React.FC = () => {
     minPrice: 0,
     maxPrice: 10000,
     minStorage: 0,
-    maxStorage: 1000
+    maxStorage: 1000,
+    minDiscount: 0,
+    maxDiscount: 100
   });
 
   useEffect(() => {
@@ -91,6 +97,8 @@ export const SaaSAdminPanel: React.FC = () => {
       setActiveTab('health');
     } else if (path.includes('settings')) {
       setActiveTab('settings');
+    } else if (path.includes('campaigns')) {
+      setActiveTab('campaigns');
     } else {
       // Redireciona caminhos inválidos de volta para a visão global
       navigate('/saas', { replace: true });
@@ -133,6 +141,11 @@ export const SaaSAdminPanel: React.FC = () => {
       title: 'Saúde & Infraestrutura',
       subtitle: 'Monitoramento em tempo real de nodes, banco de dados e performance global.',
       icon: Activity
+    },
+    campaigns: {
+      title: 'Campanhas & Promoções',
+      subtitle: 'Gerencie descontos, timers e ofertas especiais ativas no produto.',
+      icon: Tag
     }
   };
 
@@ -178,6 +191,7 @@ export const SaaSAdminPanel: React.FC = () => {
     console.log("🚀 SaaSAdminPanel loaded: Version 5.1 is running.");
     fetchTenants();
     fetchPlans();
+    fetchCampaigns();
     fetchInvoices();
     fetchGlobalAuditLogs();
     checkServicesStatus();
@@ -253,6 +267,28 @@ export const SaaSAdminPanel: React.FC = () => {
       setPlansLoading(false);
     }
   };
+
+  const [campaignsList, setCampaignsList] = useState<any[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
+
+  const fetchCampaigns = async () => {
+    try {
+      setCampaignsLoading(true);
+      const { data, error }: any = await supabase
+        .from('saas_campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setCampaignsList(data || []);
+    } catch (err) {
+      console.error('Erro ao buscar Campanhas:', err);
+      setCampaignsList([]);
+    } finally {
+      setCampaignsLoading(false);
+    }
+  };
+
 
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<any>(null);
@@ -516,6 +552,9 @@ export const SaaSAdminPanel: React.FC = () => {
   }, [invoicesList, tenantsList, totalPendente, nodesList]);
 
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
+
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
 
   const [billingSubTab, setBillingSubTab] = useState('monitor');
   
@@ -856,6 +895,36 @@ export const SaaSAdminPanel: React.FC = () => {
       } else {
         alert('Erro ao salvar plano: ' + (err.message || 'Erro desconhecido'));
       }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveCampaign = async (data: any) => {
+    try {
+      setIsSaving(true);
+      const campaignData = {
+        name: data.name,
+        discount_percentage: Number(data.discount_percentage),
+        start_date: new Date(data.start_date).toISOString(),
+        end_date: new Date(data.end_date).toISOString(),
+        is_active: data.is_active,
+        target_plan_ids: data.target_plan_ids || []
+      };
+
+      const savePromise = selectedCampaign
+        ? supabase.from('saas_campaigns').update(campaignData).eq('id', selectedCampaign.id)
+        : supabase.from('saas_campaigns').insert([campaignData]);
+
+      const { error } = await savePromise;
+      if (error) throw error;
+
+      await fetchCampaigns();
+      setIsCampaignModalOpen(false);
+      alert('Campanha salva com sucesso!');
+    } catch (err: any) {
+      console.error('Erro ao salvar campanha:', err);
+      alert('Erro ao salvar campanha: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSaving(false);
     }
@@ -1660,6 +1729,7 @@ export const SaaSAdminPanel: React.FC = () => {
           <button 
             className="primary-btn" 
             onClick={
+              activeTab === 'campaigns' ? () => { setSelectedCampaign(null); setIsCampaignModalOpen(true); } :
               activeTab === 'plans' ? openNewPlan : 
               activeTab === 'billing' ? () => alert('Nova Cobrança Iniciada') : 
               openNewTenant
@@ -1668,6 +1738,7 @@ export const SaaSAdminPanel: React.FC = () => {
           >
             <Plus size={18} />
             {
+              activeTab === 'campaigns' ? 'NOVA CAMPANHA' :
               activeTab === 'plans' ? 'CRIAR PLANO' : 
               activeTab === 'billing' ? 'NOVA COBRANÇA' : 
               'NOVO TENANT'
@@ -2359,7 +2430,8 @@ export const SaaSAdminPanel: React.FC = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="saas-view"
+              className="saas-view-wrapper"
+              style={{ width: '100%' }}
             >
               <div className="tauze-controls-row">
                 <div className="tauze-search-wrapper">
@@ -2582,7 +2654,8 @@ export const SaaSAdminPanel: React.FC = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="saas-view"
+              className="saas-view-wrapper"
+              style={{ width: '100%' }}
             >
               <div className="tauze-controls-row">
                 <div className="tauze-search-wrapper">
@@ -2769,7 +2842,218 @@ export const SaaSAdminPanel: React.FC = () => {
                     })}
                 </div>
               )}
+
             </motion.div>
+            );
+          })()}
+
+          {activeTab === 'campaigns' && (() => {
+            const filteredCampaigns = campaignsList.filter(camp => {
+              const matchesSearch = camp.name.toLowerCase().includes(searchQuery.toLowerCase());
+              
+              // Advanced Filters
+              const isExpired = new Date(camp.end_date) < new Date();
+              const isActive = camp.is_active && !isExpired;
+              let campStatus = 'ativa';
+              if (!camp.is_active) campStatus = 'pausada';
+              if (isExpired) campStatus = 'expirada';
+              
+              const matchesStatus = filterValues.status === 'all' || campStatus === filterValues.status.toLowerCase();
+              const matchesMinDiscount = !filterValues.minDiscount || camp.discount_percentage >= filterValues.minDiscount;
+              const matchesMaxDiscount = filterValues.maxDiscount === undefined || camp.discount_percentage <= filterValues.maxDiscount;
+              
+              const matchesDateStart = !filterValues.dateStart || new Date(camp.start_date) >= new Date(filterValues.dateStart);
+              const matchesDateEnd = !filterValues.dateEnd || new Date(camp.end_date) <= new Date(filterValues.dateEnd);
+
+              return matchesSearch && matchesStatus && matchesMinDiscount && matchesMaxDiscount && matchesDateStart && matchesDateEnd;
+            });
+
+            const campaignColumns = [
+              { 
+                header: 'Campanha', 
+                accessor: (item: any) => (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Tag size={16} color="#f59e0b" />
+                    <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.name}</span>
+                  </div>
+                ),
+                align: 'left' as const 
+              },
+              { 
+                header: 'Desconto', 
+                accessor: (item: any) => (
+                  <span style={{ color: '#00b865', fontWeight: 800 }}>{item.discount_percentage}% OFF</span>
+                ),
+                align: 'left' as const
+              },
+              {
+                header: 'Status',
+                accessor: (item: any) => {
+                  const isExpired = new Date(item.end_date) < new Date();
+                  const isActive = item.is_active && !isExpired;
+                  return (
+                    <span className={`status-pill ${isActive ? 'active' : 'neutral'}`} style={{ fontSize: '11px', padding: '4px 10px' }}>
+                      {isActive ? 'ATIVA' : (isExpired ? 'EXPIRADA' : 'PAUSADA')}
+                    </span>
+                  );
+                },
+                align: 'center' as const
+              },
+              {
+                header: 'Início',
+                accessor: (item: any) => (
+                  <span style={{ color: '#334155', fontWeight: 600 }}>{new Date(item.start_date).toLocaleDateString()}</span>
+                ),
+                align: 'center' as const
+              },
+              {
+                header: 'Fim',
+                accessor: (item: any) => (
+                  <span style={{ color: '#334155', fontWeight: 600 }}>{new Date(item.end_date).toLocaleDateString()}</span>
+                ),
+                align: 'center' as const
+              }
+            ];
+
+            return (
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                style={{ width: '100%' }}
+              >
+                <div className="tauze-controls-row">
+                  <div className="tauze-search-wrapper">
+                    <Search size={18} className="s-icon" />
+                    <input 
+                      type="text"
+                      className="tauze-search-input"
+                      placeholder="Buscar por nome da campanha..." 
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="view-mode-toggle">
+                    <button 
+                      className={`view-btn ${campaignsViewMode === 'list' ? 'active' : ''}`}
+                      onClick={() => setCampaignsViewMode('list')}
+                      title="Visualização em Lista"
+                    >
+                      <ListIcon size={18} />
+                    </button>
+                    <button 
+                      className={`view-btn ${campaignsViewMode === 'grid' ? 'active' : ''}`}
+                      onClick={() => setCampaignsViewMode('grid')}
+                      title="Visualização em Cards"
+                    >
+                      <LayoutGrid size={18} />
+                    </button>
+                  </div>
+
+                  <div className="tauze-filter-group">
+                    <button 
+                      className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`}
+                      title="Filtros Avançados"
+                      onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                    >
+                      <Filter size={20} />
+                    </button>
+                    <div className="export-dropdown-container">
+                      <button className="icon-btn-secondary" title="Exportar">
+                        <FileText size={20} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="management-content">
+                  {campaignsViewMode === 'list' ? (
+                    <ModernTable 
+                      data={filteredCampaigns}
+                      columns={campaignColumns}
+                      loading={false}
+                      onRowClick={(item) => {
+                        setSelectedCampaign(item);
+                        setIsCampaignModalOpen(true);
+                      }}
+                      actions={(item) => (
+                        <div className="modern-actions">
+                          <button className="action-dot edit" onClick={(e) => { e.stopPropagation(); setSelectedCampaign(item); setIsCampaignModalOpen(true); }} title="Editar">
+                            <Edit3 size={18} />
+                          </button>
+                        </div>
+                      )}
+                    />
+                  ) : (
+                  <div className="user-cards-grid">
+                    {filteredCampaigns.map(camp => {
+                      const isExpired = new Date(camp.end_date) < new Date();
+                      const isActive = camp.is_active && !isExpired;
+                      
+                      return (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          key={camp.id}
+                          className={`tenant-card-premium ${isActive ? 'active' : 'stopped'}`}
+                          onClick={() => { setSelectedCampaign(camp); setIsCampaignModalOpen(true); }}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className="tenant-card-left-section">
+                            <div className="tenant-card-avatar" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+                              <Tag size={24} />
+                            </div>
+                            <div className="tenant-card-bottom-actions">
+                              <button 
+                                className="tenant-action-icon-btn" 
+                                onClick={(e) => { e.stopPropagation(); setSelectedCampaign(camp); setIsCampaignModalOpen(true); }} 
+                                title="Editar"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                          
+                          <div className="tenant-card-main-content">
+                            <div className="tenant-card-header-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                              <div>
+                                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: 'hsl(var(--text-main))', letterSpacing: '-0.02em', marginBottom: '4px' }}>{camp.name}</h3>
+                                <span className={`status-pill ${isActive ? 'active' : 'neutral'}`} style={{ fontSize: '10px', padding: '3px 8px', borderRadius: '6px' }}>
+                                  {isActive ? 'ATIVA' : (isExpired ? 'EXPIRADA' : 'PAUSADA')}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div style={{ margin: '12px 0' }}>
+                              <span style={{ fontSize: '12px', fontWeight: 800, color: '#00b865', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Desconto: {camp.discount_percentage}% OFF
+                              </span>
+                            </div>
+                            
+                            <div className="tenant-card-meta-grid" style={{ marginTop: 'auto', paddingTop: '12px', borderTop: '1px dashed hsl(var(--border))', display: 'flex', gap: '16px' }}>
+                              <div className="tenant-meta-item" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: '#64748b' }}>
+                                <Calendar size={14} style={{ color: '#94a3b8' }} />
+                                Início: {new Date(camp.start_date).toLocaleDateString()}
+                              </div>
+                              <div className="tenant-meta-item" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: '#64748b' }}>
+                                <Calendar size={14} style={{ color: '#94a3b8' }} />
+                                Fim: {new Date(camp.end_date).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                    {filteredCampaigns.length === 0 && (
+                      <div style={{ gridColumn: '1 / -1', padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        Nenhuma campanha encontrada.
+                      </div>
+                    )}
+                  </div>
+                )}
+                </div>
+              </motion.div>
             );
           })()}
 
@@ -2801,7 +3085,8 @@ export const SaaSAdminPanel: React.FC = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="saas-view"
+                className="saas-view-wrapper"
+                style={{ width: '100%' }}
               >
                 {/* Advanced Metrics & Strategic Actions - Diamond Parity 5.0 */}
                 <div className="health-grid" style={{ 
@@ -3006,7 +3291,8 @@ export const SaaSAdminPanel: React.FC = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="saas-view"
+              className="saas-view-wrapper"
+              style={{ width: '100%' }}
             >
               <div className="billing-settings-container">
                 {/* Global Status Banner */}
@@ -3390,6 +3676,15 @@ export const SaaSAdminPanel: React.FC = () => {
           onClose={() => setIsPlanModalOpen(false)}
           onSubmit={handleSavePlan}
           initialData={selectedPlan}
+          isSubmitting={isSaving}
+        />
+
+        <CampaignForm 
+          isOpen={isCampaignModalOpen}
+          onClose={() => setIsCampaignModalOpen(false)}
+          onSubmit={handleSaveCampaign}
+          initialData={selectedCampaign}
+          availablePlans={plansList}
           isSubmitting={isSaving}
         />
         {createPortal(

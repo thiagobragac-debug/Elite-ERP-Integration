@@ -17,6 +17,7 @@ interface AuthContextType {
   setAal: (level: 'aal1' | 'aal2' | null) => void;
   login: (email: string, password: string) => Promise<{ error: any }>;
   loginWithGoogle: () => Promise<{ error: any }>;
+  registerTenant: (payload: any) => Promise<{ error: any }>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -122,8 +123,84 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUser(null);
   };
 
+  const registerTenant = async (payload: { email: string; password: string; fullName: string; companyName: string }) => {
+    try {
+      // 1. Criar Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: payload.email,
+        password: payload.password,
+        options: {
+          data: { full_name: payload.fullName }
+        }
+      });
+
+      if (authError) throw authError;
+      
+      const newUserId = authData.user?.id;
+      if (!newUserId) throw new Error('Não foi possível obter o ID do usuário.');
+
+      // 2. Criar Tenant
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .insert([{ 
+          nome: payload.companyName, 
+          status: 'ativo', 
+          plano: 'trial' 
+        }])
+        .select()
+        .single();
+
+      if (tenantError) throw tenantError;
+
+      // 3. Criar Unidade (Empresa)
+      const { data: unidadeData, error: unidadeError } = await supabase
+        .from('unidades')
+        .insert([{
+          tenant_id: tenantData.id,
+          nome: payload.companyName,
+          tipo: 'Matriz'
+        }])
+        .select()
+        .single();
+
+      if (unidadeError) throw unidadeError;
+
+      // 4. Criar Fazenda
+      const { data: fazendaData, error: fazendaError } = await supabase
+        .from('fazendas')
+        .insert([{
+          tenant_id: tenantData.id,
+          unidade_id: unidadeData.id,
+          nome: 'Fazenda Principal'
+        }])
+        .select()
+        .single();
+
+      if (fazendaError) throw fazendaError;
+
+      // 5. Atualizar Profile
+      // Verifica se o profile já existe (criado por trigger) e faz um upsert
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert([{
+          id: newUserId,
+          tenant_id: tenantData.id,
+          role: 'ADMIN',
+          full_name: payload.fullName,
+          fazendas_permitidas: [fazendaData.id]
+        }]);
+
+      if (profileError) throw profileError;
+
+      return { error: null };
+    } catch (error: any) {
+      console.error('Erro no registro do tenant:', error);
+      return { error };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, aal, setAal, login, loginWithGoogle, logout, loading }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, aal, setAal, login, loginWithGoogle, registerTenant, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

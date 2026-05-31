@@ -3023,3 +3023,107 @@ input:focus, textarea:focus, select:focus {
 }
 
 
+
+/* === ADVANCED FORM COMPONENTS (PEC. DE PRECISÃO) === */
+.adv-section {
+  grid-column: 1 / -1;
+  background: white;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  margin-bottom: 8px;
+}
+.adv-section.alt-bg {
+  background: hsl(var(--bg-main));
+}
+.adv-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: hsl(var(--brand));
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+.adv-section-header.blue { color: #3b82f6; }
+.adv-section-header.yellow { color: #f59e0b; }
+.adv-section-header span {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.adv-highlight-green {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  padding: 12px 14px;
+  transition: all 0.3s;
+}
+
+.adv-highlight-yellow {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.adv-text-btn {
+  background: none;
+  border: none;
+  font-size: 10px;
+  font-weight: 800;
+  color: hsl(var(--brand));
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s;
+}
+.adv-text-btn.muted { color: hsl(var(--text-muted)); }
+.adv-text-btn:hover:not(:disabled) { color: hsl(var(--brand)); filter: brightness(0.8); }
+.adv-text-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.adv-smart-btn {
+  background: #fef3c7;
+  color: #d97706;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.adv-smart-btn:hover:not(:disabled) {
+  background: #fde68a;
+  color: #b45309;
+}
+.adv-smart-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.adv-capacity-bar-container {
+  margin-top: 8px;
+}
+.adv-capacity-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.adv-capacity-bar-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: hsl(var(--text-muted));
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.adv-capacity-bar-track {
+  background: hsl(var(--border));
+  border-radius: 99px;
+  height: 6px;
+  overflow: hidden;
+  position: relative;
+}

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { CountdownTimer } from '../components/UI/CountdownTimer';
+import { supabase } from '../lib/supabase';
 
 // ─── TAUZE SVG LOGO ──────────────────────────────────────────────────────────
 const TauzeLogo: React.FC<{ size?: number; color?: string }> = ({ size = 32, color = '#00b865' }) => (
@@ -79,6 +81,340 @@ export const LandingPage: React.FC = () => {
   const [weight, setWeight] = useState(482.4);
   const [purchaseStep, setPurchaseStep] = useState(0);
   const [fuelPct, setFuelPct] = useState(78);
+
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const [activeCampaign, setActiveCampaign] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchSaaSPlans = async () => {
+      try {
+        setLoadingPlans(true);
+        const { data, error } = await supabase
+          .from('saas_plans')
+          .select('*')
+          .order('price', { ascending: true });
+
+        // Fetch active campaigns
+        const nowIso = new Date().toISOString();
+        const { data: campaignData } = await supabase
+          .from('saas_campaigns')
+          .select('*')
+          .eq('is_active', true)
+          .gte('end_date', nowIso)
+          .lte('start_date', nowIso)
+          .order('discount_percentage', { ascending: false })
+          .limit(1);
+          
+        if (campaignData && campaignData.length > 0) {
+          setActiveCampaign(campaignData[0]);
+        }
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const mappedPlans = data.map((p: any) => {
+            const numPrice = Number(p.price) || 0;
+            return {
+              id: p.id,
+              name: p.name || 'Sem Nome',
+              price: numPrice,
+              usersLimit: p.users_limit || p.usersLimit || 5,
+              animalsLimit: p.animals_limit || p.animalsLimit || 1000,
+              storageLimit: p.storage_gb || p.storageLimit || 20,
+              features: Array.isArray(p.features) ? p.features : (p.features ? p.features.split('\n') : []),
+              isPopular: p.name?.toLowerCase().includes('precision') || p.name?.toLowerCase().includes('pro') || p.name?.toLowerCase().includes('diamond')
+            };
+          });
+          const publicPlans = mappedPlans.filter((p: any) => 
+            p.price > 0 && 
+            !p.name.toLowerCase().includes('free') && 
+            !p.name.toLowerCase().includes('gratis') && 
+            !p.name.toLowerCase().includes('gratuito')
+          );
+          setPlans(publicPlans);
+        } else {
+          // Standard agricultural fallback presets
+          setPlans([
+            {
+              id: 'starter',
+              name: 'Fazenda Starter',
+              price: 499,
+              usersLimit: 5,
+              animalsLimit: 1000,
+              storageLimit: 20,
+              features: [
+                'Controle de Rebanho & Pesagem Manual',
+                'Controle de Abastecimentos & Máquinas',
+                'Contas a Pagar e Contas a Receber',
+                'Suporte via WhatsApp em Horário Comercial',
+                'App Offline para Campo incluído'
+              ]
+            },
+            {
+              id: 'pro',
+              name: 'Diamond Precision',
+              price: 999,
+              usersLimit: 20,
+              animalsLimit: 5000,
+              storageLimit: 100,
+              features: [
+                'Pesagem Inteligente RFID Automática',
+                'Telemetria Completa de Frota JD/Case',
+                'Conciliação Bancária via Open Finance',
+                'Cotações Multi-Fornecedor & Compras',
+                'DRE, EBITDA & Custos Reais por Arroba',
+                'Suporte Prioritário VIP 24/7'
+              ],
+              isPopular: true
+            },
+            {
+              id: 'enterprise',
+              name: 'Cinturão Verde Enterprise',
+              price: 2499,
+              usersLimit: 999,
+              animalsLimit: 99999,
+              storageLimit: 1000,
+              features: [
+                'Múltiplas Fazendas & Holdings no mesmo Painel',
+                'Integração direta com Balanças e Bastões RFID',
+                'Relatório LCDPR e Compliance Fiscal Completo',
+                'Módulo BI Customizado & Exportações Ilimitadas',
+                'Consultoria Técnica de Implantação e Migração Dedicada'
+              ]
+            }
+          ]);
+        }
+      } catch (err) {
+        console.error('Erro ao buscar planos saas_plans:', err);
+        // Fallback presets
+        setPlans([
+          {
+            id: 'starter',
+            name: 'Fazenda Starter',
+            price: 499,
+            usersLimit: 5,
+            animalsLimit: 1000,
+            storageLimit: 20,
+            features: [
+              'Controle de Rebanho & Pesagem Manual',
+              'Controle de Abastecimentos & Máquinas',
+              'Contas a Pagar e Contas a Receber',
+              'Suporte via WhatsApp em Horário Comercial',
+              'App Offline para Campo incluído'
+            ]
+          },
+          {
+            id: 'pro',
+            name: 'Diamond Precision',
+            price: 999,
+            usersLimit: 20,
+            animalsLimit: 5000,
+            storageLimit: 100,
+            features: [
+              'Pesagem Inteligente RFID Automática',
+              'Telemetria Completa de Frota JD/Case',
+              'Conciliação Bancária via Open Finance',
+              'Cotações Multi-Fornecedor & Compras',
+              'DRE, EBITDA & Custos Reais por Arroba',
+              'Suporte Prioritário VIP 24/7'
+            ],
+            isPopular: true
+          },
+          {
+            id: 'enterprise',
+            name: 'Cinturão Verde Enterprise',
+            price: 2499,
+            usersLimit: 999,
+            animalsLimit: 99999,
+            storageLimit: 1000,
+            features: [
+              'Múltiplas Fazendas & Holdings no mesmo Painel',
+              'Integração direta com Balanças e Bastões RFID',
+              'Relatório LCDPR e Compliance Fiscal Completo',
+              'Módulo BI Customizado & Exportações Ilimitadas',
+              'Consultoria Técnica de Implantação e Migração Dedicada'
+            ]
+          }
+        ]);
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+
+    fetchSaaSPlans();
+  }, []);
+
+  const [tickerData, setTickerData] = useState<[string, string, string, boolean][]>([
+    ['🐂 BOI GORDO B3', 'R$ 286,40/@', '+0,85%', true],
+    ['🌾 SOJA B3', 'R$ 138,50/sc', '+1,20%', true],
+    ['🌽 MILHO B3', 'R$ 68,10/sc', '-0,45%', false],
+    ['☕ CAFÉ ARÁBICA B3', 'R$ 1.050,00/sc', '+0,30%', true],
+    ['💵 DÓLAR COMERCIAL', 'R$ 5,13', '-0,28%', false],
+    ['💶 EURO COMERCIAL', 'R$ 5,50', '+0,10%', true],
+    ['🛢️ PETRÓLEO BRENT', '$ 82,50/bbl', '+0,50%', true],
+  ]);
+
+  // Dynamic rolling future contract helper
+  const getDynamicTicker = (base: 'BGI' | 'CCM' | 'SJC' | 'ICF', monthsAhead = 12): string => {
+    const date = new Date();
+    date.setMonth(date.getMonth() + monthsAhead);
+    
+    const monthLetters = ['F', 'G', 'H', 'J', 'K', 'M', 'N', 'Q', 'U', 'V', 'X', 'Z'];
+    const activeMonthsMap = {
+      BGI: ['F', 'G', 'H', 'J', 'K', 'M', 'N', 'Q', 'U', 'V', 'X', 'Z'],
+      CCM: ['F', 'H', 'K', 'N', 'U', 'X'],
+      SJC: ['F', 'H', 'K', 'N', 'U', 'X'],
+      ICF: ['H', 'K', 'U', 'Z']
+    };
+    
+    const activeLetters = activeMonthsMap[base];
+    let monthIndex = date.getMonth();
+    let letter = monthLetters[monthIndex];
+    
+    while (!activeLetters.includes(letter)) {
+      date.setMonth(date.getMonth() + 1);
+      monthIndex = date.getMonth();
+      letter = monthLetters[monthIndex];
+    }
+    
+    const year = date.getFullYear().toString().slice(-2);
+    return `${base}${letter}${year}.SA`;
+  };
+
+  const fetchRealTimeTicker = async () => {
+    try {
+      // 1. Fetch Dólar and Euro from AwesomeAPI (direct, no CORS issue)
+      let usdVal = 'R$ 5,13';
+      let usdChg = '-0,28%';
+      let usdUp = false;
+      try {
+        const usdRes = await fetch('https://economia.awesomeapi.com.br/last/USD-BRL');
+        if (usdRes.ok) {
+          const usdData = await usdRes.json();
+          if (usdData.USDBRL) {
+            const bidVal = parseFloat(usdData.USDBRL.bid);
+            const pct = parseFloat(usdData.USDBRL.pctChange);
+            usdVal = `R$ ${bidVal.toFixed(2).replace('.', ',')}`;
+            usdChg = `${pct >= 0 ? '+' : ''}${pct.toFixed(2).replace('.', ',')}%`;
+            usdUp = pct >= 0;
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao buscar cotação do Dólar:', e);
+      }
+
+      let eurVal = 'R$ 5,50';
+      let eurChg = '+0,10%';
+      let eurUp = true;
+      try {
+        const eurRes = await fetch('https://economia.awesomeapi.com.br/last/EUR-BRL');
+        if (eurRes.ok) {
+          const eurData = await eurRes.json();
+          if (eurData.EURBRL) {
+            const bidVal = parseFloat(eurData.EURBRL.bid);
+            const pct = parseFloat(eurData.EURBRL.pctChange);
+            eurVal = `R$ ${bidVal.toFixed(2).replace('.', ',')}`;
+            eurChg = `${pct >= 0 ? '+' : ''}${pct.toFixed(2).replace('.', ',')}%`;
+            eurUp = pct >= 0;
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao buscar cotação do Euro:', e);
+      }
+
+      // 2. Tickers dynamic calculation
+      const bgiTicker = getDynamicTicker('BGI', 12); // ~1 year ahead
+      const ccmTicker = getDynamicTicker('CCM', 12); // ~1 year ahead
+      const sjcTicker = getDynamicTicker('SJC', 12); // ~1 year ahead
+      const icfTicker = getDynamicTicker('ICF', 12); // ~1 year ahead
+
+      // 3. Fetch from Yahoo Finance using CORS proxy (allorigins)
+      const fetchYahooQuote = async (ticker: string) => {
+        try {
+          const url = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}`)}`;
+          const res = await fetch(url);
+          if (res.ok) {
+            const data = await res.json();
+            const result = data?.chart?.result?.[0];
+            const meta = result?.meta;
+            if (meta) {
+              const price = meta.regularMarketPrice;
+              const prevClose = meta.previousClose;
+              const chgPct = prevClose ? ((price - prevClose) / prevClose) * 100 : 0;
+              return { price, chgPct };
+            }
+          }
+        } catch (err) {
+          console.error(`Erro ao buscar Yahoo ticker ${ticker}:`, err);
+        }
+        return null;
+      };
+
+      const [bgiQuote, ccmQuote, sjcQuote, icfQuote, brentQuote] = await Promise.all([
+        fetchYahooQuote(bgiTicker),
+        fetchYahooQuote(ccmTicker),
+        fetchYahooQuote(sjcTicker),
+        fetchYahooQuote(icfTicker),
+        fetchYahooQuote('BZ=F'), // Brent Crude Oil global index
+      ]);
+
+      const newTicker: [string, string, string, boolean][] = [
+        [
+          `🐂 BOI GORDO B3 (${bgiTicker.replace('.SA', '')})`,
+          bgiQuote ? `R$ ${bgiQuote.price.toFixed(2).replace('.', ',')}/@` : 'R$ 286,40/@',
+          bgiQuote ? `${bgiQuote.chgPct >= 0 ? '+' : ''}${bgiQuote.chgPct.toFixed(2).replace('.', ',')}%` : '+0,85%',
+          bgiQuote ? bgiQuote.chgPct >= 0 : true
+        ],
+        [
+          `🌾 SOJA B3 (${sjcTicker.replace('.SA', '')})`,
+          sjcQuote ? `R$ ${sjcQuote.price.toFixed(2).replace('.', ',')}/sc` : 'R$ 138,50/sc',
+          sjcQuote ? `${sjcQuote.chgPct >= 0 ? '+' : ''}${sjcQuote.chgPct.toFixed(2).replace('.', ',')}%` : '+1,20%',
+          sjcQuote ? sjcQuote.chgPct >= 0 : true
+        ],
+        [
+          `🌽 MILHO B3 (${ccmTicker.replace('.SA', '')})`,
+          ccmQuote ? `R$ ${ccmQuote.price.toFixed(2).replace('.', ',')}/sc` : 'R$ 68,10/sc',
+          ccmQuote ? `${ccmQuote.chgPct >= 0 ? '+' : ''}${ccmQuote.chgPct.toFixed(2).replace('.', ',')}%` : '-0,45%',
+          ccmQuote ? ccmQuote.chgPct >= 0 : false
+        ],
+        [
+          `☕ CAFÉ ARÁBICA B3 (${icfTicker.replace('.SA', '')})`,
+          icfQuote ? `R$ ${icfQuote.price.toFixed(2).replace('.', ',')}/sc` : 'R$ 1.050,00/sc',
+          icfQuote ? `${icfQuote.chgPct >= 0 ? '+' : ''}${icfQuote.chgPct.toFixed(2).replace('.', ',')}%` : '+0,30%',
+          icfQuote ? icfQuote.chgPct >= 0 : true
+        ],
+        [
+          '💵 DÓLAR COMERCIAL',
+          usdVal,
+          usdChg,
+          usdUp
+        ],
+        [
+          '💶 EURO COMERCIAL',
+          eurVal,
+          eurChg,
+          eurUp
+        ],
+        [
+          '🛢️ PETRÓLEO BRENT',
+          brentQuote ? `$ ${brentQuote.price.toFixed(2).replace('.', ',')}/bbl` : '$ 82,50/bbl',
+          brentQuote ? `${brentQuote.chgPct >= 0 ? '+' : ''}${brentQuote.chgPct.toFixed(2).replace('.', ',')}%` : '+0,50%',
+          brentQuote ? brentQuote.chgPct >= 0 : true
+        ],
+      ];
+
+      setTickerData(newTicker);
+    } catch (error) {
+      console.error('Erro na atualização geral do ticker:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRealTimeTicker();
+    const interval = setInterval(fetchRealTimeTicker, 15 * 60 * 1000); // 15 em 15 minutos
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -343,14 +679,7 @@ export const LandingPage: React.FC = () => {
         <div style={{ display: 'flex', animation: 'ticker-scroll 28s linear infinite', width: 'max-content', height: '100%', alignItems: 'center' }}>
           {[...Array(2)].map((_, r) => (
             <div key={r} style={{ display: 'flex', gap: 40, paddingRight: 40, alignItems: 'center', height: '100%' }}>
-              {[
-                ['🐂 BOI GORDO B3', 'R$ 286,40/@', '+0,85%', true],
-                ['🌾 SOJA PARANAGUÁ', 'R$ 138,50/sc', '+1,20%', true],
-                ['🌽 MILHO B3', 'R$ 68,10/sc', '-0,45%', false],
-                ['💵 DÓLAR COMERCIAL', 'R$ 5,13', '-0,28%', false],
-                ['🏦 API BANCÁRIA', '6 BANCOS ATIVOS', 'ONLINE', true],
-                ['📋 NF-e XML', 'IMPORTAÇÃO AUTOMÁTICA', '✓', true],
-              ].map(([label, val, chg, up], i) => (
+              {tickerData.map(([label, val, chg, up], i) => (
                 <span key={i} style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.55)', whiteSpace: 'nowrap', display: 'flex', gap: 6, alignItems: 'center' }}>
                   <span>{label as string}</span>
                   <span style={{ color: '#fff', fontWeight: 800 }}>{val as string}</span>
@@ -384,14 +713,14 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', gap: 32, alignItems: 'center' }}>
-            {[['Módulos', '#modulos'], ['Demonstrativo', '#demo'], ['Resultados', '#resultados'], ['FAQ', '#faq']].map(([l, h]) => (
+            {[['Módulos', '#modulos'], ['Demonstrativo', '#demo'], ['Resultados', '#resultados'], ['Planos', '#planos'], ['FAQ', '#faq']].map(([l, h]) => (
               <a key={l} href={h} className="nav-link">{l}</a>
             ))}
           </div>
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
             <Link to="/login" className="btn-ghost" style={{ padding: '10px 20px', fontSize: 13 }}>Entrar</Link>
-            <a href="#contato" className="btn-primary" style={{ padding: '10px 20px', fontSize: 13 }}>Solicitar Demo</a>
+            <Link to="/cadastro" className="btn-primary" style={{ padding: '10px 20px', fontSize: 13 }}>Teste Gratuito</Link>
           </div>
         </div>
       </nav>
@@ -433,10 +762,10 @@ export const LandingPage: React.FC = () => {
             </p>
 
             <div className="fade-up d3" style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 48 }}>
-              <a href="#contato" className="btn-primary">
-                <span>Solicitar Demonstração</span>
+              <Link to="/cadastro" className="btn-primary">
+                <span>Teste Gratuito</span>
                 <span style={{ fontSize: 18 }}>→</span>
-              </a>
+              </Link>
               <Link to="/login" className="btn-ghost">
                 <span>Acessar o ERP</span>
               </Link>
@@ -718,6 +1047,159 @@ export const LandingPage: React.FC = () => {
                 <div style={{ fontSize: 28, marginBottom: 12 }}>{c.icon}</div>
                 <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>{c.title}</div>
                 <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{c.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ──── PRICING PLANS SECTION ──── */}
+      <section id="planos" style={{ padding: '100px 40px', background: 'rgba(0,184,101,0.01)', borderTop: '1px solid rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 60 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#00b865', letterSpacing: '0.1em', marginBottom: 14 }}>TABELA DE PLANOS</div>
+            <h2 style={{ fontSize: 'clamp(26px, 3.5vw, 42px)', fontWeight: 900, letterSpacing: '-0.03em', marginBottom: 16 }}>
+              Planos flexíveis para a escala do seu negócio
+            </h2>
+            <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.45)', maxWidth: 500, margin: '0 auto' }}>
+              Escolha a oferta comercial ideal para o tamanho da sua fazenda e integre toda a sua operação.
+            </p>
+            {activeCampaign && (
+              <div style={{ 
+                marginTop: 30,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 20,
+                background: 'linear-gradient(90deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.2) 100%)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                padding: '12px 24px',
+                borderRadius: 100
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 20 }}>🔥</span>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#f59e0b', textTransform: 'uppercase' }}>{activeCampaign.name}</div>
+                    <div style={{ fontSize: 14, color: '#fff', fontWeight: 600 }}>{activeCampaign.discount_percentage}% OFF em todos os planos</div>
+                  </div>
+                </div>
+                <div style={{ width: 1, height: 30, background: 'rgba(245, 158, 11, 0.3)' }} />
+                <CountdownTimer targetDate={activeCampaign.end_date} />
+              </div>
+            )}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 30, alignItems: 'stretch' }}>
+            {plans.map((plan: any, idx: number) => (
+              <div
+                key={plan.id || idx}
+                style={{
+                  background: plan.isPopular ? 'linear-gradient(135deg, rgba(0,184,101,0.08) 0%, rgba(8,13,20,0.6) 100%)' : 'rgba(255,255,255,0.02)',
+                  border: plan.isPopular ? '2px solid #00b865' : '1px solid rgba(255,255,255,0.07)',
+                  borderRadius: 24,
+                  padding: '40px 32px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative',
+                  boxShadow: plan.isPopular ? '0 20px 40px rgba(0,184,101,0.15)' : 'none',
+                  transition: 'all 0.3s'
+                }}
+              >
+                {plan.isPopular && (
+                  <span style={{
+                    position: 'absolute',
+                    top: -14,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: '#00b865',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 900,
+                    padding: '4px 14px',
+                    borderRadius: 100,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase'
+                  }}>
+                    ★ MAIS POPULAR (RECOMENDADO)
+                  </span>
+                )}
+
+                <div style={{ marginBottom: 28 }}>
+                  <h3 style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 12 }}>{plan.name}</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {activeCampaign && plan.price > 0 && (
+                      <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', textDecoration: 'line-through', fontWeight: 600 }}>
+                        De R$ {plan.price.toLocaleString('pt-BR')}
+                      </span>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                      <span style={{ fontSize: 'clamp(32px, 4vw, 42px)', fontWeight: 900, color: activeCampaign ? '#f59e0b' : '#fff' }}>
+                        {plan.price === 0 ? 'Grátis' : (
+                          activeCampaign 
+                            ? `R$ ${(plan.price * (1 - (activeCampaign.discount_percentage / 100))).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` 
+                            : `R$ ${plan.price.toLocaleString('pt-BR')}`
+                        )}
+                      </span>
+                      {plan.price !== 0 && (
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>/mês</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Limits badge/grid */}
+                <div style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  borderRadius: 16,
+                  padding: '16px 20px',
+                  marginBottom: 28,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  border: '1px solid rgba(255,255,255,0.04)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
+                    <span>👥</span>
+                    <span>Até <strong>{plan.usersLimit === 999 ? 'Ilimitados' : `${plan.usersLimit} usuários`}</strong></span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
+                    <span>🐂</span>
+                    <span>Até <strong>{plan.animalsLimit === 99999 ? 'Ilimitados' : `${plan.animalsLimit.toLocaleString('pt-BR')} cabeças`}</strong></span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>
+                    <span>💾</span>
+                    <span>Base de <strong>{plan.storageLimit} GB</strong> armazenamento</span>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 28 }} />
+
+                {/* Features */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 40 }}>
+                  {plan.features.map((feat: string, i: number) => (
+                    <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>
+                      <span style={{ color: '#00b865', fontWeight: 900 }}>✓</span>
+                      <span>{feat}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Action button connected to SaaS provision / login */}
+                <Link
+                  to={`/login?plan=${encodeURIComponent(plan.name)}`}
+                  className={plan.isPopular ? 'btn-primary' : 'btn-ghost'}
+                  style={{
+                    width: '100%',
+                    justifyContent: 'center',
+                    padding: '16px',
+                    borderRadius: 14,
+                    fontSize: 14,
+                    fontWeight: 800,
+                    textAlign: 'center'
+                  }}
+                >
+                  {plan.price === 0 ? 'Iniciar Teste Grátis' : 'Escolher este Plano'}
+                </Link>
               </div>
             ))}
           </div>

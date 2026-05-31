@@ -17,6 +17,8 @@ interface SaaSFilterModalProps {
     maxPrice?: number;
     minStorage?: number;
     maxStorage?: number;
+    minDiscount?: number;
+    maxDiscount?: number;
   };
   setFilters: (filters: any) => void;
   activeTab: string;
@@ -144,7 +146,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
-                    {activeTab === 'plans' ? 'Filtros de Planos' : activeTab === 'billing' ? 'Filtros de Cobrança' : 'Filtros de Tenants'}
+                    {activeTab === 'plans' ? 'Filtros de Planos' : activeTab === 'billing' ? 'Filtros de Cobrança' : activeTab === 'campaigns' ? 'Filtros de Campanhas' : 'Filtros de Tenants'}
                   </h2>
                   <p style={{ margin: '2px 0 0 0', fontSize: '10px', fontWeight: '700', color: '#64748b' }}>
                     Refine a busca por critérios de governança.
@@ -434,6 +436,79 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   </div>
                 </>
               )}
+              {/* 4. TAB CAMPAIGNS */}
+              {activeTab === 'campaigns' && (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Status da Campanha <span style={{ color: '#94a3b8' }}>⚡</span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                      {['all', 'ativa', 'pausada', 'expirada'].map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setFilters({ ...filters, status: s })}
+                          style={getButtonStyle(filters.status === s, 'amber')}
+                        >
+                          {s === 'all' ? 'TODAS' : s.toUpperCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <Activity size={14} style={{ color: '#f59e0b' }} /> Faixa de Desconto (%)
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÍNIMO (%)</span>
+                        <input 
+                          type="number" 
+                          value={filters.minDiscount ?? 0}
+                          onChange={(e) => setFilters({ ...filters, minDiscount: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>MÁXIMO (%)</span>
+                        <input 
+                          type="number" 
+                          value={filters.maxDiscount ?? 100}
+                          onChange={(e) => setFilters({ ...filters, maxDiscount: Number(e.target.value) })}
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Período de Vigência <span style={{ color: '#94a3b8' }}>📅</span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>INÍCIO</span>
+                        <input 
+                          type="date" 
+                          value={filters.dateStart}
+                          onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>FIM</span>
+                        <input 
+                          type="date" 
+                          value={filters.dateEnd}
+                          onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Bottom Actions */}
@@ -456,7 +531,9 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     minPrice: 0,
                     maxPrice: 10000,
                     minStorage: 0,
-                    maxStorage: 1000
+                    maxStorage: 1000,
+                    minDiscount: 0,
+                    maxDiscount: 100
                   });
                 }}
                 style={{
@@ -494,7 +571,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   outline: 'none'
                 }}
               >
-                {activeTab === 'plans' ? 'FILTRAR PLANOS' : activeTab === 'billing' ? 'FILTRAR COBRANÇAS' : 'FILTRAR TENANTS'}
+                {activeTab === 'plans' ? 'FILTRAR PLANOS' : activeTab === 'billing' ? 'FILTRAR COBRANÇAS' : activeTab === 'campaigns' ? 'FILTRAR CAMPANHAS' : 'FILTRAR TENANTS'}
               </button>
             </div>
           </motion.div>
