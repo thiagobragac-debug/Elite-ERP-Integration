@@ -9,7 +9,7 @@ import {
   Cpu,
   RefreshCw
 } from 'lucide-react';
-import { FormModal } from '../../../components/Forms/FormModal';
+import { SidePanel } from '../../../components/Layout/SidePanel';
 
 interface ScaleConfigModalProps {
   isOpen: boolean;
@@ -53,7 +53,7 @@ export const ScaleConfigModal: React.FC<ScaleConfigModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); handleConnect(); }}
@@ -241,6 +241,6 @@ export const ScaleConfigModal: React.FC<ScaleConfigModalProps> = ({ isOpen, onCl
           box-shadow: 0 4px 12px hsl(var(--brand) / 0.05);
         }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };

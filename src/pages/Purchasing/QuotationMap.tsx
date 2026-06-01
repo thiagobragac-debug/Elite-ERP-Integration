@@ -49,6 +49,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { QuotationFilterModal } from './components/QuotationFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 export const QuotationMap: React.FC = () => {
   const { activeTenantId } = useTenant();
@@ -178,7 +179,7 @@ export const QuotationMap: React.FC = () => {
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate) {
-      alert('⚠️ Selecione uma unidade específica para criar um mapa de cotação. No modo Visão Global, a fazenda emitente deve ser definida.');
+      toast.error('⚠️ Selecione uma unidade específica para criar um mapa de cotação. No modo Visão Global, a fazenda emitente deve ser definida.');
       return;
     }
     const payload = {
@@ -242,7 +243,7 @@ export const QuotationMap: React.FC = () => {
       fetchQuotations();
     } else {
       console.error('[QuotationMap] Error approving supplier:', error);
-      alert('❌ Erro ao aprovar parceiro: ' + (error.message || 'Erro desconhecido'));
+      toast.error('❌ Erro ao aprovar parceiro: ' + (error.message || 'Erro desconhecido'));
     }
   };
 

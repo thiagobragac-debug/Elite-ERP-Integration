@@ -29,6 +29,7 @@ import { useReportData } from '../../hooks/useReportData';
 import { NutritionFilterModal } from './components/NutritionFilterModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 export const NutritionManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -74,7 +75,7 @@ export const NutritionManagement: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate && !selectedDiet) {
-      alert('⚠️ Selecione uma unidade específica para formular uma nova dieta.');
+      toast.error('⚠️ Selecione uma unidade específica para formular uma nova dieta.');
       return;
     }
 
@@ -101,7 +102,7 @@ export const NutritionManagement: React.FC = () => {
       setIsModalOpen(false);
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao salvar dieta: ' + err.message);
+      toast.error('❌ Erro ao salvar dieta: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -114,7 +115,7 @@ export const NutritionManagement: React.FC = () => {
       if (error) throw error;
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao excluir dieta: ' + err.message);
+      toast.error('❌ Erro ao excluir dieta: ' + err.message);
     }
   };
 

@@ -16,12 +16,14 @@ import {
   ChevronDown,
   Beef
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
+import toast from 'react-hot-toast';
+import { SearchableSelect } from './SearchableSelect';
 
 interface RelocateFormProps {
   isOpen: boolean;
@@ -386,9 +388,9 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedAnimals.length === 0) { alert('Selecione ao menos um animal.'); return; }
-    if (!formData.targetLotId) { alert('Selecione o lote de destino.'); return; }
-    if (!formData.motivo) { alert('Informe o motivo do remanejamento.'); return; }
+    if (selectedAnimals.length === 0) { toast.error('Selecione ao menos um animal.'); return; }
+    if (!formData.targetLotId) { toast.error('Selecione o lote de destino.'); return; }
+    if (!formData.motivo) { toast.error('Informe o motivo do remanejamento.'); return; }
     setShowConfirm(true);
   };
 
@@ -489,7 +491,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
   // ── Form ───────────────────────────────────────────────────────────────
   return (
     <>
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleConfirm}
@@ -546,10 +548,15 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
               <FileText size={12} /> Motivo do Remanejamento
             </label>
-            <select value={formData.motivo} onChange={e => setFormData(f => ({ ...f, motivo: e.target.value }))} required style={{ width: '100%', fontSize: '13px' }}>
-              <option value="">Selecione o motivo...</option>
-              {MOTIVOS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+                    <SearchableSelect 
+          value={formData.motivo}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione o motivo...` },
+            { value: `{m}`, label: `{m}` },
+            ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
+          ]}
+        />
           </div>
 
         </div>
@@ -714,7 +721,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
       <style>{`
         .text-btn-sm { background: none; border: none; font-size: 10px; font-weight: 800; color: hsl(var(--brand)); cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; display: inline-flex; align-items: center; }
       `}</style>
-    </FormModal>
+    </SidePanel>
     {confirmOverlay}
   </>
   );

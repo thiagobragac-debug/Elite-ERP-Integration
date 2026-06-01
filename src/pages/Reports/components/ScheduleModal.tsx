@@ -16,6 +16,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../contexts/TenantContext';
+import toast from 'react-hot-toast';
 
 interface ScheduleModalProps {
   report: any;
@@ -71,7 +72,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
       }, 2000);
     } catch (error) {
       console.error('Erro ao salvar agendamento:', error);
-      alert('Erro ao processar agendamento. Verifique sua conexão.');
+      toast.error('Erro ao processar agendamento. Verifique sua conexão.');
     } finally {
       setIsSaving(false);
     }

@@ -6,7 +6,7 @@ import {
   AlertCircle,
   FileText
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 
 interface ProfileFormProps {
   isOpen: boolean;
@@ -103,7 +103,7 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSub
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -151,6 +151,6 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSub
           ))}
         </div>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

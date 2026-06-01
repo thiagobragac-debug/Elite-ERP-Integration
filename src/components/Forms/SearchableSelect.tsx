@@ -14,6 +14,7 @@ interface SearchableSelectProps {
   placeholder?: string;
   icon?: React.ReactNode;
   creatable?: boolean;
+  disabled?: boolean;
 }
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -22,7 +23,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   options,
   placeholder = 'Selecione...',
   icon,
-  creatable = false
+  creatable = false,
+  disabled = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -82,19 +84,21 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   return (
     <div ref={wrapperRef} style={{ position: 'relative', width: '100%' }}>
       <div 
-        className={`tauze-input ${isOpen ? 'focused' : ''}`}
+        className={`tauze-input ${isOpen ? 'focused' : ''} ${disabled ? 'disabled' : ''}`}
         style={{ 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between',
           padding: '0 14px',
-          background: 'var(--bg-main)',
+          background: disabled ? 'hsl(var(--bg-main) / 0.5)' : 'var(--bg-main)',
           minHeight: '42px',
-          cursor: 'text',
+          cursor: disabled ? 'not-allowed' : 'text',
+          opacity: disabled ? 0.6 : 1,
           border: isOpen ? '1px solid hsl(var(--brand))' : undefined,
           boxShadow: isOpen ? '0 0 0 4px hsl(var(--brand) / 0.1)' : undefined
         }}
         onClick={() => {
+          if (disabled) return;
           setIsOpen(true);
           inputRef.current?.focus();
         }}
@@ -111,6 +115,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               setIsOpen(true);
             }}
             onFocus={() => setIsOpen(true)}
+            disabled={disabled}
             style={{
               border: 'none',
               background: 'transparent',
@@ -118,7 +123,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               width: '100%',
               padding: '10px 0',
               fontSize: '13px',
-              color: 'inherit'
+              color: 'inherit',
+              cursor: disabled ? 'not-allowed' : 'inherit'
             }}
           />
         </div>
@@ -133,14 +139,15 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       {isOpen && createPortal(
         <div id="searchable-select-portal" style={{
           ...dropdownStyle,
-          background: '#fff',
-          border: '1px solid #e2e8f0',
-          borderRadius: '8px',
-          boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+          background: 'hsl(var(--bg-sidebar))',
+          border: '1px solid hsl(var(--border))',
+          borderRadius: '12px',
+          boxShadow: '0 10px 30px -10px rgb(0 0 0 / 0.5)',
           maxHeight: '250px',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          animation: 'slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
         }}>
           <div style={{ overflowY: 'auto', padding: '4px' }}>
             {showCreatable && (
@@ -157,8 +164,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   borderRadius: '4px',
                   display: 'flex',
                   alignItems: 'center',
-                  background: '#f0fdf4',
-                  color: '#16a34a',
+                  background: 'hsl(var(--brand) / 0.1)',
+                  color: 'hsl(var(--brand))',
                   fontWeight: 600,
                   marginBottom: '4px'
                 }}
@@ -168,8 +175,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             )}
             
             {filteredOptions.length === 0 && !showCreatable ? (
-              <div style={{ padding: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
-                Nenhum resultado encontrado. <br/> <span style={{ fontSize: '10px' }}>[Total base: {options.length}]</span>
+              <div style={{ padding: '16px', textAlign: 'center', color: 'hsl(var(--text-muted))', fontSize: '13px' }}>
+                Nenhum resultado encontrado. <br/> <span style={{ fontSize: '10px', marginTop: '4px', display: 'block' }}>[Total base: {options.length}]</span>
               </div>
             ) : (
               filteredOptions.map(opt => (
@@ -188,16 +195,16 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    background: value === opt.value ? '#f8fafc' : 'transparent',
-                    transition: 'background 0.2s',
+                    background: value === opt.value ? 'hsl(var(--brand) / 0.08)' : 'transparent',
+                    transition: 'all 0.2s',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = value === opt.value ? '#f8fafc' : 'transparent'}
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'hsl(var(--bg-main))'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = value === opt.value ? 'hsl(var(--brand) / 0.08)' : 'transparent'}
                 >
                   <span style={{ 
                     fontSize: '13px', 
-                    fontWeight: value === opt.value ? 600 : 500,
-                    color: value === opt.value ? 'hsl(var(--brand))' : '#334155'
+                    fontWeight: value === opt.value ? 700 : 500,
+                    color: value === opt.value ? 'hsl(var(--brand))' : 'hsl(var(--text-main))'
                   }}>
                     {opt.label}
                   </span>

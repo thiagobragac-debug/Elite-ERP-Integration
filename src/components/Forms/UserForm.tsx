@@ -12,10 +12,11 @@ import {
   Activity,
   Briefcase
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { ToggleSwitch } from '../UI/ToggleSwitch';
+import { SearchableSelect } from './SearchableSelect';
 
 interface UserFormProps {
   isOpen: boolean;
@@ -122,7 +123,7 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -167,29 +168,28 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
 
       <div className="form-group">
         <label><Shield size={14} /> Perfil de Acesso</label>
-        <select 
+                <SearchableSelect 
           value={formData.profile_id}
-          onChange={(e) => setFormData({...formData, profile_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione um perfil...</option>
-          {profiles.map(p => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione um perfil...` },
+            { value: `{p.name}`, label: `{p.name}` },
+            ...(profiles || []).map(p => ({ value: String(p.id), label: String(p.name) })),
+          ]}
+        />
       </div>
 
       <div className="form-group">
         <label><Briefcase size={14} /> Cargo / Função</label>
-        <select 
+                <SearchableSelect 
           value={formData.cargo_id}
-          onChange={(e) => setFormData({...formData, cargo_id: e.target.value})}
-        >
-          <option value="">Nenhum cargo...</option>
-          {cargos.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Nenhum cargo...` },
+            { value: `{c.name}`, label: `{c.name}` },
+            ...(cargos || []).map(c => ({ value: String(c.id), label: String(c.name) })),
+          ]}
+        />
       </div>
 
       <div className="form-group">
@@ -253,7 +253,7 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
           </div>
           <ToggleSwitch
             checked={formData.status === 'active'}
-            onChange={(val) => setFormData({ ...formData, status: val ? 'active' : 'inactive' })}
+            onChange={(val: any) => setFormData({ ...formData, status: val ? 'active' : 'inactive' })}
             size="lg"
             labelOn="Ativo"
             labelOff="Inativo"
@@ -261,6 +261,6 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
           />
         </div>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

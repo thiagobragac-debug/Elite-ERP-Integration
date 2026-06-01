@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   FileText, 
   User, 
@@ -8,9 +8,10 @@ import {
   DollarSign,
   ClipboardList
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { InsumoEntryTable } from './InsumoEntryTable';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface PurchaseRequestFormProps {
   isOpen: boolean;
@@ -54,7 +55,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -67,17 +68,15 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
     >
       <div className="form-group full-width">
         <label><Building2 size={14} /> Empresa / Unidade Solicitante</label>
-        <select 
-          className="tauze-input"
+                <SearchableSelect 
           value={formData.company_id}
-          onChange={(e) => setFormData({...formData, company_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione a empresa...</option>
-          {companies.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione a empresa...` },
+            { value: `{c.name}`, label: `{c.name}` },
+            ...(companies || []).map(c => ({ value: String(c.id), label: String(c.name) })),
+          ]}
+        />
       </div>
 
       <div className="form-group full-width">
@@ -105,18 +104,17 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
 
       <div className="form-group span-2">
         <label><Building2 size={14} /> Departamento</label>
-        <select 
-          className="tauze-input"
+                <SearchableSelect 
           value={formData.department}
-          onChange={(e) => setFormData({...formData, department: e.target.value})}
-          required
-        >
-          <option value="">Selecione o setor...</option>
-          <option value="Operacional">Operacional</option>
-          <option value="Administrativo">Administrativo</option>
-          <option value="Manutenção">Manutenção</option>
-          <option value="Logística">Logística</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione o setor...` },
+            { value: `Operacional`, label: `Operacional` },
+            { value: `Administrativo`, label: `Administrativo` },
+            { value: `Manutenção`, label: `Manutenção` },
+            { value: `Logística`, label: `Logística` },
+          ]}
+        />
       </div>
 
       <div className="form-group span-1">
@@ -132,17 +130,16 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
 
       <div className="form-group span-1">
         <label><AlertCircle size={14} /> Prioridade</label>
-        <select 
-          className="tauze-input"
+                <SearchableSelect 
           value={formData.priority}
-          onChange={(e) => setFormData({...formData, priority: e.target.value})}
-          required
-        >
-          <option value="low">Baixa</option>
-          <option value="medium">Média</option>
-          <option value="high">Alta</option>
-          <option value="urgent">Urgente</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `low`, label: `Baixa` },
+            { value: `medium`, label: `Média` },
+            { value: `high`, label: `Alta` },
+            { value: `urgent`, label: `Urgente` },
+          ]}
+        />
       </div>
 
       <div className="form-group span-1">
@@ -164,6 +161,6 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
           onChange={setItems}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

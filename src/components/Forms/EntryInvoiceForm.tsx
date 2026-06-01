@@ -12,10 +12,11 @@ import {
   Banknote,
   Wallet
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { InsumoEntryTable } from './InsumoEntryTable';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface EntryInvoiceFormProps {
   isOpen: boolean;
@@ -134,7 +135,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -149,17 +150,15 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         {/* LINHA 1 - IDENTIFICAÇÃO */}
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
           <label><Building2 size={14} /> Empresa</label>
-          <select 
-            className="tauze-input"
-            value={formData.company_id}
-            onChange={(e) => setFormData({...formData, company_id: e.target.value})}
-            required
-          >
-            <option value="">Selecione...</option>
-            {companies.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+                  <SearchableSelect 
+          value={formData.company_id}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione...` },
+            { value: `{c.name}`, label: `{c.name}` },
+            ...(companies || []).map(c => ({ value: String(c.id), label: String(c.name) })),
+          ]}
+        />
         </div>
 
         <div className="form-group" style={{ gridColumn: 'span 6' }}>
@@ -206,17 +205,15 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         {/* LINHA 2 - METADADOS */}
         <div className="form-group" style={{ gridColumn: 'span 6' }}>
           <label><Building2 size={14} /> Parceiro</label>
-          <select 
-            className="tauze-input"
-            value={formData.supplier_id}
-            onChange={(e) => setFormData({...formData, supplier_id: e.target.value})}
-            required
-          >
-            <option value="">Selecione o parceiro...</option>
-            {suppliers.map(s => (
-              <option key={s.id} value={s.id}>{s.nome}</option>
-            ))}
-          </select>
+                  <SearchableSelect 
+          value={formData.supplier_id}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione o parceiro...` },
+            { value: `{s.nome}`, label: `{s.nome}` },
+            ...(suppliers || []).map(s => ({ value: String(s.id), label: String(s.nome) })),
+          ]}
+        />
         </div>
 
         <div className="form-group" style={{ gridColumn: 'span 2' }}>
@@ -274,31 +271,29 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '16px' }}>
             <div className="form-group" style={{ gridColumn: 'span 3' }}>
               <label><Banknote size={14} /> Condição</label>
-              <select 
-                className="tauze-input"
-                value={formData.payment_condition}
-                onChange={(e) => setFormData({...formData, payment_condition: e.target.value})}
-                required
-              >
-                <option value="vista">À Vista</option>
-                <option value="prazo">Parcelado / A Prazo</option>
-              </select>
+                      <SearchableSelect 
+          value={formData.payment_condition}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `vista`, label: `À Vista` },
+            { value: `prazo`, label: `Parcelado / A Prazo` },
+          ]}
+        />
             </div>
 
             <div className="form-group" style={{ gridColumn: 'span 3' }}>
               <label><CreditCard size={14} /> Meio de Pagamento</label>
-              <select 
-                className="tauze-input"
-                value={formData.payment_method}
-                onChange={(e) => setFormData({...formData, payment_method: e.target.value})}
-                required
-              >
-                <option value="Boleto">Boleto</option>
-                <option value="Pix">Pix</option>
-                <option value="Transferência">Transferência</option>
-                <option value="Cartão de Crédito">Cartão de Crédito</option>
-                <option value="Dinheiro">Dinheiro</option>
-              </select>
+                      <SearchableSelect 
+          value={formData.payment_method}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Boleto`, label: `Boleto` },
+            { value: `Pix`, label: `Pix` },
+            { value: `Transferência`, label: `Transferência` },
+            { value: `Cartão de Crédito`, label: `Cartão de Crédito` },
+            { value: `Dinheiro`, label: `Dinheiro` },
+          ]}
+        />
             </div>
 
             {formData.payment_condition === 'prazo' && (
@@ -317,17 +312,15 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
 
             <div className="form-group" style={{ gridColumn: formData.payment_condition === 'prazo' ? 'span 4' : 'span 6' }}>
               <label><Wallet size={14} /> Conta / Caixa</label>
-              <select 
-                className="tauze-input"
-                value={formData.bank_account_id}
-                onChange={(e) => setFormData({...formData, bank_account_id: e.target.value})}
-                required
-              >
-                <option value="">Selecione a conta...</option>
-                {bankAccounts.map(account => (
-                  <option key={account.id} value={account.id}>{account.descricao || account.banco}</option>
-                ))}
-              </select>
+                      <SearchableSelect 
+          value={formData.bank_account_id}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione a conta...` },
+            { value: `{account.descricao || account.banco}`, label: `{account.descricao || account.banco}` },
+            ...(bankAccounts || []).map(account => ({ value: String(account.id), label: String(account.descricao || account.banco) })),
+          ]}
+        />
             </div>
 
             <div className="form-group" style={{ gridColumn: 'span 12', display: 'flex', alignItems: 'center', gap: '12px', background: 'hsl(var(--brand)/0.05)', padding: '12px', borderRadius: '12px', border: '1px dashed hsl(var(--brand)/0.3)', marginTop: '8px' }}>
@@ -393,6 +386,6 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
           />
         </div>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

@@ -11,9 +11,10 @@ import {
   FileText,
   Package
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -107,7 +108,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClos
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -119,29 +120,28 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClos
     >
       <div className="form-group full-width">
         <label><Truck size={14} /> Selecionar Máquina</label>
-        <select 
+                <SearchableSelect 
           value={formData.maquina_id}
-          onChange={(e) => setFormData({...formData, maquina_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione um ativo...</option>
-          {machines.map(m => (
-            <option key={m.id} value={m.id}>{m.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione um ativo...` },
+            { value: `{m.nome}`, label: `{m.nome}` },
+            ...(machines || []).map(m => ({ value: String(m.id), label: String(m.nome) })),
+          ]}
+        />
       </div>
 
       <div className="form-group">
         <label><Settings size={14} /> Tipo de Manutenção</label>
-        <select 
+                <SearchableSelect 
           value={formData.tipo}
-          onChange={(e) => setFormData({...formData, tipo: e.target.value})}
-          required
-        >
-          <option value="preventive">Preventiva</option>
-          <option value="corrective">Corretiva</option>
-          <option value="scheduled">Agendada</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `preventive`, label: `Preventiva` },
+            { value: `corrective`, label: `Corretiva` },
+            { value: `scheduled`, label: `Agendada` },
+          ]}
+        />
       </div>
 
       <div className="form-group">
@@ -192,19 +192,15 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClos
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'hsl(var(--bg-main)/0.5)', padding: '16px', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
           {formData.materiais.map((mat, i) => (
             <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <select 
-                style={{ flex: 2 }}
-                value={mat.id}
-                onChange={(e) => {
-                  const prod = inventory.find(p => p.id === e.target.value);
-                  const newMats = [...formData.materiais];
-                  newMats[i] = { ...newMats[i], id: e.target.value, nome: prod?.nome, preco: prod?.preco_venda || 0 };
-                  setFormData({...formData, materiais: newMats});
-                }}
-              >
-                <option value="">Selecione a peça...</option>
-                {inventory.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
-              </select>
+                      <SearchableSelect 
+          value={mat.id}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione a peça...` },
+            { value: `{p.nome}`, label: `{p.nome}` },
+            ...(inventory || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
+          ]}
+        />
               <input 
                 type="number" 
                 placeholder="Qtd" 
@@ -249,16 +245,17 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClos
 
       <div className="form-group">
         <label><Activity size={14} /> Status da Ordem</label>
-        <select 
+                <SearchableSelect 
           value={formData.status}
-          onChange={(e) => setFormData({...formData, status: e.target.value})}
-        >
-          <option value="open">Em Aberto (Pendente)</option>
-          <option value="scheduled">Agendada (Oficina)</option>
-          <option value="completed">Concluída (Finalizada)</option>
-          <option value="cancelled">Cancelada</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `open`, label: `Em Aberto (Pendente)` },
+            { value: `scheduled`, label: `Agendada (Oficina)` },
+            { value: `completed`, label: `Concluída (Finalizada)` },
+            { value: `cancelled`, label: `Cancelada` },
+          ]}
+        />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

@@ -14,10 +14,11 @@ import {
   Wallet,
   CreditCard
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { InsumoEntryTable } from './InsumoEntryTable';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface SalesOrderFormProps {
   isOpen: boolean;
@@ -139,7 +140,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -152,17 +153,15 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
     >
       <div className="form-group full-width">
         <label><Building2 size={14} /> Empresa / Unidade Vendedora</label>
-        <select 
-          className="tauze-input"
+                <SearchableSelect 
           value={formData.company_id}
-          onChange={(e) => setFormData({...formData, company_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione a empresa...</option>
-          {companies.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione a empresa...` },
+            { value: `{c.name}`, label: `{c.name}` },
+            ...(companies || []).map(c => ({ value: String(c.id), label: String(c.name) })),
+          ]}
+        />
       </div>
 
       <div className="form-group span-1">
@@ -179,17 +178,15 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
 
       <div className="form-group span-3">
         <label><User size={14} /> Parceiro / Comprador</label>
-        <select 
-          className="tauze-input"
+                <SearchableSelect 
           value={formData.clientId}
-          onChange={(e) => setFormData({...formData, clientId: e.target.value})}
-          required
-        >
-          <option value="">Selecione o parceiro...</option>
-          {clients.map(c => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione o parceiro...` },
+            { value: `{c.nome}`, label: `{c.nome}` },
+            ...(clients || []).map(c => ({ value: String(c.id), label: String(c.nome) })),
+          ]}
+        />
       </div>
 
       <div className="form-group span-1">
@@ -205,17 +202,16 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
 
       <div className="form-group span-1">
         <label><Activity size={14} /> Status</label>
-        <select 
-          className="tauze-input"
+                <SearchableSelect 
           value={formData.status}
-          onChange={(e) => setFormData({...formData, status: e.target.value})}
-          required
-        >
-          <option value="pending">Pendente</option>
-          <option value="shipped">Em Trânsito</option>
-          <option value="completed">Concluído</option>
-          <option value="cancelled">Cancelado</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `pending`, label: `Pendente` },
+            { value: `shipped`, label: `Em Trânsito` },
+            { value: `completed`, label: `Concluído` },
+            { value: `cancelled`, label: `Cancelado` },
+          ]}
+        />
       </div>
 
       <div className="form-group span-1">
@@ -290,31 +286,29 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
 
       <div className="form-group span-1">
         <label><Banknote size={14} /> Condição</label>
-        <select 
-          className="tauze-input"
+                <SearchableSelect 
           value={formData.payment_condition}
-          onChange={(e) => setFormData({...formData, payment_condition: e.target.value})}
-          required
-        >
-          <option value="vista">À Vista</option>
-          <option value="prazo">Parcelado / A Prazo</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `vista`, label: `À Vista` },
+            { value: `prazo`, label: `Parcelado / A Prazo` },
+          ]}
+        />
       </div>
 
       <div className="form-group span-1">
         <label><CreditCard size={14} /> Meio de Recebimento</label>
-        <select 
-          className="tauze-input"
+                <SearchableSelect 
           value={formData.payment_method}
-          onChange={(e) => setFormData({...formData, payment_method: e.target.value})}
-          required
-        >
-          <option value="Pix">Pix</option>
-          <option value="Boleto">Boleto</option>
-          <option value="Transferência">Transferência / TED</option>
-          <option value="Cartão de Crédito">Cartão de Crédito</option>
-          <option value="Dinheiro">Dinheiro</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Pix`, label: `Pix` },
+            { value: `Boleto`, label: `Boleto` },
+            { value: `Transferência`, label: `Transferência / TED` },
+            { value: `Cartão de Crédito`, label: `Cartão de Crédito` },
+            { value: `Dinheiro`, label: `Dinheiro` },
+          ]}
+        />
       </div>
 
       {formData.payment_condition === 'prazo' && (
@@ -334,17 +328,15 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
 
       <div className={formData.payment_condition === 'prazo' ? "form-group span-1" : "form-group span-2"}>
         <label><Wallet size={14} /> Conta de Destino</label>
-        <select 
-          className="tauze-input"
+                <SearchableSelect 
           value={formData.bank_account_id}
-          onChange={(e) => setFormData({...formData, bank_account_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione a conta...</option>
-          {bankAccounts.map(account => (
-            <option key={account.id} value={account.id}>{account.descricao || account.banco}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione a conta...` },
+            { value: `{account.descricao || account.banco}`, label: `{account.descricao || account.banco}` },
+            ...(bankAccounts || []).map(account => ({ value: String(account.id), label: String(account.descricao || account.banco) })),
+          ]}
+        />
       </div>
 
       <div className="form-group full-width" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '12px', border: '1px dashed hsl(var(--brand)/0.3)' }}>
@@ -410,6 +402,6 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
           style={{ height: '80px', paddingTop: '12px' }}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

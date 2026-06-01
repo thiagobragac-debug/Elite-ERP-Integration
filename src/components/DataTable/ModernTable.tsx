@@ -33,6 +33,7 @@ interface ModernTableProps<T> {
   emptyState?: React.ReactNode;
 }
 
+import { EmptyState } from '../Feedback/EmptyState';
 import { formatNumber } from '../../utils/format';
 
 export function ModernTable<T extends { id: string | number }>({ 
@@ -267,9 +268,12 @@ export function ModernTable<T extends { id: string | number }>({
         
         {!loading && paginatedData.length === 0 && (
           emptyState ? emptyState : (
-            <div className="empty-state">
-              <Search size={48} />
-              <p>Nenhum registro encontrado para sua busca.</p>
+            <div style={{ padding: '40px 0' }}>
+              <EmptyState 
+                icon={Search}
+                title="Nenhum registro encontrado"
+                description={searchTerm ? "Tente ajustar seus filtros de busca para encontrar o que procura." : "Ainda não há dados disponíveis para exibição."}
+              />
             </div>
           )
         )}

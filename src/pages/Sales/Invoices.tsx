@@ -49,6 +49,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { OutputInvoiceFilterModal } from './components/OutputInvoiceFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 export const Invoices: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -194,7 +195,7 @@ export const Invoices: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate) {
-      alert('⚠️ Selecione uma unidade específica para emitir uma nova nota fiscal. No modo Visão Global, a fazenda emitente deve ser definida.');
+      toast.error('⚠️ Selecione uma unidade específica para emitir uma nova nota fiscal. No modo Visão Global, a fazenda emitente deve ser definida.');
       return;
     }
     const payload = {

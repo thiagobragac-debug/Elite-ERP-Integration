@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -44,7 +44,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
-import { FormModal } from '../../components/Forms/FormModal';
+import { SidePanel } from '../../components/Layout/SidePanel';
 import { ReconFilterModal } from './components/ReconFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Filter } from 'lucide-react';
@@ -617,7 +617,7 @@ export const BankReconciliation: React.FC = () => {
         items={historyItems}
       />
 
-      <FormModal
+      <SidePanel
         isOpen={isManualReconOpen}
         onClose={() => setIsManualReconOpen(false)}
         onSubmit={handleConfirmManualRecon}
@@ -707,9 +707,9 @@ export const BankReconciliation: React.FC = () => {
             )}
           </div>
         </div>
-      </FormModal>
+      </SidePanel>
 
-      <FormModal
+      <SidePanel
         isOpen={isManualBankRecordModalOpen}
         onClose={() => setIsManualBankRecordModalOpen(false)}
         onSubmit={handleAddManualBankRecord}
@@ -802,7 +802,7 @@ export const BankReconciliation: React.FC = () => {
             ADICIONAR NOVA LINHA
           </button>
         </div>
-      </FormModal>
+      </SidePanel>
 
       <style>{`
         .next-gen-kpi-grid {

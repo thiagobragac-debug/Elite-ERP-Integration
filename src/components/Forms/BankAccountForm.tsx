@@ -1,3 +1,4 @@
+import { SearchableSelect } from './SearchableSelect';
 import React, { useState } from 'react';
 import { 
   Building2, 
@@ -8,7 +9,7 @@ import {
   ShieldCheck,
   TrendingUp
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { useTenant } from '../../contexts/TenantContext';
 
 interface BankAccountFormProps {
@@ -77,7 +78,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -86,27 +87,24 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
       icon={Building2}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Conta"}
+      size="large"
     >
-      <div className="form-group">
+      <div className="form-group" style={{ gridColumn: 'span 2' }}>
         <label><Building2 size={14} /> Vinculação (CNPJ / Empresa)</label>
-        <select
-          className="tauze-select"
+        <SearchableSelect 
           value={formData.is_global ? 'GLOBAL' : (formData.unidade_id || '')}
-          onChange={(e) => {
-            const val = e.target.value;
+          onChange={(val: any) => {
             if (val === 'GLOBAL') {
               setFormData({...formData, is_global: true, unidade_id: null});
             } else {
               setFormData({...formData, is_global: false, unidade_id: val});
             }
           }}
-          style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))', fontSize: '14px', outline: 'none' }}
-        >
-          <option value="GLOBAL">Uso Global (Todos os CNPJs do Grupo)</option>
-          {companies.map(c => (
-            <option key={c.id} value={c.id}>{c.name} - {c.document}</option>
-          ))}
-        </select>
+          options={[
+            { value: 'GLOBAL', label: 'Uso Global (Todos os CNPJs do Grupo)' },
+            ...companies.map((c: any) => ({ value: String(c.id), label: `${c.name} - ${c.document}` }))
+          ]}
+        />
       </div>
 
       <div className="form-group">
@@ -226,6 +224,6 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
           onChange={(e) => setFormData({...formData, descricao: e.target.value})}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

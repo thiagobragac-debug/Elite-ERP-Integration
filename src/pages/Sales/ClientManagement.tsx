@@ -48,6 +48,7 @@ import { ClientFilterModal } from './components/ClientFilterModal';
 import { useDebounce } from '../../hooks/useDebounce';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
+import toast from 'react-hot-toast';
 
 export const ClientManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
@@ -239,7 +240,7 @@ export const ClientManagement: React.FC = () => {
 
             if (existing) {
                 if (existing.is_customer) {
-                    alert('❌ Este CPF/CNPJ já está cadastrado como cliente!');
+                    toast.error('❌ Este CPF/CNPJ já está cadastrado como cliente!');
                     setIsSubmitting(false);
                     return;
                 }
@@ -254,7 +255,7 @@ export const ClientManagement: React.FC = () => {
                 }).eq('id', existing.id);
                 if (error) throw error;
                 
-                alert(`Parceiro unificado! Um cadastro com este CNPJ/CPF já existia (Fornecedor). Ele agora também é um Cliente.`);
+                toast.error(`Parceiro unificado! Um cadastro com este CNPJ/CPF já existia (Fornecedor). Ele agora também é um Cliente.`);
                 setIsModalOpen(false); 
                 fetchClients();
                 setIsSubmitting(false);
@@ -275,7 +276,7 @@ export const ClientManagement: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[ClientManagement] Erro ao salvar parceiro:', err);
-      alert('âŒ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
+      toast.error('âŒ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -323,7 +324,7 @@ export const ClientManagement: React.FC = () => {
       if (error) throw error;
       fetchClients();
     } catch (err: any) {
-      alert('âŒ Erro ao excluir parceiro: ' + err.message);
+      toast.error('âŒ Erro ao excluir parceiro: ' + err.message);
     }
   };
 

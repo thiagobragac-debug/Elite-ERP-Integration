@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   Palette
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
+import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 
@@ -120,15 +121,16 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title={initialData ? "Editar Lote" : "Novo Lote de Animais"}
-      subtitle="Organize seu rebanho em lotes para melhor gestão."
+      title={initialData ? "Editar Lote" : "Novo Lote"}
+      subtitle="Organize seus animais em lotes para melhor gestão."
       icon={Layers}
       loading={loading}
-      submitLabel={initialData ? "Salvar Alterações" : "Salvar Lote"}
+      submitLabel={initialData ? "Salvar Alterações" : "Criar Lote"}
+      size="large"
     >
       <div className="form-group">
         <label><Layers size={14} /> Nome do Lote</label>
@@ -143,22 +145,22 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
 
       <div className="form-group">
         <label><Tag size={14} /> Finalidade do Lote</label>
-        <select
+        <SearchableSelect
           value={formData.finalidade}
-          onChange={(e) => setFormData({...formData, finalidade: e.target.value})}
-          required
-        >
-          <option value="">Selecione a finalidade...</option>
-          <option value="Recria">Recria</option>
-          <option value="Engorda">Engorda</option>
-          <option value="Cria">Cria</option>
-          <option value="Cria e Recria">Cria e Recria</option>
-          <option value="Confinamento">Confinamento</option>
-          <option value="Pastejo Rotacionado">Pastejo Rotacionado</option>
-          <option value="Reprodução">Reprodução</option>
-          <option value="Descarte">Descarte</option>
-          <option value="Manejo Geral">Manejo Geral</option>
-        </select>
+          onChange={(val: any) => setFormData({...formData, finalidade: val})}
+          options={[
+            { value: '', label: 'Selecione a finalidade...' },
+            { value: 'Recria', label: 'Recria' },
+            { value: 'Engorda', label: 'Engorda' },
+            { value: 'Cria', label: 'Cria' },
+            { value: 'Cria e Recria', label: 'Cria e Recria' },
+            { value: 'Confinamento', label: 'Confinamento' },
+            { value: 'Pastejo Rotacionado', label: 'Pastejo Rotacionado' },
+            { value: 'Reprodução', label: 'Reprodução' },
+            { value: 'Descarte', label: 'Descarte' },
+            { value: 'Manejo Geral', label: 'Manejo Geral' }
+          ]}
+        />
       </div>
 
       {/* Data Início + Previsão Término + Fazenda — mesma linha */}
@@ -188,19 +190,15 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--brand))' }}>
             <Building2 size={14} /> Fazenda de Destino
           </label>
-          <select 
+          <SearchableSelect 
             value={formData.fazenda_id}
-            onChange={(e) => setFormData({...formData, fazenda_id: e.target.value})}
-            required
+            onChange={(val: any) => setFormData({...formData, fazenda_id: val})}
             disabled={loadingFazendas}
-          >
-            <option value="">{loadingFazendas ? 'Carregando fazendas...' : 'Selecionar Fazenda...'}</option>
-            {fazendas.map(f => (
-              <option key={f.id} value={f.id}>
-                {f.nome}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: '', label: loadingFazendas ? 'Carregando fazendas...' : 'Selecionar Fazenda...' },
+              ...fazendas.map(f => ({ value: String(f.id), label: f.nome }))
+            ]}
+          />
         </div>
       </div>
 
@@ -272,14 +270,15 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
 
       <div className="form-group">
         <label><Activity size={14} /> Status Inicial</label>
-        <select 
+        <SearchableSelect 
           value={formData.status}
-          onChange={(e) => setFormData({...formData, status: e.target.value})}
-        >
-          <option value="ATIVO">Ativo</option>
-          <option value="FINALIZADO">Finalizado / Encerrado</option>
-        </select>
+          onChange={(val: any) => setFormData({...formData, status: val})}
+          options={[
+            { value: 'ATIVO', label: 'Ativo' },
+            { value: 'FINALIZADO', label: 'Finalizado / Encerrado' }
+          ]}
+        />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

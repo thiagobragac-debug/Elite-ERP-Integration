@@ -10,7 +10,8 @@ import {
   FileText,
   Hash
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
+import { SearchableSelect } from './SearchableSelect';
 
 interface ReproductionFormProps {
   isOpen: boolean;
@@ -71,7 +72,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -98,17 +99,17 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
 
       <div className="form-group">
         <label><Activity size={14} /> Tipo de Evento</label>
-        <select 
+                <SearchableSelect 
           value={formData.tipo_evento}
-          onChange={(e) => setFormData({...formData, tipo_evento: e.target.value})}
-          required
-        >
-          <option value="IATF">IATF / Inseminação</option>
-          <option value="Palpação">Toque / Palpação</option>
-          <option value="Parto">Parto</option>
-          <option value="Monta">Monta Natural</option>
-          <option value="Secagem">Secagem</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `IATF`, label: `IATF / Inseminação` },
+            { value: `Palpação`, label: `Toque / Palpação` },
+            { value: `Parto`, label: `Parto` },
+            { value: `Monta`, label: `Monta Natural` },
+            { value: `Secagem`, label: `Secagem` },
+          ]}
+        />
       </div>
 
       <div className="form-group">
@@ -181,6 +182,6 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
           rows={3}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

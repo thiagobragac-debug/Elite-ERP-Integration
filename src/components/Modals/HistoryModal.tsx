@@ -1,7 +1,8 @@
 import React from 'react';
 import { X, History, Calendar, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { FormModal } from '../Forms/FormModal';
+import { SidePanel } from '../Layout/SidePanel';
+import { EmptyState } from '../Feedback/EmptyState';
 
 interface HistoryItem {
   id: string;
@@ -30,7 +31,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
   loading 
 }) => {
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); onClose(); }}
@@ -48,8 +49,12 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>Carregando histórico...</span>
           </div>
         ) : items.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
-            <p style={{ fontSize: '14px', fontWeight: 600 }}>Nenhum registro encontrado.</p>
+          <div style={{ padding: '24px 0' }}>
+            <EmptyState 
+              icon={History}
+              title="Nenhum registro encontrado"
+              description="Não há histórico ou movimentações registradas para este item."
+            />
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
@@ -90,6 +95,6 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };

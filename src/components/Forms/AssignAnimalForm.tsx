@@ -17,12 +17,14 @@ import {
   ChevronDown,
   X
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
+import toast from 'react-hot-toast';
+import { SearchableSelect } from './SearchableSelect';
 
 type AssignMode = 'lote' | 'pasto';
 
@@ -320,9 +322,9 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedAnimals.length === 0) { alert('Selecione ao menos um animal.'); return; }
-    if (!selectedDestination) { alert(`Selecione o ${entityLabel} de destino.`); return; }
-    if (!motivo) { alert('Informe o motivo da movimentação.'); return; }
+    if (selectedAnimals.length === 0) { toast.error('Selecione ao menos um animal.'); return; }
+    if (!selectedDestination) { toast.error(`Selecione o ${entityLabel} de destino.`); return; }
+    if (!motivo) { toast.error('Informe o motivo da movimentação.'); return; }
     setShowConfirm(true);
   };
 
@@ -367,7 +369,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
         onSubmit({ count: selectedAnimals.length, destination: selectedDestination });
         onClose();
       } else {
-        alert('Erro ao associar animais. Tente novamente.');
+        toast.error('Erro ao associar animais. Tente novamente.');
         setShowConfirm(false);
       }
     } catch (err) {
@@ -443,7 +445,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
 
   return (
     <>
-    <FormModal
+    <SidePanel size="medium"
 
       isOpen={isOpen}
       onClose={onClose}
@@ -483,10 +485,15 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
               <FileText size={12} /> Motivo da Associação
             </label>
-            <select value={motivo} onChange={e => setMotivo(e.target.value)} required style={{ width: '100%', fontSize: '13px' }}>
-              <option value="">Selecione o motivo...</option>
-              {MOTIVOS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+                    <SearchableSelect 
+          value={motivo}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione o motivo...` },
+            { value: `{m}`, label: `{m}` },
+            ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
+          ]}
+        />
           </div>
 
         </div>
@@ -613,7 +620,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
         .assign-empty-state p { font-size: 11px; margin: 0; line-height: 1.4; max-width: 260px; }
         .mb-4 { margin-bottom: 12px; }
       `}</style>
-    </FormModal>
+    </SidePanel>
     {confirmOverlay}
   </>
   );

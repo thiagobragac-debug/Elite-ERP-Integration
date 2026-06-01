@@ -13,6 +13,7 @@ import { buildLCDPRFile, downloadLCDPRFile } from './utils/lcdprFileBuilder';
 import { TauzeStatCard } from '../../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../../components/DataTable/ModernTable';
 import { EmptyState } from '../../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const ANO_ATUAL = new Date().getFullYear();
@@ -215,22 +216,22 @@ export const LCDPRPage: React.FC = () => {
       if (toInsert.length > 0) {
         await supabase.from('lcdpr_lancamentos').insert(toInsert);
       }
-      alert(`✅ ${toInsert.length} lançamentos importados do Financeiro!`);
+      toast.success(`✅ ${toInsert.length} lançamentos importados do Financeiro!`);
       fetchAll();
     } catch (err) {
       console.error(err);
-      alert('Erro ao importar. Tente novamente.');
+      toast.error('Erro ao importar. Tente novamente.');
     } finally { setGenerating(false); }
   };
 
   // ─── Gerar Arquivo ────────────────────────────────────────────────────────
   const handleGerarArquivo = async () => {
     if (!unidadeMatriz) {
-      alert('Configure uma empresa Matriz com CPF/Sócio antes de gerar o arquivo.');
+      toast.error('Configure uma empresa Matriz com CPF/Sócio antes de gerar o arquivo.');
       return;
     }
     if (lancamentos.length === 0) {
-      alert('Não há lançamentos para o ano selecionado.');
+      toast.error('Não há lançamentos para o ano selecionado.');
       return;
     }
     setGenerating(true);
@@ -245,7 +246,7 @@ export const LCDPRPage: React.FC = () => {
         : (unidadeMatriz.razao_social || unidadeMatriz.nome);
 
       if (!cpfProdutor || cpfProdutor.length !== 11) {
-        alert('CPF do produtor não encontrado. Preencha os dados do sócio no cadastro da empresa Matriz.');
+        toast.error('CPF do produtor não encontrado. Preencha os dados do sócio no cadastro da empresa Matriz.');
         return;
       }
 
@@ -293,7 +294,7 @@ export const LCDPRPage: React.FC = () => {
       downloadLCDPRFile(conteudo, anoCalendario, cpfProdutor);
     } catch (err) {
       console.error(err);
-      alert('Erro ao gerar arquivo.');
+      toast.error('Erro ao gerar arquivo.');
     } finally { setGenerating(false); }
   };
 

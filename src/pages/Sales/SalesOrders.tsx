@@ -50,6 +50,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { SalesFilterModal } from './components/SalesFilterModal';
 import { ClientFilterModal } from './components/ClientFilterModal';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
+import toast from 'react-hot-toast';
 
 export const SalesOrders: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -226,7 +227,7 @@ export const SalesOrders: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate && !selectedOrder) {
-      alert('âš ï¸ Selecione uma unidade específica para registrar um pedido. No modo Visão Global, defina a fazenda emitente antes de prosseguir.');
+      toast.error('âš ï¸ Selecione uma unidade específica para registrar um pedido. No modo Visão Global, defina a fazenda emitente antes de prosseguir.');
       return;
     }
     
@@ -262,7 +263,7 @@ export const SalesOrders: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[SalesOrders] Erro ao salvar pedido:', err);
-      alert('âŒ Erro ao salvar pedido de venda: ' + (err.message || 'Erro desconhecido'));
+      toast.error('âŒ Erro ao salvar pedido de venda: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -275,7 +276,7 @@ export const SalesOrders: React.FC = () => {
       if (error) throw error;
       fetchOrders();
     } catch (err: any) {
-      alert('âŒ Erro ao excluir pedido: ' + err.message);
+      toast.error('âŒ Erro ao excluir pedido: ' + err.message);
     }
   };
 
@@ -294,7 +295,7 @@ export const SalesOrders: React.FC = () => {
       fetchOrders();
     } catch (err: any) {
       setOrders(prevOrders);
-      alert('âŒ Erro ao atualizar status do pedido: ' + err.message);
+      toast.error('âŒ Erro ao atualizar status do pedido: ' + err.message);
     } finally {
       setUpdatingStatus(null);
     }

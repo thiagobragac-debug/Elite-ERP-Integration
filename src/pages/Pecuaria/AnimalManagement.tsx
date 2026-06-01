@@ -31,6 +31,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
+import toast from 'react-hot-toast';
 
 export const AnimalManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -120,7 +121,7 @@ export const AnimalManagement: React.FC = () => {
       setIsModalOpen(false);
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao salvar animal: ' + err.message);
+      toast.error('❌ Erro ao salvar animal: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -148,7 +149,7 @@ export const AnimalManagement: React.FC = () => {
       if (error) throw error;
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao excluir animal: ' + err.message);
+      toast.error('❌ Erro ao excluir animal: ' + err.message);
     }
   };
 

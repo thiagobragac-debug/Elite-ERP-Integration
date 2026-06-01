@@ -1,7 +1,8 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Search, Beef, Scale } from 'lucide-react';
-import { FormModal } from '../Forms/FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
+import { EmptyState } from '../Feedback/EmptyState';
 
 interface AnimalListModalProps {
   isOpen: boolean;
@@ -57,7 +58,7 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
   );
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); onClose(); }}
@@ -113,8 +114,12 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>Carregando animais...</span>
           </div>
         ) : filteredAnimals.length === 0 ? (
-          <div style={{ padding: '48px', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
-            <p style={{ fontSize: '14px', fontWeight: 600 }}>Nenhum animal encontrado para este critério.</p>
+          <div style={{ padding: '24px 0' }}>
+            <EmptyState 
+              icon={Beef}
+              title="Nenhum animal encontrado"
+              description="Nenhum animal atende aos critérios de busca ou filtro selecionados."
+            />
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
@@ -144,6 +149,6 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };

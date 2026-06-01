@@ -38,6 +38,7 @@ import './AccountsReceivable.css';
 
 import { useReportData } from '../../hooks/useReportData';
 import { useDebounce } from '../../hooks/useDebounce';
+import toast from 'react-hot-toast';
 
 export const AccountsReceivable: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
@@ -94,7 +95,7 @@ export const AccountsReceivable: React.FC = () => {
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate && !selectedInvoice) {
-      alert('âš ï¸ Selecione uma unidade específica para registrar uma nova receita. No modo Visão Global, a fazenda beneficiária deve ser definida.');
+      toast.error('âš ï¸ Selecione uma unidade específica para registrar uma nova receita. No modo Visão Global, a fazenda beneficiária deve ser definida.');
       return;
     }
 
@@ -132,7 +133,7 @@ export const AccountsReceivable: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[AccountsReceivable] Erro ao salvar:', err);
-      alert('âŒ Erro ao salvar receita: ' + (err.message || 'Erro desconhecido'));
+      toast.error('âŒ Erro ao salvar receita: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -172,7 +173,7 @@ export const AccountsReceivable: React.FC = () => {
       if (error) throw error;
       refresh();
     } catch (err: any) {
-      alert('âŒ Erro ao excluir receita: ' + err.message);
+      toast.error('âŒ Erro ao excluir receita: ' + err.message);
     }
   };
 

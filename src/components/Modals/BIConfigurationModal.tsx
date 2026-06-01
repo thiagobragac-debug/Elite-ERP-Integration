@@ -13,7 +13,7 @@ import {
   TrendingUp,
   Settings
 } from 'lucide-react';
-import { FormModal } from '../Forms/FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 
 interface BIConfigurationModalProps {
   isOpen: boolean;
@@ -39,7 +39,7 @@ export const BIConfigurationModal: React.FC<BIConfigurationModalProps> = ({ isOp
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); onClose(); }}
@@ -47,7 +47,7 @@ export const BIConfigurationModal: React.FC<BIConfigurationModalProps> = ({ isOp
       subtitle="Personalize seus dashboards com métricas customizadas"
       icon={Settings}
       submitLabel="Salvar Configuração de BI"
-      submitColor="#27a376"
+      
       size="large"
     >
       <div style={{ gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', minHeight: '500px' }}>
@@ -111,6 +111,6 @@ export const BIConfigurationModal: React.FC<BIConfigurationModalProps> = ({ isOp
           )}
         </div>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

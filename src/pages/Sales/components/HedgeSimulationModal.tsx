@@ -11,7 +11,7 @@ import {
   Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FormModal } from '../../../components/Forms/FormModal';
+import { SidePanel } from '../../../components/Layout/SidePanel';
 
 interface HedgeSimulationModalProps {
   isOpen: boolean;
@@ -61,7 +61,7 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); }}
@@ -198,6 +198,6 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
           </div>
         </div>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

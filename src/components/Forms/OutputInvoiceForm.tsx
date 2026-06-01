@@ -14,10 +14,11 @@ import {
   Layers,
   Settings
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { InsumoEntryTable } from './InsumoEntryTable';
+import { SearchableSelect } from './SearchableSelect';
 
 interface OutputInvoiceFormProps {
   isOpen: boolean;
@@ -98,7 +99,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -134,33 +135,30 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
 
       <div className="tauze-field-group span-2">
         <label className="tauze-label"><User size={14} /> Parceiro / Destinatário</label>
-        <select 
-          className="tauze-input tauze-select"
+                <SearchableSelect 
           value={formData.client_id}
-          onChange={(e) => setFormData({...formData, client_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione o parceiro...</option>
-          {clients.map(c => (
-            <option key={c.id} value={c.id}>{c.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione o parceiro...` },
+            { value: `{c.nome}`, label: `{c.nome}` },
+            ...(clients || []).map(c => ({ value: String(c.id), label: String(c.nome) })),
+          ]}
+        />
       </div>
 
       <div className="tauze-field-group span-2">
         <label className="tauze-label"><Settings size={14} /> Natureza da Operação</label>
-        <select 
-          className="tauze-input tauze-select"
+                <SearchableSelect 
           value={formData.nature_of_operation}
-          onChange={(e) => setFormData({...formData, nature_of_operation: e.target.value})}
-          required
-        >
-          <option>Venda de Produção Própria</option>
-          <option>Venda de Mercadoria Terceiros</option>
-          <option>Remessa para Industrialização</option>
-          <option>Transferência entre Unidades</option>
-          <option>Devolução de Compra</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Venda de Produção Própria`, label: `Venda de Produção Própria` },
+            { value: `Venda de Mercadoria Terceiros`, label: `Venda de Mercadoria Terceiros` },
+            { value: `Remessa para Industrialização`, label: `Remessa para Industrialização` },
+            { value: `Transferência entre Unidades`, label: `Transferência entre Unidades` },
+            { value: `Devolução de Compra`, label: `Devolução de Compra` },
+          ]}
+        />
       </div>
 
       <div className="tauze-field-group span-1">
@@ -215,6 +213,6 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
           rows={2}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

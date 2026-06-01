@@ -50,6 +50,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { PurchasingFilterModal } from './components/PurchasingFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useApprovalQueue } from '../../hooks/useApprovalQueue';
+import toast from 'react-hot-toast';
 
 export const PurchaseOrder: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -248,7 +249,7 @@ export const PurchaseOrder: React.FC = () => {
       fetchOrders(); 
     } catch (err: any) {
       console.error('[PurchaseOrder] Erro ao salvar ordem:', err);
-      alert('âŒ Erro ao salvar ordem de compra: ' + (err.message || 'Erro desconhecido'));
+      toast.error('âŒ Erro ao salvar ordem de compra: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -277,7 +278,7 @@ export const PurchaseOrder: React.FC = () => {
       if (error) throw error;
       fetchOrders();
     } catch (err: any) {
-      alert('âŒ Erro ao excluir ordem: ' + err.message);
+      toast.error('âŒ Erro ao excluir ordem: ' + err.message);
     }
   };
 

@@ -5,6 +5,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useTenant } from '../../contexts/TenantContext';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export const MarketB3Calculator: React.FC = () => {
   const { activeFarmId, isGlobalMode, activeTenantId } = useTenant();
@@ -161,7 +162,7 @@ export const MarketB3Calculator: React.FC = () => {
                 className="glass-btn secondary" 
                 onClick={() => {
                   if (!futurePrice) {
-                    alert('Calcule o hedge primeiro para efetivar o contrato.');
+                    toast.error('Calcule o hedge primeiro para efetivar o contrato.');
                     return;
                   }
                   navigate('/vendas/contrato', { state: { createHedge: true, b3Ticker, futurePrice } });

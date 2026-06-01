@@ -35,6 +35,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 type TabType = 'pendencies' | 'rules';
 
@@ -165,7 +166,7 @@ export const ApprovalCenter: React.FC = () => {
       setIsRuleModalOpen(false);
     } catch (err) {
       console.error(err);
-      alert('Erro ao salvar regra.');
+      toast.error('Erro ao salvar regra.');
     }
   };
 

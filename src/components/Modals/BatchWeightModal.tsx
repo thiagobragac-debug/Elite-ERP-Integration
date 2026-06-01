@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from '../Forms/SearchableSelect';
 
 interface BatchWeightModalProps {
   isOpen: boolean;
@@ -173,8 +174,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     }
   };
 
-  const handleLoteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
+  const handleLoteChange = (val: string) => {
     setSelectedLoteId(val);
     fetchAnimals(val);
   };
@@ -589,18 +589,16 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
               )}
             </label>
             <div style={{ position: 'relative' }}>
-              <select
+              <SearchableSelect
                 value={selectedLoteId}
                 onChange={handleLoteChange}
                 disabled={loadingLots}
-                style={{ width: '100%', padding: '10px 14px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--text-main))', fontSize: '13px', fontWeight: 700, appearance: 'none', cursor: 'pointer' }}
-              >
-                <option value="">Todos os Animais Ativos</option>
-                {lots.map(l => (
-                  <option key={l.id} value={l.id}>Lote: {l.nome}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }} />
+                placeholder="Todos os Animais Ativos"
+                options={[
+                  { value: '', label: 'Todos os Animais Ativos' },
+                  ...lots.map(l => ({ value: l.id, label: `Lote: ${l.nome}` }))
+                ]}
+              />
             </div>
           </div>
 

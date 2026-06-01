@@ -58,6 +58,7 @@ import { InventoryFilterModal } from './components/InventoryFilterModal';
 import { formatNumber } from '../../utils/format';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
+import toast from 'react-hot-toast';
 
 export const InventoryManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
@@ -164,7 +165,7 @@ export const InventoryManagement: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate && !selectedProduct) {
-      alert('âš ï¸ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.');
+      toast.error('âš ï¸ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.');
       return;
     }
 
@@ -211,7 +212,7 @@ export const InventoryManagement: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[Inventory] Erro ao salvar produto:', err);
-      alert('âŒ Erro ao salvar produto: ' + (err.message || 'Erro desconhecido'));
+      toast.error('âŒ Erro ao salvar produto: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -241,7 +242,7 @@ export const InventoryManagement: React.FC = () => {
       fetchProducts();
     } catch (err: any) {
       console.error('[Inventory] Error processing FIFO movement:', err);
-      alert('âŒ Erro ao processar movimentação FIFO: ' + err.message);
+      toast.error('âŒ Erro ao processar movimentação FIFO: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -295,7 +296,7 @@ export const InventoryManagement: React.FC = () => {
       } else {
         // Soft delete
         if (item.is_storable && Number(item.estoque_atual || 0) > 0) {
-          alert(`âŒ Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`);
+          toast.error(`âŒ Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`);
           return;
         }
         if (!confirm(`O item "${item.nome}" possui histórico no sistema e não pode ser excluído. Deseja inativá-lo para que não apareça mais nas rotinas?`)) return;
@@ -305,7 +306,7 @@ export const InventoryManagement: React.FC = () => {
         fetchProducts();
       }
     } catch (err: any) {
-      alert('âŒ Erro na operação: ' + err.message);
+      toast.error('âŒ Erro na operação: ' + err.message);
     }
   };
 
@@ -345,7 +346,7 @@ export const InventoryManagement: React.FC = () => {
       setRequestedProducts(prev => ({ ...prev, [product.id]: true }));
     } catch (err: any) {
       console.error('[Inventory] Erro ao solicitar compra:', err);
-      alert('âŒ Erro ao solicitar compra: ' + (err.message || 'Erro desconhecido'));
+      toast.error('âŒ Erro ao solicitar compra: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setRequestLoading(prev => ({ ...prev, [product.id]: false }));
     }
@@ -554,7 +555,7 @@ export const InventoryManagement: React.FC = () => {
         <div className="page-actions">
           <button className="glass-btn secondary" onClick={() => {
             if (!activeFarmId || isGlobalMode) {
-              alert('⚠️ Selecione uma unidade/fazenda específica no menu superior para lançar movimentações. Não é possível movimentar no modo Visão Global.');
+              toast.error('⚠️ Selecione uma unidade/fazenda específica no menu superior para lançar movimentações. Não é possível movimentar no modo Visão Global.');
               return;
             }
             setIsMovementModalOpen(true);

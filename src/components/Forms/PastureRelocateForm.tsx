@@ -15,12 +15,14 @@ import {
   Activity,
   ChevronDown
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
+import toast from 'react-hot-toast';
+import { SearchableSelect } from './SearchableSelect';
 
 interface PastureRelocateFormProps {
   isOpen: boolean;
@@ -313,9 +315,9 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedAnimals.length === 0) { alert('Selecione ao menos um animal.'); return; }
-    if (!targetPastureId) { alert('Selecione o pasto de destino.'); return; }
-    if (!motivo) { alert('Informe o motivo do remanejamento.'); return; }
+    if (selectedAnimals.length === 0) { toast.error('Selecione ao menos um animal.'); return; }
+    if (!targetPastureId) { toast.error('Selecione o pasto de destino.'); return; }
+    if (!motivo) { toast.error('Informe o motivo do remanejamento.'); return; }
     setShowConfirm(true);
   };
 
@@ -421,7 +423,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
 
   return (
     <>
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleConfirm}
@@ -470,10 +472,15 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
               <FileText size={12} /> Motivo do Remanejamento
             </label>
-            <select value={motivo} onChange={e => setMotivo(e.target.value)} required style={{ width: '100%', fontSize: '13px' }}>
-              <option value="">Selecione o motivo...</option>
-              {MOTIVOS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+                    <SearchableSelect 
+          value={motivo}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione o motivo...` },
+            { value: `{m}`, label: `{m}` },
+            ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
+          ]}
+        />
           </div>
         </div>
       </div>
@@ -588,7 +595,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
         .p-stats-adv span { font-size: 9px; font-weight: 700; color: hsl(var(--text-muted)); display: flex; align-items: center; gap: 2px; }
         .picker-loading, .picker-empty { padding: 24px; text-align: center; font-size: 12px; font-weight: 600; color: hsl(var(--text-muted)); }
       `}</style>
-    </FormModal>
+    </SidePanel>
     {confirmOverlay}
   </>
   );

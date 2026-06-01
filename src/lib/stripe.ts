@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 ﻿/**
  * Stripe Integration Utility - Tauze ERP SaaS v5.0
  * Handles subscription creation, usage reporting (metered billing), and webhook processing.
@@ -22,7 +23,7 @@ export const stripe = {
    */
   createCheckoutSession: async ({ tenantId, planId, email }: StripeSubscriptionParams) => {
     if (!STRIPE_PK) {
-      alert('Stripe não configurado. Adicione a VITE_STRIPE_PUBLISHABLE_KEY ao seu .env');
+      toast.error('Stripe não configurado. Adicione a VITE_STRIPE_PUBLISHABLE_KEY ao seu .env');
       return { url: null };
     }
 

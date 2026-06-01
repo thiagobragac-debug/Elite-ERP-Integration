@@ -18,7 +18,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
-import { FormModal } from '../../components/Forms/FormModal';
+import { SidePanel } from '../../components/Layout/SidePanel';
 import { AuditFilterModal } from './components/AuditFilterModal';
 import { SupplierForm } from '../../components/Forms/SupplierForm';
 import { AnimalForm } from '../../components/Forms/AnimalForm';
@@ -31,6 +31,7 @@ import { WeightForm } from '../../components/Forms/WeightForm';
 import { HealthForm } from '../../components/Forms/HealthForm';
 import { PurchaseOrderForm } from '../../components/Forms/PurchaseOrderForm';
 import { SalesOrderForm } from '../../components/Forms/SalesOrderForm';
+import toast from 'react-hot-toast';
 
 /* ─── Mapa de ícones e rótulos por tabela ─── */
 const MODULE_ICONS: Record<string, React.ElementType> = {
@@ -220,11 +221,11 @@ export const AuditLog: React.FC = () => {
         if (data) {
           openFormForTable(tableName, data, entityId);
         } else {
-          alert('Este registro não foi encontrado no banco de dados ativo.');
+          toast.error('Este registro não foi encontrado no banco de dados ativo.');
         }
       } catch (err) {
         console.error(`[AuditLog] Erro ao buscar ${tableName}:`, err);
-        alert('Não foi possível carregar o formulário original.');
+        toast.error('Não foi possível carregar o formulário original.');
       } finally {
         setIsFetchingRecord(false);
       }
@@ -486,7 +487,7 @@ export const AuditLog: React.FC = () => {
         )}
       </div>
 
-      <FormModal
+      <SidePanel
         isOpen={!!selectedLog}
         onClose={() => {
           setSelectedLog(null);
@@ -821,7 +822,7 @@ export const AuditLog: React.FC = () => {
             </div>
           </div>
         )}
-      </FormModal>
+      </SidePanel>
 
       <SupplierForm
         isOpen={isSupplierFormOpen}
@@ -853,10 +854,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsSupplierFormOpen(false);
-            alert('Parceiro atualizado com sucesso!');
+            toast.success('Parceiro atualizado com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar parceiro:', err);
-            alert('Erro ao atualizar parceiro: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar parceiro: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -885,10 +886,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsAnimalFormOpen(false);
-            alert('Animal atualizado com sucesso!');
+            toast.success('Animal atualizado com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar animal:', err);
-            alert('Erro ao atualizar animal: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar animal: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -913,10 +914,10 @@ export const AuditLog: React.FC = () => {
             const { error } = await supabase.from(tableName).update(payload).eq('id', formInitialData.id);
             if (error) throw error;
             setIsTransactionFormOpen(false);
-            alert('Lançamento financeiro atualizado com sucesso!');
+            toast.success('Lançamento financeiro atualizado com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar transação:', err);
-            alert('Erro ao atualizar lançamento: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar lançamento: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -950,10 +951,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsClientFormOpen(false);
-            alert('Parceiro atualizado com sucesso!');
+            toast.success('Parceiro atualizado com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar parceiro:', err);
-            alert('Erro ao atualizar parceiro: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar parceiro: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -987,10 +988,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsMachineFormOpen(false);
-            alert('Máquina/Veículo atualizada com sucesso!');
+            toast.success('Máquina/Veículo atualizada com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar máquina:', err);
-            alert('Erro ao atualizar máquina: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar máquina: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -1015,10 +1016,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsPastureFormOpen(false);
-            alert('Pasto/Piquete atualizado com sucesso!');
+            toast.success('Pasto/Piquete atualizado com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar pasto:', err);
-            alert('Erro ao atualizar pasto: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar pasto: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -1041,10 +1042,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsLotFormOpen(false);
-            alert('Lote atualizado com sucesso!');
+            toast.success('Lote atualizado com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar lote:', err);
-            alert('Erro ao atualizar lote: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar lote: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -1064,10 +1065,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsWeightFormOpen(false);
-            alert('Pesagem atualizada com sucesso!');
+            toast.success('Pesagem atualizada com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar pesagem:', err);
-            alert('Erro ao atualizar pesagem: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar pesagem: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -1089,10 +1090,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsHealthFormOpen(false);
-            alert('Registro de sanidade atualizado com sucesso!');
+            toast.success('Registro de sanidade atualizado com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar registro de sanidade:', err);
-            alert('Erro ao atualizar registro de sanidade: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar registro de sanidade: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -1114,10 +1115,10 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsPurchaseOrderFormOpen(false);
-            alert('Pedido de compra atualizado com sucesso!');
+            toast.success('Pedido de compra atualizado com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar pedido de compra:', err);
-            alert('Erro ao atualizar pedido de compra: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar pedido de compra: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
@@ -1139,16 +1140,16 @@ export const AuditLog: React.FC = () => {
             }).eq('id', formInitialData.id);
             if (error) throw error;
             setIsSalesOrderFormOpen(false);
-            alert('Pedido de venda atualizado com sucesso!');
+            toast.success('Pedido de venda atualizado com sucesso!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar pedido de venda:', err);
-            alert('Erro ao atualizar pedido de venda: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar pedido de venda: ' + (err.message || 'Erro desconhecido'));
           }
         }}
         initialData={formInitialData}
       />
 
-      <FormModal
+      <SidePanel
         isOpen={isDynamicFormOpen}
         onClose={() => setIsDynamicFormOpen(false)}
         title={`Editar Registro: ${MODULE_LABELS[dynamicFormTableName] || dynamicFormTableName}`}
@@ -1164,10 +1165,10 @@ export const AuditLog: React.FC = () => {
             const { error } = await supabase.from(dynamicFormTableName).upsert(formInitialData);
             if (error) throw error;
             setIsDynamicFormOpen(false);
-            alert('Registro original atualizado com sucesso no banco de dados!');
+            toast.success('Registro original atualizado com sucesso no banco de dados!');
           } catch (err: any) {
             console.error('[AuditLog] Erro ao salvar registro dinâmico:', err);
-            alert('Erro ao atualizar registro: ' + (err.message || 'Erro desconhecido'));
+            toast.error('Erro ao atualizar registro: ' + (err.message || 'Erro desconhecido'));
           } finally {
             setIsSavingDynamic(false);
           }
@@ -1295,7 +1296,7 @@ export const AuditLog: React.FC = () => {
             </div>
           )}
         </div>
-      </FormModal>
+      </SidePanel>
 
       <style>{`
         .premium-card.audit-card {

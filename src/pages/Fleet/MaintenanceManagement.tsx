@@ -41,7 +41,7 @@ import {
   LayoutGrid,
   ArrowRight
 } from 'lucide-react';
-import { FormModal } from '../../components/Forms/FormModal';
+import { SidePanel } from '../../components/Layout/SidePanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
@@ -52,6 +52,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { MaintenanceFilterModal } from './components/MaintenanceFilterModal';
+import toast from 'react-hot-toast';
 
 export const MaintenanceManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -276,7 +277,7 @@ export const MaintenanceManagement: React.FC = () => {
       );
     } catch (err: any) {
       console.error('[Maintenance] Erro ao transicionar status da OS:', err);
-      alert('❌ Erro ao atualizar status: ' + (err.message || 'Erro desconhecido'));
+      toast.error('❌ Erro ao atualizar status: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setUpdatingStatus(prev => ({ ...prev, [orderId]: false }));
     }
@@ -990,12 +991,12 @@ export const MaintenanceManagement: React.FC = () => {
         loading={historyLoading}
       />
 
-      <FormModal
+      <SidePanel
         isOpen={isChecklistOpen}
         onClose={() => setIsChecklistOpen(false)}
         onSubmit={(e) => {
           e.preventDefault();
-          alert('Checklist 100H finalizado e OS Preventiva gerada!');
+          toast.error('Checklist 100H finalizado e OS Preventiva gerada!');
           setIsChecklistOpen(false);
           fetchOrders();
         }}
@@ -1033,14 +1034,14 @@ export const MaintenanceManagement: React.FC = () => {
             ))}
           </div>
         </div>
-      </FormModal>
+      </SidePanel>
 
-      <FormModal
+      <SidePanel size="large"
         isOpen={isPlanModalOpen}
         onClose={() => setIsPlanModalOpen(false)}
         onSubmit={(e) => {
           e.preventDefault();
-          alert('Plano de Manuten��o salvo com sucesso!');
+          toast.success('Plano de Manuten��o salvo com sucesso!');
           setIsPlanModalOpen(false);
         }}
         title={selectedPlan ? 'Editar Plano' : 'Novo Plano'}
@@ -1090,7 +1091,7 @@ export const MaintenanceManagement: React.FC = () => {
             ))}
           </div>
         </div>
-      </FormModal>
+      </SidePanel>
 
       <style>{`
         .plans-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }

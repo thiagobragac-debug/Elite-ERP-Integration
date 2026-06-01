@@ -1,13 +1,14 @@
 ﻿import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import toast from 'react-hot-toast';
 
 /**
  * Utility to export data to CSV format
  */
 export const exportToCSV = (data: any[], filename: string) => {
   if (!data || data.length === 0) {
-    alert('Não há dados para exportar.');
+    toast.error('Não há dados para exportar.');
     return;
   }
 
@@ -44,7 +45,7 @@ export const exportToCSV = (data: any[], filename: string) => {
  */
 export const exportToExcel = (data: any[], filename: string) => {
   if (!data || data.length === 0) {
-    alert('Não há dados para exportar.');
+    toast.error('Não há dados para exportar.');
     return;
   }
 
@@ -61,7 +62,7 @@ export const exportToExcel = (data: any[], filename: string) => {
  */
 export const exportToPDF = (data: any[], filename: string, title: string) => {
   if (!data || data.length === 0) {
-    alert('Não há dados para exportar.');
+    toast.error('Não há dados para exportar.');
     return;
   }
 

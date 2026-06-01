@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../lib/supabase';
-import { FormModal } from '../../../components/Forms/FormModal';
+import { SidePanel } from '../../../components/Layout/SidePanel';
 
 interface SupplierBid {
   supplier_id?: string;
@@ -117,7 +117,7 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); onClose(); }}
@@ -348,6 +348,6 @@ export const QuotationMatrixModal: React.FC<QuotationMatrixModalProps> = ({
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };

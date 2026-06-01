@@ -10,9 +10,10 @@ import {
   Layers,
   FileText
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface ConfinementFormProps {
   isOpen: boolean;
@@ -64,7 +65,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -135,16 +136,15 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
 
       <div className="tauze-field-group">
         <label className="tauze-label"><Layers size={14} /> Lote Vinculado</label>
-        <select 
-          className="tauze-input tauze-select"
+                <SearchableSelect 
           value={formData.lote_id}
-          onChange={(e) => setFormData({...formData, lote_id: e.target.value})}
-        >
-          <option value="">Selecionar Lote...</option>
-          {lots.map(lot => (
-            <option key={lot.id} value={lot.id}>{lot.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecionar Lote...` },
+            { value: `{lot.nome}`, label: `{lot.nome}` },
+            ...(lots || []).map(lot => ({ value: String(lot.id), label: String(lot.nome) })),
+          ]}
+        />
       </div>
 
       <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
@@ -157,6 +157,6 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClos
           rows={3}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

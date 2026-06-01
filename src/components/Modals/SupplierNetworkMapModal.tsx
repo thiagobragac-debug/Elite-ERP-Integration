@@ -10,6 +10,7 @@ import {
   Search
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 
 interface SupplierNetworkMapModalProps {
   isOpen: boolean;
@@ -64,7 +65,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
               borderRadius: '12px', 
               display: 'flex', 
               alignItems: 'center', 
-              justifyContent: 'center',
+              justifyContent: 'flex-end',
               color: 'hsl(var(--brand))'
             }}>
               <Globe size={22} />
@@ -88,7 +89,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
               borderRadius: '10px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center',
+              justifyContent: 'flex-end',
               cursor: 'pointer',
               transition: 'all 0.2s',
               zIndex: 10
@@ -165,7 +166,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
                       border: '1px solid #cbd5e1',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
+                      justifyContent: 'flex-end',
                       background: selectedIds.includes(sup.id) ? 'hsl(var(--brand))' : 'white'
                     }}>
                       {selectedIds.includes(sup.id) && <X size={8} color="white" />}
@@ -180,7 +181,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
             <div className="sidebar-section bottom">
               <button 
                 className="optimize-btn" 
-                onClick={() => alert(`Otimizando rotas para ${selectedIds.length || filteredSuppliers.length} fornecedores...`)}
+                onClick={() => toast.error(`Otimizando rotas para ${selectedIds.length || filteredSuppliers.length} fornecedores...`)}
                 style={{ background: 'hsl(var(--brand))', color: 'white' }}
               >
                 <Navigation size={14} />

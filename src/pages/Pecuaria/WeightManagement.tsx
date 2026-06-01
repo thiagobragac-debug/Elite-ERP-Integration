@@ -29,6 +29,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { ScaleConfigModal } from './components/ScaleConfigModal';
 import { WeightFilterModal } from './components/WeightFilterModal';
 import { BatchWeightModal } from '../../components/Modals/BatchWeightModal';
+import toast from 'react-hot-toast';
 
 
 // Brazilian Cattle Market Lot Performance Dashboard
@@ -410,7 +411,7 @@ export const WeightManagement: React.FC = () => {
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate && !selectedWeight) {
-      alert('⚠️ Selecione uma unidade específica para registrar uma nova pesagem.');
+      toast.error('⚠️ Selecione uma unidade específica para registrar uma nova pesagem.');
       return;
     }
     
@@ -442,7 +443,7 @@ export const WeightManagement: React.FC = () => {
       setIsModalOpen(false);
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao salvar pesagem: ' + err.message);
+      toast.error('❌ Erro ao salvar pesagem: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -455,7 +456,7 @@ export const WeightManagement: React.FC = () => {
       if (error) throw error;
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao excluir pesagem: ' + err.message);
+      toast.error('❌ Erro ao excluir pesagem: ' + err.message);
     }
   };
 

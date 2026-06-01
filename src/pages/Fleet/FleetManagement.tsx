@@ -55,6 +55,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { FleetFilterModal } from './components/FleetFilterModal';
 import { useViewMode } from '../../hooks/useViewMode';
+import toast from 'react-hot-toast';
 
 export const FleetManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -190,7 +191,7 @@ export const FleetManagement: React.FC = () => {
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate && !selectedMachine) {
-      alert('⚠️ Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.');
+      toast.error('⚠️ Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.');
       return;
     }
     
@@ -231,7 +232,7 @@ export const FleetManagement: React.FC = () => {
       fetchMachines();
     } catch (err) {
       console.error('Error saving machine:', err);
-      alert(`Erro ao salvar máquina: ${(err as Error)?.message || JSON.stringify(err)}`);
+      toast.error(`Erro ao salvar máquina: ${(err as Error)?.message || JSON.stringify(err)}`);
     } finally {
       setLoading(false);
     }
@@ -239,7 +240,7 @@ export const FleetManagement: React.FC = () => {
 
   const handleMaintenanceSubmit = async (data: any) => {
     if (!canCreate) {
-      alert('⚠️ Selecione uma unidade específica para registrar uma manutenção. No modo Visão Global, a fazenda deve ser definida.');
+      toast.error('⚠️ Selecione uma unidade específica para registrar uma manutenção. No modo Visão Global, a fazenda deve ser definida.');
       return;
     }
     const { error } = await supabase.from('manutencao_frota').insert([{

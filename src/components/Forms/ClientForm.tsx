@@ -14,13 +14,15 @@ import {
   ChevronDown,
   Star
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { fetchCNPJData } from '../../utils/cnpj';
 import { fetchCEPData } from '../../utils/cep';
 import { maskCPFCNPJ } from '../../utils/format';
 import { isValidDocument } from '../../utils/validation';
 import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
+import toast from 'react-hot-toast';
+import { SearchableSelect } from './SearchableSelect';
 
 interface ClientFormProps {
   isOpen: boolean;
@@ -154,7 +156,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
         pais: 'Brasil'
       }));
     } catch (err) {
-      alert('Não foi possível localizar este CNPJ. Verifique os dados ou digite manualmente.');
+      toast.error('Não foi possível localizar este CNPJ. Verifique os dados ou digite manualmente.');
     } finally {
       setLoading(false);
     }
@@ -177,7 +179,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
         pais: 'BRASIL'
       }));
     } catch (err) {
-      alert('Não foi possível localizar este CEP. Verifique os dados ou digite manualmente.');
+      toast.error('Não foi possível localizar este CEP. Verifique os dados ou digite manualmente.');
     } finally {
       setLoading(false);
     }
@@ -186,7 +188,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.cnpj && !isValidDocument(formData.cnpj)) {
-      alert('❌ O CPF ou CNPJ informado é inválido. Verifique os números e tente novamente.');
+      toast.error('❌ O CPF ou CNPJ informado é inválido. Verifique os números e tente novamente.');
       return;
     }
     setLoading(true);
@@ -198,7 +200,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -207,6 +209,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
       icon={User}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Parceiro"}
+      size="large"
     >
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 190px', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -260,15 +263,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><ShieldCheck size={14} /> Tipo de Parceiro</label>
-          <select 
-            value={formData.categoria_id}
-            onChange={(e) => setFormData({...formData, categoria_id: e.target.value})}
-          >
-            <option value="">Selecionar...</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.nome}</option>
-            ))}
-          </select>
+                  <SearchableSelect 
+          value={formData.categoria_id}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecionar...` },
+            { value: `{cat.nome}`, label: `{cat.nome}` },
+            ...(categories || []).map(cat => ({ value: String(cat.id), label: String(cat.nome) })),
+          ]}
+        />
         </div>
 
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -409,16 +412,16 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
 
           <div className="form-group full-width" style={{ marginBottom: 0 }}>
             <label><Star size={14} /> Segmento Estratégico</label>
-            <select 
-              value={formData.segment}
-              onChange={(e) => setFormData({...formData, segment: e.target.value})}
-              required
-            >
-              <option value="Ouro/VIP">Ouro / VIP</option>
-              <option value="Prata/Recorrente">Prata / Recorrente</option>
-              <option value="Bronze/Inativo">Bronze / Inativo</option>
-              <option value="Novo">Novo / Lead</option>
-            </select>
+                    <SearchableSelect 
+          value={formData.segment}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Ouro/VIP`, label: `Ouro / VIP` },
+            { value: `Prata/Recorrente`, label: `Prata / Recorrente` },
+            { value: `Bronze/Inativo`, label: `Bronze / Inativo` },
+            { value: `Novo`, label: `Novo / Lead` },
+          ]}
+        />
           </div>
         </div>
 
@@ -745,6 +748,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };

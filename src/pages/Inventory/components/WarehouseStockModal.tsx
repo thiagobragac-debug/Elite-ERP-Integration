@@ -210,7 +210,7 @@ export const WarehouseStockModal: React.FC<WarehouseStockModalProps> = ({
               borderRadius: '12px', 
               display: 'flex', 
               alignItems: 'center', 
-              justifyContent: 'center',
+              justifyContent: 'flex-end',
               color: '#38bdf8'
             }}>
               <Package size={22} />

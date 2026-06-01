@@ -7,9 +7,10 @@ import {
   DollarSign,
   AlertCircle
 } from 'lucide-react';
-import { FormModal } from '../Forms/FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import toast from 'react-hot-toast';
 
 interface BatchLiquidationModalProps {
   isOpen: boolean;
@@ -57,7 +58,7 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
 
   const handleBatchLiquidation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.bank_account_id) return alert('Selecione uma conta bancária.');
+    if (!formData.bank_account_id) return toast.error('Selecione uma conta bancária.');
     
     setLoading(true);
     try {
@@ -82,14 +83,14 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
       onClose();
     } catch (err) {
       console.error('Batch liquidation error:', err);
-      alert('Erro ao realizar a baixa em lote.');
+      toast.error('Erro ao realizar a baixa em lote.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <FormModal
+    <SidePanel size="large"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleBatchLiquidation}
@@ -132,6 +133,6 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
           Esta ação irá marcar todos os títulos selecionados como pagos/recebidos e não pode ser desfeita em lote.
         </p>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

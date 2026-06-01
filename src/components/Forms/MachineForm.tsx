@@ -9,9 +9,10 @@ import {
   Tag,
   DollarSign
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface MachineFormProps {
   isOpen: boolean;
@@ -123,7 +124,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -171,16 +172,15 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><Settings size={14} /> Categoria</label>
-          <select 
-            value={formData.categoria}
-            onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-            required
-          >
-            <option value="">Selecionar...</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.nome}>{cat.nome}</option>
-            ))}
-          </select>
+                  <SearchableSelect 
+          value={formData.categoria}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecionar...` },
+            { value: `{cat.nome}`, label: `{cat.nome}` },
+            ...(categories || []).map(cat => ({ value: String(cat.nome), label: String(cat.nome) })),
+          ]}
+        />
         </div>
 
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -228,16 +228,17 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
 
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><Settings size={14} /> Combustível</label>
-          <select 
-            value={formData.combustivel}
-            onChange={(e) => setFormData({...formData, combustivel: e.target.value})}
-          >
-            <option>Diesel</option>
-            <option>Diesel S10</option>
-            <option>Gasolina</option>
-            <option>Etanol</option>
-            <option>Arla 32</option>
-          </select>
+                  <SearchableSelect 
+          value={formData.combustivel}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Diesel`, label: `Diesel` },
+            { value: `Diesel S10`, label: `Diesel S10` },
+            { value: `Gasolina`, label: `Gasolina` },
+            { value: `Etanol`, label: `Etanol` },
+            { value: `Arla 32`, label: `Arla 32` },
+          ]}
+        />
         </div>
       </div>
 
@@ -329,14 +330,15 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
 
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><Activity size={14} /> Status da Máquina</label>
-          <select 
-            value={formData.status}
-            onChange={(e) => setFormData({...formData, status: e.target.value})}
-          >
-            <option value="active">Operacional</option>
-            <option value="maintenance">Em Manutenção</option>
-            <option value="stopped">Parado (Crítico)</option>
-          </select>
+                  <SearchableSelect 
+          value={formData.status}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `active`, label: `Operacional` },
+            { value: `maintenance`, label: `Em Manutenção` },
+            { value: `stopped`, label: `Parado (Crítico)` },
+          ]}
+        />
         </div>
       </div>
 
@@ -349,6 +351,6 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
           style={{ width: '100%', minHeight: '80px', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-input)' }}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

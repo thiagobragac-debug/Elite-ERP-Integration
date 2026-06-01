@@ -11,6 +11,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { PriceAlertModal } from './components/PriceAlertModal';
 import './MarketIntelligenceDashboard.css';
+import toast from 'react-hot-toast';
 
 interface QuoteData {
   date: string;
@@ -318,7 +319,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
         isOpen={isAlertModalOpen} 
         onClose={() => setIsAlertModalOpen(false)} 
         defaultIndicator={indicator}
-        onSuccess={() => alert('Alerta de mercado cadastrado com sucesso! O Copilot vai monitorar os preços para você.')}
+        onSuccess={() => toast.success('Alerta de mercado cadastrado com sucesso! O Copilot vai monitorar os preços para você.')}
       />
     </div>
   );

@@ -53,6 +53,7 @@ import { SupplierFilterModal } from './components/SupplierFilterModal';
 import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import './SupplierManagement.css';
+import toast from 'react-hot-toast';
 
 export const SupplierManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -282,7 +283,7 @@ export const SupplierManagement: React.FC = () => {
 
             if (existing) {
                 if (existing.is_supplier) {
-                    alert('❌ Este CPF/CNPJ já está cadastrado como fornecedor!');
+                    toast.error('❌ Este CPF/CNPJ já está cadastrado como fornecedor!');
                     setIsSubmitting(false);
                     return;
                 }
@@ -297,7 +298,7 @@ export const SupplierManagement: React.FC = () => {
                 }).eq('id', existing.id);
                 if (error) throw error;
                 
-                alert(`Parceiro unificado! Um cadastro com este CNPJ/CPF já existia (Cliente). Ele agora também é um Fornecedor.`);
+                toast.error(`Parceiro unificado! Um cadastro com este CNPJ/CPF já existia (Cliente). Ele agora também é um Fornecedor.`);
                 setIsModalOpen(false); 
                 fetchSuppliers();
                 setIsSubmitting(false);
@@ -318,7 +319,7 @@ export const SupplierManagement: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[SupplierManagement] Erro ao salvar parceiro:', err);
-      alert('❌ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
+      toast.error('❌ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSubmitting(false);
     }
@@ -331,7 +332,7 @@ export const SupplierManagement: React.FC = () => {
       if (error) throw error;
       fetchSuppliers();
     } catch (err: any) {
-      alert('❌ Erro ao excluir parceiro: ' + err.message);
+      toast.error('❌ Erro ao excluir parceiro: ' + err.message);
     }
   };
 

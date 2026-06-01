@@ -3,8 +3,9 @@ import { supabase } from '../../lib/supabase';
 import { Search, Briefcase, Edit2, Trash2 } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { FormModal } from '../../components/Forms/FormModal';
+import { SidePanel } from '../../components/Layout/SidePanel';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 interface Cargo {
   id: string;
@@ -91,7 +92,7 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numb
         setIsModalOpen(false);
         fetchCargos();
       } else {
-        alert('Erro ao atualizar: ' + error.message);
+        toast.error('Erro ao atualizar: ' + error.message);
       }
     } else {
       const { error } = await supabase
@@ -107,7 +108,7 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numb
         setIsModalOpen(false);
         fetchCargos();
       } else {
-        alert('Erro ao criar: ' + error.message);
+        toast.error('Erro ao criar: ' + error.message);
       }
     }
   };
@@ -196,7 +197,7 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numb
       </main>
 
       {isModalOpen && (
-        <FormModal
+        <SidePanel
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleSave}
@@ -243,7 +244,7 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numb
               </div>
             </label>
           </div>
-        </FormModal>
+        </SidePanel>
       )}
     </div>
   );

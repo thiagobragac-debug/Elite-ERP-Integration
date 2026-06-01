@@ -4,6 +4,8 @@ import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../contexts/TenantContext';
 import { X, Target, Bell, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
+import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
 
 interface PriceAlertModalProps {
   isOpen: boolean;
@@ -39,7 +41,7 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({ isOpen, onClos
       onClose();
     } catch (err) {
       console.error('Failed to create alert:', err);
-      alert('Erro ao criar alerta de preço.');
+      toast.error('Erro ao criar alerta de preço.');
     } finally {
       setLoading(false);
     }
@@ -72,16 +74,16 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({ isOpen, onClos
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="form-group">
               <label style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', display: 'block', marginBottom: '8px' }}>Indicador de Mercado</label>
-              <select 
+              <SearchableSelect 
                 value={indicator}
-                onChange={e => setIndicator(e.target.value)}
-                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '14px' }}
-              >
-                <option value="boi_gordo_cepea">Boi Gordo (CEPEA) - R$/@</option>
-                <option value="bezerro_ms_cepea">Bezerro MS (CEPEA) - R$/cb</option>
-                <option value="bezerro_sp_cepea">Bezerro SP (CEPEA) - R$/cb</option>
-                <option value="milho_cepea">Milho (CEPEA) - R$/sc</option>
-              </select>
+                onChange={setIndicator}
+                options={[
+                  { value: 'boi_gordo_cepea', label: 'Boi Gordo (CEPEA) - R$/@' },
+                  { value: 'bezerro_ms_cepea', label: 'Bezerro MS (CEPEA) - R$/cb' },
+                  { value: 'bezerro_sp_cepea', label: 'Bezerro SP (CEPEA) - R$/cb' },
+                  { value: 'milho_cepea', label: 'Milho (CEPEA) - R$/sc' }
+                ]}
+              />
             </div>
 
             <div className="form-group">

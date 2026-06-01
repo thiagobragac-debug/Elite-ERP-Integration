@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Layers, Plus, Minus, Trash2, ArrowRight, User, Briefcase } from 'lucide-react';
-import { FormModal } from '../../../components/Forms/FormModal';
+import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../contexts/TenantContext';
 
@@ -157,7 +157,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -498,6 +498,6 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
           transform: translateX(20px);
         }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };

@@ -40,6 +40,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
 import { useViewMode } from '../../hooks/useViewMode';
 import './LotManagement.css';
+import toast from 'react-hot-toast';
 
 export const LotManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -112,7 +113,7 @@ export const LotManagement: React.FC = () => {
         if (countError) throw countError;
 
         if (count && count > 0) {
-          alert(`❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui ${count} animais ativos vinculados. Por favor, transfira os animais para outro lote antes de arquivar.`);
+          toast.error(`❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui ${count} animais ativos vinculados. Por favor, transfira os animais para outro lote antes de arquivar.`);
           return;
         }
       } catch (err: any) {
@@ -120,7 +121,7 @@ export const LotManagement: React.FC = () => {
         // Fallback resilience: If database count check fails or we are in mock mode,
         // let's check if the lot name suggests there are active animals (like the default mock lot).
         if (lot.nome?.includes('01') || lot.nome?.includes('Recria') || lot.nome === '1') {
-          alert(`❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui animais ativos vinculados (Simulação Resiliente: 2 Cabeças). Por favor, remaneje os animais antes de arquivar.`);
+          toast.error(`❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui animais ativos vinculados (Simulação Resiliente: 2 Cabeças). Por favor, remaneje os animais antes de arquivar.`);
           return;
         }
       }

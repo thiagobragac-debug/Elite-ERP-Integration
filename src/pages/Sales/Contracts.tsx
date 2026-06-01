@@ -49,6 +49,7 @@ import { HedgeSimulationModal } from './components/HedgeSimulationModal';
 import { ContractFilterModal } from './components/ContractFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useApprovalQueue } from '../../hooks/useApprovalQueue';
+import toast from 'react-hot-toast';
 
 export const Contracts: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -179,7 +180,7 @@ export const Contracts: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate) {
-      alert('âš ï¸ Selecione uma unidade específica para registrar um novo contrato. No modo Visão Global, a fazenda contratante deve ser definida.');
+      toast.error('âš ï¸ Selecione uma unidade específica para registrar um novo contrato. No modo Visão Global, a fazenda contratante deve ser definida.');
       return;
     }
     const payload: any = {

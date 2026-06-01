@@ -49,6 +49,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { PurchaseRequestFilterModal } from './components/PurchaseRequestFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 export const PurchaseRequest: React.FC = () => {
   const { activeTenantId } = useTenant();
@@ -172,7 +173,7 @@ export const PurchaseRequest: React.FC = () => {
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate) {
-      alert('⚠️ Selecione uma unidade específica para criar uma nova solicitação. No modo Visão Global, o cadastro requer uma fazenda definida.');
+      toast.error('⚠️ Selecione uma unidade específica para criar uma nova solicitação. No modo Visão Global, o cadastro requer uma fazenda definida.');
       return;
     }
     const payload = {

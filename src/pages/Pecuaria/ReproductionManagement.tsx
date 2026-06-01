@@ -31,6 +31,7 @@ import { BatchReproModal } from './components/BatchReproModal';
 import { ReproductionFilterModal } from './components/ReproductionFilterModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 export const ReproductionManagement: React.FC = () => {
   const { activeFarm, activeTenantId, activeFarmId, isGlobalMode, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -80,7 +81,7 @@ export const ReproductionManagement: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate && !selectedEvent) {
-      alert('⚠️ Selecione uma unidade específica para registrar um novo evento reprodutivo.');
+      toast.error('⚠️ Selecione uma unidade específica para registrar um novo evento reprodutivo.');
       return;
     }
 
@@ -108,7 +109,7 @@ export const ReproductionManagement: React.FC = () => {
       setIsModalOpen(false);
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao salvar evento reprodutivo: ' + err.message);
+      toast.error('❌ Erro ao salvar evento reprodutivo: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -122,7 +123,7 @@ export const ReproductionManagement: React.FC = () => {
       refresh();
       setIsBatchModalOpen(false);
     } catch (err: any) {
-      alert('❌ Erro ao salvar lote reprodutivo: ' + err.message);
+      toast.error('❌ Erro ao salvar lote reprodutivo: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -135,7 +136,7 @@ export const ReproductionManagement: React.FC = () => {
       if (error) throw error;
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao excluir evento: ' + err.message);
+      toast.error('❌ Erro ao excluir evento: ' + err.message);
     }
   };
 

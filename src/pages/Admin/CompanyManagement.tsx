@@ -50,6 +50,7 @@ import { CompanyFilterModal } from './components/CompanyFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 export const CompanyManagement: React.FC = () => {
   const { activeFarm, tenant, activeTenantId } = useTenant();
@@ -264,7 +265,7 @@ export const CompanyManagement: React.FC = () => {
     if (type === 'company') {
       const company = companies.find(c => c.id === id);
       if (company?.tipo?.toUpperCase() === 'MATRIZ') {
-        alert('Segurança de Governança: A Empresa Matriz base do ecossistema não pode ser removida. O sistema exige a integridade da matriz para conformidade fiscal.');
+        toast.error('Segurança de Governança: A Empresa Matriz base do ecossistema não pode ser removida. O sistema exige a integridade da matriz para conformidade fiscal.');
         return;
       }
     }
@@ -329,7 +330,7 @@ export const CompanyManagement: React.FC = () => {
       fetchData();
     } catch (err: any) {
       console.error('Erro ao sincronizar com tenant:', err);
-      alert('Falha ao sincronizar dados: ' + (err.message || 'Erro desconhecido.'));
+      toast.error('Falha ao sincronizar dados: ' + (err.message || 'Erro desconhecido.'));
     } finally {
       setLoading(false);
     }

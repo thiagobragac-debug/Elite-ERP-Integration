@@ -37,6 +37,7 @@ import { ConfinementFilterModal } from './components/ConfinementFilterModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
+import toast from 'react-hot-toast';
 
 export const ConfinementManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload, isGlobalMode } = useFarmFilter();
@@ -75,7 +76,7 @@ export const ConfinementManagement: React.FC = () => {
 
   const handleAddPen = async (data: any) => {
     if (!canCreate && !activeFarmId) {
-      alert('⚠️ Selecione uma unidade específica para realizar o check-in.');
+      toast.error('⚠️ Selecione uma unidade específica para realizar o check-in.');
       return;
     }
     
@@ -99,7 +100,7 @@ export const ConfinementManagement: React.FC = () => {
       setIsModalOpen(false);
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao realizar check-in: ' + err.message);
+      toast.error('❌ Erro ao realizar check-in: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -123,7 +124,7 @@ export const ConfinementManagement: React.FC = () => {
       setIsCheckOutModalOpen(false);
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao realizar check-out: ' + err.message);
+      toast.error('❌ Erro ao realizar check-out: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -266,7 +267,7 @@ export const ConfinementManagement: React.FC = () => {
       if (error) throw error;
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao excluir curral: ' + err.message);
+      toast.error('❌ Erro ao excluir curral: ' + err.message);
     }
   };
 

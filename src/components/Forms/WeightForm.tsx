@@ -12,9 +12,10 @@ import {
   CheckCircle2,
   TrendingUp
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import toast from 'react-hot-toast';
 
 interface WeightFormProps {
   isOpen: boolean;
@@ -190,7 +191,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.animal_id) {
-      alert('⚠️ Por favor, selecione um animal válido usando o campo de busca.');
+      toast.error('⚠️ Por favor, selecione um animal válido usando o campo de busca.');
       return;
     }
     setLoading(true);
@@ -282,7 +283,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -667,6 +668,6 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
           .animal-chip:hover { border-color: hsl(var(--brand) / 0.5) !important; }
         `}</style>
       </form>
-    </FormModal>
+    </SidePanel>
   );
 };

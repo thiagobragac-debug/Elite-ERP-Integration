@@ -45,6 +45,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { MovementFilterModal } from './components/MovementFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 export const MovementManagement: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, activeFarm } = useFarmFilter();
@@ -157,7 +158,7 @@ export const MovementManagement: React.FC = () => {
 
   const handleOpenCreate = (type: 'in' | 'out' | 'transfer') => {
     if (!activeFarmId || isGlobalMode) {
-      alert('⚠️ Selecione uma unidade/fazenda específica no menu superior para lançar movimentações. Não é possível movimentar no modo Visão Global.');
+      toast.error('⚠️ Selecione uma unidade/fazenda específica no menu superior para lançar movimentações. Não é possível movimentar no modo Visão Global.');
       return;
     }
     setSelectedMovement(null);
@@ -167,7 +168,7 @@ export const MovementManagement: React.FC = () => {
 
   const handleOpenEdit = (move: any) => {
     if (!activeFarmId || isGlobalMode) {
-      alert('⚠️ Selecione uma unidade/fazenda específica no menu superior para editar movimentações. Não é possível editar no modo Visão Global.');
+      toast.error('⚠️ Selecione uma unidade/fazenda específica no menu superior para editar movimentações. Não é possível editar no modo Visão Global.');
       return;
     }
     setSelectedMovement(move);
@@ -233,7 +234,7 @@ export const MovementManagement: React.FC = () => {
         return;
       } catch (err) {
         console.error('Error in transfer:', err);
-        alert('Erro ao processar transferência');
+        toast.error('Erro ao processar transferência');
         return;
       }
     }
@@ -324,7 +325,7 @@ export const MovementManagement: React.FC = () => {
       }
     } catch (err) {
       console.error('Insert error:', err);
-      alert('Erro ao inserir movimentações.');
+      toast.error('Erro ao inserir movimentações.');
     }
   };
 

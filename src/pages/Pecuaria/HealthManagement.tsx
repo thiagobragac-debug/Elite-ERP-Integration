@@ -32,6 +32,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { HealthProtocolsModal } from './components/HealthProtocolsModal';
 import { HealthFilterModal } from './components/HealthFilterModal';
 import './HealthManagement.css';
+import toast from 'react-hot-toast';
 
 export const HealthManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -81,7 +82,7 @@ export const HealthManagement: React.FC = () => {
       if (error) throw error;
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao excluir registro: ' + err.message);
+      toast.error('❌ Erro ao excluir registro: ' + err.message);
     }
   };
 
@@ -196,7 +197,7 @@ export const HealthManagement: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate && !selectedEvent) {
-      alert('⚠️ Selecione uma unidade específica para registrar um novo manejo sanitário.');
+      toast.error('⚠️ Selecione uma unidade específica para registrar um novo manejo sanitário.');
       return;
     }
 
@@ -228,7 +229,7 @@ export const HealthManagement: React.FC = () => {
       setIsModalOpen(false);
       refresh();
     } catch (err: any) {
-      alert('❌ Erro ao salvar registro sanitário: ' + err.message);
+      toast.error('❌ Erro ao salvar registro sanitário: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -439,7 +440,7 @@ export const HealthManagement: React.FC = () => {
 
             if (error) throw error;
 
-            alert(`✅ Protocolo ${protocol.name} aplicado com sucesso! ${insertions.length} manejos agendados.`);
+            toast.success(`✅ Protocolo ${protocol.name} aplicado com sucesso! ${insertions.length} manejos agendados.`);
             refresh();
           } catch (err: any) {
             console.error('Error applying protocol:', err);

@@ -54,6 +54,7 @@ import { isValidUUID } from '../../utils/validation';
 import { useViewMode } from '../../hooks/useViewMode';
 
 import { useTenant } from '../../contexts/TenantContext';
+import toast from 'react-hot-toast';
 
 export const BankAccounts: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -245,7 +246,7 @@ export const BankAccounts: React.FC = () => {
       setIsModalOpen(false);
       fetchAccounts();
     } else {
-      alert('Erro ao salvar conta: ' + result.error.message);
+      toast.error('Erro ao salvar conta: ' + result.error.message);
     }
   };
 

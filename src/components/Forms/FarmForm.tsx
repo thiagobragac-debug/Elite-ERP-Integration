@@ -7,8 +7,9 @@ import {
   FileText,
   Hash
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface FarmFormProps {
   isOpen: boolean;
@@ -67,7 +68,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -87,13 +88,15 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
 
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><Building2 size={14} /> Empresa Responsável</label>
-          <select value={formData.companyId}
-            onChange={(e) => setFormData({...formData, companyId: e.target.value})} required>
-            <option value="">Selecione a empresa...</option>
-            {companies.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+                  <SearchableSelect 
+          value={formData.companyId}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione a empresa...` },
+            { value: `{c.name}`, label: `{c.name}` },
+            ...(companies || []).map(c => ({ value: String(c.id), label: String(c.name) })),
+          ]}
+        />
         </div>
       </div>
 
@@ -170,6 +173,6 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
           color: hsl(var(--text-muted)); font-style: italic;
         }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };

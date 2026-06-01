@@ -11,7 +11,8 @@ import {
   Sun,
   Flame
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
+import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 
 interface PastureFormProps {
@@ -100,10 +101,6 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.fazenda_id) {
-      alert('⚠️ Por favor, selecione uma fazenda para o pasto.');
-      return;
-    }
     setLoading(true);
     try {
       await onSubmit(formData);
@@ -113,30 +110,27 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title={initialData ? "Editar Pasto / Piquete" : "Novo Pasto / Piquete"}
-      subtitle={initialData ? "Atualize os dados da área de pastagem." : "Cadastre uma nova área de pastagem."}
+      title={initialData ? "Editar Pasto" : "Novo Pasto"}
+      subtitle="Cadastre e gerencie as áreas de pastagem."
       icon={Map}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Pasto"}
+      size="large"
     >
       <div className="form-group">
         <label><Map size={14} /> Selecionar Fazenda / Unidade</label>
-        <select 
+        <SearchableSelect 
           value={formData.fazenda_id}
-          onChange={(e) => setFormData({...formData, fazenda_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione uma fazenda...</option>
-          {farms.map(f => (
-            <option key={f.id} value={f.id}>
-              {f.nome}
-            </option>
-          ))}
-        </select>
+          onChange={(val: any) => setFormData({...formData, fazenda_id: val})}
+          options={[
+            { value: '', label: 'Selecione uma fazenda...' },
+            ...farms.map(f => ({ value: String(f.id), label: f.nome }))
+          ]}
+        />
       </div>
 
       <div className="form-group">
@@ -230,80 +224,86 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
 
       <div className="form-group">
         <label><Map size={14} /> Topografia</label>
-        <select 
+        <SearchableSelect 
           value={formData.topografia}
-          onChange={(e) => setFormData({...formData, topografia: e.target.value})}
-        >
-          <option>Plano</option>
-          <option>Levemente Ondulado</option>
-          <option>Ondulado</option>
-          <option>Montanhoso</option>
-        </select>
+          onChange={(val: any) => setFormData({...formData, topografia: val})}
+          options={[
+            { value: 'Plano', label: 'Plano' },
+            { value: 'Levemente Ondulado', label: 'Levemente Ondulado' },
+            { value: 'Ondulado', label: 'Ondulado' },
+            { value: 'Montanhoso', label: 'Montanhoso' }
+          ]}
+        />
       </div>
 
       <div className="form-group">
         <label><Trees size={14} /> Tipo de Solo</label>
-        <select 
+        <SearchableSelect 
           value={formData.tipo_solo}
-          onChange={(e) => setFormData({...formData, tipo_solo: e.target.value})}
-        >
-          <option>Argiloso</option>
-          <option>Arenoso</option>
-          <option>Misto</option>
-          <option>Latossolo</option>
-        </select>
+          onChange={(val: any) => setFormData({...formData, tipo_solo: val})}
+          options={[
+            { value: 'Argiloso', label: 'Argiloso' },
+            { value: 'Arenoso', label: 'Arenoso' },
+            { value: 'Misto', label: 'Misto' },
+            { value: 'Latossolo', label: 'Latossolo' }
+          ]}
+        />
       </div>
 
       <div className="form-group">
         <label><Activity size={14} /> Recurso Hídrico</label>
-        <select 
+        <SearchableSelect 
           value={formData.agua}
-          onChange={(e) => setFormData({...formData, agua: e.target.value})}
-        >
-          <option>Natural (Rios/Nascentes)</option>
-          <option>Bebedouro Australiano</option>
-          <option>Represa</option>
-          <option>Poço Artesiano</option>
-        </select>
+          onChange={(val: any) => setFormData({...formData, agua: val})}
+          options={[
+            { value: 'Natural (Rios/Nascentes)', label: 'Natural (Rios/Nascentes)' },
+            { value: 'Bebedouro Australiano', label: 'Bebedouro Australiano' },
+            { value: 'Represa', label: 'Represa' },
+            { value: 'Poço Artesiano', label: 'Poço Artesiano' }
+          ]}
+        />
       </div>
 
       <div className="form-group">
         <label><Shield size={14} /> Estado da Cerca</label>
-        <select 
+        <SearchableSelect 
           value={formData.estado_cerca}
-          onChange={(e) => setFormData({...formData, estado_cerca: e.target.value})}
-        >
-          <option>Bom</option>
-          <option>Regular</option>
-          <option>Ruim</option>
-          <option>Necessita Reparo</option>
-        </select>
+          onChange={(val: any) => setFormData({...formData, estado_cerca: val})}
+          options={[
+            { value: 'Bom', label: 'Bom' },
+            { value: 'Regular', label: 'Regular' },
+            { value: 'Ruim', label: 'Ruim' },
+            { value: 'Necessita Reparo', label: 'Necessita Reparo' }
+          ]}
+        />
       </div>
 
       <div className="form-group">
         <label><Sun size={14} /> Sombreamento</label>
-        <select 
+        <SearchableSelect 
           value={formData.sombreamento}
-          onChange={(e) => setFormData({...formData, sombreamento: e.target.value})}
-        >
-          <option>Natural (Árvores)</option>
-          <option>Artificial (Coberturas)</option>
-          <option>Misto</option>
-          <option>Inexistente</option>
-        </select>
+          onChange={(val: any) => setFormData({...formData, sombreamento: val})}
+          options={[
+            { value: 'Natural (Árvores)', label: 'Natural (Árvores)' },
+            { value: 'Artificial (Coberturas)', label: 'Artificial (Coberturas)' },
+            { value: 'Misto', label: 'Misto' },
+            { value: 'Inexistente', label: 'Inexistente' }
+          ]}
+        />
       </div>
 
       <div className="form-group">
         <label><Flame size={14} /> Plantas Daninhas / Invasoras</label>
-        <select 
+        <SearchableSelect 
           value={formData.plantas_daninhas}
-          onChange={(e) => setFormData({...formData, plantas_daninhas: e.target.value})}
-        >
-          <option>Baixa Infestação</option>
-          <option>Média Infestação</option>
-          <option>Alta Infestação</option>
-          <option>Livre</option>
-        </select>
+          onChange={(val: any) => setFormData({...formData, plantas_daninhas: val})}
+          options={[
+            { value: 'Baixa Infestação', label: 'Baixa Infestação' },
+            { value: 'Média Infestação', label: 'Média Infestação' },
+            { value: 'Alta Infestação', label: 'Alta Infestação' },
+            { value: 'Livre', label: 'Livre' }
+          ]}
+        />
       </div>
 
       <div className="form-group full-width">
@@ -315,6 +315,6 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
           style={{ width: '100%', minHeight: '80px', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-input)' }}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

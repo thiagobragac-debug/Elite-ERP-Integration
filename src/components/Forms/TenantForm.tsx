@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Building2, CreditCard, Mail, Phone, Lock } from 'lucide-react';
+import { SearchableSelect } from './SearchableSelect';
 
 interface TenantFormProps {
   isOpen: boolean;
@@ -131,28 +132,27 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
                 <div className="tauze-input-grid">
                   <div className="tauze-field-group">
                     <label className="tauze-label"><CreditCard size={14} /> Plano Vinculado</label>
-                      <select 
-                        className="tauze-input tauze-select"
-                        value={formData.plan} 
-                        onChange={e => setFormData({...formData, plan: e.target.value})}
-                      >
-                        <option value="">Selecione um plano...</option>
-                        {availablePlans.map(p => (
-                          <option key={p.id || p.name} value={p.name}>{p.name}</option>
-                        ))}
-                      </select>
+                              <SearchableSelect 
+          value={formData.plan}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione um plano...` },
+            { value: `{p.name}`, label: `{p.name}` },
+            ...(availablePlans || []).map(p => ({ value: String(p.name), label: String(p.name) })),
+          ]}
+        />
                   </div>
                   <div className="tauze-field-group">
                     <label className="tauze-label"><Lock size={14} /> Status da Conta</label>
-                    <select 
-                      className="tauze-input tauze-select"
-                      value={formData.status} 
-                      onChange={e => setFormData({...formData, status: e.target.value})}
-                    >
-                      <option value="Ativo">Ativo</option>
-                      <option value="Suspenso">Suspenso</option>
-                      <option value="Cancelado">Cancelado</option>
-                    </select>
+                            <SearchableSelect 
+          value={formData.status}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Ativo`, label: `Ativo` },
+            { value: `Suspenso`, label: `Suspenso` },
+            { value: `Cancelado`, label: `Cancelado` },
+          ]}
+        />
                   </div>
                 </div>
               </section>

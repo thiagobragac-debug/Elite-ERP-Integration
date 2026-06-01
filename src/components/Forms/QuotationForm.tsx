@@ -10,9 +10,10 @@ import {
   ArrowRight,
   Hash
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface QuotationFormProps {
   isOpen: boolean;
@@ -97,7 +98,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -109,16 +110,15 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
     >
       <div className="form-group">
         <label><Package size={14} /> Item para Cotação</label>
-        <select 
+                <SearchableSelect 
           value={formData.item_id}
-          onChange={(e) => setFormData({...formData, item_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione o produto...</option>
-          {products.map(p => (
-            <option key={p.id} value={p.id}>{p.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione o produto...` },
+            { value: `{p.nome}`, label: `{p.nome}` },
+            ...(products || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
+          ]}
+        />
       </div>
 
       <div className="form-group">
@@ -132,17 +132,17 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
             onChange={(e) => setFormData({...formData, quantity: e.target.value})}
             required
           />
-          <select 
-            style={{ width: '120px' }}
-            value={formData.unit}
-            onChange={(e) => setFormData({...formData, unit: e.target.value})}
-          >
-            <option>Unidades</option>
-            <option>Toneladas</option>
-            <option>Sacos</option>
-            <option>Litros</option>
-            <option>Frascos</option>
-          </select>
+                  <SearchableSelect 
+          value={formData.unit}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Unidades`, label: `Unidades` },
+            { value: `Toneladas`, label: `Toneladas` },
+            { value: `Sacos`, label: `Sacos` },
+            { value: `Litros`, label: `Litros` },
+            { value: `Frascos`, label: `Frascos` },
+          ]}
+        />
         </div>
       </div>
 
@@ -163,16 +163,15 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
               padding: '12px', 
               alignItems: 'center'
             }}>
-              <select 
-                value={sup.supplier_id}
-                onChange={(e) => updateSupplier(idx, 'supplier_id', e.target.value)}
-                required
-              >
-                <option value="">Parceiro...</option>
-                {suppliers.map(s => (
-                  <option key={s.id} value={s.id}>{s.nome}</option>
-                ))}
-              </select>
+                      <SearchableSelect 
+          value={sup.supplier_id}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Parceiro...` },
+            { value: `{s.nome}`, label: `{s.nome}` },
+            ...(suppliers || []).map(s => ({ value: String(s.id), label: String(s.nome) })),
+          ]}
+        />
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>R$</span>
                 <input 
@@ -202,6 +201,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
           ))}
         </div>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

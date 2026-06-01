@@ -45,6 +45,7 @@ import { PeriodSelectorModal } from './components/PeriodSelectorModal';
 import { ReportFilterModal } from './components/ReportFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
+import toast from 'react-hot-toast';
 
 
 export const Reports: React.FC = () => {
@@ -191,11 +192,11 @@ export const Reports: React.FC = () => {
           await refreshProfile();
         }
       } else {
-        alert("Este relatório não possui dados para exportação no momento.");
+        toast.error("Este relatório não possui dados para exportação no momento.");
       }
     } catch (error) {
       console.error("Erro ao baixar relatório:", error);
-      alert("Erro ao processar exportação. Tente novamente.");
+      toast.error("Erro ao processar exportação. Tente novamente.");
     } finally {
       document.body.style.cursor = 'default';
     }
@@ -260,7 +261,7 @@ export const Reports: React.FC = () => {
             <PieChart size={18} />
             CENTRAL DE BI
           </button>
-          <button className="primary-btn" onClick={() => alert('Dossier Mode: Selecione múltiplos relatórios para compilar um dossiê executivo.')}>
+          <button className="primary-btn" onClick={() => toast.error('Dossier Mode: Selecione múltiplos relatórios para compilar um dossiê executivo.')}>
             <Layers size={18} />
             GERAR DOSSIÊ
           </button>

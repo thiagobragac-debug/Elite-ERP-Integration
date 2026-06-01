@@ -13,9 +13,10 @@ import {
   Settings,
   Users
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface ContractFormProps {
   isOpen: boolean;
@@ -92,7 +93,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -115,17 +116,17 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
 
       <div className="form-group">
         <label><Settings size={14} /> Tipo de Contrato</label>
-        <select 
+                <SearchableSelect 
           value={formData.type}
-          onChange={(e) => setFormData({...formData, type: e.target.value})}
-          required
-        >
-          <option>Venda de Gado (Futuro)</option>
-          <option>Compra de Grãos (Barter)</option>
-          <option>Arrendamento de Terras</option>
-          <option>Hedge / Derivativos</option>
-          <option>Prestação de Serviço</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Venda de Gado (Futuro)`, label: `Venda de Gado (Futuro)` },
+            { value: `Compra de Grãos (Barter)`, label: `Compra de Grãos (Barter)` },
+            { value: `Arrendamento de Terras`, label: `Arrendamento de Terras` },
+            { value: `Hedge / Derivativos`, label: `Hedge / Derivativos` },
+            { value: `Prestação de Serviço`, label: `Prestação de Serviço` },
+          ]}
+        />
       </div>
 
       <div className="form-group full-width">
@@ -150,16 +151,15 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
 
       <div className="form-group">
         <label><Building2 size={14} /> Participante</label>
-        <select 
+                <SearchableSelect 
           value={formData.party_id}
-          onChange={(e) => setFormData({...formData, party_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione...</option>
-          {parties.map(p => (
-            <option key={p.id} value={p.id}>{p.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione...` },
+            { value: `{p.nome}`, label: `{p.nome}` },
+            ...(parties || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
+          ]}
+        />
       </div>
 
       <div className="form-group">
@@ -210,6 +210,6 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
           rows={3}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

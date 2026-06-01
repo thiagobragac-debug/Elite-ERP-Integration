@@ -23,6 +23,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { isValidUUID } from '../../utils/validation';
 import { BillingFilterModal } from './components/BillingFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 export const TenantBilling: React.FC = () => {
   const { tenant } = useTenant();
@@ -642,7 +643,7 @@ export const TenantBilling: React.FC = () => {
                       </p>
                       <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
                         <input readOnly value="00020126580014br.gov.bcb.pix0136..." style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontSize: '12px', color: '#64748b' }} />
-                        <button onClick={() => alert('Chave PIX copiada!')} style={{ padding: '0 16px', background: '#334155', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}>Copiar</button>
+                        <button onClick={() => toast.error('Chave PIX copiada!')} style={{ padding: '0 16px', background: '#334155', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}>Copiar</button>
                       </div>
                     </>
                   )}
@@ -660,7 +661,7 @@ export const TenantBilling: React.FC = () => {
                   <button 
                     onClick={() => {
                       setPixGenerating(true);
-                      setTimeout(() => { alert('Pagamento Aprovado com Sucesso!'); setIsPaymentModalOpen(false); setPaymentMethod(null); setPixGenerating(false); }, 2000);
+                      setTimeout(() => { toast.success('Pagamento Aprovado com Sucesso!'); setIsPaymentModalOpen(false); setPaymentMethod(null); setPixGenerating(false); }, 2000);
                     }}
                     style={{ width: '100%', padding: '14px', borderRadius: '12px', background: '#10b981', border: 'none', color: '#fff', fontWeight: 800, fontSize: '14px', cursor: 'pointer', marginTop: '8px' }}
                   >

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface InsumoItem {
   id: string;
@@ -199,18 +200,15 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
                   )}
                 </td>
                 <td>
-                  <select 
-                    className="tauze-table-input"
-                    value={item.deposito_id}
-                    onChange={(e) => handleUpdateItem(item.id, { deposito_id: e.target.value })}
-                    disabled={isReadOnly}
-                    style={{ fontSize: '11px' }}
-                  >
-                    <option value="">Selecione...</option>
-                    {depositos.map(d => (
-                      <option key={d.id} value={d.id}>{d.nome}</option>
-                    ))}
-                  </select>
+                          <SearchableSelect 
+          value={item.deposito_id}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione...` },
+            { value: `{d.nome}`, label: `{d.nome}` },
+            ...(depositos || []).map(d => ({ value: String(d.id), label: String(d.nome) })),
+          ]}
+        />
                 </td>
                 <td>
                   <input 

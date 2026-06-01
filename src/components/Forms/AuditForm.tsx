@@ -10,9 +10,10 @@ import {
   ArrowRight,
   RefreshCcw
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface AuditFormProps {
   isOpen: boolean;
@@ -64,7 +65,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit,
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -108,18 +109,18 @@ export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit,
 
       <div className="form-group">
         <label><Layers size={14} /> Categoria de Itens</label>
-        <select 
+                <SearchableSelect 
           value={formData.category}
-          onChange={(e) => setFormData({...formData, category: e.target.value})}
-          required
-        >
-          <option>Insumos (Sementes/Adubos)</option>
-          <option>Veterinária (Medicamentos)</option>
-          <option>Nutrição (Rações/Suplementos)</option>
-          <option>Peças & Oficina</option>
-          <option>Combustíveis</option>
-          <option>Todos os Itens</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Insumos (Sementes/Adubos)`, label: `Insumos (Sementes/Adubos)` },
+            { value: `Veterinária (Medicamentos)`, label: `Veterinária (Medicamentos)` },
+            { value: `Nutrição (Rações/Suplementos)`, label: `Nutrição (Rações/Suplementos)` },
+            { value: `Peças & Oficina`, label: `Peças & Oficina` },
+            { value: `Combustíveis`, label: `Combustíveis` },
+            { value: `Todos os Itens`, label: `Todos os Itens` },
+          ]}
+        />
       </div>
 
       <div className="form-group full-width">
@@ -158,6 +159,6 @@ export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit,
           <strong>Atenção:</strong> Ao iniciar, o estoque atual será "congelado" para fins de comparativo até a finalização do inventário.
         </p>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

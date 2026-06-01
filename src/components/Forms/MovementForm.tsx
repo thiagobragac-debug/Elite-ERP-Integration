@@ -13,11 +13,12 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import toast from 'react-hot-toast';
 
 interface MovementFormProps {
   isOpen: boolean;
@@ -146,18 +147,18 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
 
   const handleAddItem = () => {
     if (!currentItem.produto_id || !currentItem.quantidade) {
-      alert("Selecione o produto e informe a quantidade.");
+      toast.error("Selecione o produto e informe a quantidade.");
       return;
     }
     
     // Validate if it's an IN operation
     if (formData.tipo === 'in' && !currentItem.valor_unitario) {
-      alert("Preencha o Valor Unitário para entrada.");
+      toast.error("Preencha o Valor Unitário para entrada.");
       return;
     }
 
     if (formData.tipo !== 'transfer' && !currentItem.deposito_id) {
-      alert("Selecione o Depósito para o item.");
+      toast.error("Selecione o Depósito para o item.");
       return;
     }
 
@@ -183,11 +184,11 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (items.length === 0) {
-      alert("Adicione pelo menos um insumo à lista.");
+      toast.error("Adicione pelo menos um insumo à lista.");
       return;
     }
     if (formData.tipo === 'transfer' && (!formData.deposito_origem_id || !formData.destino_deposito_id)) {
-      alert("Para transferência, informe a origem e destino.");
+      toast.error("Para transferência, informe a origem e destino.");
       return;
     }
     setLoading(true);
@@ -202,7 +203,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
   const requiresLot = isMedicament(currentItem.produto_id);
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -511,6 +512,6 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
         )}
       </div>
 
-    </FormModal>
+    </SidePanel>
   );
 };

@@ -4,7 +4,7 @@ import {
   Target, Scale, Calendar, TrendingUp, DollarSign, Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FormModal } from '../../../components/Forms/FormModal';
+import { SidePanel } from '../../../components/Layout/SidePanel';
 
 interface CheckOutModalProps {
   isOpen: boolean;
@@ -49,7 +49,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
   ] : [];
 
   return (
-    <FormModal
+    <SidePanel size="large"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); if (step === 1) setStep(2); else if (step === 2) handleSubmit(); }}
@@ -221,6 +221,6 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
 
         </AnimatePresence>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

@@ -39,7 +39,7 @@ import {
   X,
   Package
 } from 'lucide-react';
-import { FormModal } from '../../components/Forms/FormModal';
+import { SidePanel } from '../../components/Layout/SidePanel';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
@@ -497,7 +497,7 @@ export const FuelManagement: React.FC = () => {
         initialData={selectedLog}
       />
 
-      <FormModal
+      <SidePanel size="large"
         isOpen={isAnalysisOpen}
         onClose={() => setIsAnalysisOpen(false)}
         onSubmit={(e) => { e.preventDefault(); setIsAnalysisOpen(false); }}
@@ -543,7 +543,7 @@ export const FuelManagement: React.FC = () => {
             ))}
           </div>
         </div>
-      </FormModal>
+      </SidePanel>
     </div>
   );
 };

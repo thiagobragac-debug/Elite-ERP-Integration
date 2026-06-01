@@ -4,8 +4,9 @@ import { Tag, Search, Plus, Trash2, Edit2, AlertTriangle, Layers, CheckCircle, X
 import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { FormModal } from '../../components/Forms/FormModal';
+import { SidePanel } from '../../components/Layout/SidePanel';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 interface Categoria {
   id: string;
@@ -208,7 +209,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
         setIsModalOpen(false);
         fetchCategorias();
       } else {
-        alert('Erro ao atualizar: ' + error.message);
+        toast.error('Erro ao atualizar: ' + error.message);
       }
     } else {
       const { error } = await supabase
@@ -227,7 +228,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
         setIsModalOpen(false);
         fetchCategorias();
       } else {
-        alert('Erro ao criar: ' + error.message);
+        toast.error('Erro ao criar: ' + error.message);
       }
     }
   };
@@ -240,7 +241,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
         .eq('id', id);
         
       if (error) {
-        alert('Não é possível excluir pois já existem registros usando esta categoria. Recomendamos INATIVÁ-LA.');
+        toast.error('Não é possível excluir pois já existem registros usando esta categoria. Recomendamos INATIVÁ-LA.');
       } else {
         fetchCategorias();
       }
@@ -340,7 +341,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
       </main>
 
       {isModalOpen && (
-        <FormModal
+        <SidePanel
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleSave}
@@ -435,7 +436,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
               </div>
             </label>
           </div>
-        </FormModal>
+        </SidePanel>
       )}
     </div>
   );

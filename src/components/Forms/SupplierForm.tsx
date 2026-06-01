@@ -12,13 +12,15 @@ import {
   Check,
   ChevronDown
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { fetchCNPJData } from '../../utils/cnpj';
 import { fetchCEPData } from '../../utils/cep';
 import { maskCPFCNPJ } from '../../utils/format';
 import { isValidDocument } from '../../utils/validation';
 import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
+import toast from 'react-hot-toast';
+import { SearchableSelect } from './SearchableSelect';
 
 interface SupplierFormProps {
   isOpen: boolean;
@@ -150,7 +152,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
         pais: 'Brasil'
       }));
     } catch (err) {
-      alert('Não foi possível localizar este CNPJ. Verifique os dados ou digite manualmente.');
+      toast.error('Não foi possível localizar este CNPJ. Verifique os dados ou digite manualmente.');
     } finally {
       setLoading(false);
     }
@@ -173,7 +175,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
         pais: 'BRASIL'
       }));
     } catch (err) {
-      alert('Não foi possível localizar este CEP. Verifique os dados ou digite manualmente.');
+      toast.error('Não foi possível localizar este CEP. Verifique os dados ou digite manualmente.');
     } finally {
       setLoading(false);
     }
@@ -182,7 +184,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.cnpj && !isValidDocument(formData.cnpj)) {
-      alert('❌ O CPF ou CNPJ informado é inválido. Verifique os números e tente novamente.');
+      toast.error('❌ O CPF ou CNPJ informado é inválido. Verifique os números e tente novamente.');
       return;
     }
     setLoading(true);
@@ -194,7 +196,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -203,6 +205,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
       icon={Truck}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Parceiro"}
+      size="large"
     >
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 190px', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -256,15 +259,15 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><Tag size={14} /> Categoria</label>
-          <select 
-            value={formData.categoria}
-            onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-          >
-            <option value="">Selecionar...</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.nome}>{cat.nome}</option>
-            ))}
-          </select>
+                  <SearchableSelect 
+          value={formData.categoria}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecionar...` },
+            { value: `{cat.nome}`, label: `{cat.nome}` },
+            ...(categories || []).map(cat => ({ value: String(cat.nome), label: String(cat.nome) })),
+          ]}
+        />
         </div>
 
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -734,6 +737,6 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };

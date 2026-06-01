@@ -94,7 +94,7 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
               borderRadius: '12px', 
               display: 'flex', 
               alignItems: 'center', 
-              justifyContent: 'center',
+              justifyContent: 'flex-end',
               color: type === 'payable' ? '#ef4444' : '#10b981'
             }}>
               <CalendarIcon size={22} />

@@ -2,6 +2,7 @@
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Check, Server, Users, HardDrive, Building2, Activity, ShieldCheck, CheckSquare, Square } from 'lucide-react';
+import { SearchableSelect } from './SearchableSelect';
 
 interface PlanFormProps {
   isOpen: boolean;
@@ -221,15 +222,15 @@ export const PlanForm: React.FC<PlanFormProps> = ({ isOpen, onClose, onSubmit, i
                   </div>
                   <div className="tauze-field-group">
                     <label className="tauze-label">Ciclo de Cobrança</label>
-                    <select 
-                      className="tauze-input tauze-select"
-                      value={formData.billingCycle}
-                      onChange={(e) => setFormData({ ...formData, billingCycle: e.target.value })}
-                    >
-                      <option value="monthly">Mensal</option>
-                      <option value="quarterly">Trimestral</option>
-                      <option value="yearly">Anual</option>
-                    </select>
+                            <SearchableSelect 
+          value={formData.billingCycle}
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `monthly`, label: `Mensal` },
+            { value: `quarterly`, label: `Trimestral` },
+            { value: `yearly`, label: `Anual` },
+          ]}
+        />
                   </div>
                 </div>
               </section>

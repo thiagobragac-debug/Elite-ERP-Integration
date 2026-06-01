@@ -4,16 +4,16 @@ import {
   Hash, 
   Calendar, 
   Tag, 
-  Map,
   Info,
-  Activity,
   User,
   Users,
   DollarSign,
   TrendingUp,
-  Building2
+  Building2,
+  MapPin
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
+import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 
@@ -32,6 +32,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     sexo: 'M',
     data_nascimento: '',
     fazenda_id: '',
+    pasto_id: '',
     status: 'Ativo',
     peso_inicial: '',
     pelagem: '',
@@ -44,10 +45,12 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
   });
   const { activeTenantId } = useTenant();
   const [fazendas, setFazendas] = useState<any[]>([]);
+  const [pastos, setPastos] = useState<any[]>([]);
   const [racas, setRacas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingFazendas, setLoadingFazendas] = useState(false);
+  const [loadingPastos, setLoadingPastos] = useState(false);
 
   React.useEffect(() => {
     if (isOpen && activeTenantId) {
@@ -62,6 +65,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         sexo: initialData.sexo || 'M',
         data_nascimento: initialData.data_nascimento || '',
         fazenda_id: initialData.fazenda_id || '',
+        pasto_id: initialData.pasto_id || '',
         status: initialData.status || 'Ativo',
         peso_inicial: initialData.peso_inicial || '',
         pelagem: initialData.pelagem || '',
@@ -79,6 +83,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         sexo: 'M',
         data_nascimento: '',
         fazenda_id: '',
+        pasto_id: '',
         status: 'Ativo',
         peso_inicial: '',
         pelagem: '',
@@ -91,6 +96,14 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
       });
     }
   }, [initialData, isOpen, activeTenantId]);
+
+  React.useEffect(() => {
+    if (formData.fazenda_id) {
+      fetchPastos(formData.fazenda_id);
+    } else {
+      setPastos([]);
+    }
+  }, [formData.fazenda_id]);
 
   const fetchFazendas = async () => {
     if (!activeTenantId) return;
@@ -107,6 +120,20 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
       console.error('[AnimalForm] Erro ao buscar fazendas:', err);
     } finally {
       setLoadingFazendas(false);
+    }
+  };
+
+  const fetchPastos = async (fazendaId: string) => {
+    setLoadingPastos(true);
+    try {
+      const { data } = await supabase
+        .from('pastos')
+        .select('id, nome')
+        .eq('fazenda_id', fazendaId)
+        .order('nome');
+      setPastos(data || []);
+    } finally {
+      setLoadingPastos(false);
     }
   };
 
@@ -145,7 +172,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -154,6 +181,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
       icon={Beef}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Animal"}
+      size="large"
     >
       <div className="tauze-field-group">
         <label className="tauze-label"><Hash size={14} /> Número do Brinco</label>
@@ -169,16 +197,14 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
 
       <div className="tauze-field-group">
         <label className="tauze-label"><Tag size={14} /> Raça</label>
-        <select 
-          className="tauze-input tauze-select"
+        <SearchableSelect 
           value={formData.raca}
-          onChange={(e) => setFormData({...formData, raca: e.target.value})}
-        >
-          <option value="">Selecionar Raça...</option>
-          {racas.map(r => (
-            <option key={r.id} value={r.nome}>{r.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => setFormData({...formData, raca: val})}
+          options={[
+            { value: '', label: 'Selecionar Raça...' },
+            ...racas.map(r => ({ value: r.nome, label: r.nome }))
+          ]}
+        />
       </div>
 
       <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
@@ -213,18 +239,28 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
 
       <div className="tauze-field-group">
         <label className="tauze-label"><Building2 size={14} /> Fazenda de Destino</label>
-        <select 
-          className="tauze-input tauze-select"
+        <SearchableSelect 
           value={formData.fazenda_id}
-          onChange={(e) => setFormData({...formData, fazenda_id: e.target.value})}
-          required
+          onChange={(val: any) => setFormData({...formData, fazenda_id: val, pasto_id: ''})}
           disabled={loadingFazendas}
-        >
-          <option value="">{loadingFazendas ? 'Carregando fazendas...' : 'Selecionar Fazenda...'}</option>
-          {fazendas.map(f => (
-            <option key={f.id} value={f.id}>{f.nome}</option>
-          ))}
-        </select>
+          options={[
+            { value: '', label: loadingFazendas ? 'Carregando fazendas...' : 'Selecionar Fazenda...' },
+            ...fazendas.map(f => ({ value: String(f.id), label: f.nome }))
+          ]}
+        />
+      </div>
+
+      <div className="tauze-field-group">
+        <label className="tauze-label"><MapPin size={14} /> Pasto (Opcional)</label>
+        <SearchableSelect 
+          value={formData.pasto_id}
+          onChange={(val: any) => setFormData({...formData, pasto_id: val})}
+          disabled={!formData.fazenda_id || loadingPastos}
+          options={[
+            { value: '', label: !formData.fazenda_id ? 'Selecione a fazenda primeiro' : loadingPastos ? 'Carregando pastos...' : 'Sem pasto definido' },
+            ...pastos.map(p => ({ value: String(p.id), label: p.nome }))
+          ]}
+        />
       </div>
 
       <div className="tauze-field-group">
@@ -304,31 +340,29 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
 
       <div className="tauze-field-group">
         <label className="tauze-label"><Beef size={14} /> Categoria</label>
-        <select 
-          className="tauze-input tauze-select"
+        <SearchableSelect 
           value={formData.categoria}
-          onChange={(e) => setFormData({...formData, categoria: e.target.value})}
-        >
-          <option value="">Selecionar...</option>
-          {categorias.map(c => (
-            <option key={c.id} value={c.nome}>{c.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => setFormData({...formData, categoria: val})}
+          options={[
+            { value: '', label: 'Selecionar Categoria...' },
+            ...categorias.map(c => ({ value: c.nome, label: c.nome }))
+          ]}
+        />
       </div>
 
       <div className="tauze-field-group">
-        <label className="tauze-label"><TrendingUp size={14} /> Finalidade</label>
-        <select 
-          className="tauze-input tauze-select"
+        <label className="tauze-label"><Beef size={14} /> Finalidade</label>
+        <SearchableSelect 
           value={formData.finalidade}
-          onChange={(e) => setFormData({...formData, finalidade: e.target.value})}
-        >
-          <option>Corte</option>
-          <option>Reprodução</option>
-          <option>Descarte</option>
-          <option>Exposição</option>
-        </select>
+          onChange={(val: any) => setFormData({...formData, finalidade: val})}
+          options={[
+            { value: '', label: 'Selecionar...' },
+            { value: 'Corte', label: 'Corte' },
+            { value: 'Leite', label: 'Leite' },
+            { value: 'Reprodução', label: 'Reprodução' }
+          ]}
+        />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

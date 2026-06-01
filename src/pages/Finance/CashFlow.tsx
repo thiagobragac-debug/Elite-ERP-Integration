@@ -37,6 +37,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import './CashFlow.css';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 interface Transaction {
   id: string;
@@ -94,7 +95,7 @@ export const CashFlow: React.FC = () => {
 
   const handleSubmit = async (data: any) => {
     if (!canCreate) {
-      alert('⚠️ Selecione uma unidade específica para lançar uma nova operação. No modo Visão Global, o caixa deve ser vinculado a uma fazenda.');
+      toast.error('⚠️ Selecione uma unidade específica para lançar uma nova operação. No modo Visão Global, o caixa deve ser vinculado a uma fazenda.');
       return;
     }
 

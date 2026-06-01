@@ -53,6 +53,7 @@ import { SaaSFilterModal } from './components/SaaSFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 import { useViewMode } from '../../hooks/useViewMode';
+import toast from 'react-hot-toast';
 
 type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'campaigns' | 'billing' | 'health' | 'settings';
 
@@ -728,13 +729,13 @@ export const SaaSAdminPanel: React.FC = () => {
       setAuditLogsList(prev => [newAuditLog, ...prev]);
     } catch (err) {
       console.error('Error saving tenant:', err);
-      alert('Erro ao salvar inquilino.');
+      toast.error('Erro ao salvar inquilino.');
     }
   };
 
   const handleCreateDemoTenant = async () => {
     if (!demoTenantName.trim()) {
-      alert('Por favor, informe o nome do tenant.');
+      toast.error('Por favor, informe o nome do tenant.');
       return;
     }
     setIsSaving(true);
@@ -769,7 +770,7 @@ export const SaaSAdminPanel: React.FC = () => {
 
         if (cloneError) {
           console.error('Erro ao clonar dados para a Demo:', cloneError);
-          alert('Erro ao criar base/clonar: ' + cloneError.message);
+          toast.error('Erro ao criar base/clonar: ' + cloneError.message);
         } else {
           // Limpar logs de auditoria gerados durante o processo de seed/clonagem
           await supabase.from('audit_logs').delete().eq('tenant_id', newTenant.id);
@@ -794,10 +795,10 @@ export const SaaSAdminPanel: React.FC = () => {
       await fetchTenants();
       setIsCreateDemoModalOpen(false);
       setDemoTenantName('');
-      alert('Base de demonstração criada com sucesso! Cargos e permissões foram herdados do Template Master.');
+      toast.success('Base de demonstração criada com sucesso! Cargos e permissões foram herdados do Template Master.');
     } catch (err: any) {
       console.error('Erro ao criar Demo Tenant:', err);
-      alert(`Falha ao criar base demo: ${err.message || err}`);
+      toast.error(`Falha ao criar base demo: ${err.message || err}`);
     } finally {
       setIsSaving(false);
     }
@@ -806,7 +807,7 @@ export const SaaSAdminPanel: React.FC = () => {
   const handleDeleteDemoTenant = async () => {
     if (!tenantToDelete) return;
     if (deleteConfirmationInput !== tenantToDelete.name) {
-      alert('O nome digitado não confere.');
+      toast.error('O nome digitado não confere.');
       return;
     }
     setIsDeleting(true);
@@ -835,10 +836,10 @@ export const SaaSAdminPanel: React.FC = () => {
       setIsDeleteDemoModalOpen(false);
       setTenantToDelete(null);
       setDeleteConfirmationInput('');
-      alert('Base de demonstração excluída com sucesso de forma limpa do ecossistema.');
+      toast.success('Base de demonstração excluída com sucesso de forma limpa do ecossistema.');
     } catch (err: any) {
       console.error('Erro ao deletar Demo Tenant:', err);
-      alert(`Erro de segurança ao excluir base demo: ${err.message || err}`);
+      toast.error(`Erro de segurança ao excluir base demo: ${err.message || err}`);
     } finally {
       setIsDeleting(false);
     }
@@ -887,13 +888,13 @@ export const SaaSAdminPanel: React.FC = () => {
         details: `Plano "${data.name}" ${selectedPlan ? 'atualizado' : 'criado'} com sucesso.`
       };
       setAuditLogsList(prev => [newPlanLog, ...prev]);
-      alert('Plano salvo com sucesso!');
+      toast.success('Plano salvo com sucesso!');
     } catch (err: any) {
       console.error('Error saving plan:', err);
       if (err.message === 'Timeout') {
-        alert('A conexão com o banco demorou muito. Verifique sua internet e tente novamente.');
+        toast.error('A conexão com o banco demorou muito. Verifique sua internet e tente novamente.');
       } else {
-        alert('Erro ao salvar plano: ' + (err.message || 'Erro desconhecido'));
+        toast.error('Erro ao salvar plano: ' + (err.message || 'Erro desconhecido'));
       }
     } finally {
       setIsSaving(false);
@@ -921,10 +922,10 @@ export const SaaSAdminPanel: React.FC = () => {
 
       await fetchCampaigns();
       setIsCampaignModalOpen(false);
-      alert('Campanha salva com sucesso!');
+      toast.success('Campanha salva com sucesso!');
     } catch (err: any) {
       console.error('Erro ao salvar campanha:', err);
-      alert('Erro ao salvar campanha: ' + (err.message || 'Erro desconhecido'));
+      toast.error('Erro ao salvar campanha: ' + (err.message || 'Erro desconhecido'));
     } finally {
       setIsSaving(false);
     }
@@ -981,7 +982,7 @@ export const SaaSAdminPanel: React.FC = () => {
       };
       setAuditLogsList(prev => [successLog, ...prev]);
       setIsLoadingSettings(false);
-      alert(`Reprocessamento concluído: ${pendingCount} faturas re-encaminhadas para o gateway.`);
+      toast.error(`Reprocessamento concluído: ${pendingCount} faturas re-encaminhadas para o gateway.`);
     }, 1500);
   };
 
@@ -1313,10 +1314,10 @@ export const SaaSAdminPanel: React.FC = () => {
         details: 'Configurações de chaves de API dos Gateways de pagamento salvas e encriptadas'
       };
       setAuditLogsList(prev => [settingsLog, ...prev]);
-      alert('Configurações salvas com sucesso!');
+      toast.success('Configurações salvas com sucesso!');
     } catch (err) {
       console.error('Erro ao salvar:', err);
-      alert('Erro ao salvar as configurações.');
+      toast.error('Erro ao salvar as configurações.');
     } finally {
       setIsLoadingSettings(false);
     }
@@ -1731,7 +1732,7 @@ export const SaaSAdminPanel: React.FC = () => {
             onClick={
               activeTab === 'campaigns' ? () => { setSelectedCampaign(null); setIsCampaignModalOpen(true); } :
               activeTab === 'plans' ? openNewPlan : 
-              activeTab === 'billing' ? () => alert('Nova Cobrança Iniciada') : 
+              activeTab === 'billing' ? () => toast.error('Nova Cobrança Iniciada') : 
               openNewTenant
             }
             style={{ display: (activeTab === 'overview' || activeTab === 'health') ? 'none' : 'flex' }}
@@ -3821,7 +3822,7 @@ export const SaaSAdminPanel: React.FC = () => {
                             new_data: retentionSettings
                           });
                           setIsRetentionModalOpen(false);
-                          alert('Políticas de retenção atualizadas com sucesso!');
+                          toast.success('Políticas de retenção atualizadas com sucesso!');
                         }}
                         style={{ flex: 1, padding: '14px', borderRadius: '14px', border: 'none', background: '#0f172a', color: 'white', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', cursor: 'pointer' }}
                       >

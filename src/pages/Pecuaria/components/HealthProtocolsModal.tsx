@@ -9,9 +9,10 @@ import {
   Trash2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FormModal } from '../../../components/Forms/FormModal';
+import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../contexts/TenantContext';
+import toast from 'react-hot-toast';
 
 interface HealthProtocolsModalProps {
   isOpen: boolean;
@@ -84,7 +85,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
       if (selectedProtocol?.id === id) setSelectedProtocol(null);
     } catch (err) {
       console.error('Error deleting protocol:', err);
-      alert('Erro ao desativar protocolo');
+      toast.error('Erro ao desativar protocolo');
     }
   };
 
@@ -96,7 +97,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
   };
 
   const handleSaveProtocol = async () => {
-    if (!newProtocol.name) return alert('Dê um nome ao protocolo');
+    if (!newProtocol.name) return toast.error('Dê um nome ao protocolo');
     
     try {
       const { data, error } = await supabase
@@ -125,19 +126,19 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
       });
     } catch (err) {
       console.error('Error saving protocol:', err);
-      alert('Erro ao salvar protocolo');
+      toast.error('Erro ao salvar protocolo');
     }
   };
 
   const handleConfirmApplication = () => {
-    if (!targetId) return alert('Selecione um animal ou lote');
+    if (!targetId) return toast.error('Selecione um animal ou lote');
     onApply({ protocol: selectedProtocol, targetType, targetId, startDate });
     setIsApplying(false);
     onClose();
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); if (isApplying) handleConfirmApplication(); else if (isCreating) handleSaveProtocol(); else setIsApplying(true); }}
@@ -318,6 +319,6 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
           </AnimatePresence>
         </div>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

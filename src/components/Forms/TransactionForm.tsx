@@ -9,10 +9,11 @@ import {
   Activity,
   CheckCircle2
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useEffect } from 'react';
+import { SearchableSelect } from './SearchableSelect';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -109,7 +110,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -154,43 +155,43 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
 
       <div className="form-group">
         <label><Building2 size={14} /> {entityLabel}</label>
-        <select 
+                <SearchableSelect 
           value={formData.entityId}
-          onChange={(e) => setFormData({...formData, entityId: e.target.value})}
-          required
-        >
-          <option value="">Selecionar {entityLabel}...</option>
-          {entities.map(e => (
-            <option key={e.id} value={e.id}>{e.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecionar {entityLabel}...` },
+            { value: `{e.nome}`, label: `{e.nome}` },
+            ...(entities || []).map(e => ({ value: String(e.id), label: String(e.nome) })),
+          ]}
+        />
       </div>
 
       <div className="form-group">
         <label><Target size={14} /> Categoria / Centro de Custo</label>
-        <select 
+                <SearchableSelect 
           value={formData.category}
-          onChange={(e) => setFormData({...formData, category: e.target.value})}
-        >
-          <option value="">Selecionar...</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.nome}>{cat.nome}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecionar...` },
+            { value: `{cat.nome}`, label: `{cat.nome}` },
+            ...(categories || []).map(cat => ({ value: String(cat.nome), label: String(cat.nome) })),
+          ]}
+        />
       </div>
 
       <div className="form-group full-width">
         <label><CreditCard size={14} /> Forma de Pagamento</label>
-        <select 
+                <SearchableSelect 
           value={formData.paymentMethod}
-          onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
-        >
-          <option>Boleto</option>
-          <option>PIX</option>
-          <option>Transferência</option>
-          <option>Cartão</option>
-          <option>Dinheiro</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Boleto`, label: `Boleto` },
+            { value: `PIX`, label: `PIX` },
+            { value: `Transferência`, label: `Transferência` },
+            { value: `Cartão`, label: `Cartão` },
+            { value: `Dinheiro`, label: `Dinheiro` },
+          ]}
+        />
       </div>
 
       <div className="form-group full-width">
@@ -212,7 +213,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
           </div>
         </div>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };
 

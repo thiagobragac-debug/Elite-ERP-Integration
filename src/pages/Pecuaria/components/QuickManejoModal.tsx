@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Scale, HeartPulse, Calendar, FileText, Hash, Stethoscope, Activity, AlertCircle, Sparkles } from 'lucide-react';
-import { FormModal } from '../../../components/Forms/FormModal';
+import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 
 interface QuickManejoModalProps {
@@ -162,7 +162,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -442,6 +442,6 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
           color: hsl(var(--brand));
         }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };

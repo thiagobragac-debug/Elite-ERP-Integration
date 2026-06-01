@@ -10,9 +10,10 @@ import {
   AlertCircle,
   ArrowRight
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { SearchableSelect } from './SearchableSelect';
 
 interface ReconciliationFormProps {
   isOpen: boolean;
@@ -85,7 +86,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -97,29 +98,28 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
     >
       <div className="form-group">
         <label><CreditCard size={14} /> Conta Bancária</label>
-        <select 
+                <SearchableSelect 
           value={formData.account_id}
-          onChange={(e) => setFormData({...formData, account_id: e.target.value})}
-          required
-        >
-          <option value="">Selecione a conta...</option>
-          {accounts.map(a => (
-            <option key={a.id} value={a.id}>{a.banco}</option>
-          ))}
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: ``, label: `Selecione a conta...` },
+            { value: `{a.banco}`, label: `{a.banco}` },
+            ...(accounts || []).map(a => ({ value: String(a.id), label: String(a.banco) })),
+          ]}
+        />
       </div>
 
       <div className="form-group">
         <label><Calendar size={14} /> Período do Extrato</label>
-        <select 
+                <SearchableSelect 
           value={formData.period}
-          onChange={(e) => setFormData({...formData, period: e.target.value})}
-          required
-        >
-          <option>Mês Atual</option>
-          <option>Mês Anterior</option>
-          <option>Personalizado</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Mês Atual`, label: `Mês Atual` },
+            { value: `Mês Anterior`, label: `Mês Anterior` },
+            { value: `Personalizado`, label: `Personalizado` },
+          ]}
+        />
       </div>
 
       {formData.period === 'Personalizado' && (
@@ -195,6 +195,6 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
           <strong>IA Automática:</strong> Nosso motor de IA tentará identificar e sugerir conciliações baseadas no histórico de transações.
         </p>
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

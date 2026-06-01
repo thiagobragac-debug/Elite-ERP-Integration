@@ -13,7 +13,7 @@ import {
   FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FormModal } from '../../../components/Forms/FormModal';
+import { SidePanel } from '../../../components/Layout/SidePanel';
 
 interface NutritionSimulatorModalProps {
   isOpen: boolean;
@@ -37,7 +37,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
 
   return (
     <>
-      <FormModal
+      <SidePanel size="large"
         isOpen={isOpen}
         onClose={onClose}
         onSubmit={(e) => { e.preventDefault(); window.print(); }}
@@ -121,7 +121,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
             </div>
           </div>
         </div>
-      </FormModal>
+      </SidePanel>
 
           {/* Versão para Impressão Profissional */}
           <div className="print-report-container">

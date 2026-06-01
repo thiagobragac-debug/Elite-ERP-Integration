@@ -24,12 +24,13 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { FormModal } from '../../components/Forms/FormModal';
+import { SidePanel } from '../../components/Layout/SidePanel';
 import { WarehouseFilterModal } from './components/WarehouseFilterModal';
 import { WarehouseStockModal } from './components/WarehouseStockModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 export const WarehouseManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -130,7 +131,7 @@ export const WarehouseManagement: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canCreate && !selectedWarehouse) {
-      alert('⚠️ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.');
+      toast.error('⚠️ Selecione uma unidade específica para criar um novo depósito. No modo Visão Global, o cadastro requer uma fazenda definida.');
       return;
     }
     const formData = new FormData(e.currentTarget as HTMLFormElement);
@@ -159,7 +160,7 @@ export const WarehouseManagement: React.FC = () => {
         }, 0);
 
         if (totalBalance > 0) {
-          alert(`Não é possível inativar o depósito "${selectedWarehouse.nome}" pois ele possui um saldo atual de ${totalBalance} itens em estoque. Zere o estoque antes de inativar.`);
+          toast.error(`Não é possível inativar o depósito "${selectedWarehouse.nome}" pois ele possui um saldo atual de ${totalBalance} itens em estoque. Zere o estoque antes de inativar.`);
           return;
         }
       }
@@ -905,7 +906,7 @@ export const WarehouseManagement: React.FC = () => {
 
       `}</style>
 
-      <FormModal
+      <SidePanel
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
@@ -990,7 +991,7 @@ export const WarehouseManagement: React.FC = () => {
             <option value="inativo">Inativo (Bloqueado)</option>
           </select>
         </div>
-      </FormModal>
+      </SidePanel>
     </div>
   );
 };

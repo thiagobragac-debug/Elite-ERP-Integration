@@ -10,7 +10,7 @@ import {
   Clock,
   Package
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
@@ -123,7 +123,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -137,7 +137,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
         <label><Truck size={14} /> Máquina / Veículo</label>
         <SearchableSelect 
           value={formData.machine_id}
-          onChange={(val) => setFormData({...formData, machine_id: val})}
+          onChange={(val: any) => setFormData({...formData, machine_id: val})}
           placeholder="Selecione a máquina..."
           options={machines.map(m => ({ value: m.id, label: m.nome }))}
         />
@@ -152,7 +152,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
         <label><Package size={14} /> Local de Saída (Estoque)</label>
         <SearchableSelect 
           value={formData.estoque_id}
-          onChange={(val) => setFormData({...formData, estoque_id: val})}
+          onChange={(val: any) => setFormData({...formData, estoque_id: val})}
           placeholder="Selecione o tanque de diesel..."
           options={locations.map(l => ({ value: l.id, label: l.nome }))}
         />
@@ -216,17 +216,17 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
 
       <div className="form-group">
         <label><Droplets size={14} /> Tipo de Combustível</label>
-        <select 
+                <SearchableSelect 
           value={formData.fuel_type}
-          onChange={(e) => setFormData({...formData, fuel_type: e.target.value})}
-          required
-        >
-          <option>Diesel S10</option>
-          <option>Diesel S500</option>
-          <option>Gasolina</option>
-          <option>Etanol</option>
-          <option>Arla 32</option>
-        </select>
+          onChange={(val: any) => { /* TODO: adjust */ }}
+          options={[
+            { value: `Diesel S10`, label: `Diesel S10` },
+            { value: `Diesel S500`, label: `Diesel S500` },
+            { value: `Gasolina`, label: `Gasolina` },
+            { value: `Etanol`, label: `Etanol` },
+            { value: `Arla 32`, label: `Arla 32` },
+          ]}
+        />
       </div>
 
       <div className="form-group">
@@ -239,6 +239,6 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
           required
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

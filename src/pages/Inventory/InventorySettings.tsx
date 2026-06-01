@@ -4,8 +4,9 @@ import { Tag, Plus, Trash2, Edit2, Layers, CheckCircle, XCircle, Search, Hash, C
 import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
-import { FormModal } from '../../components/Forms/FormModal';
+import { SidePanel } from '../../components/Layout/SidePanel';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import toast from 'react-hot-toast';
 
 interface NCM {
   id: string;
@@ -67,7 +68,7 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
       }
     } catch (err) {
       console.error(err);
-      alert('Erro ao buscar na Receita Federal. O serviço pode estar temporariamente indisponível.');
+      toast.error('Erro ao buscar na Receita Federal. O serviço pode estar temporariamente indisponível.');
     } finally {
       setImporting(false);
     }
@@ -88,12 +89,12 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
       
       if (error) throw error;
       
-      alert('NCM importado com sucesso!');
+      toast.success('NCM importado com sucesso!');
       fetchNCMs();
       // Remove from list so it doesn't get imported again
       setImportResults(prev => prev.filter(r => r.codigo !== ncm.codigo));
     } catch (err: any) {
-      alert('Erro ao importar. Este código já deve estar cadastrado no seu sistema.');
+      toast.error('Erro ao importar. Este código já deve estar cadastrado no seu sistema.');
     }
   };
 
@@ -162,7 +163,7 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
       fetchNCMs();
     } catch (err) {
       console.error('Error saving NCM:', err);
-      alert('Erro ao salvar NCM. Verifique se o código já existe.');
+      toast.error('Erro ao salvar NCM. Verifique se o código já existe.');
     }
   };
 
@@ -174,7 +175,7 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
       fetchNCMs();
     } catch (err) {
       console.error('Error deleting NCM:', err);
-      alert('Erro ao excluir NCM. Ele pode estar sendo usado por um insumo.');
+      toast.error('Erro ao excluir NCM. Ele pode estar sendo usado por um insumo.');
     }
   };
 
@@ -251,7 +252,7 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
       </main>
 
       {isModalOpen && (
-        <FormModal
+        <SidePanel
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handleSave}
@@ -307,11 +308,11 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
               </div>
             </label>
           </div>
-        </FormModal>
+        </SidePanel>
       )}
 
       {isImportModalOpen && (
-        <FormModal
+        <SidePanel
           isOpen={isImportModalOpen}
           onClose={() => setIsImportModalOpen(false)}
           onSubmit={() => {}} // No main submit
@@ -373,7 +374,7 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
                Nenhum resultado encontrado para a sua busca.
              </div>
           )}
-        </FormModal>
+        </SidePanel>
       )}
     </div>
   );

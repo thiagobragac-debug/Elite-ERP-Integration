@@ -10,7 +10,7 @@ import {
   FileText,
   Activity
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 
 interface DietFormProps {
   isOpen: boolean;
@@ -81,7 +81,7 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
   };
 
   return (
-    <FormModal
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -193,6 +193,6 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
           rows={3}
         />
       </div>
-    </FormModal>
+    </SidePanel>
   );
 };

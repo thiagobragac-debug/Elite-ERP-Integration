@@ -13,7 +13,7 @@ import {
   BookOpen,
   CreditCard
 } from 'lucide-react';
-import { FormModal } from './FormModal';
+import { SidePanel } from '../Layout/SidePanel';
 import { fetchCNPJData } from '../../utils/cnpj';
 import { fetchCEPData } from '../../utils/cep';
 import { maskCPFCNPJ } from '../../utils/format';
@@ -164,7 +164,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
   };
 
   return (
-    <FormModal
+    <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -173,6 +173,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
       icon={Building2}
       loading={loading}
       submitLabel={initialData ? 'Salvar Alterações' : 'Salvar Empresa'}
+      size="large"
     >
       {/* Identificação */}
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
@@ -427,6 +428,6 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
         }
         .cf-hint strong { color: hsl(var(--text-main)); font-weight: 700; }
       `}</style>
-    </FormModal>
+    </SidePanel>
   );
 };
