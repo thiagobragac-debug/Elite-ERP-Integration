@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Scale, HeartPulse, Calendar, FileText, Hash, Stethoscope, Activity, AlertCircle, Sparkles } from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
+import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
 
 interface QuickManejoModalProps {
   isOpen: boolean;
@@ -276,17 +277,17 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         <>
           <div className="tauze-field-group">
             <label className="tauze-label"><Stethoscope size={14} /> Tipo de Manejo</label>
-            <select 
-              className="tauze-input tauze-select"
+            <SearchableSelect
               value={healthData.tipo}
-              onChange={e => setHealthData({ ...healthData, tipo: e.target.value })}
+              onChange={val => setHealthData({ ...healthData, tipo: val })}
               disabled={isSubmitting}
-            >
-              <option value="VACINA">Vacina</option>
-              <option value="VERMIFUGO">Vermífugo</option>
-              <option value="MEDICAMENTO">Medicamento</option>
-              <option value="TRATAMENTO">Tratamento</option>
-            </select>
+              options={[
+                { value: 'VACINA', label: 'Vacina' },
+                { value: 'VERMIFUGO', label: 'Vermífugo' },
+                { value: 'MEDICAMENTO', label: 'Medicamento' },
+                { value: 'TRATAMENTO', label: 'Tratamento' }
+              ]}
+            />
           </div>
 
           <div className="tauze-field-group">
@@ -341,18 +342,18 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Activity size={14} /> Via de Aplicação</label>
-            <select 
-              className="tauze-input tauze-select"
+            <SearchableSelect
               value={healthData.via_aplicacao}
-              onChange={e => setHealthData({ ...healthData, via_aplicacao: e.target.value })}
+              onChange={val => setHealthData({ ...healthData, via_aplicacao: val })}
               disabled={isSubmitting}
-            >
-              <option value="IM">Intramuscular (IM)</option>
-              <option value="SC">Subcutânea (SC)</option>
-              <option value="ORAL">Oral</option>
-              <option value="TOPICO">Tópico</option>
-              <option value="IV">Intravenosa (IV)</option>
-            </select>
+              options={[
+                { value: 'IM', label: 'Intramuscular (IM)' },
+                { value: 'SC', label: 'Subcutânea (SC)' },
+                { value: 'ORAL', label: 'Oral' },
+                { value: 'TOPICO', label: 'Tópico' },
+                { value: 'IV', label: 'Intravenosa (IV)' }
+              ]}
+            />
           </div>
 
           <div className="tauze-field-group">
@@ -382,15 +383,15 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Activity size={14} /> Status</label>
-            <select 
-              className="tauze-input tauze-select"
+            <SearchableSelect
               value={healthData.status}
-              onChange={e => setHealthData({ ...healthData, status: e.target.value })}
+              onChange={val => setHealthData({ ...healthData, status: val })}
               disabled={isSubmitting}
-            >
-              <option value="REALIZADO">Realizado</option>
-              <option value="PENDENTE">Pendente</option>
-            </select>
+              options={[
+                { value: 'REALIZADO', label: 'Realizado' },
+                { value: 'PENDENTE', label: 'Pendente' }
+              ]}
+            />
           </div>
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>

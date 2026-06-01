@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Scale, 
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
+import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
 
 interface NutritionSimulatorModalProps {
   isOpen: boolean;
@@ -49,16 +50,18 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
       >
         <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
           <label className="tauze-label">Configuração da Dieta</label>
-          <select 
-            className="tauze-input tauze-select"
+          <SearchableSelect
             value={selectedDietId}
-            onChange={e => setSelectedDietId(e.target.value)}
-          >
-            <option value="">Escolha uma formulação...</option>
-            {diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(diet => (
-              <option key={diet.id} value={diet.id}>{diet.nome} (R$ {Number(diet.custo_por_kg).toFixed(2)}/kg)</option>
-            ))}
-          </select>
+            onChange={setSelectedDietId}
+            placeholder="Escolha uma formulação..."
+            options={[
+              { value: '', label: 'Escolha uma formulação...' },
+              ...diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(diet => ({
+                value: diet.id,
+                label: `${diet.nome} (R$ ${Number(diet.custo_por_kg).toFixed(2)}/kg)`
+              }))
+            ]}
+          />
         </div>
 
         <div className="tauze-field-group">

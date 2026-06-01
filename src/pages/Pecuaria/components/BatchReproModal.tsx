@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ClipboardCheck, 
   Layers, 
@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
+import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
 
 interface BatchReproModalProps {
   isOpen: boolean;
@@ -175,12 +176,16 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
 
                 <div className="tauze-field-group">
                   <label className="tauze-label">Resultado Geral</label>
-                  <select className="tauze-input tauze-select" value={result} onChange={e => setResult(e.target.value)}>
-                    <option value="Pendente">Pendente</option>
-                    <option value="Prenha">Prenha</option>
-                    <option value="Vazia">Vazia</option>
-                    <option value="Aborto">Aborto</option>
-                  </select>
+                  <SearchableSelect
+                    value={result}
+                    onChange={setResult}
+                    options={[
+                      { value: 'Pendente', label: 'Pendente' },
+                      { value: 'Prenha', label: 'Prenha' },
+                      { value: 'Vazia', label: 'Vazia' },
+                      { value: 'Aborto', label: 'Aborto' }
+                    ]}
+                  />
                 </div>
               </div>
             </motion.div>

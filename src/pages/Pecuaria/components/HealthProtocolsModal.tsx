@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Plus, 
@@ -11,6 +11,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
+import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
 import { useTenant } from '../../../contexts/TenantContext';
 import toast from 'react-hot-toast';
 
@@ -242,11 +243,15 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                   </div>
                   <div className="tauze-field-group">
                     <label className="tauze-label">Categoria</label>
-                    <select className="tauze-input tauze-select" value={newProtocol.category} onChange={e => setNewProtocol({...newProtocol, category: e.target.value})}>
-                      <option value="VACINAÇÃO">Vacinação</option>
-                      <option value="SANIDADE">Sanidade/Vermifugação</option>
-                      <option value="NUTRIÇÃO">Nutrição/Suplementação</option>
-                    </select>
+                    <SearchableSelect
+                      value={newProtocol.category}
+                      onChange={val => setNewProtocol({...newProtocol, category: val})}
+                      options={[
+                        { value: 'VACINAÇÃO', label: 'Vacinação' },
+                        { value: 'SANIDADE', label: 'Sanidade/Vermifugação' },
+                        { value: 'NUTRIÇÃO', label: 'Nutrição/Suplementação' }
+                      ]}
+                    />
                   </div>
 
                   <div style={{ marginTop: '12px' }}>

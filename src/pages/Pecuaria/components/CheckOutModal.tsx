@@ -1,10 +1,11 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Beef, CheckCircle2, ArrowRightCircle, AlertTriangle,
   Target, Scale, Calendar, TrendingUp, DollarSign, Clock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
+import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
 
 interface CheckOutModalProps {
   isOpen: boolean;
@@ -193,12 +194,16 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
                 </div>
                 <div className="tauze-field-group">
                   <label className="tauze-label">Destino</label>
-                  <select className="tauze-input tauze-select" value={destination} onChange={e => setDestination(e.target.value)}>
-                    <option value="ABATE">Frigorífico (Abate)</option>
-                    <option value="PASTO">Recria/Pasto</option>
-                    <option value="VENDA">Venda Direta</option>
-                    <option value="OUTRO">Outro Destino</option>
-                  </select>
+                  <SearchableSelect
+                    value={destination}
+                    onChange={setDestination}
+                    options={[
+                      { value: 'ABATE', label: 'Frigorífico (Abate)' },
+                      { value: 'PASTO', label: 'Recria/Pasto' },
+                      { value: 'VENDA', label: 'Venda Direta' },
+                      { value: 'OUTRO', label: 'Outro Destino' }
+                    ]}
+                  />
                 </div>
                 <div style={{ gridColumn: 'span 2', display: 'flex', gap: 10, padding: '12px 14px', background: 'hsl(38 92% 50% / 0.05)', border: '1px solid hsl(38 92% 50% / 0.2)', borderRadius: 12, color: 'hsl(38 92% 50%)', fontSize: 12, fontWeight: 600 }}>
                   <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
