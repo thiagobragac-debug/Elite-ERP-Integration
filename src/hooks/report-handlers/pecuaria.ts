@@ -71,7 +71,11 @@ function buildSparkline(
       : valueField
         ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0)
         : inBucket.length;
-    const d = new Date(bStart + bucketMs / 2);
+    const d = i === buckets - 1 && inBucket.length > 0
+      ? new Date(inBucket[inBucket.length - 1][dateField])
+      : i === 0 && inBucket.length > 0
+        ? new Date(inBucket[0][dateField])
+        : new Date(bStart + bucketMs / 2);
     return {
       value: Number(v.toFixed(2)),
       label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })

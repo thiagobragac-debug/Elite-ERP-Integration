@@ -282,27 +282,31 @@ const PastureManagement: React.FC = () => {
     const matchesSearch = p.nome?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Parse values safely
-    const lotacaoVal = parseFloat(p.lotacao) || 0;
-    const areaVal = parseFloat(p.area) || 0;
+    const lotacaoNum = parseFloat((p.lotacao || '').toString().replace(/[^\d.-]/g, ''));
+    const lotacaoVal = isNaN(lotacaoNum) ? 0 : lotacaoNum;
+    
+    const areaNum = parseFloat((p.area || '').toString().replace(/[^\d.-]/g, ''));
+    const areaVal = isNaN(areaNum) ? 0 : areaNum;
     
     // Tab Filter
     let matchesTab = true;
+    const explicitStatus = (p.status || '').toLowerCase();
+    
     if (activeTab === 'resting') {
-      matchesTab = (p.status || '').toLowerCase() === 'resting' || (p.status || '').toLowerCase() === 'descanso' || lotacaoVal === 0;
+      matchesTab = explicitStatus === 'resting' || explicitStatus === 'descanso';
     } else if (activeTab === 'occupied') {
-      matchesTab = lotacaoVal > 0 && (p.status || '').toLowerCase() !== 'resting' && (p.status || '').toLowerCase() !== 'descanso';
+      matchesTab = lotacaoVal > 0 && explicitStatus !== 'resting' && explicitStatus !== 'descanso';
     }
 
     // Status Filter
     let matchesStatus = true;
     if (filterValues.status !== 'all') {
-      const statusValue = (p.status || '').toLowerCase();
       if (filterValues.status === 'occupied') {
-        matchesStatus = lotacaoVal > 0 || statusValue === 'occupied' || statusValue === 'grazing';
+        matchesStatus = lotacaoVal > 0 || explicitStatus === 'occupied' || explicitStatus === 'grazing';
       } else if (filterValues.status === 'resting') {
-        matchesStatus = statusValue === 'resting' || statusValue === 'descanso' || (lotacaoVal === 0 && statusValue !== 'free');
+        matchesStatus = explicitStatus === 'resting' || explicitStatus === 'descanso';
       } else if (filterValues.status === 'free') {
-        matchesStatus = statusValue === 'free' || statusValue === 'vazio' || lotacaoVal === 0;
+        matchesStatus = lotacaoVal === 0 && (explicitStatus === 'free' || explicitStatus === 'grazing');
       }
     }
 
@@ -417,8 +421,12 @@ const PastureManagement: React.FC = () => {
     { 
       header: 'Lotação & Pressão', 
       accessor: (item: any) => {
-        const uas = parseFloat(item.lotacao || '0');
-        const area = parseFloat(item.area || '1');
+        const uasNum = parseFloat((item.lotacao || '').toString().replace(/[^\d.-]/g, ''));
+        const uas = isNaN(uasNum) ? 0 : uasNum;
+        
+        const areaNum = parseFloat((item.area || '').toString().replace(/[^\d.-]/g, ''));
+        const area = isNaN(areaNum) ? 1 : areaNum;
+        
         const density = area > 0 ? (uas / area).toFixed(2) : '0';
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
@@ -437,21 +445,39 @@ const PastureManagement: React.FC = () => {
     {
       header: 'Status Pastejo',
       accessor: (item: any) => {
-        const uas = parseFloat(item.lotacao || '0');
-        const area = parseFloat(item.area || '1');
+        const uasNum = parseFloat((item.lotacao || '').toString().replace(/[^\d.-]/g, ''));
+        const uas = isNaN(uasNum) ? 0 : uasNum;
+        
+        const areaNum = parseFloat((item.area || '').toString().replace(/[^\d.-]/g, ''));
+        const area = isNaN(areaNum) ? 1 : areaNum;
+        
         const density = parseFloat(area > 0 ? (uas / area).toFixed(2) : '0');
+        
+        const explicitStatus = (item.status || '').toLowerCase();
         
         let status = 'Ideal';
         let color = 'success';
-        if (uas === 0) {
+        
+        if (explicitStatus === 'resting' || explicitStatus === 'descanso') {
             status = 'Descanso';
             color = 'info';
-        } else if (density > 3.0) {
-            status = 'Superlotação';
-            color = 'danger';
-        } else if (density > 2.0) {
-            status = 'Atenção';
+        } else if (explicitStatus === 'degraded' || explicitStatus === 'degradado') {
+            status = 'Degradado';
             color = 'warning';
+        } else if (explicitStatus === 'renovation' || explicitStatus === 'reforma') {
+            status = 'Reforma';
+            color = 'danger';
+        } else {
+            if (uas === 0) {
+                status = 'Livre';
+                color = 'success';
+            } else if (density > 3.0) {
+                status = 'Superlotação';
+                color = 'danger';
+            } else if (density > 2.0) {
+                status = 'Atenção';
+                color = 'warning';
+            }
         }
 
         return (
@@ -675,28 +701,48 @@ const PastureManagement: React.FC = () => {
               </div>
             ) : (
               filteredPastures.map((p) => {
-                const uas = parseFloat(p.lotacao || '0');
-                const area = parseFloat(p.area || '0');
+                const uasNum = parseFloat((p.lotacao || '').toString().replace(/[^\d.-]/g, ''));
+                const uas = isNaN(uasNum) ? 0 : uasNum;
+                
+                const areaNum = parseFloat((p.area || '').toString().replace(/[^\d.-]/g, ''));
+                const area = isNaN(areaNum) ? 0 : areaNum;
+                
                 const capacityUa = p.capacidade_ua || 2.5;
                 const maxUa = area * capacityUa;
                 const occupancyPercent = maxUa > 0 ? (uas / maxUa) * 100 : 0;
                 
+                const explicitStatus = (p.status || '').toLowerCase();
+
                 let badgeClass = 'active'; // green
                 let badgeText = 'IDEAL';
                 let borderClass = 'active';
                 
-                if (uas === 0) {
+                if (explicitStatus === 'resting' || explicitStatus === 'descanso') {
                   badgeClass = 'info-badge';
                   badgeText = 'DESCANSO';
                   borderClass = 'info-badge';
-                } else if (occupancyPercent > 100) {
-                  badgeClass = 'stopped';
-                  badgeText = 'SUPERLOTAÇÃO';
-                  borderClass = 'danger-badge';
-                } else if (occupancyPercent > 80) {
+                } else if (explicitStatus === 'degraded' || explicitStatus === 'degradado') {
                   badgeClass = 'warning-badge';
-                  badgeText = 'ATENÇÃO';
+                  badgeText = 'DEGRADADO';
                   borderClass = 'warning-badge';
+                } else if (explicitStatus === 'renovation' || explicitStatus === 'reforma') {
+                  badgeClass = 'stopped';
+                  badgeText = 'REFORMA';
+                  borderClass = 'danger-badge';
+                } else {
+                  if (uas === 0) {
+                    badgeClass = 'active';
+                    badgeText = 'LIVRE';
+                    borderClass = 'active';
+                  } else if (occupancyPercent > 100) {
+                    badgeClass = 'stopped';
+                    badgeText = 'SUPERLOTAÇÃO';
+                    borderClass = 'danger-badge';
+                  } else if (occupancyPercent > 80) {
+                    badgeClass = 'warning-badge';
+                    badgeText = 'ATENÇÃO';
+                    borderClass = 'warning-badge';
+                  }
                 }
    
                 return (

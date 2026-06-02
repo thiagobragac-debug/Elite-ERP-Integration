@@ -126,7 +126,7 @@ export const CepeaPanel: React.FC = () => {
                     
                     return (
                       <tr key={quote.date}>
-                        <td>{new Date(quote.date).toLocaleDateString('pt-BR')}</td>
+                        <td>{quote.date.split('T')[0].split('-').reverse().join('/')}</td>
                         <td style={{ fontWeight: 800 }}>R$ {quote.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
                         <td className={isPositive ? 'var-pos' : isNegative ? 'var-neg' : 'var-neu'}>
                           {diffPercent === 0 ? '-' : `${isPositive ? '+' : ''}${diffPercent.toFixed(2)}%`}

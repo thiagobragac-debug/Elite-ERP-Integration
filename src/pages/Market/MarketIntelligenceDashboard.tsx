@@ -53,7 +53,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
       const rawData = await fetchHistoricalQuotes(indicator, startStr, undefined, true);
       
       const formatted = (rawData || []).map(q => {
-        const d = new Date(q.date);
+        const d = new Date(q.date.split('T')[0] + 'T12:00:00Z');
         return {
           ...q,
           value: Number(q.value),
@@ -102,7 +102,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
     const minDate   = data.find(d => d.value === min)?.date || '';
 
     const fmt = (iso: string) => {
-      const d = new Date(iso);
+      const d = new Date(iso.split('T')[0] + 'T12:00:00Z');
       return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
@@ -136,9 +136,17 @@ export const MarketIntelligenceDashboard: React.FC = () => {
   const liveVariation = firstVal > 0 ? ((currentPrice - firstVal) / firstVal) * 100 : stats.variation;
 
   // Sparkline (max 20 pontos)
-  const sparklineData = data.length <= 20
-    ? data.map(d => ({ value: d.value, label: d.displayDate || d.date }))
-    : data.filter((_, i) => i % Math.ceil(data.length / 20) === 0).map(d => ({ value: d.value, label: d.displayDate || d.date }));
+  let sparklineData: { value: number; label: string }[] = [];
+  if (data.length <= 20) {
+    sparklineData = data.map(d => ({ value: d.value, label: d.displayDate || d.date }));
+  } else {
+    const step = Math.ceil(data.length / 20);
+    const filtered = data.filter((_, i) => i % step === 0);
+    if (filtered.length > 0 && filtered[filtered.length - 1] !== data[data.length - 1]) {
+      filtered[filtered.length - 1] = data[data.length - 1];
+    }
+    sparklineData = filtered.map(d => ({ value: d.value, label: d.displayDate || d.date }));
+  }
 
   return (
     <div className="admin-intelligence-page animate-slide-up">

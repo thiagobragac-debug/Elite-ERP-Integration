@@ -85,11 +85,11 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
         finalidade: initialData.finalidade || '',
         descricao: initialData.descricao || '',
         status: initialData.status || 'ATIVO',
-        capacidade: initialData.capacidade?.toString() || '',
+        capacidade: initialData.capacidade ? initialData.capacidade.toString().replace(/[^\d.-]/g, '') : '',
         data_inicio: initialData.data_inicio || new Date().toISOString().split('T')[0],
         data_fim_prevista: initialData.data_fim_prevista || '',
-        gmd_alvo: initialData.gmd_alvo?.toString() || '',
-        peso_alvo: initialData.peso_alvo?.toString() || '',
+        gmd_alvo: initialData.gmd_alvo ? initialData.gmd_alvo.toString().replace(/[^\d.-]/g, '') : '',
+        peso_alvo: initialData.peso_alvo ? initialData.peso_alvo.toString().replace(/[^\d.-]/g, '') : '',
         fazenda_id: initialData.fazenda_id || '',
         cor: initialData.cor || '#6366f1'
       });

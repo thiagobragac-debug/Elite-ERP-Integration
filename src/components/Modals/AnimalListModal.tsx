@@ -137,7 +137,9 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
                     <span style={{ fontSize: '12px', fontWeight: 600, opacity: 0.6 }}>{animal.raca}</span>
                     <span style={{ fontSize: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Scale size={12} />
-                      {typeof animal.currentWeight === 'number' ? animal.currentWeight.toFixed(1) : parseFloat(animal.currentWeight || '0').toFixed(1)} kg
+                      {typeof animal.currentWeight === 'number' 
+                        ? animal.currentWeight.toFixed(1) 
+                        : (parseFloat((animal.currentWeight || '0').toString().replace(/[^\d.-]/g, '')) || 0).toFixed(1)} kg
                     </span>
                   </div>
                 </div>

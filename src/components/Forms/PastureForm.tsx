@@ -63,7 +63,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
     if (initialData) {
       setFormData({
         nome: initialData.nome || '',
-        area: initialData.area?.toString() || '',
+        area: initialData.area ? initialData.area.toString().replace(/[^\d.-]/g, '') : '',
         capacidade_ua: initialData.capacidade_ua?.toString() || '2.5',
         tipo_capim: initialData.tipo_capim || 'Brachiaria',
         status: initialData.status || 'grazing',

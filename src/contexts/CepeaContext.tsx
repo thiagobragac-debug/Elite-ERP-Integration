@@ -41,7 +41,7 @@ export const CepeaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setLive({
           valor: data.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
           valorNum: data.value,
-          data: new Date(data.date).toLocaleDateString('pt-BR'),
+          data: data.date.split('T')[0].split('-').reverse().join('/'),
           isoDate: data.date,
           capturedAt: new Date(data.created_at || new Date()),
         });
@@ -67,7 +67,7 @@ export const CepeaProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             setLive({
               valor: row.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
               valorNum: row.value,
-              data: new Date(row.date).toLocaleDateString('pt-BR'),
+              data: row.date.split('T')[0].split('-').reverse().join('/'),
               isoDate: row.date,
               capturedAt: new Date(row.created_at || new Date()),
             });

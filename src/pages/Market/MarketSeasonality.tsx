@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -103,7 +103,7 @@ export const MarketSeasonality: React.FC = () => {
       }
 
       rawData?.forEach((q: QuoteData) => {
-        const d = new Date(q.date);
+        const d = new Date(q.date.split('T')[0] + 'T12:00:00Z');
         // Correct for timezone issues by using UTC string splitting if needed, 
         // but 'YYYY-MM-DD' parses to UTC usually. Let's use simple string split:
         const [year, month, day] = q.date.split('-');

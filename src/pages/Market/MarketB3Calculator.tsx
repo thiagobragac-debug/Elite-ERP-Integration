@@ -55,7 +55,7 @@ export const MarketB3Calculator: React.FC = () => {
           const closestCepea = cepeaData.find((c: any) => c.date <= b3.date);
           const cepeaVal = closestCepea ? Number(closestCepea.value) : null;
           
-          const d = new Date(b3.date);
+          const d = new Date(b3.date.split('T')[0] + 'T12:00:00Z');
           return {
             date: b3.date,
             displayDate: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),

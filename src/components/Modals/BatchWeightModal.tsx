@@ -801,7 +801,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                               {row.evolucao >= 0 ? `+${row.evolucao.toFixed(2)}` : row.evolucao.toFixed(2)} kg
                             </span>
                             <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted) / 0.7)', marginTop: '2px', fontWeight: 600 }}>
-                              {((parseFloat(row.newWeight) * 0.54) / 15).toFixed(1)} @
+                              {(((parseFloat(row.newWeight?.toString().replace(/[^\d.-]/g, '')) || 0) * 0.54) / 15).toFixed(1)} @
                             </span>
                           </div>
                         ) : (

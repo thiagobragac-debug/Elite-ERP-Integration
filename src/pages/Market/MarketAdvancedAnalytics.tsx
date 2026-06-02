@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -13,7 +13,12 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
     const bEnd = bStart + bucketMs;
     const inBucket = sorted.filter(r => { const t = new Date(r[dateField]).getTime(); return i === buckets - 1 ? t >= bStart && t <= bEnd : t >= bStart && t < bEnd; });
     const v = inBucket.length === 0 ? 0 : valueField ? inBucket.reduce((s, r) => s + Number(r[valueField] || 0), 0) : inBucket.length;
-    return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    const d = i === buckets - 1 && inBucket.length > 0
+      ? new Date(inBucket[inBucket.length - 1][dateField])
+      : i === 0 && inBucket.length > 0
+        ? new Date(inBucket[0][dateField])
+        : new Date(bStart + bucketMs / 2);
+    return { value: Number(v.toFixed(2)), label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
   });
 }
 import { supabase } from '../../lib/supabase';
@@ -158,7 +163,7 @@ export const MarketAdvancedAnalytics: React.FC = () => {
         }
 
         if (current.date >= startDate) {
-          const d = new Date(current.date);
+          const d = new Date(current.date.split('T')[0] + 'T12:00:00Z');
           const pt = {
             date: current.date,
             value: val,

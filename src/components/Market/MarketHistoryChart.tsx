@@ -34,7 +34,7 @@ export const MarketHistoryChart: React.FC = () => {
         // Formata data para exibir no eixo X
         const formatted = quotes.map(q => ({
           ...q,
-          displayDate: new Date(q.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+          displayDate: new Date(q.date.split('T')[0] + 'T12:00:00Z').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
           value: Number(q.value)
         }));
 

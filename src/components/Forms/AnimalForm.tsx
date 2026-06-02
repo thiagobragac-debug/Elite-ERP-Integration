@@ -67,12 +67,12 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         fazenda_id: initialData.fazenda_id || '',
         pasto_id: initialData.pasto_id || '',
         status: initialData.status || 'Ativo',
-        peso_inicial: initialData.peso_inicial || '',
+        peso_inicial: initialData.peso_inicial ? initialData.peso_inicial.toString().replace(/[^\d.-]/g, '') : '',
         pelagem: initialData.pelagem || '',
         origem: initialData.origem || 'Nascido',
         mae_brinco: initialData.mae_brinco || '',
         pai_brinco: initialData.pai_brinco || '',
-        valor_compra: initialData.valor_compra || '',
+        valor_compra: initialData.valor_compra ? initialData.valor_compra.toString().replace(/[^\d.-]/g, '') : '',
         categoria: initialData.categoria || '',
         finalidade: initialData.finalidade || 'Corte'
       });

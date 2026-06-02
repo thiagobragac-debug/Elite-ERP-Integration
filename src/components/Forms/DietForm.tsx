@@ -39,8 +39,8 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
         nome: initialData.nome || '',
         tipo: initialData.tipo || 'Concentrado',
         descricao: initialData.descricao || '',
-        custo_por_kg: initialData.custo_por_kg?.toString() || '0',
-        percentual_ms: initialData.percentual_ms?.toString() || '88',
+        custo_por_kg: initialData.custo_por_kg ? initialData.custo_por_kg.toString().replace(/[^\d.-]/g, '') : '0',
+        percentual_ms: initialData.percentual_ms ? initialData.percentual_ms.toString().replace(/[^\d.-]/g, '') : '88',
         status: initialData.status || 'active'
       });
       setIngredients(initialData.ingredientes || []);
