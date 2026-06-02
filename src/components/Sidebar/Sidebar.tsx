@@ -15,7 +15,8 @@ import {
   Server,
   FileText,
   Globe,
-  Building2
+  Building2,
+  ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
@@ -158,7 +159,7 @@ const getModuleFromPath = (pathname: string): string => {
   return match ? match[1] : '';
 };
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () => void }> = ({ isCollapsed, onToggleCollapse }) => {
   const location = useLocation();
 
   // On first render, open only the module that matches the current URL.
@@ -246,7 +247,7 @@ export const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
         <div className="logo-container">
           <div className="logo-icon" style={{ 
@@ -256,6 +257,11 @@ export const Sidebar: React.FC = () => {
           </div>
           <span className="logo-text">{isFleetRoute ? 'Tauze Frota' : isPurchasingRoute ? 'Tauze Compras' : 'Tauze Pecuária'}</span>
         </div>
+        {onToggleCollapse && (
+          <button className="sidebar-collapse-btn" onClick={onToggleCollapse}>
+            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          </button>
+        )}
       </div>
 
       <nav className="sidebar-nav">

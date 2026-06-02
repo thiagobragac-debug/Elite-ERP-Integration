@@ -80,59 +80,8 @@ export const ExecutiveDashboard: React.FC = () => {
   const [chartMode, setChartMode] = useState<'line' | 'bar'>('line');
   const [targetValue, setTargetValue] = useState<number>(1.2);
   const [strategicInsights, setStrategicInsights] = useState({ projAbate: '---', desvioMeta: '---', ecc: '---' });
-  const [chatHistory, setChatHistory] = useState<any[]>([
-    { type: 'system', text: 'Olá! Sou o Tauze Copilot. O novo módulo de Inteligência de Mercado e Gráficos de Previsão já estão conectados ao meu sistema. Como posso ajudar na sua gestão hoje?' }
-  ]);
-  const [suggestionCategory, setSuggestionCategory] = useState<string | null>(null);
-
-  const promptMenu: Record<string, { label: string; prompts: string[] }> = {
-    pecuaria: {
-      label: '🐄 Pecuária',
-      prompts: ['Qual pasto tem melhor GMD hoje?', 'Resumo da projeção de abate', 'Animais com desvio de meta no GMD', 'Qual a taxa de prenhez do último mês?']
-    },
-    mercado: {
-      label: '📈 Mercado',
-      prompts: ['Analisar histórico do Boi Gordo (CEPEA)', 'Qual a tendência de Sazonalidade da arroba?', 'Comparar Boi Gordo com Milho (B3)']
-    },
-    financeiro: {
-      label: '💰 Financeiro',
-      prompts: ['Resumo financeiro do mês', 'Qual meu nível de Inadimplência?', 'Previsão de Runway e fluxo de caixa']
-    },
-    agricultura: {
-      label: '🌾 Agricultura',
-      prompts: ['Produtividade média por hectare', 'Status do plantio da Safra atual']
-    },
-    comercial: {
-      label: '🤝 Comercial',
-      prompts: ['Ticket médio de vendas', 'Volume comercializado no mês']
-    },
-    estoque: {
-      label: '📦 Suprimentos / Estoque',
-      prompts: ['Produtos com estoque crítico', 'Acuracidade do inventário', 'Saving de compras do mês']
-    },
-    frota: {
-      label: '🚛 Logística & Frota',
-      prompts: ['Consumo médio de Diesel', 'Disponibilidade de frota atual', 'Custo de manutenção por hora']
-    }
-  };
-
+  const [chatHistory, setChatHistory] = useState<any[]>([]);
   const navigate = useNavigate();
-
-  const handleCopilotSend = () => {
-    if (!copilotInput.trim()) return;
-    
-    const newUserMsg = { type: 'user', text: copilotInput };
-    setChatHistory(prev => [...prev, newUserMsg]);
-    setCopilotInput('');
-    
-    // Simulate AI response
-    setTimeout(() => {
-      setChatHistory(prev => [...prev, { 
-        type: 'system', 
-        text: `Analisando os dados de ${activeChartMetric.toUpperCase()}... Processando insights preditivos para ${isGlobalMode ? 'todas as unidades do grupo' : `a Fazenda ${activeFarm?.name}`}.` 
-      }]);
-    }, 1000);
-  };
 
   useEffect(() => {
     const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
@@ -862,70 +811,7 @@ export const ExecutiveDashboard: React.FC = () => {
           </div>
         )}
 
-        {isCopilotOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 100, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 100, scale: 0.9 }}
-            className="tauze-copilot-overlay"
-          >
-            <div className="copilot-header">
-              <div className="c-info">
-                <Sparkles size={18} />
-                <span>TAUZE COPILOT AI</span>
-              </div>
-              <button className="close-copilot-btn" onClick={() => setIsCopilotOpen(false)}>
-                <X size={18} />
-              </button>
-            </div>
-            <div className="copilot-chat">
-              {chatHistory.map((msg, i) => (
-                <div key={i} className={`msg ${msg.type}`}>
-                  {msg.text}
-                </div>
-              ))}
-              {chatHistory.length === 1 && suggestionCategory === null && (
-                <>
-                  <div className="msg-title" style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', paddingLeft: '8px', textTransform: 'uppercase' }}>Escolha um módulo para explorar:</div>
-                  {Object.entries(promptMenu).map(([key, item]) => (
-                    <div key={key} className="msg suggestion" onClick={() => setSuggestionCategory(key)}>
-                      {item.label} <ChevronRight size={14} style={{ float: 'right', marginTop: '2px' }} />
-                    </div>
-                  ))}
-                </>
-              )}
-              {chatHistory.length === 1 && suggestionCategory !== null && (
-                <>
-                  <div className="msg-title" style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '8px', paddingLeft: '8px', textTransform: 'uppercase' }}>{promptMenu[suggestionCategory]?.label} - Sugestões:</div>
-                  <div className="msg suggestion back-btn" onClick={() => setSuggestionCategory(null)} style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8' }}>
-                    🔙 Voltar aos módulos
-                  </div>
-                  {promptMenu[suggestionCategory]?.prompts.map((prompt, idx) => (
-                    <div key={idx} className="msg suggestion" onClick={() => setCopilotInput(prompt)}>
-                      {prompt}
-                    </div>
-                  ))}
-                </>
-              )}
-            </div>
-            <div className="copilot-input">
-              <input 
-                type="text" 
-                placeholder="Pergunte qualquer coisa..." 
-                value={copilotInput}
-                onChange={(e) => setCopilotInput(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleCopilotSend()}
-              />
-              <button className="send-btn" onClick={handleCopilotSend}><ArrowUpRight size={18} /></button>
-            </div>
-          </motion.div>
-        )}
       </AnimatePresence>
-
-      <button className="copilot-floating-btn" onClick={() => setIsCopilotOpen(true)}>
-        <Sparkles size={24} />
-        <span>Tauze Copilot</span>
-      </button>
 
       <style>{`
         .executive-page.tv-mode {
@@ -1017,53 +903,6 @@ export const ExecutiveDashboard: React.FC = () => {
         .tv-mode .activity-icon { background: #1e293b !important; }
         .tv-mode .viz-placeholder-lg { background: #1e293b !important; }
 
-        .copilot-floating-btn {
-          position: fixed;
-          bottom: 40px;
-          right: 40px;
-          background: hsl(var(--bg-sidebar));
-          color: white;
-          border: 1px solid hsl(var(--border-strong));
-          padding: 16px 32px;
-          border-radius: 40px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-weight: 800;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-          cursor: pointer;
-          z-index: 1001;
-          transition: all 0.3s;
-        }
-
-        .copilot-floating-btn:hover { transform: scale(1.05) translateY(-5px); background: #16a34a; }
-
-        .dashboard-grid-layout {
-          display: grid;
-          grid-template-columns: 1fr 380px;
-          gap: 16px;
-          align-items: start;
-        }
-
-        .analytics-canvas {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .recent-activity-panel {
-          position: sticky;
-          top: 32px;
-          background: hsl(var(--bg-card));
-          padding: 28px;
-          border-radius: 24px;
-          border: 1px solid hsl(var(--border));
-          box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-          max-height: calc(100vh - 64px);
-          display: flex;
-          flex-direction: column;
-        }
-
         .tv-mode .recent-activity-panel {
           top: 100px;
           background: #0f172a !important;
@@ -1071,51 +910,6 @@ export const ExecutiveDashboard: React.FC = () => {
           color: white !important;
           max-height: calc(100vh - 160px);
         }
-
-        .tauze-copilot-overlay {
-          position: fixed;
-          bottom: 120px;
-          right: 40px;
-          width: 380px;
-          background: hsl(var(--bg-card));
-          border-radius: 28px;
-          box-shadow: 0 40px 80px rgba(0,0,0,0.2);
-          z-index: 1002;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          border: 1px solid hsl(var(--border));
-        }
-
-        .copilot-header {
-          padding: 20px 24px;
-          background: #0f172a;
-          color: white;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .copilot-header .c-info { display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 13px; }
-
-        .copilot-chat { 
-          padding: 16px; 
-          display: flex; 
-          flex-direction: column; 
-          gap: 16px; 
-          min-height: 350px; 
-          max-height: 450px;
-          overflow-y: auto;
-          background: hsl(var(--bg-card));
-        }
-        .msg.system { background: hsl(var(--bg-main)); padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; color: hsl(var(--text-main)); align-self: flex-start; max-width: 85%; border: 1px solid hsl(var(--border)); }
-        .msg.user { background: #0f172a; color: white; padding: 12px 16px; border-radius: 14px; font-size: 13px; font-weight: 600; align-self: flex-end; max-width: 85%; }
-        .msg.suggestion { border: 1px solid hsl(var(--border)); padding: 10px 16px; border-radius: 12px; font-size: 12px; font-weight: 700; color: #16a34a; cursor: pointer; transition: all 0.2s; background: hsl(var(--bg-main) / 0.3); }
-        .msg.suggestion:hover { background: hsl(var(--brand) / 0.1); border-color: #16a34a; }
-
-        .copilot-input { padding: 20px; border-top: 1px solid hsl(var(--border)); display: flex; gap: 12px; background: hsl(var(--bg-card)); }
-        .copilot-input input { flex: 1; border: 1px solid hsl(var(--border)); background: hsl(var(--bg-main)); padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; outline: none; color: hsl(var(--text-main)); }
-        .send-btn { background: #16a34a; color: white; border: none; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
         .tauze-modal-overlay {
           position: fixed !important;

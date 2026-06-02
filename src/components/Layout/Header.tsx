@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Bell, HelpCircle, LogOut, Sun, Moon, GitBranch, User } from 'lucide-react';
+import { Search, Bell, HelpCircle, LogOut, Sun, Moon, GitBranch, User, Maximize2 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -9,9 +9,10 @@ import './Header.css';
 
 interface HeaderProps {
   onOpenProfile?: () => void;
+  onToggleKiosk?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenProfile = () => {} }) => {
+export const Header: React.FC<HeaderProps> = ({ onOpenProfile = () => {}, onToggleKiosk }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -56,6 +57,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenProfile = () => {} }) => {
         <button className="action-btn" onClick={toggleTheme} title={theme === 'light' ? 'Mudar para modo escuro' : 'Mudar para modo claro'}>
           {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
         </button>
+
+        {onToggleKiosk && (
+          <button className="action-btn" onClick={onToggleKiosk} title="Ativar Modo Kiosk (Alt+F)">
+            <Maximize2 size={20} />
+          </button>
+        )}
         
         <NotificationCenter />
 

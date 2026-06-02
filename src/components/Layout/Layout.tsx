@@ -6,10 +6,12 @@ import { useLocation, Outlet } from 'react-router-dom';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import { ProfileSidebar } from '../Navigation/ProfileSidebar';
 import { BillingBanner } from '../Billing/BillingBanner';
+import { GlobalCopilot } from '../Copilot/GlobalCopilot';
 import './Layout.css';
 
 export const Layout: React.FC = () => {
   const location = useLocation();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isKioskMode, setIsKioskMode] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isOverdue] = useState(false); 
@@ -29,10 +31,13 @@ export const Layout: React.FC = () => {
   }, []);
 
   return (
-    <div className={`layout ${isKioskMode ? 'kiosk-mode' : ''}`}>
-      <Sidebar />
+    <div className={`layout ${isKioskMode ? 'kiosk-mode' : ''} ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar isCollapsed={isSidebarCollapsed} onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
       <main className="main-content">
-        <Header onOpenProfile={() => setIsProfileOpen(true)} />
+        <Header 
+          onOpenProfile={() => setIsProfileOpen(true)} 
+          onToggleKiosk={() => setIsKioskMode(true)}
+        />
         
         <ProfileSidebar 
           isOpen={isProfileOpen} 
@@ -49,16 +54,7 @@ export const Layout: React.FC = () => {
         </div>
       </main>
       
-      {!isKioskMode && (
-        <button 
-          className="glass-btn primary" 
-          style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 100, borderRadius: '50%', width: '44px', height: '44px', padding: 0, justifyContent: 'center' }}
-          onClick={() => setIsKioskMode(true)}
-          title="Ativar Modo Kiosk (Alt+F)"
-        >
-          <Maximize2 size={20} />
-        </button>
-      )}
+      <GlobalCopilot />
     </div>
   );
 };

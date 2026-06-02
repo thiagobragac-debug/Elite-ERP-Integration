@@ -4,6 +4,10 @@
   background-color: hsl(var(--bg-main));
 }
 
+.layout.sidebar-collapsed {
+  --sidebar-width: 86px;
+}
+
 .main-content {
   flex: 1;
   margin-left: calc(var(--sidebar-width) + 2rem);

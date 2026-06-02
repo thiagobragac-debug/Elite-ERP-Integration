@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -35,7 +35,10 @@ import {
   Edit3,
   Zap,
   TrendingUp,
-  Target
+  Target,
+  PieChart,
+  DollarSign,
+  Clock
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -111,43 +114,53 @@ export const AuditManagement: React.FC = () => {
         const avgAccuracy = data.length > 0 
           ? data.reduce((acc: number, curr: any) => acc + (curr.accuracy || 0), 0) / data.length 
           : 0;
-        const totalItems = data.reduce((acc: number, curr: any) => acc + (curr.items_count || 0), 0);
+        const custoPerdas = data.reduce((acc: number, curr: any) => acc + (curr.custo_divergencia || 0), 0);
+        const tempoMedio = data.length > 0
+          ? data.reduce((acc: number, curr: any) => acc + (curr.tempo_auditoria_horas || 0), 0) / data.length
+          : 0;
         
         setStats([
           { label: 'Auditorias Concluídas', value: concluidas > 0 ? concluidas : '---', icon: ClipboardCheck, color: '#10b981', 
             progress: data.length > 0 ? (concluidas / data.length) * 100 : 0, 
             change: concluidas > 0 ? 'Concluídas' : 'Nenhuma concluída',
-            sparkline: buildSparkline(auditData || [], 'created_at', null)
+            sparkline: buildSparkline(data || [], 'data_inicio', 'divergencias_total')
           },
-          { label: 'Acuracidade Média', value: avgAccuracy > 0 ? `${avgAccuracy.toFixed(1)}%` : '---', icon: Target, color: '#3b82f6', 
-            progress: avgAccuracy, 
-            change: avgAccuracy > 0 ? 'Média real' : 'Sem dados de acuracidade',
-            sparkline: buildSparkline(auditData || [], 'created_at', null)
+          { label: 'Acuracidade Geral', value: avgAccuracy > 0 ? `${avgAccuracy.toFixed(1)}%` : '---', icon: PieChart, color: '#3b82f6', 
+            progress: avgAccuracy > 0 ? avgAccuracy : 0, 
+            trend: avgAccuracy > 95 ? 'up' as const : 'down' as const, 
+            change: 'Média de Inventário',
+            sparkline: buildSparkline(data || [], 'data_inicio', 'acuracidade_perc')
           },
-          { label: 'Itens Auditados', value: totalItems > 0 ? totalItems.toLocaleString() : '---', icon: Package, color: '#f59e0b', 
-            progress: totalItems > 0 ? Math.min(100, (totalItems / 1000) * 100) : 0, 
-            change: totalItems > 0 ? 'Total contabilizado' : 'Sem itens',
-            sparkline: buildSparkline(auditData || [], 'created_at', null)
+          { label: 'Custo de Perdas (Shrinkage)', 
+            value: custoPerdas > 0 ? custoPerdas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+            icon: DollarSign, color: '#ef4444', 
+            progress: custoPerdas > 0 ? Math.min(100, (custoPerdas / 10000) * 100) : 0, 
+            trend: custoPerdas > 0 ? 'up' as const : 'neutral' as const, 
+            change: custoPerdas > 0 ? 'Prejuízo Contabilizado' : 'Sem Perdas',
+            sparkline: buildSparkline(data || [], 'data_inicio', 'custo_divergencia')
           },
-          { label: 'Sessões Ativas', value: emAndamento > 0 ? emAndamento : '---', icon: History, color: '#6366f1', 
-            progress: data.length > 0 ? (emAndamento / data.length) * 100 : 0, 
-            change: emAndamento > 0 ? 'Em progresso' : 'Nenhuma ativa',
-            sparkline: buildSparkline(auditData || [], 'created_at', null)
+          { label: 'Tempo Médio de Auditoria', 
+            value: tempoMedio > 0 ? `${tempoMedio.toFixed(1)}h` : '---', 
+            icon: Clock, color: '#8b5cf6', 
+            progress: tempoMedio > 0 ? Math.max(0, 100 - (tempoMedio * 5)) : 0, 
+            trend: tempoMedio > 0 ? 'down' as const : 'neutral' as const, 
+            change: tempoMedio > 0 ? 'Horas por inventário' : 'Sem dados',
+            sparkline: buildSparkline(data || [], 'data_inicio', 'tempo_auditoria_horas')
           },
         ]);
       }
     } catch (err) {
-      console.warn('[Audits] Fetch error:', err);
+      console.warn('[Audit] Fetch error:', err);
       setAudits([]);
       setStats([
-        { label: 'Auditorias Concluídas', value: 0, icon: ClipboardCheck, color: '#10b981', progress: 0, change: '',
-          sparkline: buildSparkline(auditData || [], 'created_at', null) },
-        { label: 'Acuracidade Média', value: '0%', icon: Target, color: '#3b82f6', progress: 0, change: '',
-          sparkline: buildSparkline(auditData || [], 'created_at', null) },
-        { label: 'Itens Auditados', value: '0', icon: Package, color: '#f59e0b', progress: 0, change: '',
-          sparkline: buildSparkline(auditData || [], 'created_at', null) },
-        { label: 'Sessões Ativas', value: 0, icon: History, color: '#6366f1', progress: 0, change: '',
-          sparkline: buildSparkline(auditData || [], 'created_at', null) },
+        { label: 'Auditorias Pendentes', value: 0, icon: AlertCircle, color: '#ed6c02', progress: 0, change: '',
+          sparkline: buildSparkline([], 'data_inicio', 'divergencias_total') },
+        { label: 'Acuracidade Geral', value: '0%', icon: PieChart, color: '#3b82f6', progress: 0, change: '',
+          sparkline: buildSparkline([], 'data_inicio', 'acuracidade_perc') },
+        { label: 'Custo de Perdas', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '',
+          sparkline: buildSparkline([], 'data_inicio', 'custo_divergencia') },
+        { label: 'Tempo Médio', value: '0h', icon: Clock, color: '#8b5cf6', progress: 0, change: '',
+          sparkline: buildSparkline([], 'data_inicio', 'tempo_auditoria_horas') },
       ]);
     } finally {
       setLoading(false);
