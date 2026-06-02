@@ -114,25 +114,25 @@ export const AuditManagement: React.FC = () => {
         const totalItems = data.reduce((acc: number, curr: any) => acc + (curr.items_count || 0), 0);
         
         setStats([
-          { label: 'Auditorias Conclu�das', value: concluidas > 0 ? concluidas : '---', icon: ClipboardCheck, color: '#10b981', 
+          { label: 'Auditorias Concluídas', value: concluidas > 0 ? concluidas : '---', icon: ClipboardCheck, color: '#10b981', 
             progress: data.length > 0 ? (concluidas / data.length) * 100 : 0, 
-            change: concluidas > 0 ? 'Conclu�das' : 'Nenhuma conclu�da',
-            sparkline: buildSparkline([], 'created_at', null)
+            change: concluidas > 0 ? 'Concluídas' : 'Nenhuma concluída',
+            sparkline: buildSparkline(auditData || [], 'created_at', null)
           },
-          { label: 'Acuracidade M�dia', value: avgAccuracy > 0 ? `${avgAccuracy.toFixed(1)}%` : '---', icon: Target, color: '#3b82f6', 
+          { label: 'Acuracidade Média', value: avgAccuracy > 0 ? `${avgAccuracy.toFixed(1)}%` : '---', icon: Target, color: '#3b82f6', 
             progress: avgAccuracy, 
-            change: avgAccuracy > 0 ? 'M�dia real' : 'Sem dados de acuracidade',
-            sparkline: buildSparkline([], 'created_at', null)
+            change: avgAccuracy > 0 ? 'Média real' : 'Sem dados de acuracidade',
+            sparkline: buildSparkline(auditData || [], 'created_at', null)
           },
           { label: 'Itens Auditados', value: totalItems > 0 ? totalItems.toLocaleString() : '---', icon: Package, color: '#f59e0b', 
             progress: totalItems > 0 ? Math.min(100, (totalItems / 1000) * 100) : 0, 
             change: totalItems > 0 ? 'Total contabilizado' : 'Sem itens',
-            sparkline: buildSparkline([], 'created_at', null)
+            sparkline: buildSparkline(auditData || [], 'created_at', null)
           },
-          { label: 'Sess�es Ativas', value: emAndamento > 0 ? emAndamento : '---', icon: History, color: '#6366f1', 
+          { label: 'Sessões Ativas', value: emAndamento > 0 ? emAndamento : '---', icon: History, color: '#6366f1', 
             progress: data.length > 0 ? (emAndamento / data.length) * 100 : 0, 
             change: emAndamento > 0 ? 'Em progresso' : 'Nenhuma ativa',
-            sparkline: buildSparkline([], 'created_at', null)
+            sparkline: buildSparkline(auditData || [], 'created_at', null)
           },
         ]);
       }
@@ -140,14 +140,14 @@ export const AuditManagement: React.FC = () => {
       console.warn('[Audits] Fetch error:', err);
       setAudits([]);
       setStats([
-        { label: 'Auditorias Conclu�das', value: 0, icon: ClipboardCheck, color: '#10b981', progress: 0, change: '',
-          sparkline: buildSparkline([], 'created_at', null) },
-        { label: 'Acuracidade M�dia', value: '0%', icon: Target, color: '#3b82f6', progress: 0, change: '',
-          sparkline: buildSparkline([], 'created_at', null) },
+        { label: 'Auditorias Concluídas', value: 0, icon: ClipboardCheck, color: '#10b981', progress: 0, change: '',
+          sparkline: buildSparkline(auditData || [], 'created_at', null) },
+        { label: 'Acuracidade Média', value: '0%', icon: Target, color: '#3b82f6', progress: 0, change: '',
+          sparkline: buildSparkline(auditData || [], 'created_at', null) },
         { label: 'Itens Auditados', value: '0', icon: Package, color: '#f59e0b', progress: 0, change: '',
-          sparkline: buildSparkline([], 'created_at', null) },
-        { label: 'Sess�es Ativas', value: 0, icon: History, color: '#6366f1', progress: 0, change: '',
-          sparkline: buildSparkline([], 'created_at', null) },
+          sparkline: buildSparkline(auditData || [], 'created_at', null) },
+        { label: 'Sessões Ativas', value: 0, icon: History, color: '#6366f1', progress: 0, change: '',
+          sparkline: buildSparkline(auditData || [], 'created_at', null) },
       ]);
     } finally {
       setLoading(false);
@@ -210,14 +210,14 @@ export const AuditManagement: React.FC = () => {
       Titulo: item.titulo,
       Responsavel: item.responsavel || 'N/A',
       Categoria: item.categoria || 'Geral',
-      Status: item.status === 'completed' ? 'Conclu�da' : 'Em Aberto',
+      Status: item.status === 'completed' ? 'Concluída' : 'Em Aberto',
       Acuracidade: item.accuracy ? `${item.accuracy}%` : '0%',
       Itens: item.items_count || 0
     }));
 
     if (format === 'csv') exportToCSV(exportData, 'log_auditorias');
     else if (format === 'excel') exportToExcel(exportData, 'log_auditorias');
-    else if (format === 'pdf') exportToPDF(exportData, 'log_auditorias', 'Relat�rio de Auditoria de Estoque');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_auditorias', 'Relatório de Auditoria de Estoque');
   };
 
   const handleDelete = async (id: string) => {
@@ -233,7 +233,7 @@ export const AuditManagement: React.FC = () => {
       setHistoryItems([
         { id: '1', date: audit.data || audit.created_at, title: 'Item: Sal Mineral 20kg', subtitle: 'Esperado: 45 | Encontrado: 44', value: '-1 un', status: 'error' },
         { id: '2', date: audit.data || audit.created_at, title: 'Item: Farelo de Soja', subtitle: 'Esperado: 120 | Encontrado: 120', value: 'OK', status: 'success' },
-        { id: '3', date: audit.data || audit.created_at, title: 'Item: Milho Mo�do', subtitle: 'Esperado: 200 | Encontrado: 202', value: '+2 un', status: 'warning' },
+        { id: '3', date: audit.data || audit.created_at, title: 'Item: Milho Moído', subtitle: 'Esperado: 200 | Encontrado: 202', value: '+2 un', status: 'warning' },
       ]);
       setHistoryLoading(false);
     }, 800);
@@ -241,7 +241,7 @@ export const AuditManagement: React.FC = () => {
 
   const columns = [
     {
-      header: 'Auditoria / C�digo',
+      header: 'Auditoria / Código',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.titulo}</span>
@@ -267,7 +267,7 @@ export const AuditManagement: React.FC = () => {
       align: 'left' as const
     },
     {
-      header: 'Data Invent�rio',
+      header: 'Data Inventário',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px' }}>
           <Calendar size={14} />
@@ -277,7 +277,7 @@ export const AuditManagement: React.FC = () => {
       align: 'center' as const
     },
     {
-      header: 'Auditor / Respons�vel',
+      header: 'Auditor / Responsável',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
@@ -319,7 +319,7 @@ export const AuditManagement: React.FC = () => {
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span className={`status-pill ${item.status === 'completed' ? 'active' : 'info'}`}>
-            {item.status === 'completed' ? 'Conclu�da' : 'Em Aberto'}
+            {item.status === 'completed' ? 'Concluída' : 'Em Aberto'}
           </span>
         </div>
       ),
@@ -335,14 +335,14 @@ export const AuditManagement: React.FC = () => {
             <ClipboardCheck size={14} fill="currentColor" />
             <span>TAUZE AUDIT v5.0</span>
           </div>
-          <h1 className="page-title">Invent�rio & Auditoria</h1>
-          <p className="page-subtitle">Reconcilia��o f�sica vs. cont�bil, an�lise de diverg�ncias e controle rigoroso de perdas.</p>
+          <h1 className="page-title">Inventário & Auditoria</h1>
+          <p className="page-subtitle">Reconciliação física vs. contábil, análise de divergências e controle rigoroso de perdas.</p>
         </div>
         <div className="page-actions">
 
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
-            NOVO INVENT�RIO
+            NOVO INVENTÁRIO
           </button>
         </div>
       </header>
@@ -375,13 +375,13 @@ export const AuditManagement: React.FC = () => {
             className={`tauze-tab-item ${activeTab === 'HISTORY' ? 'active' : ''}`}
             onClick={() => setActiveTab('HISTORY')}
           >
-            Hist�rico de Auditorias
+            Histórico de Auditorias
           </button>
           <button 
             className={`tauze-tab-item ${activeTab === 'CRITICAL' ? 'active' : ''}`}
             onClick={() => setActiveTab('CRITICAL')}
           >
-            Itens Cr�ticos
+            Itens Críticos
           </button>
         </div>
 
@@ -390,7 +390,7 @@ export const AuditManagement: React.FC = () => {
           <input 
             type="text" 
             className="tauze-search-input"
-            placeholder="Buscar auditoria por t�tulo ou respons�vel..." 
+            placeholder="Buscar auditoria por título ou responsável..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -399,7 +399,7 @@ export const AuditManagement: React.FC = () => {
          <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
-            title="Filtros Avan�ados"
+            title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           >
             <Filter size={20} />
@@ -436,16 +436,16 @@ export const AuditManagement: React.FC = () => {
           emptyState={
             !searchTerm && filterValues.status === 'all' && filterValues.accuracyRange === 'all' && !filterValues.dateStart && !filterValues.dateEnd ? (
               <EmptyState
-                title={activeTab === 'HISTORY' ? "Nenhuma auditoria registrada" : "Nenhum item cr�tico"}
-                description={activeTab === 'HISTORY' ? "Voc� n�o possui hist�rico de invent�rio no momento." : "N�o h� auditorias com acuracidade cr�tica."}
-                actionLabel={activeTab === 'HISTORY' ? "Novo Invent�rio" : undefined}
+                title={activeTab === 'HISTORY' ? "Nenhuma auditoria registrada" : "Nenhum item crítico"}
+                description={activeTab === 'HISTORY' ? "Você não possui histórico de inventário no momento." : "Não há auditorias com acuracidade crítica."}
+                actionLabel={activeTab === 'HISTORY' ? "Novo Inventário" : undefined}
                 onAction={activeTab === 'HISTORY' ? handleOpenCreate : undefined}
                 icon={ClipboardCheck}
               />
             ) : (
               <EmptyState
                 title="Nenhum registro encontrado"
-                description="Sua busca n�o retornou resultados."
+                description="Sua busca não retornou resultados."
                 icon={Search}
               />
             )
@@ -498,7 +498,7 @@ export const AuditManagement: React.FC = () => {
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
         title="Detalhamento da Auditoria"
-        subtitle="Confer�ncia de itens e diverg�ncias encontradas"
+        subtitle="Conferência de itens e divergências encontradas"
         items={historyItems}
         loading={historyLoading}
       />

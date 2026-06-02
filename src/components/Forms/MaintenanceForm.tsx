@@ -118,144 +118,184 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClos
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Abrir Ordem"}
     >
-      <div className="form-group full-width">
-        <label><Truck size={14} /> Selecionar Máquina</label>
-                <SearchableSelect 
-          value={formData.maquina_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione um ativo...` },
-            { value: `{m.nome}`, label: `{m.nome}` },
-            ...(machines || []).map(m => ({ value: String(m.id), label: String(m.nome) })),
-          ]}
-        />
-      </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Identificação Básica</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Truck size={14} /> Selecionar Máquina</label>
+            <SearchableSelect 
+              value={formData.maquina_id}
+              onChange={(val: any) => setFormData({...formData, maquina_id: val})}
+              options={[
+                { value: '', label: 'Selecione um ativo...' },
+                ...(machines || []).map(m => ({ value: String(m.id), label: String(m.nome) })),
+              ]}
+            />
+          </div>
 
-      <div className="form-group">
-        <label><Settings size={14} /> Tipo de Manutenção</label>
-                <SearchableSelect 
-          value={formData.tipo}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `preventive`, label: `Preventiva` },
-            { value: `corrective`, label: `Corretiva` },
-            { value: `scheduled`, label: `Agendada` },
-          ]}
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Settings size={14} /> Tipo de Manutenção</label>
+            <SearchableSelect 
+              value={formData.tipo}
+              onChange={(val: any) => setFormData({...formData, tipo: val})}
+              options={[
+                { value: 'preventive', label: 'Preventiva' },
+                { value: 'corrective', label: 'Corretiva' },
+                { value: 'scheduled', label: 'Agendada' },
+              ]}
+            />
+          </div>
 
-      <div className="form-group">
-        <label><Calendar size={14} /> Data de Início</label>
-        <input 
-          type="date" 
-          value={formData.data_inicio}
-          onChange={(e) => setFormData({...formData, data_inicio: e.target.value})}
-          required
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data de Início</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={formData.data_inicio}
+              onChange={(e) => setFormData({...formData, data_inicio: e.target.value})}
+              required
+            />
+          </div>
 
-      <div className="form-group">
-        <label><Users size={14} /> Responsável / Oficina</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Mecânica Silva, João..." 
-          value={formData.responsavel}
-          onChange={(e) => setFormData({...formData, responsavel: e.target.value})}
-          required
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Users size={14} /> Responsável / Oficina</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: Mecânica Silva, João..." 
+              value={formData.responsavel}
+              onChange={(e) => setFormData({...formData, responsavel: e.target.value})}
+              required
+            />
+          </div>
+        </div>
+      </section>
 
-      <div className="form-group">
-        <label><DollarSign size={14} /> Peças (Estoque) (R$)</label>
-        <input 
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
-          value={formData.custo_pecas}
-          onChange={(e) => setFormData({...formData, custo_pecas: e.target.value})}
-        />
-      </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Descrição e Status</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Status da Ordem</label>
+            <SearchableSelect 
+              value={formData.status}
+              onChange={(val: any) => setFormData({...formData, status: val})}
+              options={[
+                { value: 'open', label: 'Em Aberto (Pendente)' },
+                { value: 'scheduled', label: 'Agendada (Oficina)' },
+                { value: 'completed', label: 'Concluída (Finalizada)' },
+                { value: 'cancelled', label: 'Cancelada' },
+              ]}
+            />
+          </div>
+        </div>
+        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Descrição do Problema / Serviço</label>
+            <textarea 
+              className="tauze-input"
+              placeholder="Detalhe o que será realizado..." 
+              value={formData.descricao}
+              onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+              rows={3}
+              required
+            />
+          </div>
+        </div>
+      </section>
 
-      <div className="form-group">
-        <label><DollarSign size={14} /> Mão de Obra (R$)</label>
-        <input 
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
-          value={formData.custo_mao_obra}
-          onChange={(e) => setFormData({...formData, custo_mao_obra: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <label><Package size={14} /> Materiais e Peças Aplicadas</label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'hsl(var(--bg-main)/0.5)', padding: '16px', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-          {formData.materiais.map((mat, i) => (
-            <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <SearchableSelect 
-          value={mat.id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione a peça...` },
-            { value: `{p.nome}`, label: `{p.nome}` },
-            ...(inventory || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
-          ]}
-        />
-              <input 
-                type="number" 
-                placeholder="Qtd" 
-                style={{ flex: 1 }}
-                value={mat.qtd}
-                onChange={(e) => {
-                  const newMats = [...formData.materiais];
-                  newMats[i].qtd = e.target.value;
-                  setFormData({...formData, materiais: newMats});
-                }}
-              />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 03</div>
+          <h4 className="tauze-section-title">Materiais e Peças (Estoque)</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'hsl(var(--bg-main)/0.5)', padding: '16px', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
+              {formData.materiais.map((mat, i) => (
+                <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <SearchableSelect 
+                    value={mat.id}
+                    onChange={(val: any) => {
+                      const newMats = [...formData.materiais];
+                      newMats[i].id = val;
+                      setFormData({...formData, materiais: newMats});
+                    }}
+                    options={[
+                      { value: '', label: 'Selecione a peça...' },
+                      ...(inventory || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
+                    ]}
+                  />
+                  <input 
+                    className="tauze-input"
+                    type="number" 
+                    placeholder="Qtd" 
+                    style={{ flex: 1, height: '40px' }}
+                    value={mat.qtd}
+                    onChange={(e) => {
+                      const newMats = [...formData.materiais];
+                      newMats[i].qtd = e.target.value;
+                      setFormData({...formData, materiais: newMats});
+                    }}
+                  />
+                  <button 
+                    type="button" 
+                    className="action-dot delete"
+                    onClick={() => setFormData({...formData, materiais: formData.materiais.filter((_, idx) => idx !== i)})}
+                  >
+                    <Plus size={14} style={{ transform: 'rotate(45deg)' }} />
+                  </button>
+                </div>
+              ))}
               <button 
                 type="button" 
-                className="action-dot delete"
-                onClick={() => setFormData({...formData, materiais: formData.materiais.filter((_, idx) => idx !== i)})}
+                className="text-btn" 
+                style={{ alignSelf: 'flex-start', fontSize: '11px', marginTop: formData.materiais.length > 0 ? '8px' : '0' }}
+                onClick={() => setFormData({...formData, materiais: [...formData.materiais, { id: '', qtd: 1 }]})}
               >
-                <Plus size={14} style={{ transform: 'rotate(45deg)' }} />
+                + ADICIONAR ITEM DO ESTOQUE
               </button>
             </div>
-          ))}
-          <button 
-            type="button" 
-            className="text-btn" 
-            style={{ alignSelf: 'flex-start', fontSize: '11px' }}
-            onClick={() => setFormData({...formData, materiais: [...formData.materiais, { id: '', qtd: 1 }]})}
-          >
-            + ADICIONAR ITEM DO ESTOQUE
-          </button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Descrição do Problema / Serviço</label>
-        <textarea 
-          placeholder="Detalhe o que será realizado..." 
-          value={formData.descricao}
-          onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-          rows={3}
-          required
-        />
-      </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 04</div>
+          <h4 className="tauze-section-title">Custos Adicionais</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Peças Compradas Fora (R$)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01"
+              placeholder="0.00" 
+              value={formData.custo_pecas}
+              onChange={(e) => setFormData({...formData, custo_pecas: e.target.value})}
+            />
+          </div>
 
-      <div className="form-group">
-        <label><Activity size={14} /> Status da Ordem</label>
-                <SearchableSelect 
-          value={formData.status}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `open`, label: `Em Aberto (Pendente)` },
-            { value: `scheduled`, label: `Agendada (Oficina)` },
-            { value: `completed`, label: `Concluída (Finalizada)` },
-            { value: `cancelled`, label: `Cancelada` },
-          ]}
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Mão de Obra (R$)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01"
+              placeholder="0.00" 
+              value={formData.custo_mao_obra}
+              onChange={(e) => setFormData({...formData, custo_mao_obra: e.target.value})}
+            />
+          </div>
+        </div>
+      </section>
     </SidePanel>
   );
 };

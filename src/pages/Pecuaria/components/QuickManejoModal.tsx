@@ -219,7 +219,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       )}
 
       {activeTab === 'PESO' ? (
-        <>
+        <div className="form-grid">
           <div className="tauze-field-group">
             <label className="tauze-label"><Scale size={14} /> Peso Atual (kg)</label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -272,9 +272,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
               rows={3}
             />
           </div>
-        </>
+        </div>
       ) : (
-        <>
+        <div className="form-grid">
           <div className="tauze-field-group">
             <label className="tauze-label"><Stethoscope size={14} /> Tipo de Manejo</label>
             <SearchableSelect
@@ -405,7 +405,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
               rows={2}
             />
           </div>
-        </>
+        </div>
       )}
 
       <style>{`

@@ -103,113 +103,149 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Registrar Contrato"}
     >
-      <div className="form-group">
-        <label><Hash size={14} /> Número do Contrato</label>
-        <input 
-          type="text" 
-          placeholder="Ex: CNT-2024-088..." 
-          value={formData.contract_number}
-          onChange={(e) => setFormData({...formData, contract_number: e.target.value})}
-          required 
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Settings size={14} /> Tipo de Contrato</label>
-                <SearchableSelect 
-          value={formData.type}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `Venda de Gado (Futuro)`, label: `Venda de Gado (Futuro)` },
-            { value: `Compra de Grãos (Barter)`, label: `Compra de Grãos (Barter)` },
-            { value: `Arrendamento de Terras`, label: `Arrendamento de Terras` },
-            { value: `Hedge / Derivativos`, label: `Hedge / Derivativos` },
-            { value: `Prestação de Serviço`, label: `Prestação de Serviço` },
-          ]}
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <label><Users size={14} /> Tipo de Participante</label>
-        <div className="tauze-form-radio-group">
-          <div 
-            className={`tauze-form-radio-item ${formData.party_type === 'client' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, party_type: 'client'})}
-          >
-            <User size={16} />
-            <span>Parceiro</span>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Dados Gerais do Contrato</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Hash size={14} /> Número do Contrato</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: CNT-2024-088..." 
+              value={formData.contract_number}
+              onChange={(e) => setFormData({...formData, contract_number: e.target.value})}
+              required 
+            />
           </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.party_type === 'supplier' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, party_type: 'supplier'})}
-          >
-            <Building2 size={16} />
-            <span>Parceiro</span>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Settings size={14} /> Tipo de Contrato</label>
+            <SearchableSelect 
+              value={formData.type}
+              onChange={(val: any) => setFormData({...formData, type: val})}
+              options={[
+                { value: 'Venda de Gado (Futuro)', label: 'Venda de Gado (Futuro)' },
+                { value: 'Compra de Grãos (Barter)', label: 'Compra de Grãos (Barter)' },
+                { value: 'Arrendamento de Terras', label: 'Arrendamento de Terras' },
+                { value: 'Hedge / Derivativos', label: 'Hedge / Derivativos' },
+                { value: 'Prestação de Serviço', label: 'Prestação de Serviço' },
+              ]}
+            />
           </div>
         </div>
-      </div>
 
-      <div className="form-group">
-        <label><Building2 size={14} /> Participante</label>
-                <SearchableSelect 
-          value={formData.party_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione...` },
-            { value: `{p.nome}`, label: `{p.nome}` },
-            ...(parties || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
-          ]}
-        />
-      </div>
+        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Users size={14} /> Tipo de Participante</label>
+            <div className="tauze-form-radio-group">
+              <div 
+                className={`tauze-form-radio-item ${formData.party_type === 'client' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, party_type: 'client'})}
+              >
+                <User size={16} />
+                <span>Parceiro (Cliente)</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.party_type === 'supplier' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, party_type: 'supplier'})}
+              >
+                <Building2 size={16} />
+                <span>Parceiro (Fornecedor)</span>
+              </div>
+            </div>
+          </div>
+        </div>
 
-      <div className="form-group">
-        <label><Calendar size={14} /> Data Início</label>
-        <input 
-          type="date" 
-          value={formData.start_date}
-          onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-          required
-        />
-      </div>
+        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Building2 size={14} /> Participante</label>
+            <SearchableSelect 
+              value={formData.party_id}
+              onChange={(val: any) => setFormData({...formData, party_id: val})}
+              options={[
+                { value: '', label: 'Selecione...' },
+                ...(parties || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
+              ]}
+            />
+          </div>
 
-      <div className="form-group">
-        <label><Calendar size={14} /> Data Término / Vencimento</label>
-        <input 
-          type="date" 
-          value={formData.end_date}
-          onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-          required
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Valor Total do Contrato (R$)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01"
+              placeholder="0.00" 
+              value={formData.total_value}
+              onChange={(e) => setFormData({...formData, total_value: e.target.value})}
+              required
+            />
+          </div>
+        </div>
+      </section>
 
-      <div className="form-group">
-        <label><DollarSign size={14} /> Valor Total do Contrato (R$)</label>
-        <input 
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
-          value={formData.total_value}
-          onChange={(e) => setFormData({...formData, total_value: e.target.value})}
-          required
-        />
-      </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Prazos e Quantidades</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data Início</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={formData.start_date}
+              onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+              required
+            />
+          </div>
 
-      <div className="form-group">
-        <label><Maximize size={14} /> Volume / Quantidade</label>
-        <input 
-          type="text" 
-          placeholder="Ex: 500 cabeças, 10.000 sacas..." 
-          onChange={(e) => setFormData({...formData, description: e.target.value})}
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data Término / Vencimento</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={formData.end_date}
+              onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+              required
+            />
+          </div>
+        </div>
 
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Cláusulas Principais / Detalhes</label>
-        <textarea 
-          placeholder="Descreva as condições de entrega, multas e garantias..." 
-          rows={3}
-        />
-      </div>
+        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Maximize size={14} /> Volume / Quantidade</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: 500 cabeças, 10.000 sacas..." 
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 03</div>
+          <h4 className="tauze-section-title">Detalhes do Contrato</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Cláusulas Principais / Detalhes</label>
+            <textarea 
+              className="tauze-input tauze-textarea"
+              placeholder="Descreva as condições de entrega, multas e garantias..." 
+              rows={3}
+              style={{ minHeight: '80px' }}
+            />
+          </div>
+        </div>
+      </section>
     </SidePanel>
   );
 };

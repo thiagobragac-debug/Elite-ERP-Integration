@@ -175,179 +175,272 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
       submitLabel={initialData ? 'Salvar Alterações' : 'Salvar Empresa'}
       size="large"
     >
-      {/* Identificação */}
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Building2 size={14} /> Razão Social / Nome Fantasia</label>
-          <input type="text" placeholder="Ex: Agropecuária Matriz Ltda..." value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Identificação da Empresa</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label"><FileText size={14} /> Tipo de Documento</label>
+            <select 
+              className="tauze-input"
+              value={formData.tipo_documento}
+              onChange={(e) => setFormData({...formData, tipo_documento: e.target.value, document: ''})}
+            >
+              <option value="CNPJ">CNPJ (Pessoa Jurídica)</option>
+              <option value="CPF">CPF (Pessoa Física / Produtor Rural)</option>
+            </select>
+          </div>
+
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label"><FileText size={14} /> {formData.tipo_documento}</label>
+            <div className="tauze-input-with-action">
+              <input 
+                type="text"
+                className="tauze-input flex-1"
+                placeholder={formData.tipo_documento === 'CNPJ' ? '00.000.000/0000-00' : '000.000.000-00'}
+                value={formData.document}
+                onChange={(e) => setFormData({...formData, document: maskCPFCNPJ(e.target.value)})}
+                onBlur={handleCNPJSearch}
+                required 
+              />
+              {formData.tipo_documento === 'CNPJ' && (
+                <button type="button" className="action-trigger-btn" onClick={handleCNPJSearch}
+                  title="Buscar dados na Receita" disabled={docDigits.length !== 14 || loading}>
+                  {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label"><Building2 size={14} /> Razão Social / Nome</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Ex: Agropecuária Matriz Ltda" 
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})} 
+              required 
+            />
+          </div>
         </div>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><FileText size={14} /> Tipo de Documento</label>
-          <select value={formData.tipo_documento}
-            onChange={(e) => setFormData({...formData, tipo_documento: e.target.value, document: ''})}>
-            <option value="CNPJ">CNPJ (Pessoa Jurídica)</option>
-            <option value="CPF">CPF (Pessoa Física / Produtor Rural)</option>
-          </select>
-        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Mail size={14} /> E-mail de Contato</label>
+            <input 
+              type="email" 
+              className="tauze-input"
+              placeholder="contato@empresa.com.br" 
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})} 
+            />
+          </div>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><FileText size={14} /> {formData.tipo_documento}</label>
-          <div className="tauze-input-with-action">
-            <input type="text"
-              placeholder={formData.tipo_documento === 'CNPJ' ? '00.000.000/0000-00' : '000.000.000-00'}
-              value={formData.document}
-              onChange={(e) => setFormData({...formData, document: maskCPFCNPJ(e.target.value)})}
-              onBlur={handleCNPJSearch}
-              required />
-            {formData.tipo_documento === 'CNPJ' && (
-              <button type="button" className="action-trigger-btn" onClick={handleCNPJSearch}
-                title="Buscar dados na Receita" disabled={docDigits.length !== 14 || loading}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Phone size={14} /> Telefone Principal</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="(00) 0000-0000" 
+              value={formData.phone}
+              onChange={(e) => setFormData({...formData, phone: e.target.value})} 
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Endereço da Unidade</h4>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-4">
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label">CEP</label>
+            <div className="tauze-input-with-action">
+              <input 
+                type="text" 
+                className="tauze-input flex-1"
+                placeholder="00000-000" 
+                value={formData.cep}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, '');
+                  const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
+                  setFormData({...formData, cep: masked});
+                }}
+                onBlur={handleCEPSearch}
+              />
+              <button 
+                type="button"
+                className="action-trigger-btn"
+                onClick={handleCEPSearch}
+                title="Buscar CEP"
+                disabled={formData.cep.replace(/\D/g, '').length !== 8 || loading}
+              >
                 {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
               </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="form-group full-width">
-        <label><ShieldCheck size={14} /> Tipo de Unidade</label>
-        <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
-          {['matriz', 'filial', 'parceiro'].map(t => (
-            <div key={t} className={`tauze-form-radio-item ${formData.type === t ? 'active' : ''}`}
-              onClick={() => setFormData({...formData, type: t})}>
-              {t === 'matriz' ? <Building2 size={16} /> : t === 'filial' ? <Map size={16} /> : <Users size={16} />}
-              <span style={{textTransform: 'capitalize'}}>{t}</span>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      <div className="form-group">
-        <label><Mail size={14} /> E-mail de Contato</label>
-        <input type="email" placeholder="contato@empresa.com.br" value={formData.email}
-          onChange={(e) => setFormData({...formData, email: e.target.value})} />
-      </div>
-
-      <div className="form-group">
-        <label><Phone size={14} /> Telefone Principal</label>
-        <input type="text" placeholder="(00) 0000-0000" value={formData.phone}
-          onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-      </div>
-
-      {/* Endereço */}
-      <div className="form-section-title full-width">
-        <MapPin size={16} /><span>Endereço Sede</span>
-      </div>
-
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 3fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>CEP</label>
-          <div className="tauze-input-with-action">
-            <input type="text" placeholder="00000-000" value={formData.cep}
-              onChange={(e) => {
-                const val = e.target.value.replace(/\D/g, '');
-                const masked = val.replace(/^(\d{5})(\d)/, '$1-$2').substring(0, 9);
-                setFormData({...formData, cep: masked});
-              }}
-              onBlur={handleCEPSearch}
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label">Tipo</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Rua, Av..." 
+              value={formData.tipo_logradouro}
+              onChange={(e) => setFormData({...formData, tipo_logradouro: e.target.value})} 
             />
-            <button 
-              type="button"
-              className="action-trigger-btn"
-              onClick={handleCEPSearch}
-              title="Buscar CEP"
-              disabled={formData.cep.replace(/\D/g, '').length !== 8 || loading}
-            >
-              {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
-            </button>
+          </div>
+
+          <div className="tauze-field-group span-2">
+            <label className="tauze-label">Logradouro</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Nome da rua ou avenida" 
+              value={formData.logradouro}
+              onChange={(e) => setFormData({...formData, logradouro: e.target.value})} 
+            />
+          </div>
+
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label">Número</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="123" 
+              value={formData.numero}
+              onChange={(e) => setFormData({...formData, numero: e.target.value})} 
+            />
+          </div>
+
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label">Complemento</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Sala, Andar" 
+              value={formData.complemento}
+              onChange={(e) => setFormData({...formData, complemento: e.target.value})} 
+            />
+          </div>
+
+          <div className="tauze-field-group span-2">
+            <label className="tauze-label">Bairro</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Nome do bairro" 
+              value={formData.bairro}
+              onChange={(e) => setFormData({...formData, bairro: e.target.value})} 
+            />
+          </div>
+
+          <div className="tauze-field-group span-2">
+            <label className="tauze-label">Cidade</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Nome da cidade" 
+              value={formData.cidade}
+              onChange={(e) => setFormData({...formData, cidade: e.target.value})} 
+            />
+          </div>
+
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label">Estado (UF)</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="MT" 
+              maxLength={2} 
+              value={formData.estado}
+              onChange={(e) => setFormData({...formData, estado: e.target.value.toUpperCase()})} 
+            />
+          </div>
+
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label">País</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              value={formData.pais}
+              onChange={(e) => setFormData({...formData, pais: e.target.value})} 
+            />
           </div>
         </div>
+      </section>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>Tipo</label>
-          <input type="text" placeholder="Rua, Av..." value={formData.tipo_logradouro}
-            onChange={(e) => setFormData({...formData, tipo_logradouro: e.target.value})} />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 03</div>
+          <h4 className="tauze-section-title">Classificação Estratégica</h4>
         </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>Logradouro</label>
-          <input type="text" placeholder="Nome da rua ou avenida" value={formData.logradouro}
-            onChange={(e) => setFormData({...formData, logradouro: e.target.value})} />
+        
+        <div className="tauze-field-group full-width">
+          <label className="tauze-label"><ShieldCheck size={14} /> Tipo de Unidade</label>
+          <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+            {['matriz', 'filial', 'parceiro'].map(t => (
+              <div key={t} className={`tauze-form-radio-item ${formData.type === t ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, type: t})}>
+                {t === 'matriz' ? <Building2 size={16} /> : t === 'filial' ? <Map size={16} /> : <Users size={16} />}
+                <span style={{textTransform: 'capitalize'}}>{t}</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 2fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>Número</label>
-          <input type="text" placeholder="123" value={formData.numero}
-            onChange={(e) => setFormData({...formData, numero: e.target.value})} />
-        </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>Complemento</label>
-          <input type="text" placeholder="Sala, Andar, Bloco" value={formData.complemento}
-            onChange={(e) => setFormData({...formData, complemento: e.target.value})} />
-        </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>Bairro</label>
-          <input type="text" placeholder="Nome do bairro" value={formData.bairro}
-            onChange={(e) => setFormData({...formData, bairro: e.target.value})} />
-        </div>
-      </div>
-
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>Cidade</label>
-          <input type="text" placeholder="Nome da cidade" value={formData.cidade}
-            onChange={(e) => setFormData({...formData, cidade: e.target.value})} />
-        </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>Estado (UF)</label>
-          <input type="text" placeholder="MT" maxLength={2} value={formData.estado}
-            onChange={(e) => setFormData({...formData, estado: e.target.value.toUpperCase()})} />
-        </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>País</label>
-          <input type="text" value={formData.pais}
-            onChange={(e) => setFormData({...formData, pais: e.target.value})} />
-        </div>
-      </div>
+      </section>
 
       {/* Sócio Responsável — somente quando CNPJ */}
       {isCNPJ && (
-        <>
-          <div className="form-section-title full-width" style={{borderColor: 'hsl(var(--brand) / 0.3)'}}>
-            <UserCheck size={16} style={{color: 'hsl(var(--brand))'}} />
-            <span>Sócio / Responsável pelo LCDPR</span>
-            <span className="cf-section-badge">Pessoa Física</span>
+        <section className="tauze-form-section">
+          <div className="tauze-section-header">
+            <div className="tauze-section-badge">LCDPR</div>
+            <h4 className="tauze-section-title">Sócio / Responsável Legal</h4>
           </div>
-          <div className="form-group full-width">
-            <div className="cf-hint">
-              Quando a empresa possui <strong>CNPJ</strong>, o LCDPR é declarado em nome do <strong>sócio produtor rural</strong> (pessoa física). Informe o CPF e nome do responsável.
+          
+          <div className="tauze-field-group full-width">
+            <div className="tauze-form-info-box">
+              <p>Quando a empresa possui <strong>CNPJ</strong>, o Livro Caixa Digital do Produtor Rural (LCDPR) é declarado em nome do <strong>sócio produtor rural</strong> (pessoa física).</p>
             </div>
           </div>
 
-          <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-              <label><UserCheck size={14} /> CPF do Sócio Responsável</label>
-              <input type="text" placeholder="000.000.000-00" maxLength={14}
+          <div className="tauze-input-grid grid-col-3">
+            <div className="tauze-field-group span-1">
+              <label className="tauze-label"><UserCheck size={14} /> CPF do Sócio</label>
+              <input 
+                type="text" 
+                className="tauze-input"
+                placeholder="000.000.000-00" 
+                maxLength={14}
                 value={formData.socio_cpf}
-                onChange={(e) => setFormData({...formData, socio_cpf: maskCPF(e.target.value)})} />
+                onChange={(e) => setFormData({...formData, socio_cpf: maskCPF(e.target.value)})} 
+              />
             </div>
-            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-              <label><UserCheck size={14} /> Nome Completo do Sócio</label>
-              <input type="text" placeholder="Nome como consta no CPF" value={formData.socio_nome}
-                onChange={(e) => setFormData({...formData, socio_nome: e.target.value})} />
+            
+            <div className="tauze-field-group span-1">
+              <label className="tauze-label"><UserCheck size={14} /> Nome Completo do Sócio</label>
+              <input 
+                type="text" 
+                className="tauze-input"
+                placeholder="Nome como consta no CPF" 
+                value={formData.socio_nome}
+                onChange={(e) => setFormData({...formData, socio_nome: e.target.value})} 
+              />
             </div>
-            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-              <label><ShieldCheck size={14} /> Situação Especial (LCDPR)</label>
-              <select value={formData.socio_ind_sit_esp}
-                onChange={(e) => setFormData({...formData, socio_ind_sit_esp: Number(e.target.value)})}>
+            
+            <div className="tauze-field-group span-1">
+              <label className="tauze-label"><ShieldCheck size={14} /> Situação Especial</label>
+              <select 
+                className="tauze-input"
+                value={formData.socio_ind_sit_esp}
+                onChange={(e) => setFormData({...formData, socio_ind_sit_esp: Number(e.target.value)})}
+              >
                 <option value={0}>0 — Normal</option>
                 <option value={1}>1 — Falecimento</option>
                 <option value={2}>2 — Espólio</option>
@@ -355,44 +448,59 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
               </select>
             </div>
           </div>
-        </>
+        </section>
       )}
 
       {/* Contador — somente na Matriz */}
       {isMatriz && (
-        <>
-          <div className="form-section-title full-width" style={{borderColor: '#f59e0b44'}}>
-            <BookOpen size={16} style={{color: '#f59e0b'}} />
-            <span>Contador Responsável</span>
-            <span className="cf-section-badge" style={{background: '#f59e0b15', color: '#f59e0b', borderColor: '#f59e0b30'}}>
-              Matriz · Compartilhado com Filiais
-            </span>
+        <section className="tauze-form-section">
+          <div className="tauze-section-header">
+            <div className="tauze-section-badge">CONTABILIDADE</div>
+            <h4 className="tauze-section-title">Contador Responsável</h4>
           </div>
-          <div className="form-group full-width">
-            <div className="cf-hint">
-              Os dados do contador são vinculados à <strong>Matriz</strong> e aplicados automaticamente a todas as filiais na geração do arquivo LCDPR (Registro 9999).
+          
+          <div className="tauze-field-group full-width">
+            <div className="tauze-form-info-box">
+              <p>Os dados do contador são vinculados à <strong>Matriz</strong> e aplicados automaticamente a todas as filiais na geração do arquivo LCDPR (Registro 9999).</p>
             </div>
           </div>
 
-          <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-              <label><BookOpen size={14} /> CPF do Contador</label>
-              <input type="text" placeholder="000.000.000-00" maxLength={14}
+          <div className="tauze-input-grid grid-col-3">
+            <div className="tauze-field-group span-1">
+              <label className="tauze-label"><BookOpen size={14} /> CPF do Contador</label>
+              <input 
+                type="text" 
+                className="tauze-input"
+                placeholder="000.000.000-00" 
+                maxLength={14}
                 value={formData.contador_cpf}
-                onChange={(e) => setFormData({...formData, contador_cpf: maskCPF(e.target.value)})} />
+                onChange={(e) => setFormData({...formData, contador_cpf: maskCPF(e.target.value)})} 
+              />
             </div>
-            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-              <label><BookOpen size={14} /> Nome do Contador</label>
-              <input type="text" placeholder="Nome completo do contador" value={formData.contador_nome}
-                onChange={(e) => setFormData({...formData, contador_nome: e.target.value})} />
+            
+            <div className="tauze-field-group span-1">
+              <label className="tauze-label"><BookOpen size={14} /> Nome do Contador</label>
+              <input 
+                type="text" 
+                className="tauze-input"
+                placeholder="Nome completo do contador" 
+                value={formData.contador_nome}
+                onChange={(e) => setFormData({...formData, contador_nome: e.target.value})} 
+              />
             </div>
-            <div className="form-group" style={{ gridColumn: 'span 1', margin: 0, padding: 0, border: 'none', background: 'transparent' }}>
-              <label><CreditCard size={14} /> Número do CRC</label>
-              <input type="text" placeholder="Ex: CRC-MT/123456-O" value={formData.contador_crc}
-                onChange={(e) => setFormData({...formData, contador_crc: e.target.value})} />
+            
+            <div className="tauze-field-group span-1">
+              <label className="tauze-label"><CreditCard size={14} /> Número do CRC</label>
+              <input 
+                type="text" 
+                className="tauze-input"
+                placeholder="Ex: CRC-MT/123456-O" 
+                value={formData.contador_crc}
+                onChange={(e) => setFormData({...formData, contador_crc: e.target.value})} 
+              />
             </div>
           </div>
-        </>
+        </section>
       )}
 
       <style>{`

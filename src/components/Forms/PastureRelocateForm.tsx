@@ -433,10 +433,14 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
       loading={loading}
       submitLabel={`Revisar Remanejamento (${selectedAnimals.length})`}
     >
-      {/* ── Row 1: Origem | Destino ── */}
-      <div className="form-group full-width" style={{ gridColumn: '1 / -1' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', alignItems: 'start' }}>
-          <div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Origem e Destino</h4>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
             <PastureSearch
               items={pastures}
               value={sourcePastureId}
@@ -445,7 +449,8 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
               label={<><Trees size={12} /> Pasto de Origem</>}
             />
           </div>
-          <div>
+          
+          <div className="tauze-field-group">
             <PastureSearch
               items={pastures}
               value={targetPastureId}
@@ -456,125 +461,129 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
             />
             {destCap && <PressureMeter cap={destCap} adding={selectedAnimals.length} />}
           </div>
-        </div>
-      </div>
 
-      {/* ── Row 2: Data | Motivo ── */}
-      <div className="form-group full-width" style={{ gridColumn: '1 / -1' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
-              <Calendar size={12} /> Data do Remanejamento
-            </label>
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} required max={new Date().toISOString().split('T')[0]} style={{ width: '100%', fontSize: '13px' }} />
-          </div>
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
-              <FileText size={12} /> Motivo do Remanejamento
-            </label>
-                    <SearchableSelect 
-          value={motivo}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione o motivo...` },
-            { value: `{m}`, label: `{m}` },
-            ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
-          ]}
-        />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Animal picker ── */}
-      <div className="form-group full-width">
-        {/* Header — always visible */}
-        <div className="tauze-selection-header">
-          <label>
-            <Users size={14} /> Selecionar Animais
-            {animals.length > 0 && (
-              <span style={{ background: 'hsl(var(--border))', borderRadius: '99px', padding: '1px 7px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-main))', marginLeft: '6px' }}>
-                {selectedAnimals.length}/{filteredAnimals.length}
-              </span>
-            )}
-          </label>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <button
-              type="button" className="text-btn-sm"
-              onClick={() => setShowFilters(s => !s)}
-              disabled={animals.length === 0}
-              style={{ opacity: animals.length === 0 ? 0.35 : 1 }}
-            >
-              <Filter size={12} style={{ display: 'inline', marginRight: '3px' }} />
-              FILTROS{searchTerm ? ' ●' : ''}
-            </button>
-            <button
-              type="button" className="text-btn-sm"
-              onClick={selectAll}
-              disabled={filteredAnimals.length === 0}
-              style={{ opacity: filteredAnimals.length === 0 ? 0.35 : 1 }}
-            >
-              {selectedAnimals.length === filteredAnimals.length && filteredAnimals.length > 0 ? 'DESMARCAR TODOS' : 'MARCAR TODOS'}
-            </button>
-          </div>
-        </div>
-
-        {/* Smart search — inside FILTROS panel */}
-        {showFilters && animals.length > 0 && (
-          <div className="search-glass-box small" style={{ marginBottom: '8px' }}>
-            <Search size={14} className="s-icon" />
-            <input
-              type="text"
-              placeholder="Buscar por brinco, raça, categoria, sexo..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              autoFocus
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data do Remanejamento</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={date} 
+              onChange={e => setDate(e.target.value)} 
+              required 
+              max={new Date().toISOString().split('T')[0]} 
             />
-            {searchTerm && (
-              <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 4px' }}>
-                <X size={14} />
-              </button>
-            )}
           </div>
-        )}
 
-        <div className="tauze-animal-picker">
-          {loading ? (
-            <div className="picker-loading">Buscando animais no pasto...</div>
-          ) : !sourcePastureId ? (
-            <div className="picker-empty">Selecione um pasto de origem para ver os animais.</div>
-          ) : animals.length === 0 ? (
-            <div className="picker-empty">Nenhum animal ativo neste pasto.</div>
-          ) : filteredAnimals.length === 0 ? (
-            <div className="picker-empty">Nenhum animal encontrado com esse filtro.</div>
-          ) : (
-            <div className="picker-grid-adv">
-              {filteredAnimals.map(animal => (
-                <div
-                  key={animal.id}
-                  className={`picker-item-adv ${selectedAnimals.includes(animal.id) ? 'active' : ''}`}
-                  onClick={() => toggleAnimal(animal.id)}
-                >
-                  <div className="p-check-adv">
-                    {selectedAnimals.includes(animal.id) ? <CheckCircle2 size={15} /> : <div className="p-check-empty" />}
-                  </div>
-                  <div className="p-info-adv">
-                    <span className="p-brinco-adv">#{animal.brinco}</span>
-                    <span className="p-raca-adv">{animal.raca || '—'}</span>
-                    <div className="p-tags-adv">
-                      {animal.categoria && <span className="p-tag">{animal.categoria}</span>}
-                      {animal.sexo && <span className="p-tag" style={{ background: animal.sexo === 'MACHO' ? '#eff6ff' : '#fdf2f8', color: animal.sexo === 'MACHO' ? '#3b82f6' : '#ec4899' }}>{animal.sexo === 'MACHO' ? '♂' : '♀'}</span>}
-                    </div>
-                    <div className="p-stats-adv">
-                      {animal.peso_atual && <span><Weight size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {animal.peso_atual}kg</span>}
-                      {animal.data_nascimento && <span>🎂 {calcAge(animal.data_nascimento)}</span>}
-                    </div>
-                  </div>
-                </div>
-              ))}
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Motivo do Remanejamento</label>
+            <SearchableSelect 
+              value={motivo}
+              onChange={(val: any) => setMotivo(val)}
+              options={[
+                { value: ``, label: `Selecione o motivo...` },
+                ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
+              ]}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Selecionar Animais</h4>
+        </div>
+        
+        <div className="tauze-field-group">
+          {/* Header — always visible */}
+          <div className="tauze-selection-header">
+            <label>
+              <Users size={14} /> Selecionar Animais
+              {animals.length > 0 && (
+                <span style={{ background: 'hsl(var(--border))', borderRadius: '99px', padding: '1px 7px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-main))', marginLeft: '6px' }}>
+                  {selectedAnimals.length}/{filteredAnimals.length}
+                </span>
+              )}
+            </label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                type="button" className="text-btn-sm"
+                onClick={() => setShowFilters(s => !s)}
+                disabled={animals.length === 0}
+                style={{ opacity: animals.length === 0 ? 0.35 : 1 }}
+              >
+                <Filter size={12} style={{ display: 'inline', marginRight: '3px' }} />
+                FILTROS{searchTerm ? ' ●' : ''}
+              </button>
+              <button
+                type="button" className="text-btn-sm"
+                onClick={selectAll}
+                disabled={filteredAnimals.length === 0}
+                style={{ opacity: filteredAnimals.length === 0 ? 0.35 : 1 }}
+              >
+                {selectedAnimals.length === filteredAnimals.length && filteredAnimals.length > 0 ? 'DESMARCAR TODOS' : 'MARCAR TODOS'}
+              </button>
+            </div>
+          </div>
+
+          {/* Smart search — inside FILTROS panel */}
+          {showFilters && animals.length > 0 && (
+            <div className="search-glass-box small" style={{ marginBottom: '8px' }}>
+              <Search size={14} className="s-icon" />
+              <input
+                type="text"
+                placeholder="Buscar por brinco, raça, categoria, sexo..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                autoFocus
+              />
+              {searchTerm && (
+                <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 4px' }}>
+                  <X size={14} />
+                </button>
+              )}
             </div>
           )}
+
+          <div className="tauze-animal-picker">
+            {loading ? (
+              <div className="picker-loading">Buscando animais no pasto...</div>
+            ) : !sourcePastureId ? (
+              <div className="picker-empty">Selecione um pasto de origem para ver os animais.</div>
+            ) : animals.length === 0 ? (
+              <div className="picker-empty">Nenhum animal ativo neste pasto.</div>
+            ) : filteredAnimals.length === 0 ? (
+              <div className="picker-empty">Nenhum animal encontrado com esse filtro.</div>
+            ) : (
+              <div className="picker-grid-adv">
+                {filteredAnimals.map(animal => (
+                  <div
+                    key={animal.id}
+                    className={`picker-item-adv ${selectedAnimals.includes(animal.id) ? 'active' : ''}`}
+                    onClick={() => toggleAnimal(animal.id)}
+                  >
+                    <div className="p-check-adv">
+                      {selectedAnimals.includes(animal.id) ? <CheckCircle2 size={15} /> : <div className="p-check-empty" />}
+                    </div>
+                    <div className="p-info-adv">
+                      <span className="p-brinco-adv">#{animal.brinco}</span>
+                      <span className="p-raca-adv">{animal.raca || '—'}</span>
+                      <div className="p-tags-adv">
+                        {animal.categoria && <span className="p-tag">{animal.categoria}</span>}
+                        {animal.sexo && <span className="p-tag" style={{ background: animal.sexo === 'MACHO' ? '#eff6ff' : '#fdf2f8', color: animal.sexo === 'MACHO' ? '#3b82f6' : '#ec4899' }}>{animal.sexo === 'MACHO' ? '♂' : '♀'}</span>}
+                      </div>
+                      <div className="p-stats-adv">
+                        {animal.peso_atual && <span><Weight size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {animal.peso_atual}kg</span>}
+                        {animal.data_nascimento && <span>🎂 {calcAge(animal.data_nascimento)}</span>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
 
       <style>{`
         .tauze-selection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }

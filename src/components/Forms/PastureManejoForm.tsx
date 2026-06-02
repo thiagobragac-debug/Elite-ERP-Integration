@@ -114,80 +114,90 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, on
       loading={loading}
       submitLabel="Confirmar Manejo"
     >
-      <div className="form-group full-width">
-        <label><Map size={14} /> Selecionar Pasto / Piquete</label>
-                <SearchableSelect 
-          value={formData.pasto_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione a área alvo...` },
-            { value: `{p.nome}`, label: `{p.nome}` },
-            ...(pastures || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
-          ]}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Zap size={14} /> Tipo de Manejo</label>
-                <SearchableSelect 
-          value={formData.tipo_manejo}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `Adubação`, label: `Adubação` },
-            { value: `Calagem`, label: `Calagem` },
-            { value: `Roçada`, label: `Roçada` },
-            { value: `Herbicida`, label: `Herbicida` },
-            { value: `Troca de Lotação`, label: `Troca de Lotação` },
-          ]}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Calendar size={14} /> Data da Intervenção</label>
-        <input 
-          type="date" 
-          value={formData.data_manejo}
-          onChange={(e) => setFormData({...formData, data_manejo: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <label><Activity size={14} /> Novo Status da Área</label>
-        <div className="tauze-form-radio-group">
-          <div 
-            className={`tauze-form-radio-item ${formData.novo_status === 'grazing' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, novo_status: 'grazing'})}
-          >
-            <Trees size={16} />
-            <span>Pastejo</span>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Dados da Intervenção</h4>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><Map size={14} /> Selecionar Pasto / Piquete</label>
+            <SearchableSelect 
+              value={formData.pasto_id}
+              onChange={(val: any) => setFormData({...formData, pasto_id: val})}
+              options={[
+                { value: ``, label: `Selecione a área alvo...` },
+                ...(pastures || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
+              ]}
+            />
           </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.novo_status === 'resting' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, novo_status: 'resting'})}
-          >
-            <Calendar size={16} />
-            <span>Descanso</span>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Zap size={14} /> Tipo de Manejo</label>
+            <SearchableSelect 
+              value={formData.tipo_manejo}
+              onChange={(val: any) => setFormData({...formData, tipo_manejo: val})}
+              options={[
+                { value: `Adubação`, label: `Adubação` },
+                { value: `Calagem`, label: `Calagem` },
+                { value: `Roçada`, label: `Roçada` },
+                { value: `Herbicida`, label: `Herbicida` },
+                { value: `Troca de Lotação`, label: `Troca de Lotação` },
+              ]}
+            />
           </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.novo_status === 'degraded' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, novo_status: 'degraded'})}
-          >
-            <Droplets size={16} />
-            <span>Degradado</span>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data da Intervenção</label>
+            <input 
+              type="date" 
+              className="tauze-input"
+              value={formData.data_manejo}
+              onChange={(e) => setFormData({...formData, data_manejo: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><Activity size={14} /> Novo Status da Área</label>
+            <div className="tauze-form-radio-group">
+              <div 
+                className={`tauze-form-radio-item ${formData.novo_status === 'grazing' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, novo_status: 'grazing'})}
+              >
+                <Trees size={16} />
+                <span>Pastejo</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.novo_status === 'resting' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, novo_status: 'resting'})}
+              >
+                <Calendar size={16} />
+                <span>Descanso</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.novo_status === 'degraded' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, novo_status: 'degraded'})}
+              >
+                <Droplets size={16} />
+                <span>Degradado</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><Activity size={14} /> Observações de Manejo</label>
+            <textarea 
+              className="tauze-input"
+              placeholder="Ex: Utilizado 200kg/ha de ureia, praga identificada: cigarrinha..." 
+              value={formData.observacoes}
+              onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+              style={{ minHeight: '80px', padding: '12px' }}
+            />
           </div>
         </div>
-      </div>
-
-      <div className="form-group full-width">
-        <label><Activity size={14} /> Observações de Manejo</label>
-        <textarea 
-          placeholder="Ex: Utilizado 200kg/ha de ureia, praga identificada: cigarrinha..." 
-          value={formData.observacoes}
-          onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
-          style={{ width: '100%', minHeight: '80px', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-input)' }}
-        />
-      </div>
+      </section>
     </SidePanel>
   );
 };

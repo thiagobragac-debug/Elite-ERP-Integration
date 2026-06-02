@@ -193,9 +193,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
         <form onSubmit={onSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
           <div className="tauze-sidepanel-content">
             <fieldset disabled={isReadOnly} style={{ border: 'none', padding: 0, margin: 0, display: 'contents' }}>
-              <div className="tauze-input-grid">
                 {children}
-              </div>
             </fieldset>
           </div>
 

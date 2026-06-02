@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   X, 
@@ -8,6 +8,7 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { SidePanel } from '../Layout/SidePanel';
 
 interface FinancialCalendarModalProps {
   isOpen: boolean;
@@ -76,77 +77,45 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
     );
   }
 
-  return createPortal(
-    <div className="tauze-modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="tauze-modal-container xlarge"
-        style={{ maxWidth: '1100px', width: '95%', padding: 0 }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="tauze-modal-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper" style={{ 
-              background: 'rgba(255,255,255,0.1)', 
-              width: '44px', 
-              height: '44px', 
-              borderRadius: '12px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-end',
-              color: type === 'payable' ? '#ef4444' : '#10b981'
-            }}>
-              <CalendarIcon size={22} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>
-                {type === 'payable' ? 'Calendário de Pagamentos' : 'Projeção de Recebimentos'}
-              </h3>
-              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#94a3b8', fontWeight: 500 }}>
-                {type === 'payable' 
-                  ? 'Acompanhamento mensal de obrigações e vencimentos' 
-                  : 'Previsão mensal de faturas e entradas de capital'}
-              </p>
-            </div>
+  return (
+    <SidePanel
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={(e) => e.preventDefault()}
+      title={type === 'payable' ? 'Calendário de Pagamentos' : 'Projeção de Recebimentos'}
+      subtitle={type === 'payable' 
+        ? 'Acompanhamento mensal de obrigações e vencimentos' 
+        : 'Previsão mensal de faturas e entradas de capital'}
+      icon={CalendarIcon}
+      size="xlarge"
+      hideSubmit={true}
+      cancelLabel="FECHAR VISUALIZAÇÃO"
+    >
+      <div className="calendar-portal-body" style={{ padding: 0 }}>
+        <div className="calendar-nav-row">
+          <div className="nav-controls">
+            <button type="button" className="nav-arrow" onClick={prevMonth}><ChevronLeft size={20} /></button>
+            <h2 className="nav-title">{monthNames[month]} {year}</h2>
+            <button type="button" className="nav-arrow" onClick={nextMonth}><ChevronRight size={20} /></button>
           </div>
-          <button className="icon-btn-secondary" onClick={onClose}>
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="calendar-portal-body">
-          <div className="calendar-nav-row">
-            <div className="nav-controls">
-              <button className="nav-arrow" onClick={prevMonth}><ChevronLeft size={20} /></button>
-              <h2 className="nav-title">{monthNames[month]} {year}</h2>
-              <button className="nav-arrow" onClick={nextMonth}><ChevronRight size={20} /></button>
-            </div>
-            <div className="calendar-legend-chips">
-              <div className="chip"><div className="dot danger"></div> Atrasado</div>
-              <div className="chip"><div className="dot warning"></div> Pendente</div>
-              <div className="chip"><div className="dot success"></div> Pago</div>
-            </div>
-          </div>
-
-          <div className="tauze-calendar-grid">
-            <div className="grid-header">DOM</div>
-            <div className="grid-header">SEG</div>
-            <div className="grid-header">TER</div>
-            <div className="grid-header">QUA</div>
-            <div className="grid-header">QUI</div>
-            <div className="grid-header">SEX</div>
-            <div className="grid-header">SÁB</div>
-            {days}
+          <div className="calendar-legend-chips">
+            <div className="chip"><div className="dot danger"></div> Atrasado</div>
+            <div className="chip"><div className="dot warning"></div> Pendente</div>
+            <div className="chip"><div className="dot success"></div> Pago</div>
           </div>
         </div>
 
-        <div className="tauze-modal-footer">
-          <button type="button" className="glass-btn secondary" onClick={onClose} style={{ marginLeft: 'auto' }}>
-            FECHAR VISUALIZAÇÃO
-          </button>
+        <div className="tauze-calendar-grid">
+          <div className="grid-header">DOM</div>
+          <div className="grid-header">SEG</div>
+          <div className="grid-header">TER</div>
+          <div className="grid-header">QUA</div>
+          <div className="grid-header">QUI</div>
+          <div className="grid-header">SEX</div>
+          <div className="grid-header">SÁB</div>
+          {days}
         </div>
-      </motion.div>
+      </div>
 
       <style>{`
         .calendar-portal-body {
@@ -300,7 +269,6 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
           margin-top: 2px;
         }
       `}</style>
-    </div>,
-    document.body
+    </SidePanel>
   );
 };

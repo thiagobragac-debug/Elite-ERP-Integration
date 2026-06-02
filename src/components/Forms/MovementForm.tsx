@@ -214,61 +214,66 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : (formData.tipo === 'transfer' ? "Confirmar Transferência" : "Confirmar Movimentação")}
     >
-      <div style={{ display: 'flex', gap: '16px', gridColumn: '1 / -1', background: '#f8fafc', padding: '16px', borderRadius: '12px', marginBottom: '12px' }}>
-        
-        {/* If Transfer, we keep the Origin Depot at the top level */}
-        {formData.tipo === 'transfer' && (
-          <div className="form-group" style={{ flex: 1 }}>
-            <label><Building2 size={14} /> Depósito de Origem</label>
-            <SearchableSelect
-              value={formData.deposito_origem_id}
-              onChange={(val) => setFormData({...formData, deposito_origem_id: val})}
-              options={warehouses.map(w => ({ value: w.id, label: w.nome }))}
-              placeholder="Selecione o local de saída..."
-            />
-          </div>
-        )}
-
-        {/* If Transfer, we keep Destination Depot at the top level */}
-        {formData.tipo === 'transfer' && (
-          <div className="form-group" style={{ flex: 1 }}>
-            <label><ArrowRightLeft size={14} /> Depósito de Destino</label>
-            <SearchableSelect
-              value={formData.destino_deposito_id}
-              onChange={(val) => setFormData({...formData, destino_deposito_id: val})}
-              options={warehouses.filter(w => w.id !== formData.deposito_origem_id).map(w => ({ value: w.id, label: w.nome }))}
-              placeholder="Selecione o local de destino..."
-            />
-          </div>
-        )}
-
-        <div className="form-group" style={{ flex: 1, minWidth: '150px' }}>
-          <label><Calendar size={14} /> Data do Lançamento</label>
-          <input 
-            type="date" 
-            value={formData.data_movimentacao}
-            onChange={(e) => setFormData({...formData, data_movimentacao: e.target.value})}
-            required
-            className="tauze-input"
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Dados da Movimentação</h4>
         </div>
 
-        {formData.tipo !== 'in' && (
-          <div className="form-group" style={{ flex: 2, minWidth: '200px' }}>
-            <label><Building2 size={14} /> Destino / Aplicação</label>
+        <div className="tauze-input-grid grid-col-2">
+          {/* If Transfer, we keep the Origin Depot at the top level */}
+          {formData.tipo === 'transfer' && (
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Building2 size={14} /> Depósito de Origem</label>
+              <SearchableSelect
+                value={formData.deposito_origem_id}
+                onChange={(val) => setFormData({...formData, deposito_origem_id: val})}
+                options={warehouses.map(w => ({ value: w.id, label: w.nome }))}
+                placeholder="Selecione o local de saída..."
+              />
+            </div>
+          )}
+
+          {/* If Transfer, we keep Destination Depot at the top level */}
+          {formData.tipo === 'transfer' && (
+            <div className="tauze-field-group">
+              <label className="tauze-label"><ArrowRightLeft size={14} /> Depósito de Destino</label>
+              <SearchableSelect
+                value={formData.destino_deposito_id}
+                onChange={(val) => setFormData({...formData, destino_deposito_id: val})}
+                options={warehouses.filter(w => w.id !== formData.deposito_origem_id).map(w => ({ value: w.id, label: w.nome }))}
+                placeholder="Selecione o local de destino..."
+              />
+            </div>
+          )}
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data do Lançamento</label>
             <input 
-              type="text" 
-              className="tauze-input"
-              placeholder="Ex: Lote Engorda A1..."
-              value={formData.origem_destino}
-              onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
+              type="date" 
+              value={formData.data_movimentacao}
+              onChange={(e) => setFormData({...formData, data_movimentacao: e.target.value})}
               required
+              className="tauze-input"
             />
           </div>
-        )}
 
-        <div className="form-group" style={{ flex: 1, minWidth: '200px' }}>
-            <label><Users size={14} /> Responsável</label>
+          {formData.tipo !== 'in' && (
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Building2 size={14} /> Destino / Aplicação</label>
+              <input 
+                type="text" 
+                className="tauze-input"
+                placeholder="Ex: Lote Engorda A1..."
+                value={formData.origem_destino}
+                onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
+                required
+              />
+            </div>
+          )}
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Users size={14} /> Responsável</label>
             <input 
               type="text" 
               className="tauze-input"
@@ -278,17 +283,19 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
               required
             />
           </div>
-      </div>
+        </div>
+      </section>
 
-      <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #e2e8f0', paddingTop: '16px', marginTop: '8px' }}>
-        <h4 style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b', marginBottom: '16px' }}>
-          {initialData ? 'Item da Movimentação' : 'Adicionar Insumos'}
-        </h4>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">{initialData ? 'Item da Movimentação' : 'Adicionar Insumos'}</h4>
+        </div>
 
         {!initialData && (
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'end', marginBottom: '12px', width: '100%' }}>
-            <div className="form-group" style={{ flex: 3, margin: 0, minWidth: '200px' }}>
-              <label><Package size={14} /> Selecionar Produto</label>
+          <div className="tauze-input-grid" style={{ gridTemplateColumns: formData.tipo === 'transfer' ? '2fr 1fr auto' : '2fr 1.5fr 1fr 1fr auto', alignItems: 'end' }}>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Package size={14} /> Selecionar Produto</label>
               <SearchableSelect
                 value={currentItem.produto_id}
                 onChange={(val) => setCurrentItem({...currentItem, produto_id: val})}
@@ -298,8 +305,8 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
             </div>
 
             {formData.tipo !== 'transfer' && (
-              <div className="form-group" style={{ flex: 1, margin: 0, minWidth: '150px' }}>
-                <label><Building2 size={14} /> Depósito</label>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Building2 size={14} /> Depósito</label>
                 <SearchableSelect
                   value={currentItem.deposito_id}
                   onChange={(val) => setCurrentItem({...currentItem, deposito_id: val})}
@@ -309,24 +316,21 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
               </div>
             )}
 
-            <div className="form-group" style={{ flex: 1, margin: 0, minWidth: '100px' }}>
-              <label><Hash size={14} /> Qtd</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  placeholder="0.00" 
-                  className="tauze-input"
-                  value={currentItem.quantidade}
-                  onChange={(e) => setCurrentItem({...currentItem, quantidade: e.target.value})}
-                  style={{ width: '100%' }}
-                />
-              </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Hash size={14} /> Qtd</label>
+              <input 
+                type="number" 
+                step="0.01"
+                placeholder="0.00" 
+                className="tauze-input"
+                value={currentItem.quantidade}
+                onChange={(e) => setCurrentItem({...currentItem, quantidade: e.target.value})}
+              />
             </div>
 
             {formData.tipo !== 'transfer' && (
-              <div className="form-group" style={{ flex: 1, margin: 0, minWidth: '100px' }}>
-                <label><DollarSign size={14} /> {formData.tipo === 'out' ? 'Custo Médio (Un)' : 'Custo (Un)'}</label>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><DollarSign size={14} /> {formData.tipo === 'out' ? 'Custo (Un)' : 'Valor (Un)'}</label>
                 <input 
                   type="number" 
                   step="0.01"
@@ -335,38 +339,38 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
                   value={currentItem.valor_unitario}
                   onChange={(e) => setCurrentItem({...currentItem, valor_unitario: e.target.value})}
                   disabled={formData.tipo === 'out'}
-                  style={{ width: '100%', background: formData.tipo === 'out' ? '#f1f5f9' : 'white', cursor: formData.tipo === 'out' ? 'not-allowed' : 'text' }}
+                  style={{ background: formData.tipo === 'out' ? 'hsl(var(--bg-muted))' : 'white', cursor: formData.tipo === 'out' ? 'not-allowed' : 'text' }}
                   title={formData.tipo === 'out' ? "Custo médio calculado automaticamente" : ""}
                 />
               </div>
             )}
 
-            <button type="button" className="primary-btn" style={{ padding: '0 20px', height: '42px', flexShrink: 0 }} onClick={handleAddItem}>
-              <Plus size={18} />
+            <button type="button" className="primary-btn" style={{ height: '38px', padding: '0 16px', borderRadius: '8px' }} onClick={handleAddItem}>
+              <Plus size={16} />
             </button>
           </div>
         )}
 
         {/* Conditional Lot/Validity Input for Current Item (only Medicaments) */}
         {!initialData && requiresLot && formData.tipo === 'in' && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '24px', background: '#fffbeb', padding: '12px', borderRadius: '8px', border: '1px solid #fde68a' }}>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label style={{ color: '#d97706' }}><Hash size={14} /> Número do Lote (Medicamento)</label>
+          <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px', background: 'hsl(38 92% 50% / 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
+            <div className="tauze-field-group">
+              <label className="tauze-label" style={{ color: 'hsl(38 92% 40%)' }}><Hash size={14} /> Lote (Medicamento)</label>
               <input 
                 type="text" 
                 placeholder="Ex: LOT-2024-01" 
                 className="tauze-input"
-                style={{ borderColor: '#fcd34d' }}
+                style={{ borderColor: 'hsl(38 92% 50% / 0.4)' }}
                 value={currentItem.lote}
                 onChange={(e) => setCurrentItem({...currentItem, lote: e.target.value})}
               />
             </div>
-            <div className="form-group" style={{ margin: 0 }}>
-              <label style={{ color: '#d97706' }}><Calendar size={14} /> Data de Validade</label>
+            <div className="tauze-field-group">
+              <label className="tauze-label" style={{ color: 'hsl(38 92% 40%)' }}><Calendar size={14} /> Data de Validade</label>
               <input 
                 type="date" 
                 className="tauze-input"
-                style={{ borderColor: '#fcd34d' }}
+                style={{ borderColor: 'hsl(38 92% 50% / 0.4)' }}
                 value={currentItem.data_validade}
                 onChange={(e) => setCurrentItem({...currentItem, data_validade: e.target.value})}
               />
@@ -376,10 +380,10 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
 
         {/* Edit mode: Render the single item editable fields directly instead of a cart */}
         {initialData && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="form-group">
-                  <label><Package size={14} /> Produto</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+             <div className="tauze-input-grid grid-col-2">
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Package size={14} /> Produto</label>
                   <SearchableSelect
                     value={items[0]?.produto_id}
                     onChange={(val) => {
@@ -392,8 +396,8 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
                   />
                 </div>
 
-                <div className="form-group">
-                  <label><Building2 size={14} /> Depósito</label>
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Building2 size={14} /> Depósito</label>
                   <SearchableSelect
                     value={items[0]?.deposito_id}
                     onChange={(val) => {
@@ -407,9 +411,9 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: formData.tipo === 'in' ? '1fr 1fr' : '1fr', gap: '16px' }}>
-                <div className="form-group">
-                  <label><Hash size={14} /> Quantidade</label>
+              <div className="tauze-input-grid grid-col-2">
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Hash size={14} /> Quantidade</label>
                   <input 
                     type="number" 
                     step="0.01"
@@ -424,8 +428,8 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
                   />
                 </div>
                 {formData.tipo !== 'transfer' && (
-                  <div className="form-group">
-                    <label><DollarSign size={14} /> {formData.tipo === 'out' ? 'Custo Médio (Un)' : 'Valor Unitário'}</label>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label"><DollarSign size={14} /> {formData.tipo === 'out' ? 'Custo Médio (Un)' : 'Valor Unitário'}</label>
                     <input 
                       type="number" 
                       step="0.01"
@@ -437,7 +441,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
                         setItems(newItems);
                       }}
                       disabled={formData.tipo === 'out'}
-                      style={{ background: formData.tipo === 'out' ? '#f1f5f9' : 'white', cursor: formData.tipo === 'out' ? 'not-allowed' : 'text' }}
+                      style={{ background: formData.tipo === 'out' ? 'hsl(var(--bg-muted))' : 'white', cursor: formData.tipo === 'out' ? 'not-allowed' : 'text' }}
                       required
                     />
                   </div>
@@ -445,12 +449,13 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
               </div>
 
               {isMedicament(items[0]?.produto_id) && formData.tipo === 'in' && (
-                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div className="form-group">
-                    <label><Hash size={14} /> Lote</label>
+                 <div className="tauze-input-grid grid-col-2" style={{ background: 'hsl(38 92% 50% / 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label" style={{ color: 'hsl(38 92% 40%)' }}><Hash size={14} /> Lote</label>
                     <input 
                       type="text" 
                       className="tauze-input"
+                      style={{ borderColor: 'hsl(38 92% 50% / 0.4)' }}
                       value={items[0]?.lote}
                       onChange={(e) => {
                         const newItems = [...items];
@@ -459,11 +464,12 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
                       }}
                     />
                   </div>
-                  <div className="form-group">
-                    <label><Calendar size={14} /> Data de Validade</label>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label" style={{ color: 'hsl(38 92% 40%)' }}><Calendar size={14} /> Data de Validade</label>
                     <input 
                       type="date" 
                       className="tauze-input"
+                      style={{ borderColor: 'hsl(38 92% 50% / 0.4)' }}
                       value={items[0]?.data_validade}
                       onChange={(e) => {
                         const newItems = [...items];
@@ -510,7 +516,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
             </div>
           </div>
         )}
-      </div>
+      </section>
 
     </SidePanel>
   );

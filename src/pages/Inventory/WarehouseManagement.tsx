@@ -919,77 +919,77 @@ export const WarehouseManagement: React.FC = () => {
         submitLabel={selectedWarehouse ? "Salvar Alterações" : "Confirmar Cadastro"}
         size="medium"
       >
-        <div className="tauze-field-group full-width">
-          <label className="tauze-label">
-            <Plus size={14} /> NOME DO DEPÓSITO
-          </label>
-          <input name="nome" type="text" className="tauze-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
-        </div>
+        <div className="form-grid">
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label">
+              <Plus size={14} /> NOME DO DEPÓSITO
+            </label>
+            <input name="nome" type="text" className="tauze-input" placeholder="Ex: Almoxarifado Central" defaultValue={selectedWarehouse?.nome} required />
+          </div>
 
-        <div className="tauze-field-group">
-          <label className="tauze-label">
-            <Layout size={14} /> TIPO DE ESTRUTURA
-          </label>
-          <select name="tipo" className="tauze-input" defaultValue={selectedWarehouse?.tipo || 'Galpão'}>
-            <option value="Galpão">Galpão Geral</option>
-            <option value="Silo">Silo de Grãos/Sementes</option>
-            <option value="Câmara Fria">Câmara Fria</option>
-            <option value="Tanque">Tanque de Líquidos</option>
-            <option value="Defensivos">Defensivos</option>
-          </select>
-        </div>
-
-        <div className="tauze-field-group">
-          <label className="tauze-label">
-            <Scale size={14} /> CAPACIDADE MÁXIMA
-          </label>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input name="capacidade_maxima" type="number" className="tauze-input" style={{ flex: 1 }} placeholder="0.00" defaultValue={selectedWarehouse?.capacidade_maxima} />
-            <select name="unidade_capacidade" className="tauze-input" style={{ width: '75px' }} defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}>
-              {unidades.length > 0 ? (
-                unidades.map(u => <option key={u.id} value={u.nome}>{u.nome}</option>)
-              ) : (
-                <>
-                  <option value="un">un</option>
-                  <option value="kg">kg</option>
-                  <option value="ton">ton</option>
-                  <option value="L">L</option>
-                  <option value="m³">m³</option>
-                </>
-              )}
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <Layout size={14} /> TIPO DE ESTRUTURA
+            </label>
+            <select name="tipo" className="tauze-input" defaultValue={selectedWarehouse?.tipo || 'Galpão'}>
+              <option value="Galpão">Galpão Geral</option>
+              <option value="Silo">Silo de Grãos/Sementes</option>
+              <option value="Câmara Fria">Câmara Fria</option>
+              <option value="Tanque">Tanque de Líquidos</option>
+              <option value="Defensivos">Defensivos</option>
             </select>
           </div>
-        </div>
 
-        <div className="tauze-field-group">
-          <label className="tauze-label">
-            <Layout size={14} /> FAZENDA VINCULADA
-          </label>
-          <select name="fazenda_id" className="tauze-input" defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id} required>
-            <option value="">Selecione...</option>
-            {farms.map(f => (
-              <option key={f.id} value={f.id}>{f.nome}</option>
-            ))}
-          </select>
-        </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <Scale size={14} /> CAPACIDADE MÁXIMA
+            </label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input name="capacidade_maxima" type="number" className="tauze-input" style={{ flex: 1 }} placeholder="0.00" defaultValue={selectedWarehouse?.capacidade_maxima} />
+              <select name="unidade_capacidade" className="tauze-input" style={{ width: '75px' }} defaultValue={selectedWarehouse?.unidade_capacidade || 'un'}>
+                {unidades.length > 0 ? (
+                  unidades.map(u => <option key={u.id} value={u.nome}>{u.nome}</option>)
+                ) : (
+                  <>
+                    <option value="un">un</option>
+                    <option value="kg">kg</option>
+                    <option value="ton">ton</option>
+                    <option value="L">L</option>
+                    <option value="m³">m³</option>
+                  </>
+                )}
+              </select>
+            </div>
+          </div>
 
-        <div className="tauze-field-group">
-          <label className="tauze-label">
-            <Plus size={14} /> LOCALIZAÇÃO TÉCNICA / GPS
-          </label>
-          <input name="localizacao_tecnica" type="text" className="tauze-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
-        </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <Layout size={14} /> FAZENDA VINCULADA
+            </label>
+            <select name="fazenda_id" className="tauze-input" defaultValue={selectedWarehouse?.fazenda_id || activeFarm?.id} required>
+              <option value="">Selecione...</option>
+              {farms.map(f => (
+                <option key={f.id} value={f.id}>{f.nome}</option>
+              ))}
+            </select>
+          </div>
 
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <Activity size={14} /> STATUS DO ATIVO
+            </label>
+            <select name="status" className="tauze-input tauze-select" defaultValue={selectedWarehouse?.status || 'ativo'} required>
+              <option value="ativo">Ativo (Operacional)</option>
+              <option value="inativo">Inativo (Bloqueado)</option>
+            </select>
+          </div>
 
-
-        <div className="tauze-field-group">
-          <label className="tauze-label">
-            <Activity size={14} /> STATUS DO ATIVO
-          </label>
-          <select name="status" className="tauze-input tauze-select" defaultValue={selectedWarehouse?.status || 'ativo'} required>
-            <option value="ativo">Ativo (Operacional)</option>
-            <option value="inativo">Inativo (Bloqueado)</option>
-          </select>
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label">
+              <Plus size={14} /> LOCALIZAÇÃO TÉCNICA / GPS
+            </label>
+            <input name="localizacao_tecnica" type="text" className="tauze-input" placeholder="Ex: Setor Norte, Lote 14..." defaultValue={selectedWarehouse?.localizacao_tecnica} />
+          </div>
         </div>
       </SidePanel>
     </div>

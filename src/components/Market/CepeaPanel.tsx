@@ -1,99 +1,45 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrendingUp, RefreshCw, ExternalLink, BarChart2 } from 'lucide-react';
 import { MarketHistoryChart } from './MarketHistoryChart';
+import { supabase } from '../../lib/supabase';
 import './CepeaPanel.css';
 
-// Widget CEPEA com estilos inline adaptados ao tema escuro/claro do Tauze
-// Usamos iframe srcdoc para que o document.write() do widget funcione corretamente
-const buildIframeHtml = (isDark: boolean) => {
-  const bg        = isDark ? '#1e293b' : '#f8fafc';
-  const headerBg  = isDark ? '#0f172a' : '#f1f5f9';
-  const text      = isDark ? '#e2e8f0' : '#1e293b';
-  const headerTxt = isDark ? '#94a3b8' : '#475569';
-  const border    = isDark ? '#334155' : '#e2e8f0';
-  const rowHover  = isDark ? '#273449' : '#f0f4f8';
-  const brand     = '#6366f1';
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8"/>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: ${bg};
-    font-family: 'Arial', sans-serif;
-    overflow: hidden;
-  }
-  table {
-    width: 100% !important;
-    border-collapse: collapse !important;
-    background: transparent !important;
-  }
-  td, th {
-    padding: 9px 14px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: ${text} !important;
-    border-bottom: 1px solid ${border} !important;
-    background: transparent !important;
-    font-family: 'Arial', sans-serif !important;
-    white-space: nowrap;
-  }
-  /* Linha de cabeçalho */
-  tr:first-child td, tr:first-child th {
-    background: ${headerBg} !important;
-    color: ${headerTxt} !important;
-    font-size: 10px !important;
-    font-weight: 800 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.06em !important;
-    border-bottom: 2px solid ${brand} !important;
-  }
-  /* Hover nas linhas de dados */
-  tr:not(:first-child):hover td {
-    background: ${rowHover} !important;
-  }
-  /* Esconde link de copyright */
-  a { display: none !important; }
-  /* Esconde imagens */
-  img { display: none !important; }
-</style>
-</head>
-<body>
-<script type="text/javascript"
-  src="https://cepea.org.br/br/widgetproduto.js.php?fonte=arial&tamanho=10&largura=100%25&corfundo=transparent&cortexto=333333&corlinha=cccccc&id_indicador[]=2">
-</script>
-</body>
-</html>`;
-};
+interface QuoteData {
+  date: string;
+  value: number;
+}
 
 export const CepeaPanel: React.FC = () => {
   const [loaded, setLoaded] = useState(false);
   const [lastUpdate, setLastUpdate] = useState('');
-  const [refreshKey, setRefreshKey] = useState(0);
   const [viewMode, setViewMode] = useState<'today' | 'history'>('today');
+  const [recentQuotes, setRecentQuotes] = useState<QuoteData[]>([]);
 
-  // Detecta tema atual via data-theme no document
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark'
-    || document.body.getAttribute('data-theme') === 'dark'
-    || window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const fetchRecentQuotes = async () => {
+    setLoaded(false);
+    try {
+      const { data, error } = await supabase
+        .from('market_quotes')
+        .select('date, value')
+        .eq('indicator', 'boi_gordo_cepea')
+        .order('date', { ascending: false })
+        .limit(5);
 
-  const handleLoad = () => {
-    // Pequeno delay para garantir que o script CEPEA terminou de escrever
-    setTimeout(() => {
-      setLoaded(true);
+      if (error) throw error;
+      setRecentQuotes(data || []);
       setLastUpdate(
         new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       );
-    }, 800);
+    } catch (err) {
+      console.error('Failed to fetch recent quotes:', err);
+    } finally {
+      setLoaded(true);
+    }
   };
 
-  const handleRefresh = () => {
-    setLoaded(false);
-    setLastUpdate('');
-    setRefreshKey(k => k + 1);
-  };
+  useEffect(() => {
+    fetchRecentQuotes();
+  }, []);
 
   return (
     <div className="cepea-panel">
@@ -117,7 +63,7 @@ export const CepeaPanel: React.FC = () => {
           )}
           <button
             className="cepea-link-btn"
-            onClick={handleRefresh}
+            onClick={fetchRecentQuotes}
             title="Atualizar cotação"
           >
             <RefreshCw size={13} className={!loaded ? 'spin' : ''} />
@@ -152,36 +98,47 @@ export const CepeaPanel: React.FC = () => {
       </div>
 
       {viewMode === 'today' ? (
-        <>
-          {/* Skeleton enquanto carrega */}
-          {!loaded && (
-            <div className="cepea-skeleton" style={{ margin: '16px 20px' }}>
+        <div className="cepea-widget-wrapper">
+          {!loaded ? (
+            <div className="cepea-skeleton">
               <div className="cepea-skel-row header" />
               <div className="cepea-skel-row" />
               <div className="cepea-skel-row" style={{ opacity: 0.7 }} />
               <div className="cepea-skel-row" style={{ opacity: 0.4 }} />
             </div>
+          ) : (
+            <div className="cepea-native-table-container">
+              <table className="cepea-native-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Valor R$</th>
+                    <th>Variação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentQuotes.map((quote, idx) => {
+                    const prevQuote = recentQuotes[idx + 1];
+                    const diff = prevQuote ? quote.value - prevQuote.value : 0;
+                    const diffPercent = prevQuote && prevQuote.value > 0 ? (diff / prevQuote.value) * 100 : 0;
+                    const isPositive = diff > 0;
+                    const isNegative = diff < 0;
+                    
+                    return (
+                      <tr key={quote.date}>
+                        <td>{new Date(quote.date).toLocaleDateString('pt-BR')}</td>
+                        <td style={{ fontWeight: 800 }}>R$ {quote.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        <td className={isPositive ? 'var-pos' : isNegative ? 'var-neg' : 'var-neu'}>
+                          {diffPercent === 0 ? '-' : `${isPositive ? '+' : ''}${diffPercent.toFixed(2)}%`}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
-
-          {/* iframe com o widget CEPEA */}
-          <iframe
-            key={refreshKey}
-            srcDoc={buildIframeHtml(isDark)}
-            onLoad={handleLoad}
-            title="Cotação CEPEA Boi Gordo"
-            sandbox="allow-scripts allow-same-origin"
-            scrolling="no"
-            style={{
-              border: 'none',
-              width: '100%',
-              height: loaded ? '130px' : '0',
-              display: 'block',
-              background: 'transparent',
-              transition: 'height 0.3s ease',
-              margin: loaded ? '10px 0' : 0
-            }}
-          />
-        </>
+        </div>
       ) : (
         <div style={{ padding: '0 20px', minHeight: '160px' }}>
           <MarketHistoryChart />

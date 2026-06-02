@@ -91,108 +91,142 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
       loading={loading}
       submitLabel={initialData ? "Atualizar Dieta" : "Salvar Dieta"}
     >
-      <div className="form-group full-width">
-        <label><Utensils size={14} /> Nome da Dieta</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Ração Engorda 18%, Suplemento Seca..." 
-          value={formData.nome}
-          onChange={(e) => setFormData({...formData, nome: e.target.value})}
-          required 
-        />
-      </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Dados da Dieta</h4>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Utensils size={14} /> Nome da Dieta</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: Ração Engorda 18%, Suplemento Seca..." 
+              value={formData.nome}
+              onChange={(e) => setFormData({...formData, nome: e.target.value})}
+              required 
+            />
+          </div>
 
-      <div className="form-group full-width">
-        <label><Wheat size={14} /> Tipo de Formulação</label>
-        <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'Concentrado' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'Concentrado'})}
-          >
-            <Layers size={16} />
-            <span>Concentrado</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'Sal Mineral' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'Sal Mineral'})}
-          >
-            <Activity size={16} />
-            <span>Sal Mineral</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'Total Mix' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'Total Mix'})}
-          >
-            <Utensils size={16} />
-            <span>Total Mix</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'Volumoso' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'Volumoso'})}
-          >
-            <Wheat size={16} />
-            <span>Volumoso</span>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Wheat size={14} /> Tipo de Formulação</label>
+            <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+              <div 
+                className={`tauze-form-radio-item ${formData.tipo === 'Concentrado' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, tipo: 'Concentrado'})}
+              >
+                <Layers size={16} />
+                <span>Concentrado</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.tipo === 'Sal Mineral' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, tipo: 'Sal Mineral'})}
+              >
+                <Activity size={16} />
+                <span>Sal Mineral</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.tipo === 'Total Mix' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, tipo: 'Total Mix'})}
+              >
+                <Utensils size={16} />
+                <span>Total Mix</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.tipo === 'Volumoso' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, tipo: 'Volumoso'})}
+              >
+                <Wheat size={16} />
+                <span>Volumoso</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="form-group">
-        <label><DollarSign size={14} /> Custo por Kg Natural (R$)</label>
-        <input 
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
-          value={formData.custo_por_kg}
-          onChange={(e) => setFormData({...formData, custo_por_kg: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Activity size={14} /> Matéria Seca (% MS)</label>
-        <input 
-          type="number" 
-          step="1"
-          placeholder="88" 
-          value={formData.percentual_ms}
-          onChange={(e) => setFormData({...formData, percentual_ms: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <label><Layers size={14} /> Ingredientes</label>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <input 
-            type="text" 
-            placeholder="Adicionar ingrediente..." 
-            value={newIngredient}
-            onChange={(e) => setNewIngredient(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addIngredient())}
-          />
-          <button type="button" className="secondary-btn" onClick={addIngredient} style={{ padding: '0 12px' }}>
-            <Plus size={18} />
-          </button>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Composição & Custos</h4>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-          {ingredients.map((ing, idx) => (
-            <span key={idx} className="tag" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {ing}
-              <Trash2 size={12} style={{ cursor: 'pointer' }} onClick={() => removeIngredient(idx)} />
-            </span>
-          ))}
-        </div>
-      </div>
+        
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Custo por Kg Natural (R$)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01"
+              placeholder="0.00" 
+              value={formData.custo_por_kg}
+              onChange={(e) => setFormData({...formData, custo_por_kg: e.target.value})}
+              required
+            />
+          </div>
 
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Descrição / Observações</label>
-        <textarea 
-          placeholder="Notas sobre a formulação..." 
-          value={formData.descricao}
-          onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-          rows={3}
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Matéria Seca (% MS)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="1"
+              placeholder="88" 
+              value={formData.percentual_ms}
+              onChange={(e) => setFormData({...formData, percentual_ms: e.target.value})}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Layers size={14} /> Ingredientes</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input 
+                className="tauze-input"
+                type="text" 
+                placeholder="Adicionar ingrediente..." 
+                value={newIngredient}
+                onChange={(e) => setNewIngredient(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addIngredient())}
+              />
+              <button type="button" className="secondary-btn" onClick={addIngredient} style={{ padding: '0 12px' }}>
+                <Plus size={18} />
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+              {ingredients.map((ing, idx) => (
+                <span key={idx} className="tag" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {ing}
+                  <Trash2 size={12} style={{ cursor: 'pointer' }} onClick={() => removeIngredient(idx)} />
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 03</div>
+          <h4 className="tauze-section-title">Informações Adicionais</h4>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Descrição / Observações</label>
+            <textarea 
+              className="tauze-input"
+              placeholder="Notas sobre a formulação..." 
+              value={formData.descricao}
+              onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+              rows={3}
+            />
+          </div>
+        </div>
+      </section>
     </SidePanel>
   );
 };

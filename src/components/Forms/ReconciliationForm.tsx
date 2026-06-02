@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   RefreshCcw, 
   CreditCard,
@@ -96,105 +96,136 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Processar Extrato"}
     >
-      <div className="form-group">
-        <label><CreditCard size={14} /> Conta Bancária</label>
-                <SearchableSelect 
-          value={formData.account_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione a conta...` },
-            { value: `{a.banco}`, label: `{a.banco}` },
-            ...(accounts || []).map(a => ({ value: String(a.id), label: String(a.banco) })),
-          ]}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Calendar size={14} /> Período do Extrato</label>
-                <SearchableSelect 
-          value={formData.period}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `Mês Atual`, label: `Mês Atual` },
-            { value: `Mês Anterior`, label: `Mês Anterior` },
-            { value: `Personalizado`, label: `Personalizado` },
-          ]}
-        />
-      </div>
-
-      {formData.period === 'Personalizado' && (
-        <>
-          <div className="form-group">
-            <label><Calendar size={14} /> Data Início</label>
-            <input 
-              type="date" 
-              value={formData.data_inicio}
-              onChange={(e) => setFormData({...formData, data_inicio: e.target.value})}
-              required 
-            />
-          </div>
-          <div className="form-group">
-            <label><Calendar size={14} /> Data Fim</label>
-            <input 
-              type="date" 
-              value={formData.data_fim}
-              onChange={(e) => setFormData({...formData, data_fim: e.target.value})}
-              required 
-            />
-          </div>
-        </>
-      )}
-
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Importar Arquivo (OFX, CSV ou Excel)</label>
-        <div className="tauze-form-info-box" style={{ justifyContent: 'center', flexDirection: 'column', padding: '32px', borderStyle: 'dashed', cursor: 'pointer' }}>
-          <p style={{ textAlign: 'center' }}>
-            Clique ou arraste o arquivo aqui para upload.
-          </p>
-          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Formatos aceitos: .ofx, .csv, .xlsx</span>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Identificação e Período</h4>
         </div>
-      </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><CreditCard size={14} /> Conta Bancária</label>
+            <SearchableSelect 
+              value={formData.account_id}
+              onChange={(val: any) => setFormData({...formData, account_id: val})}
+              options={[
+                { value: '', label: 'Selecione a conta...' },
+                ...(accounts || []).map(a => ({ value: String(a.id), label: String(a.banco) })),
+              ]}
+            />
+          </div>
 
-      <div className="form-group">
-        <label><DollarSign size={14} /> Saldo Inicial do Período</label>
-        <input 
-          type="number" 
-          step="0.01" 
-          placeholder="R$ 0,00"
-          value={formData.initial_balance}
-          onChange={(e) => setFormData({...formData, initial_balance: e.target.value})}
-          required 
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Período do Extrato</label>
+            <SearchableSelect 
+              value={formData.period}
+              onChange={(val: any) => setFormData({...formData, period: val})}
+              options={[
+                { value: 'Mês Atual', label: 'Mês Atual' },
+                { value: 'Mês Anterior', label: 'Mês Anterior' },
+                { value: 'Personalizado', label: 'Personalizado' },
+              ]}
+            />
+          </div>
+        </div>
+        
+        {formData.period === 'Personalizado' && (
+          <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Calendar size={14} /> Data Início</label>
+              <input 
+                className="tauze-input"
+                type="date" 
+                value={formData.data_inicio}
+                onChange={(e) => setFormData({...formData, data_inicio: e.target.value})}
+                required 
+              />
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Calendar size={14} /> Data Fim</label>
+              <input 
+                className="tauze-input"
+                type="date" 
+                value={formData.data_fim}
+                onChange={(e) => setFormData({...formData, data_fim: e.target.value})}
+                required 
+              />
+            </div>
+          </div>
+        )}
+      </section>
 
-      <div className="form-group">
-        <label><DollarSign size={14} /> Saldo Final do Período</label>
-        <input 
-          type="number" 
-          step="0.01" 
-          placeholder="R$ 0,00"
-          value={formData.final_balance}
-          onChange={(e) => setFormData({...formData, final_balance: e.target.value})}
-          required 
-        />
-      </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Importação e Saldos</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Importar Arquivo (OFX, CSV ou Excel)</label>
+            <div style={{ display: 'flex', justifyContent: 'center', flexDirection: 'column', alignItems: 'center', padding: '32px', border: '1px dashed hsl(var(--border))', borderRadius: '12px', background: 'hsl(var(--bg-main)/0.5)', cursor: 'pointer' }}>
+              <p style={{ textAlign: 'center', fontSize: '13px', fontWeight: 600 }}>
+                Clique ou arraste o arquivo aqui para upload.
+              </p>
+              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '8px' }}>Formatos aceitos: .ofx, .csv, .xlsx</span>
+            </div>
+          </div>
+        </div>
+        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Saldo Inicial do Período</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01" 
+              placeholder="R$ 0,00"
+              value={formData.initial_balance}
+              onChange={(e) => setFormData({...formData, initial_balance: e.target.value})}
+              required 
+            />
+          </div>
 
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Observações do Fechamento</label>
-        <textarea 
-          placeholder="Notas sobre divergências aceitáveis ou justificativas de ajuste..." 
-          value={formData.observacoes}
-          onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
-          style={{ width: '100%', minHeight: '80px', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-input)' }}
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Saldo Final do Período</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01" 
+              placeholder="R$ 0,00"
+              value={formData.final_balance}
+              onChange={(e) => setFormData({...formData, final_balance: e.target.value})}
+              required 
+            />
+          </div>
+        </div>
+      </section>
 
-      <div className="form-group full-width tauze-form-info-box">
-        <CheckCircle2 size={24} style={{ color: 'hsl(var(--brand))' }} />
-        <p>
-          <strong>IA Automática:</strong> Nosso motor de IA tentará identificar e sugerir conciliações baseadas no histórico de transações.
-        </p>
-      </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 03</div>
+          <h4 className="tauze-section-title">Informações Adicionais</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Observações do Fechamento</label>
+            <textarea 
+              className="tauze-input tauze-textarea"
+              placeholder="Notas sobre divergências aceitáveis ou justificativas de ajuste..." 
+              value={formData.observacoes}
+              onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+              style={{ minHeight: '80px' }}
+            />
+          </div>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', borderRadius: '12px', background: 'hsl(var(--brand)/0.05)', border: '1px solid hsl(var(--brand)/0.2)' }}>
+            <CheckCircle2 size={24} style={{ color: 'hsl(var(--brand))', flexShrink: 0 }} />
+            <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.5, color: 'hsl(var(--text-main))' }}>
+              <strong style={{ color: 'hsl(var(--brand))' }}>IA Automática:</strong> Nosso motor de IA tentará identificar e sugerir conciliações baseadas no histórico de transações.
+            </p>
+          </div>
+        </div>
+      </section>
     </SidePanel>
   );
 };

@@ -36,6 +36,7 @@ import {
   Trash2,
   Tag,
   Edit3
+
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -45,11 +46,17 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TenantForm } from '../../components/Forms/TenantForm';
 import { PlanForm } from '../../components/Forms/PlanForm';
 import { CampaignForm } from '../../components/Forms/CampaignForm';
+import { ChargeForm } from '../../components/Forms/ChargeForm';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { logAudit } from '../../utils/audit';
 import { supabase } from '../../lib/supabase';
 import { SaaSFilterModal } from './components/SaaSFilterModal';
+import { RetentionPolicyModal } from './components/RetentionPolicyModal';
+import { CreateDemoModal } from './components/CreateDemoModal';
+import { DeleteDemoModal } from './components/DeleteDemoModal';
+import { AuditLogTimelineModal } from './components/AuditLogTimelineModal';
+import { SystemAuditDrawer } from './components/SystemAuditDrawer';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 import { useViewMode } from '../../hooks/useViewMode';
@@ -302,6 +309,7 @@ export const SaaSAdminPanel: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [isChargeModalOpen, setIsChargeModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [kpis, setKpis] = useState({ mrr: 0, totalTenants: 0, totalUsers: 0, health: 99.9 });
 
@@ -1732,7 +1740,7 @@ export const SaaSAdminPanel: React.FC = () => {
             onClick={
               activeTab === 'campaigns' ? () => { setSelectedCampaign(null); setIsCampaignModalOpen(true); } :
               activeTab === 'plans' ? openNewPlan : 
-              activeTab === 'billing' ? () => toast.error('Nova Cobrança Iniciada') : 
+              activeTab === 'billing' ? () => setIsChargeModalOpen(true) : 
               openNewTenant
             }
             style={{ display: (activeTab === 'overview' || activeTab === 'health') ? 'none' : 'flex' }}
@@ -3672,6 +3680,25 @@ export const SaaSAdminPanel: React.FC = () => {
           initialData={selectedTenant}
         />
 
+        <CreateDemoModal
+          isOpen={isCreateDemoModalOpen}
+          onClose={() => setIsCreateDemoModalOpen(false)}
+          onSubmit={handleCreateDemoTenant}
+          demoTenantName={demoTenantName}
+          setDemoTenantName={setDemoTenantName}
+          isSaving={isSaving}
+        />
+
+        <DeleteDemoModal
+          isOpen={isDeleteDemoModalOpen}
+          onClose={() => setIsDeleteDemoModalOpen(false)}
+          onSubmit={handleDeleteDemoTenant}
+          tenantToDelete={tenantToDelete}
+          deleteConfirmationInput={deleteConfirmationInput}
+          setDeleteConfirmationInput={setDeleteConfirmationInput}
+          isDeleting={isDeleting}
+        />
+
         <PlanForm 
           isOpen={isPlanModalOpen} 
           onClose={() => setIsPlanModalOpen(false)}
@@ -3688,485 +3715,63 @@ export const SaaSAdminPanel: React.FC = () => {
           availablePlans={plansList}
           isSubmitting={isSaving}
         />
-        {createPortal(
-          <AnimatePresence>
-            {isRetentionModalOpen && (
-              <div style={{ 
-                position: 'fixed', 
-                top: 0, 
-                left: 0, 
-                right: 0, 
-                bottom: 0, 
-                zIndex: 99999, 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                padding: '24px',
-                width: '100vw',
-                height: '100vh',
-                pointerEvents: 'auto'
-              }}>
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsRetentionModalOpen(false)}
-                  style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(12px)' }}
-                />
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  style={{ 
-                    position: 'relative', 
-                    width: '100%', 
-                    maxWidth: '500px', 
-                    background: 'white', 
-                    borderRadius: '24px', 
-                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', 
-                    overflow: 'hidden',
-                    border: '1px solid #e2e8f0'
-                  }}
-                >
-                  <div style={{ padding: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid #f1f5f9' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-                      <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
-                        <Shield size={24} />
-                      </div>
-                      <div>
-                        <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Políticas de Retenção</h3>
-                        <p style={{ margin: 0, fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Governança de Inadimplência & Suspensão</p>
-                      </div>
-                    </div>
-                  </div>
 
-                  <div style={{ padding: '32px', display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                    {/* Visual Timeline Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginBottom: '10px' }}>
-                      <div style={{ position: 'absolute', top: '24px', left: '10%', right: '10%', height: '2px', background: '#f1f5f9', zIndex: 0 }} />
-                      {[
-                        { label: 'Alertas', icon: Activity },
-                        { label: 'Leitura', icon: Eye },
-                        { label: 'Pecuária', icon: Database },
-                        { label: 'Bloqueio', icon: Lock }
-                      ].map((step, i) => (
-                        <div key={i} style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', border: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                            <step.icon size={18} />
-                          </div>
-                          <span style={{ fontSize: '9px', fontWeight: '900', color: '#94a3b8', textTransform: 'uppercase' }}>{step.label}</span>
-                        </div>
-                      ))}
-                    </div>
+        <AuditLogTimelineModal
+          isOpen={isAuditLogModalOpen}
+          onClose={() => setIsAuditLogModalOpen(false)}
+          selectedAuditTenant={selectedAuditTenant}
+          auditLogs={auditLogs}
+          logsLoading={logsLoading}
+        />
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Início de Alertas (D+)</label>
-                        <input 
-                          type="number" 
-                          value={retentionSettings.alertDays}
-                          onChange={(e) => setRetentionSettings({...retentionSettings, alertDays: parseInt(e.target.value)})}
-                          style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontWeight: '700' }}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Modo Leitura Global (D+)</label>
-                        <input 
-                          type="number" 
-                          value={retentionSettings.readOnlyDays}
-                          onChange={(e) => setRetentionSettings({...retentionSettings, readOnlyDays: parseInt(e.target.value)})}
-                          style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontWeight: '700' }}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Restrição Pecuária (D+)</label>
-                        <input 
-                          type="number" 
-                          value={retentionSettings.pecuariaOnlyDays}
-                          onChange={(e) => setRetentionSettings({...retentionSettings, pecuariaOnlyDays: parseInt(e.target.value)})}
-                          style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontWeight: '700' }}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <label style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase' }}>Portal de Pagamento (D+)</label>
-                        <input 
-                          type="number" 
-                          value={retentionSettings.forcedPaymentDays}
-                          onChange={(e) => setRetentionSettings({...retentionSettings, forcedPaymentDays: parseInt(e.target.value)})}
-                          style={{ padding: '12px', borderRadius: '12px', border: '1px solid #e2e8f0', fontWeight: '700' }}
-                        />
-                      </div>
-                    </div>
+        <ChargeForm
+          isOpen={isChargeModalOpen}
+          onClose={() => setIsChargeModalOpen(false)}
+          onSubmit={async (data) => {
+            try {
+              setIsSaving(true);
+              const { error } = await supabase.from('saas_invoices').insert([{
+                tenant_id: data.tenant_id,
+                plan_name: data.plan_name,
+                amount: parseFloat(data.amount) || 0,
+                status: data.status,
+                due_date: data.due_date,
+                payment_link: data.payment_link,
+                billing_cycle: 'manual'
+              }]);
+              
+              if (error) throw error;
+              
+              await logAudit({
+                tenant_id: data.tenant_id,
+                user_id: user?.id,
+                action: 'CREATE_MANUAL_CHARGE',
+                entity: 'Invoice',
+                new_data: data
+              });
+              
+              toast.success('Cobrança gerada com sucesso!');
+              setIsChargeModalOpen(false);
+              fetchInvoices();
+            } catch (error) {
+              console.error('Error generating charge:', error);
+              toast.error('Erro ao gerar a cobrança.');
+            } finally {
+              setIsSaving(false);
+            }
+          }}
+          tenantsList={tenantsList}
+          plansList={plansList}
+          isSubmitting={isSaving}
+        />
 
-                    <div style={{ padding: '16px', background: '#fffbeb', borderRadius: '16px', border: '1px solid #fef3c7' }}>
-                      <p style={{ margin: 0, fontSize: '11px', color: '#92400e', fontWeight: '600', lineHeight: '1.5' }}>
-                        * Na Fase 3, o usuário terá acesso apenas ao módulo Pecuária em modo leitura. 
-                        Na Fase 4, qualquer acesso será redirecionado para o gateway de pagamento.
-                      </p>
-                    </div>
+        <SystemAuditDrawer
+          isOpen={isAuditDrawerOpen}
+          onClose={() => setIsAuditDrawerOpen(false)}
+          auditLogsList={auditLogsList}
+        />
 
-                    <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                      <button 
-                        onClick={() => setIsRetentionModalOpen(false)}
-                        style={{ flex: 1, padding: '14px', borderRadius: '14px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', cursor: 'pointer' }}
-                      >
-                        Cancelar
-                      </button>
-                      <button 
-                        onClick={async () => {
-                          await logAudit({
-                            tenant_id: '00000000-0000-0000-0000-000000000000',
-                            user_id: user?.id,
-                            action: 'UPDATE_RETENTION_POLICY',
-                            entity: 'System',
-                            new_data: retentionSettings
-                          });
-                          setIsRetentionModalOpen(false);
-                          toast.success('Políticas de retenção atualizadas com sucesso!');
-                        }}
-                        style={{ flex: 1, padding: '14px', borderRadius: '14px', border: 'none', background: '#0f172a', color: 'white', fontSize: '12px', fontWeight: '800', textTransform: 'uppercase', cursor: 'pointer' }}
-                      >
-                        Salvar Alterações
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>,
-          document.body
-        )
-      }
 
-        <></>
-
-        <AnimatePresence>
-                    
-          {isAuditDrawerOpen && (
-            <>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="drawer-overlay"
-                onClick={() => setIsAuditDrawerOpen(false)}
-              />
-              <motion.div 
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="audit-drawer"
-              >
-                <div className="drawer-header">
-                  <div className="title-group">
-                    <History className="text-brand" />
-                    <div>
-                      <h3>Auditoria em Tempo Real</h3>
-                      <p>Logs críticos de segurança e infraestrutura</p>
-                    </div>
-                  </div>
-                  <button className="icon-btn" onClick={() => setIsAuditDrawerOpen(false)}>
-                    <Plus size={20} style={{ transform: 'rotate(45deg)' }} />
-                  </button>
-                </div>
-                <div className="drawer-content">
-                  {auditLogsList.map(log => (
-                    <div key={log.id} className="audit-log-item">
-                      <div className={`status-dot ${log.status}`} />
-                      <div className="log-info">
-                        <div className="log-top">
-                          <span className="log-action">{log.action}</span>
-                          <span className="log-time">{log.time}</span>
-                        </div>
-                        <p className="log-desc">
-                          <strong>{log.admin}</strong> agindo em <span>{log.tenant}</span>
-                        </p>
-                        {log.details && (
-                          <p className="log-details-sub-text" style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', margin: '4px 0 0', fontStyle: 'italic' }}>
-                            {log.details}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="drawer-footer">
-                  <button className="glass-btn full-width">VER RELATÓRIO COMPLETO</button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-        {createPortal(
-          <AnimatePresence>
-            {isCreateDemoModalOpen && (
-              <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsCreateDemoModalOpen(false)}
-                  style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)' }}
-                />
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  style={{ position: 'relative', width: '100%', maxWidth: '460px', background: 'white', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', overflow: 'hidden', border: '1px solid #e2e8f0' }}
-                >
-                  <div style={{ padding: '24px', background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)', borderBottom: '1px solid #e2e8f0' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-                        <Zap size={20} />
-                      </div>
-                      <div>
-                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: '#0f172a', textTransform: 'uppercase' }}>Nova Base de Demonstração</h3>
-                        <p style={{ margin: 0, fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Criada a partir do Template Master</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ padding: '24px' }}>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>Nome da Base Demo</label>
-                    <input 
-                      type="text" 
-                      value={demoTenantName}
-                      onChange={(e) => setDemoTenantName(e.target.value)}
-                      placeholder="Ex: TBC Agro Demo"
-                      style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '600', color: '#0f172a', outline: 'none' }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleCreateDemoTenant();
-                      }}
-                      autoFocus
-                    />
-                    <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', marginTop: '16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      <CheckCircle size={16} style={{ color: '#10b981', flexShrink: 0 }} />
-                      <span style={{ fontSize: '11px', color: '#475569', fontWeight: '600', lineHeight: '1.4' }}>
-                        Esta base herdará automaticamente todos os Cargos, Categorias e Perfis de Permissão configurados no seu **Template Master**.
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                    <button className="glass-btn secondary sm" onClick={() => setIsCreateDemoModalOpen(false)}>CANCELAR</button>
-                    <button 
-                      className="primary-btn sm" 
-                      onClick={handleCreateDemoTenant}
-                      disabled={isSaving}
-                      style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none' }}
-                    >
-                      {isSaving ? 'CRIANDO...' : 'CRIAR BASE DEMO'}
-                    </button>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>,
-          document.body
-        )}
-        {createPortal(
-          <AnimatePresence>
-            {isDeleteDemoModalOpen && tenantToDelete && (
-              <div style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setIsDeleteDemoModalOpen(false)}
-                  style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(8px)' }}
-                />
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  style={{ position: 'relative', width: '100%', maxWidth: '480px', background: 'white', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', overflow: 'hidden', border: '1px solid #fee2e2' }}
-                >
-                  <div style={{ padding: '24px', background: 'linear-gradient(135deg, #fef2f2 0%, #ffffff 100%)', borderBottom: '1px solid #fee2e2' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
-                        <AlertCircle size={20} />
-                      </div>
-                      <div>
-                        <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#991b1b', textTransform: 'uppercase' }}>Excluir Base de Demonstração</h3>
-                        <p style={{ margin: 0, fontSize: '11px', color: '#ef4444', fontWeight: '700' }}>Esta ação é 100% irreversível!</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ padding: '24px' }}>
-                    <p style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#475569', fontWeight: '600', lineHeight: '1.5' }}>
-                      Você está prestes a excluir definitivamente a base de demonstração <strong style={{ color: '#0f172a' }}>"{tenantToDelete.name}"</strong>. Todos os dados, fazendas, lançamentos e configurações vinculados serão completamente apagados.
-                    </p>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#475569', textTransform: 'uppercase', marginBottom: '8px' }}>
-                      Para confirmar, digite o nome exato da base abaixo:
-                    </label>
-                    <input 
-                      type="text" 
-                      value={deleteConfirmationInput}
-                      onChange={(e) => setDeleteConfirmationInput(e.target.value)}
-                      placeholder={tenantToDelete.name}
-                      style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: '700', color: '#991b1b', outline: 'none' }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && deleteConfirmationInput === tenantToDelete.name) handleDeleteDemoTenant();
-                      }}
-                      autoFocus
-                    />
-                  </div>
-                  <div style={{ padding: '16px 24px', background: '#fafafa', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                    <button className="glass-btn secondary sm" onClick={() => setIsDeleteDemoModalOpen(false)}>CANCELAR</button>
-                    <button 
-                      className="primary-btn sm" 
-                      onClick={handleDeleteDemoTenant}
-                      disabled={isDeleting || deleteConfirmationInput !== tenantToDelete.name}
-                      style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', border: 'none', opacity: deleteConfirmationInput === tenantToDelete.name ? 1 : 0.6 }}
-                    >
-                      {isDeleting ? 'EXCLUINDO...' : 'EXCLUIR DEFINITIVAMENTE'}
-                    </button>
-                  </div>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>,
-          document.body
-        )}
-      {createPortal(
-        <AnimatePresence>
-          {isAuditLogModalOpen && (
-            <div style={{ position: 'fixed', inset: 0, zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsAuditLogModalOpen(false)}
-                style={{ position: 'absolute', inset: 0, background: 'rgba(15, 23, 42, 0.7)', backdropFilter: 'blur(12px)' }}
-              />
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="tauze-modal-container"
-                onClick={e => e.stopPropagation()}
-                style={{ position: 'relative', maxWidth: '800px', width: '100%', height: '90vh', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '32px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)', overflow: 'hidden' }}
-              >
-                <div className="tauze-modal-header" style={{ padding: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', borderBottom: '1px solid #f1f5f9' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Shield size={20} />
-                    </div>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800 }}>Linha do Tempo de Auditoria</h3>
-                      <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>{selectedAuditTenant?.name} • ID: {selectedAuditTenant?.id?.substring(0, 8)}</p>
-                    </div>
-                  </div>
-                  <button className="icon-btn-secondary" onClick={() => setIsAuditLogModalOpen(false)}>
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="tauze-modal-content" style={{ padding: '0', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        <div className="stat-pill" style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px' }}>
-                          <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Total de Eventos</span>
-                          <span style={{ fontWeight: '800', fontSize: '16px' }}>{auditLogs.length}</span>
-                        </div>
-                        <div className="stat-pill" style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px' }}>
-                          <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Última Atividade</span>
-                          <span style={{ fontWeight: '800', fontSize: '16px' }}>{auditLogs[0] ? new Date(auditLogs[0].created_at).toLocaleDateString() : 'N/A'}</span>
-                        </div>
-                    </div>
-                  </div>
-
-                  <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
-                    {logsLoading ? (
-                      <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-                        <Activity className="animate-spin" size={32} color="hsl(var(--brand))" />
-                      </div>
-                    ) : auditLogs.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
-                        <Shield size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
-                        <p>Nenhum registro de auditoria encontrado para este inquilino.</p>
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {auditLogs.map((log, index) => (
-                          <div key={log.id} style={{ 
-                            display: 'flex', 
-                            gap: '16px', 
-                            padding: '16px', 
-                            background: 'white', 
-                            borderRadius: '12px', 
-                            border: '1px solid #f1f5f9',
-                            position: 'relative'
-                          }}>
-                            <div style={{ 
-                              width: '2px', 
-                              height: '100%', 
-                              background: '#e2e8f0', 
-                              position: 'absolute', 
-                              left: '27px', 
-                              top: '40px',
-                              display: index === auditLogs.length - 1 ? 'none' : 'block'
-                            }} />
-                            
-                            <div style={{ 
-                              width: '24px', 
-                              height: '24px', 
-                              borderRadius: '50%', 
-                              background: log.action === 'INSERT' ? '#ecfdf5' : (log.action === 'DELETE' ? '#fef2f2' : '#eff6ff'),
-                              color: log.action === 'INSERT' ? '#059669' : (log.action === 'DELETE' ? '#dc2626' : '#2563eb'),
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              zIndex: 1,
-                              flexShrink: 0
-                            }}>
-                              {log.action === 'INSERT' ? <CheckSquare size={12} /> : (log.action === 'DELETE' ? <X size={12} /> : <Activity size={12} />)}
-                            </div>
-
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                <span style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
-                                  {log.action} • {log.entity}
-                                </span>
-                                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
-                                  {new Date(log.created_at).toLocaleString('pt-BR')}
-                                </span>
-                              </div>
-                              <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 8px 0' }}>
-                                {log.description || `Alteração no registro ${log.entity_id}`}
-                              </p>
-                              {log.new_data && (
-                                <div style={{ 
-                                  background: '#f8fafc', 
-                                  padding: '10px', 
-                                  borderRadius: '8px', 
-                                  fontSize: '11px', 
-                                  fontFamily: 'monospace',
-                                  color: '#475569',
-                                  border: '1px solid #f1f5f9'
-                                }}>
-                                  <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-                                    {JSON.stringify(log.new_data, null, 2)}
-                                  </pre>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="tauze-modal-footer" style={{ padding: '32px', background: '#f8fafc', borderTop: '1px solid #f1f5f9' }}>
-                  <button className="glass-btn secondary" onClick={() => setIsAuditLogModalOpen(false)}>Fechar Registro</button>
-                  <button className="primary-btn" style={{ background: '#0f172a' }}>Exportar Log Completo</button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
 
       </main>
 

@@ -48,79 +48,81 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
         submitLabel="Exportar Relatório"
         iconSubmit={FileText}
       >
-        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="tauze-label">Configuração da Dieta</label>
-          <SearchableSelect
-            value={selectedDietId}
-            onChange={setSelectedDietId}
-            placeholder="Escolha uma formulação..."
-            options={[
-              { value: '', label: 'Escolha uma formulação...' },
-              ...diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(diet => ({
-                value: diet.id,
-                label: `${diet.nome} (R$ ${Number(diet.custo_por_kg).toFixed(2)}/kg)`
-              }))
-            ]}
-          />
-        </div>
-
-        <div className="tauze-field-group">
-          <label className="tauze-label">N° de Animais</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Beef size={14} style={{ color: 'hsl(var(--text-muted))' }} />
-            <input 
-              type="number" 
-              className="tauze-input" 
-              value={animalCount}
-              onChange={e => setAnimalCount(e.target.value)}
+        <div className="form-grid">
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label">Configuração da Dieta</label>
+            <SearchableSelect
+              value={selectedDietId}
+              onChange={setSelectedDietId}
+              placeholder="Escolha uma formulação..."
+              options={[
+                { value: '', label: 'Escolha uma formulação...' },
+                ...diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(diet => ({
+                  value: diet.id,
+                  label: `${diet.nome} (R$ ${Number(diet.custo_por_kg).toFixed(2)}/kg)`
+                }))
+              ]}
             />
           </div>
-        </div>
 
-        <div className="tauze-field-group">
-          <label className="tauze-label">Consumo (kg/dia)</label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Utensils size={14} style={{ color: 'hsl(var(--text-muted))' }} />
-            <input 
-              type="number" 
-              className="tauze-input" 
-              value={dailyConsumption}
-              onChange={e => setDailyConsumption(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="tauze-label">Resultados da Simulação</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-              <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Consumo Total Diário</div>
-              <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>{totalDailyConsumption.toLocaleString()} kg</div>
-            </div>
-            <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-              <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo Diário Total</div>
-              <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {totalDailyCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-            </div>
-            <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-              <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo / Cabeça / Dia</div>
-              <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {costPerAnimalDay.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-            </div>
-            <div style={{ padding: '16px', background: 'hsl(var(--text-main))', borderRadius: '16px', color: 'white' }}>
-              <div style={{ fontSize: '10px', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', marginBottom: '8px' }}>Projeção 30 Dias</div>
-              <div style={{ fontSize: '18px', fontWeight: 900 }}>R$ {monthlyProjection.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+          <div className="tauze-field-group">
+            <label className="tauze-label">N° de Animais</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Beef size={14} style={{ color: 'hsl(var(--text-muted))' }} />
+              <input 
+                type="number" 
+                className="tauze-input" 
+                value={animalCount}
+                onChange={e => setAnimalCount(e.target.value)}
+              />
             </div>
           </div>
-        </div>
 
-        <div className="tauze-field-group" style={{ gridColumn: 'span 2', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '16px', border: '1px dashed hsl(var(--brand)/0.3)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Conversão Alimentar</div>
-              <div style={{ fontSize: '15px', fontWeight: 900 }}>{(Number(dailyConsumption) / Number(expectedGMD)).toFixed(2)} : 1</div>
+          <div className="tauze-field-group">
+            <label className="tauze-label">Consumo (kg/dia)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Utensils size={14} style={{ color: 'hsl(var(--text-muted))' }} />
+              <input 
+                type="number" 
+                className="tauze-input" 
+                value={dailyConsumption}
+                onChange={e => setDailyConsumption(e.target.value)}
+              />
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Custo kg Produzido</div>
-              <div style={{ fontSize: '15px', fontWeight: 900 }}>R$ {(costPerAnimalDay / Number(expectedGMD)).toFixed(2)}</div>
+          </div>
+
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label">Resultados da Simulação</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Consumo Total Diário</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>{totalDailyConsumption.toLocaleString()} kg</div>
+              </div>
+              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo Diário Total</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {totalDailyCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+              </div>
+              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo / Cabeça / Dia</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {costPerAnimalDay.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+              </div>
+              <div style={{ padding: '16px', background: 'hsl(var(--text-main))', borderRadius: '16px', color: 'white' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', marginBottom: '8px' }}>Projeção 30 Dias</div>
+                <div style={{ fontSize: '18px', fontWeight: 900 }}>R$ {monthlyProjection.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '16px', border: '1px dashed hsl(var(--brand)/0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Conversão Alimentar</div>
+                <div style={{ fontSize: '15px', fontWeight: 900 }}>{(Number(dailyConsumption) / Number(expectedGMD)).toFixed(2)} : 1</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Custo kg Produzido</div>
+                <div style={{ fontSize: '15px', fontWeight: 900 }}>R$ {(costPerAnimalDay / Number(expectedGMD)).toFixed(2)}</div>
+              </div>
             </div>
           </div>
         </div>

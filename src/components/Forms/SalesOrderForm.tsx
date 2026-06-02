@@ -151,257 +151,294 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Pedido"}
       size="xlarge"
     >
-      <div className="form-group full-width">
-        <label><Building2 size={14} /> Empresa / Unidade Vendedora</label>
-                <SearchableSelect 
-          value={formData.company_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione a empresa...` },
-            { value: `{c.name}`, label: `{c.name}` },
-            ...(companies || []).map(c => ({ value: String(c.id), label: String(c.name) })),
-          ]}
-        />
-      </div>
-
-      <div className="form-group span-1">
-        <label><Hash size={14} /> Número do Pedido (PV)</label>
-        <input 
-          className="tauze-input"
-          type="text" 
-          placeholder="Ex: PV-001..." 
-          value={formData.orderNumber}
-          onChange={(e) => setFormData({...formData, orderNumber: e.target.value})}
-          required 
-        />
-      </div>
-
-      <div className="form-group span-3">
-        <label><User size={14} /> Parceiro / Comprador</label>
-                <SearchableSelect 
-          value={formData.clientId}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione o parceiro...` },
-            { value: `{c.nome}`, label: `{c.nome}` },
-            ...(clients || []).map(c => ({ value: String(c.id), label: String(c.nome) })),
-          ]}
-        />
-      </div>
-
-      <div className="form-group span-1">
-        <label><Calendar size={14} /> Data do Pedido</label>
-        <input 
-          className="tauze-input"
-          type="date" 
-          value={formData.date}
-          onChange={(e) => setFormData({...formData, date: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="form-group span-1">
-        <label><Activity size={14} /> Status</label>
-                <SearchableSelect 
-          value={formData.status}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `pending`, label: `Pendente` },
-            { value: `shipped`, label: `Em Trânsito` },
-            { value: `completed`, label: `Concluído` },
-            { value: `cancelled`, label: `Cancelado` },
-          ]}
-        />
-      </div>
-
-      <div className="form-group span-1">
-        <label><DollarSign size={14} /> Valor Total (R$)</label>
-        <input 
-          className="tauze-input"
-          type="number" 
-          step="0.01"
-          placeholder="0.00" 
-          value={formData.totalValue}
-          onChange={(e) => setFormData({...formData, totalValue: parseFloat(e.target.value) || 0})}
-          required
-        />
-      </div>
-
-      <div className="form-group span-2">
-        <label><Truck size={14} /> Transportadora</label>
-        <input 
-          className="tauze-input"
-          type="text" 
-          placeholder="Nome da empresa..." 
-          value={formData.transportadora}
-          onChange={(e) => setFormData({...formData, transportadora: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group span-1">
-        <label><Activity size={14} /> Placa</label>
-        <input 
-          className="tauze-input"
-          type="text" 
-          placeholder="ABC-1234" 
-          value={formData.placa_veiculo}
-          onChange={(e) => setFormData({...formData, placa_veiculo: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group span-1">
-        <label><FileText size={14} /> GTA</label>
-        <input 
-          className="tauze-input"
-          type="text" 
-          placeholder="Número GTA" 
-          value={formData.numero_gta}
-          onChange={(e) => setFormData({...formData, numero_gta: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group span-1">
-        <label><TrendingUp size={14} /> Comissão (%)</label>
-        <input 
-          className="tauze-input"
-          type="number" 
-          step="0.1"
-          placeholder="0.0" 
-          value={formData.comissao}
-          onChange={(e) => setFormData({...formData, comissao: parseFloat(e.target.value) || 0})}
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <InsumoEntryTable 
-          items={formData.items}
-          onChange={(items) => setFormData({ ...formData, items })}
-        />
-      </div>
-
-      <div className="form-section-title full-width" style={{ marginTop: '24px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--brand))', fontSize: '14px', fontWeight: '800' }}>
-        <CreditCard size={18} />
-        CONDIÇÕES DE RECEBIMENTO E FINANCEIRO
-      </div>
-
-      <div className="form-group span-1">
-        <label><Banknote size={14} /> Condição</label>
-                <SearchableSelect 
-          value={formData.payment_condition}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `vista`, label: `À Vista` },
-            { value: `prazo`, label: `Parcelado / A Prazo` },
-          ]}
-        />
-      </div>
-
-      <div className="form-group span-1">
-        <label><CreditCard size={14} /> Meio de Recebimento</label>
-                <SearchableSelect 
-          value={formData.payment_method}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `Pix`, label: `Pix` },
-            { value: `Boleto`, label: `Boleto` },
-            { value: `Transferência`, label: `Transferência / TED` },
-            { value: `Cartão de Crédito`, label: `Cartão de Crédito` },
-            { value: `Dinheiro`, label: `Dinheiro` },
-          ]}
-        />
-      </div>
-
-      {formData.payment_condition === 'prazo' && (
-        <div className="form-group span-1">
-          <label><Hash size={14} /> N° de Parcelas</label>
-          <input 
-            className="tauze-input"
-            type="number" 
-            min="1"
-            max="48"
-            value={formData.installments}
-            onChange={(e) => setFormData({...formData, installments: parseInt(e.target.value) || 1})}
-            required 
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Identificação do Pedido</h4>
         </div>
-      )}
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Building2 size={14} /> Empresa / Unidade Vendedora</label>
+            <SearchableSelect 
+              value={formData.company_id}
+              onChange={(val: any) => setFormData({...formData, company_id: val})}
+              options={[
+                { value: '', label: 'Selecione a empresa...' },
+                ...(companies || []).map(c => ({ value: String(c.id), label: String(c.name) })),
+              ]}
+            />
+          </div>
 
-      <div className={formData.payment_condition === 'prazo' ? "form-group span-1" : "form-group span-2"}>
-        <label><Wallet size={14} /> Conta de Destino</label>
-                <SearchableSelect 
-          value={formData.bank_account_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione a conta...` },
-            { value: `{account.descricao || account.banco}`, label: `{account.descricao || account.banco}` },
-            ...(bankAccounts || []).map(account => ({ value: String(account.id), label: String(account.descricao || account.banco) })),
-          ]}
-        />
-      </div>
-
-      <div className="form-group full-width" style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '12px', border: '1px dashed hsl(var(--brand)/0.3)' }}>
-        <input 
-          type="checkbox" 
-          id="gen_fin_sales"
-          style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-          checked={formData.generate_financial}
-          onChange={(e) => setFormData({...formData, generate_financial: e.target.checked})}
-        />
-        <label htmlFor="gen_fin_sales" style={{ margin: 0, cursor: 'pointer', fontWeight: '700', color: 'hsl(var(--brand))' }}>
-          Gerar Financeiro Automático (Contas a Receber)
-        </label>
-      </div>
-
-      {formData.payment_condition === 'prazo' && installmentsList.length > 0 && (
-        <div className="form-group full-width" style={{ marginTop: '8px' }}>
-          <div style={{ background: 'hsl(var(--bg-main)/0.3)', borderRadius: '12px', border: '1px solid hsl(var(--border))', padding: '12px' }}>
-            <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--text-muted))', marginBottom: '8px', textTransform: 'uppercase' }}>
-              CRONOGRAMA DE RECEBIMENTO
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-              {installmentsList.map((inst, index) => (
-                <div key={inst.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '8px', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--brand))', width: '30px' }}>{index + 1}ª</span>
-                  <input 
-                    type="date" 
-                    className="tauze-input" 
-                    style={{ height: '32px', padding: '0 8px', fontSize: '12px', flex: 1 }}
-                    value={inst.dueDate}
-                    onChange={(e) => updateInstallment(inst.id, 'dueDate', e.target.value)}
-                  />
-                  <div style={{ position: 'relative', flex: 1 }}>
-                    <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: '800', color: 'hsl(var(--text-muted))' }}>R$</span>
-                    <input 
-                      type="number" 
-                      className="tauze-input" 
-                      style={{ height: '32px', padding: '0 8px 0 24px', fontSize: '12px', width: '100%' }}
-                      value={inst.value}
-                      onChange={(e) => updateInstallment(inst.id, 'value', parseFloat(e.target.value) || 0)}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: '12px', textAlign: 'right', fontSize: '11px', fontWeight: '700', color: installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) === parseFloat(formData.totalValue.toString()).toFixed(2) ? 'green' : 'red' }}>
-              Soma das Parcelas: {installmentsList.reduce((acc, i) => acc + i.value, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-              {installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) !== parseFloat(formData.totalValue.toString()).toFixed(2) && (
-                <span style={{ display: 'block', fontSize: '10px' }}>(Divergente do total do pedido)</span>
-              )}
-            </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><User size={14} /> Parceiro / Comprador</label>
+            <SearchableSelect 
+              value={formData.clientId}
+              onChange={(val: any) => setFormData({...formData, clientId: val})}
+              options={[
+                { value: '', label: 'Selecione o parceiro...' },
+                ...(clients || []).map(c => ({ value: String(c.id), label: String(c.nome) })),
+              ]}
+            />
           </div>
         </div>
-      )}
+        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Hash size={14} /> Número do Pedido (PV)</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: PV-001..." 
+              value={formData.orderNumber}
+              onChange={(e) => setFormData({...formData, orderNumber: e.target.value})}
+              required 
+            />
+          </div>
 
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Observações do Pedido</label>
-        <textarea 
-          className="tauze-input"
-          placeholder="Detalhes sobre a entrega, local de embarque ou condições especiais..." 
-          value={formData.description}
-          onChange={(e) => setFormData({...formData, description: e.target.value})}
-          style={{ height: '80px', paddingTop: '12px' }}
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data do Pedido</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={formData.date}
+              onChange={(e) => setFormData({...formData, date: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Status</label>
+            <SearchableSelect 
+              value={formData.status}
+              onChange={(val: any) => setFormData({...formData, status: val})}
+              options={[
+                { value: 'pending', label: 'Pendente' },
+                { value: 'shipped', label: 'Em Trânsito' },
+                { value: 'completed', label: 'Concluído' },
+                { value: 'cancelled', label: 'Cancelado' },
+              ]}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Logística e Comissões</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Truck size={14} /> Transportadora</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Nome da empresa..." 
+              value={formData.transportadora}
+              onChange={(e) => setFormData({...formData, transportadora: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Placa</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="ABC-1234" 
+              value={formData.placa_veiculo}
+              onChange={(e) => setFormData({...formData, placa_veiculo: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> GTA</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Número GTA" 
+              value={formData.numero_gta}
+              onChange={(e) => setFormData({...formData, numero_gta: e.target.value})}
+            />
+          </div>
+        </div>
+        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><TrendingUp size={14} /> Comissão (%)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.1"
+              placeholder="0.0" 
+              value={formData.comissao}
+              onChange={(e) => setFormData({...formData, comissao: parseFloat(e.target.value) || 0})}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 03</div>
+          <h4 className="tauze-section-title">Itens do Pedido</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-1">
+          <InsumoEntryTable 
+            items={formData.items}
+            onChange={(items) => setFormData({ ...formData, items })}
+          />
+        </div>
+        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group" style={{ gridColumn: '1 / span 2' }}></div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Valor Total (R$)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01"
+              placeholder="0.00" 
+              value={formData.totalValue}
+              onChange={(e) => setFormData({...formData, totalValue: parseFloat(e.target.value) || 0})}
+              required
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 04</div>
+          <h4 className="tauze-section-title">Condições de Recebimento e Financeiro</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Banknote size={14} /> Condição</label>
+            <SearchableSelect 
+              value={formData.payment_condition}
+              onChange={(val: any) => setFormData({...formData, payment_condition: val})}
+              options={[
+                { value: 'vista', label: 'À Vista' },
+                { value: 'prazo', label: 'Parcelado / A Prazo' },
+              ]}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><CreditCard size={14} /> Meio de Recebimento</label>
+            <SearchableSelect 
+              value={formData.payment_method}
+              onChange={(val: any) => setFormData({...formData, payment_method: val})}
+              options={[
+                { value: 'Pix', label: 'Pix' },
+                { value: 'Boleto', label: 'Boleto' },
+                { value: 'Transferência', label: 'Transferência / TED' },
+                { value: 'Cartão de Crédito', label: 'Cartão de Crédito' },
+                { value: 'Dinheiro', label: 'Dinheiro' },
+              ]}
+            />
+          </div>
+
+          {formData.payment_condition === 'prazo' && (
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Hash size={14} /> N° de Parcelas</label>
+              <input 
+                className="tauze-input"
+                type="number" 
+                min="1"
+                max="48"
+                value={formData.installments}
+                onChange={(e) => setFormData({...formData, installments: parseInt(e.target.value) || 1})}
+                required 
+              />
+            </div>
+          )}
+
+          <div className="tauze-field-group" style={{ gridColumn: formData.payment_condition === 'prazo' ? 'span 1' : 'span 2' }}>
+            <label className="tauze-label"><Wallet size={14} /> Conta de Destino</label>
+            <SearchableSelect 
+              value={formData.bank_account_id}
+              onChange={(val: any) => setFormData({...formData, bank_account_id: val})}
+              options={[
+                { value: '', label: 'Selecione a conta...' },
+                ...(bankAccounts || []).map(account => ({ value: String(account.id), label: String(account.descricao || account.banco) })),
+              ]}
+            />
+          </div>
+        </div>
+
+        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '12px', border: '1px dashed hsl(var(--brand)/0.3)', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                checked={formData.generate_financial}
+                onChange={(e) => setFormData({...formData, generate_financial: e.target.checked})}
+                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'hsl(var(--brand))' }}
+              />
+              <span style={{ fontWeight: '700', color: 'hsl(var(--brand))' }}>
+                Gerar Financeiro Automático (Contas a Receber)
+              </span>
+            </label>
+          </div>
+        </div>
+
+        {formData.payment_condition === 'prazo' && installmentsList.length > 0 && (
+          <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+            <div className="tauze-field-group" style={{ background: 'hsl(var(--bg-main)/0.3)', borderRadius: '12px', border: '1px solid hsl(var(--border))', padding: '16px' }}>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--text-muted))', marginBottom: '12px', textTransform: 'uppercase' }}>
+                Cronograma de Recebimento
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                {installmentsList.map((inst, index) => (
+                  <div key={inst.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'white', padding: '8px', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--brand))', width: '30px' }}>{index + 1}ª</span>
+                    <input 
+                      type="date" 
+                      className="tauze-input" 
+                      style={{ height: '32px', padding: '0 8px', fontSize: '12px', flex: 1 }}
+                      value={inst.dueDate}
+                      onChange={(e) => updateInstallment(inst.id, 'dueDate', e.target.value)}
+                    />
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <span style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: '800', color: 'hsl(var(--text-muted))' }}>R$</span>
+                      <input 
+                        type="number" 
+                        className="tauze-input" 
+                        style={{ height: '32px', padding: '0 8px 0 24px', fontSize: '12px', width: '100%' }}
+                        value={inst.value}
+                        onChange={(e) => updateInstallment(inst.id, 'value', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: '16px', textAlign: 'right', fontSize: '11px', fontWeight: '700', color: installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) === parseFloat(formData.totalValue.toString()).toFixed(2) ? 'green' : 'red' }}>
+                Soma das Parcelas: {installmentsList.reduce((acc, i) => acc + i.value, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                {installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) !== parseFloat(formData.totalValue.toString()).toFixed(2) && (
+                  <span style={{ display: 'block', fontSize: '10px', marginTop: '4px' }}>(Divergente do total do pedido)</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 05</div>
+          <h4 className="tauze-section-title">Informações Adicionais</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Observações do Pedido</label>
+            <textarea 
+              className="tauze-input"
+              placeholder="Detalhes sobre a entrega, local de embarque ou condições especiais..." 
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              style={{ minHeight: '80px' }}
+            />
+          </div>
+        </div>
+      </section>
     </SidePanel>
   );
 };

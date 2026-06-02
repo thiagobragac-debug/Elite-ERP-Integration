@@ -218,14 +218,16 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                     <button type="button" onClick={() => setTargetType('LOTE')} style={{ flex: 1, padding: '8px', fontSize: '11px', fontWeight: 800, borderRadius: '8px', background: targetType === 'LOTE' ? 'white' : 'transparent', border: 'none', cursor: 'pointer' }}>LOTE COLETIVO</button>
                   </div>
 
-                  <div className="tauze-field-group">
-                    <label className="tauze-label">{targetType === 'ANIMAL' ? 'Identificação do Animal' : 'Identificação do Lote'}</label>
-                    <input type="text" className="tauze-input" value={targetId} onChange={e => setTargetId(e.target.value)} />
-                  </div>
+                  <div className="form-grid">
+                    <div className="tauze-field-group">
+                      <label className="tauze-label">{targetType === 'ANIMAL' ? 'Identificação do Animal' : 'Identificação do Lote'}</label>
+                      <input type="text" className="tauze-input" value={targetId} onChange={e => setTargetId(e.target.value)} />
+                    </div>
 
-                  <div className="tauze-field-group">
-                    <label className="tauze-label">Data de Início</label>
-                    <input type="date" className="tauze-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                    <div className="tauze-field-group">
+                      <label className="tauze-label">Data de Início</label>
+                      <input type="date" className="tauze-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                    </div>
                   </div>
                 </div>
               </motion.div>
@@ -237,21 +239,23 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div className="tauze-field-group">
-                    <label className="tauze-label">Nome do Protocolo</label>
-                    <input type="text" className="tauze-input" value={newProtocol.name} onChange={e => setNewProtocol({...newProtocol, name: e.target.value})} placeholder="Ex: Vermifugação de Entrada" />
-                  </div>
-                  <div className="tauze-field-group">
-                    <label className="tauze-label">Categoria</label>
-                    <SearchableSelect
-                      value={newProtocol.category}
-                      onChange={val => setNewProtocol({...newProtocol, category: val})}
-                      options={[
-                        { value: 'VACINAÇÃO', label: 'Vacinação' },
-                        { value: 'SANIDADE', label: 'Sanidade/Vermifugação' },
-                        { value: 'NUTRIÇÃO', label: 'Nutrição/Suplementação' }
-                      ]}
-                    />
+                  <div className="form-grid">
+                    <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="tauze-label">Nome do Protocolo</label>
+                      <input type="text" className="tauze-input" value={newProtocol.name} onChange={e => setNewProtocol({...newProtocol, name: e.target.value})} placeholder="Ex: Vermifugação de Entrada" />
+                    </div>
+                    <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                      <label className="tauze-label">Categoria</label>
+                      <SearchableSelect
+                        value={newProtocol.category}
+                        onChange={val => setNewProtocol({...newProtocol, category: val})}
+                        options={[
+                          { value: 'VACINAÇÃO', label: 'Vacinação' },
+                          { value: 'SANIDADE', label: 'Sanidade/Vermifugação' },
+                          { value: 'NUTRIÇÃO', label: 'Nutrição/Suplementação' }
+                        ]}
+                      />
+                    </div>
                   </div>
 
                   <div style={{ marginTop: '12px' }}>

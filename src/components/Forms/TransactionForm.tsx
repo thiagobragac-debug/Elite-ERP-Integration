@@ -58,6 +58,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
   };
 
   const fetchCategories = async () => {
+    if (!activeTenantId) return;
     const { data } = await supabase
       .from('categorias_sistema')
       .select('id, nome')
@@ -66,6 +67,23 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
       .eq('is_active', true)
       .order('nome');
     if (data) setCategories(data);
+  };
+
+  const handleCategoriaChange = async (val: string) => {
+    setFormData({ ...formData, category: val });
+    if (val && val.trim().length > 0 && !categories.find(c => String(c.nome) === val)) {
+      try {
+        await supabase.from('categorias_sistema').insert({
+          tenant_id: activeTenantId,
+          modulo: 'financeiro',
+          nome: val.trim(),
+          is_active: true
+        });
+        fetchCategories();
+      } catch (err) {
+        console.error('[TransactionForm] Erro ao criar categoria:', err);
+      }
+    }
   };
 
   React.useEffect(() => {
@@ -110,7 +128,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
   };
 
   return (
-    <SidePanel
+    <SidePanel size="medium"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -120,100 +138,127 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
       loading={loading}
       submitLabel={`Registrar ${type === 'payable' ? 'Despesa' : 'Receita'}`}
     >
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Descrição da Transação</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Compra de Farelo de Soja" 
-          value={formData.description}
-          onChange={(e) => setFormData({...formData, description: e.target.value})}
-          required 
-        />
-      </div>
-
-      <div className="form-group">
-        <label><DollarSign size={14} /> Valor (R$)</label>
-        <input 
-          type="number" 
-          step="0.01" 
-          placeholder="0,00" 
-          value={formData.value}
-          onChange={(e) => setFormData({...formData, value: e.target.value})}
-          required 
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Calendar size={14} /> Data de Vencimento</label>
-        <input 
-          type="date" 
-          value={formData.dueDate}
-          onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-          required 
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Building2 size={14} /> {entityLabel}</label>
-                <SearchableSelect 
-          value={formData.entityId}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecionar {entityLabel}...` },
-            { value: `{e.nome}`, label: `{e.nome}` },
-            ...(entities || []).map(e => ({ value: String(e.id), label: String(e.nome) })),
-          ]}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Target size={14} /> Categoria / Centro de Custo</label>
-                <SearchableSelect 
-          value={formData.category}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecionar...` },
-            { value: `{cat.nome}`, label: `{cat.nome}` },
-            ...(categories || []).map(cat => ({ value: String(cat.nome), label: String(cat.nome) })),
-          ]}
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <label><CreditCard size={14} /> Forma de Pagamento</label>
-                <SearchableSelect 
-          value={formData.paymentMethod}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `Boleto`, label: `Boleto` },
-            { value: `PIX`, label: `PIX` },
-            { value: `Transferência`, label: `Transferência` },
-            { value: `Cartão`, label: `Cartão` },
-            { value: `Dinheiro`, label: `Dinheiro` },
-          ]}
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <label><Activity size={14} /> Situação do Lançamento</label>
-        <div className="tauze-form-radio-group">
-          <div 
-            className={`tauze-form-radio-item ${formData.status === 'PENDENTE' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, status: 'PENDENTE'})}
-          >
-            <Calendar size={16} />
-            <span>Pendente</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.status === 'PAGO' || formData.status === 'RECEBIDO' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, status: type === 'payable' ? 'PAGO' : 'RECEBIDO'})}
-          >
-            <CheckCircle2 size={16} />
-            <span>{type === 'payable' ? 'Pago' : 'Recebido'}</span>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Identificação do Lançamento</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Descrição da Transação</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: Compra de Farelo de Soja" 
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              required 
+            />
           </div>
         </div>
-      </div>
+        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Valor (R$)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01" 
+              placeholder="0.00" 
+              value={formData.value}
+              onChange={(e) => setFormData({...formData, value: e.target.value})}
+              required 
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data de Vencimento</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={formData.dueDate}
+              onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
+              required 
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Classificação e Origem</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Building2 size={14} /> {entityLabel}</label>
+            <SearchableSelect 
+              value={formData.entityId}
+              onChange={(val: any) => setFormData({...formData, entityId: val})}
+              options={[
+                { value: '', label: `Selecionar ${entityLabel.toLowerCase()}...` },
+                ...(entities || []).map(e => ({ value: String(e.id), label: String(e.nome) })),
+              ]}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Target size={14} /> Categoria / Centro de Custo</label>
+            <SearchableSelect 
+              value={formData.category}
+              onChange={handleCategoriaChange}
+              options={[
+                { value: '', label: 'Selecionar...' },
+                ...(categories || []).map(cat => ({ value: String(cat.nome), label: String(cat.nome) })),
+              ]}
+              creatable={true}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 03</div>
+          <h4 className="tauze-section-title">Pagamento e Status</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><CreditCard size={14} /> Forma de Pagamento</label>
+            <SearchableSelect 
+              value={formData.paymentMethod}
+              onChange={(val: any) => setFormData({...formData, paymentMethod: val})}
+              options={[
+                { value: 'Boleto', label: 'Boleto' },
+                { value: 'PIX', label: 'PIX' },
+                { value: 'Transferência', label: 'Transferência' },
+                { value: 'Cartão', label: 'Cartão' },
+                { value: 'Dinheiro', label: 'Dinheiro' },
+              ]}
+            />
+          </div>
+        </div>
+        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Situação do Lançamento</label>
+            <div className="tauze-form-radio-group">
+              <div 
+                className={`tauze-form-radio-item ${formData.status === 'PENDENTE' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, status: 'PENDENTE'})}
+              >
+                <Calendar size={16} />
+                <span>Pendente</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.status === 'PAGO' || formData.status === 'RECEBIDO' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, status: type === 'payable' ? 'PAGO' : 'RECEBIDO'})}
+              >
+                <CheckCircle2 size={16} />
+                <span>{type === 'payable' ? 'Pago' : 'Recebido'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </SidePanel>
   );
 };
-

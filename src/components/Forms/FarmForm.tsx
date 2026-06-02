@@ -78,87 +78,106 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
       loading={loading}
       submitLabel={initialData ? 'Salvar Alterações' : 'Salvar Fazenda'}
     >
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Map size={14} /> Nome da Fazenda / Unidade</label>
-          <input type="text" placeholder="Ex: Fazenda Santa Maria, Unidade Sul..."
-            value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Identificação Básica</h4>
         </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Map size={14} /> Nome da Fazenda / Unidade</label>
+            <input type="text" className="tauze-input" placeholder="Ex: Fazenda Santa Maria, Unidade Sul..."
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+          </div>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Building2 size={14} /> Empresa Responsável</label>
-                  <SearchableSelect 
-          value={formData.companyId}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione a empresa...` },
-            { value: `{c.name}`, label: `{c.name}` },
-            ...(companies || []).map(c => ({ value: String(c.id), label: String(c.name) })),
-          ]}
-        />
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Building2 size={14} /> Empresa Responsável</label>
+            <SearchableSelect 
+              value={formData.companyId}
+              onChange={(val: any) => setFormData({...formData, companyId: val})}
+              options={[
+                { value: ``, label: `Selecione a empresa...` },
+                ...(companies || []).map(c => ({ value: String(c.id), label: String(c.name) })),
+              ]}
+            />
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><FileText size={14} /> Inscrição Estadual (IE)</label>
-          <input type="text" placeholder="Número da IE..."
-            value={formData.registrationNumber}
-            onChange={(e) => setFormData({...formData, registrationNumber: e.target.value})} />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Detalhes Cadastrais</h4>
         </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Inscrição Estadual (IE)</label>
+            <input type="text" className="tauze-input" placeholder="Número da IE..."
+              value={formData.registrationNumber}
+              onChange={(e) => setFormData({...formData, registrationNumber: e.target.value})} />
+          </div>
 
-        {/* NIRF — Número do Imóvel na Receita Federal */}
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>
-            <Hash size={14} /> NIRF
-            <span className="nirf-badge">Receita Federal</span>
-          </label>
-          <input type="text" placeholder="Ex: 1234567-8"
-            value={formData.nirf}
-            onChange={(e) => setFormData({...formData, nirf: e.target.value})} />
-          <small className="field-hint">Obrigatório para o LCDPR</small>
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <Hash size={14} /> NIRF
+              <span className="nirf-badge">Receita Federal</span>
+            </label>
+            <input type="text" className="tauze-input" placeholder="Ex: 1234567-8"
+              value={formData.nirf}
+              onChange={(e) => setFormData({...formData, nirf: e.target.value})} />
+            <small className="field-hint">Obrigatório para o LCDPR</small>
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Maximize size={14} /> Área Total (ha)</label>
+            <input type="number" className="tauze-input" step="0.01" placeholder="0.00"
+              value={formData.totalArea}
+              onChange={(e) => setFormData({...formData, totalArea: e.target.value})} required />
+          </div>
         </div>
+      </section>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Maximize size={14} /> Área Total (ha)</label>
-          <input type="number" step="0.01" placeholder="0.00"
-            value={formData.totalArea}
-            onChange={(e) => setFormData({...formData, totalArea: e.target.value})} required />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 03</div>
+          <h4 className="tauze-section-title">Localização</h4>
         </div>
-      </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
+            <label className="tauze-label">Município</label>
+            <input type="text" className="tauze-input" placeholder="Ex: Jataí" value={formData.municipio}
+              onChange={(e) => setFormData({...formData, municipio: e.target.value})} />
+          </div>
 
-      {/* Localização detalhada */}
-      <div className="form-section-title full-width">
-        <MapPin size={16} /><span>Localização</span>
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label">UF</label>
+            <input type="text" className="tauze-input" placeholder="GO" maxLength={2} value={formData.uf}
+              onChange={(e) => setFormData({...formData, uf: e.target.value.toUpperCase()})} />
+          </div>
 
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.5fr 0.5fr 2fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>Município</label>
-          <input type="text" placeholder="Ex: Jataí" value={formData.municipio}
-            onChange={(e) => setFormData({...formData, municipio: e.target.value})} />
+          <div className="tauze-field-group">
+            <label className="tauze-label"><MapPin size={14} /> Exibição da Cidade/UF</label>
+            <input type="text" className="tauze-input" placeholder="Ex: Jataí - GO" value={formData.location}
+              onChange={(e) => setFormData({...formData, location: e.target.value})} />
+          </div>
         </div>
+      </section>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label>UF</label>
-          <input type="text" placeholder="GO" maxLength={2} value={formData.uf}
-            onChange={(e) => setFormData({...formData, uf: e.target.value.toUpperCase()})} />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 04</div>
+          <h4 className="tauze-section-title">Detalhes Finais</h4>
         </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><MapPin size={14} /> Localização (Cidade/UF — exibição)</label>
-          <input type="text" placeholder="Ex: Jataí - GO" value={formData.location}
-            onChange={(e) => setFormData({...formData, location: e.target.value})} />
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Observações / Descrição</label>
+            <textarea className="tauze-input" placeholder="Breve descrição da atividade principal da unidade..."
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} />
+          </div>
         </div>
-      </div>
-
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Observações / Descrição</label>
-        <textarea placeholder="Breve descrição da atividade principal da unidade..."
-          value={formData.description}
-          onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} />
-      </div>
+      </section>
 
       <style>{`
         .nirf-badge {

@@ -262,51 +262,53 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
           submitLabel="Salvar NCM"
           size="small"
         >
-          <div className="tauze-field-group">
-            <label className="tauze-label">Código NCM</label>
-            <input 
-              type="text" 
-              className="tauze-input"
-              value={formData.codigo}
-              onChange={e => {
-                // Remove non-numeric characters and format as NNNN.NN.NN
-                let val = e.target.value.replace(/\D/g, '');
-                if (val.length > 8) val = val.substring(0, 8);
-                if (val.length > 6) val = val.replace(/(\d{4})(\d{2})(\d{1,2})/, '$1.$2.$3');
-                else if (val.length > 4) val = val.replace(/(\d{4})(\d{1,2})/, '$1.$2');
-                setFormData({...formData, codigo: val});
-              }}
-              placeholder="Ex: 3105.20.00"
-              required
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label">Descrição Fiscal</label>
-            <textarea 
-              className="tauze-input"
-              value={formData.descricao}
-              onChange={e => setFormData({...formData, descricao: e.target.value})}
-              placeholder="Ex: Adubos (fertilizantes) minerais ou químicos..."
-              required
-              rows={3}
-              style={{ resize: 'none' }}
-            />
-          </div>
-
-          <div className="tauze-field-group" style={{ marginTop: '8px', gridColumn: '1 / -1' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '12px 16px', background: 'hsl(var(--bg-body))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+          <div className="form-grid">
+            <div className="tauze-field-group">
+              <label className="tauze-label">Código NCM</label>
               <input 
-                type="checkbox" 
-                checked={formData.is_active}
-                onChange={e => setFormData({...formData, is_active: e.target.checked})}
-                style={{ width: '18px', height: '18px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: 'pointer' }}
+                type="text" 
+                className="tauze-input"
+                value={formData.codigo}
+                onChange={e => {
+                  // Remove non-numeric characters and format as NNNN.NN.NN
+                  let val = e.target.value.replace(/\D/g, '');
+                  if (val.length > 8) val = val.substring(0, 8);
+                  if (val.length > 6) val = val.replace(/(\d{4})(\d{2})(\d{1,2})/, '$1.$2.$3');
+                  else if (val.length > 4) val = val.replace(/(\d{4})(\d{1,2})/, '$1.$2');
+                  setFormData({...formData, codigo: val});
+                }}
+                placeholder="Ex: 3105.20.00"
+                required
               />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>NCM Ativo</span>
-                <span style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>Permite usar este NCM nos cadastros de insumo do sistema</span>
-              </div>
-            </label>
+            </div>
+
+            <div className="tauze-field-group">
+              <label className="tauze-label">Descrição Fiscal</label>
+              <textarea 
+                className="tauze-input"
+                value={formData.descricao}
+                onChange={e => setFormData({...formData, descricao: e.target.value})}
+                placeholder="Ex: Adubos (fertilizantes) minerais ou químicos..."
+                required
+                rows={3}
+                style={{ resize: 'none' }}
+              />
+            </div>
+
+            <div className="tauze-field-group" style={{ marginTop: '8px', gridColumn: 'span 2' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '12px 16px', background: 'hsl(var(--bg-body))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+                <input 
+                  type="checkbox" 
+                  checked={formData.is_active}
+                  onChange={e => setFormData({...formData, is_active: e.target.checked})}
+                  style={{ width: '18px', height: '18px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: 'pointer' }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>NCM Ativo</span>
+                  <span style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>Permite usar este NCM nos cadastros de insumo do sistema</span>
+                </div>
+              </label>
+            </div>
           </div>
         </SidePanel>
       )}

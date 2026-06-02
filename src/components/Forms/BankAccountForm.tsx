@@ -87,143 +87,164 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
       icon={Building2}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Conta"}
-      size="large"
+      size="medium"
     >
-      <div className="form-group" style={{ gridColumn: 'span 2' }}>
-        <label><Building2 size={14} /> Vinculação (CNPJ / Empresa)</label>
-        <SearchableSelect 
-          value={formData.is_global ? 'GLOBAL' : (formData.unidade_id || '')}
-          onChange={(val: any) => {
-            if (val === 'GLOBAL') {
-              setFormData({...formData, is_global: true, unidade_id: null});
-            } else {
-              setFormData({...formData, is_global: false, unidade_id: val});
-            }
-          }}
-          options={[
-            { value: 'GLOBAL', label: 'Uso Global (Todos os CNPJs do Grupo)' },
-            ...companies.map((c: any) => ({ value: String(c.id), label: `${c.name} - ${c.document}` }))
-          ]}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Building2 size={14} /> Banco / Instituição</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Banco do Brasil, Itaú, Sicredi..." 
-          value={formData.banco}
-          onChange={(e) => setFormData({...formData, banco: e.target.value})}
-          required 
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Hash size={14} /> Agência</label>
-        <input 
-          type="text" 
-          placeholder="0000" 
-          value={formData.agencia}
-          onChange={(e) => setFormData({...formData, agencia: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Hash size={14} /> Número da Conta</label>
-        <input 
-          type="text" 
-          placeholder="00000-0" 
-          value={formData.conta}
-          onChange={(e) => setFormData({...formData, conta: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <label><Activity size={14} /> Tipo de Conta</label>
-        <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'CORRENTE' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'CORRENTE'})}
-          >
-            <CreditCard size={16} />
-            <span>Corrente</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'POUPANCA' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'POUPANCA'})}
-          >
-            <Building2 size={16} />
-            <span>Poupança</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'INVESTIMENTO' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'INVESTIMENTO'})}
-          >
-            <Activity size={16} />
-            <span>Invest.</span>
-          </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.tipo === 'CAIXA' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, tipo: 'CAIXA'})}
-          >
-            <Hash size={16} />
-            <span>Caixa</span>
-          </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Dados da Conta</h4>
         </div>
-      </div>
-
-      <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '16px', width: '100%' }}>
-        <div className="form-group" style={{ flex: 1 }}>
-          <label><CreditCard size={14} /> Saldo Inicial (R$)</label>
-          <input 
-            type="number" 
-            step="0.01"
-            placeholder="0,00" 
-            value={formData.saldo_inicial}
-            onChange={(e) => setFormData({...formData, saldo_inicial: e.target.value})}
-            required
+        
+        <div className="tauze-field-group full-width">
+          <label className="tauze-label"><Building2 size={14} /> Vinculação (CNPJ / Empresa)</label>
+          <SearchableSelect 
+            value={formData.is_global ? 'GLOBAL' : (formData.unidade_id || '')}
+            onChange={(val: any) => {
+              if (val === 'GLOBAL') {
+                setFormData({...formData, is_global: true, unidade_id: null});
+              } else {
+                setFormData({...formData, is_global: false, unidade_id: val});
+              }
+            }}
+            options={[
+              { value: 'GLOBAL', label: 'Uso Global (Todos os CNPJs do Grupo)' },
+              ...companies.map((c: any) => ({ value: String(c.id), label: `${c.name} - ${c.document}` }))
+            ]}
           />
         </div>
 
-        <div className="form-group" style={{ flex: 1 }}>
-          <label><ShieldCheck size={14} /> Limite de Crédito (R$)</label>
-          <input 
-            type="number" 
-            step="0.01"
-            placeholder="0,00" 
-            value={formData.limite_credito}
-            onChange={(e) => setFormData({...formData, limite_credito: e.target.value})}
-          />
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Building2 size={14} /> Banco / Instituição</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Ex: Banco do Brasil, Itaú..." 
+              value={formData.banco}
+              onChange={(e) => setFormData({...formData, banco: e.target.value})}
+              required 
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Hash size={14} /> Agência</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="0000" 
+              value={formData.agencia}
+              onChange={(e) => setFormData({...formData, agencia: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Hash size={14} /> Número da Conta</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="00000-0" 
+              value={formData.conta}
+              onChange={(e) => setFormData({...formData, conta: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Info size={14} /> Descrição / Apelido</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Ex: Conta Principal" 
+              value={formData.descricao}
+              onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+            />
+          </div>
         </div>
 
-        <div className="form-group" style={{ flex: 1 }}>
-          <label><TrendingUp size={14} /> Benchmark Rendimento</label>
-          <select 
-            className="tauze-select"
-            value={formData.benchmark_rendimento}
-            onChange={(e) => setFormData({...formData, benchmark_rendimento: e.target.value})}
-            style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))', fontSize: '14px', outline: 'none' }}
-          >
-            <option value="">Nenhum</option>
-            <option value="100% CDI">100% CDI</option>
-            <option value="95% CDI">95% CDI</option>
-            <option value="Poupança">Poupança</option>
-            <option value="IPCA+">IPCA+</option>
-          </select>
+        <div className="tauze-field-group full-width">
+          <label className="tauze-label"><Activity size={14} /> Tipo de Conta</label>
+          <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            <div 
+              className={`tauze-form-radio-item ${formData.tipo === 'CORRENTE' ? 'active' : ''}`}
+              onClick={() => setFormData({...formData, tipo: 'CORRENTE'})}
+            >
+              <CreditCard size={16} />
+              <span>Corrente</span>
+            </div>
+            <div 
+              className={`tauze-form-radio-item ${formData.tipo === 'POUPANCA' ? 'active' : ''}`}
+              onClick={() => setFormData({...formData, tipo: 'POUPANCA'})}
+            >
+              <Building2 size={16} />
+              <span>Poupança</span>
+            </div>
+            <div 
+              className={`tauze-form-radio-item ${formData.tipo === 'INVESTIMENTO' ? 'active' : ''}`}
+              onClick={() => setFormData({...formData, tipo: 'INVESTIMENTO'})}
+            >
+              <Activity size={16} />
+              <span>Invest.</span>
+            </div>
+            <div 
+              className={`tauze-form-radio-item ${formData.tipo === 'CAIXA' ? 'active' : ''}`}
+              onClick={() => setFormData({...formData, tipo: 'CAIXA'})}
+            >
+              <Hash size={16} />
+              <span>Caixa</span>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div className="form-group full-width">
-        <label><Info size={14} /> Descrição / Apelido</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Conta Principal - Movimentação Agro" 
-          value={formData.descricao}
-          onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-        />
-      </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Configurações Financeiras</h4>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><CreditCard size={14} /> Saldo Inicial (R$)</label>
+            <input 
+              type="number" 
+              step="0.01"
+              className="tauze-input"
+              placeholder="0,00" 
+              value={formData.saldo_inicial}
+              onChange={(e) => setFormData({...formData, saldo_inicial: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><ShieldCheck size={14} /> Limite de Crédito (R$)</label>
+            <input 
+              type="number" 
+              step="0.01"
+              className="tauze-input"
+              placeholder="0,00" 
+              value={formData.limite_credito}
+              onChange={(e) => setFormData({...formData, limite_credito: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group full-width">
+            <label className="tauze-label"><TrendingUp size={14} /> Benchmark Rendimento</label>
+            <select 
+              className="tauze-input"
+              value={formData.benchmark_rendimento}
+              onChange={(e) => setFormData({...formData, benchmark_rendimento: e.target.value})}
+            >
+              <option value="">Nenhum</option>
+              <option value="100% CDI">100% CDI</option>
+              <option value="95% CDI">95% CDI</option>
+              <option value="Poupança">Poupança</option>
+              <option value="IPCA+">IPCA+</option>
+            </select>
+          </div>
+        </div>
+      </section>
     </SidePanel>
   );
 };

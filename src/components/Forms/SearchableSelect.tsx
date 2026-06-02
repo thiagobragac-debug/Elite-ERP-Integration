@@ -31,11 +31,15 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const selectedOption = options.find(opt => opt.value === value);
+  const displayPlaceholder = selectedOption ? selectedOption.label : placeholder;
+
   // Sync inputValue with the actual selected option label
   useEffect(() => {
     if (!isOpen) {
-      const selectedOption = options.find(opt => opt.value === value);
       setInputValue(selectedOption ? selectedOption.label : '');
+    } else {
+      setInputValue('');
     }
   }, [value, isOpen, options]);
 
@@ -59,13 +63,29 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   useEffect(() => {
     if (isOpen && wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect();
-      setDropdownStyle({
-        position: 'fixed',
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-        zIndex: 99999
-      });
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownHeight = 250; // default max height of dropdown
+
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        // Open upwards
+        setDropdownStyle({
+          position: 'fixed',
+          bottom: window.innerHeight - rect.top + 4,
+          left: rect.left,
+          width: rect.width,
+          zIndex: 99999
+        });
+      } else {
+        // Open downwards
+        setDropdownStyle({
+          position: 'fixed',
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width,
+          zIndex: 99999
+        });
+      }
     }
   }, [isOpen, inputValue]); // Update if typed value changes layout
 
@@ -109,12 +129,15 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             ref={inputRef}
             type="text"
             value={inputValue}
-            placeholder={placeholder}
+            placeholder={displayPlaceholder}
             onChange={(e) => {
               setInputValue(e.target.value);
               setIsOpen(true);
             }}
-            onFocus={() => setIsOpen(true)}
+            onFocus={() => {
+              setIsOpen(true);
+              setInputValue('');
+            }}
             disabled={disabled}
             style={{
               border: 'none',
@@ -139,7 +162,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       {isOpen && createPortal(
         <div id="searchable-select-portal" style={{
           ...dropdownStyle,
-          background: 'hsl(var(--bg-sidebar))',
+          background: 'hsl(var(--bg-card))',
           border: '1px solid hsl(var(--border))',
           borderRadius: '12px',
           boxShadow: '0 10px 30px -10px rgb(0 0 0 / 0.5)',

@@ -501,75 +501,77 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
       loading={false}
       submitLabel={`Revisar Remanejamento (${selectedAnimals.length})`}
     >
-      {/* ── Row 1: Lote Origem + Lote Destino ── */}
-      <div className="form-group full-width" style={{ gridColumn: '1 / -1' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', alignItems: 'start' }}>
-
-          <LotSearch
-            lots={lots}
-            value={formData.sourceLotId}
-            onChange={(id, name) => setFormData(f => ({ ...f, sourceLotId: id, sourceLotName: name, targetLotId: f.targetLotId === id ? '' : f.targetLotId }))}
-            placeholder="Buscar lote de origem..."
-            exclude={formData.targetLotId}
-            animalCount={animals.length || lots.find(l => l.id === formData.sourceLotId)?._animalCount}
-            label={<><Layers size={12} /> Lote de Origem</>}
-          />
-
-          <LotSearch
-            lots={lots}
-            value={formData.targetLotId}
-            onChange={(id, name) => setFormData(f => ({ ...f, targetLotId: id, targetLotName: name }))}
-            placeholder="Buscar lote de destino..."
-            exclude={formData.sourceLotId}
-            label={<><MapPin size={12} /> Lote de Destino</>}
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Dados do Remanejamento</h4>
         </div>
 
-        {/* Capacity bar for destination */}
-        {destCapacity && formData.targetLotId && (
-          <div style={{ marginTop: '8px' }}>
-            <CapacityBar current={destCapacity.current} max={destCapacity.max} adding={selectedAnimals.length} />
-          </div>
-        )}
-      </div>
-
-      {/* ── Row 2: Data + Motivo ── */}
-      <div className="form-group full-width" style={{ gridColumn: '1 / -1' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', alignItems: 'start' }}>
-
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
-              <Calendar size={12} /> Data do Remanejamento
-            </label>
-            <input type="date" value={formData.date} onChange={e => setFormData(f => ({ ...f, date: e.target.value }))} required max={new Date().toISOString().split('T')[0]} style={{ width: '100%', fontSize: '13px' }} />
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <LotSearch
+              lots={lots}
+              value={formData.sourceLotId}
+              onChange={(id, name) => setFormData(f => ({ ...f, sourceLotId: id, sourceLotName: name, targetLotId: f.targetLotId === id ? '' : f.targetLotId }))}
+              placeholder="Buscar lote de origem..."
+              exclude={formData.targetLotId}
+              animalCount={animals.length || lots.find(l => l.id === formData.sourceLotId)?._animalCount}
+              label={<><Layers size={12} /> Lote de Origem</>}
+            />
           </div>
 
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
-              <FileText size={12} /> Motivo do Remanejamento
-            </label>
-                    <SearchableSelect 
-          value={formData.motivo}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione o motivo...` },
-            { value: `{m}`, label: `{m}` },
-            ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
-          ]}
-        />
+          <div className="tauze-field-group">
+            <LotSearch
+              lots={lots}
+              value={formData.targetLotId}
+              onChange={(id, name) => setFormData(f => ({ ...f, targetLotId: id, targetLotName: name }))}
+              placeholder="Buscar lote de destino..."
+              exclude={formData.sourceLotId}
+              label={<><MapPin size={12} /> Lote de Destino</>}
+            />
+            {destCapacity && formData.targetLotId && (
+              <CapacityBar current={destCapacity.current} max={destCapacity.max} adding={selectedAnimals.length} />
+            )}
           </div>
 
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data do Remanejamento</label>
+            <input 
+              type="date" 
+              className="tauze-input"
+              value={formData.date} 
+              onChange={e => setFormData(f => ({ ...f, date: e.target.value }))} 
+              required 
+              max={new Date().toISOString().split('T')[0]} 
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Motivo do Remanejamento</label>
+            <SearchableSelect 
+              value={formData.motivo}
+              onChange={(val: any) => setFormData(f => ({ ...f, motivo: val }))}
+              options={[
+                { value: ``, label: `Selecione o motivo...` },
+                ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
+              ]}
+            />
+          </div>
         </div>
-      </div>
+      </section>
 
 
-      {/* ── Animal selector ── */}
-      <div className="form-group full-width">
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Selecionar Animais</h4>
+        </div>
+
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'hsl(var(--text-muted))' }}>
             <Users size={13} />
-            Selecionar Animais
+            Animais no Lote
             {animals.length > 0 && (
               <span style={{ background: 'hsl(var(--border))', borderRadius: '99px', padding: '1px 7px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
                 {selectedAnimals.length}/{animals.length}
@@ -716,7 +718,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
             </button>
           </div>
         )}
-      </div>
+      </section>
 
       <style>{`
         .text-btn-sm { background: none; border: none; font-size: 10px; font-weight: 800; color: hsl(var(--brand)); cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; display: inline-flex; align-items: center; }

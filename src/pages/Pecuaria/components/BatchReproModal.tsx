@@ -147,7 +147,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div className="form-grid">
                 <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
                   <label className="tauze-label">Tipo de Manejo</label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>

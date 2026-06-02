@@ -1,5 +1,5 @@
-﻿import React from 'react';
-import { createPortal } from 'react-dom';
+import React from 'react';
+import { SidePanel } from '../Layout/SidePanel';
 import { 
   X, 
   MapPin, 
@@ -47,59 +47,17 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
     return acc;
   }, {});
 
-  return createPortal(
-    <div className="tauze-modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 30 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="tauze-modal-container xlarge"
-        style={{ maxWidth: '1200px', width: '95%', padding: 0 }}
-        onClick={e => e.stopPropagation()}
-      >
-        <div className="tauze-modal-header" style={{ borderBottom: '1px solid #e2e8f0', background: 'white' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div className="icon-wrapper" style={{ 
-              background: 'hsl(var(--brand) / 0.1)', 
-              width: '44px', 
-              height: '44px', 
-              borderRadius: '12px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'flex-end',
-              color: 'hsl(var(--brand))'
-            }}>
-              <Globe size={22} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#1e293b' }}>Mapa de Rede de Suprimentos</h3>
-              <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#64748b', fontWeight: 500 }}>
-                Inteligência geográfica e logística da base de fornecedores
-              </p>
-            </div>
-          </div>
-          <button 
-            className="tauze-close-x-btn" 
-            onClick={onClose} 
-            style={{ 
-              color: '#64748b', 
-              background: '#f1f5f9',
-              border: 'none',
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'flex-end',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              zIndex: 10
-            }}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="map-modal-body">
+  return (
+    <SidePanel 
+      size="xlarge"
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Mapa de Rede de Suprimentos"
+      subtitle="Inteligência geográfica e logística da base de fornecedores"
+      icon={Globe}
+      hideSubmit={true}
+    >
+        <div className="map-modal-body" style={{ margin: '-32px' }}>
           <div className="map-sidebar">
             <div className="sidebar-section">
               <div className="inner-search-wrapper">
@@ -251,19 +209,14 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
           </div>
         </div>
 
-        <div className="tauze-modal-footer" style={{ background: 'white', borderTop: '1px solid #e2e8f0', padding: '16px 32px' }}>
-          <button type="button" className="glass-btn secondary" onClick={onClose} style={{ marginLeft: 'auto', background: '#f1f5f9', border: '1px solid #e2e8f0', color: '#475569' }}>
-            FECHAR MAPA
-          </button>
-        </div>
-      </motion.div>
-
       <style>{`
         .map-modal-body {
           display: flex;
-          height: 550px;
-          max-height: 60vh;
+          height: calc(100vh - 120px);
           background: #f8fafc;
+          border-bottom-left-radius: 24px;
+          border-bottom-right-radius: 24px;
+          overflow: hidden;
         }
 
         .tauze-close-x-btn:hover {
@@ -528,7 +481,6 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
           margin-top: auto;
         }
       `}</style>
-    </div>,
-    document.body
+    </SidePanel>
   );
 };

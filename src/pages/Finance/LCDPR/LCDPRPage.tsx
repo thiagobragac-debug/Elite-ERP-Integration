@@ -13,6 +13,7 @@ import { buildLCDPRFile, downloadLCDPRFile } from './utils/lcdprFileBuilder';
 import { TauzeStatCard } from '../../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../../components/DataTable/ModernTable';
 import { EmptyState } from '../../../components/Feedback/EmptyState';
+import { SidePanel } from '../../../components/Layout/SidePanel';
 import toast from 'react-hot-toast';
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -556,73 +557,74 @@ export const LCDPRPage: React.FC = () => {
       )}
 
       {/* Modal Lançamento */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 20 }}
-            onClick={e => { if (e.target === e.currentTarget) setIsModalOpen(false); }}>
-            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95 }}
-              style={{ background: 'hsl(var(--bg-card))', borderRadius: 24, padding: 32, width: '100%', maxWidth: 680, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 80px rgba(0,0,0,0.5)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                <div>
-                  <h2 style={{ fontSize: 18, fontWeight: 800 }}>{editingItem ? 'Editar Lançamento' : 'Novo Lançamento Q100'}</h2>
-                  <p style={{ fontSize: 12, color: 'hsl(var(--text-muted))', marginTop: 2 }}>Registro Q100 · Livro Caixa Digital</p>
-                </div>
-                <button onClick={() => setIsModalOpen(false)} style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--text-muted))' }}>✕</button>
-              </div>
-              <form onSubmit={handleSave} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                {/* Tipo */}
-                <div style={{ gridColumn: '1/-1', display: 'flex', gap: 12 }}>
-                  {(['R','D'] as const).map(t => (
-                    <button type="button" key={t} onClick={() => setForm(f => ({...f, tipo: t, cod_natureza: t==='R'?'01':'11'}))}
-                      style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: `2px solid ${form.tipo===t?(t==='R'?'#10b981':'#ef4444'):'hsl(var(--border))'}`, background: form.tipo===t?(t==='R'?'#10b98112':'#ef444412'):'transparent', fontWeight: 800, fontSize: 14, cursor: 'pointer', color: form.tipo===t?(t==='R'?'#10b981':'#ef4444'):'hsl(var(--text-muted))' }}>
-                      {t==='R' ? '↑ RECEITA' : '↓ DESPESA'}
-                    </button>
-                  ))}
-                </div>
+      <SidePanel
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleSave}
+        title={editingItem ? 'Editar Lançamento' : 'Novo Lançamento Q100'}
+        subtitle="Registro Q100 · Livro Caixa Digital"
+        icon={BookOpen}
+        size="medium"
+        submitLabel={editingItem ? 'Salvar Alterações' : 'Adicionar Lançamento'}
+        iconSubmit={CheckCircle}
+      >
+        <div className="tauze-input-grid">
+          {/* Tipo */}
+          <div style={{ gridColumn: '1/-1', display: 'flex', gap: 12 }}>
+            {(['R','D'] as const).map(t => (
+              <button type="button" key={t} onClick={() => setForm(f => ({...f, tipo: t, cod_natureza: t==='R'?'01':'11'}))}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: `2px solid ${form.tipo===t?(t==='R'?'#10b981':'#ef4444'):'hsl(var(--border))'}`, background: form.tipo===t?(t==='R'?'#10b98112':'#ef444412'):'transparent', fontWeight: 800, fontSize: 14, cursor: 'pointer', color: form.tipo===t?(t==='R'?'#10b981':'#ef4444'):'hsl(var(--text-muted))' }}>
+                {t==='R' ? '↑ RECEITA' : '↓ DESPESA'}
+              </button>
+            ))}
+          </div>
 
-                <div><label style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Data</label>
-                  <input type="date" required value={form.data_lancamento} onChange={e => setForm(f=>({...f,data_lancamento:e.target.value}))} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))' }} /></div>
+          <div className="form-group">
+            <label>Data</label>
+            <input type="date" required value={form.data_lancamento} onChange={e => setForm(f=>({...f,data_lancamento:e.target.value}))} />
+          </div>
 
-                <div><label style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Fazenda</label>
-                  <select value={form.fazenda_id} onChange={e => setForm(f=>({...f,fazenda_id:e.target.value}))} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))' }}>
-                    <option value="">Selecione...</option>
-                    {fazendas.map(fz => <option key={fz.id} value={fz.id}>{fz.nome}</option>)}
-                  </select></div>
+          <div className="form-group">
+            <label>Fazenda</label>
+            <select value={form.fazenda_id} onChange={e => setForm(f=>({...f,fazenda_id:e.target.value}))}>
+              <option value="">Selecione...</option>
+              {fazendas.map(fz => <option key={fz.id} value={fz.id}>{fz.nome}</option>)}
+            </select>
+          </div>
 
-                <div style={{ gridColumn: '1/-1' }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Natureza</label>
-                  <select required value={form.cod_natureza} onChange={e => setForm(f=>({...f,cod_natureza:e.target.value}))} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))' }}>
-                    {(form.tipo==='R' ? NATUREZAS_RECEITA : NATUREZAS_DESPESA).map(n => <option key={n.codigo} value={n.codigo}>{n.codigo} — {n.descricao}</option>)}
-                  </select>
-                </div>
+          <div className="form-group" style={{ gridColumn: '1/-1' }}>
+            <label>Natureza</label>
+            <select required value={form.cod_natureza} onChange={e => setForm(f=>({...f,cod_natureza:e.target.value}))}>
+              {(form.tipo==='R' ? NATUREZAS_RECEITA : NATUREZAS_DESPESA).map(n => <option key={n.codigo} value={n.codigo}>{n.codigo} — {n.descricao}</option>)}
+            </select>
+          </div>
 
-                <div style={{ gridColumn: '1/-1' }}><label style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Descrição</label>
-                  <input type="text" placeholder="Descreva o lançamento..." value={form.descricao} onChange={e => setForm(f=>({...f,descricao:e.target.value}))} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))' }} /></div>
+          <div className="form-group" style={{ gridColumn: '1/-1' }}>
+            <label>Descrição</label>
+            <input type="text" placeholder="Descreva o lançamento..." value={form.descricao} onChange={e => setForm(f=>({...f,descricao:e.target.value}))} />
+          </div>
 
-                <div><label style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Valor (R$)</label>
-                  <input type="number" step="0.01" min="0" required placeholder="0,00" value={form.valor} onChange={e => setForm(f=>({...f,valor:e.target.value}))} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))' }} /></div>
+          <div className="form-group">
+            <label>Valor (R$)</label>
+            <input type="number" step="0.01" min="0" required placeholder="0,00" value={form.valor} onChange={e => setForm(f=>({...f,valor:e.target.value}))} />
+          </div>
 
-                <div><label style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Nº Documento</label>
-                  <input type="text" placeholder="NF, Recibo..." value={form.num_documento} onChange={e => setForm(f=>({...f,num_documento:e.target.value}))} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))' }} /></div>
+          <div className="form-group">
+            <label>Nº Documento</label>
+            <input type="text" placeholder="NF, Recibo..." value={form.num_documento} onChange={e => setForm(f=>({...f,num_documento:e.target.value}))} />
+          </div>
 
-                <div><label style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>CPF/CNPJ Participante</label>
-                  <input type="text" placeholder="000.000.000-00" value={form.cpf_cnpj_participante} onChange={e => setForm(f=>({...f,cpf_cnpj_participante:e.target.value}))} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))' }} /></div>
+          <div className="form-group">
+            <label>CPF/CNPJ Participante</label>
+            <input type="text" placeholder="000.000.000-00" value={form.cpf_cnpj_participante} onChange={e => setForm(f=>({...f,cpf_cnpj_participante:e.target.value}))} />
+          </div>
 
-                <div><label style={{ fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>Nome Participante</label>
-                  <input type="text" placeholder="Nome da empresa ou pessoa" value={form.nome_participante} onChange={e => setForm(f=>({...f,nome_participante:e.target.value}))} style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))' }} /></div>
-
-                <div style={{ gridColumn: '1/-1', display: 'flex', gap: 12, marginTop: 8 }}>
-                  <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: '1px solid hsl(var(--border))', background: 'transparent', cursor: 'pointer', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Cancelar</button>
-                  <button type="submit" className="primary-btn" style={{ flex: 2, justifyContent: 'center', fontSize: 14, padding: '12px 0' }}>
-                    <CheckCircle size={16} /> {editingItem ? 'Salvar Alterações' : 'Adicionar Lançamento'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <div className="form-group">
+            <label>Nome Participante</label>
+            <input type="text" placeholder="Nome da empresa ou pessoa" value={form.nome_participante} onChange={e => setForm(f=>({...f,nome_participante:e.target.value}))} />
+          </div>
+        </div>
+      </SidePanel>
 
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }

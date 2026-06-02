@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   Heart, 
   Baby,
@@ -82,106 +82,130 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
       loading={loading}
       submitLabel={initialData ? "Atualizar Evento" : "Salvar Evento"}
     >
-      <div className="form-group full-width">
-        <label><Beef size={14} /> Animal / Matriz</label>
-        <div style={{ position: 'relative' }}>
-          <Hash size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input 
-            type="text" 
-            placeholder="Brinco ou ID da Matriz..." 
-            style={{ paddingLeft: '32px' }}
-            value={formData.animal_id}
-            onChange={(e) => setFormData({...formData, animal_id: e.target.value})}
-            required 
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Dados do Evento</h4>
         </div>
-      </div>
-
-      <div className="form-group">
-        <label><Activity size={14} /> Tipo de Evento</label>
-                <SearchableSelect 
-          value={formData.tipo_evento}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `IATF`, label: `IATF / Inseminação` },
-            { value: `Palpação`, label: `Toque / Palpação` },
-            { value: `Parto`, label: `Parto` },
-            { value: `Monta`, label: `Monta Natural` },
-            { value: `Secagem`, label: `Secagem` },
-          ]}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Calendar size={14} /> Data do Evento</label>
-        <input 
-          type="date" 
-          value={formData.data_evento}
-          onChange={(e) => setFormData({...formData, data_evento: e.target.value})}
-          required
-        />
-      </div>
-
-      <div className="form-group full-width">
-        <label><Activity size={14} /> Status</label>
-        <div className="tauze-form-radio-group">
-          <div 
-            className={`tauze-form-radio-item ${formData.status === 'pending' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, status: 'pending'})}
-          >
-            <Calendar size={16} />
-            <span>Agendado</span>
+        
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><Beef size={14} /> Animal / Matriz</label>
+            <div style={{ position: 'relative' }}>
+              <Hash size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                className="tauze-input"
+                type="text" 
+                placeholder="Brinco ou ID da Matriz..." 
+                style={{ paddingLeft: '32px' }}
+                value={formData.animal_id}
+                onChange={(e) => setFormData({...formData, animal_id: e.target.value})}
+                required 
+              />
+            </div>
           </div>
-          <div 
-            className={`tauze-form-radio-item ${formData.status === 'completed' ? 'active' : ''}`}
-            onClick={() => setFormData({...formData, status: 'completed'})}
-          >
-            <Activity size={16} />
-            <span>Concluído</span>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Tipo de Evento</label>
+            <SearchableSelect 
+              value={formData.tipo_evento}
+              onChange={(val: any) => setFormData({...formData, tipo_evento: val})}
+              options={[
+                { value: `IATF`, label: `IATF / Inseminação` },
+                { value: `Palpação`, label: `Toque / Palpação` },
+                { value: `Parto`, label: `Parto` },
+                { value: `Monta`, label: `Monta Natural` },
+                { value: `Secagem`, label: `Secagem` },
+              ]}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data do Evento</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={formData.data_evento}
+              onChange={(e) => setFormData({...formData, data_evento: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><Activity size={14} /> Status</label>
+            <div className="tauze-form-radio-group">
+              <div 
+                className={`tauze-form-radio-item ${formData.status === 'pending' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, status: 'pending'})}
+              >
+                <Calendar size={16} />
+                <span>Agendado</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.status === 'completed' ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, status: 'completed'})}
+              >
+                <Activity size={16} />
+                <span>Concluído</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="form-group">
-        <label><Baby size={14} /> Resultado / Diagnóstico</label>
-        <input 
-          type="text" 
-          placeholder="Ex: Prenha (45d), Vazia, Macho..." 
-          value={formData.resultado}
-          onChange={(e) => setFormData({...formData, resultado: e.target.value})}
-        />
-      </div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Resultados e Informações</h4>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Baby size={14} /> Resultado / Diagnóstico</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: Prenha (45d), Vazia, Macho..." 
+              value={formData.resultado}
+              onChange={(e) => setFormData({...formData, resultado: e.target.value})}
+            />
+          </div>
 
-      <div className="form-group">
-        <label><Activity size={14} /> ECC (Escore 1-5)</label>
-        <input 
-          type="number" 
-          step="0.1"
-          placeholder="Ex: 3.5" 
-          value={formData.ecc}
-          onChange={(e) => setFormData({...formData, ecc: e.target.value})}
-        />
-      </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> ECC (Escore 1-5)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.1"
+              placeholder="Ex: 3.5" 
+              value={formData.ecc}
+              onChange={(e) => setFormData({...formData, ecc: e.target.value})}
+            />
+          </div>
 
-      <div className="form-group full-width">
-        <label><Hash size={14} /> Touro / Partida de Sêmen</label>
-        <input 
-          type="text" 
-          placeholder="Identificação do Reprodutor..." 
-          value={formData.touro}
-          onChange={(e) => setFormData({...formData, touro: e.target.value})}
-        />
-      </div>
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><Hash size={14} /> Touro / Partida de Sêmen</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Identificação do Reprodutor..." 
+              value={formData.touro}
+              onChange={(e) => setFormData({...formData, touro: e.target.value})}
+            />
+          </div>
 
-      <div className="form-group full-width">
-        <label><FileText size={14} /> Observações</label>
-        <textarea 
-          placeholder="Notas adicionais sobre o procedimento..." 
-          value={formData.observacoes}
-          onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
-          rows={3}
-        />
-      </div>
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><FileText size={14} /> Observações</label>
+            <textarea 
+              className="tauze-input tauze-textarea"
+              placeholder="Notas adicionais sobre o procedimento..." 
+              value={formData.observacoes}
+              onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+              rows={3}
+            />
+          </div>
+        </div>
+      </section>
     </SidePanel>
   );
 };

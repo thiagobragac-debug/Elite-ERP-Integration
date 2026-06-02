@@ -54,7 +54,6 @@ import { isValidUUID } from '../../utils/validation';
 import { useViewMode } from '../../hooks/useViewMode';
 
 import { useTenant } from '../../contexts/TenantContext';
-import toast from 'react-hot-toast';
 
 export const BankAccounts: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -77,10 +76,10 @@ export const BankAccounts: React.FC = () => {
   });
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Liquidez Dispon�vel', value: '---', icon: Wallet, color: '#10b981', progress: 0, sparkline: [] },
-    { label: 'Utiliza��o de Limites', value: '---', icon: CreditCard, color: '#ef4444', progress: 0, sparkline: [] },
-    { label: 'Cust�dia Banc�ria', value: '---', icon: Building, color: '#3b82f6', progress: 0, sparkline: [] },
-    { label: 'Yield Estrat�gico', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, sparkline: [] },
+    { label: 'Liquidez Disponível', value: '---', icon: Wallet, color: '#10b981', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
+    { label: 'Utilização de Limites', value: '---', icon: CreditCard, color: '#ef4444', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
+    { label: 'Custódia Bancária', value: '---', icon: Building, color: '#3b82f6', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
+    { label: 'Yield Estratégico', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
   ]);
 
   useEffect(() => {
@@ -123,62 +122,62 @@ export const BankAccounts: React.FC = () => {
 
       const data: any = await Promise.race([fetchPromise, timeoutPromise]);
       
-      const accountsData: any[] = data || [];
-      setAccounts(accountsData);
+      const [] = data || [];
+      setAccounts([]);
 
-      const totalSaldos = accountsData.reduce((acc: number, curr: any) => acc + Number(curr.saldo_atual || 0), 0);
-      const totalLimites = accountsData.reduce((acc: number, curr: any) => acc + Number(curr.limite_credito || 0), 0);
+      const totalSaldos = [].reduce((acc: number, curr: any) => acc + Number(curr.saldo_atual || 0), 0);
+      const totalLimites = [].reduce((acc: number, curr: any) => acc + Number(curr.limite_credito || 0), 0);
       const liquidezTotal = totalSaldos + totalLimites;
       
       setStats([
         { 
-          label: 'Liquidez Dispon�vel', 
+          label: 'Liquidez Disponível', 
           value: liquidezTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
           icon: Wallet, color: '#10b981', progress: 100, change: 'Saldos + Limites', periodLabel: 'Real-Time',
-          sparkline: buildSparkline(accountsData, 'created_at', 'saldo_atual')
+          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
         },
         { 
-          label: 'Utiliza��o de Limites', 
+          label: 'Utilização de Limites', 
           value: totalLimites > 0 ? `${((Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100).toFixed(1)}%` : '---', 
           icon: CreditCard, color: '#ef4444', 
           progress: totalLimites > 0 ? (Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100 : 0,
-          change: totalLimites > 0 ? totalLimites.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Sem limites cadastrados', periodLabel: 'Cr�dito Tomado',
-          sparkline: buildSparkline(accountsData, 'created_at', 'saldo_atual')
+          change: totalLimites > 0 ? totalLimites.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Sem limites cadastrados', periodLabel: 'Crédito Tomado',
+          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
         },
         { 
-          label: 'Cust�dia Banc�ria', value: accountsData.length > 0 ? [].length : '---', icon: Building, color: '#3b82f6', 
-          progress: accountsData.length > 0 ? 100 : 0, 
-          change: accountsData.length > 0 ? 'Institui��es' : 'Sem contas', periodLabel: 'Pontos de Contato',
-          sparkline: buildSparkline(accountsData, 'created_at', 'saldo_atual')
+          label: 'Custódia Bancária', value: [].length > 0 ? [].length : '---', icon: Building, color: '#3b82f6', 
+          progress: [].length > 0 ? 100 : 0, 
+          change: [].length > 0 ? 'Instituições' : 'Sem contas', periodLabel: 'Pontos de Contato',
+          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
         },
         { 
-          label: 'Benchmark M�dio', 
+          label: 'Benchmark Médio', 
           value: (() => {
-            const withBenchmark = accountsData.filter((a: any) => a.benchmark_rendimento);
+            const withBenchmark = [].filter((a: any) => a.benchmark_rendimento);
             if (withBenchmark.length === 0) return '---';
             const avg = withBenchmark.reduce((acc: number, a: any) => acc + Number(a.benchmark_rendimento || 0), 0) / withBenchmark.length;
             return avg > 0 ? `${avg.toFixed(2)}%` : '---';
           })(),
           icon: TrendingUp, color: '#f59e0b', 
           progress: (() => {
-            const withBenchmark = accountsData.filter((a: any) => a.benchmark_rendimento);
+            const withBenchmark = [].filter((a: any) => a.benchmark_rendimento);
             if (withBenchmark.length === 0) return 0;
             const avg = withBenchmark.reduce((acc: number, a: any) => acc + Number(a.benchmark_rendimento || 0), 0) / withBenchmark.length;
             return Math.min(100, avg * 10);
           })(),
           trend: 'up' as const, 
-          change: accountsData.filter((a: any) => a.benchmark_rendimento).length > 0 ? 'Rendimento cadastrado' : 'Sem benchmark', 
-          periodLabel: 'Rendimento M�dio',
-          sparkline: buildSparkline(accountsData, 'created_at', 'saldo_atual')
+          change: [].filter((a: any) => a.benchmark_rendimento).length > 0 ? 'Rendimento cadastrado' : 'Sem benchmark', 
+          periodLabel: 'Rendimento Médio',
+          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
         },
       ]);
     } catch (err) {
       setAccounts([]);
       setStats([
-        { label: 'Liquidez Dispon�vel', value: '---', icon: Wallet, color: '#10b981', progress: 0, change: 'Erro de Conex�o', periodLabel: 'Modo Real', sparkline: [] },
-        { label: 'Utiliza��o de Limites', value: '---', icon: CreditCard, color: '#ef4444', progress: 0, change: 'Erro de Conex�o', periodLabel: 'Cr�dito Tomado', sparkline: [] },
-        { label: 'Cust�dia Banc�ria', value: '---', icon: Building, color: '#3b82f6', progress: 0, change: 'Erro de Conex�o', periodLabel: 'Pontos de Contato', sparkline: [] },
-        { label: 'Yield Estrat�gico', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, trend: 'up' as const, change: 'Erro de Conex�o', periodLabel: 'Rendimento M�dio', sparkline: [] },
+        { label: 'Liquidez Disponível', value: '---', icon: Wallet, color: '#10b981', progress: 0, change: 'Erro de Conexão', periodLabel: 'Modo Real', sparkline: [] },
+        { label: 'Utilização de Limites', value: '---', icon: CreditCard, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Crédito Tomado', sparkline: [] },
+        { label: 'Custódia Bancária', value: '---', icon: Building, color: '#3b82f6', progress: 0, change: 'Erro de Conexão', periodLabel: 'Pontos de Contato', sparkline: [] },
+        { label: 'Yield Estratégico', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, trend: 'up' as const, change: 'Erro de Conexão', periodLabel: 'Rendimento Médio', sparkline: [] },
       ]);
     } finally {
       setLoading(false);
@@ -246,7 +245,7 @@ export const BankAccounts: React.FC = () => {
       setIsModalOpen(false);
       fetchAccounts();
     } else {
-      toast.error('Erro ao salvar conta: ' + result.error.message);
+      alert('Erro ao salvar conta: ' + result.error.message);
     }
   };
 
@@ -273,7 +272,7 @@ export const BankAccounts: React.FC = () => {
 
     if (format === 'csv') exportToCSV(exportData, 'contas_bancarias');
     else if (format === 'excel') exportToExcel(exportData, 'contas_bancarias');
-    else if (format === 'pdf') exportToPDF(exportData, 'contas_bancarias', 'Relat�rio de Tesouraria - Contas Banc�rias');
+    else if (format === 'pdf') exportToPDF(exportData, 'contas_bancarias', 'Relatório de Tesouraria - Contas Bancárias');
   };
 
   const handleDelete = async (id: string) => {
@@ -307,13 +306,13 @@ export const BankAccounts: React.FC = () => {
         })));
       } else {
         setHistoryItems([
-          { id: '11111111-1111-1111-1111-111111111111', date: new Date().toISOString(), title: 'Saldo Inicial Consolida��o', subtitle: 'Ponto de equil�brio', value: Number(acc.saldo_atual).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: 'success' },
+          { id: '11111111-1111-1111-1111-111111111111', date: new Date().toISOString(), title: 'Saldo Inicial Consolidação', subtitle: 'Ponto de equilíbrio', value: Number(acc.saldo_atual).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: 'success' },
         ]);
       }
     } catch (err) {
       console.warn('Could not fetch real statement, using initial balance fallback:', err);
       setHistoryItems([
-        { id: '1', date: new Date().toISOString(), title: 'Saldo Inicial Consolida��o', subtitle: 'Ponto de equil�brio', value: Number(acc.saldo_atual).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: 'success' },
+        { id: '1', date: new Date().toISOString(), title: 'Saldo Inicial Consolidação', subtitle: 'Ponto de equilíbrio', value: Number(acc.saldo_atual).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: 'success' },
       ]);
     } finally {
       setHistoryLoading(false);
@@ -322,7 +321,7 @@ export const BankAccounts: React.FC = () => {
 
   const tableColumns = [
     {
-      header: 'Banco / Institui��o',
+      header: 'Banco / Instituição',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.banco}</span>
@@ -334,7 +333,7 @@ export const BankAccounts: React.FC = () => {
       align: 'left' as const
     },
     {
-      header: 'Ag�ncia & Conta',
+      header: 'Agência & Conta',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
@@ -359,14 +358,14 @@ export const BankAccounts: React.FC = () => {
             background: item.is_global ? 'hsl(var(--brand) / 0.1)' : 'hsl(var(--text-muted) / 0.1)', 
             color: item.is_global ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))'
           }}>
-            {item.is_global ? 'USO GLOBAL' : (companies.find((c: any) => c.id === item.unidade_id)?.name || 'N�O VINCULADO')}
+            {item.is_global ? 'USO GLOBAL' : (companies.find((c: any) => c.id === item.unidade_id)?.name || 'NÃO VINCULADO')}
           </span>
         </div>
       ),
       align: 'center' as const
     },
     {
-      header: 'Limite Cr�dito',
+      header: 'Limite Crédito',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: 700, color: '#64748b' }}>
@@ -386,7 +385,7 @@ export const BankAccounts: React.FC = () => {
         return item.limite_credito > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '120px', margin: '0 auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', fontWeight: 900, color: '#64748b' }}>
-              <span>OCUPA��O</span>
+              <span>OCUPAÇÃO</span>
               <span style={{ color: utilPercent > 80 ? '#f43f5e' : '#10b981' }}>{utilPercent.toFixed(0)}%</span>
             </div>
             <div style={{ height: '6px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
@@ -407,7 +406,7 @@ export const BankAccounts: React.FC = () => {
       align: 'center' as const
     },
     {
-      header: 'Saldo Dispon�vel',
+      header: 'Saldo Disponível',
       accessor: (item: any) => (
         <div style={{ width: '100%', textAlign: 'right', fontWeight: 900, color: item.saldo_atual >= 0 ? '#059669' : '#e11d48' }}>
           {Number(item.saldo_atual).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -425,13 +424,13 @@ export const BankAccounts: React.FC = () => {
             <ShieldCheck size={14} fill="currentColor" />
             <span>TAUZE TREASURY v5.0</span>
           </div>
-          <h1 className="page-title">Gest�o de Tesouraria</h1>
-          <p className="page-subtitle">Centraliza��o de saldos banc�rios, monitoramento de cust�dia e controle de liquidez.</p>
+          <h1 className="page-title">Gestão de Tesouraria</h1>
+          <p className="page-subtitle">Centralização de saldos bancários, monitoramento de custódia e controle de liquidez.</p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary">
             <Layout size={18} />
-            CONCILIA��O
+            CONCILIAÇÃO
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
@@ -442,7 +441,7 @@ export const BankAccounts: React.FC = () => {
 
       <div className="next-gen-kpi-grid">
         {loading ? (
-          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wallet} color=""  periodLabel="M�s Atual" />)
+          Array(4).fill(0).map((_, i) => <TauzeStatCard key={i} loading={true} label="" value="" icon={Wallet} color=""  periodLabel="Mês Atual" />)
         ) : (stats || []).map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
@@ -480,7 +479,7 @@ export const BankAccounts: React.FC = () => {
           <input 
             type="text" 
             className="tauze-search-input"
-            placeholder="Pesquisar por banco, ag�ncia ou conta..." 
+            placeholder="Pesquisar por banco, agência ou conta..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -490,14 +489,14 @@ export const BankAccounts: React.FC = () => {
           <button 
             className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
             onClick={() => setViewMode('list')}
-            title="Visualiza��o em Lista"
+            title="Visualização em Lista"
           >
             <ListIcon size={18} />
           </button>
           <button 
             className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
             onClick={() => setViewMode('grid')}
-            title="Visualiza��o em Cards"
+            title="Visualização em Cards"
           >
             <LayoutGrid size={18} />
           </button>
@@ -506,7 +505,7 @@ export const BankAccounts: React.FC = () => {
          <div className="tauze-filter-group">
           <button 
             className={`icon-btn-secondary ${showAdvancedFilters ? 'active' : ''}`} 
-            title="Filtros Avan�ados"
+            title="Filtros Avançados"
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           >
             <Filter size={20} />
@@ -544,8 +543,8 @@ export const BankAccounts: React.FC = () => {
             emptyState={
               accounts.length === 0 ? (
                 <EmptyState
-                  title="Nenhuma conta banc�ria"
-                  description="Voc� ainda n�o possui contas banc�rias cadastradas para esta unidade. Comece adicionando sua primeira conta para gerir a tesouraria."
+                  title="Nenhuma conta bancária"
+                  description="Você ainda não possui contas bancárias cadastradas para esta unidade. Comece adicionando sua primeira conta para gerir a tesouraria."
                   actionLabel="Nova Conta"
                   onAction={handleOpenCreate}
                   icon={Building2}
@@ -553,7 +552,7 @@ export const BankAccounts: React.FC = () => {
               ) : (
                 <EmptyState
                   title="Nenhum registro encontrado"
-                  description="Sua busca n�o retornou resultados."
+                  description="Sua busca não retornou resultados."
                   icon={Search}
                 />
               )
@@ -640,10 +639,10 @@ export const BankAccounts: React.FC = () => {
                         <Building2 size={22} style={{ color: 'hsl(var(--brand))' }} />
                       </div>
                       <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
-                        Nenhuma conta banc�ria encontrada
+                        Nenhuma conta bancária encontrada
                       </h3>
                       <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                        N�o h� contas que correspondam aos filtros atuais.
+                        Não há contas que correspondam aos filtros atuais.
                       </p>
                       {!searchTerm && (
                         <button 
@@ -683,7 +682,7 @@ export const BankAccounts: React.FC = () => {
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
                         <span className="card-role-badge">{acc.tipo || 'CONTA CORRENTE'}</span>
                         <span className="card-role-badge" style={{ background: acc.is_global ? 'hsl(var(--brand) / 0.1)' : 'hsl(var(--text-muted) / 0.1)', color: acc.is_global ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}>
-                          {acc.is_global ? 'USO GLOBAL' : (companies.find((c: any) => c.id === acc.unidade_id)?.name || 'N�O VINCULADO')}
+                          {acc.is_global ? 'USO GLOBAL' : (companies.find((c: any) => c.id === acc.unidade_id)?.name || 'NÃO VINCULADO')}
                         </span>
                       </div>
                     </div>
@@ -716,7 +715,7 @@ export const BankAccounts: React.FC = () => {
                     <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '6px', marginTop: '12px' }}>
                       <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>
                         <Clock size={12} style={{ color: '#10b981' }} />
-                        <span>Sincronizado via API • Hoje 08:30</span>
+                        <span>Sincronizado via API â€¢ Hoje 08:30</span>
                       </div>
                     </div>
                   </div>
@@ -1002,8 +1001,8 @@ export const BankAccounts: React.FC = () => {
       <HistoryModal 
         isOpen={isHistoryModalOpen}
         onClose={() => setIsHistoryModalOpen(false)}
-        title="Dossi� Financeiro"
-        subtitle="Rastreabilidade de saldos e movimenta��es banc�rias"
+        title="Dossiê Financeiro"
+        subtitle="Rastreabilidade de saldos e movimentações bancárias"
         items={historyItems}
         loading={historyLoading}
       />

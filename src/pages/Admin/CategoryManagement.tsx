@@ -351,90 +351,92 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           submitLabel="Salvar Categoria"
           size="small"
         >
-          <div className="tauze-field-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="tauze-label">Nome da Categoria</label>
-            <input 
-              type="text" 
-              className="tauze-input"
-              value={formData.nome}
-              onChange={e => setFormData({...formData, nome: e.target.value})}
-              placeholder="Ex: Combustível, Suplementos, etc..."
-              disabled={editItem?.is_system}
-              required
-            />
-            {editItem?.is_system && <span style={{ fontSize: '11px', color: '#ef4444' }}>O nome desta categoria não pode ser alterado, pois é essencial para o sistema.</span>}
-          </div>
-
-          {modulo === 'financeiro' && (
-            <div className="tauze-field-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="tauze-label">Vínculo Operacional</label>
-              <select 
-                className="tauze-input"
-                value={formData.modulo_vinculado}
-                onChange={e => setFormData({...formData, modulo_vinculado: e.target.value})}
-              >
-                <option value="">Geral / Administrativo (Sede)</option>
-                <option value="pecuaria">Pecuária (Gado)</option>
-                <option value="estoque">Estoque & Agricultura</option>
-                <option value="frota">Máquinas & Frota</option>
-                <option value="logistica">Logística & Frete</option>
-              </select>
-            </div>
-          )}
-
-          {modulo === 'estoque' && (
-            <div className="tauze-field-group" style={{ gridColumn: '1 / -1' }}>
-              <label className="tauze-label">Categoria Financeira Padrão (Opcional)</label>
-              <select 
-                className="tauze-input"
-                value={formData.categoria_financeira_id}
-                onChange={e => setFormData({...formData, categoria_financeira_id: e.target.value})}
-              >
-                <option value="">-- Não vincular nenhuma --</option>
-                {categorias.filter(c => c.modulo === 'financeiro').map(c => (
-                  <option key={c.id} value={c.id}>{c.nome}</option>
-                ))}
-              </select>
-              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
-                Automatiza o lançamento no Contas a Pagar/Receber
-              </span>
-            </div>
-          )}
-
-          <div className="tauze-field-group" style={{ gridColumn: '1 / -1' }}>
-            <label className="tauze-label">Cor de Identificação</label>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {['#94a3b8', '#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'].map(color => (
-                <div 
-                  key={color}
-                  onClick={() => setFormData({...formData, cor: color})}
-                  style={{ 
-                    width: '32px', height: '32px', borderRadius: '50%', background: color, cursor: 'pointer',
-                    border: formData.cor === color ? '3px solid hsl(var(--text-main))' : '3px solid transparent',
-                    boxShadow: formData.cor === color ? '0 0 0 2px hsl(var(--bg-card)) inset' : 'none',
-                    transition: 'all 0.2s ease'
-                  }}
-                ></div>
-              ))}
-            </div>
-          </div>
-
-          <div className="tauze-field-group" style={{ marginTop: '8px', gridColumn: '1 / -1' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: editItem?.is_system ? 'not-allowed' : 'pointer', padding: '12px 16px', background: 'hsl(var(--bg-body))', borderRadius: '12px', border: '1px solid hsl(var(--border))', opacity: editItem?.is_system ? 0.7 : 1 }}>
+          <div className="form-grid">
+            <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+              <label className="tauze-label">Nome da Categoria</label>
               <input 
-                type="checkbox" 
-                checked={formData.is_active}
-                onChange={e => setFormData({...formData, is_active: e.target.checked})}
+                type="text" 
+                className="tauze-input"
+                value={formData.nome}
+                onChange={e => setFormData({...formData, nome: e.target.value})}
+                placeholder="Ex: Combustível, Suplementos, etc..."
                 disabled={editItem?.is_system}
-                style={{ width: '18px', height: '18px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: editItem?.is_system ? 'not-allowed' : 'pointer' }}
+                required
               />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>Categoria Ativa</span>
-                <span style={{ fontSize: '12px', color: editItem?.is_system ? '#ef4444' : 'hsl(var(--text-muted))', fontWeight: 500 }}>
-                  {editItem?.is_system ? 'Categorias do sistema não podem ser desativadas.' : 'Permite usar esta categoria nos formulários do sistema'}
+              {editItem?.is_system && <span style={{ fontSize: '11px', color: '#ef4444' }}>O nome desta categoria não pode ser alterado, pois é essencial para o sistema.</span>}
+            </div>
+
+            {modulo === 'financeiro' && (
+              <div className="tauze-field-group">
+                <label className="tauze-label">Vínculo Operacional</label>
+                <select 
+                  className="tauze-input"
+                  value={formData.modulo_vinculado}
+                  onChange={e => setFormData({...formData, modulo_vinculado: e.target.value})}
+                >
+                  <option value="">Geral / Administrativo (Sede)</option>
+                  <option value="pecuaria">Pecuária (Gado)</option>
+                  <option value="estoque">Estoque & Agricultura</option>
+                  <option value="frota">Máquinas & Frota</option>
+                  <option value="logistica">Logística & Frete</option>
+                </select>
+              </div>
+            )}
+
+            {modulo === 'estoque' && (
+              <div className="tauze-field-group">
+                <label className="tauze-label">Categoria Financeira Padrão (Opcional)</label>
+                <select 
+                  className="tauze-input"
+                  value={formData.categoria_financeira_id}
+                  onChange={e => setFormData({...formData, categoria_financeira_id: e.target.value})}
+                >
+                  <option value="">-- Não vincular nenhuma --</option>
+                  {categorias.filter(c => c.modulo === 'financeiro').map(c => (
+                    <option key={c.id} value={c.id}>{c.nome}</option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
+                  Automatiza o lançamento no Contas a Pagar/Receber
                 </span>
               </div>
-            </label>
+            )}
+
+            <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+              <label className="tauze-label">Cor de Identificação</label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {['#94a3b8', '#ef4444', '#f97316', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'].map(color => (
+                  <div 
+                    key={color}
+                    onClick={() => setFormData({...formData, cor: color})}
+                    style={{ 
+                      width: '32px', height: '32px', borderRadius: '50%', background: color, cursor: 'pointer',
+                      border: formData.cor === color ? '3px solid hsl(var(--text-main))' : '3px solid transparent',
+                      boxShadow: formData.cor === color ? '0 0 0 2px hsl(var(--bg-card)) inset' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  ></div>
+                ))}
+              </div>
+            </div>
+
+            <div className="tauze-field-group" style={{ marginTop: '8px', gridColumn: 'span 2' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: editItem?.is_system ? 'not-allowed' : 'pointer', padding: '12px 16px', background: 'hsl(var(--bg-body))', borderRadius: '12px', border: '1px solid hsl(var(--border))', opacity: editItem?.is_system ? 0.7 : 1 }}>
+                <input 
+                  type="checkbox" 
+                  checked={formData.is_active}
+                  onChange={e => setFormData({...formData, is_active: e.target.checked})}
+                  disabled={editItem?.is_system}
+                  style={{ width: '18px', height: '18px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: editItem?.is_system ? 'not-allowed' : 'pointer' }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>Categoria Ativa</span>
+                  <span style={{ fontSize: '12px', color: editItem?.is_system ? '#ef4444' : 'hsl(var(--text-muted))', fontWeight: 500 }}>
+                    {editItem?.is_system ? 'Categorias do sistema não podem ser desativadas.' : 'Permite usar esta categoria nos formulários do sistema'}
+                  </span>
+                </div>
+              </label>
+            </div>
           </div>
         </SidePanel>
       )}

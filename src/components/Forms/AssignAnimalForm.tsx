@@ -456,11 +456,14 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
       loading={loading}
       submitLabel={`Revisar Associação (${selectedAnimals.length})`}
     >
-      {/* ── Single row: Destino | Data | Motivo ── */}
-      <div className="form-group full-width" style={{ gridColumn: '1 / -1' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', alignItems: 'start' }}>
-
-          <div>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Dados da Associação</h4>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
             <DestSearch
               items={destinations}
               value={selectedDestination}
@@ -474,33 +477,36 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
             )}
           </div>
 
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
-              <Calendar size={12} /> Data da Movimentação
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <Calendar size={14} /> Data da Movimentação
             </label>
-            <input type="date" value={movDate} onChange={e => setMovDate(e.target.value)} required max={new Date().toISOString().split('T')[0]} style={{ width: '100%', fontSize: '13px' }} />
+            <input type="date" className="tauze-input" value={movDate} onChange={e => setMovDate(e.target.value)} required max={new Date().toISOString().split('T')[0]} />
           </div>
 
-          <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
-              <FileText size={12} /> Motivo da Associação
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <FileText size={14} /> Motivo da Associação
             </label>
-                    <SearchableSelect 
-          value={motivo}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione o motivo...` },
-            { value: `{m}`, label: `{m}` },
-            ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
-          ]}
-        />
+            <SearchableSelect 
+              value={motivo}
+              onChange={(val: any) => setMotivo(val)}
+              options={[
+                { value: ``, label: `Selecione o motivo...` },
+                ...(MOTIVOS || []).map(m => ({ value: String(m), label: String(m) })),
+              ]}
+            />
           </div>
-
         </div>
-      </div>
+      </section>
 
       {/* Animal picker */}
-      <div className="form-group full-width">
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Seleção de Animais</h4>
+        </div>
+        <div className="tauze-field-group full-width">
         {/* Header — always visible */}
         <div className="tauze-selection-header">
           <label>
@@ -595,7 +601,8 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
             </div>
           </>
         )}
-      </div>
+        </div>
+      </section>
 
       <style>{`
         .tauze-selection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }

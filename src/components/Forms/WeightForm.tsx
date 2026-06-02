@@ -294,162 +294,169 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Pesagem"}
     >
       <form id="weight-form-el" onSubmit={handleSubmit} style={{ display: 'contents' }}>
+        <section className="tauze-form-section">
+          <div className="tauze-section-header">
+            <div className="tauze-section-badge">PASSO 01</div>
+            <h4 className="tauze-section-title">Dados da Pesagem</h4>
+          </div>
 
-        {/* ── Row: Animal + Peso + Data ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', gridColumn: 'span 4', width: '100%', alignItems: 'start' }}>
+          <div className="tauze-input-grid grid-col-2">
+            {/* #1 — Chip + Search */}
+            <div className="tauze-field-group" style={{ gridColumn: 'span 2', position: 'relative' }}>
+              <label className="tauze-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Hash size={14} /> Selecionar Animal (Brinco)
+              </label>
 
-          {/* #1 — Chip + Search */}
-          <div className="form-group" style={{ position: 'relative', margin: 0, gridColumn: 'unset' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Hash size={14} /> Selecionar Animal (Brinco)
-            </label>
-
-            {animalSelected ? (
-              /* CHIP */
-              <div className="animal-chip animate-fade-in" style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                background: 'hsl(var(--brand) / 0.08)',
-                border: '1.5px solid hsl(var(--brand) / 0.3)',
-                borderRadius: '12px', padding: '10px 14px',
-                cursor: 'default'
-              }}>
-                <div style={{
-                  width: '28px', height: '28px', borderRadius: '50%',
-                  background: 'hsl(var(--brand))', color: '#fff',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '11px', fontWeight: 900, flexShrink: 0
+              {animalSelected ? (
+                /* CHIP */
+                <div className="animal-chip animate-fade-in" style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  background: 'hsl(var(--brand) / 0.08)',
+                  border: '1.5px solid hsl(var(--brand) / 0.3)',
+                  borderRadius: '12px', padding: '10px 14px',
+                  cursor: 'default'
                 }}>
-                  {animalSelected.brinco?.slice(0, 2).toUpperCase()}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))' }}>
-                    #{animalSelected.brinco}
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    background: 'hsl(var(--brand))', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '11px', fontWeight: 900, flexShrink: 0
+                  }}>
+                    {animalSelected.brinco?.slice(0, 2).toUpperCase()}
                   </div>
-                  {animalSelected.raca && (
-                    <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>
-                      {animalSelected.raca}{animalSelected.categoria ? ` · ${animalSelected.categoria}` : ''}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))' }}>
+                      #{animalSelected.brinco}
+                    </div>
+                    {animalSelected.raca && (
+                      <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>
+                        {animalSelected.raca}{animalSelected.categoria ? ` · ${animalSelected.categoria}` : ''}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearAnimal}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'hsl(var(--text-muted))', padding: '2px', borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0
+                    }}
+                    title="Remover animal"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                /* SEARCH */
+                <div className="autocomplete-wrapper" style={{ position: 'relative', width: '100%' }}>
+                  <div className="search-input-container" style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      className="tauze-input"
+                      id="animal-search-input"
+                      type="text"
+                      placeholder="Digite para filtrar pelo brinco..."
+                      value={searchQuery}
+                      onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }}
+                      onFocus={() => setShowDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                      required={!formData.animal_id}
+                      style={{ paddingRight: '36px', width: '100%', boxSizing: 'border-box' }}
+                      autoComplete="off"
+                    />
+                    <Search size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                  </div>
+
+                  {showDropdown && (
+                    <div className="autocomplete-dropdown animate-fade-in" style={{
+                      position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%',
+                      maxHeight: '200px', overflowY: 'auto',
+                      background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))',
+                      borderRadius: '12px', zIndex: 999, boxShadow: 'var(--shadow-lg)'
+                    }}>
+                      {filteredAnimals.length === 0 ? (
+                        <div style={{ padding: '12px', color: 'hsl(var(--text-muted))', fontSize: '12px', fontWeight: 600, textAlign: 'center' }}>
+                          Nenhum animal ativo com este brinco
+                        </div>
+                      ) : (
+                        filteredAnimals.map(a => (
+                          <div
+                            key={a.id}
+                            className="autocomplete-option"
+                            onMouseDown={() => { setSearchQuery(a.brinco); handleAnimalChange(a); setShowDropdown(false); }}
+                            style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', borderBottom: '1px solid hsl(var(--border))' }}
+                          >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Hash size={12} color="hsl(var(--brand))" />
+                              Brinco {a.brinco}
+                              {a.raca && <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>· {a.raca}</span>}
+                            </span>
+                            {a.peso_inicial && (
+                              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+                                {Number(a.peso_inicial).toFixed(0)} kg
+                              </span>
+                            )}
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={clearAnimal}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'hsl(var(--text-muted))', padding: '2px', borderRadius: '50%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0
-                  }}
-                  title="Remover animal"
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            ) : (
-              /* SEARCH */
-              <div className="autocomplete-wrapper" style={{ position: 'relative', width: '100%' }}>
-                <div className="search-input-container" style={{ position: 'relative', width: '100%' }}>
-                  <input
-                    id="animal-search-input"
-                    type="text"
-                    placeholder="Digite para filtrar pelo brinco..."
-                    value={searchQuery}
-                    onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }}
-                    onFocus={() => setShowDropdown(true)}
-                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                    required={!formData.animal_id}
-                    style={{ paddingRight: '36px', width: '100%', boxSizing: 'border-box' }}
-                    autoComplete="off"
-                  />
-                  <Search size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
-                </div>
-
-                {showDropdown && (
-                  <div className="autocomplete-dropdown animate-fade-in" style={{
-                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%',
-                    maxHeight: '200px', overflowY: 'auto',
-                    background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))',
-                    borderRadius: '12px', zIndex: 999, boxShadow: 'var(--shadow-lg)'
-                  }}>
-                    {filteredAnimals.length === 0 ? (
-                      <div style={{ padding: '12px', color: 'hsl(var(--text-muted))', fontSize: '12px', fontWeight: 600, textAlign: 'center' }}>
-                        Nenhum animal ativo com este brinco
-                      </div>
-                    ) : (
-                      filteredAnimals.map(a => (
-                        <div
-                          key={a.id}
-                          className="autocomplete-option"
-                          onMouseDown={() => { setSearchQuery(a.brinco); handleAnimalChange(a); setShowDropdown(false); }}
-                          style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', borderBottom: '1px solid hsl(var(--border))' }}
-                        >
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Hash size={12} color="hsl(var(--brand))" />
-                            Brinco {a.brinco}
-                            {a.raca && <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>· {a.raca}</span>}
-                          </span>
-                          {a.peso_inicial && (
-                            <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
-                              {Number(a.peso_inicial).toFixed(0)} kg
-                            </span>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* #3 — Peso com validação visual */}
-          <div className="form-group" style={{ margin: 0, gridColumn: 'unset' }}>
-            <label><Scale size={14} /> Novo Peso (kg)</label>
-            <input
-              ref={pesoInputRef}
-              type="number"
-              step="0.1"
-              placeholder="0.0"
-              value={formData.peso}
-              onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
-              required
-              style={{
-                borderColor: getWeightBorderColor(),
-                boxShadow: getWeightGlow(),
-                transition: 'border-color 0.2s, box-shadow 0.2s'
-              }}
-            />
-            {hasWeight && !isTypoWarning && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '10px', fontWeight: 700, color: 'hsl(142 71% 45%)' }}>
-                <CheckCircle2 size={11} />
-                Peso válido
-              </div>
-            )}
-          </div>
-
-          {/* Data */}
-          <div className="form-group" style={{ margin: 0, gridColumn: 'unset' }}>
-            <label>
-              <Calendar size={14} /> Data da Pesagem
-              {/* #5 — contador today */}
-              {todayCount > 0 && (
-                <span style={{
-                  marginLeft: '8px', fontSize: '9px', fontWeight: 800,
-                  background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))',
-                  padding: '1px 7px', borderRadius: '20px', border: '1px solid hsl(var(--brand) / 0.2)'
-                }}>
-                  {todayCount} hoje
-                </span>
               )}
-            </label>
-            <input
-              type="date"
-              value={formData.data_pesagem}
-              onChange={(e) => setFormData({ ...formData, data_pesagem: e.target.value })}
-              required
-            />
+            </div>
+
+            {/* #3 — Peso com validação visual */}
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Scale size={14} /> Novo Peso (kg)</label>
+              <input
+                className="tauze-input"
+                ref={pesoInputRef}
+                type="number"
+                step="0.1"
+                placeholder="0.0"
+                value={formData.peso}
+                onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
+                required
+                style={{
+                  borderColor: getWeightBorderColor(),
+                  boxShadow: getWeightGlow(),
+                  transition: 'border-color 0.2s, box-shadow 0.2s'
+                }}
+              />
+              {hasWeight && !isTypoWarning && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '10px', fontWeight: 700, color: 'hsl(142 71% 45%)' }}>
+                  <CheckCircle2 size={11} />
+                  Peso válido
+                </div>
+              )}
+            </div>
+
+            {/* Data */}
+            <div className="tauze-field-group">
+              <label className="tauze-label">
+                <Calendar size={14} /> Data da Pesagem
+                {/* #5 — contador today */}
+                {todayCount > 0 && (
+                  <span style={{
+                    marginLeft: '8px', fontSize: '9px', fontWeight: 800,
+                    background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))',
+                    padding: '1px 7px', borderRadius: '20px', border: '1px solid hsl(var(--brand) / 0.2)'
+                  }}>
+                    {todayCount} hoje
+                  </span>
+                )}
+              </label>
+              <input
+                className="tauze-input"
+                type="date"
+                value={formData.data_pesagem}
+                onChange={(e) => setFormData({ ...formData, data_pesagem: e.target.value })}
+                required
+              />
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* ── #6 — Performance Panel (animated slide-in) ── */}
         {lastWeighing && (
@@ -585,64 +592,73 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
           </div>
         )}
 
-        {/* ── #7 — ECC Slider ── */}
-        <div className="form-group full-width" style={{ gridColumn: 'span 4' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <TrendingUp size={14} />
-            Escore de Condição Corporal (ECC)
-            {formData.ecc > 0 && (
-              <span style={{
-                marginLeft: '4px', fontSize: '10px', fontWeight: 800,
-                color: eccLabels[formData.ecc]?.color,
-                background: eccLabels[formData.ecc]?.bg,
-                padding: '2px 8px', borderRadius: '20px',
-                border: `1px solid ${eccLabels[formData.ecc]?.color}40`
-              }}>
-                {formData.ecc} — {eccLabels[formData.ecc]?.label}
-              </span>
-            )}
-            {formData.ecc === 0 && (
-              <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600, marginLeft: '4px' }}>
-                (Opcional)
-              </span>
-            )}
-          </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '4px' }}>
-            {[1, 2, 3, 4, 5].map(score => (
-              <button
-                key={score}
-                type="button"
-                onClick={() => setFormData({ ...formData, ecc: formData.ecc === score ? 0 : score })}
-                style={{
-                  flex: 1, padding: '10px 4px', borderRadius: '12px', border: '1.5px solid',
-                  borderColor: formData.ecc === score ? eccLabels[score].color : 'hsl(var(--border))',
-                  background: formData.ecc === score ? eccLabels[score].bg : 'transparent',
-                  color: formData.ecc === score ? eccLabels[score].color : 'hsl(var(--text-muted))',
-                  cursor: 'pointer', fontSize: '11px', fontWeight: 800,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span style={{ fontSize: '16px' }}>{score}</span>
-                <span style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  {eccLabels[score].label}
-                </span>
-              </button>
-            ))}
+        <section className="tauze-form-section">
+          <div className="tauze-section-header">
+            <div className="tauze-section-badge">PASSO 02</div>
+            <h4 className="tauze-section-title">Condição e Observações</h4>
           </div>
-        </div>
+          
+          <div className="tauze-input-grid grid-col-2">
+            {/* ── #7 — ECC Slider ── */}
+            <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+              <label className="tauze-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <TrendingUp size={14} />
+                Escore de Condição Corporal (ECC)
+                {formData.ecc > 0 && (
+                  <span style={{
+                    marginLeft: '4px', fontSize: '10px', fontWeight: 800,
+                    color: eccLabels[formData.ecc]?.color,
+                    background: eccLabels[formData.ecc]?.bg,
+                    padding: '2px 8px', borderRadius: '20px',
+                    border: `1px solid ${eccLabels[formData.ecc]?.color}40`
+                  }}>
+                    {formData.ecc} — {eccLabels[formData.ecc]?.label}
+                  </span>
+                )}
+                {formData.ecc === 0 && (
+                  <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600, marginLeft: '4px' }}>
+                    (Opcional)
+                  </span>
+                )}
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '4px' }}>
+                {[1, 2, 3, 4, 5].map(score => (
+                  <button
+                    key={score}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, ecc: formData.ecc === score ? 0 : score })}
+                    style={{
+                      flex: 1, padding: '10px 4px', borderRadius: '12px', border: '1.5px solid',
+                      borderColor: formData.ecc === score ? eccLabels[score].color : 'hsl(var(--border))',
+                      background: formData.ecc === score ? eccLabels[score].bg : 'transparent',
+                      color: formData.ecc === score ? eccLabels[score].color : 'hsl(var(--text-muted))',
+                      cursor: 'pointer', fontSize: '11px', fontWeight: 800,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <span style={{ fontSize: '16px' }}>{score}</span>
+                    <span style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                      {eccLabels[score].label}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* ── Observações + toggle ── */}
-        <div className="form-group full-width">
-          <label><FileText size={14} /> Observações</label>
-          <textarea
-            placeholder="Notas sobre a condição do animal... (Ctrl+Enter para salvar)"
-            value={formData.observacao}
-            onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
-            rows={2}
-            style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-input)' }}
-          />
-        </div>
+            {/* ── Observações + toggle ── */}
+            <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+              <label className="tauze-label"><FileText size={14} /> Observações</label>
+              <textarea
+                className="tauze-input tauze-textarea"
+                placeholder="Notas sobre a condição do animal... (Ctrl+Enter para salvar)"
+                value={formData.observacao}
+                onChange={(e) => setFormData({ ...formData, observacao: e.target.value })}
+                rows={2}
+              />
+            </div>
+          </div>
+        </section>
 
         <style>{`
           .autocomplete-option:hover {

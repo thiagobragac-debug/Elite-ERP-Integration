@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import { SidePanel } from '../Layout/SidePanel';
 import { 
   Scale, 
   X, 
@@ -508,71 +508,20 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   // #1 — progress bar color
   const progressColor = progressPct === 100 ? '#10b981' : progressPct >= 50 ? 'hsl(var(--brand))' : 'hsl(38 92% 50%)';
 
-  return createPortal(
-    <div className="tauze-modal-overlay" onClick={onClose} style={{
-      position: 'fixed',
-      top: 0, left: 0, right: 0, bottom: 0,
-      background: 'rgba(15, 23, 42, 0.75)',
-      backdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 99999,
-      padding: '20px',
-      boxSizing: 'border-box'
-    }}>
-      <div className="tauze-modal-container animate-scale-up" onClick={e => e.stopPropagation()} style={{
-        background: 'linear-gradient(135deg, hsl(var(--bg-card)) 0%, hsl(var(--bg-main)) 100%)',
-        border: '1px solid hsl(var(--border))',
-        borderRadius: '24px',
-        width: '95%',
-        maxWidth: '1180px',
-        maxHeight: '90vh',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden'
-      }}>
-
-        {/* ── Header ── */}
-        <div style={{
-          padding: '20px 30px',
-          borderBottom: '1px solid hsl(var(--border) / 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: 'hsl(var(--bg-card) / 0.3)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              background: 'linear-gradient(135deg, hsl(var(--brand)) 0%, hsl(var(--brand) / 0.8) 100%)',
-              color: '#fff', padding: '10px', borderRadius: '14px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <Scale size={20} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
-                Lançamento Rápido em Massa (Modo Curral)
-              </h3>
-              <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>
-                Selecione o lote ou todos os animais para inserir pesos em série usando navegação por teclado.
-              </p>
-            </div>
-          </div>
-          <button onClick={onClose} style={{
-            background: 'none', border: 'none',
-            color: 'hsl(var(--text-muted))', cursor: 'pointer',
-            padding: '4px', borderRadius: '50%', transition: 'all 0.2s'
-          }} className="hover-close-btn">
-            <X size={20} />
-          </button>
-        </div>
-
-
+  return (
+    <SidePanel
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Lançamento Rápido em Massa (Modo Curral)"
+      subtitle="Selecione o lote ou todos os animais para inserir pesos em série usando navegação por teclado."
+      icon={Scale}
+      size="xlarge"
+      hideSubmit={true}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
         {/* ── Filters Row ── */}
         <div style={{
-          padding: '20px 30px',
+          padding: '20px',
           background: 'hsl(var(--bg-main) / 0.2)',
           borderBottom: '1px solid hsl(var(--border) / 0.4)',
           display: 'grid',
@@ -649,7 +598,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         {/* Smart Corral Bar */}
         {activeTab === 'smart' && (
           <div style={{
-            padding: '12px 30px',
+            padding: '12px 20px',
             background: 'hsl(var(--bg-main) / 0.3)',
             borderBottom: '1px solid hsl(var(--border) / 0.4)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px'
@@ -696,7 +645,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         {/* Planilha Bar */}
         {activeTab === 'planilha' && (
           <div style={{
-            padding: '12px 30px',
+            padding: '12px 20px',
             background: 'hsl(var(--bg-main) / 0.4)',
             borderBottom: '1px solid hsl(var(--border) / 0.4)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'nowrap', gap: '20px'
@@ -724,7 +673,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         {/* #3 — keyboard hint bar */}
         {activeTab === 'manual' && rows.length > 0 && !loadingAnimals && (
           <div style={{
-            padding: '6px 30px',
+            padding: '6px 20px',
             background: 'hsl(var(--brand) / 0.04)',
             borderBottom: '1px solid hsl(var(--border) / 0.3)',
             display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '16px'
@@ -744,7 +693,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         )}
 
         {/* ── Animals Grid ── */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0', minHeight: '300px' }}>
           {loadingAnimals ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', gap: '12px' }}>
               <Loader2 size={32} className="spin" color="hsl(var(--brand))" />
@@ -757,7 +706,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              {/* sticky thead */}
               <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
                 <tr style={{ background: 'hsl(var(--bg-card))', borderBottom: '2px solid hsl(var(--border))' }}>
                   <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Animal / Brinco</th>
@@ -775,7 +723,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                   const isPesado = row.newWeight !== '' && !isNaN(newW);
                   const isFocused = focusedIndex === index;
 
-                  // #2 — row background state
                   let rowBg = 'transparent';
                   let rowBorder = '1px solid hsl(var(--border) / 0.4)';
                   if (isFocused) { rowBg = 'hsl(var(--brand) / 0.04)'; rowBorder = '1px solid hsl(var(--brand) / 0.15)'; }
@@ -784,10 +731,8 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
                   return (
                     <tr key={row.animal_id} style={{ borderBottom: rowBorder, background: rowBg, transition: 'all 0.15s' }}>
-                      {/* Brinco + status indicator */}
                       <td style={{ padding: '12px 16px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {/* #2 — state dot */}
                           <span style={{
                             width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0,
                             background: isFocused ? 'hsl(var(--brand))' :
@@ -806,7 +751,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                         </div>
                       </td>
 
-                      {/* Peso Anterior */}
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: 'hsl(var(--text-muted))', textAlign: 'center' }}>
                         {row.lastWeight ? `${row.lastWeight.toFixed(2)} kg` : 'N/A'}
                         {row.lastDate && (
@@ -816,7 +760,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                         )}
                       </td>
 
-                      {/* Novo Peso Input */}
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                         <input
                           type="number"
@@ -848,7 +791,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                         />
                       </td>
 
-                      {/* #5 — Evolução colorida em tempo real */}
                       <td style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'center' }}>
                         {row.newWeight ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -867,7 +809,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                         )}
                       </td>
 
-                      {/* #5 — GMD colorido em tempo real */}
                       <td style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'center' }}>
                         {row.newWeight ? (
                           <span style={{
@@ -882,7 +823,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                         )}
                       </td>
 
-                      {/* Status */}
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
                           {row.isTypoWarning && (
@@ -918,7 +858,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         {/* #7 — Summary panel before save */}
         {showSummary && filledCount > 0 && (
           <div style={{
-            padding: '16px 30px',
+            padding: '16px 20px',
             background: 'linear-gradient(135deg, hsl(var(--brand) / 0.06) 0%, hsl(var(--brand) / 0.02) 100%)',
             borderTop: '1.5px dashed hsl(var(--brand) / 0.3)',
             borderBottom: '1px solid hsl(var(--border) / 0.5)'
@@ -965,11 +905,11 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         <div style={{
           borderTop: '1px solid hsl(var(--border) / 0.5)',
           background: 'hsl(var(--bg-card) / 0.3)',
+          marginTop: 'auto'
         }}>
           {/* Stats + Buttons row */}
-          <div style={{ padding: '12px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', overflow: 'hidden' }}>
-              {/* Progress bar integrated on the left */}
               {rows.length > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '4px' }}>
                   <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
@@ -1008,7 +948,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                 </div>
               )}
 
-              {/* Stats values */}
               {filledCount > 0 ? (
                 <>
                   <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
@@ -1067,7 +1006,6 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
           .spin { animation: spin 0.8s linear infinite; }
         `}</style>
       </div>
-    </div>,
-    document.body
+    </SidePanel>
   );
 };

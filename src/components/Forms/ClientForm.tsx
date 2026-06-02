@@ -75,6 +75,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
   }, [isOpen, activeTenantId]);
 
   const fetchCategories = async () => {
+    if (!activeTenantId) return;
     const { data } = await supabase
       .from('categorias_sistema')
       .select('id, nome')
@@ -83,6 +84,32 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
       .eq('is_active', true)
       .order('nome');
     if (data) setCategories(data);
+  };
+
+  const handleCategoriaChange = async (val: string) => {
+    const existingCat = categories.find(c => String(c.id) === val);
+    
+    if (existingCat) {
+      setFormData({ ...formData, categoria_id: val });
+    } else if (val && val.trim().length > 0) {
+      try {
+        const { data, error } = await supabase.from('categorias_sistema').insert({
+          tenant_id: activeTenantId,
+          modulo: 'parceiros',
+          nome: val.trim(),
+          is_active: true
+        }).select().single();
+        
+        if (data) {
+          fetchCategories();
+          setFormData({ ...formData, categoria_id: String(data.id) });
+        }
+      } catch (err) {
+        console.error('[ClientForm] Erro ao criar categoria:', err);
+      }
+    } else {
+      setFormData({ ...formData, categoria_id: '' });
+    }
   };
 
   React.useEffect(() => {
@@ -261,17 +288,17 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
       </div>
 
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+        <div className="tauze-field-group">
           <label><ShieldCheck size={14} /> Tipo de Parceiro</label>
-                  <SearchableSelect 
-          value={formData.categoria_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecionar...` },
-            { value: `{cat.nome}`, label: `{cat.nome}` },
-            ...(categories || []).map(cat => ({ value: String(cat.id), label: String(cat.nome) })),
-          ]}
-        />
+          <SearchableSelect 
+            value={formData.categoria_id}
+            onChange={handleCategoriaChange}
+            options={[
+              { value: '', label: 'Selecionar...' },
+              ...(categories || []).map(cat => ({ value: String(cat.id), label: String(cat.nome) })),
+            ]}
+            creatable={true}
+          />
         </div>
 
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>

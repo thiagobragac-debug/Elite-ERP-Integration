@@ -113,44 +113,60 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel="Salvar Perfil"
     >
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Shield size={14} /> Nome do Perfil</label>
-          <input 
-            type="text" 
-            placeholder="Ex: Gerente Administrativo, Tratorista..." 
-            value={formData.nome}
-            onChange={(e) => setFormData({...formData, nome: e.target.value})}
-            required 
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Dados do Perfil</h4>
+        </div>
+        
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Shield size={14} /> Nome do Perfil</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Ex: Gerente Administrativo, Tratorista..." 
+              value={formData.nome}
+              onChange={(e) => setFormData({...formData, nome: e.target.value})}
+              required 
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Descrição Curta</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Ex: Acesso total aos módulos de campo e estoque." 
+              value={formData.descricao}
+              onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Níveis de Permissão</h4>
         </div>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><FileText size={14} /> Descrição Curta</label>
-          <input 
-            type="text" 
-            placeholder="Ex: Acesso total aos módulos de campo e estoque." 
-            value={formData.descricao}
-            onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-          />
+        <div className="tauze-field-group full-width">
+          <label className="tauze-label"><Lock size={14} /> Permissões de Acesso</label>
+          <div className="tauze-permissions-grid">
+            {availablePermissions.map(perm => (
+              <div 
+                key={perm.id} 
+                onClick={() => togglePermission(perm.id)}
+                className={`tauze-permission-item ${formData.permissoes.includes(perm.id) ? 'active' : ''}`}
+              >
+                {formData.permissoes.includes(perm.id) ? <CheckCircle2 size={16} /> : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '1px solid var(--border)' }}></div>}
+                {perm.label}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-
-      <div className="form-group full-width">
-        <label><Lock size={14} /> Permissões de Acesso</label>
-        <div className="tauze-permissions-grid">
-          {availablePermissions.map(perm => (
-            <div 
-              key={perm.id} 
-              onClick={() => togglePermission(perm.id)}
-              className={`tauze-permission-item ${formData.permissoes.includes(perm.id) ? 'active' : ''}`}
-            >
-              {formData.permissoes.includes(perm.id) ? <CheckCircle2 size={16} /> : <div style={{ width: 16, height: 16, borderRadius: '50%', border: '1px solid var(--border)' }}></div>}
-              {perm.label}
-            </div>
-          ))}
-        </div>
-      </div>
+      </section>
     </SidePanel>
   );
 };

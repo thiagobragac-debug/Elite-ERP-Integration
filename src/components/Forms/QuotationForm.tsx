@@ -108,99 +108,120 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Iniciar Comparativo"}
     >
-      <div className="form-group">
-        <label><Package size={14} /> Item para Cotação</label>
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Identificação do Item</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Package size={14} /> Item para Cotação</label>
+            <SearchableSelect 
+              value={formData.item_id}
+              onChange={(val: any) => setFormData({...formData, item_id: val})}
+              options={[
+                { value: '', label: 'Selecione o produto...' },
+                ...(products || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
+              ]}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Hash size={14} /> Quantidade & Unidade</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input 
+                className="tauze-input"
+                type="number" 
+                placeholder="0" 
+                style={{ flex: 1 }}
+                value={formData.quantity}
+                onChange={(e) => setFormData({...formData, quantity: e.target.value})}
+                required
+              />
+              <div style={{ flex: 1 }}>
                 <SearchableSelect 
-          value={formData.item_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione o produto...` },
-            { value: `{p.nome}`, label: `{p.nome}` },
-            ...(products || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
-          ]}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Hash size={14} /> Quantidade & Unidade</label>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <input 
-            type="number" 
-            placeholder="0" 
-            style={{ flex: 1 }}
-            value={formData.quantity}
-            onChange={(e) => setFormData({...formData, quantity: e.target.value})}
-            required
-          />
-                  <SearchableSelect 
-          value={formData.unit}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `Unidades`, label: `Unidades` },
-            { value: `Toneladas`, label: `Toneladas` },
-            { value: `Sacos`, label: `Sacos` },
-            { value: `Litros`, label: `Litros` },
-            { value: `Frascos`, label: `Frascos` },
-          ]}
-        />
-        </div>
-      </div>
-
-      <div className="form-group full-width">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <label style={{ margin: 0 }}><Building2 size={14} /> Comparativo de Parceiroes</label>
-          <button type="button" className="text-btn-primary" onClick={addSupplier} style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Plus size={14} /> Adicionar Parceiro
-          </button>
-        </div>
-        
-        <div className="suppliers-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {formData.suppliers.map((sup, idx) => (
-            <div key={idx} className="tauze-form-info-box" style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '2fr 1fr 1fr 40px', 
-              gap: '12px', 
-              padding: '12px', 
-              alignItems: 'center'
-            }}>
-                      <SearchableSelect 
-          value={sup.supplier_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Parceiro...` },
-            { value: `{s.nome}`, label: `{s.nome}` },
-            ...(suppliers || []).map(s => ({ value: String(s.id), label: String(s.nome) })),
-          ]}
-        />
-              <div style={{ position: 'relative' }}>
-                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>R$</span>
-                <input 
-                  type="number" 
-                  placeholder="Preço" 
-                  style={{ paddingLeft: '30px' }}
-                  value={sup.price}
-                  onChange={(e) => updateSupplier(idx, 'price', e.target.value)}
-                  required
+                  value={formData.unit}
+                  onChange={(val: any) => setFormData({...formData, unit: val})}
+                  options={[
+                    { value: 'Unidades', label: 'Unidades' },
+                    { value: 'Toneladas', label: 'Toneladas' },
+                    { value: 'Sacos', label: 'Sacos' },
+                    { value: 'Litros', label: 'Litros' },
+                    { value: 'Frascos', label: 'Frascos' },
+                  ]}
                 />
               </div>
-              <div style={{ position: 'relative' }}>
-                <input 
-                  type="number" 
-                  placeholder="Entrega" 
-                  style={{ paddingRight: '35px' }}
-                  value={sup.delivery_days}
-                  onChange={(e) => updateSupplier(idx, 'delivery_days', e.target.value)}
-                  required
-                />
-                <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.65rem', color: 'var(--text-muted)', pointerEvents: 'none' }}>DIAS</span>
-              </div>
-              <button type="button" className="icon-btn" onClick={() => removeSupplier(idx)} style={{ color: 'hsl(var(--destructive))', background: 'transparent', border: 'none' }}>
-                <Trash2 size={18} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Comparativo de Fornecedores</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group full-width">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+              <button type="button" className="text-btn-primary" onClick={addSupplier} style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Plus size={14} /> Adicionar Fornecedor
               </button>
             </div>
-          ))}
+            
+            <div className="suppliers-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {formData.suppliers.map((sup, idx) => (
+                <div key={idx} style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '2fr 1fr 1fr 40px', 
+                  gap: '12px', 
+                  padding: '16px', 
+                  alignItems: 'center',
+                  background: 'hsl(var(--bg-main)/0.5)',
+                  borderRadius: '12px',
+                  border: '1px solid hsl(var(--border))'
+                }}>
+                  <SearchableSelect 
+                    value={sup.supplier_id}
+                    onChange={(val: any) => updateSupplier(idx, 'supplier_id', val)}
+                    options={[
+                      { value: '', label: 'Fornecedor...' },
+                      ...(suppliers || []).map(s => ({ value: String(s.id), label: String(s.nome) })),
+                    ]}
+                  />
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.75rem', color: 'hsl(var(--text-muted))', fontWeight: 700 }}>R$</span>
+                    <input 
+                      className="tauze-input"
+                      type="number" 
+                      placeholder="Preço" 
+                      style={{ paddingLeft: '32px' }}
+                      value={sup.price}
+                      onChange={(e) => updateSupplier(idx, 'price', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <input 
+                      className="tauze-input"
+                      type="number" 
+                      placeholder="Entrega" 
+                      style={{ paddingRight: '40px' }}
+                      value={sup.delivery_days}
+                      onChange={(e) => updateSupplier(idx, 'delivery_days', e.target.value)}
+                      required
+                    />
+                    <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.65rem', color: 'hsl(var(--text-muted))', fontWeight: 700, pointerEvents: 'none' }}>DIAS</span>
+                  </div>
+                  <button type="button" className="icon-btn" onClick={() => removeSupplier(idx)} style={{ color: 'hsl(var(--destructive))', background: 'transparent', border: 'none' }}>
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
     </SidePanel>
   );
 };

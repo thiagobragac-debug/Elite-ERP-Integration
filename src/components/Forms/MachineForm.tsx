@@ -26,7 +26,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
     nome: '',
     marca: '',
     modelo: '',
-    categoria: 'Trator',
+    categoria: '',
     horimetro_inicial: '0',
     quilometragem_inicial: '0',
     placa: '',
@@ -55,6 +55,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
   }, [isOpen, activeTenantId]);
 
   const fetchCategories = async () => {
+    if (!activeTenantId) return;
     const { data } = await supabase
       .from('categorias_sistema')
       .select('id, nome')
@@ -65,13 +66,30 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
     if (data) setCategories(data);
   };
 
+  const handleCategoriaChange = async (val: string) => {
+    setFormData({ ...formData, categoria: val });
+    if (val && !categories.find(c => String(c.nome) === val)) {
+      try {
+        await supabase.from('categorias_sistema').insert({
+          tenant_id: activeTenantId,
+          modulo: 'frota',
+          nome: val,
+          is_active: true
+        });
+        fetchCategories();
+      } catch (err) {
+        console.error('[MachineForm] Erro ao criar categoria:', err);
+      }
+    }
+  };
+
   React.useEffect(() => {
     if (initialData) {
       setFormData({
         nome: initialData.nome || '',
         marca: initialData.marca || '',
         modelo: initialData.modelo || '',
-        categoria: initialData.categoria || 'Trator',
+        categoria: initialData.categoria || '',
         horimetro_inicial: initialData.horimetro_atual?.toString() || '0',
         quilometragem_inicial: initialData.quilometragem_atual?.toString() || '0',
         placa: initialData.placa || '',
@@ -93,7 +111,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
         nome: '',
         marca: '',
         modelo: '',
-        categoria: 'Trator',
+        categoria: '',
         horimetro_inicial: '0',
         quilometragem_inicial: '0',
         placa: '',
@@ -134,223 +152,274 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Ativo"}
     >
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr 1.5fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Truck size={14} /> Nome do Ativo</label>
-          <input 
-            type="text" 
-            placeholder="Ex: Trator 01, Hilux Branca..." 
-            value={formData.nome}
-            onChange={(e) => setFormData({...formData, nome: e.target.value})}
-            required 
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 01</div>
+          <h4 className="tauze-section-title">Identificação Básica</h4>
         </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Truck size={14} /> Nome do Ativo</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: Trator 01..." 
+              value={formData.nome}
+              onChange={(e) => setFormData({...formData, nome: e.target.value})}
+              required 
+            />
+          </div>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Tag size={14} /> Marca</label>
-          <input 
-            type="text" 
-            placeholder="Ex: John Deere, Toyota..." 
-            value={formData.marca}
-            onChange={(e) => setFormData({...formData, marca: e.target.value})}
-            required
-          />
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Tag size={14} /> Marca</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: John Deere..." 
+              value={formData.marca}
+              onChange={(e) => setFormData({...formData, marca: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Layers size={14} /> Modelo</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: 6125J, SRX..." 
+              value={formData.modelo}
+              onChange={(e) => setFormData({...formData, modelo: e.target.value})}
+              required
+            />
+          </div>
         </div>
+      </section>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Layers size={14} /> Modelo</label>
-          <input 
-            type="text" 
-            placeholder="Ex: 6125J, SRX..." 
-            value={formData.modelo}
-            onChange={(e) => setFormData({...formData, modelo: e.target.value})}
-            required
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 02</div>
+          <h4 className="tauze-section-title">Especificações Técnicas</h4>
         </div>
-      </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Settings size={14} /> Categoria</label>
+            <SearchableSelect 
+              value={formData.categoria}
+              onChange={handleCategoriaChange}
+              options={[
+                { value: '', label: 'Selecionar...' },
+                ...(categories || []).map(cat => ({ value: String(cat.nome), label: String(cat.nome) })),
+              ]}
+              creatable={true}
+            />
+          </div>
 
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Settings size={14} /> Categoria</label>
-                  <SearchableSelect 
-          value={formData.categoria}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecionar...` },
-            { value: `{cat.nome}`, label: `{cat.nome}` },
-            ...(categories || []).map(cat => ({ value: String(cat.nome), label: String(cat.nome) })),
-          ]}
-        />
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Ano</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              placeholder="2024" 
+              value={formData.ano}
+              onChange={(e) => setFormData({...formData, ano: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Potência (cv)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              placeholder="Ex: 125" 
+              value={formData.potencia}
+              onChange={(e) => setFormData({...formData, potencia: e.target.value})}
+            />
+          </div>
         </div>
+      </section>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Calendar size={14} /> Ano</label>
-          <input 
-            type="number" 
-            placeholder="2024" 
-            value={formData.ano}
-            onChange={(e) => setFormData({...formData, ano: e.target.value})}
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 03</div>
+          <h4 className="tauze-section-title">Documentação e Combustível</h4>
         </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Hash size={14} /> Placa / Registro</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="ABC-1234" 
+              value={formData.placa}
+              onChange={(e) => setFormData({...formData, placa: e.target.value})}
+            />
+          </div>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Activity size={14} /> Potência (cv)</label>
-          <input 
-            type="number" 
-            placeholder="Ex: 125" 
-            value={formData.potencia}
-            onChange={(e) => setFormData({...formData, potencia: e.target.value})}
-          />
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Hash size={14} /> Chassi / Série</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Número de série..." 
+              value={formData.chassi}
+              onChange={(e) => setFormData({...formData, chassi: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Settings size={14} /> Combustível</label>
+            <SearchableSelect 
+              value={formData.combustivel}
+              onChange={(val: any) => setFormData({...formData, combustivel: val})}
+              options={[
+                { value: 'Diesel', label: 'Diesel' },
+                { value: 'Diesel S10', label: 'Diesel S10' },
+                { value: 'Gasolina', label: 'Gasolina' },
+                { value: 'Etanol', label: 'Etanol' },
+                { value: 'Arla 32', label: 'Arla 32' },
+              ]}
+            />
+          </div>
         </div>
-      </div>
+      </section>
 
-
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Hash size={14} /> Placa / Registro</label>
-          <input 
-            type="text" 
-            placeholder="ABC-1234" 
-            value={formData.placa}
-            onChange={(e) => setFormData({...formData, placa: e.target.value})}
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 04</div>
+          <h4 className="tauze-section-title">Medições Iniciais e Capacidade</h4>
         </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Cap. Tanque (L)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              placeholder="0" 
+              value={formData.capacidade_tanque}
+              onChange={(e) => setFormData({...formData, capacidade_tanque: e.target.value})}
+            />
+          </div>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Hash size={14} /> Chassi / Série</label>
-          <input 
-            type="text" 
-            placeholder="Número de identificação..." 
-            value={formData.chassi}
-            onChange={(e) => setFormData({...formData, chassi: e.target.value})}
-          />
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Horímetro Inicial</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              placeholder="0" 
+              value={formData.horimetro_inicial}
+              onChange={(e) => setFormData({...formData, horimetro_inicial: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> KM Inicial</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              placeholder="0" 
+              value={formData.quilometragem_inicial}
+              onChange={(e) => setFormData({...formData, quilometragem_inicial: e.target.value})}
+            />
+          </div>
         </div>
+      </section>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Settings size={14} /> Combustível</label>
-                  <SearchableSelect 
-          value={formData.combustivel}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `Diesel`, label: `Diesel` },
-            { value: `Diesel S10`, label: `Diesel S10` },
-            { value: `Gasolina`, label: `Gasolina` },
-            { value: `Etanol`, label: `Etanol` },
-            { value: `Arla 32`, label: `Arla 32` },
-          ]}
-        />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 05</div>
+          <h4 className="tauze-section-title">Indicadores Operacionais</h4>
         </div>
-      </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Valor Compra (R$)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01"
+              placeholder="0.00" 
+              value={formData.valor_compra}
+              onChange={(e) => setFormData({...formData, valor_compra: e.target.value})}
+            />
+          </div>
 
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Activity size={14} /> Capacidade Tanque (L)</label>
-          <input 
-            type="number" 
-            placeholder="0" 
-            value={formData.capacidade_tanque}
-            onChange={(e) => setFormData({...formData, capacidade_tanque: e.target.value})}
-          />
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Peso Op. (kg)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              placeholder="Ex: 5800" 
+              value={formData.peso_operacional}
+              onChange={(e) => setFormData({...formData, peso_operacional: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Settings size={14} /> Int. Revisão (h/km)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              placeholder="Ex: 250" 
+              value={formData.intervalo_revisao}
+              onChange={(e) => setFormData({...formData, intervalo_revisao: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Meta Cons. (L/h)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.1"
+              placeholder="Ex: 14.5" 
+              value={formData.consumo_estimado}
+              onChange={(e) => setFormData({...formData, consumo_estimado: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Próxima Revisão</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={formData.data_proxima_revisao}
+              onChange={(e) => setFormData({...formData, data_proxima_revisao: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Status da Máquina</label>
+            <SearchableSelect 
+              value={formData.status}
+              onChange={(val: any) => setFormData({...formData, status: val})}
+              options={[
+                { value: 'active', label: 'Operacional' },
+                { value: 'maintenance', label: 'Em Manutenção' },
+                { value: 'stopped', label: 'Parado (Crítico)' },
+              ]}
+            />
+          </div>
         </div>
+      </section>
 
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Activity size={14} /> Horímetro Inicial</label>
-          <input 
-            type="number" 
-            placeholder="0" 
-            value={formData.horimetro_inicial}
-            onChange={(e) => setFormData({...formData, horimetro_inicial: e.target.value})}
-          />
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 06</div>
+          <h4 className="tauze-section-title">Informações Adicionais</h4>
         </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Activity size={14} /> KM Inicial</label>
-          <input 
-            type="number" 
-            placeholder="0" 
-            value={formData.quilometragem_inicial}
-            onChange={(e) => setFormData({...formData, quilometragem_inicial: e.target.value})}
-          />
+        <div className="tauze-input-grid grid-col-1">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Tag size={14} /> Observações Gerais</label>
+            <textarea 
+              className="tauze-input"
+              placeholder="Histórico de avarias, notas sobre garantia ou especificações extras..." 
+              value={formData.observacoes}
+              onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+              rows={3}
+            />
+          </div>
         </div>
-      </div>
-
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><DollarSign size={14} /> Valor de Compra (R$)</label>
-          <input 
-            type="number" 
-            step="0.01"
-            placeholder="0.00" 
-            value={formData.valor_compra}
-            onChange={(e) => setFormData({...formData, valor_compra: e.target.value})}
-          />
-        </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Activity size={14} /> Peso Operacional (kg)</label>
-          <input 
-            type="number" 
-            placeholder="Ex: 5800" 
-            value={formData.peso_operacional}
-            onChange={(e) => setFormData({...formData, peso_operacional: e.target.value})}
-          />
-        </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Settings size={14} /> Intervalo Revisão (h/km)</label>
-          <input 
-            type="number" 
-            placeholder="Ex: 250" 
-            value={formData.intervalo_revisao}
-            onChange={(e) => setFormData({...formData, intervalo_revisao: e.target.value})}
-          />
-        </div>
-      </div>
-
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Activity size={14} /> Meta de Consumo (L/h)</label>
-          <input 
-            type="number" 
-            step="0.1"
-            placeholder="Ex: 14.5" 
-            value={formData.consumo_estimado}
-            onChange={(e) => setFormData({...formData, consumo_estimado: e.target.value})}
-          />
-        </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Calendar size={14} /> Próxima Revisão</label>
-          <input 
-            type="date" 
-            value={formData.data_proxima_revisao}
-            onChange={(e) => setFormData({...formData, data_proxima_revisao: e.target.value})}
-          />
-        </div>
-
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Activity size={14} /> Status da Máquina</label>
-                  <SearchableSelect 
-          value={formData.status}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: `active`, label: `Operacional` },
-            { value: `maintenance`, label: `Em Manutenção` },
-            { value: `stopped`, label: `Parado (Crítico)` },
-          ]}
-        />
-        </div>
-      </div>
-
-      <div className="form-group full-width">
-        <label><Tag size={14} /> Observações Gerais</label>
-        <textarea 
-          placeholder="Histórico de avarias, notas sobre garantia ou especificações extras..." 
-          value={formData.observacoes}
-          onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
-          style={{ width: '100%', minHeight: '80px', padding: '12px', borderRadius: '12px', border: '1px solid var(--border)', background: 'var(--bg-input)' }}
-        />
-      </div>
+      </section>
     </SidePanel>
   );
 };

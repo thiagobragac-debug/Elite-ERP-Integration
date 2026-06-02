@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart2, 
   TrendingUp, 
@@ -68,7 +68,7 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
       title="Simulação de Hedge"
       subtitle="Projeção de cenários financeiros e proteção de margem de lucro."
       icon={BarChart2}
-      size="large"
+      size="xlarge"
       submitLabel="Salvar Simulação"
     >
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '32px', gridColumn: 'span 2' }}>
