@@ -83,7 +83,7 @@ export function ModernTable<T extends { id: string | number }>({
   }, [safeData, searchTerm, onPageChange]);
 
   const effectiveTotal = totalCount ?? filteredData.length;
-  const totalPages = Math.ceil(effectiveTotal / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(effectiveTotal / itemsPerPage));
   
   const paginatedData = onPageChange 
     ? filteredData 

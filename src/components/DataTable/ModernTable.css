@@ -1,4 +1,4 @@
-﻿.modern-table-container {
+.modern-table-container {
   background: hsl(var(--bg-card));
   border: 1px solid hsl(var(--border) / 0.5);
   border-radius: var(--radius-lg);
@@ -242,7 +242,7 @@
 
 /* Pagination Tauze v5.0 */
 .table-pagination {
-  padding: 20px 32px;
+  padding: 20px 100px 20px 32px;
   display: flex;
   justify-content: space-between;
   align-items: center;
