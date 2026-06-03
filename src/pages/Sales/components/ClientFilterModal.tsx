@@ -76,9 +76,9 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
               style={{ 
                 width: '100%', 
                 justifyContent: 'center',
-                borderColor: filters.onlyChurnRisk ? '#ef4444' : '#e2e8f0', 
-                background: filters.onlyChurnRisk ? '#ef4444' : 'white',
-                color: filters.onlyChurnRisk ? 'white' : '#64748b'
+                borderColor: filters.onlyChurnRisk ? '#ef4444' : 'hsl(var(--border))', 
+                background: filters.onlyChurnRisk ? '#ef4444' : 'hsl(var(--bg-card))',
+                color: filters.onlyChurnRisk ? 'white' : 'hsl(var(--text-muted))'
               }}
             >
               Apenas Parceiros em Risco (&gt;90d inativo)
@@ -95,11 +95,11 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
                     padding: '12px 4px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.rating === r ? '#f59e0b' : '#64748b', 
+                    color: filters.rating === r ? '#f59e0b' : 'hsl(var(--text-muted))', 
                     background: filters.rating === r ? '#fffbeb' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.rating === r ? '#f59e0b' : '#e2e8f0',
+                    borderColor: filters.rating === r ? '#f59e0b' : 'hsl(var(--border))',
                     cursor: 'pointer'
                   }}
                   onClick={() => setFilters({ ...filters, rating: r })}
@@ -119,9 +119,9 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.segments?.includes(seg) ? 'active' : ''}`}
                   onClick={() => toggleSegment(seg)}
                   style={{ 
-                    borderColor: filters.segments?.includes(seg) ? '#10b981' : '#e2e8f0', 
-                    background: filters.segments?.includes(seg) ? '#10b981' : 'white',
-                    color: filters.segments?.includes(seg) ? 'white' : '#64748b'
+                    borderColor: filters.segments?.includes(seg) ? '#10b981' : 'hsl(var(--border))', 
+                    background: filters.segments?.includes(seg) ? '#10b981' : 'hsl(var(--bg-card))',
+                    color: filters.segments?.includes(seg) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {seg}
@@ -132,10 +132,10 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Exposição Financeira (LTV) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10b981' }}>{filters.maxLtv.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Volume Acumulado</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Volume Acumulado</span>
               </div>
               <input 
                 type="range" 

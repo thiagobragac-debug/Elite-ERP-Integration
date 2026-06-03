@@ -242,7 +242,7 @@ export const LandingPage: React.FC = () => {
 
       <style>{`
         .landing-diamond-v8 {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: #1e293b;
           font-family: 'Inter', sans-serif;
           min-height: 100vh;
@@ -296,7 +296,7 @@ export const LandingPage: React.FC = () => {
 
         .hero-grid-v8 { display: grid; grid-template-columns: 1fr 1.1fr; gap: 60px; align-items: center; position: relative; }
 
-        .pre-title-v8 { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px; background: white; border-radius: 100px; border: 1px solid #e2e8f0; font-size: 0.75rem; font-weight: 900; color: #10b981; margin-bottom: 24px; }
+        .pre-title-v8 { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px; background: hsl(var(--bg-card)); border-radius: 100px; border: 1px solid hsl(var(--border)); font-size: 0.75rem; font-weight: 900; color: #10b981; margin-bottom: 24px; }
         .hero-text-v8 h1 { font-family: 'Outfit'; font-size: 4.5rem; font-weight: 900; line-height: 1.1; letter-spacing: -0.04em; color: #0f172a; margin-bottom: 24px; }
         .hero-text-v8 h1 span { color: #10b981; }
         .hero-text-v8 p { font-size: 1.25rem; color: #64748b; line-height: 1.6; margin-bottom: 48px; max-width: 500px; }
@@ -304,7 +304,7 @@ export const LandingPage: React.FC = () => {
         .hero-actions-v8 { display: flex; align-items: center; gap: 32px; margin-bottom: 64px; }
         .btn-v8-primary { padding: 20px 40px; background: #10b981; color: white; border-radius: 16px; font-size: 1.1rem; font-weight: 900; display: flex; align-items: center; gap: 12px; box-shadow: 0 20px 40px rgba(16, 185, 129, 0.2); }
         .btn-v8-ghost { display: flex; align-items: center; gap: 12px; font-weight: 800; color: #64748b; cursor: pointer; }
-        .play-circle-v8 { width: 44px; height: 44px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .play-circle-v8 { width: 44px; height: 44px; background: hsl(var(--bg-card)); border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
 
         .hero-metrics-v8 { display: flex; gap: 60px; padding-top: 40px; border-top: 1px solid #f1f5f9; }
         .metric-v8 { display: flex; flex-direction: column; }
@@ -336,7 +336,7 @@ export const LandingPage: React.FC = () => {
         .dashboard-v20 {
           width: 90%;
           aspect-ratio: 1 / 1;
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 32px;
           border: 1px solid #f1f5f9;
           box-shadow: 0 60px 120px rgba(0,0,0,0.08);
@@ -402,7 +402,7 @@ export const LandingPage: React.FC = () => {
 
         .floating-card-v8 {
           position: absolute;
-          background: white;
+          background: hsl(var(--bg-card));
           padding: 16px 24px;
           border-radius: 16px;
           border: 1px solid #f1f5f9;
@@ -424,9 +424,9 @@ export const LandingPage: React.FC = () => {
         .header-v8 h2 { font-family: 'Outfit'; font-size: 3.5rem; font-weight: 900; color: #0f172a; letter-spacing: -0.03em; }
 
         .grid-v8 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; }
-        .card-v8 { background: #f8fafc; padding: 40px; border-radius: 32px; border: 1px solid transparent; transition: 0.3s; }
-        .card-v8:hover { background: white; border-color: #10b981; transform: translateY(-10px); box-shadow: 0 30px 60px rgba(0,0,0,0.05); }
-        .icon-v8 { width: 56px; height: 56px; background: white; color: #10b981; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.02); }
+        .card-v8 { background: hsl(var(--bg-main)); padding: 40px; border-radius: 32px; border: 1px solid transparent; transition: 0.3s; }
+        .card-v8:hover { background: hsl(var(--bg-card)); border-color: #10b981; transform: translateY(-10px); box-shadow: 0 30px 60px rgba(0,0,0,0.05); }
+        .icon-v8 { width: 56px; height: 56px; background: hsl(var(--bg-card)); color: #10b981; border-radius: 14px; display: flex; align-items: center; justify-content: center; margin-bottom: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.02); }
         .card-v8 h3 { font-size: 1.6rem; font-weight: 900; margin-bottom: 16px; color: #0f172a; }
         .card-v8 p { font-size: 1rem; color: #64748b; line-height: 1.5; margin-bottom: 24px; }
         .list-v8 { list-style: none; display: flex; flex-direction: column; gap: 12px; }

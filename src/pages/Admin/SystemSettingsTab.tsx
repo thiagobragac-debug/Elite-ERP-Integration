@@ -819,7 +819,7 @@ export const SystemSettingsTab: React.FC<{
           position: absolute; 
           width: 22px; 
           height: 22px; 
-          background: white; 
+          background: hsl(var(--bg-card)); 
           border-radius: 50%; 
           top: 3px; 
           left: 3px; 

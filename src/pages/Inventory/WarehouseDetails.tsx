@@ -130,7 +130,7 @@ export const WarehouseDetails: React.FC = () => {
       header: 'Insumo / Produto',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'hsl(var(--bg-main))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
             <Package size={20} />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -303,7 +303,7 @@ export const WarehouseDetails: React.FC = () => {
         </div>
       </div>
 
-      <div className="details-content" style={{ background: 'white', borderRadius: '24px', border: '1px solid hsl(var(--border))', padding: '24px' }}>
+      <div className="details-content" style={{ background: 'hsl(var(--bg-card))', borderRadius: '24px', border: '1px solid hsl(var(--border))', padding: '24px' }}>
         {activeTab === 'stock' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>

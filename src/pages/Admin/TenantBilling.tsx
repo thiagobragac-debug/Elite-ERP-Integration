@@ -191,7 +191,7 @@ export const TenantBilling: React.FC = () => {
       header: 'Fatura / Descrição',
       accessor: (item: any) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px' }}>
-          <div style={{ background: '#f8fafc', width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+          <div style={{ background: 'hsl(var(--bg-main))', width: '36px', height: '36px', borderRadius: '10px', border: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
             <CreditCard size={18} />
           </div>
           <span style={{ fontWeight: 800, color: 'hsl(var(--text-main))', fontSize: '13px', textTransform: 'uppercase' }}>Fatura - {item.plan_name}</span>
@@ -245,7 +245,7 @@ export const TenantBilling: React.FC = () => {
           >
             Pagar Agora
           </button>
-        ) : <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 700, background: '#f8fafc', padding: '6px 12px', borderRadius: '8px' }}>Finalizada</span>
+        ) : <span style={{ color: '#94a3b8', fontSize: '11px', fontWeight: 700, background: 'hsl(var(--bg-main))', padding: '6px 12px', borderRadius: '8px' }}>Finalizada</span>
       )
     }
   ];
@@ -403,85 +403,51 @@ export const TenantBilling: React.FC = () => {
                       key={plan.id}
                       whileHover={{ y: -12, scale: 1.02 }}
                       transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                      className="pricing-card-premium"
-                      style={{ 
-                        position: 'relative',
-                        padding: '40px', 
-                        background: plan.isPopular 
-                          ? 'linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%)' 
-                          : 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
-                        border: plan.isPopular ? '2px solid #10b981' : '1px solid rgba(203, 213, 225, 0.5)',
-                        borderRadius: '32px',
-                        boxShadow: plan.isPopular 
-                          ? '0 20px 40px -10px rgba(16, 185, 129, 0.15)' 
-                          : '0 10px 30px -10px rgba(0,0,0,0.05)',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        flexDirection: 'column'
-                      }}
+                      className={`pricing-card-premium ${plan.isPopular ? 'popular' : 'standard'}`}
                     >
                       {/* Decorative background blur */}
                       {plan.isPopular && (
-                        <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%)', borderRadius: '50%', filter: 'blur(20px)' }} />
+                        <div className="popular-blur-bg" />
                       )}
 
                       {plan.isPopular && (
-                        <div style={{ position: 'absolute', top: '24px', right: '24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', padding: '6px 16px', borderRadius: '20px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1.5px', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}>
+                        <div className="popular-badge">
                           MAIS ESCOLHIDO
                         </div>
                       )}
                       
-                      <div style={{ marginBottom: '32px', position: 'relative', zIndex: 1 }}>
-                        <div style={{ width: '48px', height: '48px', borderRadius: '16px', background: plan.isPopular ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
-                          {plan.isPopular ? <TrendingUp size={24} color="#10b981" /> : <LayoutGrid size={24} color="#3b82f6" />}
+                      <div className="plan-header-content">
+                        <div className="plan-icon-wrapper">
+                          {plan.isPopular ? <TrendingUp size={24} color="#10b981" /> : <LayoutGrid size={24} className="standard-icon" />}
                         </div>
-                        <h4 style={{ fontSize: '13px', fontWeight: 900, color: plan.isPopular ? '#059669' : '#64748b', textTransform: 'uppercase', margin: '0 0 16px', letterSpacing: '1.5px' }}>{plan.name}</h4>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
-                          <span style={{ fontSize: '18px', fontWeight: 800, color: 'hsl(var(--text-main))', marginTop: '6px' }}>R$</span>
-                          <h3 style={{ margin: 0, fontSize: '56px', fontWeight: 900, color: 'hsl(var(--text-main))', letterSpacing: '-2px', lineHeight: '1' }}>
+                        <h4 className="plan-name">{plan.name}</h4>
+                        <div className="plan-price-wrapper">
+                          <span className="price-currency">R$</span>
+                          <h3 className="price-amount">
                             {plan.price.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                           </h3>
-                          <span style={{ fontSize: '16px', fontWeight: 600, color: '#94a3b8', alignSelf: 'flex-end', marginBottom: '8px' }}>/mês</span>
+                          <span className="price-period">/mês</span>
                         </div>
-                        <p style={{ color: '#64748b', fontSize: '14px', margin: '20px 0 0', fontWeight: 500, lineHeight: '1.6' }}>
+                        <p className="plan-desc">
                           {plan.description || `Infraestrutura sob medida para suportar operações de até ${plan.users_limit} usuários simultâneos.`}
                         </p>
                       </div>
                       
-                      <div style={{ flex: 1, marginBottom: '36px', position: 'relative', zIndex: 1 }}>
-                        <div style={{ height: '1px', background: 'linear-gradient(90deg, rgba(203, 213, 225, 0.5) 0%, transparent 100%)', marginBottom: '24px' }} />
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div className="plan-features-wrapper">
+                        <div className="plan-divider" />
+                        <div className="features-list">
                           {(Array.isArray(plan.features) ? plan.features : []).map((f: string, i: number) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{ width: '24px', height: '24px', background: plan.isPopular ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: plan.isPopular ? '0 4px 10px rgba(16, 185, 129, 0.2)' : 'none' }}>
-                                <Check size={14} color={plan.isPopular ? "#ffffff" : "#64748b"} strokeWidth={3} />
+                            <div key={i} className="feature-item">
+                              <div className="feature-check-wrapper">
+                                <Check size={14} className="feature-check-icon" strokeWidth={3} />
                               </div>
-                              <span style={{ fontSize: '14px', color: 'hsl(var(--text-main))', fontWeight: 600 }}>{f}</span>
+                              <span className="feature-text">{f}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                       
-                      <button 
-                        className={plan.isPopular ? "premium-action-btn" : "glass-btn"}
-                        style={{ 
-                          width: '100%', 
-                          padding: '20px', 
-                          borderRadius: '16px', 
-                          fontWeight: 900, 
-                          fontSize: '13px', 
-                          textTransform: 'uppercase', 
-                          letterSpacing: '1px',
-                          background: plan.isPopular ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'white',
-                          color: plan.isPopular ? '#fff' : 'hsl(var(--text-main))',
-                          border: plan.isPopular ? 'none' : '2px solid #e2e8f0',
-                          boxShadow: plan.isPopular ? '0 15px 30px -10px rgba(16, 185, 129, 0.4)' : 'none',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          position: 'relative',
-                          zIndex: 1
-                        }}
-                      >
+                      <button className={plan.isPopular ? "premium-action-btn popular-btn" : "glass-btn standard-action-btn"}>
                         MUDAR PARA {plan.name}
                       </button>
                     </motion.div>
@@ -621,7 +587,7 @@ export const TenantBilling: React.FC = () => {
               </div>
 
               {paymentMethod === 'pix' && (
-                <div style={{ width: '100%', background: '#f8fafc', padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px dashed #cbd5e1' }}>
+                <div style={{ width: '100%', background: 'hsl(var(--bg-main))', padding: '24px', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px dashed #cbd5e1' }}>
                   {!pixGenerated ? (
                     <button 
                       onClick={() => {
@@ -635,14 +601,14 @@ export const TenantBilling: React.FC = () => {
                     </button>
                   ) : (
                     <>
-                      <div style={{ width: '160px', height: '160px', background: 'white', borderRadius: '12px', padding: '8px', marginBottom: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: '160px', height: '160px', background: 'hsl(var(--bg-card))', borderRadius: '12px', padding: '8px', marginBottom: '16px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <div style={{ width: '100%', height: '100%', background: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%230f172a" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>')`, backgroundSize: '100% 100%', opacity: 0.8 }} />
                       </div>
                       <p style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: 700, color: '#334155', textAlign: 'center' }}>
                         Escaneie o QR Code ou copie a chave PIX abaixo
                       </p>
                       <div style={{ display: 'flex', width: '100%', gap: '8px' }}>
-                        <input readOnly value="00020126580014br.gov.bcb.pix0136..." style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontSize: '12px', color: '#64748b' }} />
+                        <input readOnly value="00020126580014br.gov.bcb.pix0136..." style={{ flex: 1, padding: '10px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'hsl(var(--bg-card))', fontSize: '12px', color: '#64748b' }} />
                         <button onClick={() => toast.error('Chave PIX copiada!')} style={{ padding: '0 16px', background: '#334155', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}>Copiar</button>
                       </div>
                     </>
@@ -675,6 +641,105 @@ export const TenantBilling: React.FC = () => {
         </div>
       , document.body)}
 
+      <style>{`
+        .pricing-card-premium {
+          position: relative;
+          padding: 40px;
+          border-radius: 32px;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+        }
+        .pricing-card-premium.standard {
+          background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+          border: 1px solid rgba(203, 213, 225, 0.5);
+          box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05);
+        }
+        .pricing-card-premium.popular {
+          background: linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%);
+          border: 2px solid #10b981;
+          box-shadow: 0 20px 40px -10px rgba(16, 185, 129, 0.15);
+        }
+
+        .popular-blur-bg {
+          position: absolute; top: -50px; right: -50px; width: 200px; height: 200px; 
+          background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%); 
+          border-radius: 50%; filter: blur(20px);
+        }
+
+        .popular-badge {
+          position: absolute; top: 24px; right: 24px; 
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; 
+          padding: 6px 16px; border-radius: 20px; font-size: 10px; font-weight: 900; 
+          text-transform: uppercase; letter-spacing: 1.5px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .plan-header-content { margin-bottom: 32px; position: relative; z-index: 1; }
+        .plan-icon-wrapper {
+          width: 48px; height: 48px; border-radius: 16px; 
+          display: flex; align-items: center; justify-content: center; margin-bottom: 24px;
+        }
+        .standard .plan-icon-wrapper { background: rgba(59, 130, 246, 0.1); }
+        .popular .plan-icon-wrapper { background: rgba(16, 185, 129, 0.1); }
+        .standard-icon { color: #3b82f6; }
+
+        .plan-name { font-size: 13px; font-weight: 900; text-transform: uppercase; margin: 0 0 16px; letter-spacing: 1.5px; }
+        .standard .plan-name { color: #64748b; }
+        .popular .plan-name { color: #059669; }
+
+        .plan-price-wrapper { display: flex; align-items: flex-start; gap: 4px; }
+        .price-currency { font-size: 18px; font-weight: 800; color: hsl(var(--text-main)); margin-top: 6px; }
+        .price-amount { margin: 0; font-size: 56px; font-weight: 900; color: hsl(var(--text-main)); letter-spacing: -2px; line-height: 1; }
+        .price-period { font-size: 16px; font-weight: 600; color: #94a3b8; align-self: flex-end; margin-bottom: 8px; }
+
+        .plan-desc { color: #64748b; font-size: 14px; margin: 20px 0 0; font-weight: 500; line-height: 1.6; }
+
+        .plan-features-wrapper { flex: 1; margin-bottom: 36px; position: relative; z-index: 1; }
+        .plan-divider { height: 1px; background: linear-gradient(90deg, rgba(203, 213, 225, 0.5) 0%, transparent 100%); margin-bottom: 24px; }
+        .features-list { display: flex; flex-direction: column; gap: 16px; }
+        .feature-item { display: flex; align-items: center; gap: 12px; }
+
+        .feature-check-wrapper {
+          width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .standard .feature-check-wrapper { background: hsl(var(--bg-main)); }
+        .popular .feature-check-wrapper { background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+        .standard .feature-check-icon { color: #64748b; }
+        .popular .feature-check-icon { color: #ffffff; }
+
+        .feature-text { font-size: 14px; color: hsl(var(--text-main)); font-weight: 600; }
+
+        .standard-action-btn {
+          width: 100%; padding: 20px; border-radius: 16px; font-weight: 900; font-size: 13px; 
+          text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease; position: relative; z-index: 1;
+          background: hsl(var(--bg-card)); color: hsl(var(--text-main)); border: 2px solid #e2e8f0;
+        }
+        .popular-btn {
+          width: 100%; padding: 20px; border-radius: 16px; font-weight: 900; font-size: 13px; 
+          text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease; position: relative; z-index: 1;
+          background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; box-shadow: 0 15px 30px -10px rgba(16, 185, 129, 0.4);
+        }
+
+        /* DARK MODE OVERRIDES */
+        [data-theme='dark'] .pricing-card-premium.standard {
+          background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+          border-color: #334155;
+        }
+        [data-theme='dark'] .pricing-card-premium.popular {
+          background: linear-gradient(145deg, #1e293b 0%, #064e3b 100%);
+        }
+        [data-theme='dark'] .standard .plan-name { color: #94a3b8; }
+        [data-theme='dark'] .plan-desc { color: #cbd5e1; }
+        [data-theme='dark'] .plan-divider { background: linear-gradient(90deg, rgba(51, 65, 85, 0.5) 0%, transparent 100%); }
+        [data-theme='dark'] .standard .feature-check-wrapper { background: #334155; }
+        [data-theme='dark'] .standard .feature-check-icon { color: #94a3b8; }
+        [data-theme='dark'] .standard-action-btn {
+          background: #1e293b;
+          border-color: #334155;
+          color: #f8fafc;
+        }
+        [data-theme='dark'] .standard-action-btn:hover { background: #334155; }
+      `}</style>
     </div>
   );
 };

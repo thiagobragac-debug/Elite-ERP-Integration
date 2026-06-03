@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Layers, Users, Scale, TrendingUp, Calendar, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -74,11 +74,11 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Status Operacional <Clock size={14} /></label>
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
+            <div style={{ display: 'flex', background: 'hsl(var(--bg-main))', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               {statusOptions.map(s => (
                 <button 
                   key={s.id}
-                  style={{ flex: 1, padding: '12px 8px', fontSize: '11px', fontWeight: 800, color: filters.status === s.id ? '#8b5cf6' : '#64748b', background: filters.status === s.id ? 'white' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '12px 8px', fontSize: '11px', fontWeight: 800, color: filters.status === s.id ? '#8b5cf6' : 'hsl(var(--text-muted))', background: filters.status === s.id ? 'hsl(var(--bg-card))' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer' }}
                   onClick={() => setFilters({ ...filters, status: s.id })}
                 >
                   {s.label}
@@ -89,10 +89,10 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Ocupação Mínima (%) <Users size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '28px', fontWeight: 900, color: '#8b5cf6' }}>{filters.minOccupancy}%</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Capacidade Alocada</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Capacidade Alocada</span>
               </div>
               <input 
                 type="range" 
@@ -115,9 +115,9 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.finalidades?.includes(fin) ? 'active' : ''}`}
                   onClick={() => toggleFinalidade(fin)}
                   style={{ 
-                    borderColor: filters.finalidades?.includes(fin) ? '#8b5cf6' : '#e2e8f0', 
-                    background: filters.finalidades?.includes(fin) ? '#8b5cf6' : 'white',
-                    color: filters.finalidades?.includes(fin) ? 'white' : '#64748b'
+                    borderColor: filters.finalidades?.includes(fin) ? '#8b5cf6' : 'hsl(var(--border))', 
+                    background: filters.finalidades?.includes(fin) ? '#8b5cf6' : 'hsl(var(--bg-card))',
+                    color: filters.finalidades?.includes(fin) ? 'white' : 'hsl(var(--text-main))'
                   }}
                 >
                   {fin}
@@ -129,11 +129,11 @@ export const LotFilterModal: React.FC<LotFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Uniformidade (CV) <Scale size={14} /></label>
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
+            <div style={{ display: 'flex', background: 'hsl(var(--bg-main))', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               {['all', 'Alta', 'Média', 'Baixa'].map(u => (
                 <button 
                   key={u}
-                  style={{ flex: 1, padding: '12px 4px', fontSize: '10px', fontWeight: 800, color: filters.uniformityLevel === u ? '#8b5cf6' : '#64748b', background: filters.uniformityLevel === u ? 'white' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '12px 4px', fontSize: '10px', fontWeight: 800, color: filters.uniformityLevel === u ? '#8b5cf6' : 'hsl(var(--text-muted))', background: filters.uniformityLevel === u ? 'hsl(var(--bg-card))' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer' }}
                   onClick={() => setFilters({ ...filters, uniformityLevel: u })}
                 >
                   {u === 'all' ? 'Todas' : u}

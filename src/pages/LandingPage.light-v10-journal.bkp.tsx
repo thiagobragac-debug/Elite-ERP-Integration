@@ -1218,7 +1218,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-hero-secondary:hover {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-color: var(--gold);
           transform: translateY(-2px);
         }
@@ -1383,7 +1383,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .select-btn.active {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-color: var(--border-premium);
           box-shadow: 0 10px 30px rgba(19, 28, 22, 0.02);
         }
@@ -1399,7 +1399,7 @@ export const LandingPage: React.FC = () => {
 
         /* Interactive Display Frame (Mac Style) */
         .interactive-display-pane {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           overflow: hidden;
@@ -1506,7 +1506,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .scale-indicator-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-premium);
           border-radius: 8px;
           padding: 12px 16px;
@@ -1627,7 +1627,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .tag-btn {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 8px;
           padding: 8px 12px;
@@ -1707,7 +1707,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .telemetry-live-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-premium);
           border-radius: 8px;
           padding: 10px 14px;
@@ -1758,7 +1758,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .zone-btn {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 8px;
           padding: 8px 12px;
@@ -1828,7 +1828,7 @@ export const LandingPage: React.FC = () => {
 
         .vector-chart-container {
           position: relative;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 6px;
           padding: 10px;
@@ -1842,7 +1842,7 @@ export const LandingPage: React.FC = () => {
           font-size: 0.68rem;
           font-weight: 800;
           color: var(--gold);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           padding: 2px 6px;
           border: 1px solid var(--border-premium);
           border-radius: 4px;
@@ -1851,7 +1851,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .slider-box-hedge {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 8px;
           padding: 12px;
@@ -1918,7 +1918,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .blueprint-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-radius: 16px;
           padding: 32px;
           text-align: left;
@@ -2020,7 +2020,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .calculator-sliders-panel {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-premium);
           border-radius: 16px;
           padding: 36px;
@@ -2192,7 +2192,7 @@ export const LandingPage: React.FC = () => {
         /* --- FAQ ACCORDION --- */
         .elegant-faq-section {
           padding: 100px 24px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-top: 1px solid var(--border-premium);
         }
 
@@ -2247,7 +2247,7 @@ export const LandingPage: React.FC = () => {
         /* Expanded States */
         .faq-card.expanded {
           border-color: var(--gold);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           box-shadow: 0 15px 35px rgba(19, 28, 22, 0.02);
         }
 
@@ -2274,7 +2274,7 @@ export const LandingPage: React.FC = () => {
 
         .specs-table-box {
           border: 1px solid var(--border-premium);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-radius: 12px;
           padding: 40px;
           text-align: left;

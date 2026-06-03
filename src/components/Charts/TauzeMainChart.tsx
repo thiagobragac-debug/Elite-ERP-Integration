@@ -30,7 +30,7 @@ const CustomTooltip = ({ active, payload, label, unit, color }: any) => {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: 'white',
+      background: 'hsl(var(--bg-card))',
       border: `1.5px solid ${color}`,
       borderRadius: '10px',
       padding: '8px 14px',
@@ -137,7 +137,7 @@ export const TauzeMainChart: React.FC<TauzeMainChartProps> = ({
 
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke="#f1f5f9"
+          stroke="hsl(var(--border) / 0.5)"
           vertical={false}
         />
 
@@ -163,7 +163,7 @@ export const TauzeMainChart: React.FC<TauzeMainChartProps> = ({
             );
           }}
           tickLine={false}
-          axisLine={{ stroke: '#e2e8f0' }}
+          axisLine={{ stroke: 'hsl(var(--border))' }}
           interval={0}
         />
 
@@ -188,8 +188,8 @@ export const TauzeMainChart: React.FC<TauzeMainChartProps> = ({
           stroke={color}
           strokeWidth={2.5}
           fill={`url(#${gradId})`}
-          dot={{ r: 4, fill: 'white', stroke: color, strokeWidth: 2 }}
-          activeDot={{ r: 6, fill: color, stroke: 'white', strokeWidth: 2 }}
+          dot={{ r: 4, fill: 'hsl(var(--bg-card))', stroke: color, strokeWidth: 2 }}
+          activeDot={{ r: 6, fill: color, stroke: 'hsl(var(--bg-card))', strokeWidth: 2 }}
           animationDuration={1400}
           animationEasing="ease-in-out"
         />

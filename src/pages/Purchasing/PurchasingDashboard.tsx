@@ -440,7 +440,7 @@ export const PurchasingDashboard: React.FC = () => {
         .copilot-icon-bg { position: absolute; top: -20px; right: -20px; opacity: 0.05; color: #6366f1; }
         .copilot-section h3 { color: #6366f1; margin-bottom: 16px; }
         .insight-list { display: flex; flex-direction: column; gap: 12px; }
-        .insight-item { background: white; padding: 12px; border-radius: 16px; border: 1px solid #6366f115; }
+        .insight-item { background: hsl(var(--bg-card)); padding: 12px; border-radius: 16px; border: 1px solid #6366f115; }
         .insight-item p { font-size: 11px; font-weight: 600; color: #4338ca; line-height: 1.5; }
         .quick-actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .action-card { background: hsl(var(--bg-card)); border: 1px solid hsl(var(--border)); border-radius: 20px; padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer; transition: 0.2s; }

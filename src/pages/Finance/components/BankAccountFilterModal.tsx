@@ -70,11 +70,11 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.type === t.id ? '#3b82f6' : '#64748b', 
+                    color: filters.type === t.id ? '#3b82f6' : 'hsl(var(--text-muted))', 
                     background: filters.type === t.id ? '#eff6ff' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.type === t.id ? '#3b82f6' : '#e2e8f0',
+                    borderColor: filters.type === t.id ? '#3b82f6' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     textAlign: 'left'
                   }}
@@ -100,11 +100,11 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.balanceStatus === s.id ? '#10b981' : '#64748b', 
+                    color: filters.balanceStatus === s.id ? '#10b981' : 'hsl(var(--text-muted))', 
                     background: filters.balanceStatus === s.id ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.balanceStatus === s.id ? '#10b981' : '#e2e8f0',
+                    borderColor: filters.balanceStatus === s.id ? '#10b981' : 'hsl(var(--border))',
                     cursor: 'pointer'
                   }}
                   onClick={() => setFilters({ ...filters, balanceStatus: s.id })}
@@ -121,7 +121,7 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
               className="tauze-input" 
               value={filters.institution}
               onChange={e => setFilters({ ...filters, institution: e.target.value })}
-              style={{ width: '100%', height: '45px', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '0 16px', fontWeight: 600, color: '#1e293b' }}
+              style={{ width: '100%', height: '45px', borderRadius: '12px', border: '1px solid hsl(var(--border))', padding: '0 16px', fontWeight: 600, color: '#1e293b' }}
             >
               <option value="all">Todas as Instituições</option>
               <option value="itau">Itaú Unibanco</option>

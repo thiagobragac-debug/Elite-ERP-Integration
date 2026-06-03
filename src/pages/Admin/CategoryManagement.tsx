@@ -331,7 +331,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
                 <Edit2 size={16} />
               </button>
               {!cat.is_system && (
-                <button className="icon-btn-secondary" onClick={(e) => { e.stopPropagation(); handleDelete(cat.id); }} style={{ color: '#ef4444', borderColor: '#fee2e2', background: '#fef2f2' }}>
+                <button className="icon-btn-secondary danger" onClick={(e) => { e.stopPropagation(); handleDelete(cat.id); }}>
                   <Trash2 size={16} />
                 </button>
               )}

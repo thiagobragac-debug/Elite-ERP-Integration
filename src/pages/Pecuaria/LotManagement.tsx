@@ -905,7 +905,7 @@ export const LotManagement: React.FC = () => {
 
         .occ-bar-container {
           height: 6px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-radius: 3px;
           overflow: hidden;
           margin-bottom: 2px;
@@ -962,7 +962,7 @@ export const LotManagement: React.FC = () => {
           height: 32px;
           border-radius: 10px;
           border: 1px solid hsl(var(--border));
-          background: white;
+          background: hsl(var(--bg-card));
           color: #64748b;
           display: flex;
           align-items: center;

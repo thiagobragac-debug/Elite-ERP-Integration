@@ -1390,7 +1390,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary-action:hover {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-color: var(--gold);
           transform: translateY(-2px);
         }
@@ -1540,7 +1540,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .module-tab-btn.active {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-color: var(--border-premium);
           box-shadow: 0 10px 30px rgba(19, 28, 22, 0.02);
         }
@@ -1556,7 +1556,7 @@ export const LandingPage: React.FC = () => {
 
         /* Display Frame (Mac style) */
         .console-display-workspace {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           overflow: hidden;
@@ -1735,7 +1735,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .weigh-led-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-premium);
           border-radius: 8px;
           padding: 16px;
@@ -1807,7 +1807,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .cattle-btn {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 8px;
           padding: 8px 12px;
@@ -1876,7 +1876,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .machinery-live-specs {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           padding: 16px;
           border-radius: 8px;
@@ -1932,7 +1932,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .contract-sheet {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-premium);
           padding: 16px;
           border-radius: 8px;
@@ -2011,7 +2011,7 @@ export const LandingPage: React.FC = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           padding: 12px;
           border-radius: 8px;
           border: 1px solid var(--border-light);
@@ -2060,7 +2060,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .purchase-info-sheet {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           padding: 12px;
           border-radius: 8px;
@@ -2121,7 +2121,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .reconcile-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 8px;
           padding: 12px;
@@ -2207,7 +2207,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .reconciliation-progress-indicator {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           padding: 12px;
           border-radius: 8px;
@@ -2258,7 +2258,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .analytic-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 8px;
           padding: 14px;
@@ -2336,7 +2336,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .flow-selector-btn {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           padding: 16px;
@@ -2402,7 +2402,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .viewer-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-premium);
           border-radius: 16px;
           padding: 32px;
@@ -2493,7 +2493,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .sliders-control-desk {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-premium);
           border-radius: 16px;
           padding: 36px;
@@ -2694,7 +2694,7 @@ export const LandingPage: React.FC = () => {
         /* --- OPERATIONAL FAQ --- */
         .matrix-faq-section {
           padding: 100px 24px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-top: 1px solid var(--border-premium);
         }
 
@@ -2749,7 +2749,7 @@ export const LandingPage: React.FC = () => {
         /* Expanded accordion states */
         .faq-block.expanded {
           border-color: var(--gold);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           box-shadow: 0 15px 35px rgba(19, 28, 22, 0.02);
         }
 
@@ -2771,7 +2771,7 @@ export const LandingPage: React.FC = () => {
 
         .specs-card-matrix {
           border: 1px solid var(--border-premium);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-radius: 12px;
           padding: 40px;
           text-align: left;

@@ -460,8 +460,8 @@ export const HealthManagement: React.FC = () => {
           position: absolute;
           top: 100%;
           right: 0;
-          background: white;
-          border: 1px solid #e2e8f0;
+          background: hsl(var(--bg-card));
+          border: 1px solid hsl(var(--border));
           border-radius: 12px;
           box-shadow: 0 10px 25px rgba(0,0,0,0.1);
           z-index: 100;
@@ -490,7 +490,7 @@ export const HealthManagement: React.FC = () => {
         }
 
         .export-menu button:hover {
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           color: #0f172a;
         }
       `}</style>

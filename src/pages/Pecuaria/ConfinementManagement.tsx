@@ -909,7 +909,7 @@ export const ConfinementManagement: React.FC = () => {
 
         .occ-bar-container {
           height: 6px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-radius: 3px;
           overflow: hidden;
           margin-bottom: 4px;

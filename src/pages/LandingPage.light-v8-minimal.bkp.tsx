@@ -849,7 +849,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary-editorial {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-main);
           border: 1px solid var(--border-light);
           padding: 14px 24px;
@@ -872,7 +872,7 @@ export const LandingPage: React.FC = () => {
           max-width: 820px;
           margin-top: 20px;
           border-radius: 16px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           padding: 12px;
           border: 1px solid var(--border-light);
           box-shadow: 0 30px 60px rgba(0,0,0,0.015);
@@ -881,7 +881,7 @@ export const LandingPage: React.FC = () => {
         .showcase-frame {
           border: 1px solid var(--border-light);
           border-radius: 12px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           overflow: hidden;
         }
 
@@ -950,7 +950,7 @@ export const LandingPage: React.FC = () => {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
         }
 
         .mock-kpi-row {
@@ -1089,7 +1089,7 @@ export const LandingPage: React.FC = () => {
           align-items: center;
           justify-content: center;
           position: relative;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
         }
 
         .safety-svg {
@@ -1132,7 +1132,7 @@ export const LandingPage: React.FC = () => {
         .minimal-chart-card {
           width: 100%;
           max-width: 320px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           padding: 20px;
@@ -1203,7 +1203,7 @@ export const LandingPage: React.FC = () => {
           height: 180px;
           border: 1px solid var(--border-light);
           border-radius: 12px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           position: relative;
           overflow: hidden;
         }
@@ -1217,7 +1217,7 @@ export const LandingPage: React.FC = () => {
         .minimal-hedge-card {
           width: 100%;
           max-width: 320px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           padding: 20px;
@@ -1301,7 +1301,7 @@ export const LandingPage: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 14px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           padding: 14px 18px;
           border-radius: 8px;
@@ -1384,7 +1384,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .pristine-invoice {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           padding: 32px;
@@ -1555,7 +1555,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .faq-accordion-item {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 8px;
           padding: 18px 24px;
@@ -1607,7 +1607,7 @@ export const LandingPage: React.FC = () => {
 
         /* --- FOOTER ELEGANT --- */
         .footer-elegant {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-top: 1px solid var(--border-light);
           padding: 80px 24px 24px 24px;
         }

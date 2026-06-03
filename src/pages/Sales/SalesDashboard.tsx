@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -453,7 +453,7 @@ export const SalesDashboard: React.FC = () => {
         .hub-subtitle { color: hsl(var(--text-muted)); font-size: 14px; font-weight: 500; }
         .hub-actions { display: flex; gap: 12px; }
         .intelligence-grid { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: auto auto; gap: 24px; }
-        .intelligence-card { background: white; border-radius: 24px; border: 1px solid hsl(var(--border)); padding: 24px; box-shadow: var(--shadow-sm); transition: 0.3s; }
+        .intelligence-card { background: hsl(var(--bg-card)); border-radius: 24px; border: 1px solid hsl(var(--border)); padding: 24px; box-shadow: var(--shadow-sm); transition: 0.3s; }
         .intelligence-card:hover { box-shadow: var(--shadow-md); border-color: hsl(var(--brand) / 0.3); }
         .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .header-info { display: flex; align-items: center; gap: 12px; }
@@ -467,12 +467,18 @@ export const SalesDashboard: React.FC = () => {
         .funnel-step.delivered .step-bar { background: linear-gradient(180deg, #10b981, #10b981aa); }
         .step-label { font-size: 10px; font-weight: 900; opacity: 0.8; text-transform: uppercase; }
         .step-value { font-size: 18px; font-weight: 900; }
-        .copilot-card { background: linear-gradient(145deg, #ffffff, #f8fafc); border: 1px solid #e2e8f0; }
+        .copilot-card { background: linear-gradient(145deg, hsl(var(--bg-card)), hsl(var(--bg-main))); border: 1px solid hsl(var(--border)); }
         .copilot-content { display: flex; flex-direction: column; gap: 16px; }
         .insight-item { display: flex; gap: 12px; padding: 12px; border-radius: 12px; font-size: 13px; }
         .insight-item.warning { background: #fffbeb; color: #92400e; border: 1px solid #fef3c7; }
         .insight-item.success { background: #ecfdf5; color: #065f46; border: 1px solid #d1fae5; }
         .insight-item.info { background: #eff6ff; color: #1e40af; border: 1px solid #dbeafe; }
+        
+        [data-theme='dark'] .insight-item.warning { background: rgba(245, 158, 11, 0.1); color: #fcd34d; border-color: rgba(245, 158, 11, 0.2); }
+        [data-theme='dark'] .insight-item.success { background: rgba(16, 185, 129, 0.1); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.2); }
+        [data-theme='dark'] .insight-item.info { background: rgba(59, 130, 246, 0.1); color: #93c5fd; border-color: rgba(59, 130, 246, 0.2); }
+        [data-theme='dark'] .copilot-action { background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); }
+
         .insight-text { line-height: 1.4; }
         .copilot-action { width: 100%; margin-top: 20px; padding: 12px; background: hsl(var(--text-main)); color: white; border: none; border-radius: 12px; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.2s; }
         .copilot-action:hover { background: hsl(var(--brand)); transform: translateY(-2px); }

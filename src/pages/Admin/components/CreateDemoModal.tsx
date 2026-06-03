@@ -44,7 +44,7 @@ export const CreateDemoModal: React.FC<CreateDemoModalProps> = ({
           style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 600, color: '#0f172a', outline: 'none' }}
           autoFocus
         />
-        <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', marginTop: '16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ background: 'hsl(var(--bg-main))', padding: '12px', borderRadius: '12px', marginTop: '16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
           <CheckCircle size={16} style={{ color: '#10b981', flexShrink: 0 }} />
           <span style={{ fontSize: '11px', color: '#475569', fontWeight: 600, lineHeight: 1.4 }}>
             Esta base herdará automaticamente todos os Cargos, Categorias e Perfis de Permissão configurados no seu **Template Master**.

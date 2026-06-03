@@ -290,7 +290,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
                       value={app.profile}
                       onChange={e => updateApprover(app.level, e.target.value)}
                       required
-                      style={{ width: '100%', background: 'white' }}
+                      style={{ width: '100%', background: 'hsl(var(--bg-card))' }}
                     >
                       <option value="">Selecionar Perfil/Cargo ou Usuário...</option>
                       <optgroup label="🏢 Cargos Corporativos">
@@ -363,7 +363,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
         .input-with-prefix {
           display: flex;
           align-items: center;
-          background: white;
+          background: hsl(var(--bg-card));
           border: 1px solid hsl(var(--border));
           border-radius: 8px;
           padding-left: 10px;
@@ -485,7 +485,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
         .switch-handle {
           width: 20px;
           height: 20px;
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 50%;
           position: absolute;
           top: 2px;

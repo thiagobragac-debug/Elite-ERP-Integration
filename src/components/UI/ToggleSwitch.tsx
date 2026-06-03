@@ -96,7 +96,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
             width: thumbS,
             height: thumbS,
             borderRadius: '50%',
-            background: '#ffffff',
+            background: 'hsl(var(--bg-card))',
             boxShadow: '0 1px 4px rgba(0,0,0,0.28), 0 0 0 0.5px rgba(0,0,0,0.08)',
             transition: 'left 0.25s cubic-bezier(0.4,0,0.2,1)',
           }}

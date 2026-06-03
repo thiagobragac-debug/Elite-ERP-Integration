@@ -1062,7 +1062,7 @@ export const LandingPage: React.FC = () => {
           align-items: center;
           gap: 6px;
           padding: 6px 14px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 100px;
           font-family: 'Outfit', sans-serif;
@@ -1124,7 +1124,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary-editorial {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-main);
           border: 1px solid var(--border-light);
           padding: 16px 26px;
@@ -1225,7 +1225,7 @@ export const LandingPage: React.FC = () => {
           padding: 4px 10px;
           border-radius: 100px;
           letter-spacing: 0.05em;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           margin-bottom: 18px;
         }
 
@@ -1261,7 +1261,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .vault-chassis {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           overflow: hidden;
@@ -1312,7 +1312,7 @@ export const LandingPage: React.FC = () => {
 
         .silo-block {
           border: 1px solid var(--border-light);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-radius: 8px;
           padding: 12px 6px;
           display: flex;
@@ -1442,7 +1442,7 @@ export const LandingPage: React.FC = () => {
 
         .lot-selector-tabs {
           display: flex;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           padding: 3px;
           border: 1px solid var(--border-light);
           border-radius: 8px;
@@ -1470,7 +1470,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .chart-preview-box {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 10px;
           height: 120px;
@@ -1512,7 +1512,7 @@ export const LandingPage: React.FC = () => {
           display: flex;
           flex-direction: column;
           text-align: left;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           padding: 8px;
           border-radius: 8px;
@@ -1550,7 +1550,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .simulated-map {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           height: 120px;
@@ -1631,7 +1631,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .hedge-graph-chassis {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           padding: 12px;
@@ -1722,7 +1722,7 @@ export const LandingPage: React.FC = () => {
           width: 14px;
           left: 3px;
           bottom: 3px;
-          background-color: white;
+          background-color: hsl(var(--bg-card));
           transition: .3s;
           border-radius: 50%;
         }
@@ -1892,7 +1892,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .invoice-paper {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 20px;
           padding: 24px;
@@ -2070,7 +2070,7 @@ export const LandingPage: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           padding: 10px 14px;
           border: 1px solid var(--border-light);
           border-radius: 10px;
@@ -2248,7 +2248,7 @@ export const LandingPage: React.FC = () => {
 
         /* --- FOOTER ELEGANT --- */
         .footer-elegant {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-top: 1px solid var(--border-light);
           padding: 64px 24px 24px 24px;
         }

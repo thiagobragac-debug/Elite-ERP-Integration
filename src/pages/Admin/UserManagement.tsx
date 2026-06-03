@@ -1380,7 +1380,7 @@ export const UserManagement: React.FC = () => {
                           exit={{ opacity: 0, x: 50 }}
                           className={`anomaly-card-premium severity-${anom.severity.toLowerCase()}`}
                           style={{
-                            background: 'white',
+                            background: 'hsl(var(--bg-card))',
                             borderRadius: '16px',
                             border: `1px solid ${anom.severity === 'CRITICAL' ? '#fecaca' : 'var(--border)'}`,
                             padding: '16px',
@@ -1655,8 +1655,8 @@ export const UserManagement: React.FC = () => {
 
         /* Control Buttons in light mode */
         .terminal-panel.terminal-light .terminal-ctrl-btn {
-          background: #f1f5f9;
-          border: 1px solid #e2e8f0;
+          background: hsl(var(--bg-main));
+          border: 1px solid hsl(var(--border));
           color: #475569;
           padding: 6px 12px;
           border-radius: 8px;
@@ -1709,8 +1709,8 @@ export const UserManagement: React.FC = () => {
 
         /* Severity buttons in light mode */
         .terminal-panel.terminal-light .terminal-filter-btn {
-          background: #f1f5f9;
-          border: 1px solid #e2e8f0;
+          background: hsl(var(--bg-main));
+          border: 1px solid hsl(var(--border));
           color: #64748b;
           padding: 4px 10px;
           border-radius: 6px;
@@ -1753,8 +1753,8 @@ export const UserManagement: React.FC = () => {
         }
 
         .terminal-panel.terminal-light .terminal-logs-screen {
-          background: #f8fafc !important;
-          border: 1px solid #e2e8f0 !important;
+          background: hsl(var(--bg-main)); !important;
+          border: 1px solid hsl(var(--border)); !important;
           box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05) !important;
           scrollbar-width: thin;
           scrollbar-color: #cbd5e1 #f8fafc;
@@ -1763,7 +1763,7 @@ export const UserManagement: React.FC = () => {
           width: 6px;
         }
         .terminal-panel.terminal-light .terminal-logs-screen::-webkit-scrollbar-track {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-radius: 10px;
         }
         .terminal-panel.terminal-light .terminal-logs-screen::-webkit-scrollbar-thumb {
@@ -1851,7 +1851,7 @@ export const UserManagement: React.FC = () => {
         }
 
         .security-panel {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 1.5rem;
           border: 1px solid var(--border);
           padding: 24px;
@@ -1901,7 +1901,7 @@ export const UserManagement: React.FC = () => {
           transition: 0.2s;
           cursor: pointer;
         }
-        .option-row:hover { border-color: var(--border); background: white; transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .option-row:hover { border-color: var(--border); background: hsl(var(--bg-card)); transform: translateX(4px); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
         .tauze-toggle {
           width: 36px;
@@ -1916,7 +1916,7 @@ export const UserManagement: React.FC = () => {
         .toggle-dot {
           width: 16px;
           height: 16px;
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 50%;
           transition: 0.3s;
           box-shadow: 0 1px 3px rgba(0,0,0,0.2);
@@ -1930,7 +1930,7 @@ export const UserManagement: React.FC = () => {
           justify-content: center;
           gap: 8px;
           padding: 14px;
-          background: #fff1f2;
+          background: hsl(var(--bg-card));1f2;
           color: #ef4444;
           border-radius: 12px;
           font-size: 0.75rem;
@@ -2027,7 +2027,7 @@ export const UserManagement: React.FC = () => {
         }
 
         .user-card-premium {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 24px;
           border: 1px solid var(--border);
           display: flex;
@@ -2199,7 +2199,7 @@ export const UserManagement: React.FC = () => {
 
         .card-footer {
           margin-top: 12px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           padding: 16px 24px;
           margin-left: -32px;
           margin-right: -32px;
@@ -2239,7 +2239,7 @@ export const UserManagement: React.FC = () => {
         }
 
         .tauze-controls-row {
-          background: white;
+          background: hsl(var(--bg-card));
           padding: 12px 16px;
           border-radius: 20px;
           border: 1px solid #f1f5f9;
@@ -2251,7 +2251,7 @@ export const UserManagement: React.FC = () => {
         }
 
         .view-mode-toggle {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           padding: 4px;
           border-radius: 14px;
           display: flex;
@@ -2274,13 +2274,13 @@ export const UserManagement: React.FC = () => {
         }
 
         .view-btn.active {
-          background: white;
+          background: hsl(var(--bg-card));
           color: #10b981;
           box-shadow: 0 4px 10px rgba(0,0,0,0.08);
         }
 
         .view-btn:hover:not(.active) {
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           color: #475569;
         }
 

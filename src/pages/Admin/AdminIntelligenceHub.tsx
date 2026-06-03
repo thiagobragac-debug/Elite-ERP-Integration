@@ -224,13 +224,17 @@ export const AdminIntelligenceHub: React.FC = () => {
         }
 
         .intelligence-panel {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 28px;
           border: 1px solid #f1f5f9;
           padding: 24px;
           display: flex;
           flex-direction: column;
           gap: 20px;
+        }
+        [data-theme='dark'] .intelligence-panel {
+          background: #1e293b;
+          border-color: #334155;
         }
 
         .panel-header-tauze {
@@ -253,6 +257,7 @@ export const AdminIntelligenceHub: React.FC = () => {
           text-transform: uppercase;
           letter-spacing: 0.05em;
         }
+        [data-theme='dark'] .panel-header-tauze h3 { color: #f8fafc; }
 
         .panel-header-tauze p {
           font-size: 11px;
@@ -260,6 +265,7 @@ export const AdminIntelligenceHub: React.FC = () => {
           margin: 2px 0 0;
           font-weight: 500;
         }
+        [data-theme='dark'] .panel-header-tauze p { color: #94a3b8; }
 
         .chart-container-tauze {
           height: 200px;
@@ -281,13 +287,14 @@ export const AdminIntelligenceHub: React.FC = () => {
         .bar-wrapper {
           width: 100%;
           height: 160px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-radius: 100px;
           position: relative;
           overflow: hidden;
           display: flex;
           align-items: flex-end;
         }
+        [data-theme='dark'] .bar-wrapper { background: #0f172a; }
 
         .bar-fill {
           width: 100%;
@@ -313,6 +320,7 @@ export const AdminIntelligenceHub: React.FC = () => {
           align-items: center;
           gap: 4px;
         }
+        [data-theme='dark'] .live-pulse { background: rgba(239, 68, 68, 0.2); }
         
         .live-pulse::before {
           content: '';
@@ -340,22 +348,26 @@ export const AdminIntelligenceHub: React.FC = () => {
           align-items: center;
           padding: 10px;
           border-radius: 16px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border: 1px solid transparent;
           transition: 0.2s;
         }
+        [data-theme='dark'] .checklist-item { background: #0f172a; border-color: transparent; }
 
         .checklist-item:hover {
-          border-color: #e2e8f0;
-          background: white;
+          border-color: hsl(var(--border));
+          background: hsl(var(--bg-card));
           transform: translateX(4px);
         }
+        [data-theme='dark'] .checklist-item:hover { background: #334155; border-color: #475569; }
 
         .check-icon.active { color: #10b981; }
         .check-icon.warning { color: #f59e0b; }
 
         .check-label { font-size: 12px; font-weight: 700; color: #1e293b; display: block; }
+        [data-theme='dark'] .check-label { color: #f8fafc; }
         .check-desc { font-size: 10px; color: #64748b; font-weight: 500; }
+        [data-theme='dark'] .check-desc { color: #94a3b8; }
 
         .event-item {
           display: flex;
@@ -363,16 +375,18 @@ export const AdminIntelligenceHub: React.FC = () => {
           gap: 12px;
           padding: 10px;
           border-radius: 16px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           cursor: pointer;
           transition: 0.2s;
         }
+        [data-theme='dark'] .event-item { background: #0f172a; }
 
         .event-item:hover {
-          background: white;
+          background: hsl(var(--bg-card));
           box-shadow: 0 4px 12px rgba(0,0,0,0.05);
           transform: translateX(4px);
         }
+        [data-theme='dark'] .event-item:hover { background: #334155; box-shadow: none; }
 
         .level-indicator { width: 4px; height: 24px; border-radius: 4px; }
         .level-indicator.high { background: #ef4444; }
@@ -381,7 +395,9 @@ export const AdminIntelligenceHub: React.FC = () => {
 
         .event-info { flex: 1; min-width: 0; }
         .event-name { font-size: 12px; font-weight: 700; color: #1e293b; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        [data-theme='dark'] .event-name { color: #f8fafc; }
         .event-meta { font-size: 10px; color: #64748b; font-weight: 500; }
+        [data-theme='dark'] .event-meta { color: #94a3b8; }
         .event-arrow { color: #94a3b8; }
 
         @media (max-width: 1400px) {

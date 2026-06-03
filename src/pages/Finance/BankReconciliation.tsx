@@ -651,7 +651,7 @@ export const BankReconciliation: React.FC = () => {
               <span style={{ fontSize: '11px', color: 'hsl(var(--brand))', fontWeight: 800 }}>{selectedInternalIds.length} selecionados</span>
             </label>
             
-            <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: 'white' }}>
+            <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '8px', background: 'hsl(var(--bg-card))' }}>
               {internalRecords
                 .filter(ir => selectedBankRecord && ir.date === selectedBankRecord.date)
                 .map(ir => (
@@ -857,7 +857,7 @@ export const BankReconciliation: React.FC = () => {
         }
 
         .upload-modal {
-          background: white;
+          background: hsl(var(--bg-card));
           padding: 3rem;
           border-radius: 32px;
           display: flex;
@@ -890,7 +890,7 @@ export const BankReconciliation: React.FC = () => {
         .progress-bar-container {
           width: 100%;
           height: 8px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-radius: 4px;
           margin: 24px 0 8px;
           overflow: hidden;
@@ -909,7 +909,7 @@ export const BankReconciliation: React.FC = () => {
         .tauze-batch-table td { padding: 8px; border-bottom: 1px solid var(--border-light); }
         .tauze-table-input { width: 100%; background: transparent; border: 1px solid transparent; padding: 8px; border-radius: 8px; font-size: 13px; font-weight: 700; transition: all 0.2s; }
         .tauze-table-input:hover { background: hsl(var(--bg-main)/0.4); border-color: var(--border); }
-        .tauze-table-input:focus { background: white; border-color: var(--brand); outline: none; box-shadow: 0 0 0 3px hsl(var(--brand)/0.1); }
+        .tauze-table-input:focus { background: hsl(var(--bg-card)); border-color: var(--brand); outline: none; box-shadow: 0 0 0 3px hsl(var(--brand)/0.1); }
         .tauze-table-select { width: 100%; background: transparent; border: 1px solid transparent; padding: 6px; border-radius: 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer; transition: all 0.2s; }
         .tauze-table-select:hover { background: hsl(var(--bg-main)/0.4); }
       `}</style>

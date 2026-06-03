@@ -480,14 +480,7 @@ export const Reports: React.FC = () => {
                             <Zap size={12} />
                             <span>{report.complexity}</span>
                           </div>
-                          <div 
-                            className="meta-tag integrity" 
-                            style={{ 
-                              background: report.integrity >= 90 ? '#f0fdf4' : '#fff7ed', 
-                              color: report.integrity >= 90 ? '#16a34a' : '#c2410c',
-                              border: `1px solid ${report.integrity >= 90 ? '#dcfce7' : '#ffedd5'}`
-                            }}
-                          >
+                          <div className={`meta-tag integrity ${report.integrity >= 90 ? 'high' : 'low'}`}>
                             <Shield size={12} />
                             <span>INTEGRIDADE: {report.integrity}%</span>
                           </div>
@@ -916,6 +909,7 @@ export const Reports: React.FC = () => {
         }
 
         .doc-metadata { display: flex; gap: 12px; }
+        
         .meta-tag {
           display: flex;
           align-items: center;
@@ -923,6 +917,15 @@ export const Reports: React.FC = () => {
           padding: 4px 10px;
           background: hsl(var(--bg-main));
           border-radius: 8px;
+        }
+
+        .meta-tag.integrity.high { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
+        .meta-tag.integrity.low { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
+
+        [data-theme='dark'] .meta-tag.integrity.high { background: rgba(22, 163, 74, 0.1); color: #4ade80; border-color: rgba(22, 163, 74, 0.2); }
+        [data-theme='dark'] .meta-tag.integrity.low { background: rgba(234, 88, 12, 0.1); color: #fb923c; border-color: rgba(234, 88, 12, 0.2); }
+        
+        .meta-tag {
           font-size: 10px;
           font-weight: 800;
           color: hsl(var(--text-muted));

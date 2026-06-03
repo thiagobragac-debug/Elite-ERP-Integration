@@ -919,7 +919,7 @@ select {
 }
 
 .action-dot:hover, .action-icon-btn:hover {
-  background: #f1f5f9;
+  background: hsl(var(--bg-main));
   border-color: #cbd5e1;
   color: #1e293b;
   transform: translateY(-1px);
@@ -986,7 +986,7 @@ select {
 .tauze-search-wrapper input {
   width: 100%;
   height: 48px;
-  background: #f8fafc;
+  background: hsl(var(--bg-main));
   border: 1px solid hsl(var(--border));
   border-radius: 16px;
   padding: 0 16px 0 48px;
@@ -997,7 +997,7 @@ select {
 }
 
 .tauze-search-wrapper input:focus {
-  background: white;
+  background: hsl(var(--bg-card));
   border-color: #10b981;
   box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
   outline: none;
@@ -1005,7 +1005,7 @@ select {
 
 .tauze-tabs {
   display: flex;
-  background: #f1f5f9;
+  background: hsl(var(--bg-main));
   padding: 4px;
   border-radius: 12px;
   gap: 4px;
@@ -1023,7 +1023,7 @@ select {
 }
 
 .tauze-tabs button.active {
-  background: white;
+  background: hsl(var(--bg-card));
   color: #1e293b;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
@@ -1087,7 +1087,7 @@ select {
 }
 
 .m-tab.active {
-  background: white;
+  background: hsl(var(--bg-card));
   color: #0f172a;
   box-shadow: var(--shadow-md);
 }
@@ -1111,7 +1111,7 @@ select {
 .search-glass-box input {
   width: 100%;
   height: 52px;
-  background: white;
+  background: hsl(var(--bg-card));
   border: 1px solid hsl(var(--border));
   border-radius: 18px;
   padding: 0 24px 0 56px;
@@ -1220,7 +1220,7 @@ select {
 
 .view-toggle-tauze {
   display: flex;
-  background: #f1f5f9;
+  background: hsl(var(--bg-main));
   padding: 4px;
   border-radius: 14px;
   border: 1px solid hsl(var(--border));
@@ -1243,7 +1243,7 @@ select {
 
 .view-toggle-tauze .toggle-btn.active {
   color: #1e293b;
-  background: white;
+  background: hsl(var(--bg-card));
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   border-color: hsl(var(--border));
 }
@@ -1532,7 +1532,7 @@ select {
 }
 
 .tauze-kpi-card {
-  background: white;
+  background: hsl(var(--bg-card));
   border-radius: 32px;
   border: 1px solid #f1f5f9;
   padding: 16px;
@@ -1628,7 +1628,7 @@ select {
 
 .kpi-divider {
   height: 1px;
-  background: #f1f5f9;
+  background: hsl(var(--bg-main));
   width: 100%;
   margin: 2px 0;
 }
@@ -1665,7 +1665,7 @@ select {
 }
 
 .analytics-canvas {
-  background: white;
+  background: hsl(var(--bg-card));
   border-radius: 32px;
   padding: 16px;
   border: 1px solid #f1f5f9;
@@ -1673,7 +1673,7 @@ select {
 }
 
 .recent-activity-panel {
-  background: white;
+  background: hsl(var(--bg-card));
   border-radius: 32px;
   padding: 16px;
   border: 1px solid #f1f5f9;
@@ -1710,7 +1710,7 @@ select {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: #f8fafc;
+  background: hsl(var(--bg-main));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2133,7 +2133,7 @@ input:focus, textarea:focus, select:focus {
 /* Tauze Button System Extensions */
 
 .glass-btn { padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; display: flex; align-items: center; gap: 8px; justify-content: center; }
-.glass-btn.secondary { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+.glass-btn.secondary { background: hsl(var(--bg-main)); color: #64748b; border-color: hsl(var(--border)); }
 .glass-btn.secondary:hover { background: #e2e8f0; color: #1e293b; }
 
 .primary-btn { padding: 12px 24px; background: hsl(var(--brand)); color: white; border: none; border-radius: 14px; font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; justify-content: center; }
@@ -2141,12 +2141,12 @@ input:focus, textarea:focus, select:focus {
 .primary-btn:active { transform: translateY(0); }
 
 /* Input Focus Refinement */
-.tauze-input:focus { border-color: hsl(var(--brand)); box-shadow: 0 0 0 4px hsl(var(--brand) / 0.1), 0 10px 20px rgba(0,0,0,0.05) !important; background: white; }
+.tauze-input:focus { border-color: hsl(var(--brand)); box-shadow: 0 0 0 4px hsl(var(--brand) / 0.1), 0 10px 20px rgba(0,0,0,0.05) !important; background: hsl(var(--bg-card)); }
 
 /* Tauze Radio/Selection Group */
 .tauze-form-radio-group { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-.tauze-form-radio-item { padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 700; color: #64748b; }
-.tauze-form-radio-item:hover { background: #f1f5f9; border-color: #cbd5e1; }
+.tauze-form-radio-item { padding: 14px; background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: all 0.2s; font-size: 13px; font-weight: 700; color: #64748b; }
+.tauze-form-radio-item:hover { background: hsl(var(--bg-main)); border-color: #cbd5e1; }
 .tauze-form-radio-item.active { background: hsl(var(--brand) / 0.1); border-color: hsl(var(--brand)); color: hsl(var(--brand)); }
 
 /* Tauze Page Controls & Navigation */
@@ -2271,7 +2271,7 @@ input:focus, textarea:focus, select:focus {
 .card-avatar {
   width: 56px;
   height: 56px;
-  background: white;
+  background: hsl(var(--bg-card));
   color: hsl(var(--brand));
   border-radius: 18px;
   display: flex;
@@ -2339,7 +2339,7 @@ input:focus, textarea:focus, select:focus {
   height: 32px;
   border-radius: 10px;
   border: 1px solid hsl(var(--border));
-  background: white;
+  background: hsl(var(--bg-card));
   color: hsl(var(--text-muted));
   display: flex;
   align-items: center;
@@ -2387,7 +2387,7 @@ input:focus, textarea:focus, select:focus {
   width: 420px;
   max-width: 90vw;
   height: 100vh;
-  background: white;
+  background: hsl(var(--bg-card));
   box-shadow: -20px 0 60px rgba(0,0,0,0.15);
   display: flex;
   flex-direction: column;
@@ -2427,13 +2427,13 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   flex-direction: column;
   gap: 32px;
-  background: white;
+  background: hsl(var(--bg-card));
 }
 
 .tauze-sidebar-footer {
   flex-shrink: 0;
   padding: 24px;
-  background: white;
+  background: hsl(var(--bg-card));
   border-top: 1px solid #f1f5f9;
   display: flex;
   gap: 12px;
@@ -2472,7 +2472,7 @@ input:focus, textarea:focus, select:focus {
 
 .tauze-tag-chip {
   padding: 10px 14px;
-  background: white;
+  background: hsl(var(--bg-card));
   border: 1.5px solid #e2e8f0;
   border-radius: 12px;
   font-size: 12px;
@@ -2507,7 +2507,7 @@ input:focus, textarea:focus, select:focus {
   position: absolute;
   top: 100%;
   right: 0;
-  background: white;
+  background: hsl(var(--bg-card));
   border: 1px solid hsl(var(--border));
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
@@ -3034,7 +3034,7 @@ input:focus, textarea:focus, select:focus {
 /* === ADVANCED FORM COMPONENTS (PEC. DE PRECIS�O) === */
 .adv-section {
   grid-column: 1 / -1;
-  background: white;
+  background: hsl(var(--bg-card));
   padding: 16px;
   border-radius: 16px;
   border: 1px solid hsl(var(--border));
@@ -3134,3 +3134,11 @@ input:focus, textarea:focus, select:focus {
   overflow: hidden;
   position: relative;
 }
+
+[data-theme='dark'] .kpi-trend-tauze.up { background: rgba(16, 185, 129, 0.15); color: #4ade80; border: 1px solid rgba(16, 185, 129, 0.2); }
+[data-theme='dark'] .kpi-trend-tauze.down { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+
+.icon-btn-secondary.danger { color: #ef4444; border-color: #fee2e2; background: #fef2f2; }
+.icon-btn-secondary.danger:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+[data-theme='dark'] .icon-btn-secondary.danger { color: #f87171; border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.1); }
+[data-theme='dark'] .icon-btn-secondary.danger:hover { background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.3); color: #fca5a5; }

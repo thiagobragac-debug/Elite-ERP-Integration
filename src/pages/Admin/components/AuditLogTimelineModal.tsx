@@ -34,13 +34,13 @@ export const AuditLogTimelineModal: React.FC<AuditLogTimelineModalProps> = ({
       hideSubmit={false} // Showing submit button for Export
     >
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc', margin: '-24px -24px 0 -24px' }}>
+        <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9', background: 'hsl(var(--bg-main))', margin: '-24px -24px 0 -24px' }}>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <div className="stat-pill" style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px' }}>
+            <div className="stat-pill" style={{ background: 'hsl(var(--bg-card))', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px' }}>
               <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Total de Eventos</span>
               <span style={{ fontWeight: 800, fontSize: '16px' }}>{auditLogs.length}</span>
             </div>
-            <div className="stat-pill" style={{ background: 'white', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px' }}>
+            <div className="stat-pill" style={{ background: 'hsl(var(--bg-card))', border: '1px solid #e2e8f0', padding: '8px 16px', borderRadius: '10px' }}>
               <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Última Atividade</span>
               <span style={{ fontWeight: 800, fontSize: '16px' }}>{auditLogs[0] ? new Date(auditLogs[0].created_at).toLocaleDateString() : 'N/A'}</span>
             </div>
@@ -64,7 +64,7 @@ export const AuditLogTimelineModal: React.FC<AuditLogTimelineModalProps> = ({
                   display: 'flex', 
                   gap: '16px', 
                   padding: '16px', 
-                  background: 'white', 
+                  background: 'hsl(var(--bg-card))', 
                   borderRadius: '12px', 
                   border: '1px solid #f1f5f9',
                   position: 'relative'
@@ -108,7 +108,7 @@ export const AuditLogTimelineModal: React.FC<AuditLogTimelineModalProps> = ({
                     </p>
                     {log.new_data && (
                       <div style={{ 
-                        background: '#f8fafc', 
+                        background: 'hsl(var(--bg-main))', 
                         padding: '10px', 
                         borderRadius: '8px', 
                         fontSize: '11px', 

@@ -411,7 +411,7 @@ export const MFAEnroll: React.FC = () => {
         }
 
         .qr-wrapper {
-          background: white;
+          background: hsl(var(--bg-card));
           padding: 16px;
           border-radius: 20px;
           width: fit-content;

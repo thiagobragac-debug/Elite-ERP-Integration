@@ -970,7 +970,7 @@ export const ExecutiveDashboard: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 6px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           color: #475569;
           border: none;
           padding: 4px 8px;

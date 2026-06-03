@@ -152,7 +152,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
               right: 0;
               bottom: 0;
               width: 400px;
-              background: white;
+              background: hsl(var(--bg-card));
               box-shadow: -20px 0 50px rgba(0,0,0,0.1);
               z-index: 10002;
               display: flex;
@@ -181,7 +181,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
               transition: 0.2s;
               border: 1px solid #f1f5f9;
             }
-            .close-btn:hover { background: #f8fafc; color: #1e293b; }
+            .close-btn:hover { background: hsl(var(--bg-main)); color: #1e293b; }
 
             .slideover-content { flex: 1; overflow-y: auto; padding: 24px; }
 
@@ -213,8 +213,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
               right: -4px;
               width: 28px;
               height: 28px;
-              background: white;
-              border: 1px solid #e2e8f0;
+              background: hsl(var(--bg-card));
+              border: 1px solid hsl(var(--border));
               border-radius: 8px;
               display: flex;
               align-items: center;
@@ -244,7 +244,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
               justify-content: space-between; 
               align-items: center; 
               padding: 16px; 
-              background: #f8fafc; 
+              background: hsl(var(--bg-main)); 
               border-radius: 16px; 
               margin-bottom: 12px;
             }
@@ -252,7 +252,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
             .q-d { display: block; font-size: 11px; color: #64748b; font-weight: 500; }
 
             .q-toggle { width: 40px; height: 22px; background: #e2e8f0; border-radius: 20px; position: relative; transition: 0.3s; }
-            .q-dot { position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: 0.3s; }
+            .q-dot { position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: hsl(var(--bg-card)); border-radius: 50%; transition: 0.3s; }
             .q-toggle.active { background: #16a34a; }
             .q-toggle.active .q-dot { left: 21px; }
 
@@ -269,7 +269,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({ isOpen, onClose 
               transition: 0.2s;
               text-decoration: none;
             }
-            .slide-link:hover { background: #f8fafc; color: #16a34a; transform: translateX(5px); }
+            .slide-link:hover { background: hsl(var(--bg-main)); color: #16a34a; transform: translateX(5px); }
 
             .slide-footer { margin-top: auto; padding-top: 24px; border-top: 1px solid #f1f5f9; }
             .logout-full-btn {

@@ -245,7 +245,7 @@ export const WarehouseStockModal: React.FC<WarehouseStockModalProps> = ({
               </button>
             </div>
 
-            <div className="tauze-search-wrapper" style={{ width: '280px', margin: 0, background: '#f8fafc' }}>
+            <div className="tauze-search-wrapper" style={{ width: '280px', margin: 0, background: 'hsl(var(--bg-main))' }}>
               <Search size={18} className="s-icon" />
               <input 
                 type="text" 
@@ -258,7 +258,7 @@ export const WarehouseStockModal: React.FC<WarehouseStockModalProps> = ({
             </div>
           </div>
 
-          <div style={{ flex: 1, minHeight: '400px', overflowY: 'auto', background: 'white', border: '1px solid #f1f5f9', borderRadius: '16px' }}>
+          <div style={{ flex: 1, minHeight: '400px', overflowY: 'auto', background: 'hsl(var(--bg-card))', border: '1px solid #f1f5f9', borderRadius: '16px' }}>
             {activeTab === 'stock' ? (
               <ModernTable 
           emptyState={

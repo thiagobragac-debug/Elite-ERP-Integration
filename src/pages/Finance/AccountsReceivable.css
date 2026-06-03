@@ -116,7 +116,7 @@
 
 .action-dot.success { color: #10b981; background: #dcfce7; }
 .action-dot.info { color: #3b82f6; background: #dbeafe; }
-.action-dot.edit { color: #64748b; background: #f1f5f9; }
+.action-dot.edit { color: #64748b; background: hsl(var(--bg-main)); }
 .action-dot.delete { color: #ef4444; background: #fee2e2; }
 
 .action-dot:hover {
@@ -140,7 +140,7 @@
   bottom: 24px;
   margin: 0 auto 24px auto;
   width: fit-content;
-  background: white;
+  background: hsl(var(--bg-card));
   padding: 12px 24px;
   border-radius: 24px;
   display: flex;
@@ -224,7 +224,7 @@
 }
 
 .batch-btn.secondary:hover {
-  background: white;
+  background: hsl(var(--bg-card));
   border-color: hsl(var(--brand));
   color: hsl(var(--brand));
 }

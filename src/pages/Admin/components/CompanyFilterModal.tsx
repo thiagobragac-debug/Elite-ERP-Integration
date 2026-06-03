@@ -70,11 +70,11 @@ export const CompanyFilterModal: React.FC<CompanyFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.type === t ? 'white' : '#64748b', 
-                    background: filters.type === t ? '#10a34a' : 'white', 
+                    color: filters.type === t ? 'white' : 'hsl(var(--text-muted))', 
+                    background: filters.type === t ? '#10a34a' : 'hsl(var(--bg-card))', 
                     borderRadius: '12px', 
                     border: '1px solid',
-                    borderColor: filters.type === t ? '#10a34a' : '#e2e8f0',
+                    borderColor: filters.type === t ? '#10a34a' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -104,10 +104,10 @@ export const CompanyFilterModal: React.FC<CompanyFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Extensão Territorial (ha) <Layout size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.maxArea.toLocaleString()} ha</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Teto de Área</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto de Área</span>
               </div>
               <input 
                 type="range" 

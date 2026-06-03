@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, ClipboardCheck, Target, Activity, Calendar, History, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -60,7 +60,7 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
             <label className="tauze-filter-label">Acuracidade do Inventário <Target size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {[
-                { id: 'all', label: 'Qualquer Acuracidade', color: '#64748b' },
+                { id: 'all', label: 'Qualquer Acuracidade', color: 'hsl(var(--text-muted))' },
                 { id: 'excellent', label: 'Excelente (> 98%)', color: '#10b981' },
                 { id: 'good', label: 'Regular (90% - 98%)', color: '#f59e0b' },
                 { id: 'critical', label: 'Crítico (< 90%)', color: '#ef4444' }
@@ -71,11 +71,11 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.accuracyRange === r.id ? r.color : '#64748b', 
+                    color: filters.accuracyRange === r.id ? r.color : 'hsl(var(--text-muted))', 
                     background: filters.accuracyRange === r.id ? `${r.color}10` : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.accuracyRange === r.id ? r.color : '#e2e8f0',
+                    borderColor: filters.accuracyRange === r.id ? r.color : 'hsl(var(--border))',
                     cursor: 'pointer',
                     textAlign: 'left'
                   }}
@@ -101,11 +101,11 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#6366f1' : '#64748b', 
-                    background: filters.status === s.id ? '#eef2ff' : 'transparent', 
+                    color: filters.status === s.id ? '#6366f1' : 'hsl(var(--text-muted))', 
+                    background: filters.status === s.id ? '#6366f115' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#6366f1' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#6366f1' : 'hsl(var(--border))',
                     cursor: 'pointer'
                   }}
                   onClick={() => setFilters({ ...filters, status: s.id })}

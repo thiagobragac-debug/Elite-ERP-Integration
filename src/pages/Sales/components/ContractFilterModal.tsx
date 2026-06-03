@@ -67,11 +67,11 @@ export const ContractFilterModal: React.FC<ContractFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.priceType === t ? '#166534' : '#64748b', 
+                    color: filters.priceType === t ? '#166534' : 'hsl(var(--text-muted))', 
                     background: filters.priceType === t ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.priceType === t ? '#166534' : '#e2e8f0',
+                    borderColor: filters.priceType === t ? '#166534' : 'hsl(var(--border))',
                     cursor: 'pointer'
                   }}
                   onClick={() => setFilters({ ...filters, priceType: t })}
@@ -84,10 +84,10 @@ export const ContractFilterModal: React.FC<ContractFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Progresso Físico Mínimo (%) <Activity size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#166534' }}>{filters.minProgress}%</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Execução Física</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Execução Física</span>
               </div>
               <input 
                 type="range" 
@@ -115,11 +115,11 @@ export const ContractFilterModal: React.FC<ContractFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#166534' : '#64748b', 
+                    color: filters.status === s.id ? '#166534' : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#166534' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#166534' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     textAlign: 'left'
                   }}

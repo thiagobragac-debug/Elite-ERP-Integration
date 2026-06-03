@@ -57,7 +57,7 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({ isOpen, onClos
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          style={{ maxWidth: '400px', width: '100%', padding: '24px', borderRadius: '24px', background: 'white' }}
+          style={{ maxWidth: '400px', width: '100%', padding: '24px', borderRadius: '24px', background: 'hsl(var(--bg-card))' }}
         >
           <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -129,7 +129,7 @@ export const PriceAlertModal: React.FC<PriceAlertModalProps> = ({ isOpen, onClos
               </div>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ background: 'hsl(var(--bg-main))', padding: '12px', borderRadius: '12px', display: 'flex', gap: '12px', alignItems: 'center' }}>
               <Bell size={16} color="#94a3b8" />
               <p style={{ margin: 0, fontSize: '11px', color: '#64748b', lineHeight: '1.4' }}>
                 O robô do Copilot monitora as cotações oficiais todos os dias. Se este alvo for atingido, você receberá um alerta no Painel de Vendas.

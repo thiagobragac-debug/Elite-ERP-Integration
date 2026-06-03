@@ -28,7 +28,7 @@ export const BICustomizerCard: React.FC<BICustomizerCardProps> = ({ onClick }) =
           align-items: center;
           gap: 16px;
           padding: 16px 32px;
-          background: white;
+          background: hsl(var(--bg-card));
           border: 1px solid hsl(var(--border));
           border-radius: 24px;
           margin: 24px 0;

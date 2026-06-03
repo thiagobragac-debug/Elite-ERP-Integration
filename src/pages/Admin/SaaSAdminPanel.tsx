@@ -1431,7 +1431,7 @@ export const SaaSAdminPanel: React.FC = () => {
             width: '36px', 
             height: '36px', 
             borderRadius: '10px', 
-            background: '#f8fafc', 
+            background: 'hsl(var(--bg-main))', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
@@ -1555,7 +1555,7 @@ export const SaaSAdminPanel: React.FC = () => {
             width: '32px', 
             height: '32px', 
             borderRadius: '10px', 
-            background: '#f8fafc', 
+            background: 'hsl(var(--bg-main))', 
             display: 'flex', 
             alignItems: 'center', 
             justifyContent: 'center', 
@@ -3244,7 +3244,7 @@ export const SaaSAdminPanel: React.FC = () => {
                   width: '100%'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingRight: '24px', borderRight: '1px solid hsl(var(--border))' }}>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
+                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'hsl(var(--bg-card))', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6366f1' }}>
                       <div style={{ margin: 'auto' }}><Zap size={22} fill="#6366f1" /></div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -3268,7 +3268,7 @@ export const SaaSAdminPanel: React.FC = () => {
                           gap: '10px', 
                           padding: '10px 18px', 
                           borderRadius: '12px', 
-                          background: 'white', 
+                          background: 'hsl(var(--bg-card))', 
                           border: '1px solid hsl(var(--border))',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease',
@@ -3901,7 +3901,7 @@ export const SaaSAdminPanel: React.FC = () => {
         }
 
         .premium-card {
-          background: white;
+          background: hsl(var(--bg-card));
           border: 1px solid #f1f5f9;
           border-radius: 32px;
           padding: 32px;
@@ -3915,7 +3915,7 @@ export const SaaSAdminPanel: React.FC = () => {
         .premium-card:hover {
           transform: translateY(-8px);
           box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          border-color: #e2e8f0;
+          border-color: hsl(var(--border));
         }
 
         .card-header {
@@ -3967,7 +3967,7 @@ export const SaaSAdminPanel: React.FC = () => {
         }
 
         .status-tag.inactive {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           color: #94a3b8;
         }
 
@@ -3977,7 +3977,7 @@ export const SaaSAdminPanel: React.FC = () => {
           padding: 8px 16px;
           border-radius: 10px;
           border: 1px solid #f1f5f9;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           color: #64748b;
           cursor: pointer;
           transition: all 0.2s;
@@ -3990,7 +3990,7 @@ export const SaaSAdminPanel: React.FC = () => {
         }
 
         .tauze-tab-item:hover {
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
         }
 
         .card-body {
@@ -4016,7 +4016,7 @@ export const SaaSAdminPanel: React.FC = () => {
 
         .premium-select, .premium-input {
           width: 100%;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border: 1px solid #f1f5f9;
           border-radius: 12px;
           padding: 12px 16px;
@@ -4028,7 +4028,7 @@ export const SaaSAdminPanel: React.FC = () => {
         }
 
         .premium-select:focus, .premium-input:focus {
-          background: white;
+          background: hsl(var(--bg-card));
           border-color: #cbd5e1;
           box-shadow: 0 0 0 4px rgba(241, 245, 249, 1);
         }
@@ -4047,7 +4047,7 @@ export const SaaSAdminPanel: React.FC = () => {
         }
 
         .info-box {
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-radius: 16px;
           padding: 16px;
           border: 1px dashed #e2e8f0;
@@ -4064,7 +4064,7 @@ export const SaaSAdminPanel: React.FC = () => {
 
         .billing-footer {
           margin-top: 48px;
-          background: white;
+          background: hsl(var(--bg-card));
           border: 1px solid #f1f5f9;
           border-radius: 24px;
           padding: 24px;
@@ -4129,7 +4129,7 @@ export const SaaSAdminPanel: React.FC = () => {
 
         .premium-table th {
           padding: 20px 32px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-bottom: 2px solid hsl(var(--brand) / 0.1);
           color: hsl(var(--brand));
           font-size: 11px;
@@ -4203,7 +4203,7 @@ export const SaaSAdminPanel: React.FC = () => {
 
         .action-btn-square.info { background: #eff6ff; color: #3b82f6; border-color: #dbeafe; }
         .action-btn-square.success { background: #ecfdf5; color: #10b981; border-color: #d1fae5; }
-        .action-btn-square.danger { background: #fff1f2; color: #f43f5e; border-color: #ffe4e6; }
+        .action-btn-square.danger { background: hsl(var(--bg-card));1f2; color: #f43f5e; border-color: #ffe4e6; }
 
         .action-btn-square:hover {
           transform: translateY(-2px);
@@ -4222,8 +4222,8 @@ export const SaaSAdminPanel: React.FC = () => {
         }
 
         .status-badge-tauze.pago { background: #ecfdf5; color: #059669; border-color: #d1fae5; }
-        .status-badge-tauze.pendente { background: #fffbeb; color: #d97706; border-color: #fef3c7; }
-        .status-badge-tauze.atrasado { background: #fff1f2; color: #e11d48; border-color: #ffe4e6; }
+        .status-badge-tauze.pendente { background: hsl(var(--bg-card));beb; color: #d97706; border-color: #fef3c7; }
+        .status-badge-tauze.atrasado { background: hsl(var(--bg-card));1f2; color: #e11d48; border-color: #ffe4e6; }
         .status-badge-tauze.processando { background: #eff6ff; color: #2563eb; border-color: #dbeafe; }
 
         @media (max-width: 1200px) {

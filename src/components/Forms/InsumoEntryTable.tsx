@@ -404,7 +404,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
         .tauze-table-input:focus {
           border-color: hsl(var(--brand));
           outline: none;
-          background: white;
+          background: hsl(var(--bg-card));
           box-shadow: 0 0 0 4px hsl(var(--brand)/0.1);
         }
         .price-input-wrapper {
@@ -456,7 +456,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
           top: 100%;
           left: 0;
           right: 0;
-          background: white;
+          background: hsl(var(--bg-card));
           border: 1px solid hsl(var(--border));
           border-radius: 14px;
           box-shadow: 0 15px 35px -5px rgba(0,0,0,0.15);

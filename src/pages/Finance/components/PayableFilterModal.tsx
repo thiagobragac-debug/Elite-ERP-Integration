@@ -61,7 +61,7 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
             <label className="tauze-filter-label">Status da Conta <Activity size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {[
-                { id: 'all', label: 'Todos os Status', color: '#64748b' },
+                { id: 'all', label: 'Todos os Status', color: 'hsl(var(--text-muted))' },
                 { id: 'PENDENTE', label: 'Pendentes (Em Aberto)', color: '#f59e0b' },
                 { id: 'PAGO', label: 'Liquidados (Pagos)', color: '#10b981' },
                 { id: 'ATRASADO', label: 'Em Atraso (Overdue)', color: '#ef4444' }
@@ -72,11 +72,11 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? s.color : '#64748b', 
+                    color: filters.status === s.id ? s.color : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? `${s.color}10` : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? s.color : '#e2e8f0',
+                    borderColor: filters.status === s.id ? s.color : 'hsl(var(--border))',
                     cursor: 'pointer',
                     textAlign: 'left'
                   }}
@@ -90,10 +90,10 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Valor do Título (R$) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#6366f1' }}>{filters.maxAmount.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Teto de Valor</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto de Valor</span>
               </div>
               <input 
                 type="range" 

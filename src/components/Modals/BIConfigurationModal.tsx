@@ -87,7 +87,7 @@ export const BIConfigurationModal: React.FC<BIConfigurationModalProps> = ({ isOp
           {selectedMetrics.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
               {selectedMetrics.map((m, i) => (
-                <div key={i} style={{ background: 'white', padding: '16px', borderRadius: '16px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <div key={i} style={{ background: 'hsl(var(--bg-card))', padding: '16px', borderRadius: '16px', border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <span style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>{m}</span>
                     <BarChart3 size={12} style={{ color: 'hsl(var(--text-muted))' }} />

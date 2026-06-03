@@ -435,7 +435,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
 
           /* ESTILOS DE EXPORTAÇÃO PDF */
           .is-exporting-pdf {
-            width: 1120px !important; background: white !important; padding: 0 !important;
+            width: 1120px !important; background: hsl(var(--bg-card)); !important; padding: 0 !important;
             font-family: 'Inter', sans-serif !important; color: #0f172a !important;
             position: relative; overflow: hidden;
           }
@@ -447,7 +447,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           }
 
           .is-exporting-pdf .print-modern-header {
-            background: #f8fafc !important; position: relative; z-index: 1;
+            background: hsl(var(--bg-main)); !important; position: relative; z-index: 1;
             border-bottom: 1px solid #e2e8f0 !important;
           }
           
@@ -484,7 +484,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           .is-exporting-pdf .title-left p { font-size: 14px; color: #64748b !important; margin: 0; max-width: 600px; }
           
           .is-exporting-pdf .unit-badge {
-            background: #f1f5f9 !important; padding: 12px 20px; border-radius: 12px; border: 1px solid #e2e8f0 !important;
+            background: hsl(var(--bg-main)); !important; padding: 12px 20px; border-radius: 12px; border: 1px solid hsl(var(--border)); !important;
             display: flex; flex-direction: column; align-items: flex-end;
           }
           .is-exporting-pdf .unit-badge span { font-size: 10px; color: #64748b !important; font-weight: 800; letter-spacing: 0.1em; }
@@ -499,7 +499,7 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
 
           .is-exporting-pdf .print-stat-card {
             flex: 1; min-width: 0; box-sizing: border-box !important;
-            border: 1px solid #e2e8f0 !important; background: #fff !important; padding: 24px !important; 
+            border: 1px solid hsl(var(--border)); !important; background: hsl(var(--bg-card)); !important; padding: 24px !important; 
             border-radius: 16px !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important;
           }
           .is-exporting-pdf .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
@@ -510,15 +510,15 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           .is-exporting-pdf .stat-trend.down { color: #ef4444 !important; }
 
           .is-exporting-pdf .print-data-full { display: block !important; width: 100% !important; }
-          .is-exporting-pdf .table-wrapper { border-radius: 16px; border: 1px solid #e2e8f0 !important; overflow: hidden; }
+          .is-exporting-pdf .table-wrapper { border-radius: 16px; border: 1px solid hsl(var(--border)); !important; overflow: hidden; }
 
           .is-exporting-pdf .full-print-table { 
             width: 100% !important; border-collapse: collapse !important; 
-            font-size: 13px !important; background: white !important;
+            font-size: 13px !important; background: hsl(var(--bg-card)); !important;
           }
 
           .is-exporting-pdf .full-print-table th { 
-            background: #f8fafc !important; border-bottom: 1px solid #e2e8f0 !important; 
+            background: hsl(var(--bg-main)); !important; border-bottom: 1px solid #e2e8f0 !important; 
             padding: 16px 20px !important; color: #475569 !important; font-weight: 800 !important;
             text-transform: uppercase !important; text-align: left; font-size: 11px !important; letter-spacing: 0.05em;
           }
@@ -629,16 +629,16 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
           /* IMPRESSÃO DO NAVEGADOR */
           @media print {
             @page { margin: 1cm; size: A4 portrait; }
-            html, body { height: auto !important; width: 100% !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: white !important; -webkit-print-color-adjust: exact; font-family: 'Inter', sans-serif !important; color: #0f172a !important; }
+            html, body { height: auto !important; width: 100% !important; margin: 0 !important; padding: 0 !important; overflow: visible !important; background: hsl(var(--bg-card)); !important; -webkit-print-color-adjust: exact; font-family: 'Inter', sans-serif !important; color: #0f172a !important; }
             body > *:not(.report-viewer-overlay) { display: none !important; }
-            .report-viewer-overlay { position: static !important; display: block !important; background: white !important; padding: 0 !important; margin: 0 !important; opacity: 1 !important; visibility: visible !important; }
+            .report-viewer-overlay { position: static !important; display: block !important; background: hsl(var(--bg-card)); !important; padding: 0 !important; margin: 0 !important; opacity: 1 !important; visibility: visible !important; }
             .viewer-container { display: none !important; }
             .pdf-export-engine-container { display: none !important; }
             .browser-print-only-container { display: block !important; width: 100% !important; position: relative; overflow: hidden; }
             
             .print-watermark { position: absolute; top: 30%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); font-size: 100px; font-weight: 900; color: rgba(0,0,0,0.02); z-index: 0; pointer-events: none; white-space: nowrap; }
 
-            .print-modern-header { background: #f8fafc !important; position: relative; z-index: 1; border-bottom: 1px solid #e2e8f0 !important; }
+            .print-modern-header { background: hsl(var(--bg-main)); !important; position: relative; z-index: 1; border-bottom: 1px solid #e2e8f0 !important; }
             .header-top-bar { height: 4px; background: linear-gradient(90deg, #10b981 0%, #3b82f6 100%) !important; width: 100%; }
             .header-content { display: flex !important; justify-content: space-between; align-items: center; padding: 20px 30px !important; width: 100%; box-sizing: border-box; }
 
@@ -657,14 +657,14 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
             .title-left h2 { font-size: 22px; font-weight: 900; color: #0f172a !important; margin: 0 0 6px 0; letter-spacing: -0.03em; }
             .title-left p { font-size: 12px; color: #64748b !important; margin: 0; max-width: 500px; }
             
-            .unit-badge { background: #f1f5f9 !important; padding: 8px 16px; border-radius: 8px; border: 1px solid #e2e8f0 !important; display: flex; flex-direction: column; align-items: flex-end; }
+            .unit-badge { background: hsl(var(--bg-main)); !important; padding: 8px 16px; border-radius: 8px; border: 1px solid hsl(var(--border)); !important; display: flex; flex-direction: column; align-items: flex-end; }
             .unit-badge span { font-size: 8px; color: #64748b !important; font-weight: 800; letter-spacing: 0.1em; }
             .unit-badge strong { font-size: 14px; color: #0f172a !important; font-weight: 900; }
 
             .print-viewer-content { padding: 15px 30px 30px 30px !important; position: relative; z-index: 1; display: block !important; }
 
             .next-gen-kpi-grid { display: flex !important; flex-wrap: nowrap !important; gap: 15px !important; margin-bottom: 30px !important; width: 100% !important; }
-            .print-stat-card { flex: 1; min-width: 0; box-sizing: border-box !important; border: 1px solid #e2e8f0 !important; background: #fff !important; padding: 15px !important; border-radius: 12px !important; box-shadow: none !important; }
+            .print-stat-card { flex: 1; min-width: 0; box-sizing: border-box !important; border: 1px solid hsl(var(--border)); !important; background: hsl(var(--bg-card)); !important; padding: 15px !important; border-radius: 12px !important; box-shadow: none !important; }
             .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
             .stat-label { font-size: 10px; color: #64748b !important; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
             .stat-value { font-size: 20px !important; font-weight: 900 !important; letter-spacing: -0.03em; margin-bottom: 4px; color: #0f172a !important; }
@@ -673,10 +673,10 @@ export const ReportViewer: React.FC<ReportViewerProps> = ({ report, onClose }) =
             .stat-trend.down { color: #ef4444 !important; }
 
             .print-data-full { display: block !important; width: 100% !important; }
-            .table-wrapper { border-radius: 12px; border: 1px solid #e2e8f0 !important; overflow: hidden; page-break-inside: auto; }
+            .table-wrapper { border-radius: 12px; border: 1px solid hsl(var(--border)); !important; overflow: hidden; page-break-inside: auto; }
             
-            .full-print-table { width: 100% !important; border-collapse: collapse !important; font-size: 11px !important; background: white !important; }
-            .full-print-table th { background: #f8fafc !important; border-bottom: 1px solid #e2e8f0 !important; padding: 12px 14px !important; color: #475569 !important; font-weight: 800 !important; text-transform: uppercase !important; text-align: left; font-size: 9px !important; letter-spacing: 0.05em; }
+            .full-print-table { width: 100% !important; border-collapse: collapse !important; font-size: 11px !important; background: hsl(var(--bg-card)); !important; }
+            .full-print-table th { background: hsl(var(--bg-main)); !important; border-bottom: 1px solid #e2e8f0 !important; padding: 12px 14px !important; color: #475569 !important; font-weight: 800 !important; text-transform: uppercase !important; text-align: left; font-size: 9px !important; letter-spacing: 0.05em; }
             .full-print-table td { border-bottom: 1px solid #f1f5f9 !important; padding: 10px 14px !important; color: #334155 !important; font-weight: 500; }
             .full-print-table .even-row td { background: #fafafa !important; }
             .full-print-table tr { page-break-inside: avoid !important; }

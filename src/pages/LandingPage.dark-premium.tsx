@@ -1549,7 +1549,7 @@ export const LandingPage: React.FC = () => {
           width: 20px;
           height: 20px;
           border-radius: 50%;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           transition: transform 0.3s;
         }
 

@@ -935,7 +935,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary-large {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-main);
           border: 1px solid rgba(0, 0, 0, 0.08);
           padding: 18px 32px;
@@ -973,7 +973,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .frame-header {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           padding: 16px 24px;
           display: flex;
           align-items: center;
@@ -1025,11 +1025,11 @@ export const LandingPage: React.FC = () => {
           display: grid;
           grid-template-columns: 240px 1fr;
           min-height: 380px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
         }
 
         .mockup-side {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-right: 1px solid var(--border-light);
           padding: 24px;
           display: flex;
@@ -1059,7 +1059,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .side-nav-item.active {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--accent);
           box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
           border: 1px solid rgba(0, 184, 101, 0.06);
@@ -1234,7 +1234,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .visual-glass-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 28px;
           padding: 36px;
@@ -1463,7 +1463,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .config-control-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 24px;
           padding: 36px;
@@ -1572,7 +1572,7 @@ export const LandingPage: React.FC = () => {
           width: 100%;
           height: 6px;
           border-radius: 100px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           outline: none;
         }
 
@@ -1593,7 +1593,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .contract-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--accent-border);
           border-radius: 28px;
           padding: 40px;
@@ -1786,7 +1786,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .faq-accordion-item {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 18px;
           overflow: hidden;
@@ -1828,7 +1828,7 @@ export const LandingPage: React.FC = () => {
         .elegant-footer {
           padding: 100px 0 0;
           border-top: 1px solid var(--border-light);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           position: relative;
           z-index: 1;
         }

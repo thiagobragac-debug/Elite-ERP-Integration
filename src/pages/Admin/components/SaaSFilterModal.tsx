@@ -51,8 +51,8 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
       cursor: 'pointer',
       transition: 'all 0.2s',
       background: isSelected ? activeColor : '#ffffff',
-      color: isSelected ? '#ffffff' : '#64748b',
-      borderColor: isSelected ? activeColor : '#e2e8f0',
+      color: isSelected ? '#ffffff' : 'hsl(var(--text-muted))',
+      borderColor: isSelected ? activeColor : 'hsl(var(--border))',
       boxShadow: isSelected ? `0 4px 12px ${shadowColor}` : 'none',
       outline: 'none',
       width: '100%',
@@ -64,12 +64,12 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
     width: '100%',
     padding: '12px 16px',
     borderRadius: '12px',
-    border: '1px solid #e2e8f0',
+    border: '1px solid hsl(var(--border))',
     outline: 'none',
     fontSize: '12px',
     fontWeight: 700,
     color: '#334155',
-    background: '#ffffff',
+    background: 'hsl(var(--bg-card))',
     transition: 'all 0.2s'
   };
 
@@ -112,7 +112,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
               width: '100%',
               maxWidth: '400px',
               height: '100vh',
-              background: '#ffffff',
+              background: 'hsl(var(--bg-card))',
               boxShadow: '-10px 0 50px rgba(0, 0, 0, 0.15)',
               display: 'flex',
               flexDirection: 'column',
@@ -148,7 +148,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   <h2 style={{ margin: 0, fontSize: '15px', fontWeight: '900', color: '#ffffff', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
                     {activeTab === 'plans' ? 'Filtros de Planos' : activeTab === 'billing' ? 'Filtros de Cobrança' : activeTab === 'campaigns' ? 'Filtros de Campanhas' : 'Filtros de Tenants'}
                   </h2>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '10px', fontWeight: '700', color: '#64748b' }}>
+                  <p style={{ margin: '2px 0 0 0', fontSize: '10px', fontWeight: '700', color: 'hsl(var(--text-muted))' }}>
                     Refine a busca por critérios de governança.
                   </p>
                 </div>
@@ -163,7 +163,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   alignItems: 'center',
                   justifyContent: 'center',
                   color: '#475569',
-                  background: '#ffffff',
+                  background: 'hsl(var(--bg-card))',
                   border: 'none',
                   cursor: 'pointer',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
@@ -514,8 +514,8 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
             {/* Bottom Actions */}
             <div style={{
               padding: '20px 24px',
-              background: '#f8fafc',
-              borderTop: '1px solid #e2e8f0',
+              background: 'hsl(var(--bg-main))',
+              borderTop: '1px solid hsl(var(--border))',
               display: 'flex',
               gap: '12px'
             }}>
@@ -542,9 +542,9 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                   borderRadius: '12px',
                   fontSize: '11px',
                   fontWeight: 900,
-                  color: '#64748b',
-                  border: '1px solid #e2e8f0',
-                  background: '#ffffff',
+                  color: 'hsl(var(--text-muted))',
+                  border: '1px solid hsl(var(--border))',
+                  background: 'hsl(var(--bg-card))',
                   cursor: 'pointer',
                   letterSpacing: '0.05em',
                   transition: 'all 0.2s',

@@ -76,11 +76,11 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '10px', 
                     fontWeight: 800, 
-                    color: filters.tipo === t.id ? '#10a34a' : '#64748b', 
+                    color: filters.tipo === t.id ? '#10a34a' : 'hsl(var(--text-muted))', 
                     background: filters.tipo === t.id ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.tipo === t.id ? '#10a34a' : '#e2e8f0',
+                    borderColor: filters.tipo === t.id ? '#10a34a' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -105,9 +105,9 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
                   onClick={() => setFilters({ ...filters, status })}
                   style={{ 
                     flex: 1,
-                    borderColor: filters.status === status ? '#10a34a' : '#e2e8f0', 
-                    background: filters.status === status ? '#10a34a' : 'white',
-                    color: filters.status === status ? 'white' : '#64748b'
+                    borderColor: filters.status === status ? '#10a34a' : 'hsl(var(--border))', 
+                    background: filters.status === status ? '#10a34a' : 'hsl(var(--bg-card))',
+                    color: filters.status === status ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {status === 'all' ? 'Todos' : status}
@@ -131,7 +131,7 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
                 style={{ width: '20px', height: '20px', accentColor: '#ef4444' }}
               />
             </div>
-            <p style={{ fontSize: '10px', color: '#64748b', fontWeight: 600 }}>Filtra animais em período de carência ativa que não podem ser destinados ao abate ou venda.</p>
+            <p style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>Filtra animais em período de carência ativa que não podem ser destinados ao abate ou venda.</p>
           </div>
 
           <div className="tauze-filter-section">
@@ -154,10 +154,10 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Duração da Carência (Dias) <Clock size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.minCarencia} d</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Mínimo Esperado</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Mínimo Esperado</span>
               </div>
               <input 
                 type="range" 

@@ -125,7 +125,7 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
             {filteredAnimals.map(animal => (
               <div key={animal.id} style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.3)', borderRadius: '16px', border: '1px solid hsl(var(--border))', display: 'flex', gap: '16px', alignItems: 'center' }}>
-                <div style={{ width: '44px', height: '44px', background: 'white', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--text-muted))', border: '1px solid hsl(var(--border))' }}>
+                <div style={{ width: '44px', height: '44px', background: 'hsl(var(--bg-card))', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--text-muted))', border: '1px solid hsl(var(--border))' }}>
                   <Beef size={22} />
                 </div>
                 <div style={{ flex: 1 }}>

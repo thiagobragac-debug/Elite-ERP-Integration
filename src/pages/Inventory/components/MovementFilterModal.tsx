@@ -61,7 +61,7 @@ export const MovementFilterModal: React.FC<MovementFilterModalProps> = ({
             <label className="tauze-filter-label">Tipo de Fluxo <Package size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {[
-                { id: 'all', label: 'Todos os Movimentos', icon: Filter, color: '#64748b' },
+                { id: 'all', label: 'Todos os Movimentos', icon: Filter, color: 'hsl(var(--text-muted))' },
                 { id: 'in', label: 'Apenas Entradas', icon: ArrowDownLeft, color: '#10b981' },
                 { id: 'out', label: 'Apenas Saídas', icon: ArrowUpRight, color: '#ef4444' },
                 { id: 'transfer', label: 'Transferências', icon: ArrowRightLeft, color: '#3b82f6' }
@@ -72,11 +72,11 @@ export const MovementFilterModal: React.FC<MovementFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.type === t.id ? t.color : '#64748b', 
+                    color: filters.type === t.id ? t.color : 'hsl(var(--text-muted))', 
                     background: filters.type === t.id ? `${t.color}10` : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.type === t.id ? t.color : '#e2e8f0',
+                    borderColor: filters.type === t.id ? t.color : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -93,10 +93,10 @@ export const MovementFilterModal: React.FC<MovementFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Valor Financeiro (R$) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxAmount.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Teto de Valor</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto de Valor</span>
               </div>
               <input 
                 type="range" 

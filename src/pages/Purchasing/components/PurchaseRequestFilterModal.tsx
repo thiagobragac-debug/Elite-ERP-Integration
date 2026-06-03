@@ -19,7 +19,7 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
   if (!isOpen) return null;
 
   const priorities = [
-    { id: 'low', label: 'Baixa', color: '#64748b' },
+    { id: 'low', label: 'Baixa', color: 'hsl(var(--text-muted))' },
     { id: 'medium', label: 'Média', color: '#3b82f6' },
     { id: 'high', label: 'Alta', color: '#ed6c02' },
     { id: 'urgent', label: 'Urgente', color: '#ef4444' }
@@ -84,11 +84,11 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
                     padding: '12px 8px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.priorities?.includes(p.id) ? p.color : '#64748b', 
+                    color: filters.priorities?.includes(p.id) ? p.color : 'hsl(var(--text-muted))', 
                     background: filters.priorities?.includes(p.id) ? `${p.color}10` : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.priorities?.includes(p.id) ? p.color : '#e2e8f0',
+                    borderColor: filters.priorities?.includes(p.id) ? p.color : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -118,9 +118,9 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
                   className={`tauze-tag-chip ${filters.departments?.includes(dept) ? 'active' : ''}`}
                   onClick={() => toggleDept(dept)}
                   style={{ 
-                    borderColor: filters.departments?.includes(dept) ? '#10a34a' : '#e2e8f0', 
-                    background: filters.departments?.includes(dept) ? '#10a34a' : 'white',
-                    color: filters.departments?.includes(dept) ? 'white' : '#64748b'
+                    borderColor: filters.departments?.includes(dept) ? '#10a34a' : 'hsl(var(--border))', 
+                    background: filters.departments?.includes(dept) ? '#10a34a' : 'hsl(var(--bg-card))',
+                    color: filters.departments?.includes(dept) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {dept}
@@ -131,10 +131,10 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Valor Estimado (R$) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.maxAmount.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Teto Estimado</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto Estimado</span>
               </div>
               <input 
                 type="range" 

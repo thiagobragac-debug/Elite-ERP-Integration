@@ -83,11 +83,11 @@ export const MaintenanceFilterModal: React.FC<MaintenanceFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '10px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#ed6c02' : '#64748b', 
+                    color: filters.status === s.id ? '#ed6c02' : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? '#fff7ed' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#ed6c02' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#ed6c02' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -111,9 +111,9 @@ export const MaintenanceFilterModal: React.FC<MaintenanceFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.types?.includes(type) ? 'active' : ''}`}
                   onClick={() => toggleType(type)}
                   style={{ 
-                    borderColor: filters.types?.includes(type) ? '#ed6c02' : '#e2e8f0', 
-                    background: filters.types?.includes(type) ? '#ed6c02' : 'white',
-                    color: filters.types?.includes(type) ? 'white' : '#64748b'
+                    borderColor: filters.types?.includes(type) ? '#ed6c02' : 'hsl(var(--border))', 
+                    background: filters.types?.includes(type) ? '#ed6c02' : 'hsl(var(--bg-card))',
+                    color: filters.types?.includes(type) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {type}
@@ -124,10 +124,10 @@ export const MaintenanceFilterModal: React.FC<MaintenanceFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Custo TCO Acumulado <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#ed6c02' }}>{filters.maxCost.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Teto Orçamentário</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto Orçamentário</span>
               </div>
               <input 
                 type="range" 

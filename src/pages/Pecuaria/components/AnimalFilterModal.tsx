@@ -240,7 +240,7 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
           width: 24px;
           height: 24px;
           border-radius: 50%;
-          background: white;
+          background: hsl(var(--bg-card));
           border: 3px solid hsl(var(--brand));
           cursor: pointer;
           box-shadow: 0 4px 10px rgba(0,0,0,0.1);
@@ -272,7 +272,7 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
         }
 
         .segment-item.active {
-          background: white;
+          background: hsl(var(--bg-card));
           color: hsl(var(--brand));
           box-shadow: var(--shadow-md);
         }

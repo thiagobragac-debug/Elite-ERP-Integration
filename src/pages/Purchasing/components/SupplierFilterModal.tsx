@@ -78,11 +78,11 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '12px', 
                     fontWeight: 800, 
-                    color: filters.minRating >= r ? '#f59e0b' : '#64748b', 
+                    color: filters.minRating >= r ? '#f59e0b' : 'hsl(var(--text-muted))', 
                     background: filters.minRating >= r ? '#fffbeb' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.minRating >= r ? '#f59e0b' : '#e2e8f0',
+                    borderColor: filters.minRating >= r ? '#f59e0b' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -107,9 +107,9 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.categories?.includes(cat) ? 'active' : ''}`}
                   onClick={() => toggleCategory(cat)}
                   style={{ 
-                    borderColor: filters.categories?.includes(cat) ? '#3b82f6' : '#e2e8f0', 
-                    background: filters.categories?.includes(cat) ? '#3b82f6' : 'white',
-                    color: filters.categories?.includes(cat) ? 'white' : '#64748b'
+                    borderColor: filters.categories?.includes(cat) ? '#3b82f6' : 'hsl(var(--border))', 
+                    background: filters.categories?.includes(cat) ? '#3b82f6' : 'hsl(var(--bg-card))',
+                    color: filters.categories?.includes(cat) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {cat}
@@ -120,10 +120,10 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Volume de Transação (R$) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxSpend.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Gasto Acumulado</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Gasto Acumulado</span>
               </div>
               <input 
                 type="range" 
@@ -147,11 +147,11 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
                     padding: '12px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s ? '#10b981' : '#64748b', 
+                    color: filters.status === s ? '#10b981' : 'hsl(var(--text-muted))', 
                     background: filters.status === s ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s ? '#10b981' : '#e2e8f0',
+                    borderColor: filters.status === s ? '#10b981' : 'hsl(var(--border))',
                     cursor: 'pointer'
                   }}
                   onClick={() => setFilters({ ...filters, status: s })}

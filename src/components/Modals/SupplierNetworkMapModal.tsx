@@ -194,12 +194,12 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
             </svg>
 
             <div className="map-controls">
-              <button className="ctrl-btn" style={{ background: 'white', border: '1px solid #e2e8f0', color: '#64748b' }}><TrendingUp size={16} /></button>
-              <button className="ctrl-btn" style={{ background: 'white', border: '1px solid #e2e8f0', color: '#64748b' }}><MapPin size={16} /></button>
-              <button className="ctrl-btn" style={{ background: 'white', border: '1px solid #e2e8f0', color: '#64748b' }}><Search size={16} /></button>
+              <button className="ctrl-btn" style={{ background: 'hsl(var(--bg-card))', border: '1px solid #e2e8f0', color: '#64748b' }}><TrendingUp size={16} /></button>
+              <button className="ctrl-btn" style={{ background: 'hsl(var(--bg-card))', border: '1px solid #e2e8f0', color: '#64748b' }}><MapPin size={16} /></button>
+              <button className="ctrl-btn" style={{ background: 'hsl(var(--bg-card))', border: '1px solid #e2e8f0', color: '#64748b' }}><Search size={16} /></button>
             </div>
 
-            <div className="map-overlay-card" style={{ background: 'white', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
+            <div className="map-overlay-card" style={{ background: 'hsl(var(--bg-card))', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }}>
               <div className="pulse-active" style={{ width: '8px', height: '8px', background: 'hsl(var(--brand))', borderRadius: '50%' }}></div>
               <div>
                 <h5 style={{ color: 'hsl(var(--brand))' }}>HUB LOGÍSTICO ATIVO</h5>
@@ -213,7 +213,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
         .map-modal-body {
           display: flex;
           height: calc(100vh - 120px);
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-bottom-left-radius: 24px;
           border-bottom-right-radius: 24px;
           overflow: hidden;
@@ -232,7 +232,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
           display: flex;
           flex-direction: column;
           gap: 20px;
-          background: white;
+          background: hsl(var(--bg-card));
           overflow-y: auto;
         }
 
@@ -252,8 +252,8 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
           width: 100%;
           height: 38px;
           padding: 0 12px 0 36px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          background: hsl(var(--bg-main));
+          border: 1px solid hsl(var(--border));
           border-radius: 10px;
           font-size: 12px;
           font-weight: 600;
@@ -264,7 +264,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
         .inner-search-wrapper input:focus {
           outline: none;
           border-color: hsl(var(--brand));
-          background: white;
+          background: hsl(var(--bg-card));
           box-shadow: 0 0 0 3px hsl(var(--brand) / 0.1);
         }
 
@@ -290,7 +290,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
         }
 
         .mini-sup-item:hover {
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           color: #1e293b;
         }
 
@@ -349,7 +349,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
         .s-bar-bg {
           flex: 1;
           height: 4px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-radius: 2px;
           overflow: hidden;
         }

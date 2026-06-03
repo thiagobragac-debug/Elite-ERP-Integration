@@ -866,7 +866,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-primary);
           border: 1px solid rgba(0, 0, 0, 0.08);
           padding: 16px 28px;
@@ -882,7 +882,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary:hover {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-color: rgba(0, 0, 0, 0.15);
         }
 
@@ -932,7 +932,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .console-header {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           padding: 14px 20px;
           display: flex;
           align-items: center;
@@ -981,7 +981,7 @@ export const LandingPage: React.FC = () => {
 
         .console-tabs {
           display: flex;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-bottom: 1px solid var(--border-color);
         }
 
@@ -1009,7 +1009,7 @@ export const LandingPage: React.FC = () => {
         .tab-link.active {
           color: var(--accent);
           border-bottom-color: var(--accent);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
         }
 
         .console-body {
@@ -1238,7 +1238,7 @@ export const LandingPage: React.FC = () => {
           align-items: center;
           gap: 14px;
           padding: 16px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-radius: 16px;
           border: 1px solid var(--border-color);
           margin-top: auto;
@@ -1307,7 +1307,7 @@ export const LandingPage: React.FC = () => {
           align-items: center;
           gap: 16px;
           padding: 6px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-color);
           border-radius: 100px;
           margin-top: 24px;
@@ -1356,7 +1356,7 @@ export const LandingPage: React.FC = () => {
           width: 20px;
           height: 20px;
           border-radius: 50%;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           transition: transform 0.3s;
         }
 
@@ -1507,14 +1507,14 @@ export const LandingPage: React.FC = () => {
         }
 
         .cta-btn.secondary {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-primary);
           border: 1px solid rgba(0, 0, 0, 0.08);
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01);
         }
 
         .cta-btn.secondary:hover {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-color: rgba(0, 0, 0, 0.15);
           transform: translateY(-2px);
         }
@@ -1586,7 +1586,7 @@ export const LandingPage: React.FC = () => {
           font-weight: 800;
           color: var(--text-secondary);
           padding: 6px 14px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-color);
           border-radius: 6px;
           letter-spacing: 0.05em;
@@ -1652,7 +1652,7 @@ export const LandingPage: React.FC = () => {
         .light-footer {
           padding: 80px 0 0;
           border-top: 1px solid var(--border-color);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           position: relative;
           z-index: 1;
         }

@@ -233,7 +233,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
               .modal-overlay {
                 position: absolute !important;
                 inset: 0 !important;
-                background: white !important;
+                background: hsl(var(--bg-card)); !important;
                 display: block !important;
                 padding: 0 !important;
                 z-index: auto !important;
@@ -246,7 +246,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
                 max-height: none !important;
                 box-shadow: none !important;
                 border: none !important;
-                background: white !important;
+                background: hsl(var(--bg-card)); !important;
                 display: block !important;
                 overflow: visible !important;
               }
@@ -269,7 +269,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
               .report-date { font-size: 11px; color: #64748b; font-weight: 600; }
 
               .print-summary-banner {
-                background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;
+                background: hsl(var(--bg-main)); padding: 20px; border-radius: 12px; border: 1px solid hsl(var(--border));
                 display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 20px;
                 margin-bottom: 30px;
               }
@@ -292,7 +292,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
               .print-table td:last-child { text-align: right; color: #0f172a; font-weight: 800; }
 
               .print-stats-grid { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 15px; }
-              .p-stat { padding: 16px; border: 1px solid #e2e8f0; border-radius: 12px; display: flex !important; flex-direction: column !important; gap: 8px !important; }
+              .p-stat { padding: 16px; border: 1px solid hsl(var(--border)); border-radius: 12px; display: flex !important; flex-direction: column !important; gap: 8px !important; }
               .p-stat.highlight { grid-column: span 3; flex-direction: row !important; justify-content: space-between; align-items: center; background: #f0fdf4; border-color: #bbf7d0; }
               .ps-label { display: block; font-size: 9px; color: #64748b; font-weight: 800; text-transform: uppercase; }
               .ps-value { display: block; font-size: 14px; font-weight: 900; color: #0f172a; }

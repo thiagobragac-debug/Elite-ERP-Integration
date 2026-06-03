@@ -36,7 +36,7 @@ export const RetentionPolicyModal: React.FC<RetentionPolicyModalProps> = ({ isOp
       <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
         {/* Visual Timeline Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginBottom: '10px' }}>
-          <div style={{ position: 'absolute', top: '24px', left: '10%', right: '10%', height: '2px', background: '#f1f5f9', zIndex: 0 }} />
+          <div style={{ position: 'absolute', top: '24px', left: '10%', right: '10%', height: '2px', background: 'hsl(var(--bg-main))', zIndex: 0 }} />
           {[
             { label: 'Alertas', icon: Activity },
             { label: 'Leitura', icon: Eye },
@@ -44,7 +44,7 @@ export const RetentionPolicyModal: React.FC<RetentionPolicyModalProps> = ({ isOp
             { label: 'Bloqueio', icon: Lock }
           ].map((step, i) => (
             <div key={i} style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'white', border: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+              <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'hsl(var(--bg-card))', border: '2px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                 <step.icon size={18} />
               </div>
               <span style={{ fontSize: '9px', fontWeight: 900, color: '#94a3b8', textTransform: 'uppercase' }}>{step.label}</span>

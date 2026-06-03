@@ -1132,8 +1132,8 @@ export const InventoryManagement: React.FC = () => {
         }
 
         .tauze-label { display: block; font-size: 11px; font-weight: 800; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-        .tauze-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 14px; transition: 0.2s; background: #f8fafc; color: #1e293b; font-weight: 600; }
-        .tauze-input:focus { border-color: #3b82f6; background: white; outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+        .tauze-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid hsl(var(--border)); font-size: 14px; transition: 0.2s; background: hsl(var(--bg-main)); color: #1e293b; font-weight: 600; }
+        .tauze-input:focus { border-color: #3b82f6; background: hsl(var(--bg-card)); outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
 
         .add-product-card-premium {
           border: 2px dashed #e2e8f0;

@@ -76,11 +76,11 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.performanceLevel === level.id ? 'white' : '#64748b', 
-                    background: filters.performanceLevel === level.id ? level.color : 'white', 
+                    color: filters.performanceLevel === level.id ? 'white' : 'hsl(var(--text-muted))', 
+                    background: filters.performanceLevel === level.id ? level.color : 'hsl(var(--bg-card))', 
                     borderRadius: '12px', 
                     border: '1px solid',
-                    borderColor: filters.performanceLevel === level.id ? level.color : '#e2e8f0',
+                    borderColor: filters.performanceLevel === level.id ? level.color : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -97,9 +97,9 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Faixa de Peso (@ ou kg) <Target size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso Mínimo</label>
+                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso Mínimo</label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                   <span style={{ fontSize: '18px', fontWeight: 900, color: '#3b82f6' }}>{filters.minWeight} kg</span>
                 </div>
@@ -115,7 +115,7 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
               </div>
 
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso Máximo</label>
+                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso Máximo</label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                   <span style={{ fontSize: '18px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxWeight} kg</span>
                 </div>

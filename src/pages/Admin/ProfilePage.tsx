@@ -197,13 +197,13 @@ export const ProfilePage: React.FC = () => {
               
               <div className="security-content">
                 <ModernTable 
-          emptyState={
-            <EmptyState
-              title="Nenhum registro encontrado"
-              description="Sua busca não retornou resultados."
-              icon={Search}
-            />
-          } 
+                  emptyState={
+                    <EmptyState
+                      title="Nenhum registro encontrado"
+                      description="Sua busca não retornou resultados."
+                      icon={Search}
+                    />
+                  } 
                   data={loginHistory}
                   columns={[
                     { header: 'Evento', accessor: 'event' },
@@ -229,11 +229,15 @@ export const ProfilePage: React.FC = () => {
         }
 
         .profile-card {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 32px;
           border: 1px solid #f1f5f9;
           padding: 32px;
           box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+        }
+        [data-theme='dark'] .profile-card {
+          background: #1e293b;
+          border-color: #334155;
         }
 
         .avatar-section {
@@ -255,6 +259,9 @@ export const ProfilePage: React.FC = () => {
           font-weight: 800;
           position: relative;
         }
+        [data-theme='dark'] .avatar-circle {
+          background: #020617;
+        }
 
         .avatar-edit-btn {
           position: absolute;
@@ -262,16 +269,23 @@ export const ProfilePage: React.FC = () => {
           right: -4px;
           width: 36px;
           height: 36px;
-          background: white;
-          border: 1px solid #e2e8f0;
+          background: hsl(var(--bg-card));
+          border: 1px solid hsl(var(--border));
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
           box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
+        [data-theme='dark'] .avatar-edit-btn {
+          background: #334155;
+          border-color: #475569;
+          color: white;
+        }
 
         .avatar-section h3 { font-size: 20px; font-weight: 900; color: #1e293b; margin-bottom: 8px; }
+        [data-theme='dark'] .avatar-section h3 { color: #f8fafc; }
+
         .role-badge {
           display: inline-block;
           padding: 6px 16px;
@@ -282,6 +296,9 @@ export const ProfilePage: React.FC = () => {
           font-weight: 900;
           text-transform: uppercase;
           letter-spacing: 0.05em;
+        }
+        [data-theme='dark'] .role-badge {
+          background: rgba(22, 163, 74, 0.2);
         }
 
         .profile-nav {
@@ -302,11 +319,13 @@ export const ProfilePage: React.FC = () => {
           background: transparent;
         }
 
-        .nav-item:hover { background: #f8fafc; color: #1e293b; }
+        .nav-item:hover { background: hsl(var(--bg-main)); color: #1e293b; }
+        [data-theme='dark'] .nav-item:hover { background: #334155; color: #f8fafc; }
         .nav-item.active { background: #0f172a; color: white; }
+        [data-theme='dark'] .nav-item.active { background: #16a34a; color: white; }
 
         .content-panel {
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 32px;
           border: 1px solid #f1f5f9;
           padding: 40px;
@@ -314,10 +333,17 @@ export const ProfilePage: React.FC = () => {
           display: flex;
           flex-direction: column;
         }
+        [data-theme='dark'] .content-panel {
+          background: #1e293b;
+          border-color: #334155;
+        }
 
         .panel-header { margin-bottom: 32px; border-bottom: 1px solid #f1f5f9; padding-bottom: 24px; }
+        [data-theme='dark'] .panel-header { border-color: #334155; }
         .panel-header h3 { font-size: 22px; font-weight: 900; color: #1e293b; margin-bottom: 8px; }
+        [data-theme='dark'] .panel-header h3 { color: #f8fafc; }
         .panel-header p { color: #64748b; font-size: 14px; font-weight: 500; }
+        [data-theme='dark'] .panel-header p { color: #94a3b8; }
 
         .fields-grid {
           display: grid;
@@ -329,7 +355,7 @@ export const ProfilePage: React.FC = () => {
         .tauze-field input {
           width: 100%;
           padding: 14px 20px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border: 2px solid #f1f5f9;
           border-radius: 16px;
           font-size: 15px;
@@ -338,10 +364,17 @@ export const ProfilePage: React.FC = () => {
           outline: none;
           transition: 0.2s;
         }
-        .tauze-field input:focus { border-color: #16a34a; background: white; }
+        [data-theme='dark'] .tauze-field input {
+          background: #0f172a;
+          border-color: #1e293b;
+          color: #f8fafc;
+        }
+        .tauze-field input:focus { border-color: #16a34a; background: hsl(var(--bg-card)); }
+        [data-theme='dark'] .tauze-field input:focus { background: #1e293b; border-color: #16a34a; }
         .tauze-field input:disabled { opacity: 0.5; cursor: not-allowed; }
 
         .panel-footer { margin-top: auto; padding-top: 40px; border-top: 1px solid #f1f5f9; }
+        [data-theme='dark'] .panel-footer { border-color: #334155; }
 
         .switches-list { display: flex; flex-direction: column; gap: 16px; }
         .pref-switch {
@@ -349,15 +382,22 @@ export const ProfilePage: React.FC = () => {
           justify-content: space-between;
           align-items: center;
           padding: 24px;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           border-radius: 24px;
           border: 1px solid #f1f5f9;
         }
+        [data-theme='dark'] .pref-switch {
+          background: #0f172a;
+          border-color: #1e293b;
+        }
         .pref-switch .t { display: block; font-size: 15px; font-weight: 800; color: #1e293b; margin-bottom: 4px; }
+        [data-theme='dark'] .pref-switch .t { color: #f8fafc; }
         .pref-switch .d { display: block; font-size: 12px; color: #64748b; font-weight: 600; }
+        [data-theme='dark'] .pref-switch .d { color: #94a3b8; }
 
         .toggle { width: 50px; height: 26px; background: #e2e8f0; border-radius: 20px; position: relative; cursor: pointer; transition: 0.3s; }
-        .toggle::after { content: ''; position: absolute; left: 4px; top: 4px; width: 18px; height: 18px; background: white; border-radius: 50%; transition: 0.3s; }
+        [data-theme='dark'] .toggle { background: #334155; }
+        .toggle::after { content: ''; position: absolute; left: 4px; top: 4px; width: 18px; height: 18px; background: hsl(var(--bg-card)); border-radius: 50%; transition: 0.3s; }
         .toggle.active { background: #16a34a; }
         .toggle.active::after { left: 28px; }
       `}</style>

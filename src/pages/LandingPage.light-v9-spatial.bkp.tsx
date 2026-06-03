@@ -1097,7 +1097,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary-editorial {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-main);
           border: 1px solid var(--border-light);
           padding: 16px 24px;
@@ -1111,7 +1111,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary-editorial:hover {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-color: rgba(28, 28, 26, 0.25);
           transform: translateY(-1px);
         }
@@ -1195,13 +1195,13 @@ export const LandingPage: React.FC = () => {
         }
 
         .deck-tab-btn.active {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--accent-dark);
           box-shadow: 0 4px 15px rgba(7, 42, 26, 0.05);
         }
 
         .deck-active-panel {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 20px;
           padding: 40px;
@@ -1367,7 +1367,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .animal-btn {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           padding: 8px;
           border-radius: 8px;
@@ -1538,7 +1538,7 @@ export const LandingPage: React.FC = () => {
 
         .action-btn {
           border: 1px solid var(--border-light);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           padding: 12px 10px;
           border-radius: 8px;
           font-family: 'Outfit', sans-serif;
@@ -1661,7 +1661,7 @@ export const LandingPage: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 14px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           padding: 14px 18px;
           border-radius: 12px;
@@ -1717,7 +1717,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .slider-knob-wrapper {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           padding: 14px 18px;
           border-radius: 12px;
@@ -1769,7 +1769,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .pristine-carbon-invoice {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 20px;
           padding: 32px;
@@ -2032,7 +2032,7 @@ export const LandingPage: React.FC = () => {
 
         /* --- FOOTER ELEGANT --- */
         .footer-elegant {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border-top: 1px solid var(--border-light);
           padding: 80px 24px 24px 24px;
         }

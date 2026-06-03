@@ -82,11 +82,11 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#10b981' : '#64748b', 
+                    color: filters.status === s.id ? '#10b981' : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#10b981' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#10b981' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -110,9 +110,9 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.fuelTypes?.includes(type) ? 'active' : ''}`}
                   onClick={() => toggleFuelType(type)}
                   style={{ 
-                    borderColor: filters.fuelTypes?.includes(type) ? '#10b981' : '#e2e8f0', 
-                    background: filters.fuelTypes?.includes(type) ? '#10b981' : 'white',
-                    color: filters.fuelTypes?.includes(type) ? 'white' : '#64748b'
+                    borderColor: filters.fuelTypes?.includes(type) ? '#10b981' : 'hsl(var(--border))', 
+                    background: filters.fuelTypes?.includes(type) ? '#10b981' : 'hsl(var(--bg-card))',
+                    color: filters.fuelTypes?.includes(type) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {type}
@@ -123,10 +123,10 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Volume Abastecido (L) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10b981' }}>{filters.maxLiters}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Capacidade Máx (L)</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Capacidade Máx (L)</span>
               </div>
               <input 
                 type="range" 

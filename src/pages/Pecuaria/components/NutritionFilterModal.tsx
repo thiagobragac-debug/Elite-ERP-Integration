@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Utensils, Wheat, Scale, TrendingUp, Package, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -85,11 +85,11 @@ export const NutritionFilterModal: React.FC<NutritionFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '10px', 
                     fontWeight: 800, 
-                    color: filters.tipo === t.id ? '#f59e0b' : '#64748b', 
+                    color: filters.tipo === t.id ? '#f59e0b' : 'hsl(var(--text-muted))', 
                     background: filters.tipo === t.id ? '#fffbeb' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.tipo === t.id ? '#f59e0b' : '#e2e8f0',
+                    borderColor: filters.tipo === t.id ? '#f59e0b' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -113,9 +113,9 @@ export const NutritionFilterModal: React.FC<NutritionFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.ingredients?.includes(ing) ? 'active' : ''}`}
                   onClick={() => toggleIngredient(ing)}
                   style={{ 
-                    borderColor: filters.ingredients?.includes(ing) ? '#f59e0b' : '#e2e8f0', 
-                    background: filters.ingredients?.includes(ing) ? '#f59e0b' : 'white',
-                    color: filters.ingredients?.includes(ing) ? 'white' : '#64748b'
+                    borderColor: filters.ingredients?.includes(ing) ? '#f59e0b' : 'hsl(var(--border))', 
+                    background: filters.ingredients?.includes(ing) ? '#f59e0b' : 'hsl(var(--bg-card))',
+                    color: filters.ingredients?.includes(ing) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {ing}
@@ -126,10 +126,10 @@ export const NutritionFilterModal: React.FC<NutritionFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Custo kg / Matéria Seca <TrendingUp size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#f59e0b' }}>R$ {filters.maxCostMS.toFixed(2)}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Custo Máximo</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Custo Máximo</span>
               </div>
               <input 
                 type="range" 
@@ -144,10 +144,10 @@ export const NutritionFilterModal: React.FC<NutritionFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Percentual de MS (%) <Scale size={14} /></label>
-            <div style={{ padding: '16px', background: '#f0f9ff', borderRadius: '16px' }}>
+            <label className="tauze-filter-label">Qualidade Nutricional (NDT)</label>
+            <div style={{ padding: '16px', background: 'rgba(14, 165, 233, 0.05)', borderRadius: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>Concentração Mínima</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-main))' }}>Concentração Mínima</span>
                 <span style={{ fontSize: '14px', fontWeight: 900, color: '#0369a1' }}>{filters.minMS}% MS</span>
               </div>
               <input 
@@ -168,7 +168,7 @@ export const NutritionFilterModal: React.FC<NutritionFilterModalProps> = ({
                 <div style={{ color: '#10b981' }}>
                   <Package size={18} />
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Somente Liberadas</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-main))' }}>Somente Liberadas</span>
               </div>
               <input 
                 type="checkbox" 

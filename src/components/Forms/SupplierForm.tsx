@@ -553,7 +553,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
           top: 3px;
           width: 18px;
           height: 18px;
-          background: white;
+          background: hsl(var(--bg-card));
           border-radius: 50%;
           transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           box-shadow: 0 2px 4px rgba(0,0,0,0.1);

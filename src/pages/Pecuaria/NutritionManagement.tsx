@@ -188,7 +188,7 @@ export const NutritionManagement: React.FC = () => {
             borderRadius: '6px', 
             fontSize: '11px', 
             fontWeight: 800,
-            background: '#f8fafc',
+            background: 'hsl(var(--bg-main))',
             color: '#475569',
             border: '1px solid #e2e8f0'
           }}>

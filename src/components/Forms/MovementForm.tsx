@@ -492,9 +492,9 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
                 const p = products.find(prod => prod.id === item.produto_id);
                 const w = warehouses.find(wh => wh.id === item.deposito_id);
                 return (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', border: '1px solid #e2e8f0', padding: '12px 16px', borderRadius: '12px' }}>
+                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'hsl(var(--bg-card))', border: '1px solid #e2e8f0', padding: '12px 16px', borderRadius: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'hsl(var(--bg-main))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                         <Package size={16} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>

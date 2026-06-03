@@ -207,7 +207,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
         }
 
         .schedule-modal-content {
-          background: white;
+          background: hsl(var(--bg-card));
           width: 100%;
           max-width: 520px;
           border-radius: 24px;
@@ -233,7 +233,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
         .modal-icon {
           width: 44px;
           height: 44px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-radius: 12px;
           display: flex;
           align-items: center;
@@ -265,7 +265,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
         }
 
         .close-btn:hover {
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           color: #0f172a;
         }
 
@@ -300,8 +300,8 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
 
         .freq-btn {
           padding: 12px;
-          border: 1px solid #e2e8f0;
-          background: white;
+          border: 1px solid hsl(var(--border));
+          background: hsl(var(--bg-card));
           border-radius: 12px;
           font-size: 13px;
           font-weight: 700;
@@ -334,7 +334,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
         .input-wrapper input {
           width: 100%;
           padding: 12px 16px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid hsl(var(--border));
           border-radius: 12px;
           font-size: 14px;
           color: #1e293b;
@@ -363,7 +363,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
           padding: 8px 12px;
           border-radius: 8px;
           border: 1px solid transparent;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           font-size: 12px;
           font-weight: 700;
           color: #64748b;
@@ -388,7 +388,7 @@ export const ScheduleModal: React.FC<ScheduleModalProps> = ({ report, onClose })
           align-items: center;
           gap: 12px;
           padding: 10px 16px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-radius: 12px;
           font-size: 13px;
           font-weight: 700;

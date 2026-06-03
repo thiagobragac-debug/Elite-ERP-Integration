@@ -425,7 +425,7 @@ export const CashFlow: React.FC = () => {
         }
 
         .mode-btn.active {
-          background: white;
+          background: hsl(var(--bg-card));
           color: hsl(var(--brand));
           box-shadow: var(--shadow-sm);
         }

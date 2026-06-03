@@ -74,7 +74,7 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Status de Suprimento <AlertTriangle size={14} /></label>
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
+            <div style={{ display: 'flex', background: 'hsl(var(--bg-main))', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               {statusOptions.map(s => (
                 <button 
                   key={s.id}
@@ -83,8 +83,8 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#10b981' : '#64748b', 
-                    background: filters.status === s.id ? 'white' : 'transparent', 
+                    color: filters.status === s.id ? '#10b981' : 'hsl(var(--text-muted))', 
+                    background: filters.status === s.id ? 'hsl(var(--bg-card))' : 'transparent', 
                     borderRadius: '10px', 
                     border: 'none', 
                     cursor: 'pointer',
@@ -111,9 +111,9 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.categorias?.includes(cat) ? 'active' : ''}`}
                   onClick={() => toggleCategoria(cat)}
                   style={{ 
-                    borderColor: filters.categorias?.includes(cat) ? '#10b981' : '#e2e8f0', 
-                    background: filters.categorias?.includes(cat) ? '#10b981' : 'white',
-                    color: filters.categorias?.includes(cat) ? 'white' : '#64748b'
+                    borderColor: filters.categorias?.includes(cat) ? '#10b981' : 'hsl(var(--border))', 
+                    background: filters.categorias?.includes(cat) ? '#10b981' : 'hsl(var(--bg-card))',
+                    color: filters.categorias?.includes(cat) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {cat}
@@ -124,10 +124,10 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Volume em Estoque <Package size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10b981' }}>{filters.maxStock}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Limite Máximo</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Limite Máximo</span>
               </div>
               <input 
                 type="range" 

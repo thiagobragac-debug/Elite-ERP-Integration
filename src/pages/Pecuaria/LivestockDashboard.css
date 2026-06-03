@@ -10,7 +10,7 @@
 }
 
 .chart-panel {
-  background: white;
+  background: hsl(var(--bg-card));
   border-radius: 1.25rem;
   border: 1px solid var(--border);
   display: flex;
@@ -58,7 +58,7 @@
 }
 
 .chart-actions button.active {
-  background: white;
+  background: hsl(var(--bg-card));
   color: var(--brand);
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
@@ -92,7 +92,7 @@
 }
 
 .operational-queue-panel {
-  background: white;
+  background: hsl(var(--bg-card));
   border-radius: 1.25rem;
   border: 1px solid var(--border);
   display: flex;
@@ -136,7 +136,7 @@
   width: 32px;
   height: 32px;
   border-radius: 0.5rem;
-  background: white;
+  background: hsl(var(--bg-card));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -200,7 +200,7 @@
 }
 
 .mini-card {
-  background: white;
+  background: hsl(var(--bg-card));
   border-radius: 1rem;
   padding: 1.25rem;
   border: 1px solid var(--border);

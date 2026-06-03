@@ -76,11 +76,11 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#10b981' : '#64748b', 
+                    color: filters.status === s.id ? '#10b981' : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#10b981' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#10b981' : 'hsl(var(--border))',
                     cursor: 'pointer'
                   }}
                   onClick={() => setFilters({ ...filters, status: s.id })}
@@ -106,11 +106,11 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.occupation === o.id ? '#10b981' : '#64748b', 
+                    color: filters.occupation === o.id ? '#10b981' : 'hsl(var(--text-muted))', 
                     background: filters.occupation === o.id ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.occupation === o.id ? '#10b981' : '#e2e8f0',
+                    borderColor: filters.occupation === o.id ? '#10b981' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     textAlign: 'left'
                   }}
@@ -131,9 +131,9 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.types?.includes(type) ? 'active' : ''}`}
                   onClick={() => toggleType(type)}
                   style={{ 
-                    borderColor: filters.types?.includes(type) ? '#10b981' : '#e2e8f0', 
-                    background: filters.types?.includes(type) ? '#10b981' : 'white',
-                    color: filters.types?.includes(type) ? 'white' : '#64748b'
+                    borderColor: filters.types?.includes(type) ? '#10b981' : 'hsl(var(--border))', 
+                    background: filters.types?.includes(type) ? '#10b981' : 'hsl(var(--bg-card))',
+                    color: filters.types?.includes(type) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {type}

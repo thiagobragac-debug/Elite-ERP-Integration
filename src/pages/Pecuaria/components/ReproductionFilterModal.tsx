@@ -87,11 +87,11 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
                     padding: '12px 8px', 
                     fontSize: '10px', 
                     fontWeight: 800, 
-                    color: filters.tipo_evento === t.id ? '#ec4899' : '#64748b', 
+                    color: filters.tipo_evento === t.id ? '#ec4899' : 'hsl(var(--text-muted))', 
                     background: filters.tipo_evento === t.id ? '#fdf2f8' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.tipo_evento === t.id ? '#ec4899' : '#e2e8f0',
+                    borderColor: filters.tipo_evento === t.id ? '#ec4899' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -115,9 +115,9 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
                   className={`tauze-tag-chip ${filters.results?.includes(res) ? 'active' : ''}`}
                   onClick={() => toggleResult(res)}
                   style={{ 
-                    borderColor: filters.results?.includes(res) ? '#ec4899' : '#e2e8f0', 
-                    background: filters.results?.includes(res) ? '#ec4899' : 'white',
-                    color: filters.results?.includes(res) ? 'white' : '#64748b'
+                    borderColor: filters.results?.includes(res) ? '#ec4899' : 'hsl(var(--border))', 
+                    background: filters.results?.includes(res) ? '#ec4899' : 'hsl(var(--bg-card))',
+                    color: filters.results?.includes(res) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {res}
@@ -128,10 +128,10 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Escore Corporal (ECC) <TrendingUp size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#ec4899' }}>{filters.minECC} a {filters.maxECC}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Faixa de ECC</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Faixa de ECC</span>
               </div>
               <input 
                 type="range" 

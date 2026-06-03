@@ -207,7 +207,7 @@ export const FinancialCalendarModal: React.FC<FinancialCalendarModalProps> = ({
         }
 
         .calendar-day {
-          background: white;
+          background: hsl(var(--bg-card));
           min-height: 110px;
           padding: 12px;
           display: flex;

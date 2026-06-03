@@ -67,11 +67,11 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
                   padding: '12px 16px', 
                   fontSize: '11px', 
                   fontWeight: 800, 
-                  color: filters.profileId === 'all' ? 'white' : '#64748b', 
-                  background: filters.profileId === 'all' ? '#3b82f6' : 'white', 
+                  color: filters.profileId === 'all' ? 'white' : 'hsl(var(--text-muted))', 
+                  background: filters.profileId === 'all' ? '#3b82f6' : 'hsl(var(--bg-card))', 
                   borderRadius: '12px', 
                   border: '1px solid',
-                  borderColor: filters.profileId === 'all' ? '#3b82f6' : '#e2e8f0',
+                  borderColor: filters.profileId === 'all' ? '#3b82f6' : 'hsl(var(--border))',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -89,11 +89,11 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.profileId === p.id ? 'white' : '#64748b', 
-                    background: filters.profileId === p.id ? '#3b82f6' : 'white', 
+                    color: filters.profileId === p.id ? 'white' : 'hsl(var(--text-muted))', 
+                    background: filters.profileId === p.id ? '#3b82f6' : 'hsl(var(--bg-card))', 
                     borderRadius: '12px', 
                     border: '1px solid',
-                    borderColor: filters.profileId === p.id ? '#3b82f6' : '#e2e8f0',
+                    borderColor: filters.profileId === p.id ? '#3b82f6' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -118,9 +118,9 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
                   onClick={() => setFilters({ ...filters, status })}
                   style={{ 
                     flex: 1,
-                    borderColor: filters.status === status ? '#3b82f6' : '#e2e8f0', 
-                    background: filters.status === status ? '#3b82f6' : 'white',
-                    color: filters.status === status ? 'white' : '#64748b'
+                    borderColor: filters.status === status ? '#3b82f6' : 'hsl(var(--border))', 
+                    background: filters.status === status ? '#3b82f6' : 'hsl(var(--bg-card))',
+                    color: filters.status === status ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {status === 'all' ? 'Todos' : status === 'active' ? 'Ativos' : 'Inativos'}

@@ -85,11 +85,11 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '10px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#16a34a' : '#64748b', 
+                    color: filters.status === s.id ? '#16a34a' : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#16a34a' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#16a34a' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -113,9 +113,9 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.capins?.includes(c) ? 'active' : ''}`}
                   onClick={() => toggleCapim(c)}
                   style={{ 
-                    borderColor: filters.capins?.includes(c) ? '#16a34a' : '#e2e8f0', 
-                    background: filters.capins?.includes(c) ? '#16a34a' : 'white',
-                    color: filters.capins?.includes(c) ? 'white' : '#64748b'
+                    borderColor: filters.capins?.includes(c) ? '#16a34a' : 'hsl(var(--border))', 
+                    background: filters.capins?.includes(c) ? '#16a34a' : 'hsl(var(--bg-card))',
+                    color: filters.capins?.includes(c) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {c}
@@ -126,10 +126,10 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Área da Divisão (ha) <Maximize size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#16a34a' }}>{filters.maxArea}ha</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Extensão Máxima</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Extensão Máxima</span>
               </div>
               <input 
                 type="range" 

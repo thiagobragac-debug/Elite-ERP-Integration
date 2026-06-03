@@ -82,11 +82,11 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '10px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#0f172a' : '#64748b', 
+                    color: filters.status === s.id ? '#0f172a' : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? '#f1f5f9' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#0f172a' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#0f172a' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -110,9 +110,9 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.marcas?.includes(m) ? 'active' : ''}`}
                   onClick={() => toggleMarca(m)}
                   style={{ 
-                    borderColor: filters.marcas?.includes(m) ? '#0f172a' : '#e2e8f0', 
-                    background: filters.marcas?.includes(m) ? '#0f172a' : 'white',
-                    color: filters.marcas?.includes(m) ? 'white' : '#64748b'
+                    borderColor: filters.marcas?.includes(m) ? '#0f172a' : 'hsl(var(--border))', 
+                    background: filters.marcas?.includes(m) ? '#0f172a' : 'hsl(var(--bg-card))',
+                    color: filters.marcas?.includes(m) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {m}
@@ -123,10 +123,10 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Uso do Ativo (h/km) <Gauge size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a' }}>{filters.maxUsage}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Limite Máximo</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Limite Máximo</span>
               </div>
               <input 
                 type="range" 

@@ -73,11 +73,11 @@ export const ReconFilterModal: React.FC<ReconFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#8b5cf6' : '#64748b', 
+                    color: filters.status === s.id ? '#8b5cf6' : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? '#f5f3ff' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#8b5cf6' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#8b5cf6' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -94,9 +94,9 @@ export const ReconFilterModal: React.FC<ReconFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Faixa de Valor (R$) <DollarSign size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Valor Mínimo</label>
+                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Valor Mínimo</label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                   <span style={{ fontSize: '16px', fontWeight: 900, color: '#8b5cf6' }}>
                     {Number(filters.minAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -114,7 +114,7 @@ export const ReconFilterModal: React.FC<ReconFilterModalProps> = ({
               </div>
 
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Valor Máximo</label>
+                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Valor Máximo</label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                   <span style={{ fontSize: '16px', fontWeight: 900, color: '#8b5cf6' }}>
                     {Number(filters.maxAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}

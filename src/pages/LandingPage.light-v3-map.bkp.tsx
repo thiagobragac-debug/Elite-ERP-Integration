@@ -1111,7 +1111,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-main);
           border: 1px solid rgba(0, 0, 0, 0.08);
           padding: 16px 28px;
@@ -1405,7 +1405,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .mini-metric {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           padding: 16px;
           border-radius: 16px;
           border: 1px solid rgba(0, 0, 0, 0.03);
@@ -1432,7 +1432,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .graph-box {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid rgba(0, 0, 0, 0.04);
           border-radius: 16px;
           padding: 16px;
@@ -1461,7 +1461,7 @@ export const LandingPage: React.FC = () => {
 
         .bar-wrapper {
           flex: 1;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           height: 100%;
           border-radius: 4px;
           display: flex;
@@ -1757,7 +1757,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .node-content-box {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid rgba(0, 0, 0, 0.04);
           border-radius: 20px;
           padding: 28px;
@@ -1943,7 +1943,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .cta-button-premium.secondary {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-main);
           border: 1px solid rgba(0, 0, 0, 0.08);
         }
@@ -2016,7 +2016,7 @@ export const LandingPage: React.FC = () => {
         .elegant-footer {
           padding: 100px 0 0;
           border-top: 1px solid var(--card-border);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           position: relative;
           z-index: 1;
         }

@@ -80,7 +80,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                   </div>
                   {item.value && (
                     <div style={{ 
-                      fontSize: '14px', fontWeight: 900, padding: '6px 14px', borderRadius: '10px', background: 'white', border: '1px solid hsl(var(--border))',
+                      fontSize: '14px', fontWeight: 900, padding: '6px 14px', borderRadius: '10px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))',
                       color: item.status === 'success' ? '#16a34a' : item.status === 'warning' ? '#f59e0b' : 'hsl(var(--text-main))'
                     }}>
                       {item.value}

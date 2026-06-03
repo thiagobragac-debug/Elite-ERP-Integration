@@ -76,11 +76,11 @@ export const ConfinementFilterModal: React.FC<ConfinementFilterModalProps> = ({
                     padding: '14px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? 'white' : '#64748b', 
-                    background: filters.status === s.id ? '#3b82f6' : 'white', 
+                    color: filters.status === s.id ? 'white' : 'hsl(var(--text-muted))', 
+                    background: filters.status === s.id ? '#3b82f6' : 'hsl(var(--bg-card))', 
                     borderRadius: '12px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#3b82f6' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#3b82f6' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -100,10 +100,10 @@ export const ConfinementFilterModal: React.FC<ConfinementFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Dias de Cocho (DOF) <Clock size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.minDOF} a {filters.maxDOF} d</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Janela de Dias</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Janela de Dias</span>
               </div>
               <input 
                 type="range" 

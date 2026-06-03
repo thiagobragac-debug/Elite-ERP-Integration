@@ -73,11 +73,11 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Tipo de Lançamento <Activity size={14} /></label>
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
+            <div style={{ display: 'flex', background: 'hsl(var(--bg-main))', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               {types.map(t => (
                 <button 
                   key={t.id}
-                  style={{ flex: 1, padding: '12px 8px', fontSize: '11px', fontWeight: 800, color: filters.type === t.id ? '#3b82f6' : '#64748b', background: filters.type === t.id ? 'white' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                  style={{ flex: 1, padding: '12px 8px', fontSize: '11px', fontWeight: 800, color: filters.type === t.id ? '#3b82f6' : 'hsl(var(--text-muted))', background: filters.type === t.id ? 'hsl(var(--bg-card))' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                   onClick={() => setFilters({ ...filters, type: t.id })}
                 >
                   <t.icon size={12} />
@@ -122,9 +122,9 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.categories?.includes(cat) ? 'active' : ''}`}
                   onClick={() => toggleCategory(cat)}
                   style={{ 
-                    borderColor: filters.categories?.includes(cat) ? '#3b82f6' : '#e2e8f0', 
-                    background: filters.categories?.includes(cat) ? '#3b82f6' : 'white',
-                    color: filters.categories?.includes(cat) ? 'white' : '#64748b'
+                    borderColor: filters.categories?.includes(cat) ? '#3b82f6' : 'hsl(var(--border))', 
+                    background: filters.categories?.includes(cat) ? '#3b82f6' : 'hsl(var(--bg-card))',
+                    color: filters.categories?.includes(cat) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {cat}
@@ -141,9 +141,9 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
                 className={`tauze-tag-chip ${filters.status === 'PAID' ? 'active' : ''}`}
                 onClick={() => setFilters({ ...filters, status: 'PAID' })}
                 style={{ 
-                  borderColor: filters.status === 'PAID' ? '#10b981' : '#e2e8f0', 
-                  background: filters.status === 'PAID' ? '#10b981' : 'white',
-                  color: filters.status === 'PAID' ? 'white' : '#64748b'
+                  borderColor: filters.status === 'PAID' ? '#10b981' : 'hsl(var(--border))', 
+                  background: filters.status === 'PAID' ? '#10b981' : 'hsl(var(--bg-card))',
+                  color: filters.status === 'PAID' ? 'white' : 'hsl(var(--text-muted))'
                 }}
               >
                 Efetivados
@@ -152,9 +152,9 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
                 className={`tauze-tag-chip ${filters.status === 'PENDING' ? 'active' : ''}`}
                 onClick={() => setFilters({ ...filters, status: 'PENDING' })}
                 style={{ 
-                  borderColor: filters.status === 'PENDING' ? '#f59e0b' : '#e2e8f0', 
-                  background: filters.status === 'PENDING' ? '#f59e0b' : 'white',
-                  color: filters.status === 'PENDING' ? 'white' : '#64748b'
+                  borderColor: filters.status === 'PENDING' ? '#f59e0b' : 'hsl(var(--border))', 
+                  background: filters.status === 'PENDING' ? '#f59e0b' : 'hsl(var(--bg-card))',
+                  color: filters.status === 'PENDING' ? 'white' : 'hsl(var(--text-muted))'
                 }}
               >
                 Previstos

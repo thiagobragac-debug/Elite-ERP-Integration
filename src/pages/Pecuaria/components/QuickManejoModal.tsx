@@ -433,7 +433,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         }
 
         .segment-item.active {
-          background: white;
+          background: hsl(var(--bg-card));
           color: hsl(var(--brand));
           box-shadow: var(--shadow-md);
         }

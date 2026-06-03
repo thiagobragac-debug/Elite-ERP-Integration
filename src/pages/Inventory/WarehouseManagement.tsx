@@ -778,7 +778,7 @@ export const WarehouseManagement: React.FC = () => {
 
         .occ-bar-container {
           height: 6px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-radius: 3px;
           overflow: hidden;
           margin-bottom: 4px;
@@ -816,7 +816,7 @@ export const WarehouseManagement: React.FC = () => {
 
         .view-mode-toggle {
           display: flex;
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           padding: 4px;
           border-radius: 12px;
           gap: 4px;
@@ -838,7 +838,7 @@ export const WarehouseManagement: React.FC = () => {
         }
 
         .view-btn.active {
-          background: white;
+          background: hsl(var(--bg-card));
           color: #10b981;
           box-shadow: 0 4px 10px rgba(0,0,0,0.05);
           border: 1px solid rgba(16, 185, 129, 0.1);
@@ -863,7 +863,7 @@ export const WarehouseManagement: React.FC = () => {
           height: 32px;
           border-radius: 10px;
           border: 1px solid hsl(var(--border));
-          background: white;
+          background: hsl(var(--bg-card));
           color: #64748b;
           display: flex;
           align-items: center;

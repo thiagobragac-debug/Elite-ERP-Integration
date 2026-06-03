@@ -1116,7 +1116,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary-large {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-main);
           border: 1px solid rgba(0, 0, 0, 0.08);
           padding: 18px 32px;
@@ -1192,7 +1192,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .dashboard-console-header {
-          background: #f8fafc;
+          background: hsl(var(--bg-main));
           padding: 16px 24px;
           display: flex;
           align-items: center;
@@ -1232,7 +1232,7 @@ export const LandingPage: React.FC = () => {
 
         .dashboard-tabs-bar {
           display: flex;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           border-bottom: 1px solid var(--border-light);
         }
 
@@ -1260,7 +1260,7 @@ export const LandingPage: React.FC = () => {
         .tab-btn-item.active {
           color: var(--accent);
           border-bottom-color: var(--accent);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
         }
 
         .dashboard-body {
@@ -1320,7 +1320,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .sim-chart-box {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 18px;
           padding: 20px;
@@ -1350,7 +1350,7 @@ export const LandingPage: React.FC = () => {
 
         .bar-column {
           flex: 1;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           height: 100%;
           border-radius: 4px;
           display: flex;
@@ -1501,7 +1501,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .control-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 24px;
           padding: 36px;
@@ -1611,7 +1611,7 @@ export const LandingPage: React.FC = () => {
           width: 100%;
           height: 6px;
           border-radius: 100px;
-          background: #f1f5f9;
+          background: hsl(var(--bg-main));
           outline: none;
         }
 
@@ -1632,7 +1632,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .pro-forma-proposal-card {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--accent-border);
           border-radius: 28px;
           padding: 40px;
@@ -1830,7 +1830,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .faq-accordion-item {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 18px;
           overflow: hidden;
@@ -1873,7 +1873,7 @@ export const LandingPage: React.FC = () => {
         .elegant-footer {
           padding: 100px 0 0;
           border-top: 1px solid var(--border-light);
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           position: relative;
           z-index: 1;
         }

@@ -149,7 +149,7 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
         {/* Resultados */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div style={{ padding: '24px', borderRadius: '24px', background: 'white', border: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ padding: '24px', borderRadius: '24px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Exposição Atual</span>
               <div style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
                 {results.exposure.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -177,7 +177,7 @@ export const HedgeSimulationModal: React.FC<HedgeSimulationModalProps> = ({ isOp
                 const isPositive = diff > 0;
                 
                 return (
-                  <div key={idx} style={{ padding: '16px', borderRadius: '16px', background: 'white', border: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <div key={idx} style={{ padding: '16px', borderRadius: '16px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: isPositive ? 'hsl(var(--success)/0.1)' : 'hsl(var(--danger)/0.1)', color: isPositive ? 'hsl(var(--success))' : 'hsl(var(--danger))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {isPositive ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
                     </div>

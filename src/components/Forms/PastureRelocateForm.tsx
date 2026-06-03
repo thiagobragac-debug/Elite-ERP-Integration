@@ -104,7 +104,7 @@ function PastureSearch({
       </label>
       <div
         onClick={() => { setOpen(o => !o); }}
-        style={{ display: 'flex', alignItems: 'center', gap: '8px', border: open ? '1.5px solid hsl(var(--brand))' : '1.5px solid hsl(var(--border))', borderRadius: '10px', padding: '8px 10px', cursor: 'pointer', background: 'white', minHeight: '38px', transition: 'border-color 0.15s' }}
+        style={{ display: 'flex', alignItems: 'center', gap: '8px', border: open ? '1.5px solid hsl(var(--brand))' : '1.5px solid hsl(var(--border))', borderRadius: '10px', padding: '8px 10px', cursor: 'pointer', background: 'hsl(var(--bg-card))', minHeight: '38px', transition: 'border-color 0.15s' }}
       >
         <Trees size={13} style={{ color: 'hsl(var(--brand))', flexShrink: 0 }} />
         {open ? (
@@ -126,7 +126,7 @@ function PastureSearch({
           : <ChevronDown size={13} style={{ color: 'hsl(var(--text-muted))', flexShrink: 0 }} />}
       </div>
       {open && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1000, background: 'white', border: '1.5px solid hsl(var(--brand))', borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', maxHeight: '220px', overflowY: 'auto' }}>
+        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1000, background: 'hsl(var(--bg-card))', border: '1.5px solid hsl(var(--brand))', borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', maxHeight: '220px', overflowY: 'auto' }}>
           {filtered.length === 0 ? (
             <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Nenhum resultado</div>
           ) : filtered.map(item => (
@@ -382,7 +382,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
       const afterPct = destCap?.max ? Math.round((afterCount / destCap.max) * 100) : null;
       return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'white', borderRadius: '20px', padding: '32px', maxWidth: '480px', width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' }}>
+          <div style={{ background: 'hsl(var(--bg-card))', borderRadius: '20px', padding: '32px', maxWidth: '480px', width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
                 <Trees size={22} />
@@ -409,7 +409,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
               {selectedAnimals.length > 12 && <span style={{ color: 'hsl(var(--text-muted))', fontSize: '11px', fontWeight: 600 }}>+{selectedAnimals.length - 12} mais</span>}
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={() => setShowConfirm(false)} style={{ flex: 1, padding: '12px', border: '1px solid hsl(var(--border))', borderRadius: '10px', background: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}>Voltar</button>
+              <button onClick={() => setShowConfirm(false)} style={{ flex: 1, padding: '12px', border: '1px solid hsl(var(--border))', borderRadius: '10px', background: 'hsl(var(--bg-card))', fontWeight: 700, fontSize: '13px', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}>Voltar</button>
               <button onClick={handleSubmit} disabled={submitting} style={{ flex: 2, padding: '12px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 800, fontSize: '13px', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <CheckCircle2 size={16} />
                 {submitting ? 'Remanejando...' : `Confirmar ${selectedAnimals.length} Animais`}
@@ -590,7 +590,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
         .text-btn-sm { background: none; border: none; font-size: 10px; font-weight: 800; color: hsl(var(--brand)); cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; display: inline-flex; align-items: center; }
         .tauze-animal-picker { max-height: 280px; overflow-y: auto; background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 12px; }
         .picker-grid-adv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-        .picker-item-adv { display: flex; align-items: flex-start; gap: 8px; padding: 10px; background: white; border: 1.5px solid hsl(var(--border)); border-radius: 10px; cursor: pointer; transition: all 0.18s; }
+        .picker-item-adv { display: flex; align-items: flex-start; gap: 8px; padding: 10px; background: hsl(var(--bg-card)); border: 1.5px solid hsl(var(--border)); border-radius: 10px; cursor: pointer; transition: all 0.18s; }
         .picker-item-adv:hover { border-color: hsl(var(--brand)); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
         .picker-item-adv.active { border-color: hsl(var(--brand)); background: hsl(var(--brand) / 0.05); }
         .p-check-adv { width: 18px; height: 18px; flex-shrink: 0; color: hsl(var(--brand)); margin-top: 1px; }

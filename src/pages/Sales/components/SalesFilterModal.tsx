@@ -86,11 +86,11 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
                     padding: '12px 8px', 
                     fontSize: '10px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#10a34a' : '#64748b', 
+                    color: filters.status === s.id ? '#10a34a' : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? '#f0fdf4' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#10a34a' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#10a34a' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -114,9 +114,9 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
                   className={`tauze-tag-chip ${filters.clientTypes?.includes(type) ? 'active' : ''}`}
                   onClick={() => toggleClientType(type)}
                   style={{ 
-                    borderColor: filters.clientTypes?.includes(type) ? '#10a34a' : '#e2e8f0', 
-                    background: filters.clientTypes?.includes(type) ? '#10a34a' : 'white',
-                    color: filters.clientTypes?.includes(type) ? 'white' : '#64748b'
+                    borderColor: filters.clientTypes?.includes(type) ? '#10a34a' : 'hsl(var(--border))', 
+                    background: filters.clientTypes?.includes(type) ? '#10a34a' : 'hsl(var(--bg-card))',
+                    color: filters.clientTypes?.includes(type) ? 'white' : 'hsl(var(--text-muted))'
                   }}
                 >
                   {type}
@@ -127,10 +127,10 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Margem Operacional (%) <Zap size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.minMargin}%</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Margem Mínima</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Margem Mínima</span>
               </div>
               <input 
                 type="range" 
@@ -168,9 +168,9 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
                 padding: '12px', 
                 borderRadius: '12px', 
                 border: '1px solid', 
-                borderColor: filters.onlyHighRisk ? '#ef4444' : '#e2e8f0',
-                background: filters.onlyHighRisk ? 'rgba(239, 68, 68, 0.05)' : 'white',
-                color: filters.onlyHighRisk ? '#ef4444' : '#64748b',
+                borderColor: filters.onlyHighRisk ? '#ef4444' : 'hsl(var(--border))',
+                background: filters.onlyHighRisk ? 'rgba(239, 68, 68, 0.05)' : 'hsl(var(--bg-card))',
+                color: filters.onlyHighRisk ? '#ef4444' : 'hsl(var(--text-muted))',
                 fontSize: '11px',
                 fontWeight: 800,
                 display: 'flex',
@@ -188,9 +188,9 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
                 padding: '12px', 
                 borderRadius: '12px', 
                 border: '1px solid', 
-                borderColor: filters.missingGta ? '#f59e0b' : '#e2e8f0',
-                background: filters.missingGta ? 'rgba(245, 158, 11, 0.05)' : 'white',
-                color: filters.missingGta ? '#f59e0b' : '#64748b',
+                borderColor: filters.missingGta ? '#f59e0b' : 'hsl(var(--border))',
+                background: filters.missingGta ? 'rgba(245, 158, 11, 0.05)' : 'hsl(var(--bg-card))',
+                color: filters.missingGta ? '#f59e0b' : 'hsl(var(--text-muted))',
                 fontSize: '11px',
                 fontWeight: 800,
                 display: 'flex',

@@ -73,11 +73,11 @@ export const QuotationFilterModal: React.FC<QuotationFilterModalProps> = ({
                     padding: '12px 16px', 
                     fontSize: '11px', 
                     fontWeight: 800, 
-                    color: filters.status === s.id ? '#3b82f6' : '#64748b', 
+                    color: filters.status === s.id ? '#3b82f6' : 'hsl(var(--text-muted))', 
                     background: filters.status === s.id ? '#f1f5f9' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.status === s.id ? '#3b82f6' : '#e2e8f0',
+                    borderColor: filters.status === s.id ? '#3b82f6' : 'hsl(var(--border))',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -94,10 +94,10 @@ export const QuotationFilterModal: React.FC<QuotationFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Saving Mínimo Desejado (%) <TrendingDown size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.minSaving}%</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#64748b' }}>Meta de Economia</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Meta de Economia</span>
               </div>
               <input 
                 type="range" 
@@ -122,11 +122,11 @@ export const QuotationFilterModal: React.FC<QuotationFilterModalProps> = ({
                     padding: '12px', 
                     fontSize: '12px', 
                     fontWeight: 800, 
-                    color: filters.minBids === n ? '#3b82f6' : '#64748b', 
+                    color: filters.minBids === n ? '#3b82f6' : 'hsl(var(--text-muted))', 
                     background: filters.minBids === n ? '#f1f5f9' : 'transparent', 
                     borderRadius: '10px', 
                     border: '1px solid',
-                    borderColor: filters.minBids === n ? '#3b82f6' : '#e2e8f0',
+                    borderColor: filters.minBids === n ? '#3b82f6' : 'hsl(var(--border))',
                     cursor: 'pointer'
                   }}
                   onClick={() => setFilters({ ...filters, minBids: n })}

@@ -162,7 +162,7 @@
 
 .kpi-divider {
   height: 1px;
-  background: #f1f5f9;
+  background: hsl(var(--bg-main));
   width: 100%;
   margin: 2px 0;
 }
@@ -203,7 +203,7 @@
 }
 
 .recent-activity-panel {
-  background: white;
+  background: hsl(var(--bg-card));
   border-radius: 32px;
   padding: 16px;
   border: 1px solid #f1f5f9;
@@ -278,7 +278,7 @@
 .intelligence-layout {
   display: grid;
   grid-template-columns: 1fr 280px;
-  background: white;
+  background: hsl(var(--bg-card));
   border-radius: 32px;
   overflow: hidden;
   border: 1px solid #f1f5f9;
@@ -402,7 +402,7 @@
 }
 
 .intelligence-sidebar {
-  background: #f8fafc;
+  background: hsl(var(--bg-main));
   padding: 32px 24px;
   display: flex;
   flex-direction: column;
@@ -430,8 +430,8 @@
 }
 
 .insight-card-mini {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: hsl(var(--bg-card));
+  border: 1px solid hsl(var(--border));
   padding: 16px;
   border-radius: 20px;
   transition: all 0.3s;

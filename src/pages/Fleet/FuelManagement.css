@@ -66,7 +66,7 @@
 
 .tauze-tab-group {
   display: flex;
-  background: white;
+  background: hsl(var(--bg-card));
   padding: 4px;
   border-radius: 14px;
   border: 1px solid hsl(var(--border));
@@ -110,7 +110,7 @@
   padding: 12px 16px 12px 42px;
   border-radius: 14px;
   border: 1px solid hsl(var(--border));
-  background: white;
+  background: hsl(var(--bg-card));
   font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
@@ -133,7 +133,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: hsl(var(--bg-card));
   border: 1px solid hsl(var(--border));
   border-radius: 14px;
   color: hsl(var(--text-main));
@@ -147,7 +147,7 @@
 }
 
 .fuel-page .management-content {
-  background: white;
+  background: hsl(var(--bg-card));
   border-radius: 24px;
   border: 1px solid hsl(var(--border));
   box-shadow: var(--shadow-sm);

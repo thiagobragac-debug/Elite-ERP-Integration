@@ -69,7 +69,7 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Preferências <Star size={14} /></label>
             <div className="filter-options">
-              <label className="checkbox-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '16px', background: '#f8fafc', borderRadius: '12px', border: '1.5px solid transparent' }}>
+              <label className="checkbox-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '16px', background: 'hsl(var(--bg-main))', borderRadius: '12px', border: '1.5px solid transparent' }}>
                 <input 
                   type="checkbox" 
                   checked={filters.onlyFavorites}
@@ -83,10 +83,10 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Integridade de Dados <Shield size={14} /></label>
-            <div className="integrity-slider-container" style={{ padding: '20px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+            <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '28px', fontWeight: 900, color: '#10b981' }}>{filters.minIntegrity}%</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>Acuracidade Mínima</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Acuracidade Mínima</span>
               </div>
               <input 
                 type="range" 
@@ -123,9 +123,9 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Carga do Motor (Latency) <Zap size={14} /></label>
-            <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '14px', gap: '4px' }}>
+            <div style={{ display: 'flex', background: 'hsl(var(--bg-main))', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               <button 
-                style={{ flex: 1, padding: '12px 8px', fontSize: '11px', fontWeight: 800, color: filters.complexity === 'all' ? '#10b981' : '#64748b', background: filters.complexity === 'all' ? 'white' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer', boxShadow: filters.complexity === 'all' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}
+                style={{ flex: 1, padding: '12px 8px', fontSize: '11px', fontWeight: 800, color: filters.complexity === 'all' ? '#10b981' : 'hsl(var(--text-muted))', background: filters.complexity === 'all' ? 'hsl(var(--bg-card))' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer', boxShadow: filters.complexity === 'all' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}
                 onClick={() => setFilters({ ...filters, complexity: 'all' })}
               >
                 Todos
@@ -133,7 +133,7 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
               {complexities.map(c => (
                 <button 
                   key={c}
-                  style={{ flex: 1, padding: '12px 8px', fontSize: '11px', fontWeight: 800, color: filters.complexity === c ? '#10b981' : '#64748b', background: filters.complexity === c ? 'white' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer', boxShadow: filters.complexity === c ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}
+                  style={{ flex: 1, padding: '12px 8px', fontSize: '11px', fontWeight: 800, color: filters.complexity === c ? '#10b981' : 'hsl(var(--text-muted))', background: filters.complexity === c ? 'hsl(var(--bg-card))' : 'transparent', borderRadius: '10px', border: 'none', cursor: 'pointer', boxShadow: filters.complexity === c ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}
                   onClick={() => setFilters({ ...filters, complexity: c })}
                 >
                   {c}

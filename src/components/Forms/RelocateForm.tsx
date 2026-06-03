@@ -151,7 +151,7 @@ function LotSearch({ lots, value, onChange, placeholder, exclude, label, animalC
         style={{
           display: 'flex', alignItems: 'center', gap: '6px',
           border: `1.5px solid ${open ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
-          borderRadius: '10px', padding: '8px 10px', cursor: 'text', background: 'white',
+          borderRadius: '10px', padding: '8px 10px', cursor: 'text', background: 'hsl(var(--bg-card))',
           transition: 'border-color 0.15s', minHeight: '38px'
         }}
       >
@@ -182,7 +182,7 @@ function LotSearch({ lots, value, onChange, placeholder, exclude, label, animalC
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1000,
-          background: 'white', border: '1.5px solid hsl(var(--brand))', borderRadius: '10px',
+          background: 'hsl(var(--bg-card))', border: '1.5px solid hsl(var(--brand))', borderRadius: '10px',
           boxShadow: '0 8px 32px rgba(0,0,0,0.15)', maxHeight: '220px', overflowY: 'auto'
         }}>
           {filtered.length === 0 ? (
@@ -434,7 +434,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
       const isFullLot = selectedAnimals.length === animals.length;
       return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'white', borderRadius: '20px', padding: '32px', maxWidth: '480px', width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' }}>
+          <div style={{ background: 'hsl(var(--bg-card))', borderRadius: '20px', padding: '32px', maxWidth: '480px', width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'hsl(var(--brand) / 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--brand))' }}>
                 <ArrowRightLeft size={22} />
@@ -470,7 +470,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
             </div>
 
             <div style={{ display: 'flex', gap: '12px' }}>
-              <button onClick={() => setShowConfirm(false)} style={{ flex: 1, padding: '12px', border: '1px solid hsl(var(--border))', borderRadius: '10px', background: 'white', fontWeight: 700, fontSize: '13px', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}>
+              <button onClick={() => setShowConfirm(false)} style={{ flex: 1, padding: '12px', border: '1px solid hsl(var(--border))', borderRadius: '10px', background: 'hsl(var(--bg-card))', fontWeight: 700, fontSize: '13px', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}>
                 Voltar
               </button>
               <button

@@ -209,7 +209,7 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
 
         .period-item:hover {
           border-color: hsl(var(--brand) / 0.4);
-          background: white;
+          background: hsl(var(--bg-card));
           transform: scale(1.02);
           box-shadow: 0 10px 20px -5px rgba(0,0,0,0.1);
         }

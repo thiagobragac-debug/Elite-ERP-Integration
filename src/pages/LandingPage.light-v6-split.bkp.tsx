@@ -1250,7 +1250,7 @@ export const LandingPage: React.FC = () => {
         .cockpit-screen-monitor {
           flex: 1;
           margin: 20px 0;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 16px;
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.015);
@@ -1557,7 +1557,7 @@ export const LandingPage: React.FC = () => {
           align-items: center;
           gap: 6px;
           padding: 5px 12px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 100px;
           font-family: 'Outfit', sans-serif;
@@ -1620,7 +1620,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .btn-secondary-editorial {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           color: var(--text-main);
           border: 1px solid var(--border-light);
           padding: 16px 24px;
@@ -1691,7 +1691,7 @@ export const LandingPage: React.FC = () => {
         .bullet-node {
           display: flex;
           gap: 16px;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           padding: 20px;
           border-radius: 12px;
@@ -1752,7 +1752,7 @@ export const LandingPage: React.FC = () => {
           display: flex;
           gap: 16px;
           cursor: pointer;
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           transition: all 0.25s;
         }
 
@@ -1946,7 +1946,7 @@ export const LandingPage: React.FC = () => {
         }
 
         .accord-block {
-          background: #ffffff;
+          background: hsl(var(--bg-card));
           border: 1px solid var(--border-light);
           border-radius: 12px;
           overflow: hidden;
@@ -2092,7 +2092,7 @@ export const LandingPage: React.FC = () => {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            background: #ffffff;
+            background: hsl(var(--bg-card));
             border: 1px dashed var(--accent-border);
             padding: 20px;
             border-radius: 12px;
