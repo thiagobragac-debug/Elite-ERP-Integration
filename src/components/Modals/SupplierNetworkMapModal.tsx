@@ -11,11 +11,65 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
+const STATE_COORDS: Record<string, [number, number]> = {
+  "AC":[-9.97499,-67.8243],"AL":[-9.66599,-35.735],"AP":[0.034934,-51.0694],"AM":[-3.10719,-60.0261],"BA":[-12.9714,-38.5111],"CE":[-3.71722,-38.5434],"DF":[-15.7801,-47.9292],"ES":[-19.318,-40.354],"GO":[-16.6864,-49.2643],"MA":[-2.53073,-44.3068],"MT":[-15.5961,-56.0966],"MS":[-20.4427,-54.6463],"MG":[-19.9208,-43.9378],"PA":[-1.45502,-48.5024],"PB":[-7.11532,-34.861],"PR":[-25.4284,-49.2733],"PE":[-8.04756,-34.877],"PI":[-5.08921,-42.8016],"RJ":[-22.9068,-43.1729],"RN":[-5.79448,-35.211],"RS":[-30.0277,-51.2287],"RO":[-8.76116,-63.9004],"RR":[2.8235,-60.6758],"SC":[-27.5969,-48.5495],"SP":[-23.5505,-46.6333],"SE":[-10.9472,-37.0731],"TO":[-10.1843,-48.3336]
+};
+
+const getCoord = (sup: any): [number, number] => {
+  if (sup.latitude && sup.latitude !== 0) return [sup.latitude, sup.longitude];
+  
+  const hash = String(sup.id || sup.nome).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const state = sup.estado?.toUpperCase();
+  
+  if (state && STATE_COORDS[state]) {
+    const jitterLat = ((hash % 10) - 5) * 0.05;
+    const jitterLng = (((hash * 3) % 10) - 5) * 0.05;
+    return [STATE_COORDS[state][0] + jitterLat, STATE_COORDS[state][1] + jitterLng];
+  }
+  
+  return [-15 - ((hash % 13)), -50 - ((hash % 7))];
+};
+
+const defaultIcon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+const selectedIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+});
+
+L.Marker.prototype.options.icon = defaultIcon;
 interface SupplierNetworkMapModalProps {
   isOpen: boolean;
   onClose: () => void;
   suppliers: any[];
+}
+
+function MapBounds({ markers, focusedCoord }: { markers: [number, number][], focusedCoord?: [number, number] | null }) {
+  const map = useMap();
+  React.useEffect(() => {
+    if (focusedCoord) {
+      map.flyTo(focusedCoord, 7, { duration: 1.5 });
+    } else if (markers.length > 0) {
+      const bounds = L.latLngBounds(markers);
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 10 });
+      }
+    }
+  }, [markers, focusedCoord, map]);
+  return null;
 }
 
 export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = ({
@@ -24,20 +78,47 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
   suppliers
 }) => {
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedCategory, setSelectedCategory] = React.useState('');
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [focusedCoord, setFocusedCoord] = React.useState<[number, number] | null>(null);
+  const [showRoute, setShowRoute] = React.useState(false);
 
   if (!isOpen) return null;
 
-  // Filter suppliers based on search
-  const filteredSuppliers = suppliers.filter(sup => 
-    sup.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sup.estado?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const uniqueCategories = Array.from(new Set(suppliers.map(s => s.categoria_nome || 'Geral').filter(Boolean)));
+
+  const filteredSuppliers = suppliers.filter(sup => {
+    const term = searchTerm.toLowerCase();
+    const matchesSearch = 
+      sup.nome?.toLowerCase().includes(term) || 
+      sup.estado?.toLowerCase().includes(term) ||
+      sup.cidade?.toLowerCase().includes(term) ||
+      sup.logradouro?.toLowerCase().includes(term);
+      
+    const cat = sup.categoria_nome || 'Geral';
+    const matchesCategory = selectedCategory ? cat === selectedCategory : true;
+    
+    // Filter out 0,0 coordinates that default to Africa
+    const lat = sup.latitude !== undefined && sup.latitude !== null && sup.latitude !== 0 ? sup.latitude : null;
+    const hasValidCoords = lat !== null || true; // Allow all for now, we assign mock coords below if missing
+    
+    return matchesSearch && matchesCategory && hasValidCoords;
+  });
 
   const toggleSelection = (id: string) => {
+    setShowRoute(false);
     setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
     );
+  };
+
+  const handleOptimize = () => {
+    if (selectedIds.length < 2) {
+      toast.error('Selecione pelo menos 2 fornecedores na lista para otimizar uma rota.');
+      return;
+    }
+    setShowRoute(true);
+    toast.success(`Rota otimizada simulada para ${selectedIds.length} paradas!`);
   };
 
   // Group by state for the visualization
@@ -89,6 +170,23 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
               </div>
             </div>
 
+            <div className="sidebar-section">
+              <h4>CATEGORIA DE RISCO</h4>
+              <select 
+                value={selectedCategory} 
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                style={{
+                  width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', 
+                  fontSize: '12px', color: '#1e293b', background: '#fff', cursor: 'pointer'
+                }}
+              >
+                <option value="">Todas as Categorias</option>
+                {uniqueCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="sidebar-section" style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <h4>FILTRAR POR ESTADO</h4>
               <div className="state-list" style={{ overflowY: 'auto', paddingRight: '4px' }}>
@@ -111,11 +209,14 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
             <div className="sidebar-section">
               <h4>LISTA DE REDE (MULTISELEÇÃO)</h4>
               <div className="mini-supplier-list">
-                {filteredSuppliers.slice(0, 15).map(sup => (
+                {filteredSuppliers.slice(0, 15).map((sup, idx) => (
                   <div 
                     key={sup.id} 
                     className={`mini-sup-item ${selectedIds.includes(sup.id) ? 'active' : ''}`}
-                    onClick={() => toggleSelection(sup.id)}
+                    onClick={() => {
+                      toggleSelection(sup.id);
+                      setFocusedCoord(getCoord(sup));
+                    }}
                   >
                     <div style={{ 
                       width: '12px', 
@@ -139,7 +240,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
             <div className="sidebar-section bottom">
               <button 
                 className="optimize-btn" 
-                onClick={() => toast.error(`Otimizando rotas para ${selectedIds.length || filteredSuppliers.length} fornecedores...`)}
+                onClick={handleOptimize}
                 style={{ background: 'hsl(var(--brand))', color: 'white' }}
               >
                 <Navigation size={14} />
@@ -148,50 +249,81 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
             </div>
           </div>
 
-          <div className="map-viz-container">
-            <div className="map-grid-overlay"></div>
-            <div className="radar-ping"></div>
-            
-            <svg viewBox="0 0 500 500" className="brazil-svg">
-              <path 
-                fill="#f8fafc" 
-                stroke="#cbd5e1" 
-                strokeWidth="1.5"
-                d="M160,80 C180,60 250,50 300,60 C350,70 420,100 440,150 C460,200 430,350 380,420 C330,490 200,480 150,450 C100,420 80,300 100,200 C120,100 140,100 160,80 Z" 
-                className="map-shape"
+          <div className="map-viz-container" style={{ position: 'relative' }}>
+            <MapContainer 
+              center={[-14.235, -51.925]} 
+              zoom={4} 
+              style={{ height: '100%', width: '100%', zIndex: 1 }}
+              zoomControl={false}
+            >
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
               />
               
-              <path d="M250,60 L250,460" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4" />
-              <path d="M100,250 L440,250" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="4" />
-
+              <MapBounds 
+                markers={showRoute ? selectedIds.map(id => {
+                  const sup = filteredSuppliers.find(s => s.id === id);
+                  return sup ? getCoord(sup) : [0,0];
+                }).filter(c => c[0] !== 0) : filteredSuppliers.map(sup => getCoord(sup))} 
+                focusedCoord={focusedCoord}
+              />
+              
+              {showRoute && selectedIds.length > 1 && (
+                <Polyline 
+                  positions={selectedIds.map(id => {
+                    const sup = filteredSuppliers.find(s => s.id === id);
+                    return sup ? getCoord(sup) : [0,0];
+                  }).filter(c => c[0] !== 0)}
+                  color="#10b981"
+                  weight={4}
+                  opacity={0.7}
+                  dashArray="10, 10"
+                />
+              )}
+              
               {filteredSuppliers.map((sup, idx) => {
-                const seed = sup.id?.length || idx;
-                const x = 140 + ((seed * 71) % 220);
-                const y = 100 + ((seed * 37) % 300);
+                const [lat, lng] = getCoord(sup);
                 const isSelected = selectedIds.includes(sup.id);
                 
                 return (
-                  <motion.g 
-                    key={sup.id || idx}
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: isSelected ? 1.5 : 1 }}
-                    whileHover={{ scale: 1.5 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                    className={`map-node-group ${isSelected ? 'selected' : ''}`}
-                    onClick={() => toggleSelection(sup.id)}
+                  <Marker 
+                    key={sup.id || idx} 
+                    position={[lat, lng]}
+                    icon={isSelected ? selectedIcon : defaultIcon}
+                    eventHandlers={{
+                      click: () => {
+                        toggleSelection(sup.id);
+                        setFocusedCoord([lat, lng]);
+                      }
+                    }}
                   >
-                    <circle cx={x} cy={y} r={isSelected ? 16 : 12} fill={isSelected ? 'hsl(var(--brand) / 0.2)' : 'hsl(var(--brand) / 0.1)'} className="map-node-glow" />
-                    <circle cx={x} cy={y} r={isSelected ? 6 : 4} fill={isSelected ? '#0f172a' : 'hsl(var(--brand))'} className="map-pin-pulse" />
-                    <circle cx={x} cy={y} r={2} fill="white" />
-                    
-                    <g className={`map-label ${isSelected ? 'force-visible' : ''}`}>
-                      <rect x={x + 10} y={y - 10} width="110" height="20" rx="4" fill="white" stroke={isSelected ? 'hsl(var(--brand))' : '#e2e8f0'} strokeWidth="1" />
-                      <text x={x + 15} y={y + 4} fontSize="8" fontWeight="800" fill={isSelected ? 'hsl(var(--brand))' : '#1e293b'}>{sup.nome?.split(' ')[0]}</text>
-                    </g>
-                  </motion.g>
+                    <Popup>
+                      <div style={{ fontWeight: 800 }}>{sup.nome}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', fontWeight: 600 }}>
+                        {sup.categoria_nome || 'Geral'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                        <MapPin size={10} style={{ display: 'inline', marginRight: 4 }} />
+                        {sup.cidade ? `${sup.cidade} - ` : ''}{sup.estado || 'N/A'}
+                      </div>
+                      <div style={{ marginTop: '12px' }}>
+                        <button 
+                          onClick={() => toggleSelection(sup.id)}
+                          style={{
+                            padding: '4px 8px', borderRadius: '4px', border: 'none',
+                            background: selectedIds.includes(sup.id) ? '#ef4444' : 'hsl(var(--brand))',
+                            color: 'white', fontSize: '10px', fontWeight: 800, cursor: 'pointer', width: '100%'
+                          }}
+                        >
+                          {selectedIds.includes(sup.id) ? 'Remover Seleção' : 'Selecionar'}
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
                 );
               })}
-            </svg>
+            </MapContainer>
 
             <div className="map-controls">
               <button className="ctrl-btn" style={{ background: 'hsl(var(--bg-card))', border: '1px solid #e2e8f0', color: '#64748b' }}><TrendingUp size={16} /></button>

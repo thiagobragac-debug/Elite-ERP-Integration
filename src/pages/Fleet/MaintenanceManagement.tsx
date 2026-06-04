@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -18,28 +18,27 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
 }
 import { 
   Wrench, 
-  Plus, 
-  Search, 
-  Filter,
   Settings, 
-  AlertCircle, 
+  Clock, 
   CheckCircle2, 
-  ChevronRight, 
-  MoreVertical,
-  Calendar,
-  Clock,
-  DollarSign,
-  History,
-  Trash2,
-  Zap,
-  Truck,
-  FileText,
-  Edit3,
-  X,
-  Package,
-  List as ListIcon,
+  Search, 
+  Plus, 
+  Filter, 
+  FileText, 
+  List as ListIcon, 
   LayoutGrid,
-  ArrowRight
+  Calendar,
+  Truck,
+  MoreVertical,
+  History,
+  Edit3,
+  Trash2,
+  ArrowRight,
+  Check,
+  X,
+  AlertCircle,
+  Gauge,
+  Activity
 } from 'lucide-react';
 import { FormModal } from '../../components/Forms/FormModal';
 import { SidePanel } from '../../components/Layout/SidePanel';
@@ -69,14 +68,43 @@ export const MaintenanceManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [filterValues, setFilterValues] = useState({
+  const [filterValues, setFilterValues] = useState<any>({
     status: 'all',
-    types: [] as string[],
-    maxCost: 50000,
+    types: [],
     dateStart: '',
     dateEnd: '',
-    onlyHighCost: false
+    maxCost: 1000000
   });
+
+  // Checklist State
+  const [checklistMachine, setChecklistMachine] = useState<any>('');
+  const [checklistMeter, setChecklistMeter] = useState('');
+  
+  const initialChecklist = [
+    { id: 1, text: 'Troca de óleo do motor (15W40)', status: 'pending', notes: '' },
+    { id: 2, text: 'Substituição do filtro de combustível', status: 'pending', notes: '' },
+    { id: 3, text: 'Limpeza/Troca do filtro de ar', status: 'pending', notes: '' },
+    { id: 4, text: 'Lubrificação de pontos de graxa', status: 'pending', notes: '' },
+    { id: 5, text: 'Tensão das correias', status: 'pending', notes: '' },
+    { id: 6, text: 'Terminais de bateria', status: 'pending', notes: '' },
+    { id: 7, text: 'Vazamentos hidráulicos', status: 'pending', notes: '' },
+    { id: 8, text: 'Sinalização e Luzes', status: 'pending', notes: '' }
+  ];
+  
+  const [checklistItems, setChecklistItems] = useState(initialChecklist);
+
+  useEffect(() => {
+    if (activeFarm) {
+      fetchOrders();
+      fetchMachines();
+    }
+  }, [activeFarm]);
+
+  const [machines, setMachines] = useState<any[]>([]);
+  const fetchMachines = async () => {
+    const { data } = await supabase.from('maquinas').select('*').eq('fazenda_id', activeFarm?.id);
+    if (data) setMachines(data);
+  };
   const [stats, setStats] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({});
@@ -89,6 +117,30 @@ export const MaintenanceManagement: React.FC = () => {
       setLoading(false);
     }
   }, [activeFarm, isGlobalMode, activeTenantId]);
+
+  // Health Score Calculation
+  const healthScore = useMemo(() => {
+    const total = checklistItems.length;
+    const passed = checklistItems.filter(i => i.status === 'pass').length;
+    const failed = checklistItems.filter(i => i.status === 'fail').length;
+    const pending = checklistItems.filter(i => i.status === 'pending').length;
+    
+    if (total === pending) return { score: 0, text: 'Aguardando Inspeção', color: '#64748b' };
+    
+    const score = Math.round((passed / total) * 100);
+    if (failed > 0) return { score, text: `${failed} Falha(s) Crítica(s)`, color: '#dc2626' };
+    if (score === 100) return { score, text: 'Equipamento Saudável', color: '#10b981' };
+    return { score, text: 'Inspeção em Andamento', color: '#f59e0b' };
+  }, [checklistItems]);
+
+  const isChecklistValid = useMemo(() => {
+    if (!checklistMachine || !checklistMeter) return false;
+    const hasPending = checklistItems.some(i => i.status === 'pending');
+    if (hasPending) return false;
+    const hasUnjustifiedFails = checklistItems.some(i => i.status === 'fail' && !i.notes.trim());
+    if (hasUnjustifiedFails) return false;
+    return true;
+  }, [checklistMachine, checklistMeter, checklistItems]);
 
   const fetchOrders = async () => {
     if (!activeFarmId && !isGlobalMode) {
@@ -195,6 +247,10 @@ export const MaintenanceManagement: React.FC = () => {
   const handleOpenEdit = (order: any) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
+  };
+
+  const handleCreateOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
   };
 
   const handleDelete = async (id: string) => {
@@ -993,44 +1049,148 @@ export const MaintenanceManagement: React.FC = () => {
 
       <SidePanel size="large"
         isOpen={isChecklistOpen}
-        onClose={() => setIsChecklistOpen(false)}
+        onClose={() => {
+          setIsChecklistOpen(false);
+          setChecklistItems(initialChecklist);
+          setChecklistMachine('');
+          setChecklistMeter('');
+        }}
         onSubmit={async (e) => {
           e.preventDefault();
+          if (!isChecklistValid) return;
           alert('Checklist 100H finalizado e OS Preventiva gerada!');
           setIsChecklistOpen(false);
+          setChecklistItems(initialChecklist);
+          setChecklistMachine('');
+          setChecklistMeter('');
           fetchOrders();
         }}
         title="Checklist Preventivo 100H"
         subtitle="Inspeção técnica obrigatória para maquinário pesado"
         icon={Settings}
         submitLabel="Finalizar e Gerar OS"
+        isSubmitDisabled={!isChecklistValid}
       >
-        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="tauze-label">Selecione o Ativo</label>
-          <select className="tauze-input tauze-select">
-            <option value="">Selecione uma máquina...</option>
-            <option value="1">Trator John Deere 7230</option>
-            <option value="2">Colheitadeira Case IH 9250</option>
-          </select>
+        <div style={{ background: 'hsl(var(--bg-main))', borderRadius: '16px', padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid hsl(var(--border))' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: `${healthScore.color}20`, color: healthScore.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Activity size={24} />
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'hsl(var(--text-muted))', letterSpacing: '0.05em' }}>Health Score (Saúde)</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: healthScore.color }}>{healthScore.score}% - {healthScore.text}</div>
+            </div>
+          </div>
+          <div style={{ width: '150px', height: '8px', background: 'hsl(var(--border))', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: healthScore.color, width: `${healthScore.score}%`, transition: 'all 0.3s' }}></div>
+          </div>
         </div>
 
-        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-          <label className="tauze-label">Itens de Verificação</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', background: 'hsl(var(--bg-main)/0.5)', padding: '20px', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-            {[
-              'Troca de óleo do motor (15W40)',
-              'Substituição do filtro de combustível',
-              'Limpeza/Troca do filtro de ar',
-              'Lubrificação de pontos de graxa',
-              'Tensão das correias',
-              'Terminais de bateria',
-              'Vazamentos hidráulicos',
-              'Sinalização e Luzes'
-            ].map((item, idx) => (
-              <label key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>
-                <input type="checkbox" style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))' }} />
-                <span>{item}</span>
-              </label>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label">Selecione o Ativo</label>
+            <select 
+              className="tauze-input tauze-select" 
+              value={checklistMachine} 
+              onChange={(e) => setChecklistMachine(e.target.value)}
+            >
+              <option value="">Selecione uma máquina...</option>
+              {machines.map(m => (
+                <option key={m.id} value={m.id}>{m.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              {machines.find(m => String(m.id) === checklistMachine)?.unidade_medida === 'km' ? <><Gauge size={14} /> Hodômetro na Inspeção (km)</> : <><Clock size={14} /> Horímetro na Inspeção (h)</>}
+            </label>
+            <input 
+              className="tauze-input"
+              type="number"
+              placeholder="Ex: 1540"
+              value={checklistMeter}
+              onChange={(e) => setChecklistMeter(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="tauze-field-group" style={{ gridColumn: 'span 2', marginTop: '16px' }}>
+          <label className="tauze-label">Itens de Verificação Rigorosa</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {checklistItems.map((item, idx) => (
+              <div key={item.id} style={{ 
+                background: item.status === 'pass' ? '#ecfdf5' : item.status === 'fail' ? '#fef2f2' : 'hsl(var(--bg-main)/0.5)', 
+                border: `1px solid ${item.status === 'pass' ? '#10b981' : item.status === 'fail' ? '#dc2626' : 'hsl(var(--border))'}`,
+                padding: '16px', 
+                borderRadius: '16px',
+                transition: 'all 0.2s'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', fontWeight: 700, color: item.status === 'pass' ? '#065f46' : item.status === 'fail' ? '#991b1b' : 'hsl(var(--text-main))' }}>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'hsl(var(--bg-card))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', color: 'hsl(var(--text-muted))', border: '1px solid hsl(var(--border))' }}>
+                      {idx + 1}
+                    </div>
+                    {item.text}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const newItems = [...checklistItems];
+                        newItems[idx].status = 'pass';
+                        newItems[idx].notes = '';
+                        setChecklistItems(newItems);
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', border: 'none',
+                        background: item.status === 'pass' ? '#10b981' : 'hsl(var(--bg-card))',
+                        color: item.status === 'pass' ? 'white' : 'hsl(var(--text-muted))',
+                        boxShadow: item.status === 'pass' ? '0 4px 10px rgba(16,185,129,0.2)' : '0 2px 4px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <Check size={14} /> Passou
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const newItems = [...checklistItems];
+                        newItems[idx].status = 'fail';
+                        setChecklistItems(newItems);
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', border: 'none',
+                        background: item.status === 'fail' ? '#dc2626' : 'hsl(var(--bg-card))',
+                        color: item.status === 'fail' ? 'white' : 'hsl(var(--text-muted))',
+                        boxShadow: item.status === 'fail' ? '0 4px 10px rgba(220,38,38,0.2)' : '0 2px 4px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <X size={14} /> Falhou
+                    </button>
+                  </div>
+                </div>
+
+                {item.status === 'fail' && (
+                  <div style={{ marginTop: '16px', animation: 'fadeIn 0.3s' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: '#dc2626', marginBottom: '6px', textTransform: 'uppercase' }}>
+                      <AlertCircle size={12} /> Justificativa Obrigatória
+                    </label>
+                    <textarea 
+                      className="tauze-input" 
+                      placeholder="Descreva o que está quebrado ou precisa de reparo urgente..."
+                      rows={2}
+                      value={item.notes}
+                      onChange={(e) => {
+                        const newItems = [...checklistItems];
+                        newItems[idx].notes = e.target.value;
+                        setChecklistItems(newItems);
+                      }}
+                      style={{ borderColor: !item.notes.trim() ? '#fca5a5' : 'hsl(var(--border))', background: 'white' }}
+                    />
+                    {!item.notes.trim() && <span style={{ fontSize: '10px', color: '#dc2626', fontWeight: 600, marginTop: '4px', display: 'block' }}>A OS não será gerada sem essa informação.</span>}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>

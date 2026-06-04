@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, CreditCard, Calendar, Shield, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -49,6 +49,7 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
             </div>
           </div>
           <button 
+            type="button"
             style={{ color: '#94a3b8', background: 'rgba(0,0,0,0.05)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer' }}
             onClick={onClose}
           >
@@ -65,6 +66,7 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {['all', 'pago', 'pendente', 'atrasado'].map(status => (
                 <button 
+                  type="button"
                   key={status}
                   style={{ 
                     padding: '12px 16px', 
@@ -136,12 +138,14 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
 
         <div className="tauze-sidebar-footer" style={{ padding: '24px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
           <button 
+            type="button"
             style={{ flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-card))', color: 'hsl(var(--text-muted))', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}
             onClick={handleClear}
           >
             LIMPAR
           </button>
           <button 
+            type="button"
             style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: '#10b981', color: '#fff', fontWeight: 800, fontSize: '12px', cursor: 'pointer' }}
             onClick={onClose}
           >

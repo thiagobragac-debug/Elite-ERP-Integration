@@ -16,7 +16,11 @@ import {
   Package,
   Scale,
   Activity,
-  DollarSign
+  DollarSign,
+  ShieldAlert,
+  Thermometer,
+  Zap,
+  UserCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -53,6 +57,17 @@ export const WarehouseManagement: React.FC = () => {
 
   const [farms, setFarms] = useState<any[]>([]);
   const [unidades, setUnidades] = useState<any[]>([]);
+  
+  // Track selected structure type to show dynamic fields
+  const [selectedType, setSelectedType] = useState<string>('Galpão');
+
+  useEffect(() => {
+    if (selectedWarehouse) {
+      setSelectedType(selectedWarehouse.tipo || 'Galpão');
+    } else {
+      setSelectedType('Galpão');
+    }
+  }, [selectedWarehouse]);
 
   useEffect(() => {
     const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
@@ -144,7 +159,11 @@ export const WarehouseManagement: React.FC = () => {
       unidade_capacidade: formData.get('unidade_capacidade') || 'un',
       tipo: formData.get('tipo'),
       localizacao_tecnica: formData.get('localizacao_tecnica'),
-      tenant_id: activeTenantId
+      tenant_id: activeTenantId,
+      // Fake fields for UI demonstration (In a real app, they'd be added to the database schema):
+      // responsavel_tecnico: formData.get('responsavel_tecnico'),
+      // custo_operacional: formData.get('custo_operacional'),
+      // possui_termometria: formData.get('possui_termometria') === 'on'
     };
 
     // Check if inactivating and verify balance
@@ -931,14 +950,72 @@ export const WarehouseManagement: React.FC = () => {
             <label className="tauze-label">
               <Layout size={14} /> TIPO DE ESTRUTURA
             </label>
-            <select name="tipo" className="tauze-input" defaultValue={selectedWarehouse?.tipo || 'Galpão'}>
+            <select 
+              name="tipo" 
+              className="tauze-input" 
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+            >
               <option value="Galpão">Galpão Geral</option>
               <option value="Silo">Silo de Grãos/Sementes</option>
               <option value="Câmara Fria">Câmara Fria</option>
               <option value="Tanque">Tanque de Líquidos</option>
-              <option value="Defensivos">Defensivos</option>
+              <option value="Defensivos">Defensivos (Controlado)</option>
             </select>
           </div>
+
+          {selectedType === 'Defensivos' && (
+            <div style={{ gridColumn: 'span 2', padding: '16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase' }}>
+                <ShieldAlert size={16} /> Compliance Agrícola (NR-31)
+              </div>
+              <p style={{ fontSize: '11px', color: '#7f1d1d', margin: 0, lineHeight: '1.4' }}>
+                Atenção: Áreas de armazenamento de defensivos exigem distanciamento de alojamentos, ventilação cruzada, piso impermeável e bacia de contenção.
+              </p>
+              <div className="tauze-field-group">
+                <label className="tauze-label" style={{ color: '#991b1b' }}><UserCheck size={14} /> Responsável Técnico (CREA)</label>
+                <input 
+                  name="responsavel_tecnico"
+                  type="text" 
+                  className="tauze-input"
+                  placeholder="Nome do Agrônomo / CREA..."
+                  style={{ borderColor: '#fca5a5' }}
+                  required
+                />
+              </div>
+            </div>
+          )}
+
+          {(selectedType === 'Silo' || selectedType === 'Câmara Fria') && (
+            <div style={{ gridColumn: 'span 2', padding: '16px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--brand))', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase' }}>
+                <Zap size={16} /> Infraestrutura Ativa
+              </div>
+              <p style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', margin: 0, lineHeight: '1.4' }}>
+                Estruturas termorreguladas geram custo contábil de armazenagem para a fazenda.
+              </p>
+              
+              <div className="tauze-input-grid grid-col-2">
+                <div className="tauze-field-group" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+                  <input type="checkbox" name="possui_termometria" id="termometria" style={{ width: '20px', height: '20px', accentColor: 'hsl(var(--brand))' }} />
+                  <label htmlFor="termometria" style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>
+                    Possui Termometria / Aeração?
+                  </label>
+                </div>
+
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><DollarSign size={14} /> Custo Operacional (R$/mês)</label>
+                  <input 
+                    name="custo_operacional"
+                    type="number" 
+                    step="0.01"
+                    className="tauze-input"
+                    placeholder="Estimativa de gasto energético/manutenção..."
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="tauze-field-group">
             <label className="tauze-label">

@@ -25,6 +25,7 @@ export const LCDPRPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'lancamentos'|'resumo'|'gerar'>('lancamentos');
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [fazendas, setFazendas] = useState<any[]>([]);
+  const [contas, setContas] = useState<any[]>([]);
   const [unidadeMatriz, setUnidadeMatriz] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,12 +38,13 @@ export const LCDPRPage: React.FC = () => {
     fazenda_id: '',
     data_lancamento: new Date().toISOString().split('T')[0],
     cod_imovel: '',
-    cod_conta_bancaria: '999',
+    cod_conta_bancaria: '',
     tipo: 'R',
     cod_natureza: '01',
     descricao: '',
     cpf_cnpj_participante: '',
     nome_participante: '',
+    tipo_documento: '1',
     num_documento: '',
     valor: ''
   });
@@ -55,7 +57,7 @@ export const LCDPRPage: React.FC = () => {
     if (!tenant?.id) return;
     setLoading(true);
     try {
-      const [{ data: lancs }, { data: fazs }, { data: units }] = await Promise.all([
+      const [{ data: lancs }, { data: fazs }, { data: units }, { data: bankAccs }] = await Promise.all([
         supabase.from('lcdpr_lancamentos')
           .select('*')
           .eq('tenant_id', tenant.id)
@@ -63,11 +65,13 @@ export const LCDPRPage: React.FC = () => {
           .order('data_lancamento', { ascending: true }),
         supabase.from('fazendas').select('*').eq('tenant_id', tenant.id),
         supabase.from('unidades').select('*').eq('tenant_id', tenant.id)
-          .ilike('tipo', 'matriz').limit(1)
+          .ilike('tipo', 'matriz').limit(1),
+        supabase.from('contas_bancarias').select('*').eq('tenant_id', tenant.id)
       ]);
       setLancamentos(lancs || []);
       setFazendas(fazs || []);
       setUnidadeMatriz(units?.[0] || null);
+      setContas(bankAccs || []);
     } catch (e) {
       console.error('[LCDPR] fetch error:', e);
     } finally {
@@ -105,8 +109,8 @@ export const LCDPRPage: React.FC = () => {
     setForm({
       fazenda_id: activeFarm?.id || fazendas[0]?.id || '',
       data_lancamento: new Date().toISOString().split('T')[0],
-      cod_imovel: '', cod_conta_bancaria: '999', tipo: 'R', cod_natureza: '01',
-      descricao: '', cpf_cnpj_participante: '', nome_participante: '', num_documento: '', valor: ''
+      cod_imovel: '', cod_conta_bancaria: contas[0]?.id || '999', tipo: 'R', cod_natureza: '01',
+      descricao: '', cpf_cnpj_participante: '', nome_participante: '', tipo_documento: '1', num_documento: '', valor: ''
     });
     setIsModalOpen(true);
   };
@@ -123,6 +127,7 @@ export const LCDPRPage: React.FC = () => {
       descricao: item.descricao || '',
       cpf_cnpj_participante: item.cpf_cnpj_participante || '',
       nome_participante: item.nome_participante || '',
+      tipo_documento: item.tipo_documento || '1',
       num_documento: item.num_documento || '',
       valor: String(item.valor)
     });
@@ -146,6 +151,7 @@ export const LCDPRPage: React.FC = () => {
       descricao: form.descricao,
       cpf_cnpj_participante: form.cpf_cnpj_participante.replace(/\D/g,'') || null,
       nome_participante: form.nome_participante || null,
+      tipo_documento: form.tipo_documento || null,
       num_documento: form.num_documento || null,
       valor: parseFloat(form.valor) || 0,
       origem: 'MANUAL'
@@ -568,9 +574,9 @@ export const LCDPRPage: React.FC = () => {
         submitLabel={editingItem ? 'Salvar Alterações' : 'Adicionar Lançamento'}
         iconSubmit={CheckCircle}
       >
-        <div className="tauze-input-grid">
-          {/* Tipo */}
-          <div style={{ gridColumn: '1/-1', display: 'flex', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+          {/* Natureza (R/D) */}
+          <div style={{ display: 'flex', gap: 12 }}>
             {(['R','D'] as const).map(t => (
               <button type="button" key={t} onClick={() => setForm(f => ({...f, tipo: t, cod_natureza: t==='R'?'01':'11'}))}
                 style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: `2px solid ${form.tipo===t?(t==='R'?'#10b981':'#ef4444'):'hsl(var(--border))'}`, background: form.tipo===t?(t==='R'?'#10b98112':'#ef444412'):'transparent', fontWeight: 800, fontSize: 14, cursor: 'pointer', color: form.tipo===t?(t==='R'?'#10b981':'#ef4444'):'hsl(var(--text-muted))' }}>
@@ -579,49 +585,81 @@ export const LCDPRPage: React.FC = () => {
             ))}
           </div>
 
-          <div className="form-group">
-            <label>Data</label>
-            <input type="date" required value={form.data_lancamento} onChange={e => setForm(f=>({...f,data_lancamento:e.target.value}))} />
+          {/* 1. Identificação */}
+          <div>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, borderBottom: '1px solid hsl(var(--border))', paddingBottom: 8 }}>1. Identificação</h3>
+            <div className="tauze-input-grid">
+              <div className="form-group">
+                <label>Data da Operação</label>
+                <input type="date" required value={form.data_lancamento} onChange={e => setForm(f=>({...f,data_lancamento:e.target.value}))} />
+              </div>
+              <div className="form-group">
+                <label>Fazenda Origem</label>
+                <select value={form.fazenda_id} onChange={e => setForm(f=>({...f,fazenda_id:e.target.value}))}>
+                  <option value="">Selecione...</option>
+                  {fazendas.map(fz => <option key={fz.id} value={fz.id}>{fz.nome}</option>)}
+                </select>
+              </div>
+              <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                <label>Conta Bancária (Cód. Q050) *Obrigatório</label>
+                <select required value={form.cod_conta_bancaria} onChange={e => setForm(f=>({...f,cod_conta_bancaria:e.target.value}))}>
+                  <option value="">Selecione a conta...</option>
+                  <option value="999">999 — Numerário em Trânsito / Espécie</option>
+                  {contas.map(c => <option key={c.id} value={c.id}>{c.nome_banco} — Ag {c.agencia} / CC {c.conta}</option>)}
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label>Fazenda</label>
-            <select value={form.fazenda_id} onChange={e => setForm(f=>({...f,fazenda_id:e.target.value}))}>
-              <option value="">Selecione...</option>
-              {fazendas.map(fz => <option key={fz.id} value={fz.id}>{fz.nome}</option>)}
-            </select>
+          {/* 2. Natureza e Valores */}
+          <div>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, borderBottom: '1px solid hsl(var(--border))', paddingBottom: 8 }}>2. Natureza e Valores</h3>
+            <div className="tauze-input-grid">
+              <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                <label>Código da Natureza da {form.tipo === 'R' ? 'Receita' : 'Despesa'}</label>
+                <select required value={form.cod_natureza} onChange={e => setForm(f=>({...f,cod_natureza:e.target.value}))}>
+                  {(form.tipo==='R' ? NATUREZAS_RECEITA : NATUREZAS_DESPESA).map(n => <option key={n.codigo} value={n.codigo}>{n.codigo} — {n.descricao}</option>)}
+                </select>
+              </div>
+              <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                <label>Histórico (Descrição)</label>
+                <input type="text" placeholder="Histórico resumido do lançamento..." value={form.descricao} onChange={e => setForm(f=>({...f,descricao:e.target.value}))} />
+              </div>
+              <div className="form-group" style={{ gridColumn: '1/-1' }}>
+                <label>Valor Bruto (R$)</label>
+                <input type="number" step="0.01" min="0" required placeholder="0,00" value={form.valor} onChange={e => setForm(f=>({...f,valor:e.target.value}))} />
+              </div>
+            </div>
           </div>
 
-          <div className="form-group" style={{ gridColumn: '1/-1' }}>
-            <label>Natureza</label>
-            <select required value={form.cod_natureza} onChange={e => setForm(f=>({...f,cod_natureza:e.target.value}))}>
-              {(form.tipo==='R' ? NATUREZAS_RECEITA : NATUREZAS_DESPESA).map(n => <option key={n.codigo} value={n.codigo}>{n.codigo} — {n.descricao}</option>)}
-            </select>
-          </div>
-
-          <div className="form-group" style={{ gridColumn: '1/-1' }}>
-            <label>Descrição</label>
-            <input type="text" placeholder="Descreva o lançamento..." value={form.descricao} onChange={e => setForm(f=>({...f,descricao:e.target.value}))} />
-          </div>
-
-          <div className="form-group">
-            <label>Valor (R$)</label>
-            <input type="number" step="0.01" min="0" required placeholder="0,00" value={form.valor} onChange={e => setForm(f=>({...f,valor:e.target.value}))} />
-          </div>
-
-          <div className="form-group">
-            <label>Nº Documento</label>
-            <input type="text" placeholder="NF, Recibo..." value={form.num_documento} onChange={e => setForm(f=>({...f,num_documento:e.target.value}))} />
-          </div>
-
-          <div className="form-group">
-            <label>CPF/CNPJ Participante</label>
-            <input type="text" placeholder="000.000.000-00" value={form.cpf_cnpj_participante} onChange={e => setForm(f=>({...f,cpf_cnpj_participante:e.target.value}))} />
-          </div>
-
-          <div className="form-group">
-            <label>Nome Participante</label>
-            <input type="text" placeholder="Nome da empresa ou pessoa" value={form.nome_participante} onChange={e => setForm(f=>({...f,nome_participante:e.target.value}))} />
+          {/* 3. Lastro Fiscal */}
+          <div>
+            <h3 style={{ fontSize: 11, fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 12, borderBottom: '1px solid hsl(var(--border))', paddingBottom: 8 }}>3. Lastro Fiscal / Participante</h3>
+            <div className="tauze-input-grid">
+              <div className="form-group">
+                <label>Tipo de Documento</label>
+                <select required value={form.tipo_documento} onChange={e => setForm(f=>({...f,tipo_documento:e.target.value}))}>
+                  <option value="1">1 - Nota Fiscal</option>
+                  <option value="2">2 - Fatura</option>
+                  <option value="3">3 - Recibo</option>
+                  <option value="4">4 - Contrato</option>
+                  <option value="5">5 - Folha de Pagamento</option>
+                  <option value="6">6 - Outros</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Número do Documento</label>
+                <input type="text" placeholder="Ex: 12345" value={form.num_documento} onChange={e => setForm(f=>({...f,num_documento:e.target.value}))} />
+              </div>
+              <div className="form-group">
+                <label>CPF/CNPJ do Participante</label>
+                <input type="text" placeholder="Apenas números..." value={form.cpf_cnpj_participante} onChange={e => setForm(f=>({...f,cpf_cnpj_participante:e.target.value}))} />
+              </div>
+              <div className="form-group">
+                <label>Nome do Participante</label>
+                <input type="text" placeholder="Razão Social ou Nome Físico..." value={form.nome_participante} onChange={e => setForm(f=>({...f,nome_participante:e.target.value}))} />
+              </div>
+            </div>
           </div>
         </div>
       </SidePanel>

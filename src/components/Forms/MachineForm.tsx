@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Truck, 
   Calendar,
@@ -7,7 +7,14 @@ import {
   Hash,
   Activity,
   Tag,
-  DollarSign
+  DollarSign,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  AlertTriangle,
+  Gauge,
+  MapPin,
+  Clock
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
@@ -41,14 +48,21 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
     intervalo_revisao: '250',
     consumo_estimado: '',
     data_proxima_revisao: '',
-    observacoes: ''
+    observacoes: '',
+    unidade_medida: 'horas',
+    unidade_id: ''
   });
 
   const { activeTenantId } = useTenant();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
+  const [farms, setFarms] = useState<any[]>([]);
 
-  React.useEffect(() => {
+  const [docOpen, setDocOpen] = useState(false);
+  const [finOpen, setFinOpen] = useState(false);
+  const [obsOpen, setObsOpen] = useState(false);
+
+  useEffect(() => {
     if (isOpen && activeTenantId) {
       fetchCategories();
     }
@@ -56,14 +70,22 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
 
   const fetchCategories = async () => {
     if (!activeTenantId) return;
-    const { data } = await supabase
-      .from('categorias_sistema')
-      .select('id, nome')
-      .eq('tenant_id', activeTenantId)
-      .eq('modulo', 'frota')
-      .eq('is_active', true)
-      .order('nome');
-    if (data) setCategories(data);
+    const [catRes, farmsRes] = await Promise.all([
+      supabase
+        .from('categorias_sistema')
+        .select('id, nome')
+        .eq('tenant_id', activeTenantId)
+        .eq('modulo', 'frota')
+        .eq('is_active', true)
+        .order('nome'),
+      supabase
+        .from('unidades_produtivas')
+        .select('id, nome')
+        .eq('tenant_id', activeTenantId)
+        .order('nome')
+    ]);
+    if (catRes.data) setCategories(catRes.data);
+    if (farmsRes.data) setFarms(farmsRes.data);
   };
 
   const handleCategoriaChange = async (val: string) => {
@@ -83,7 +105,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (initialData) {
       setFormData({
         nome: initialData.nome || '',
@@ -104,7 +126,9 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
         intervalo_revisao: initialData.intervalo_revisao?.toString() || '250',
         consumo_estimado: initialData.consumo_estimado?.toString() || '',
         data_proxima_revisao: initialData.data_proxima_revisao || '',
-        observacoes: initialData.observacoes || ''
+        observacoes: initialData.observacoes || '',
+        unidade_medida: initialData.unidade_medida || 'horas',
+        unidade_id: initialData.unidade_id || ''
       });
     } else {
       setFormData({
@@ -126,7 +150,9 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
         intervalo_revisao: '250',
         consumo_estimado: '',
         data_proxima_revisao: '',
-        observacoes: ''
+        observacoes: '',
+        unidade_medida: 'horas',
+        unidade_id: ''
       });
     }
   }, [initialData, isOpen]);
@@ -152,12 +178,39 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Ativo"}
     >
+      {/* HEADER DE STATUS (Business Rule) */}
+      <section style={{ padding: '0 24px 24px', borderBottom: '1px solid hsl(var(--border))', marginBottom: '24px' }}>
+        <h4 className="tauze-label" style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Activity size={14} /> Status Atual da Máquina
+        </h4>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+          <div 
+            style={{ padding: '12px', borderRadius: '8px', border: `2px solid ${formData.status === 'active' ? '#10b981' : 'transparent'}`, background: formData.status === 'active' ? 'rgba(16, 185, 129, 0.1)' : 'hsl(var(--bg-main))', cursor: 'pointer', textAlign: 'center', fontWeight: 700, color: formData.status === 'active' ? '#10b981' : 'hsl(var(--text-muted))', transition: '0.2s' }}
+            onClick={() => setFormData({...formData, status: 'active'})}
+          >
+            Operacional
+          </div>
+          <div 
+            style={{ padding: '12px', borderRadius: '8px', border: `2px solid ${formData.status === 'maintenance' ? '#f59e0b' : 'transparent'}`, background: formData.status === 'maintenance' ? 'rgba(245, 158, 11, 0.1)' : 'hsl(var(--bg-main))', cursor: 'pointer', textAlign: 'center', fontWeight: 700, color: formData.status === 'maintenance' ? '#f59e0b' : 'hsl(var(--text-muted))', transition: '0.2s' }}
+            onClick={() => setFormData({...formData, status: 'maintenance'})}
+          >
+            Em Manutenção
+          </div>
+          <div 
+            style={{ padding: '12px', borderRadius: '8px', border: `2px solid ${formData.status === 'stopped' ? '#ef4444' : 'transparent'}`, background: formData.status === 'stopped' ? 'rgba(239, 68, 68, 0.1)' : 'hsl(var(--bg-main))', cursor: 'pointer', textAlign: 'center', fontWeight: 700, color: formData.status === 'stopped' ? '#ef4444' : 'hsl(var(--text-muted))', transition: '0.2s' }}
+            onClick={() => setFormData({...formData, status: 'stopped'})}
+          >
+            Parado (Crítico)
+          </div>
+        </div>
+      </section>
+
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 01</div>
-          <h4 className="tauze-section-title">Identificação Básica</h4>
+          <h4 className="tauze-section-title">Identificação Básica e Medição</h4>
         </div>
-        <div className="tauze-input-grid grid-col-3">
+        <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
             <label className="tauze-label"><Truck size={14} /> Nome do Ativo</label>
             <input 
@@ -169,6 +222,19 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
               required 
             />
           </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Gauge size={14} /> Unidade de Medida Padrão</label>
+            <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              {['horas', 'km'].map(t => (
+                <div key={t} className={`tauze-form-radio-item ${formData.unidade_medida === t ? 'active' : ''}`}
+                  onClick={() => setFormData({...formData, unidade_medida: t})}>
+                  <span style={{textTransform: 'uppercase'}}>{t === 'horas' ? 'Horímetro (h)' : 'Hodômetro (KM)'}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Tag size={14} /> Marca</label>
@@ -236,15 +302,37 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
               onChange={(e) => setFormData({...formData, potencia: e.target.value})}
             />
           </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><MapPin size={14} /> Centro de Custo (Fazenda)</label>
+            <SearchableSelect 
+              value={formData.unidade_id}
+              onChange={(val: any) => setFormData({...formData, unidade_id: val})}
+              options={[
+                { value: '', label: 'Selecionar...' },
+                ...(farms || []).map(f => ({ value: String(f.id), label: String(f.nome) })),
+              ]}
+            />
+          </div>
         </div>
       </section>
 
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
+      <section className="tauze-form-section" style={{ padding: 0 }}>
+        <div 
+          className="tauze-section-header" 
+          style={{ padding: '24px', cursor: 'pointer', borderBottom: docOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: docOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+          onClick={() => setDocOpen(!docOpen)}
+        >
           <div className="tauze-section-badge">PASSO 03</div>
-          <h4 className="tauze-section-title">Documentação e Combustível</h4>
+          <h4 className="tauze-section-title" style={{ flex: 1 }}>Documentação Técnica</h4>
+          <div style={{ color: 'hsl(var(--text-muted))' }}>
+            {docOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </div>
         </div>
-        <div className="tauze-input-grid grid-col-3">
+        
+        {docOpen && (
+          <div style={{ padding: '24px' }}>
+            <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
             <label className="tauze-label"><Hash size={14} /> Placa / Registro</label>
             <input 
@@ -266,6 +354,27 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
               onChange={(e) => setFormData({...formData, chassi: e.target.value})}
             />
           </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 04</div>
+          <h4 className="tauze-section-title">Medições Iniciais e Controle</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Activity size={14} /> Cap. Tanque (L)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              placeholder="0" 
+              value={formData.capacidade_tanque}
+              onChange={(e) => setFormData({...formData, capacidade_tanque: e.target.value})}
+            />
+          </div>
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Settings size={14} /> Combustível</label>
@@ -281,56 +390,49 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
               ]}
             />
           </div>
+
+          {formData.unidade_medida === 'horas' ? (
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Clock size={14} /> Horímetro Inicial (h)</label>
+              <input 
+                className="tauze-input"
+                type="number" 
+                placeholder="0" 
+                value={formData.horimetro_inicial}
+                onChange={(e) => setFormData({...formData, horimetro_inicial: e.target.value})}
+              />
+            </div>
+          ) : (
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Gauge size={14} /> KM Inicial</label>
+              <input 
+                className="tauze-input"
+                type="number" 
+                placeholder="0" 
+                value={formData.quilometragem_inicial}
+                onChange={(e) => setFormData({...formData, quilometragem_inicial: e.target.value})}
+              />
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 04</div>
-          <h4 className="tauze-section-title">Medições Iniciais e Capacidade</h4>
-        </div>
-        <div className="tauze-input-grid grid-col-3">
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> Cap. Tanque (L)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              placeholder="0" 
-              value={formData.capacidade_tanque}
-              onChange={(e) => setFormData({...formData, capacidade_tanque: e.target.value})}
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> Horímetro Inicial</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              placeholder="0" 
-              value={formData.horimetro_inicial}
-              onChange={(e) => setFormData({...formData, horimetro_inicial: e.target.value})}
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> KM Inicial</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              placeholder="0" 
-              value={formData.quilometragem_inicial}
-              onChange={(e) => setFormData({...formData, quilometragem_inicial: e.target.value})}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
+      <section className="tauze-form-section" style={{ padding: 0 }}>
+        <div 
+          className="tauze-section-header" 
+          style={{ padding: '24px', cursor: 'pointer', borderBottom: finOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: finOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+          onClick={() => setFinOpen(!finOpen)}
+        >
           <div className="tauze-section-badge">PASSO 05</div>
-          <h4 className="tauze-section-title">Indicadores Operacionais</h4>
+          <h4 className="tauze-section-title" style={{ flex: 1 }}>Indicadores Operacionais e Financeiros</h4>
+          <div style={{ color: 'hsl(var(--text-muted))' }}>
+            {finOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </div>
         </div>
-        <div className="tauze-input-grid grid-col-3">
+        
+        {finOpen && (
+          <div style={{ padding: '24px' }}>
+            <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
             <label className="tauze-label"><DollarSign size={14} /> Valor Compra (R$)</label>
             <input 
@@ -354,71 +456,72 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
             />
           </div>
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Settings size={14} /> Int. Revisão (h/km)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              placeholder="Ex: 250" 
-              value={formData.intervalo_revisao}
-              onChange={(e) => setFormData({...formData, intervalo_revisao: e.target.value})}
-            />
-          </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Settings size={14} /> Int. Revisão ({formData.unidade_medida === 'horas' ? 'h' : 'km'})</label>
+                <input 
+                  className="tauze-input"
+                  type="number" 
+                  placeholder={formData.unidade_medida === 'horas' ? "Ex: 250" : "Ex: 10000"} 
+                  value={formData.intervalo_revisao}
+                  onChange={(e) => setFormData({...formData, intervalo_revisao: e.target.value})}
+                />
+              </div>
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> Meta Cons. (L/h)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              step="0.1"
-              placeholder="Ex: 14.5" 
-              value={formData.consumo_estimado}
-              onChange={(e) => setFormData({...formData, consumo_estimado: e.target.value})}
-            />
-          </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Activity size={14} /> Meta Consumo ({formData.unidade_medida === 'horas' ? 'L/h' : 'km/L'})</label>
+                <input 
+                  className="tauze-input"
+                  type="number" 
+                  step="0.1"
+                  placeholder={formData.unidade_medida === 'horas' ? "Ex: 14.5" : "Ex: 8.5"} 
+                  value={formData.consumo_estimado}
+                  onChange={(e) => setFormData({...formData, consumo_estimado: e.target.value})}
+                />
+              </div>
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Próxima Revisão</label>
-            <input 
-              className="tauze-input"
-              type="date" 
-              value={formData.data_proxima_revisao}
-              onChange={(e) => setFormData({...formData, data_proxima_revisao: e.target.value})}
-            />
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Calendar size={14} /> Data Próx. Revisão</label>
+                <input 
+                  className="tauze-input"
+                  type="date" 
+                  value={formData.data_proxima_revisao}
+                  onChange={(e) => setFormData({...formData, data_proxima_revisao: e.target.value})}
+                />
+              </div>
+            </div>
           </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> Status da Máquina</label>
-            <SearchableSelect 
-              value={formData.status}
-              onChange={(val: any) => setFormData({...formData, status: val})}
-              options={[
-                { value: 'active', label: 'Operacional' },
-                { value: 'maintenance', label: 'Em Manutenção' },
-                { value: 'stopped', label: 'Parado (Crítico)' },
-              ]}
-            />
-          </div>
-        </div>
+        )}
       </section>
 
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
+      <section className="tauze-form-section" style={{ padding: 0 }}>
+        <div 
+          className="tauze-section-header" 
+          style={{ padding: '24px', cursor: 'pointer', borderBottom: obsOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: obsOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+          onClick={() => setObsOpen(!obsOpen)}
+        >
           <div className="tauze-section-badge">PASSO 06</div>
-          <h4 className="tauze-section-title">Informações Adicionais</h4>
-        </div>
-        <div className="tauze-input-grid grid-col-1">
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Tag size={14} /> Observações Gerais</label>
-            <textarea 
-              className="tauze-input"
-              placeholder="Histórico de avarias, notas sobre garantia ou especificações extras..." 
-              value={formData.observacoes}
-              onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
-              rows={3}
-            />
+          <h4 className="tauze-section-title" style={{ flex: 1 }}>Informações Adicionais</h4>
+          <div style={{ color: 'hsl(var(--text-muted))' }}>
+            {obsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
         </div>
+        
+        {obsOpen && (
+          <div style={{ padding: '24px' }}>
+            <div className="tauze-input-grid grid-col-1">
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Tag size={14} /> Observações Gerais</label>
+                <textarea 
+                  className="tauze-input"
+                  placeholder="Histórico de avarias, notas sobre garantia ou especificações extras..." 
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+                  rows={3}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </SidePanel>
   );

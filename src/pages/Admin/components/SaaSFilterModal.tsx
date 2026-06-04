@@ -193,6 +193,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                       {['all', 'Ativo', 'Suspenso'].map((s) => (
                         <button
+                          type="button"
                           key={s}
                           onClick={() => setFilters({ ...filters, status: s })}
                           style={getButtonStyle(filters.status === s, 'indigo')}
@@ -210,6 +211,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                       {['all', 'Starter', 'Pro', 'Enterprise', 'DEMO'].map((p) => (
                         <button
+                          type="button"
                           key={p}
                           onClick={() => setFilters({ ...filters, plan: p })}
                           style={getButtonStyle(filters.plan === p, 'amber')}
@@ -371,6 +373,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                       {['all', 'paga', 'pendente', 'atrasada'].map((s) => (
                         <button
+                          type="button"
                           key={s}
                           onClick={() => setFilters({ ...filters, status: s })}
                           style={getButtonStyle(filters.status === s, 'emerald')}
@@ -446,6 +449,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                       {['all', 'ativa', 'pausada', 'expirada'].map((s) => (
                         <button
+                          type="button"
                           key={s}
                           onClick={() => setFilters({ ...filters, status: s })}
                           style={getButtonStyle(filters.status === s, 'amber')}
@@ -520,6 +524,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
               gap: '12px'
             }}>
               <button 
+                type="button"
                 onClick={() => {
                   setFilters({
                     status: 'all',
@@ -554,6 +559,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                 LIMPAR TUDO
               </button>
               <button 
+                type="button"
                 onClick={onClose}
                 style={{
                   flex: 2,

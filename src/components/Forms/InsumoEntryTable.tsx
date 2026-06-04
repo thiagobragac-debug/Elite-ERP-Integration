@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Package, 
   Plus, 
@@ -135,13 +135,13 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
           <thead>
             <tr>
               <th style={{ minWidth: '220px' }}>Produto / Insumo</th>
-              <th style={{ width: '130px' }}>Entrada</th>
+              <th style={{ width: '160px' }}>Depósito</th>
               <th style={{ width: '80px' }}>Qtd</th>
-              <th style={{ width: '60px' }}>Unid</th>
-              <th style={{ width: '140px' }}>Preço Unit.</th>
-              <th style={{ width: '140px' }}>Desp. Adic.</th>
-              <th style={{ width: '140px' }}>Desconto</th>
-              <th style={{ width: '140px' }}>Total</th>
+              <th style={{ width: '50px' }}>Unid</th>
+              <th style={{ width: '120px' }}>Preço Unit.</th>
+              <th style={{ width: '120px' }}>Desp. Adic.</th>
+              <th style={{ width: '120px' }}>Desconto</th>
+              <th style={{ width: '120px' }}>Total</th>
               {!isReadOnly && <th style={{ width: '40px' }}></th>}
             </tr>
           </thead>
@@ -200,15 +200,14 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
                   )}
                 </td>
                 <td>
-                          <SearchableSelect 
-          value={item.deposito_id}
-          onChange={(val: any) => { /* TODO: adjust */ }}
-          options={[
-            { value: ``, label: `Selecione...` },
-            { value: `{d.nome}`, label: `{d.nome}` },
-            ...(depositos || []).map(d => ({ value: String(d.id), label: String(d.nome) })),
-          ]}
-        />
+                  <SearchableSelect 
+                    value={item.deposito_id}
+                    onChange={(val: any) => handleUpdateItem(item.id, { deposito_id: val })}
+                    options={[
+                      { value: '', label: 'Depósito...' },
+                      ...(depositos || []).map(d => ({ value: String(d.id), label: String(d.nome) })),
+                    ]}
+                  />
                 </td>
                 <td>
                   <input 
@@ -365,7 +364,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
         }
         .insumo-batch-table th {
           text-align: left;
-          padding: 14px 20px;
+          padding: 12px 8px;
           font-size: 10px;
           font-weight: 800;
           color: hsl(var(--text-muted));
@@ -375,7 +374,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
           background: hsl(var(--bg-main)/0.2);
         }
         .insumo-batch-table td {
-          padding: 12px 20px;
+          padding: 10px 8px;
           border-bottom: 1px solid hsl(var(--border)/0.5);
         }
         .insumo-search-input-wrapper {

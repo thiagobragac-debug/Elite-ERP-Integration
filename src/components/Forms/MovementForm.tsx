@@ -11,7 +11,14 @@ import {
   Settings,
   DollarSign,
   Plus,
-  Trash2
+  Trash2,
+  AlertTriangle,
+  FileText,
+  Lock,
+  Barcode,
+  Receipt,
+  Tractor,
+  Map
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
@@ -37,9 +44,15 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
     destino_deposito_id: '',
     tipo: defaultType as 'in' | 'out' | 'transfer' | 'adjust',
     data_movimentacao: new Date().toISOString().split('T')[0],
-    origem_destino: '',
+    origem_destino: '', // Text for In/Transfer
+    centro_custo: '',   // Select for Out
     responsavel: '',
-    deposito_origem_id: '' // Used only for transfers now
+    deposito_origem_id: '', // Used only for transfers now
+    receituario_agronomico: '', // For agrochemicals
+    numero_nfe: '',
+    chave_nfe: '',
+    despesas_acessorias: '',
+    sub_centro_custo: ''
   });
 
   // Cart of Items
@@ -84,8 +97,14 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
         tipo: defaultType as any,
         data_movimentacao: new Date().toISOString().split('T')[0],
         origem_destino: '',
+        centro_custo: '',
         responsavel: '',
-        deposito_origem_id: ''
+        deposito_origem_id: '',
+        receituario_agronomico: '',
+        numero_nfe: '',
+        chave_nfe: '',
+        despesas_acessorias: '',
+        sub_centro_custo: ''
       });
       setItems([]);
       setCurrentItem({
@@ -136,6 +155,34 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
     return cat.includes('medicamento') || cat.includes('saúde') || cat.includes('saude') || cat.includes('vacina') || cat.includes('veterinário');
   };
 
+  const isAgroDefensive = (prodId: string) => {
+    const prod = products.find(p => p.id === prodId);
+    if (!prod || !prod.categoria) return false;
+    const cat = prod.categoria.toLowerCase();
+    return cat.includes('defensivo') || cat.includes('agrotóxico') || cat.includes('herbicida') || cat.includes('fungicida') || cat.includes('inseticida');
+  };
+
+  const isSeedOrFertilizer = (prodId: string) => {
+    const prod = products.find(p => p.id === prodId);
+    if (!prod || !prod.categoria) return false;
+    const cat = prod.categoria.toLowerCase();
+    return cat.includes('semente') || cat.includes('adubo') || cat.includes('nutrição') || cat.includes('fertilizante');
+  };
+
+  const requiresReceipt = items.some(item => isAgroDefensive(item.produto_id));
+  
+  // Expanded Lot Tracking for Agri (Medicines, Seeds, Fertilizers, Defensives)
+  const requiresLot = isMedicament(currentItem.produto_id) || isAgroDefensive(currentItem.produto_id) || isSeedOrFertilizer(currentItem.produto_id);
+  
+  const isOutOrTransfer = formData.tipo === 'out' || formData.tipo === 'transfer';
+  const activeDepotForStock = formData.tipo === 'transfer' ? formData.deposito_origem_id : currentItem.deposito_id;
+  
+  // Mocked available stock for UI demonstration. In production, this would fetch from 'estoque_saldos' table.
+  const availableStock = currentItem.produto_id && activeDepotForStock ? 150 : 0; 
+  
+  const totalItemsValue = items.reduce((sum, item) => sum + (parseFloat(item.quantidade || '0') * parseFloat(item.valor_unitario || '0')), 0);
+  const totalMovementValue = totalItemsValue + (formData.tipo === 'in' ? parseFloat(formData.despesas_acessorias || '0') : 0);
+
   useEffect(() => {
     if (formData.tipo === 'out' && currentItem.produto_id) {
       const prod = products.find(p => p.id === currentItem.produto_id);
@@ -159,6 +206,11 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
 
     if (formData.tipo !== 'transfer' && !currentItem.deposito_id) {
       toast.error("Selecione o Depósito para o item.");
+      return;
+    }
+
+    if (isOutOrTransfer && parseFloat(currentItem.quantidade) > availableStock) {
+      toast.error("Quantidade solicitada é maior que o saldo disponível em estoque!");
       return;
     }
 
@@ -191,6 +243,10 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
       toast.error("Para transferência, informe a origem e destino.");
       return;
     }
+    if (requiresReceipt && !formData.receituario_agronomico) {
+      toast.error("O Receituário Agronômico é obrigatório para defensivos.");
+      return;
+    }
     setLoading(true);
     try {
       await onSubmit({ ...formData, items });
@@ -200,7 +256,6 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
   };
 
   const selectedProductObj = products.find(p => p.id === currentItem.produto_id);
-  const requiresLot = isMedicament(currentItem.produto_id);
 
   return (
     <SidePanel
@@ -236,15 +291,28 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
 
           {/* If Transfer, we keep Destination Depot at the top level */}
           {formData.tipo === 'transfer' && (
-            <div className="tauze-field-group">
-              <label className="tauze-label"><ArrowRightLeft size={14} /> Depósito de Destino</label>
-              <SearchableSelect
-                value={formData.destino_deposito_id}
-                onChange={(val) => setFormData({...formData, destino_deposito_id: val})}
-                options={warehouses.filter(w => w.id !== formData.deposito_origem_id).map(w => ({ value: w.id, label: w.nome }))}
-                placeholder="Selecione o local de destino..."
-              />
-            </div>
+            <>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><ArrowRightLeft size={14} /> Depósito de Destino</label>
+                <SearchableSelect
+                  value={formData.destino_deposito_id}
+                  onChange={(val) => setFormData({...formData, destino_deposito_id: val})}
+                  options={warehouses.filter(w => w.id !== formData.deposito_origem_id).map(w => ({ value: w.id, label: w.nome }))}
+                  placeholder="Selecione o local de destino..."
+                />
+              </div>
+              <div className="tauze-field-group" style={{ gridColumn: 'span 2', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                <label className="tauze-label" style={{ color: '#0f172a' }}><FileText size={14} /> Motivo da Transferência (Justificativa)</label>
+                <input 
+                  type="text" 
+                  className="tauze-input"
+                  placeholder="Ex: Remanejamento para plantio no Talhão 02..."
+                  value={formData.origem_destino}
+                  onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
+                  required
+                />
+              </div>
+            </>
           )}
 
           <div className="tauze-field-group">
@@ -258,18 +326,104 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
             />
           </div>
 
-          {formData.tipo !== 'in' && (
-            <div className="tauze-field-group">
-              <label className="tauze-label"><Building2 size={14} /> Destino / Aplicação</label>
-              <input 
-                type="text" 
-                className="tauze-input"
-                placeholder="Ex: Lote Engorda A1..."
-                value={formData.origem_destino}
-                onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
-                required
-              />
-            </div>
+          {formData.tipo === 'in' && (
+            <>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Building2 size={14} /> Origem (Fornecedor)</label>
+                <input 
+                  type="text" 
+                  className="tauze-input"
+                  placeholder="Ex: Fornecedor XYZ..."
+                  value={formData.origem_destino}
+                  onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label" style={{ color: '#0369a1' }}><Receipt size={14} /> Nota Fiscal (NF-e)</label>
+                <input 
+                  type="text" 
+                  className="tauze-input"
+                  placeholder="Nº da Nota..."
+                  style={{ borderColor: '#bae6fd' }}
+                  value={formData.numero_nfe}
+                  onChange={(e) => setFormData({...formData, numero_nfe: e.target.value})}
+                />
+              </div>
+              <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                <label className="tauze-label" style={{ color: '#0369a1' }}><Barcode size={14} /> Chave de Acesso (NF-e)</label>
+                <input 
+                  type="text" 
+                  className="tauze-input"
+                  placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
+                  maxLength={44}
+                  style={{ borderColor: '#bae6fd' }}
+                  value={formData.chave_nfe}
+                  onChange={(e) => setFormData({...formData, chave_nfe: e.target.value})}
+                />
+              </div>
+            </>
+          )}
+
+          {formData.tipo === 'out' && (
+            <>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Building2 size={14} /> Centro de Custo (Destinação)</label>
+                <SearchableSelect
+                  value={formData.centro_custo}
+                  onChange={(val) => setFormData({...formData, centro_custo: val, sub_centro_custo: ''})}
+                  options={[
+                    { value: 'frota', label: 'Frota (Tratores / Máquinas)' },
+                    { value: 'lavoura', label: 'Lavoura (Talhões / Glebas)' },
+                    { value: 'pecuaria', label: 'Pecuária (Lotes / Animais)' },
+                    { value: 'infra', label: 'Infraestrutura / Manutenção Geral' }
+                  ]}
+                  placeholder="Para onde vai essa despesa?"
+                />
+              </div>
+              
+              {formData.centro_custo === 'frota' && (
+                <div className="tauze-field-group" style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                  <label className="tauze-label" style={{ color: '#0f172a' }}><Tractor size={14} /> Máquina / Placa / Frota</label>
+                  <input 
+                    type="text" 
+                    className="tauze-input"
+                    placeholder="Ex: Trator John Deere 1..."
+                    value={formData.sub_centro_custo}
+                    onChange={(e) => setFormData({...formData, sub_centro_custo: e.target.value})}
+                    required
+                  />
+                </div>
+              )}
+
+              {formData.centro_custo === 'lavoura' && (
+                <div className="tauze-field-group" style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', border: '1px dashed #bbf7d0' }}>
+                  <label className="tauze-label" style={{ color: '#166534' }}><Map size={14} /> Talhão / Gleba / Safra</label>
+                  <input 
+                    type="text" 
+                    className="tauze-input"
+                    placeholder="Ex: Talhão 04 - Soja 2026..."
+                    value={formData.sub_centro_custo}
+                    onChange={(e) => setFormData({...formData, sub_centro_custo: e.target.value})}
+                    required
+                  />
+                </div>
+              )}
+
+              {formData.centro_custo === 'pecuaria' && (
+                <div className="tauze-field-group" style={{ background: '#fffbeb', padding: '12px', borderRadius: '8px', border: '1px dashed #fde68a' }}>
+                  <label className="tauze-label" style={{ color: '#92400e' }}><Hash size={14} /> Lote de Animais / Pasto</label>
+                  <input 
+                    type="text" 
+                    className="tauze-input"
+                    placeholder="Ex: Lote Bezerros Nelore..."
+                    value={formData.sub_centro_custo}
+                    onChange={(e) => setFormData({...formData, sub_centro_custo: e.target.value})}
+                    required
+                  />
+                </div>
+              )}
+            </>
           )}
 
           <div className="tauze-field-group">
@@ -317,7 +471,14 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
             )}
 
             <div className="tauze-field-group">
-              <label className="tauze-label"><Hash size={14} /> Qtd</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="tauze-label"><Hash size={14} /> Qtd</label>
+                {isOutOrTransfer && currentItem.produto_id && activeDepotForStock && (
+                  <span style={{ fontSize: '10px', color: parseFloat(currentItem.quantidade || '0') > availableStock ? '#ef4444' : '#10b981', fontWeight: 800 }}>
+                    SALDO: {availableStock}
+                  </span>
+                )}
+              </div>
               <input 
                 type="number" 
                 step="0.01"
@@ -325,6 +486,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
                 className="tauze-input"
                 value={currentItem.quantidade}
                 onChange={(e) => setCurrentItem({...currentItem, quantidade: e.target.value})}
+                style={{ borderColor: isOutOrTransfer && parseFloat(currentItem.quantidade || '0') > availableStock ? '#ef4444' : 'hsl(var(--border))' }}
               />
             </div>
 
@@ -351,11 +513,11 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
           </div>
         )}
 
-        {/* Conditional Lot/Validity Input for Current Item (only Medicaments) */}
-        {!initialData && requiresLot && formData.tipo === 'in' && (
+        {/* Conditional Lot/Validity Input for Current Item (Medicaments, Defensives, Seeds, Fertilizers) */}
+        {!initialData && requiresLot && (formData.tipo === 'in' || formData.tipo === 'transfer') && (
           <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px', background: 'hsl(38 92% 50% / 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
             <div className="tauze-field-group">
-              <label className="tauze-label" style={{ color: 'hsl(38 92% 40%)' }}><Hash size={14} /> Lote (Medicamento)</label>
+              <label className="tauze-label" style={{ color: 'hsl(38 92% 40%)' }}><Hash size={14} /> Lote do Produto</label>
               <input 
                 type="text" 
                 placeholder="Ex: LOT-2024-01" 
@@ -513,6 +675,55 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
                   </div>
                 );
               })}
+            </div>
+            
+            {/* Value and Compliance Footer */}
+            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {requiresReceipt && formData.tipo === 'out' && (
+                <div style={{ padding: '16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#991b1b', fontWeight: 800, fontSize: '12px', textTransform: 'uppercase' }}>
+                    <AlertTriangle size={16} /> Compliance Ambiental (Defensivos)
+                  </div>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label" style={{ color: '#991b1b' }}><FileText size={14} /> Nº Receituário Agronômico</label>
+                    <input 
+                      type="text" 
+                      className="tauze-input"
+                      placeholder="Digite o número da receita..."
+                      value={formData.receituario_agronomico}
+                      onChange={(e) => setFormData({...formData, receituario_agronomico: e.target.value})}
+                      style={{ borderColor: '#fca5a5' }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {formData.tipo === 'in' && (
+                <div style={{ padding: '16px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#475569' }}>Despesas Acessórias (Frete / Impostos)</span>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Será rateado no Custo Médio dos produtos acima</span>
+                  </div>
+                  <div className="tauze-field-group" style={{ margin: 0, width: '150px' }}>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="tauze-input"
+                      placeholder="0.00"
+                      value={formData.despesas_acessorias}
+                      onChange={(e) => setFormData({...formData, despesas_acessorias: e.target.value})}
+                      style={{ background: 'white' }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div style={{ background: 'hsl(var(--bg-main))', padding: '16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid hsl(var(--border))' }}>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>Valor Total da {formData.tipo === 'out' ? 'Despesa' : 'Movimentação'}:</span>
+                <span style={{ fontSize: '24px', fontWeight: 900, color: formData.tipo === 'out' ? '#ef4444' : '#10b981' }}>
+                  {totalMovementValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                </span>
+              </div>
             </div>
           </div>
         )}

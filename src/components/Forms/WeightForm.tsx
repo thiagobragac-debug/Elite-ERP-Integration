@@ -1,4 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Scale, 
   Calendar,
@@ -32,6 +35,57 @@ const eccLabels: Record<number, { label: string; color: string; bg: string }> = 
   3: { label: 'Moderado', color: 'hsl(38 92% 50%)', bg: 'hsl(38 92% 50% / 0.1)' },
   4: { label: 'Bom Estado', color: 'hsl(142 71% 45%)', bg: 'hsl(142 71% 45% / 0.1)' },
   5: { label: 'Gordo', color: 'hsl(210 100% 50%)', bg: 'hsl(210 100% 50% / 0.1)' },
+  5: { label: 'Gordo', color: 'hsl(210 100% 50%)', bg: 'hsl(210 100% 50% / 0.1)' },
+};
+
+// #4 — simple sparkline SVG
+const SparklineChart = ({ weightHistory }: { weightHistory: any[] }) => {
+  if (weightHistory.length < 2) return null;
+  const values = weightHistory.map(w => Number(w.peso));
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const W = 120, H = 32, pad = 4;
+  const points = values.map((v, i) => {
+    const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+    const y = H - pad - ((v - min) / range) * (H - pad * 2);
+    return `${x},${y}`;
+  }).join(' ');
+
+  const lastVal = values[values.length - 1];
+  const prevVal = values[values.length - 2];
+  const trend = lastVal >= prevVal ? 'hsl(142 71% 45%)' : 'hsl(0 84% 60%)';
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+      <svg width={W} height={H} style={{ overflow: 'visible' }}>
+        <polyline
+          fill="none"
+          stroke={trend}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          points={points}
+        />
+        {values.map((v, i) => {
+          const x = pad + (i / (values.length - 1)) * (W - pad * 2);
+          const y = H - pad - ((v - min) / range) * (H - pad * 2);
+          return (
+            <circle
+              key={i}
+              cx={x} cy={y} r={i === values.length - 1 ? 4 : 2.5}
+              fill={i === values.length - 1 ? trend : 'hsl(var(--bg-card))'}
+              stroke={trend}
+              strokeWidth="1.5"
+            />
+          );
+        })}
+      </svg>
+      <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
+        Últimas {values.length} pesagens
+      </span>
+    </div>
+  );
 };
 
 export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
@@ -54,7 +108,81 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
   const [loading, setLoading] = useState(false);
   const pesoInputRef = useRef<HTMLInputElement>(null);
 
-  // #1 — fetch animals and today count
+  const resetForm = (keepDate = false) => {
+    setFormData({
+      animal_id: '',
+      data_pesagem: keepDate ? formData.data_pesagem : new Date().toISOString().split('T')[0],
+      peso: '',
+      ecc: 0,
+      observacao: ''
+    });
+    setSearchQuery('');
+    setLastWeighing(null);
+    setWeightHistory([]);
+    setAnimalSelected(null);
+  };
+
+  const fetchAnimals = async () => {
+    try {
+      if (!activeTenantId) return;
+      let query = supabase
+        .from('animais')
+        .select('id, brinco, peso_inicial, created_at, raca, categoria, sexo, data_nascimento')
+        .eq('tenant_id', activeTenantId)
+        .ilike('status', 'ativo');
+      if (!isGlobalMode && activeFarm?.id) {
+        query = query.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
+      }
+      const { data } = await query;
+      if (data) {
+        setAnimals(data);
+        if (formData.animal_id) {
+          const animal = data.find(a => a.id === formData.animal_id);
+          if (animal) { setSearchQuery(animal.brinco); setAnimalSelected(animal); }
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching animals:', err);
+    }
+  };
+
+  const fetchTodayCount = async () => {
+    try {
+      if (!activeTenantId) return;
+      const today = new Date().toISOString().split('T')[0];
+      const { count } = await supabase
+        .from('pesagens')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', activeTenantId)
+        .eq('data_pesagem', today);
+      setTodayCount(count || 0);
+    } catch { /* noop */ }
+  };
+
+  const fetchLastWeight = async (animalId: string) => {
+    try {
+      const { data } = await supabase
+        .from('pesagens')
+        .select('*')
+        .eq('animal_id', animalId)
+        .order('data_pesagem', { ascending: false })
+        .limit(5);
+      
+      if (data && data[0]) {
+        setLastWeighing(data[0]);
+        setWeightHistory([...data].reverse());
+      } else {
+        const animal = animals.find(a => a.id === animalId);
+        if (animal) {
+          setLastWeighing({ peso: animal.peso_inicial, data_pesagem: animal.created_at || null, isInitial: true });
+          setWeightHistory([]);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching last weight:', err);
+    }
+  };
+
   useEffect(() => {
     if (isOpen && activeTenantId) {
       fetchAnimals();
@@ -95,82 +223,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
     return () => window.removeEventListener('keydown', handleKey);
   }, [isOpen]);
 
-  const resetForm = (keepDate = false) => {
-    setFormData({
-      animal_id: '',
-      data_pesagem: keepDate ? formData.data_pesagem : new Date().toISOString().split('T')[0],
-      peso: '',
-      ecc: 0,
-      observacao: ''
-    });
-    setSearchQuery('');
-    setLastWeighing(null);
-    setWeightHistory([]);
-    setAnimalSelected(null);
-  };
 
-  const fetchAnimals = async () => {
-    try {
-      if (!activeTenantId) return;
-      let query = supabase
-        .from('animais')
-        .select('id, brinco, peso_inicial, created_at, raca, categoria, sexo')
-        .eq('tenant_id', activeTenantId)
-        .ilike('status', 'ativo');
-      if (!isGlobalMode && activeFarm?.id) {
-        query = query.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
-      }
-      const { data } = await query;
-      if (data) {
-        setAnimals(data);
-        if (formData.animal_id) {
-          const animal = data.find(a => a.id === formData.animal_id);
-          if (animal) { setSearchQuery(animal.brinco); setAnimalSelected(animal); }
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching animals:', err);
-    }
-  };
-
-  // #5 — today count
-  const fetchTodayCount = async () => {
-    try {
-      if (!activeTenantId) return;
-      const today = new Date().toISOString().split('T')[0];
-      const { count } = await supabase
-        .from('pesagens')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', activeTenantId)
-        .eq('data_pesagem', today);
-      setTodayCount(count || 0);
-    } catch { /* noop */ }
-  };
-
-  const fetchLastWeight = async (animalId: string) => {
-    try {
-      // #4 — fetch last 5 for sparkline
-      const { data } = await supabase
-        .from('pesagens')
-        .select('*')
-        .eq('animal_id', animalId)
-        .order('data_pesagem', { ascending: false })
-        .limit(5);
-      
-      if (data && data[0]) {
-        setLastWeighing(data[0]);
-        setWeightHistory([...data].reverse());
-      } else {
-        const animal = animals.find(a => a.id === animalId);
-        if (animal) {
-          setLastWeighing({ peso: animal.peso_inicial, data_pesagem: animal.created_at || null, isInitial: true });
-          setWeightHistory([]);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching last weight:', err);
-    }
-  };
 
   const handleAnimalChange = (animal: any) => {
     setFormData({ ...formData, animal_id: animal.id });
@@ -188,10 +241,26 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
     setWeightHistory([]);
   };
 
+  const minDate = useMemo(() => {
+    let min = '';
+    if (animalSelected?.data_nascimento) {
+      min = animalSelected.data_nascimento.split('T')[0];
+    }
+    if (lastWeighing?.data_pesagem && !lastWeighing.isInitial) {
+      const lwDate = lastWeighing.data_pesagem.split('T')[0];
+      if (lwDate > min) min = lwDate;
+    }
+    return min;
+  }, [animalSelected, lastWeighing]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.animal_id) {
       toast.error('⚠️ Por favor, selecione um animal válido usando o campo de busca.');
+      return;
+    }
+    if (minDate && formData.data_pesagem < minDate) {
+      toast.error('⚠️ A data da pesagem não pode ser anterior à data de nascimento ou à última pesagem registrada.');
       return;
     }
     setLoading(true);
@@ -215,7 +284,33 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
   const percentChange = (hasWeight && lastWeightVal > 0) ? (diff / lastWeightVal) * 100 : 0;
   const isTypoWarning = hasWeight && Math.abs(percentChange) > 30;
   const isMildWarning = hasWeight && Math.abs(percentChange) > 15 && Math.abs(percentChange) <= 30;
-  const isSlaughterTargetReached = hasWeight && newWeightVal >= 450;
+  
+  const slaughterTarget = animalSelected?.sexo === 'FEMEA' ? 450 : 500;
+  const isSlaughterTargetReached = hasWeight && newWeightVal >= slaughterTarget;
+  const arrobas = hasWeight ? (newWeightVal * 0.5) / 15 : 0;
+
+  const lastDateStr = lastWeighing?.data_pesagem || lastWeighing?.created_at;
+  const lastDateObj = lastDateStr ? new Date(lastDateStr) : null;
+  const currDateObj = new Date(formData.data_pesagem);
+  
+  let gmd = 0;
+  if (hasWeight && lastDateObj && !isNaN(lastDateObj.getTime()) && !isNaN(currDateObj.getTime())) {
+      const dDays = Math.max(1, Math.ceil((currDateObj.getTime() - lastDateObj.getTime()) / (1000 * 60 * 60 * 24)));
+      gmd = diff / dDays;
+  }
+
+  let daysToSlaughter = 0;
+  let slaughterDateStr = '';
+  if (hasWeight && !isSlaughterTargetReached && gmd > 0.1) {
+    const weightNeeded = slaughterTarget - newWeightVal;
+    daysToSlaughter = Math.ceil(weightNeeded / gmd);
+    
+    if (daysToSlaughter < 1000) {
+      const predDate = new Date(currDateObj);
+      predDate.setDate(predDate.getDate() + daysToSlaughter);
+      slaughterDateStr = predDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+    }
+  }
 
   // #3 — border color based on weight validation
   const getWeightBorderColor = () => {
@@ -230,56 +325,6 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
     if (isTypoWarning) return '0 0 0 3px hsl(0 84% 60% / 0.15)';
     if (isMildWarning) return '0 0 0 3px hsl(38 92% 50% / 0.15)';
     return '0 0 0 3px hsl(142 71% 45% / 0.15)';
-  };
-
-  // #4 — simple sparkline SVG
-  const SparklineChart = () => {
-    if (weightHistory.length < 2) return null;
-    const values = weightHistory.map(w => Number(w.peso));
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const range = max - min || 1;
-    const W = 120, H = 32, pad = 4;
-    const points = values.map((v, i) => {
-      const x = pad + (i / (values.length - 1)) * (W - pad * 2);
-      const y = H - pad - ((v - min) / range) * (H - pad * 2);
-      return `${x},${y}`;
-    }).join(' ');
-
-    const lastVal = values[values.length - 1];
-    const prevVal = values[values.length - 2];
-    const trend = lastVal >= prevVal ? 'hsl(142 71% 45%)' : 'hsl(0 84% 60%)';
-
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-        <svg width={W} height={H} style={{ overflow: 'visible' }}>
-          <polyline
-            fill="none"
-            stroke={trend}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={points}
-          />
-          {values.map((v, i) => {
-            const x = pad + (i / (values.length - 1)) * (W - pad * 2);
-            const y = H - pad - ((v - min) / range) * (H - pad * 2);
-            return (
-              <circle
-                key={i}
-                cx={x} cy={y} r={i === values.length - 1 ? 4 : 2.5}
-                fill={i === values.length - 1 ? trend : 'hsl(var(--bg-card))'}
-                stroke={trend}
-                strokeWidth="1.5"
-              />
-            );
-          })}
-        </svg>
-        <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>
-          Últimas {values.length} pesagens
-        </span>
-      </div>
-    );
   };
 
   return (
@@ -406,9 +451,16 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
               )}
             </div>
 
-            {/* #3 — Peso com validação visual */}
+            {/* #3 — Peso com validação visual e Arroba */}
             <div className="tauze-field-group">
-              <label className="tauze-label"><Scale size={14} /> Novo Peso (kg)</label>
+              <label className="tauze-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Scale size={14} /> Novo Peso (kg)</span>
+                {hasWeight && (
+                  <span className="animate-fade-in" style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--brand))', background: 'hsl(var(--brand)/0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                    ~ {arrobas.toFixed(1)} @
+                  </span>
+                )}
+              </label>
               <input
                 className="tauze-input"
                 ref={pesoInputRef}
@@ -452,6 +504,8 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
                 type="date"
                 value={formData.data_pesagem}
                 onChange={(e) => setFormData({ ...formData, data_pesagem: e.target.value })}
+                min={minDate}
+                max={new Date().toISOString().split('T')[0]}
                 required
               />
             </div>
@@ -498,7 +552,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
                   {lastWeighing.isInitial ? 'Peso Inicial' : (lastWeighing.data_pesagem ? new Date(lastWeighing.data_pesagem).toLocaleDateString('pt-BR') : 'Sem data')}
                 </span>
                 {/* #4 — sparkline */}
-                <SparklineChart />
+                <SparklineChart weightHistory={weightHistory} />
               </div>
 
               {/* Evolução */}
@@ -536,20 +590,16 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
               <div className="preview-stat">
                 <span className="p-label" style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontWeight: 700, textTransform: 'uppercase' }}>GMD Projetado</span>
                 {hasWeight ? (() => {
-                  const lastDateStr = lastWeighing.data_pesagem || lastWeighing.created_at;
-                  if (!lastDateStr) return (
+                  if (!lastDateStr || isNaN(lastDateObj?.getTime() || NaN)) return (
                     <>
                       <span className="p-value" style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(var(--text-main))', margin: '4px 0', display: 'block' }}>--</span>
                       <span className="p-meta" style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Sem data anterior</span>
                     </>
                   );
-                  const lastDate = new Date(lastDateStr);
-                  const currDate = new Date(formData.data_pesagem);
-                  if (isNaN(lastDate.getTime()) || isNaN(currDate.getTime())) return (
+                  if (isNaN(currDateObj.getTime())) return (
                     <span className="p-meta" style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Data inválida</span>
                   );
-                  const diffDays = Math.max(1, Math.ceil((currDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)));
-                  const gmd = diff / diffDays;
+                  
                   let badgeColor = 'hsl(38 92% 50%)', badgeBg = 'hsl(38 92% 50% / 0.1)', rating = 'Regular';
                   if (gmd >= 0.8) { badgeColor = 'hsl(142 71% 45%)'; badgeBg = 'hsl(142 71% 45% / 0.1)'; rating = 'Excelente'; }
                   else if (gmd < 0) { badgeColor = 'hsl(0 84% 60%)'; badgeBg = 'hsl(0 84% 60% / 0.1)'; rating = 'Perda Crítica'; }
@@ -572,6 +622,28 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
                 )}
               </div>
             </div>
+
+            {/* Predição de Abate (Smart Card) */}
+            {slaughterDateStr && (
+              <div className="animate-fade-in" style={{
+                marginTop: '16px', padding: '12px 14px',
+                background: 'linear-gradient(135deg, hsl(142 71% 45% / 0.1) 0%, hsl(142 71% 45% / 0.02) 100%)',
+                border: '1px solid hsl(142 71% 45% / 0.2)',
+                borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '12px'
+              }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'hsl(142 71% 45%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'white' }}>
+                  <Award size={18} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(142 71% 45%)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                    Predição de Abate ({slaughterTarget}kg)
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'hsl(var(--text-main))', fontWeight: 600, lineHeight: 1.4 }}>
+                    Neste ritmo ({gmd.toFixed(2)} kg/dia), o animal estará pronto para o frigorífico em <strong style={{ color: 'hsl(142 71% 45%)' }}>~{daysToSlaughter} dias</strong>. (Previsto: {slaughterDateStr})
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Warning */}
             {(isTypoWarning || isMildWarning) && (

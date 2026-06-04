@@ -13,10 +13,11 @@ interface SidePanelProps {
   submitLabel?: string;
   cancelLabel?: string;
   loading?: boolean;
-  size?: 'small' | 'medium' | 'large' | 'xlarge';
+  size?: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge' | 'full';
   iconSubmit?: LucideIcon;
   hideSubmit?: boolean;
   isReadOnly?: boolean;
+  customFooter?: ReactNode;
 }
 
 export const SidePanel: React.FC<SidePanelProps> = ({
@@ -33,7 +34,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   size = 'medium',
   iconSubmit: IconSubmit = Save,
   hideSubmit = false,
-  isReadOnly = false
+  isReadOnly = false,
+  customFooter
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +67,9 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     small: '400px',
     medium: '600px',
     large: '800px',
-    xlarge: '1000px'
+    xlarge: '1000px',
+    xxlarge: '1200px',
+    full: '95vw'
   };
 
   return createPortal(
@@ -198,14 +202,20 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           </div>
 
           <div className="tauze-sidepanel-footer">
-            <button type="button" className="glass-btn secondary" onClick={onClose}>
-              {isReadOnly ? 'Fechar' : cancelLabel}
-            </button>
-            {!hideSubmit && !isReadOnly && (
-              <button type="submit" className="primary-btn" disabled={loading} style={{ boxShadow: '0 8px 20px hsl(var(--brand) / 0.2)' }}>
-                <IconSubmit size={18} />
-                {loading ? 'Processando...' : submitLabel}
-              </button>
+            {customFooter ? (
+              customFooter
+            ) : (
+              <>
+                <button type="button" className="glass-btn secondary" onClick={onClose}>
+                  {isReadOnly ? 'Fechar' : cancelLabel}
+                </button>
+                {!hideSubmit && !isReadOnly && (
+                  <button type="submit" className="primary-btn" disabled={loading} style={{ boxShadow: '0 8px 20px hsl(var(--brand) / 0.2)' }}>
+                    <IconSubmit size={18} />
+                    {loading ? 'Processando...' : submitLabel}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </form>

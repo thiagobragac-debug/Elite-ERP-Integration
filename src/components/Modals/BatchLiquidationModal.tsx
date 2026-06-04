@@ -38,12 +38,39 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
     bank_account_id: '',
     payment_date: new Date().toISOString().split('T')[0]
   });
+  const [totalAmount, setTotalAmount] = useState<number>(0);
+  const [fetchingTotal, setFetchingTotal] = useState(false);
 
   useEffect(() => {
     if (isOpen && activeFarm) {
       fetchBankAccounts();
     }
-  }, [isOpen, activeFarm]);
+    if (isOpen && selectedIds.length > 0) {
+      fetchTotalAmount();
+    } else {
+      setTotalAmount(0);
+    }
+  }, [isOpen, activeFarm, selectedIds, type]);
+
+  const fetchTotalAmount = async () => {
+    setFetchingTotal(true);
+    try {
+      const table = type === 'payable' ? 'contas_pagar' : 'contas_receber';
+      const { data, error } = await supabase
+        .from(table)
+        .select('valor')
+        .in('id', selectedIds);
+        
+      if (error) throw error;
+      
+      const sum = data.reduce((acc, curr) => acc + (Number(curr.valor) || 0), 0);
+      setTotalAmount(sum);
+    } catch (err) {
+      console.error('Error fetching total amount:', err);
+    } finally {
+      setFetchingTotal(false);
+    }
+  };
 
   const fetchBankAccounts = async () => {
     if (!activeFarm?.tenantId) return;
@@ -122,6 +149,16 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
           onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
           required
         />
+      </div>
+
+      <div style={{ gridColumn: 'span 2', padding: '16px', borderRadius: '12px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Valor Total a {type === 'payable' ? 'Pagar' : 'Receber'}</div>
+          <div style={{ fontSize: '20px', fontWeight: 900, color: type === 'payable' ? '#ef4444' : '#10b981' }}>
+            {fetchingTotal ? 'Calculando...' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalAmount)}
+          </div>
+        </div>
+        <DollarSign size={24} style={{ color: type === 'payable' ? '#ef4444' : '#10b981', opacity: 0.2 }} />
       </div>
 
       <div style={{ gridColumn: 'span 2', padding: '16px', borderRadius: '12px', background: 'hsl(var(--warning)/0.1)', border: '1px solid hsl(var(--warning)/0.2)', marginTop: '8px' }}>

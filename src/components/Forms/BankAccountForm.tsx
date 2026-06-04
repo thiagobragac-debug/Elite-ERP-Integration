@@ -7,7 +7,8 @@ import {
   Info,
   Activity,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  Tractor
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { useTenant } from '../../contexts/TenantContext';
@@ -29,7 +30,9 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
     tipo: 'CORRENTE',
     saldo_inicial: '0',
     limite_credito: '0',
+    limite_credito: '0',
     benchmark_rendimento: '',
+    taxa_juros: '',
     descricao: '',
     unidade_id: activeCompany?.id || null as string | null,
     is_global: false
@@ -46,7 +49,9 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
         tipo: initialData.tipo || 'CORRENTE',
         saldo_inicial: initialData.saldo_atual?.toString() || '0',
         limite_credito: initialData.limite_credito?.toString() || '0',
+        limite_credito: initialData.limite_credito?.toString() || '0',
         benchmark_rendimento: initialData.benchmark_rendimento || '',
+        taxa_juros: initialData.taxa_juros || '',
         descricao: initialData.descricao || '',
         unidade_id: initialData.is_global ? null : (initialData.unidade_id || activeCompany?.id || null),
         is_global: initialData.is_global || false
@@ -60,6 +65,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
         saldo_inicial: '0',
         limite_credito: '0',
         benchmark_rendimento: '',
+        taxa_juros: '',
         descricao: '',
         unidade_id: activeCompany?.id || null,
         is_global: false
@@ -114,41 +120,45 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
         </div>
 
         <div className="tauze-input-grid grid-col-2">
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Building2 size={14} /> Banco / Instituição</label>
-            <input 
-              type="text" 
-              className="tauze-input"
-              placeholder="Ex: Banco do Brasil, Itaú..." 
-              value={formData.banco}
-              onChange={(e) => setFormData({...formData, banco: e.target.value})}
-              required 
-            />
-          </div>
+          {formData.tipo !== 'CAIXA' && (
+            <>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Building2 size={14} /> Banco / Instituição</label>
+                <input 
+                  type="text" 
+                  className="tauze-input"
+                  placeholder="Ex: Banco do Brasil, Itaú..." 
+                  value={formData.banco}
+                  onChange={(e) => setFormData({...formData, banco: e.target.value})}
+                  required 
+                />
+              </div>
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Hash size={14} /> Agência</label>
-            <input 
-              type="text" 
-              className="tauze-input"
-              placeholder="0000" 
-              value={formData.agencia}
-              onChange={(e) => setFormData({...formData, agencia: e.target.value})}
-              required
-            />
-          </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Hash size={14} /> Agência</label>
+                <input 
+                  type="text" 
+                  className="tauze-input"
+                  placeholder="0000" 
+                  value={formData.agencia}
+                  onChange={(e) => setFormData({...formData, agencia: e.target.value})}
+                  required
+                />
+              </div>
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Hash size={14} /> Número da Conta</label>
-            <input 
-              type="text" 
-              className="tauze-input"
-              placeholder="00000-0" 
-              value={formData.conta}
-              onChange={(e) => setFormData({...formData, conta: e.target.value})}
-              required
-            />
-          </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Hash size={14} /> Número da Conta</label>
+                <input 
+                  type="text" 
+                  className="tauze-input"
+                  placeholder="00000-0" 
+                  value={formData.conta}
+                  onChange={(e) => setFormData({...formData, conta: e.target.value})}
+                  required
+                />
+              </div>
+            </>
+          )}
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Info size={14} /> Descrição / Apelido</label>
@@ -164,13 +174,21 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
 
         <div className="tauze-field-group full-width">
           <label className="tauze-label"><Activity size={14} /> Tipo de Conta</label>
-          <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
             <div 
               className={`tauze-form-radio-item ${formData.tipo === 'CORRENTE' ? 'active' : ''}`}
               onClick={() => setFormData({...formData, tipo: 'CORRENTE'})}
             >
               <CreditCard size={16} />
               <span>Corrente</span>
+            </div>
+            <div 
+              className={`tauze-form-radio-item ${formData.tipo === 'CUSTEIO' ? 'active' : ''}`}
+              style={formData.tipo === 'CUSTEIO' ? { background: '#f0fdf4', borderColor: '#166534', color: '#166534' } : {}}
+              onClick={() => setFormData({...formData, tipo: 'CUSTEIO'})}
+            >
+              <Tractor size={16} />
+              <span>Custeio</span>
             </div>
             <div 
               className={`tauze-form-radio-item ${formData.tipo === 'POUPANCA' ? 'active' : ''}`}
@@ -188,7 +206,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
             </div>
             <div 
               className={`tauze-form-radio-item ${formData.tipo === 'CAIXA' ? 'active' : ''}`}
-              onClick={() => setFormData({...formData, tipo: 'CAIXA'})}
+              onClick={() => setFormData({...formData, tipo: 'CAIXA', banco: '', agencia: '', conta: ''})}
             >
               <Hash size={16} />
               <span>Caixa</span>
@@ -217,32 +235,51 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
             />
           </div>
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><ShieldCheck size={14} /> Limite de Crédito (R$)</label>
-            <input 
-              type="number" 
-              step="0.01"
-              className="tauze-input"
-              placeholder="0,00" 
-              value={formData.limite_credito}
-              onChange={(e) => setFormData({...formData, limite_credito: e.target.value})}
-            />
-          </div>
+          {formData.tipo !== 'CAIXA' && formData.tipo !== 'CUSTEIO' && (
+            <div className="tauze-field-group">
+              <label className="tauze-label"><ShieldCheck size={14} /> Limite de Crédito (R$)</label>
+              <input 
+                type="number" 
+                step="0.01"
+                className="tauze-input"
+                placeholder="0,00" 
+                value={formData.limite_credito}
+                onChange={(e) => setFormData({...formData, limite_credito: e.target.value})}
+              />
+            </div>
+          )}
 
-          <div className="tauze-field-group full-width">
-            <label className="tauze-label"><TrendingUp size={14} /> Benchmark Rendimento</label>
-            <select 
-              className="tauze-input"
-              value={formData.benchmark_rendimento}
-              onChange={(e) => setFormData({...formData, benchmark_rendimento: e.target.value})}
-            >
-              <option value="">Nenhum</option>
-              <option value="100% CDI">100% CDI</option>
-              <option value="95% CDI">95% CDI</option>
-              <option value="Poupança">Poupança</option>
-              <option value="IPCA+">IPCA+</option>
-            </select>
-          </div>
+          {formData.tipo === 'INVESTIMENTO' && (
+            <div className="tauze-field-group full-width">
+              <label className="tauze-label"><TrendingUp size={14} /> Benchmark Rendimento</label>
+              <select 
+                className="tauze-input"
+                value={formData.benchmark_rendimento}
+                onChange={(e) => setFormData({...formData, benchmark_rendimento: e.target.value})}
+              >
+                <option value="">Nenhum</option>
+                <option value="100% CDI">100% CDI</option>
+                <option value="95% CDI">95% CDI</option>
+                <option value="Poupança">Poupança</option>
+                <option value="IPCA+">IPCA+</option>
+              </select>
+            </div>
+          )}
+
+          {formData.tipo === 'CUSTEIO' && (
+            <div className="tauze-field-group full-width">
+              <label className="tauze-label" style={{ color: '#166534' }}><TrendingUp size={14} /> Taxa de Juros a.a. (%)</label>
+              <input 
+                type="number" 
+                step="0.01"
+                className="tauze-input"
+                placeholder="Ex: 8.5" 
+                value={formData.taxa_juros}
+                onChange={(e) => setFormData({...formData, taxa_juros: e.target.value})}
+                style={{ borderColor: '#bbf7d0', background: '#f0fdf4' }}
+              />
+            </div>
+          )}
         </div>
       </section>
     </SidePanel>

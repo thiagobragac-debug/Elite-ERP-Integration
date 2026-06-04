@@ -10,7 +10,10 @@ import {
   Beef,
   Activity,
   Zap,
-  FileText
+  FileText,
+  Calendar,
+  AlertTriangle,
+  Award
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
@@ -24,17 +27,58 @@ interface NutritionSimulatorModalProps {
 
 export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = ({ isOpen, onClose, diets }) => {
   const [selectedDietId, setSelectedDietId] = useState('');
+  
+  // Parâmetros do Lote
   const [animalCount, setAnimalCount] = useState('100');
-  const [dailyConsumption, setDailyConsumption] = useState('12'); // kg per animal
-  const [expectedGMD, setExpectedGMD] = useState('1.450'); // kg gain per day
+  const [pesoMedio, setPesoMedio] = useState('350');
+  const [diasTrato, setDiasTrato] = useState('90');
+  
+  // Parâmetros Zootécnicos
+  const [consumoPV, setConsumoPV] = useState('2.5');
+  const [expectedGMD, setExpectedGMD] = useState('1.5');
+  
+  // Econômico
+  const [precoArroba, setPrecoArroba] = useState('240');
 
   const selectedDiet = diets.find(d => d.id === selectedDietId);
   const costPerKg = selectedDiet ? Number(selectedDiet.custo_por_kg) : 0;
   
-  const totalDailyConsumption = Number(animalCount) * Number(dailyConsumption);
-  const totalDailyCost = totalDailyConsumption * costPerKg;
-  const costPerAnimalDay = Number(dailyConsumption) * costPerKg;
-  const monthlyProjection = totalDailyCost * 30;
+  // --- ENGINE DE SIMULAÇÃO ---
+  const sim = useMemo(() => {
+    const cabecas = Number(animalCount) || 0;
+    const peso = Number(pesoMedio) || 0;
+    const dias = Number(diasTrato) || 0;
+    const gmd = Number(expectedGMD) || 0;
+    const percPV = Number(consumoPV) || 0;
+    const preco = Number(precoArroba) || 0;
+
+    // Consumo e Custo Diário
+    const consumoDiarioCabeca = peso * (percPV / 100);
+    const custoDiarioCabeca = consumoDiarioCabeca * costPerKg;
+    const consumoDiarioLote = consumoDiarioCabeca * cabecas;
+    const custoDiarioLote = custoDiarioCabeca * cabecas;
+
+    // Projeções do Período (Dias de Trato)
+    const custoTotalCabecaPeriodo = custoDiarioCabeca * dias;
+    const custoTotalLotePeriodo = custoTotalCabecaPeriodo * cabecas;
+    
+    // Zootecnia
+    const ganhoPesoTotalCabeca = gmd * dias;
+    const arrobasProduzidasCabeca = ganhoPesoTotalCabeca / 30; // 30kg vivo = 1@ produzida
+    const conversaoAlimentar = gmd > 0 ? (consumoDiarioCabeca / gmd) : 0;
+    
+    // KPIs Financeiros
+    const custoArrobaProduzida = arrobasProduzidasCabeca > 0 ? (custoTotalCabecaPeriodo / arrobasProduzidasCabeca) : 0;
+    const receitaBrutaCabecaPeriodo = arrobasProduzidasCabeca * preco;
+    const lucroLiquidoCabecaPeriodo = receitaBrutaCabecaPeriodo - custoTotalCabecaPeriodo;
+    const lucroLiquidoLotePeriodo = lucroLiquidoCabecaPeriodo * cabecas;
+
+    return {
+      consumoDiarioCabeca, custoDiarioCabeca, consumoDiarioLote, custoDiarioLote,
+      custoTotalLotePeriodo, ganhoPesoTotalCabeca, arrobasProduzidasCabeca,
+      conversaoAlimentar, custoArrobaProduzida, lucroLiquidoLotePeriodo
+    };
+  }, [animalCount, pesoMedio, diasTrato, expectedGMD, consumoPV, precoArroba, costPerKg]);
 
   return (
     <>
@@ -49,8 +93,9 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
         iconSubmit={FileText}
       >
         <div className="form-grid">
+          {/* SEÇÃO 1: CONFIGURAÇÃO DA DIETA */}
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label">Configuração da Dieta</label>
+            <label className="tauze-label">Qual dieta será servida no cocho?</label>
             <SearchableSelect
               value={selectedDietId}
               onChange={setSelectedDietId}
@@ -59,69 +104,72 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
                 { value: '', label: 'Escolha uma formulação...' },
                 ...diets.filter(d => d.tipo !== 'MATERIA_PRIMA').map(diet => ({
                   value: diet.id,
-                  label: `${diet.nome} (R$ ${Number(diet.custo_por_kg).toFixed(2)}/kg)`
+                  label: `${diet.nome} (R$ ${Number(diet.custo_por_kg).toFixed(2)} / kg)`
                 }))
               ]}
             />
           </div>
 
+          {/* SEÇÃO 2: DADOS DO LOTE */}
           <div className="tauze-field-group">
-            <label className="tauze-label">N° de Animais</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Beef size={14} style={{ color: 'hsl(var(--text-muted))' }} />
-              <input 
-                type="number" 
-                className="tauze-input" 
-                value={animalCount}
-                onChange={e => setAnimalCount(e.target.value)}
-              />
-            </div>
+            <label className="tauze-label"><Beef size={14} /> Cabeças</label>
+            <input type="number" className="tauze-input" value={animalCount} onChange={e => setAnimalCount(e.target.value)} />
           </div>
-
           <div className="tauze-field-group">
-            <label className="tauze-label">Consumo (kg/dia)</label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Utensils size={14} style={{ color: 'hsl(var(--text-muted))' }} />
-              <input 
-                type="number" 
-                className="tauze-input" 
-                value={dailyConsumption}
-                onChange={e => setDailyConsumption(e.target.value)}
-              />
-            </div>
+            <label className="tauze-label"><Scale size={14} /> Peso Médio Entrada (kg)</label>
+            <input type="number" className="tauze-input" value={pesoMedio} onChange={e => setPesoMedio(e.target.value)} />
           </div>
-
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label">Resultados da Simulação</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Consumo Total Diário</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>{totalDailyConsumption.toLocaleString()} kg</div>
-              </div>
-              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo Diário Total</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {totalDailyCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-              </div>
-              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo / Cabeça / Dia</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {costPerAnimalDay.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-              </div>
-              <div style={{ padding: '16px', background: 'hsl(var(--text-main))', borderRadius: '16px', color: 'white' }}>
-                <div style={{ fontSize: '10px', fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', marginBottom: '8px' }}>Projeção 30 Dias</div>
-                <div style={{ fontSize: '18px', fontWeight: 900 }}>R$ {monthlyProjection.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-              </div>
+            <label className="tauze-label"><Calendar size={14} /> Dias de Trato (Janela de Simulação)</label>
+            <input type="number" className="tauze-input" value={diasTrato} onChange={e => setDiasTrato(e.target.value)} />
+          </div>
+
+          {/* SEÇÃO 3: METAS ZOOTÉCNICAS E ECONÔMICAS */}
+          <div className="tauze-field-group" style={{ borderTop: '1px solid hsl(var(--border))', paddingTop: '16px', gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+            <div>
+              <label className="tauze-label"><Utensils size={14} /> Consumo (% PV)</label>
+              <input type="number" step="0.1" className="tauze-input" value={consumoPV} onChange={e => setConsumoPV(e.target.value)} />
+            </div>
+            <div>
+              <label className="tauze-label"><TrendingUp size={14} /> GMD Alvo (kg/dia)</label>
+              <input type="number" step="0.1" className="tauze-input" value={expectedGMD} onChange={e => setExpectedGMD(e.target.value)} />
+            </div>
+            <div>
+              <label className="tauze-label"><DollarSign size={14} /> Venda da @ (R$)</label>
+              <input type="number" step="1" className="tauze-input" value={precoArroba} onChange={e => setPrecoArroba(e.target.value)} />
             </div>
           </div>
 
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '16px', border: '1px dashed hsl(var(--brand)/0.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Conversão Alimentar</div>
-                <div style={{ fontSize: '15px', fontWeight: 900 }}>{(Number(dailyConsumption) / Number(expectedGMD)).toFixed(2)} : 1</div>
+          {/* DASHBOARD DE RESULTADOS (O ORÁCULO) */}
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2', marginTop: '8px' }}>
+            <label className="tauze-label">Resultados da Simulação Zootécnica & Financeira</label>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Consumo Auto-Calculado</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>{sim.consumoDiarioCabeca.toFixed(1)} kg / cab / dia</div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Custo kg Produzido</div>
-                <div style={{ fontSize: '15px', fontWeight: 900 }}>R$ {(costPerAnimalDay / Number(expectedGMD)).toFixed(2)}</div>
+              <div style={{ padding: '16px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Custo Diário Total (Lote)</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--brand))' }}>R$ {sim.custoDiarioLote.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ padding: '16px', background: 'hsl(38 92% 50% / 0.1)', borderRadius: '16px', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(38 92% 40%)', textTransform: 'uppercase', marginBottom: '8px' }}>Custo da @ Produzida</div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(38 92% 40%)' }}>R$ {sim.custoArrobaProduzida.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                <div style={{ fontSize: '11px', color: 'hsl(38 92% 40%/0.7)', marginTop: '4px' }}>Conversão: {sim.conversaoAlimentar.toFixed(2)} : 1</div>
+              </div>
+
+              <div style={{ padding: '16px', background: sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand)/0.1)' : 'hsl(0 84% 60% / 0.1)', borderRadius: '16px', border: `1px solid ${sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand)/0.3)' : 'hsl(0 84% 60% / 0.3)'}` }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--brand))' : 'hsl(0 84% 60%)', textTransform: 'uppercase', marginBottom: '8px' }}>
+                  {sim.lucroLiquidoLotePeriodo >= 0 ? 'Lucro Líquido Projetado (Lote)' : 'Prejuízo Projetado (Lote)'}
+                </div>
+                <div style={{ fontSize: '24px', fontWeight: 900, color: sim.lucroLiquidoLotePeriodo >= 0 ? 'hsl(var(--text-main))' : 'hsl(0 84% 60%)' }}>
+                  R$ {sim.lucroLiquidoLotePeriodo.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </div>
+                <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>Ao final de {diasTrato} dias.</div>
               </div>
             </div>
           </div>
@@ -155,8 +203,12 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
                 <table className="print-table">
                   <tbody>
                     <tr>
-                      <td>Consumo Individual</td>
-                      <td>{dailyConsumption} kg/dia</td>
+                      <td>Período de Simulação</td>
+                      <td>{diasTrato} Dias</td>
+                    </tr>
+                    <tr>
+                      <td>Consumo Individual Estimado</td>
+                      <td>{sim.consumoDiarioCabeca.toFixed(1)} kg/dia ({consumoPV}% PV)</td>
                     </tr>
                     <tr>
                       <td>GMD Alvo</td>
@@ -176,11 +228,11 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
                   <tbody>
                     <tr>
                       <td>Conversão Alimentar</td>
-                      <td>{(Number(dailyConsumption) / Number(expectedGMD)).toFixed(2)} : 1</td>
+                      <td>{sim.conversaoAlimentar.toFixed(2)} : 1</td>
                     </tr>
                     <tr>
-                      <td>Custo kg Produzido</td>
-                      <td>R$ {(costPerAnimalDay / Number(expectedGMD)).toFixed(2)}</td>
+                      <td>Custo da @ Produzida</td>
+                      <td>R$ {sim.custoArrobaProduzida.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -188,23 +240,23 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
             </div>
 
             <div className="print-section">
-              <h2>Projeção de Performance e Custos</h2>
+              <h2>Projeção de Performance e Custos Financeiros</h2>
               <div className="print-stats-grid">
                 <div className="p-stat">
-                  <span className="ps-label">Consumo Diário do Lote</span>
-                  <span className="ps-value">{totalDailyConsumption.toLocaleString()} kg</span>
-                </div>
-                <div className="p-stat">
                   <span className="ps-label">Custo Diário Total</span>
-                  <span className="ps-value">R$ {totalDailyCost.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="ps-value">R$ {sim.custoDiarioLote.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="p-stat">
-                  <span className="ps-label">Custo por Animal/Dia</span>
-                  <span className="ps-value">R$ {costPerAnimalDay.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="ps-label">Arrobas Produzidas (@) / Cab</span>
+                  <span className="ps-value">{sim.arrobasProduzidasCabeca.toFixed(2)} @</span>
+                </div>
+                <div className="p-stat">
+                  <span className="ps-label">Preço @ Venda</span>
+                  <span className="ps-value">R$ {Number(precoArroba).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
                 <div className="p-stat highlight">
-                  <span className="ps-label">Custo Total (30 Dias)</span>
-                  <span className="ps-value">R$ {monthlyProjection.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span className="ps-label">Lucro Líquido Final do Lote (Projetado)</span>
+                  <span className="ps-value">R$ {sim.lucroLiquidoLotePeriodo.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               </div>
             </div>

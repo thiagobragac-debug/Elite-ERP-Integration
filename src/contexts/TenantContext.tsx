@@ -18,6 +18,7 @@ interface Farm {
   registrationNumber: string;
   totalArea: number;
   location: string;
+  pesoAbateKg: number;
 }
 
 interface TenantContextType {
@@ -193,7 +194,8 @@ export const TenantProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           name: f.nome,
           registrationNumber: f.ie_produtor || '',
           totalArea: f.area_total || f.area_ha || 0,
-          location: f.localizacao || ''
+          location: f.localizacao || '',
+          pesoAbateKg: f.peso_abate_kg || 450
         }));
         
         if (!hasGlobalPermission(profileData) && profileData.fazendas_permitidas && Array.isArray(profileData.fazendas_permitidas)) {

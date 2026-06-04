@@ -57,6 +57,20 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
     (a.raca && a.raca.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Calcula métricas reais
+  const weightSum = filteredAnimals.reduce((acc, curr) => acc + (curr.currentWeight || 0), 0);
+  const avgWeight = filteredAnimals.length > 0 ? weightSum / filteredAnimals.length : 0;
+  
+  const variance = filteredAnimals.length > 0 
+    ? filteredAnimals.reduce((acc, curr) => acc + Math.pow((curr.currentWeight || 0) - avgWeight, 2), 0) / filteredAnimals.length
+    : 0;
+  const stdDev = Math.sqrt(variance);
+  
+  const outliersCount = filteredAnimals.filter(a => {
+    const w = a.currentWeight || 0;
+    return Math.abs(w - avgWeight) > stdDev * 2; // Regra de 2 desvios padrões
+  }).length;
+
   return (
     <SidePanel
       isOpen={isOpen}
@@ -95,15 +109,15 @@ export const AnimalListModal: React.FC<AnimalListModalProps> = ({
             </div>
             <div style={{ padding: '20px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '20px', border: '1px solid hsl(var(--border))', textAlign: 'center' }}>
               <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Peso Médio</div>
-              <div style={{ fontSize: '20px', fontWeight: 900 }}>{(filteredAnimals.reduce((acc, curr) => acc + (curr.currentWeight || 0), 0) / (filteredAnimals.length || 1)).toFixed(1)} kg</div>
+              <div style={{ fontSize: '20px', fontWeight: 900 }}>{avgWeight.toFixed(1)} kg</div>
             </div>
             <div style={{ padding: '20px', background: 'hsl(var(--brand)/0.05)', borderRadius: '20px', border: '1px solid hsl(var(--brand)/0.2)', textAlign: 'center' }}>
               <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', textTransform: 'uppercase', marginBottom: '8px' }}>Desvio Padrão</div>
-              <div style={{ fontSize: '20px', fontWeight: 900, color: 'hsl(var(--brand))' }}>± 12.4 kg</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: 'hsl(var(--brand))' }}>± {stdDev.toFixed(1)} kg</div>
             </div>
             <div style={{ padding: '20px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '20px', border: '1px solid hsl(var(--border))', textAlign: 'center' }}>
               <div style={{ fontSize: '10px', fontWeight: 900, color: '#ef4444', textTransform: 'uppercase', marginBottom: '8px' }}>Outliers</div>
-              <div style={{ fontSize: '20px', fontWeight: 900, color: '#ef4444' }}>2 animais</div>
+              <div style={{ fontSize: '20px', fontWeight: 900, color: '#ef4444' }}>{outliersCount} animais</div>
             </div>
           </div>
         )}

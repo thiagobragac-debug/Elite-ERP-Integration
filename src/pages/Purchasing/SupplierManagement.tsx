@@ -258,7 +258,9 @@ export const SupplierManagement: React.FC = () => {
         cidade: formData.cidade,
         estado: formData.estado,
         pais: formData.pais,
-        status: formData.status
+        status: formData.status,
+        latitude: formData.latitude,
+        longitude: formData.longitude
       };
 
       if (selectedSupplier) {

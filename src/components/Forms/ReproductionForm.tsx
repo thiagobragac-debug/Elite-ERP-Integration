@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Heart, 
   Baby,
@@ -8,7 +8,11 @@ import {
   Layers,
   Beef,
   FileText,
-  Hash
+  Hash,
+  AlertTriangle,
+  CalendarDays,
+  Target,
+  ChevronDown
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
@@ -27,8 +31,12 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
     tipo_evento: 'IATF',
     data_evento: new Date().toISOString().split('T')[0],
     resultado: '',
+    resultado_diagnostico: 'Prenha',
+    dias_gestacao: '',
+    sexo_cria: 'Macho',
+    id_cria: '',
     touro: '',
-    ecc: '',
+    ecc: '3',
     observacoes: '',
     status: 'pending'
   });
@@ -40,8 +48,12 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
         tipo_evento: initialData.tipo_evento || 'IATF',
         data_evento: initialData.data_evento || new Date().toISOString().split('T')[0],
         resultado: initialData.resultado || '',
+        resultado_diagnostico: initialData.resultado_diagnostico || 'Prenha',
+        dias_gestacao: initialData.dias_gestacao || '',
+        sexo_cria: initialData.sexo_cria || 'Macho',
+        id_cria: initialData.id_cria || '',
         touro: initialData.touro || '',
-        ecc: initialData.ecc?.toString() || '',
+        ecc: initialData.ecc?.toString() || '3',
         observacoes: initialData.observacoes || '',
         status: initialData.status || 'pending'
       });
@@ -51,8 +63,12 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
         tipo_evento: 'IATF',
         data_evento: new Date().toISOString().split('T')[0],
         resultado: '',
+        resultado_diagnostico: 'Prenha',
+        dias_gestacao: '',
+        sexo_cria: 'Macho',
+        id_cria: '',
         touro: '',
-        ecc: '',
+        ecc: '3',
         observacoes: '',
         status: 'pending'
       });
@@ -70,6 +86,40 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
       setLoading(false);
     }
   };
+
+  // --- REPRODUCTION ENGINE ---
+  const reproductionStats = useMemo(() => {
+    const dataEvento = new Date(formData.data_evento);
+    let prevDataStr = '';
+    let prevLabel = '';
+    let warningMsg = '';
+
+    if (formData.tipo_evento === 'IATF' || formData.tipo_evento === 'Monta') {
+      const prevToque = new Date(dataEvento);
+      prevToque.setDate(prevToque.getDate() + 30);
+      prevDataStr = prevToque.toLocaleDateString('pt-BR');
+      prevLabel = 'Previsão de Toque';
+    } else if (formData.tipo_evento === 'Palpação' && formData.resultado_diagnostico === 'Prenha') {
+      const diasG = parseInt(formData.dias_gestacao) || 0;
+      if (diasG > 0) {
+        const prevParto = new Date();
+        // Assume gestação média de 285 dias
+        const diasFaltantes = 285 - diasG;
+        prevParto.setDate(prevParto.getDate() + diasFaltantes);
+        prevDataStr = prevParto.toLocaleDateString('pt-BR');
+        prevLabel = 'Previsão de Parto';
+      }
+    }
+
+    const eccNum = parseFloat(formData.ecc);
+    if (eccNum > 0 && eccNum < 2.5 && (formData.tipo_evento === 'IATF' || formData.tipo_evento === 'Monta')) {
+      warningMsg = 'Atenção: Matriz com ECC muito baixo. Alto risco de falha na concepção.';
+    } else if (eccNum > 0 && eccNum > 4.5 && formData.tipo_evento === 'Parto') {
+      warningMsg = 'Matriz excessivamente gorda. Fique alerta para possível distocia (dificuldade de parto).';
+    }
+
+    return { prevDataStr, prevLabel, warningMsg, eccNum };
+  }, [formData.data_evento, formData.tipo_evento, formData.resultado_diagnostico, formData.dias_gestacao, formData.ecc]);
 
   return (
     <SidePanel size="medium"
@@ -158,40 +208,142 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
           <div className="tauze-section-badge">PASSO 02</div>
           <h4 className="tauze-section-title">Resultados e Informações</h4>
         </div>
-        
+
+        {/* ALERTA ZOOTÉCNICO (ECC) */}
+        {reproductionStats.warningMsg && (
+          <div style={{ marginBottom: '16px', padding: '12px 14px', background: 'hsl(38 92% 50% / 0.1)', border: '1px solid hsl(38 92% 50% / 0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', color: 'hsl(38 92% 40%)' }}>
+            <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '13px', fontWeight: 700 }}>{reproductionStats.warningMsg}</span>
+          </div>
+        )}
+
         <div className="tauze-input-grid grid-col-2">
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Baby size={14} /> Resultado / Diagnóstico</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="Ex: Prenha (45d), Vazia, Macho..." 
-              value={formData.resultado}
-              onChange={(e) => setFormData({...formData, resultado: e.target.value})}
-            />
-          </div>
+          
+          {/* ----- FORMULÁRIO MUTANTE: IATF / MONTA ----- */}
+          {(formData.tipo_evento === 'IATF' || formData.tipo_evento === 'Monta') && (
+            <>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Activity size={14} /> Protocolo Hormonal</label>
+                <SearchableSelect 
+                  value={formData.resultado}
+                  onChange={(val: any) => setFormData({...formData, resultado: val})}
+                  options={[
+                    { value: `Ovsynch`, label: `Ovsynch` },
+                    { value: `J-Synch`, label: `J-Synch` },
+                    { value: `Presynch`, label: `Presynch` },
+                    { value: `Outro`, label: `Outro Protocolo` }
+                  ]}
+                />
+              </div>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Hash size={14} /> Touro / Partida de Sêmen</label>
+                <input 
+                  className="tauze-input"
+                  type="text" 
+                  placeholder="Nome do Touro ou Lote..." 
+                  value={formData.touro}
+                  onChange={(e) => setFormData({...formData, touro: e.target.value})}
+                />
+              </div>
+            </>
+          )}
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> ECC (Escore 1-5)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              step="0.1"
-              placeholder="Ex: 3.5" 
-              value={formData.ecc}
-              onChange={(e) => setFormData({...formData, ecc: e.target.value})}
-            />
-          </div>
+          {/* ----- FORMULÁRIO MUTANTE: TOQUE / PALPAÇÃO ----- */}
+          {formData.tipo_evento === 'Palpação' && (
+            <>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Target size={14} /> Diagnóstico</label>
+                <SearchableSelect 
+                  value={formData.resultado_diagnostico}
+                  onChange={(val: any) => setFormData({...formData, resultado_diagnostico: val})}
+                  options={[
+                    { value: `Prenha`, label: `Prenha (Positivo)` },
+                    { value: `Vazia`, label: `Vazia (Negativo)` },
+                    { value: `Duvidosa`, label: `Duvidosa (Re-Toque)` }
+                  ]}
+                />
+              </div>
+              {formData.resultado_diagnostico === 'Prenha' && (
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><CalendarDays size={14} /> Dias de Gestação</label>
+                  <input 
+                    className="tauze-input"
+                    type="number" 
+                    placeholder="Ex: 45" 
+                    value={formData.dias_gestacao}
+                    onChange={(e) => setFormData({...formData, dias_gestacao: e.target.value})}
+                  />
+                </div>
+              )}
+            </>
+          )}
 
+          {/* ----- FORMULÁRIO MUTANTE: PARTO ----- */}
+          {formData.tipo_evento === 'Parto' && (
+            <>
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Activity size={14} /> Condição do Parto</label>
+                <SearchableSelect 
+                  value={formData.resultado}
+                  onChange={(val: any) => setFormData({...formData, resultado: val})}
+                  options={[
+                    { value: `Normal`, label: `Normal (Eutócico)` },
+                    { value: `Distocia`, label: `Complicado (Distocia)` },
+                    { value: `Aborto`, label: `Aborto / Natimorto` }
+                  ]}
+                />
+              </div>
+              {formData.resultado !== 'Aborto' && (
+                <>
+                  <div className="tauze-field-group">
+                    <label className="tauze-label"><Baby size={14} /> Sexo da Cria</label>
+                    <SearchableSelect 
+                      value={formData.sexo_cria}
+                      onChange={(val: any) => setFormData({...formData, sexo_cria: val})}
+                      options={[
+                        { value: `Macho`, label: `Macho` },
+                        { value: `Fêmea`, label: `Fêmea` }
+                      ]}
+                    />
+                  </div>
+                  <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                    <label className="tauze-label"><Hash size={14} /> ID / Brinco da Cria (Opcional)</label>
+                    <input 
+                      className="tauze-input"
+                      type="text" 
+                      placeholder="Identificação do novo bezerro..." 
+                      value={formData.id_cria}
+                      onChange={(e) => setFormData({...formData, id_cria: e.target.value})}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ----- CAMPOS COMPARTILHADOS ----- */}
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><Hash size={14} /> Touro / Partida de Sêmen</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="Identificação do Reprodutor..." 
-              value={formData.touro}
-              onChange={(e) => setFormData({...formData, touro: e.target.value})}
-            />
+            <label className="tauze-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span><Activity size={14} /> ECC (Escore de Condição Corporal)</span>
+              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>1 (Muito Magra) a 5 (Obesa)</span>
+            </label>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+              {[1, 2, 3, 4, 5].map(score => (
+                <button
+                  key={score}
+                  type="button"
+                  onClick={() => setFormData({...formData, ecc: score.toString()})}
+                  style={{
+                    flex: 1, padding: '12px 0', borderRadius: '10px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s',
+                    background: formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
+                    color: formData.ecc === score.toString() ? 'white' : 'hsl(var(--text-main))',
+                    border: `1.5px solid ${formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`
+                  }}
+                >
+                  {score}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
@@ -206,6 +358,32 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
           </div>
         </div>
       </section>
+
+      {/* DASHBOARD PREDITIVO (SMART BADGE) */}
+      {reproductionStats.prevDataStr && (
+        <section style={{ 
+          marginTop: '8px', 
+          padding: '18px 24px', 
+          borderRadius: '14px', 
+          background: 'linear-gradient(145deg, hsl(var(--brand) / 0.08) 0%, hsl(var(--brand) / 0.02) 100%)',
+          border: '1.5px dashed hsl(var(--brand) / 0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: 'hsl(var(--bg-card))', padding: '10px', borderRadius: '10px', color: 'hsl(var(--brand))', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
+              <CalendarDays size={20} />
+            </div>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {reproductionStats.prevLabel}
+              </div>
+              <div style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+                {reproductionStats.prevDataStr}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
     </SidePanel>
   );
 };

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Beef, CheckCircle2, ArrowRightCircle, AlertTriangle,
-  Target, Scale, Calendar, TrendingUp, DollarSign, Clock
+  Target, Scale, Calendar, TrendingUp, DollarSign, Clock, XCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
@@ -40,6 +40,30 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
     finally { setLoading(false); }
   };
 
+  const fechamentoStats = useMemo(() => {
+    if (!selectedPen || step !== 2) return null;
+    
+    const dInicio = new Date(selectedPen.data_inicio);
+    const dFim = new Date(checkOutDate);
+    // Para evitar divisão por zero, DOF mínimo = 1
+    const dofReal = Math.max(1, Math.floor((dFim.getTime() - dInicio.getTime()) / 86400000));
+    
+    const pesoEntrada = selectedPen.peso_medio_entrada || 0;
+    const pesoSaida = parseFloat(finalWeight) || 0;
+    const gmdRealizado = pesoSaida > 0 ? (pesoSaida - pesoEntrada) / dofReal : 0;
+    
+    const cabecas = selectedPen.capacidade_animais || 0;
+    const pesoGanhoTotal = (pesoSaida - pesoEntrada) * cabecas;
+    const arrobasProduzidas = pesoSaida > 0 ? pesoGanhoTotal / 30 : 0; // @ carcaça rendimento 50%
+
+    const isDateValid = dFim >= dInicio;
+    const isWeightValid = pesoSaida >= pesoEntrada;
+
+    return { dofReal, gmdRealizado, arrobasProduzidas, isDateValid, isWeightValid, pesoSaida, pesoEntrada };
+  }, [selectedPen, checkOutDate, finalWeight, step]);
+
+  const canSubmitStep2 = fechamentoStats ? (fechamentoStats.isDateValid && fechamentoStats.isWeightValid && fechamentoStats.pesoSaida > 0) : false;
+
   const stats = selectedPen ? [
     { Icon: Beef,       label: 'Cabeças',   value: `${selectedPen.capacidade_animais ?? '—'}` },
     { Icon: Clock,      label: 'DOF',       value: `${getDOF(selectedPen)} dias` },
@@ -58,7 +82,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
       subtitle="Finalização de ciclo e movimentação de saída"
       icon={ArrowRightCircle}
       submitLabel={step === 1 ? 'Continuar para Dados de Saída' : step === 2 ? 'Confirmar Check-out' : 'Fechar'}
-      hideSubmit={step === 3 || (step === 1 && !selectedPenId)}
+      hideSubmit={step === 3 || (step === 1 && !selectedPenId) || (step === 2 && !canSubmitStep2)}
       loading={loading}
     >
       {/* wrapper ocupa as 4 colunas do tauze-input-grid */}
@@ -210,6 +234,49 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
                   <p>Ao confirmar, o lote será arquivado e o curral ficará disponível para um novo ciclo.</p>
                 </div>
               </div>
+
+              {/* DASHBOARD DE FECHAMENTO */}
+              {fechamentoStats && fechamentoStats.pesoSaida > 0 && (
+                <div style={{ 
+                  marginTop: '24px', padding: '20px', borderRadius: '14px', 
+                  background: fechamentoStats.isWeightValid && fechamentoStats.isDateValid ? 'hsl(var(--brand) / 0.08)' : 'hsl(0 84% 60% / 0.08)',
+                  border: `1.5px dashed ${fechamentoStats.isWeightValid && fechamentoStats.isDateValid ? 'hsl(var(--brand) / 0.4)' : 'hsl(0 84% 60% / 0.4)'}`
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.05em' }}>
+                    Resumo do Fechamento
+                  </div>
+
+                  {(!fechamentoStats.isDateValid || !fechamentoStats.isWeightValid) ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {!fechamentoStats.isDateValid && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'hsl(0 84% 60%)', fontSize: 13, fontWeight: 700 }}>
+                          <XCircle size={16} /> Data de saída não pode ser menor que a de entrada.
+                        </div>
+                      )}
+                      {!fechamentoStats.isWeightValid && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'hsl(0 84% 60%)', fontSize: 13, fontWeight: 700 }}>
+                          <XCircle size={16} /> Peso Final não pode ser menor que o Peso de Entrada ({fechamentoStats.pesoEntrada} kg).
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 16 }}>
+                      <div style={{ flex: 1, background: 'hsl(var(--bg-card))', padding: '14px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 4 }}>GMD REALIZADO</div>
+                        <div style={{ fontSize: 20, fontWeight: 900, color: fechamentoStats.gmdRealizado >= 1.5 ? '#10b981' : fechamentoStats.gmdRealizado >= 1.0 ? 'hsl(var(--brand))' : '#f59e0b' }}>
+                          {fechamentoStats.gmdRealizado.toFixed(3)} <span style={{ fontSize: 12, fontWeight: 700 }}>kg/d</span>
+                        </div>
+                      </div>
+                      <div style={{ flex: 1, background: 'hsl(var(--bg-card))', padding: '14px', borderRadius: '10px', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 4 }}>ARROBAS PRODUZIDAS</div>
+                        <div style={{ fontSize: 20, fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+                          +{fechamentoStats.arrobasProduzidas.toFixed(1)} <span style={{ fontSize: 12, fontWeight: 700 }}>@</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           )}
 

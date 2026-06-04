@@ -22,7 +22,8 @@ import {
   Sparkles,
   Layers,
   BarChart3,
-  Clock
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -57,6 +58,7 @@ export const CashFlow: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'ALL' | 'INFLOW' | 'OUTFLOW'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID'>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [transactionType, setTransactionType] = useState<'payable' | 'receivable'>('payable');
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -83,8 +85,9 @@ export const CashFlow: React.FC = () => {
     console.error("[CashFlow] Load Error:", error);
   }
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = (type: 'payable' | 'receivable') => {
     setSelectedTransaction(null);
+    setTransactionType(type);
     setIsModalOpen(true);
   };
 
@@ -158,8 +161,8 @@ export const CashFlow: React.FC = () => {
   const columns = [
     {
       header: 'Data Conciliação',
-      accessor: (item: Transaction) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px' }}>
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#64748b', fontWeight: 600, fontSize: '12px', opacity: item.status === 'pending' ? 0.6 : 1 }}>
           <Calendar size={14} />
           <span>{item.date ? new Date(item.date).toLocaleDateString() : 'N/A'}</span>
         </div>
@@ -168,10 +171,11 @@ export const CashFlow: React.FC = () => {
     },
     {
       header: 'Descrição Operação',
-      accessor: (item: Transaction) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left', opacity: item.status === 'pending' ? 0.6 : 1, fontStyle: item.status === 'pending' ? 'italic' : 'normal' }}>
           <span className="main-text" style={{ fontWeight: 700, color: '#1e293b' }}>
             {item.description || 'Lançamento sem descrição'}
+            {item.status === 'pending' && <span style={{ marginLeft: '6px', fontSize: '10px', color: '#f59e0b', background: '#fef3c7', padding: '2px 4px', borderRadius: '4px', fontStyle: 'normal' }}>PROJETADO</span>}
           </span>
           <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
             DOC: {item.id?.slice(0, 8).toUpperCase() || 'PROVISIONADO'}
@@ -182,8 +186,8 @@ export const CashFlow: React.FC = () => {
     },
     {
       header: 'Categoria DRE',
-      accessor: (item: Transaction) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left', opacity: item.status === 'pending' ? 0.6 : 1 }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155', textTransform: 'uppercase' }}>
             {item.category}
           </span>
@@ -193,8 +197,8 @@ export const CashFlow: React.FC = () => {
     },
     {
       header: 'Tipo Lançamento',
-      accessor: (item: Transaction) => (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', justifyContent: 'center', opacity: item.status === 'pending' ? 0.6 : 1 }}>
           <span style={{ 
             fontSize: '9px', 
             fontWeight: 900, 
@@ -214,8 +218,8 @@ export const CashFlow: React.FC = () => {
     },
     {
       header: 'Valor Líquido BRL',
-      accessor: (item: Transaction) => (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: 800, color: item.type === 'inflow' ? '#059669' : '#e11d48' }}>
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: 800, color: item.type === 'inflow' ? '#059669' : '#e11d48', opacity: item.status === 'pending' ? 0.6 : 1 }}>
           {item.type === 'inflow' ? <ArrowUpRight size={12} /> : <ArrowDownLeft size={12} />}
           <span>{Math.abs(item.amount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
         </div>
@@ -223,17 +227,67 @@ export const CashFlow: React.FC = () => {
       align: 'center' as const
     },
     {
+      header: 'Saldo Acumulado',
+      accessor: (item: any) => {
+        const balance = item.runningBalance || 0;
+        const isNegative = balance < 0;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontWeight: 900, fontSize: '13px', color: isNegative ? '#dc2626' : '#1e293b' }}>
+            {isNegative && <AlertTriangle size={14} color="#dc2626" />}
+            <span style={{ background: isNegative ? '#fee2e2' : 'transparent', padding: isNegative ? '2px 8px' : '0', borderRadius: '4px' }}>
+              {balance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+            </span>
+          </div>
+        );
+      },
+      align: 'center' as const
+    },
+    {
       header: 'Situação',
-      accessor: (item: Transaction) => (
+      accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span className={`status-pill ${item.status === 'paid' ? 'active' : 'warning'}`}>
-            {item.status === 'paid' ? 'Efetivado' : 'Previsto'}
+          <span className={`status-pill ${item.status === 'paid' ? 'active' : 'warning'}`} style={{ opacity: item.status === 'pending' ? 0.6 : 1 }}>
+            {item.status === 'paid' ? 'Efetivado' : 'Projetado'}
           </span>
         </div>
       ),
       align: 'center' as const
     }
   ];
+
+  // Filtra, ordena e calcula Running Balance
+  const filteredAndCalculatedTransactions = () => {
+    let list = transactions.filter(t => {
+      const matchesSearch = (t.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesTab = activeTab === 'ALL' || (activeTab === 'INFLOW' ? t.type === 'inflow' : t.type === 'outflow');
+      const matchesStatusFilter = statusFilter === 'ALL' || (statusFilter === 'PENDING' ? t.status === 'pending' : t.status === 'paid');
+      
+      const matchesType = filterValues.type === 'all' || t.type === filterValues.type;
+      const matchesCategory = filterValues.categories.length === 0 || filterValues.categories.includes(t.category);
+      const matchesLiquidation = filterValues.status === 'all' || t.status === (filterValues.status === 'PAID' ? 'paid' : 'pending');
+      
+      const txDate = new Date(t.date);
+      const matchesDateStart = !filterValues.dateStart || txDate >= new Date(filterValues.dateStart);
+      const matchesDateEnd = !filterValues.dateEnd || txDate <= new Date(filterValues.dateEnd);
+
+      return matchesSearch && matchesTab && matchesStatusFilter && matchesType && matchesCategory && matchesLiquidation && matchesDateStart && matchesDateEnd;
+    });
+
+    // Ordenação cronológica
+    list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Calcula Running Balance (Saldo inicial assumido como o total reportStats id 'caixa' ou 0)
+    // Para simplificar, assumiremos saldo inicial 0 na lista filtrada para ver a projeção exata do período
+    let currentBalance = 0;
+    
+    return list.map(t => {
+      const val = t.type === 'inflow' ? t.amount : -t.amount;
+      currentBalance += val;
+      return { ...t, runningBalance: currentBalance };
+    });
+  };
+
+  const calculatedData = filteredAndCalculatedTransactions();
 
 
   return (
@@ -247,9 +301,20 @@ export const CashFlow: React.FC = () => {
           <h1 className="page-title">Fluxo de Caixa Unificado</h1>
           <p className="page-subtitle">Gestão operacional e inteligência financeira avançada em um único dashboard.</p>
         </div>
-        <div className="page-actions">
-          <button className="primary-btn" onClick={handleOpenCreate}>
-            <Plus size={18} /> NOVA OPERAÇÃO
+        <div className="page-actions" style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            className="primary-btn" 
+            onClick={() => handleOpenCreate('receivable')}
+            style={{ background: '#059669', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px' }}
+          >
+            <ArrowUpRight size={18} /> NOVA RECEITA
+          </button>
+          <button 
+            className="primary-btn" 
+            onClick={() => handleOpenCreate('payable')}
+            style={{ background: '#e11d48', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, fontSize: '13px' }}
+          >
+            <ArrowDownLeft size={18} /> NOVA DESPESA
           </button>
         </div>
       </header>
@@ -367,22 +432,7 @@ export const CashFlow: React.FC = () => {
               icon={Search}
             />
           } 
-                data={transactions.filter(t => {
-                  const matchesSearch = (t.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-                  const matchesTab = activeTab === 'ALL' || (activeTab === 'INFLOW' ? t.type === 'inflow' : t.type === 'outflow');
-                  const matchesStatusFilter = statusFilter === 'ALL' || (statusFilter === 'PENDING' ? t.status === 'pending' : t.status === 'paid');
-                  
-                  // Advanced Sidebar Filters
-                  const matchesType = filterValues.type === 'all' || t.type === filterValues.type;
-                  const matchesCategory = filterValues.categories.length === 0 || filterValues.categories.includes(t.category);
-                  const matchesLiquidation = filterValues.status === 'all' || t.status === (filterValues.status === 'PAID' ? 'paid' : 'pending');
-                  
-                  const txDate = new Date(t.date);
-                  const matchesDateStart = !filterValues.dateStart || txDate >= new Date(filterValues.dateStart);
-                  const matchesDateEnd = !filterValues.dateEnd || txDate <= new Date(filterValues.dateEnd);
-
-                  return matchesSearch && matchesTab && matchesStatusFilter && matchesType && matchesCategory && matchesLiquidation && matchesDateStart && matchesDateEnd;
-                })}
+                data={calculatedData}
                 columns={columns}
                 loading={loading}
                 hideHeader={true}
@@ -396,7 +446,7 @@ export const CashFlow: React.FC = () => {
             </div>
       </div>
 
-      <TransactionForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} type={selectedTransaction?.type === 'inflow' ? 'receivable' : 'payable'} onSubmit={handleSubmit} initialData={selectedTransaction} />
+      <TransactionForm isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} type={selectedTransaction ? (selectedTransaction.type === 'inflow' ? 'receivable' : 'payable') : transactionType} onSubmit={handleSubmit} initialData={selectedTransaction} />
       <HistoryModal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} title="Dossiê de Fluxo" subtitle="Rastreabilidade completa" items={historyItems} />
 
       <style>{`

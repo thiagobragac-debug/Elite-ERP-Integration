@@ -306,7 +306,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
   const fetchLots = async () => {
     const baseQuery = supabase
       .from('lotes')
-      .select('id, nome, capacidade, descricao, status')
+      .select('id, nome, capacidade, descricao, status, sexo_permitido, pastos ( nome )')
       .order('nome');
     const { data, error } = await applyFarmFilter(baseQuery);
     if (error) console.error('[RelocateForm] fetchLots error:', error);
@@ -356,7 +356,12 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
     setDestCapacity({ current: count || 0, max });
   };
 
-  const toggleAnimal = (id: string) => {
+  const toggleAnimal = (id: string, animalSexo?: string) => {
+    const targetLot = lots.find(l => l.id === formData.targetLotId);
+    if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animalSexo && animalSexo !== targetLot.sexo_permitido) {
+      toast.error(`O lote de destino permite apenas ${targetLot.sexo_permitido}S.`);
+      return;
+    }
     setSelectedAnimals(prev =>
       prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
     );
@@ -375,15 +380,32 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
   }, [animals, searchTerm, filterSexo, filterCategoria]);
 
   const selectAll = () => {
-    if (selectedAnimals.length === filteredAnimals.length && filteredAnimals.length > 0) {
+    const targetLot = lots.find(l => l.id === formData.targetLotId);
+    let allowedFiltered = filteredAnimals;
+    if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
+      allowedFiltered = filteredAnimals.filter(a => !a.sexo || a.sexo === targetLot.sexo_permitido);
+    }
+    
+    if (selectedAnimals.length === allowedFiltered.length && allowedFiltered.length > 0) {
       setSelectedAnimals([]);
     } else {
-      setSelectedAnimals(filteredAnimals.map(a => a.id));
+      setSelectedAnimals(allowedFiltered.map(a => a.id));
+      if (allowedFiltered.length < filteredAnimals.length) {
+        toast.error(`${filteredAnimals.length - allowedFiltered.length} animais ignorados por incompatibilidade de sexo com o lote.`);
+      }
     }
   };
 
   const selectEntireLot = () => {
-    setSelectedAnimals(animals.map(a => a.id));
+    const targetLot = lots.find(l => l.id === formData.targetLotId);
+    let allowedAnimals = animals;
+    if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
+      allowedAnimals = animals.filter(a => !a.sexo || a.sexo === targetLot.sexo_permitido);
+    }
+    setSelectedAnimals(allowedAnimals.map(a => a.id));
+    if (allowedAnimals.length < animals.length) {
+      toast.error(`${animals.length - allowedAnimals.length} animais ignorados por incompatibilidade de sexo com o lote.`);
+    }
   };
 
   const handleConfirm = (e: React.FormEvent) => {
@@ -458,6 +480,11 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
                   color={afterPct > 100 ? '#ef4444' : afterPct > 85 ? '#f59e0b' : '#10b981'}
                 />
               )}
+              {afterPct !== null && afterPct > 100 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: '8px', fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>
+                  <AlertTriangle size={14} /> Aviso: Este remanejamento causará superlotação.
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '20px', maxHeight: '72px', overflowY: 'auto' }}>
@@ -529,9 +556,27 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
               exclude={formData.sourceLotId}
               label={<><MapPin size={12} /> Lote de Destino</>}
             />
-            {destCapacity && formData.targetLotId && (
-              <CapacityBar current={destCapacity.current} max={destCapacity.max} adding={selectedAnimals.length} />
-            )}
+            {(() => {
+              const tl = lots.find(l => l.id === formData.targetLotId);
+              if (!tl) return null;
+              return (
+                <div style={{ marginTop: '8px' }}>
+                  {tl.pastos?.nome && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px' }}>
+                      📍 Indo para: {tl.pastos.nome}
+                    </div>
+                  )}
+                  {tl.sexo_permitido && tl.sexo_permitido !== 'MISTO' && (
+                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#3b82f6', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px', marginLeft: '6px' }}>
+                        Restrito: {tl.sexo_permitido}S
+                     </div>
+                  )}
+                  {destCapacity && (
+                    <CapacityBar current={destCapacity.current} max={destCapacity.max} adding={selectedAnimals.length} />
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="tauze-field-group">
@@ -615,18 +660,42 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
 
         {/* Filters */}
         {showFilters && animals.length > 0 && (
-          <div className="search-glass-box small" style={{ marginBottom: '10px' }}>
-            <Search size={13} className="s-icon" />
-            <input type="text" placeholder="Buscar por brinco, raça, categoria, sexo..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} autoFocus />
-            {searchTerm && (
-              <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 4px' }}>
-                <X size={13} />
-              </button>
-            )}
+          <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div className="search-glass-box small" style={{ marginBottom: '0' }}>
+              <Search size={13} className="s-icon" />
+              <input type="text" placeholder="Buscar por brinco, raça, categoria, sexo..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} autoFocus />
+              {searchTerm && (
+                <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 4px' }}>
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+            
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <SearchableSelect 
+                  value={filterSexo}
+                  onChange={(v: any) => setFilterSexo(v)}
+                  options={[
+                    { value: '', label: 'Todos os Sexos' },
+                    { value: 'MACHO', label: 'Apenas Machos' },
+                    { value: 'FEMEA', label: 'Apenas Fêmeas' }
+                  ]}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <SearchableSelect 
+                  value={filterCategoria}
+                  onChange={(v: any) => setFilterCategoria(v)}
+                  options={[
+                    { value: '', label: 'Todas as Categorias' },
+                    ...categorias.map(c => ({ value: String(c), label: String(c) }))
+                  ]}
+                />
+              </div>
+            </div>
           </div>
         )}
-
-
 
         {/* Animal grid */}
         <div style={{ maxHeight: '260px', overflowY: 'auto', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '10px' }}>
@@ -650,15 +719,19 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(145px, 1fr))', gap: '8px' }}>
               {filteredAnimals.map(animal => {
                 const selected = selectedAnimals.includes(animal.id);
+                const targetLot = lots.find(l => l.id === formData.targetLotId);
+                const isBlocked = targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animal.sexo && animal.sexo !== targetLot.sexo_permitido;
+                
                 return (
                   <div
                     key={animal.id}
-                    onClick={() => toggleAnimal(animal.id)}
+                    onClick={() => !isBlocked && toggleAnimal(animal.id, animal.sexo)}
                     style={{
                       display: 'flex', alignItems: 'flex-start', gap: '7px', padding: '9px',
-                      background: selected ? 'hsl(var(--brand) / 0.06)' : 'white',
-                      border: `1.5px solid ${selected ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
-                      borderRadius: '9px', cursor: 'pointer', transition: 'all 0.15s'
+                      background: selected ? 'hsl(var(--brand) / 0.06)' : isBlocked ? 'hsl(var(--danger) / 0.05)' : 'white',
+                      border: `1.5px solid ${selected ? 'hsl(var(--brand))' : isBlocked ? 'hsl(var(--danger) / 0.2)' : 'hsl(var(--border))'}`,
+                      borderRadius: '9px', cursor: isBlocked ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                      opacity: isBlocked ? 0.6 : 1
                     }}
                   >
                     <div style={{ width: '16px', height: '16px', flexShrink: 0, color: 'hsl(var(--brand))', marginTop: '1px' }}>

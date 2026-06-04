@@ -8,7 +8,13 @@ import {
   Activity,
   User,
   Clock,
-  Package
+  Package,
+  Calculator,
+  AlertCircle,
+  TrendingDown,
+  TrendingUp,
+  Gauge,
+  CheckCircle2
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
@@ -26,9 +32,10 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
   const { activeFarm } = useTenant();
   const [formData, setFormData] = useState({
     machine_id: '',
-    estoque_id: '', // linked to inventory
+    estoque_id: '',
     date: new Date().toISOString().split('T')[0],
     liters: '',
+    unit_price: '',
     total_cost: '',
     meter_value: '', 
     fuel_type: 'Diesel S10',
@@ -47,6 +54,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
         estoque_id: initialData.estoque_id || '',
         date: initialData.data || new Date().toISOString().split('T')[0],
         liters: initialData.litros?.toString() || '',
+        unit_price: initialData.preco_unitario?.toString() || '',
         total_cost: initialData.valor_total?.toString() || '',
         meter_value: initialData.valor_medidor?.toString() || '',
         fuel_type: initialData.tipo_combustivel || 'Diesel S10',
@@ -58,6 +66,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
         estoque_id: '',
         date: new Date().toISOString().split('T')[0],
         liters: '',
+        unit_price: '',
         total_cost: '',
         meter_value: '',
         fuel_type: 'Diesel S10',
@@ -65,6 +74,16 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
       });
     }
   }, [initialData, isOpen]);
+
+  // Calculadora Inteligente de Bomba
+  useEffect(() => {
+    if (formData.liters && formData.unit_price) {
+      const total = parseFloat(formData.liters) * parseFloat(formData.unit_price);
+      if (!isNaN(total)) {
+        setFormData(prev => ({ ...prev, total_cost: total.toFixed(2) }));
+      }
+    }
+  }, [formData.liters, formData.unit_price]);
 
   useEffect(() => {
     if (isOpen && activeFarm) {
@@ -78,16 +97,17 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
     // Fetch Machines with specs, only active
     const { data: mData } = await supabase
       .from('maquinas')
-      .select('id, nome, tipo, placa')
+      .select('*')
       .eq('fazenda_id', activeFarm.id)
       .eq('status', 'active');
     if (mData) {
-      // Add mock fields for UI compatibility
+      // Add mock fields for UI compatibility based on what DB has or fallback
       const transformed = mData.map(m => ({
         ...m,
-        horimetro_atual: 0,
-        capacidade_tanque: 0,
-        consumo_estimado: 0
+        unidade_medida: m.unidade_medida || 'horas',
+        horimetro_atual: m.horimetro_atual || 0,
+        capacidade_tanque: m.capacidade_tanque || 0,
+        consumo_estimado: m.consumo_estimado || 0
       }));
       setMachines(transformed);
     }
@@ -107,10 +127,27 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
       const machine = machines.find(m => m.id === formData.machine_id);
       setSelectedMachine(machine);
       if (machine && !initialData) {
-        setFormData(prev => ({ ...prev, meter_value: machine.horimetro_atual?.toString() || '' }));
+        setFormData(prev => ({ 
+          ...prev, 
+          meter_value: machine.horimetro_atual?.toString() || '' 
+        }));
       }
     }
   }, [formData.machine_id, machines]);
+
+  // Calcula consumo em tempo real
+  const currentConsumption = React.useMemo(() => {
+    if (!selectedMachine || !formData.meter_value || !formData.liters) return null;
+    const diff = Number(formData.meter_value) - Number(selectedMachine.horimetro_atual);
+    if (diff <= 0) return null;
+    
+    // (L/h) or (km/L)
+    if (selectedMachine.unidade_medida === 'horas') {
+      return Number(formData.liters) / diff; // L/h (maior = pior)
+    } else {
+      return diff / Number(formData.liters); // km/L (menor = pior)
+    }
+  }, [selectedMachine, formData.meter_value, formData.liters]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,8 +185,8 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
               options={machines.map(m => ({ value: m.id, label: m.nome }))}
             />
             {selectedMachine && (
-              <div className="tauze-field-hint" style={{ color: 'hsl(var(--brand))', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
-                Último Horímetro: {selectedMachine.horimetro_atual}h | Cap. Tanque: {selectedMachine.capacidade_tanque}L
+              <div className="tauze-field-hint" style={{ color: 'hsl(var(--brand))', fontSize: '11px', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Activity size={12} /> Último Reg: {selectedMachine.horimetro_atual}{selectedMachine.unidade_medida === 'horas' ? 'h' : 'km'} | Cap. Tanque: {selectedMachine.capacidade_tanque}L
               </div>
             )}
           </div>
@@ -211,7 +248,9 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Clock size={14} /> Horímetro / KM Atual</label>
+            <label className="tauze-label">
+              {selectedMachine?.unidade_medida === 'km' ? <><Gauge size={14} /> Hodômetro Atual (km)</> : <><Clock size={14} /> Horímetro Atual (h)</>}
+            </label>
             <input 
               className="tauze-input"
               type="number" 
@@ -220,9 +259,9 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
               onChange={(e) => setFormData({...formData, meter_value: e.target.value})}
               required
             />
-            {selectedMachine && Number(formData.meter_value) < selectedMachine.horimetro_atual && (
-              <div className="tauze-field-error" style={{ color: '#ef4444', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
-                <Activity size={10} /> Valor menor que o último registro!
+            {selectedMachine && Number(formData.meter_value) <= selectedMachine.horimetro_atual && formData.meter_value !== '' && (
+              <div className="tauze-field-error" style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <AlertCircle size={12} /> Valor deve ser maior que {selectedMachine.horimetro_atual}!
               </div>
             )}
           </div>
@@ -238,11 +277,24 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
               onChange={(e) => setFormData({...formData, liters: e.target.value})}
               required
             />
-            {selectedMachine && Number(formData.liters) > selectedMachine.capacidade_tanque && (
-              <div className="tauze-field-error" style={{ color: '#f59e0b', fontSize: '10px', fontWeight: 700, marginTop: '4px' }}>
-                <Activity size={10} /> Volume acima da cap. do tanque!
+            {selectedMachine && Number(formData.liters) > selectedMachine.capacidade_tanque && selectedMachine.capacidade_tanque > 0 && (
+              <div className="tauze-field-error" style={{ color: '#f59e0b', fontSize: '11px', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <AlertCircle size={12} /> Volume excede cap. do tanque ({selectedMachine.capacidade_tanque}L)
               </div>
             )}
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calculator size={14} /> Preço Unitário (R$/L)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01"
+              placeholder="0.00" 
+              value={formData.unit_price}
+              onChange={(e) => setFormData({...formData, unit_price: e.target.value})}
+              required
+            />
           </div>
 
           <div className="tauze-field-group">
@@ -258,6 +310,41 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
             />
           </div>
         </div>
+        
+        {/* Termômetro de Consumo */}
+        {currentConsumption !== null && selectedMachine?.consumo_estimado > 0 && (
+          <div style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))' }}>
+            <h5 style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '8px', textTransform: 'uppercase' }}>Análise de Consumo (Viagem)</h5>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <span style={{ fontSize: '24px', fontWeight: 800 }}>{currentConsumption.toFixed(2)}</span>
+                <span style={{ fontSize: '14px', color: 'hsl(var(--text-muted))', marginLeft: '4px' }}>{selectedMachine.unidade_medida === 'horas' ? 'L/h' : 'km/L'}</span>
+              </div>
+              
+              {selectedMachine.unidade_medida === 'horas' ? (
+                currentConsumption > selectedMachine.consumo_estimado * 1.1 ? (
+                  <div style={{ padding: '6px 12px', borderRadius: '20px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <TrendingUp size={14} /> Alto Consumo (Meta: {selectedMachine.consumo_estimado}L/h)
+                  </div>
+                ) : (
+                  <div style={{ padding: '6px 12px', borderRadius: '20px', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle2 size={14} /> Dentro do Padrão
+                  </div>
+                )
+              ) : (
+                currentConsumption < selectedMachine.consumo_estimado * 0.9 ? (
+                  <div style={{ padding: '6px 12px', borderRadius: '20px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <TrendingDown size={14} /> Baixo Rendimento (Meta: {selectedMachine.consumo_estimado}km/L)
+                  </div>
+                ) : (
+                  <div style={{ padding: '6px 12px', borderRadius: '20px', background: 'rgba(16,185,129,0.1)', color: '#10b981', fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle2 size={14} /> Dentro do Padrão
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
       </section>
     </SidePanel>
   );

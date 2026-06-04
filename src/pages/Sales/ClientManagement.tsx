@@ -216,6 +216,8 @@ export const ClientManagement: React.FC = () => {
         estado: formData.estado,
         pais: formData.pais,
         status: formData.status,
+        latitude: formData.latitude,
+        longitude: formData.longitude
       };
 
       if (selectedClient) {

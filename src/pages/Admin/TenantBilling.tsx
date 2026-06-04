@@ -106,6 +106,14 @@ export const TenantBilling: React.FC = () => {
               query = query.eq('status', filterValues.status);
             }
 
+            if (filterValues.planType === 'low') {
+              query = query.lte('amount', 500);
+            } else if (filterValues.planType === 'medium') {
+              query = query.gt('amount', 500).lte('amount', 2000);
+            } else if (filterValues.planType === 'high') {
+              query = query.gt('amount', 2000);
+            }
+
             if (filterValues.dateStart) {
               query = query.gte('due_date', filterValues.dateStart);
             }
@@ -504,6 +512,7 @@ export const TenantBilling: React.FC = () => {
 
                 <div className="tauze-filter-group">
                   <button 
+                    type="button"
                     className={`icon-btn-secondary ${isFilterOpen ? 'active' : ''}`} 
                     title="Filtros Avançados"
                     onClick={() => setIsFilterOpen(!isFilterOpen)}

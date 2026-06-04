@@ -142,12 +142,14 @@ function DestSearch({ items, value, onChange, placeholder, icon, label }: DestSe
   );
 }
 
-function CapacityBar({ current, max, adding }: { current: number; max: number; adding: number }) {
+function CapacityBar({ current, max, adding, unit }: { current: number; max: number; adding: number; unit: string }) {
   if (!max || max <= 0) return null;
   const pct = Math.min(((current + adding) / max) * 100, 100);
   const beforePct = Math.min((current / max) * 100, 100);
   const color = pct > 100 ? '#ef4444' : pct > 85 ? '#f59e0b' : '#10b981';
   const label = pct > 100 ? 'Superlotação!' : pct > 85 ? 'Quase no limite' : 'Capacidade OK';
+
+  const formatNumber = (num: number) => unit === 'UA' ? num.toFixed(1) : Math.round(num).toString();
 
   return (
     <div style={{ marginTop: '10px' }}>
@@ -156,7 +158,7 @@ function CapacityBar({ current, max, adding }: { current: number; max: number; a
           Capacidade do Destino
         </span>
         <span style={{ fontSize: '11px', fontWeight: 800, color }}>
-          {current + adding} / {max} UA — {label}
+          {formatNumber(current + adding)} / {formatNumber(max)} {unit} — {label}
         </span>
       </div>
       <div style={{ background: 'hsl(var(--border))', borderRadius: '99px', height: '8px', overflow: 'hidden', position: 'relative' }}>
@@ -229,8 +231,8 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
 
   const fetchDestinations = async () => {
     const fields = isLoteMode
-      ? 'id, nome, capacidade, descricao'
-      : 'id, nome, area, capacidade_ua';
+      ? 'id, nome, capacidade, descricao, sexo_permitido, pastos(nome)'
+      : 'id, nome, area, capacidade_ua, status';
     const baseQuery = supabase.from(tableName).select(fields).order('nome');
     const filtered = applyFarmFilter(baseQuery);
     const { data, error } = isLoteMode
@@ -259,13 +261,28 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
       ? parseFloat(dest.capacidade) || 0
       : parseFloat(dest.capacidade_ua) || (parseFloat(dest.area) * 2.5);
 
-    const { count } = await supabase
-      .from('animais')
-      .select('*', { count: 'exact', head: true })
-      .eq(fieldName, destId)
-      .in('status', ['ATIVO', 'Ativo', 'ativo']);
-
-    setDestCapacity({ current: count || 0, max: maxCap });
+    if (isLoteMode) {
+      const { count } = await supabase
+        .from('animais')
+        .select('*', { count: 'exact', head: true })
+        .eq(fieldName, destId)
+        .in('status', ['ATIVO', 'Ativo', 'ativo']);
+      setDestCapacity({ current: count || 0, max: maxCap });
+    } else {
+      const { data } = await supabase
+        .from('animais')
+        .select('peso_atual')
+        .eq(fieldName, destId)
+        .in('status', ['ATIVO', 'Ativo', 'ativo']);
+      let currentUa = 0;
+      if (data) {
+        currentUa = data.reduce((acc, a) => {
+           const p = parseFloat(a.peso_atual);
+           return acc + (!isNaN(p) && p > 0 ? p / 450 : 1);
+        }, 0);
+      }
+      setDestCapacity({ current: currentUa, max: maxCap });
+    }
   };
 
   const fetchUnassignedAnimals = async () => {
@@ -289,7 +306,14 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
     }
   };
 
-  const toggleAnimal = (id: string) => {
+  const toggleAnimal = (id: string, animalSexo?: string) => {
+    if (isLoteMode) {
+      const targetLot = destinations.find(d => d.id === selectedDestination);
+      if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animalSexo && animalSexo !== targetLot.sexo_permitido) {
+        toast.error(`O lote selecionado permite apenas ${targetLot.sexo_permitido}S.`);
+        return;
+      }
+    }
     setSelectedAnimals(prev =>
       prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]
     );
@@ -307,11 +331,35 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
     });
   }, [unassignedAnimals, searchTerm, filterSexo, filterCategoria]);
 
+  const getAnimalUa = (animal: any) => {
+    const peso = parseFloat(animal.peso_atual);
+    return !isNaN(peso) && peso > 0 ? peso / 450 : 1;
+  };
+
+  const selectedAddingValue = useMemo(() => {
+    if (isLoteMode) return selectedAnimals.length;
+    return selectedAnimals.reduce((acc, id) => {
+      const animal = unassignedAnimals.find(a => a.id === id);
+      return acc + (animal ? getAnimalUa(animal) : 0);
+    }, 0);
+  }, [selectedAnimals, unassignedAnimals, isLoteMode]);
+
   const selectAll = () => {
-    if (selectedAnimals.length === filteredAnimals.length && filteredAnimals.length > 0) {
+    let allowedFiltered = filteredAnimals;
+    if (isLoteMode && selectedDestination) {
+      const targetLot = destinations.find(d => d.id === selectedDestination);
+      if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
+        allowedFiltered = filteredAnimals.filter(a => !a.sexo || a.sexo === targetLot.sexo_permitido);
+      }
+    }
+    
+    if (selectedAnimals.length === allowedFiltered.length && allowedFiltered.length > 0) {
       setSelectedAnimals([]);
     } else {
-      setSelectedAnimals(filteredAnimals.map(a => a.id));
+      setSelectedAnimals(allowedFiltered.map(a => a.id));
+      if (allowedFiltered.length < filteredAnimals.length) {
+        toast.error(`${filteredAnimals.length - allowedFiltered.length} animais ignorados por incompatibilidade de sexo com o lote.`);
+      }
     }
   };
 
@@ -384,8 +432,9 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
   const confirmOverlay = showConfirm ? ReactDOM.createPortal(
     (() => {
       const selAnimals = unassignedAnimals.filter(a => selectedAnimals.includes(a.id));
-      const afterCount = (destCapacity?.current || 0) + selectedAnimals.length;
+      const afterCount = (destCapacity?.current || 0) + selectedAddingValue;
       const afterPct = destCapacity?.max ? Math.round((afterCount / destCapacity.max) * 100) : null;
+      const formatVal = (n: number) => isLoteMode ? Math.round(n).toString() : n.toFixed(1);
       return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: 'hsl(var(--bg-card))', borderRadius: '20px', padding: '32px', maxWidth: '480px', width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' }}>
@@ -401,15 +450,20 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
 
             <div style={{ background: 'hsl(var(--bg-main))', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
               <Row label="Destino" value={destName} />
-              <Row label="Animais" value={`${selectedAnimals.length} animais selecionados`} />
+              <Row label="Animais" value={`${selectedAnimals.length} animais selecionados${!isLoteMode && selectedAnimals.length > 0 ? ` (${selectedAddingValue.toFixed(1)} UA)` : ''}`} />
               <Row label="Motivo" value={motivo} />
               <Row label="Data" value={new Date(movDate + 'T12:00:00').toLocaleDateString('pt-BR')} />
               {afterPct !== null && (
                 <Row
                   label="Ocupação pós-associação"
-                  value={`${afterCount} / ${destCapacity?.max} UA (${afterPct}%)`}
+                  value={`${formatVal(afterCount)} / ${formatVal(destCapacity?.max || 0)} ${isLoteMode ? 'Cab.' : 'UA'} (${afterPct}%)`}
                   color={afterPct > 100 ? '#ef4444' : afterPct > 85 ? '#f59e0b' : '#10b981'}
                 />
+              )}
+              {afterPct !== null && afterPct > 100 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: '8px', fontSize: '11px', fontWeight: 700, marginTop: '4px' }}>
+                  <AlertTriangle size={14} /> Aviso: Esta associação causará superlotação.
+                </div>
               )}
             </div>
 
@@ -472,9 +526,32 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
               icon={isLoteMode ? <Layers size={13} /> : <Trees size={13} />}
               label={<>{isLoteMode ? <Layers size={12} /> : <Trees size={12} />} {entityLabel} de Destino</>}
             />
-            {destCapacity && (
-              <CapacityBar current={destCapacity.current} max={destCapacity.max} adding={selectedAnimals.length} />
-            )}
+            {(() => {
+              const dest = destinations.find(d => d.id === selectedDestination);
+              if (!dest) return null;
+              return (
+                <div style={{ marginTop: '8px' }}>
+                  {isLoteMode && dest.pastos?.nome && (
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px' }}>
+                      📍 Indo para: {dest.pastos.nome}
+                    </div>
+                  )}
+                  {isLoteMode && dest.sexo_permitido && dest.sexo_permitido !== 'MISTO' && (
+                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#3b82f6', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px', marginLeft: '6px' }}>
+                        Restrito: {dest.sexo_permitido}S
+                     </div>
+                  )}
+                  {!isLoteMode && (dest.status === 'resting' || dest.status === 'renovation') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px', background: '#fffbeb', color: '#d97706', border: '1px solid #fef3c7', borderRadius: '8px', fontSize: '11px', fontWeight: 600, marginBottom: '8px' }}>
+                      <AlertTriangle size={14} /> Atenção: Área de destino está em {dest.status === 'resting' ? 'Descanso' : 'Reforma'}.
+                    </div>
+                  )}
+                  {destCapacity && (
+                    <CapacityBar current={destCapacity.current} max={destCapacity.max} adding={selectedAddingValue} unit={isLoteMode ? 'Cab.' : 'UA'} />
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           <div className="tauze-field-group">
@@ -513,7 +590,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
             <Users size={14} /> Animais Sem {entityLabel}
             {unassignedAnimals.length > 0 && (
               <span style={{ background: 'hsl(var(--border))', borderRadius: '99px', padding: '1px 7px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-main))', marginLeft: '6px' }}>
-                {selectedAnimals.length}/{filteredAnimals.length}
+                {selectedAnimals.length}/{filteredAnimals.length} cab.{!isLoteMode && selectedAnimals.length > 0 ? ` (${selectedAddingValue.toFixed(1)} UA)` : ''}
               </span>
             )}
           </label>
@@ -548,20 +625,46 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
           <>
 
             {showFilters && (
-              <div className="search-glass-box small" style={{ marginBottom: '4px' }}>
-                <Search size={14} className="s-icon" />
-                <input
-                  type="text"
-                  placeholder="Buscar por brinco, raça, categoria, sexo..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  autoFocus
-                />
-                {searchTerm && (
-                  <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 4px' }}>
-                    <X size={14} />
-                  </button>
-                )}
+              <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div className="search-glass-box small" style={{ marginBottom: '0' }}>
+                  <Search size={14} className="s-icon" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por brinco, raça, categoria, sexo..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    autoFocus
+                  />
+                  {searchTerm && (
+                    <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 4px' }}>
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <SearchableSelect 
+                      value={filterSexo}
+                      onChange={(v: any) => setFilterSexo(v)}
+                      options={[
+                        { value: '', label: 'Todos os Sexos' },
+                        { value: 'MACHO', label: 'Apenas Machos' },
+                        { value: 'FEMEA', label: 'Apenas Fêmeas' }
+                      ]}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <SearchableSelect 
+                      value={filterCategoria}
+                      onChange={(v: any) => setFilterCategoria(v)}
+                      options={[
+                        { value: '', label: 'Todas as Categorias' },
+                        ...categorias.map(c => ({ value: String(c), label: String(c) }))
+                      ]}
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -573,15 +676,18 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
                 <div className="picker-empty">Nenhum animal encontrado com esse filtro.</div>
               ) : (
                 <div className="picker-grid-adv">
-                  {filteredAnimals.map(animal => (
-                    <div
-                      key={animal.id}
-                      className={`picker-item-adv ${selectedAnimals.includes(animal.id) ? 'active' : ''}`}
-                      onClick={() => toggleAnimal(animal.id)}
-                    >
-                      <div className="p-check-adv">
-                        {selectedAnimals.includes(animal.id) ? <CheckCircle2 size={15} /> : <div className="p-check-empty" />}
-                      </div>
+                  {filteredAnimals.map(animal => {
+                    const isBlocked = isLoteMode && destinations.find(d => d.id === selectedDestination)?.sexo_permitido && destinations.find(d => d.id === selectedDestination)?.sexo_permitido !== 'MISTO' && animal.sexo && animal.sexo !== destinations.find(d => d.id === selectedDestination)?.sexo_permitido;
+                    return (
+                      <div
+                        key={animal.id}
+                        className={`picker-item-adv ${selectedAnimals.includes(animal.id) ? 'active' : ''}`}
+                        onClick={() => !isBlocked && toggleAnimal(animal.id, animal.sexo)}
+                        style={isBlocked ? { opacity: 0.6, cursor: 'not-allowed', background: 'hsl(var(--danger)/0.05)', borderColor: 'hsl(var(--danger)/0.2)' } : {}}
+                      >
+                        <div className="p-check-adv">
+                          {selectedAnimals.includes(animal.id) ? <CheckCircle2 size={15} /> : <div className="p-check-empty" />}
+                        </div>
                       <div className="p-info-adv">
                         <span className="p-brinco-adv">#{animal.brinco}</span>
                         <span className="p-raca-adv">{animal.raca || '—'}</span>
@@ -595,7 +701,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )})}
                 </div>
               )}
             </div>

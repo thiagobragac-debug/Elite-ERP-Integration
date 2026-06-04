@@ -7,7 +7,10 @@ import {
   CreditCard,
   Target,
   Activity,
-  CheckCircle2
+  CheckCircle2,
+  Receipt,
+  MapPin,
+  Barcode
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
@@ -29,7 +32,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
     description: '',
     value: '',
     dueDate: '',
+    issueDate: '',
+    documentNumber: '',
     category: '',
+    costCenter: '',
     entityId: '', 
     paymentMethod: 'Boleto',
     status: 'PENDENTE'
@@ -92,7 +98,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
         description: initialData.descricao || '',
         value: initialData.valor_total?.toString() || '',
         dueDate: initialData.data_vencimento || '',
+        issueDate: initialData.data_emissao || '',
+        documentNumber: initialData.documento || '',
         category: initialData.categoria || '',
+        costCenter: initialData.centro_custo || '',
         entityId: initialData.parceiro_id || initialData.parceiro_id || '',
         paymentMethod: initialData.metodo_pagamento || initialData.metodo_recebimento || 'Boleto',
         status: initialData.status || 'PENDENTE'
@@ -102,7 +111,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
         description: '',
         value: '',
         dueDate: '',
+        issueDate: '',
+        documentNumber: '',
         category: '',
+        costCenter: '',
         entityId: '',
         paymentMethod: 'Boleto',
         status: 'PENDENTE'
@@ -149,14 +161,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
             <input 
               className="tauze-input"
               type="text" 
-              placeholder="Ex: Compra de Farelo de Soja" 
+              placeholder={type === 'payable' ? "Ex: Compra de Farelo de Soja" : "Ex: Venda de 1000 sc de Soja"} 
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
               required 
             />
           </div>
         </div>
-        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
+        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><DollarSign size={14} /> Valor (R$)</label>
             <input 
@@ -171,6 +183,17 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
           </div>
 
           <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Competência (Emissão)</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={formData.issueDate}
+              onChange={(e) => setFormData({...formData, issueDate: e.target.value})}
+              required 
+            />
+          </div>
+
+          <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data de Vencimento</label>
             <input 
               className="tauze-input"
@@ -178,6 +201,19 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
               value={formData.dueDate}
               onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
               required 
+            />
+          </div>
+        </div>
+
+        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Receipt size={14} /> Documento Fiscal / Contrato (NF-e, CPR, Boleto)</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: NF 123456 / Linha Digitável" 
+              value={formData.documentNumber}
+              onChange={(e) => setFormData({...formData, documentNumber: e.target.value})}
             />
           </div>
         </div>
@@ -202,7 +238,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Target size={14} /> Categoria / Centro de Custo</label>
+            <label className="tauze-label"><Target size={14} /> Plano de Contas (Categoria)</label>
             <SearchableSelect 
               value={formData.category}
               onChange={handleCategoriaChange}
@@ -211,6 +247,21 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
                 ...(categories || []).map(cat => ({ value: String(cat.nome), label: String(cat.nome) })),
               ]}
               creatable={true}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><MapPin size={14} /> Centro de Custo (Local)</label>
+            <SearchableSelect 
+              value={formData.costCenter}
+              onChange={(val: any) => setFormData({...formData, costCenter: val})}
+              options={[
+                { value: '', label: 'Nenhum / Global' },
+                { value: 'Fazenda Santa Clara', label: 'Fazenda Santa Clara' },
+                { value: 'Silo Central', label: 'Silo Central' },
+                { value: 'Frota Pesada', label: 'Frota Pesada' },
+                { value: 'Talhão 01', label: 'Talhão 01' },
+              ]}
             />
           </div>
         </div>

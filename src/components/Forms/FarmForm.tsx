@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Map,
   Maximize,
   MapPin,
   Building2,
   FileText,
-  Hash
+  Hash,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  AlertTriangle,
+  Leaf,
+  Briefcase,
+  Landmark
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { useTenant } from '../../contexts/TenantContext';
@@ -20,11 +27,15 @@ interface FarmFormProps {
 
 export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { companies } = useTenant();
-  const [formData, setFormData] = React.useState({
+  const [formData, setFormData] = useState({
     name: '',
     registrationNumber: '',
     nirf: '',
+    car: '',
+    situacao_ambiental: 'Regular',
+    tipo_exploracao: 'Própria',
     totalArea: '',
+    area_util: '',
     location: '',
     municipio: '',
     uf: '',
@@ -32,7 +43,9 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
     description: ''
   });
 
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
+  const [locOpen, setLocOpen] = useState(false);
+  const [obsOpen, setObsOpen] = useState(false);
 
   React.useEffect(() => {
     if (initialData) {
@@ -40,7 +53,11 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
         name: initialData.nome || initialData.name || '',
         registrationNumber: initialData.ie_produtor || initialData.registrationNumber || '',
         nirf: initialData.nirf || '',
+        car: initialData.car || '',
+        situacao_ambiental: initialData.situacao_ambiental || 'Regular',
+        tipo_exploracao: initialData.tipo_exploracao || 'Própria',
         totalArea: (initialData.area_total || initialData.totalArea)?.toString() || '',
+        area_util: (initialData.area_util)?.toString() || '',
         location: initialData.localizacao || initialData.location || '',
         municipio: initialData.municipio || '',
         uf: initialData.uf || '',
@@ -49,11 +66,23 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
       });
     } else {
       setFormData({
-        name: '', registrationNumber: '', nirf: '', totalArea: '',
+        name: '', registrationNumber: '', nirf: '', car: '', situacao_ambiental: 'Regular',
+        tipo_exploracao: 'Própria', totalArea: '', area_util: '',
         location: '', municipio: '', uf: '', companyId: '', description: ''
       });
     }
   }, [initialData, isOpen]);
+
+  // --- MOTOR MATEMÁTICO DE APROVEITAMENTO ---
+  const aproveitamento = useMemo(() => {
+    const t = parseFloat(formData.totalArea);
+    const u = parseFloat(formData.area_util);
+    if (!isNaN(t) && !isNaN(u) && t > 0) {
+      const percent = (u / t) * 100;
+      return percent > 100 ? 100 : percent;
+    }
+    return 0;
+  }, [formData.totalArea, formData.area_util]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +137,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 02</div>
-          <h4 className="tauze-section-title">Detalhes Cadastrais</h4>
+          <h4 className="tauze-section-title">Compliance e Registros Oficiais</h4>
         </div>
         <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
@@ -130,10 +159,30 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Maximize size={14} /> Área Total (ha)</label>
-            <input type="number" className="tauze-input" step="0.01" placeholder="0.00"
-              value={formData.totalArea}
-              onChange={(e) => setFormData({...formData, totalArea: e.target.value})} required />
+            <label className="tauze-label">
+              <Leaf size={14} style={{ color: formData.situacao_ambiental === 'Regular' ? '#10b981' : '#ef4444' }} /> 
+              Cadastro Ambiental (CAR)
+            </label>
+            <input type="text" className="tauze-input" placeholder="BR-0000..."
+              value={formData.car}
+              onChange={(e) => setFormData({...formData, car: e.target.value})} />
+          </div>
+        </div>
+        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label">Situação Ambiental (IBAMA)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', background: formData.situacao_ambiental === 'Regular' ? 'hsl(var(--brand)/0.1)' : 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', border: `1px solid ${formData.situacao_ambiental === 'Regular' ? 'hsl(var(--brand)/0.3)' : 'rgba(239, 68, 68, 0.3)'}` }}>
+              <select 
+                className="tauze-input" 
+                style={{ border: 'none', background: 'transparent', padding: 0, height: 'auto', fontWeight: 700, color: formData.situacao_ambiental === 'Regular' ? 'hsl(var(--brand))' : '#ef4444', width: '100%', outline: 'none', boxShadow: 'none' }}
+                value={formData.situacao_ambiental}
+                onChange={(e) => setFormData({...formData, situacao_ambiental: e.target.value})}
+              >
+                <option value="Regular">✔ Regular / Ativo</option>
+                <option value="Pendente">⚠ Pendente / Em Análise</option>
+                <option value="Suspenso">⛔ Suspenso / Embargado</option>
+              </select>
+            </div>
           </div>
         </div>
       </section>
@@ -141,25 +190,17 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 03</div>
-          <h4 className="tauze-section-title">Localização</h4>
+          <h4 className="tauze-section-title">Gestão Fundiária (LCDPR)</h4>
         </div>
-        <div className="tauze-input-grid grid-col-3">
-          <div className="tauze-field-group">
-            <label className="tauze-label">Município</label>
-            <input type="text" className="tauze-input" placeholder="Ex: Jataí" value={formData.municipio}
-              onChange={(e) => setFormData({...formData, municipio: e.target.value})} />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label">UF</label>
-            <input type="text" className="tauze-input" placeholder="GO" maxLength={2} value={formData.uf}
-              onChange={(e) => setFormData({...formData, uf: e.target.value.toUpperCase()})} />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><MapPin size={14} /> Exibição da Cidade/UF</label>
-            <input type="text" className="tauze-input" placeholder="Ex: Jataí - GO" value={formData.location}
-              onChange={(e) => setFormData({...formData, location: e.target.value})} />
+        <div className="tauze-field-group full-width">
+          <label className="tauze-label"><Landmark size={14} /> Tipo de Exploração</label>
+          <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+            {['Própria', 'Arrendada', 'Parceria', 'Comodato'].map(t => (
+              <div key={t} className={`tauze-form-radio-item ${formData.tipo_exploracao === t ? 'active' : ''}`}
+                onClick={() => setFormData({...formData, tipo_exploracao: t})}>
+                <span style={{textTransform: 'capitalize'}}>{t}</span>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -167,16 +208,106 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 04</div>
-          <h4 className="tauze-section-title">Detalhes Finais</h4>
+          <h4 className="tauze-section-title">Inteligência Agronômica</h4>
         </div>
-        <div className="tauze-input-grid grid-col-1">
+        <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> Observações / Descrição</label>
-            <textarea className="tauze-input" placeholder="Breve descrição da atividade principal da unidade..."
-              value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} />
+            <label className="tauze-label"><Maximize size={14} /> Área Total (ha)</label>
+            <input type="number" className="tauze-input" step="0.01" placeholder="Ex: 1000.00"
+              value={formData.totalArea}
+              onChange={(e) => setFormData({...formData, totalArea: e.target.value})} required />
+          </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Leaf size={14} /> Área Útil / Produtiva (ha)</label>
+            <input type="number" className="tauze-input" step="0.01" placeholder="Ex: 800.00"
+              value={formData.area_util}
+              onChange={(e) => setFormData({...formData, area_util: e.target.value})} />
           </div>
         </div>
+        
+        {parseFloat(formData.totalArea) > 0 && parseFloat(formData.area_util) > 0 && (
+          <div style={{ marginTop: '16px', background: 'hsl(var(--bg-main)/0.5)', padding: '16px', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px', fontWeight: 800 }}>
+              <span>Aproveitamento Produtivo</span>
+              <span style={{ color: aproveitamento >= 80 ? '#10b981' : aproveitamento >= 50 ? '#f59e0b' : '#ef4444' }}>
+                {aproveitamento.toFixed(1)}%
+              </span>
+            </div>
+            <div style={{ width: '100%', height: '8px', background: 'hsl(var(--border))', borderRadius: '4px', overflow: 'hidden' }}>
+              <div style={{ 
+                height: '100%', 
+                width: `${aproveitamento}%`, 
+                background: aproveitamento >= 80 ? '#10b981' : aproveitamento >= 50 ? '#f59e0b' : '#ef4444',
+                transition: 'width 0.5s ease'
+              }} />
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="tauze-form-section" style={{ padding: 0 }}>
+        <div 
+          className="tauze-section-header" 
+          style={{ padding: '24px', cursor: 'pointer', borderBottom: locOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: locOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+          onClick={() => setLocOpen(!locOpen)}
+        >
+          <div className="tauze-section-badge">PASSO 05</div>
+          <h4 className="tauze-section-title" style={{ flex: 1 }}>Localização Padrão IBGE</h4>
+          <div style={{ color: 'hsl(var(--text-muted))' }}>
+            {locOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </div>
+        </div>
+        
+        {locOpen && (
+          <div style={{ padding: '24px' }}>
+            <div className="tauze-input-grid grid-col-3">
+              <div className="tauze-field-group">
+                <label className="tauze-label">Município</label>
+                <input type="text" className="tauze-input" placeholder="Ex: Jataí" value={formData.municipio}
+                  onChange={(e) => setFormData({...formData, municipio: e.target.value})} />
+              </div>
+
+              <div className="tauze-field-group">
+                <label className="tauze-label">UF</label>
+                <input type="text" className="tauze-input" placeholder="GO" maxLength={2} value={formData.uf}
+                  onChange={(e) => setFormData({...formData, uf: e.target.value.toUpperCase()})} />
+              </div>
+
+              <div className="tauze-field-group">
+                <label className="tauze-label"><MapPin size={14} /> Exibição da Cidade/UF</label>
+                <input type="text" className="tauze-input" placeholder="Ex: Jataí - GO" value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})} />
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="tauze-form-section" style={{ padding: 0 }}>
+        <div 
+          className="tauze-section-header" 
+          style={{ padding: '24px', cursor: 'pointer', borderBottom: obsOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: obsOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+          onClick={() => setObsOpen(!obsOpen)}
+        >
+          <div className="tauze-section-badge">PASSO 06</div>
+          <h4 className="tauze-section-title" style={{ flex: 1 }}>Detalhes Finais</h4>
+          <div style={{ color: 'hsl(var(--text-muted))' }}>
+            {obsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </div>
+        </div>
+        
+        {obsOpen && (
+          <div style={{ padding: '24px' }}>
+            <div className="tauze-input-grid grid-col-1">
+              <div className="tauze-field-group">
+                <label className="tauze-label"><FileText size={14} /> Observações / Descrição</label>
+                <textarea className="tauze-input" placeholder="Breve descrição da atividade principal da unidade..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} />
+              </div>
+            </div>
+          </div>
+        )}
       </section>
 
       <style>{`

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   Package, 
   Tag,
@@ -6,7 +6,11 @@ import {
   DollarSign,
   AlertTriangle,
   Layers,
-  FileText
+  FileText,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  Lock
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
@@ -45,6 +49,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
   });
 
   const [loading, setLoading] = useState(false);
+
+  // Accordions State
+  const [openSections, setOpenSections] = useState({
+    logistics: false,
+    costs: false,
+    rules: false
+  });
+
+  // Derived State (Capital Imobilizado)
+  const totalValue = useMemo(() => {
+    return parseFloat(formData.estoque_atual || '0') * parseFloat(formData.custo_medio || '0');
+  }, [formData.estoque_atual, formData.custo_medio]);
+
+  // Derived State (Defensive Alert)
+  const isDefensive = useMemo(() => {
+    const term = (formData.categoria || formData.nome).toLowerCase();
+    return term.includes('defensivo') || term.includes('agrotóxico') || term.includes('inseticida') || term.includes('herbicida') || term.includes('fungicida');
+  }, [formData.categoria, formData.nome]);
 
   const fetchCategories = async () => {
     if (!tenant) return;
@@ -197,6 +219,30 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Item"}
     >
+      {/* Capital Dashboard Banner */}
+      <div style={{ marginBottom: '24px', padding: '16px', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '4px' }}>Capital Imobilizado (Total em Estoque)</span>
+          <span style={{ fontSize: '24px', fontWeight: 900, color: '#10b981' }}>{totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '4px' }}>Custo Médio Unitário</span>
+          <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>
+            {parseFloat(formData.custo_medio || '0').toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+          </span>
+        </div>
+      </div>
+
+      {isDefensive && (
+        <div style={{ marginBottom: '24px', padding: '12px 16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', display: 'flex', alignItems: 'flex-start', gap: '12px', color: '#991b1b' }}>
+          <AlertCircle size={20} style={{ marginTop: '2px', flexShrink: 0 }} />
+          <div>
+            <h4 style={{ fontSize: '13px', fontWeight: 800, margin: '0 0 4px 0' }}>Alerta de Defensivo Agrícola</h4>
+            <p style={{ fontSize: '11.5px', margin: 0, fontWeight: 500, lineHeight: 1.4, opacity: 0.9 }}>Este item é classificado como defensivo. O consumo deste produto na lavoura exigirá o registro do Receituário Agronômico, e seu descarte obedecerá as regras da logística reversa.</p>
+          </div>
+        </div>
+      )}
+
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 01</div>
@@ -240,11 +286,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
       </section>
 
       <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 02</div>
-          <h4 className="tauze-section-title">Logística e Fiscal</h4>
+        <div 
+          className="tauze-section-header" 
+          style={{ cursor: 'pointer', padding: '12px', background: 'hsl(var(--bg-main))', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          onClick={() => setOpenSections(prev => ({ ...prev, logistics: !prev.logistics }))}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="tauze-section-badge">PASSO 02</div>
+            <h4 className="tauze-section-title" style={{ margin: 0 }}>Logística e Fiscal</h4>
+          </div>
+          {openSections.logistics ? <ChevronUp size={20} className="text-muted" /> : <ChevronDown size={20} className="text-muted" />}
         </div>
-        <div className="tauze-input-grid grid-col-3">
+        
+        {openSections.logistics && (
+        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><Layers size={14} /> Localização (Almoxarifado)</label>
             <input 
@@ -277,6 +332,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
             />
           </div>
         </div>
+        )}
       </section>
 
       <section className="tauze-form-section">
@@ -286,7 +342,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         </div>
         <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
-            <label className="tauze-label"><Hash size={14} /> Est. Atual</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label className="tauze-label"><Hash size={14} /> Est. Atual</label>
+              {hasHistory && <span style={{ fontSize: '9px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 800 }}><Lock size={10}/> BLOQUEADO PELO KARDEX</span>}
+            </div>
             <input 
               className="tauze-input"
               type="number" 
@@ -295,6 +354,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
               value={formData.estoque_atual}
               onChange={(e) => setFormData({...formData, estoque_atual: e.target.value})}
               required
+              disabled={hasHistory}
+              style={{ cursor: hasHistory ? 'not-allowed' : 'text', opacity: hasHistory ? 0.7 : 1, background: hasHistory ? 'hsl(var(--bg-main))' : 'white' }}
             />
           </div>
 
@@ -330,11 +391,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
       </section>
 
       <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 04</div>
-          <h4 className="tauze-section-title">Custos e Status</h4>
+        <div 
+          className="tauze-section-header" 
+          style={{ cursor: 'pointer', padding: '12px', background: 'hsl(var(--bg-main))', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          onClick={() => setOpenSections(prev => ({ ...prev, costs: !prev.costs }))}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="tauze-section-badge">PASSO 04</div>
+            <h4 className="tauze-section-title" style={{ margin: 0 }}>Custos e Status</h4>
+          </div>
+          {openSections.costs ? <ChevronUp size={20} className="text-muted" /> : <ChevronDown size={20} className="text-muted" />}
         </div>
-        <div className="tauze-input-grid grid-col-2">
+        
+        {openSections.costs && (
+        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><DollarSign size={14} /> Custo (R$)</label>
             <input 
@@ -360,14 +430,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
             />
           </div>
         </div>
+        )}
       </section>
 
       <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 05</div>
-          <h4 className="tauze-section-title">Regras de ERP (Comportamento do Item)</h4>
+        <div 
+          className="tauze-section-header" 
+          style={{ cursor: 'pointer', padding: '12px', background: 'hsl(var(--bg-main))', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          onClick={() => setOpenSections(prev => ({ ...prev, rules: !prev.rules }))}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="tauze-section-badge">PASSO 05</div>
+            <h4 className="tauze-section-title" style={{ margin: 0 }}>Regras de ERP (Comportamento do Item)</h4>
+          </div>
+          {openSections.rules ? <ChevronUp size={20} className="text-muted" /> : <ChevronDown size={20} className="text-muted" />}
         </div>
-        <div className="tauze-input-grid grid-col-3">
+        
+        {openSections.rules && (
+        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '12px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
             <input 
               type="checkbox" 
@@ -408,6 +488,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
             </div>
           </label>
         </div>
+        )}
       </section>
 
       <section className="tauze-form-section">

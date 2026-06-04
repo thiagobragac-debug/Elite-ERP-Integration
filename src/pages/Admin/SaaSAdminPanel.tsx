@@ -741,8 +741,8 @@ export const SaaSAdminPanel: React.FC = () => {
     }
   };
 
-  const handleCreateDemoTenant = async () => {
-    if (!demoTenantName.trim()) {
+  const handleCreateDemoTenant = async (config: { name: string; trialDuration: number; seedData: boolean; modules: string[] }) => {
+    if (!config.name.trim()) {
       toast.error('Por favor, informe o nome do tenant.');
       return;
     }
@@ -751,12 +751,17 @@ export const SaaSAdminPanel: React.FC = () => {
       const { data: newTenant, error } = await supabase
         .from('tenants')
         .insert([{
-          nome: demoTenantName.trim(),
+          nome: config.name.trim(),
           email: 'demo@sistema.internal',
           plano: 'DEMO',
-          status: 'Ativo',
+          status: 'Trial', // Updated to Trial
           is_demo: true,
-          is_template: true
+          is_template: true,
+          settings: {
+            trialDuration: config.trialDuration,
+            seedData: config.seedData,
+            modules: config.modules
+          }
         }])
         .select()
         .single();
@@ -918,7 +923,8 @@ export const SaaSAdminPanel: React.FC = () => {
         start_date: new Date(data.start_date).toISOString(),
         end_date: new Date(data.end_date).toISOString(),
         is_active: data.is_active,
-        target_plan_ids: data.target_plan_ids || []
+        target_plan_ids: data.target_plan_ids || [],
+        settings: data.settings || {}
       };
 
       const savePromise = selectedCampaign
@@ -3074,6 +3080,7 @@ export const SaaSAdminPanel: React.FC = () => {
 
               let filterStatus = filterValues.status.toLowerCase();
               if (filterStatus === 'atrasada') filterStatus = 'atrasado';
+              if (filterStatus === 'paga') filterStatus = 'pago';
               const matchesStatus = filterValues.status === 'all' || 
                 (item.status || '').toLowerCase() === filterStatus;
 
@@ -3684,8 +3691,6 @@ export const SaaSAdminPanel: React.FC = () => {
           isOpen={isCreateDemoModalOpen}
           onClose={() => setIsCreateDemoModalOpen(false)}
           onSubmit={handleCreateDemoTenant}
-          demoTenantName={demoTenantName}
-          setDemoTenantName={setDemoTenantName}
           isSaving={isSaving}
         />
 

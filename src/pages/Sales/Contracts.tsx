@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -150,13 +150,13 @@ export const Contracts: React.FC = () => {
       } else {
         setContracts([]);
         setStats([
-          { label: 'Exposição Safra', value: 'â€”', icon: TrendingUp, color: '#10b981', progress: 0, change: 'Sem dados',
+          { label: 'Exposição Safra', value: '---', icon: TrendingUp, color: '#10b981', progress: 0, change: 'Sem dados',
             sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
           { label: 'Valor em Hedge', value: 'R$ 0,00', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Sem dados',
             sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
           { label: 'Fixação de Preço', value: '0/0', icon: ShieldCheck, color: '#166534', progress: 0, change: 'Sem dados',
             sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-          { label: 'Eficiência Hedge', value: 'â€”', icon: BarChart2, color: '#f59e0b', progress: 0, change: 'Sem dados',
+          { label: 'Eficiência Hedge', value: '---', icon: BarChart2, color: '#f59e0b', progress: 0, change: 'Sem dados',
             sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
         ]);
       }

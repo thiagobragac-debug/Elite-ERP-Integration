@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, Layers, Plus, Minus, Trash2, ArrowRight, User, Briefcase } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Shield, Layers, Plus, Minus, Trash2, ArrowRight, User, Briefcase, Clock, ArrowDown, Info } from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 import { useTenant } from '../../../contexts/TenantContext';
@@ -13,6 +13,7 @@ interface RuleCondition {
 interface RuleApprover {
   level: number;
   profile: string;
+  slaHours?: number;
 }
 
 interface RuleFormModalProps {
@@ -41,7 +42,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
   ]);
   
   const [approvers, setApprovers] = useState<RuleApprover[]>([
-    { level: 1, profile: '' }
+    { level: 1, profile: '', slaHours: 48 }
   ]);
   
   const [cargos, setCargos] = useState<any[]>([]);
@@ -58,7 +59,8 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
       setConditions([{ id: '1', min: '0', max: '10000' }]);
       const initApprovers = Array.from({ length: initialData.stages || 1 }).map((_, i) => ({
         level: i + 1,
-        profile: ''
+        profile: '',
+        slaHours: 48
       }));
       setApprovers(initApprovers);
     } else {
@@ -68,7 +70,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
         active: true
       });
       setConditions([{ id: '1', min: '', max: '' }]);
-      setApprovers([{ level: 1, profile: '' }]);
+      setApprovers([{ level: 1, profile: '', slaHours: 48 }]);
     }
   }, [initialData, isOpen]);
 
@@ -100,7 +102,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
       const newApprovers = [...prev];
       if (newStages > prev.length) {
         for (let i = prev.length; i < newStages; i++) {
-          newApprovers.push({ level: i + 1, profile: '' });
+          newApprovers.push({ level: i + 1, profile: '', slaHours: 48 });
         }
       } else if (newStages < prev.length) {
         newApprovers.splice(newStages);
@@ -123,8 +125,8 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
     setConditions(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
   };
 
-  const updateApprover = (level: number, profile: string) => {
-    setApprovers(prev => prev.map(a => a.level === level ? { ...a, profile } : a));
+  const updateApprover = (level: number, field: string, value: any) => {
+    setApprovers(prev => prev.map(a => a.level === level ? { ...a, [field]: value } : a));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -156,6 +158,31 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
     });
   };
 
+  // --- ORÁCULO DE TRADUÇÃO DE BUSINESS RULE ---
+  const ruleTranslation = useMemo(() => {
+    if (!formData.module) return "Selecione um módulo para começar.";
+
+    const moduleName = formData.module;
+    const cond = conditions[0];
+    let valString = "";
+
+    if (cond.min && cond.max) {
+      valString = `entre R$ ${Number(cond.min).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} e R$ ${Number(cond.max).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    } else if (cond.min) {
+      valString = `acima de R$ ${Number(cond.min).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    } else if (cond.max) {
+      valString = `abaixo de R$ ${Number(cond.max).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    } else {
+      valString = "de qualquer valor";
+    }
+
+    const levels = formData.stages;
+    let maxSLA = 0;
+    approvers.forEach(a => { maxSLA += (a.slaHours || 0) });
+
+    return `Qualquer documento de "${moduleName}" que seja emitido com valor ${valString}, entrará num fluxo mandatório de ${levels} nível(is). O prazo máximo (SLA total) para aprovação final será de ${maxSLA}h.`;
+  }, [formData.module, formData.stages, conditions, approvers]);
+
   return (
     <SidePanel
       isOpen={isOpen}
@@ -167,10 +194,11 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
       submitLabel={initialData ? 'Salvar Alterações' : 'Criar Regra'}
       size="large"
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', gridColumn: 'span 4' }}>
-        
-        {/* Lado Esquerdo: Módulo e Condições */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', flex: 1 }}>
+          
+          {/* Lado Esquerdo: Módulo e Condições */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="section-title">1. Gatilho da Regra</div>
           
           <div className="form-group">
@@ -278,42 +306,82 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
           </div>
 
           <div className="approvers-list">
-            <label style={{ marginBottom: '12px', display: 'block' }}>Responsáveis por Etapa</label>
+            <label style={{ marginBottom: '12px', display: 'block' }}>Árvore de Fluxo (BPMN)</label>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {approvers.map((app) => (
-                <div key={app.level} className="approver-card">
-                  <div className="app-level-badge">Etapa {app.level}</div>
-                  <div style={{ flex: 1 }}>
-                    <select 
-                      className="tauze-input small"
-                      value={app.profile}
-                      onChange={e => updateApprover(app.level, e.target.value)}
-                      required
-                      style={{ width: '100%', background: 'hsl(var(--bg-card))' }}
-                    >
-                      <option value="">Selecionar Perfil/Cargo ou Usuário...</option>
-                      <optgroup label="🏢 Cargos Corporativos">
-                        {cargos.map(c => (
-                          <option key={`cargo_${c.id}`} value={`cargo_${c.id}`}>{c.nome}</option>
-                        ))}
-                      </optgroup>
-                      <optgroup label="👤 Usuários Específicos">
-                        {usuarios.map(u => (
-                          <option key={`user_${u.id}`} value={`user_${u.id}`}>{u.name} ({u.email})</option>
-                        ))}
-                      </optgroup>
-                    </select>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', position: 'relative' }}>
+              {/* Linha vertical mestra da Árvore */}
+              {approvers.length > 1 && (
+                <div style={{ position: 'absolute', left: '24px', top: '24px', bottom: '48px', width: '2px', background: 'hsl(var(--border))', zIndex: 0 }} />
+              )}
+              
+              {approvers.map((app, index) => (
+                <React.Fragment key={app.level}>
+                  <div className="approver-card" style={{ position: 'relative', zIndex: 1, background: 'white' }}>
+                    <div className="app-level-badge">Etapa {app.level}</div>
+                    
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <select 
+                        className="tauze-input small"
+                        value={app.profile}
+                        onChange={e => updateApprover(app.level, 'profile', e.target.value)}
+                        required
+                        style={{ width: '100%', background: 'hsl(var(--bg-main)/0.5)' }}
+                      >
+                        <option value="">Selecionar Aprovador...</option>
+                        <optgroup label="🏢 Cargos Corporativos">
+                          {cargos.map(c => (
+                            <option key={`cargo_${c.id}`} value={`cargo_${c.id}`}>{c.nome}</option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="👤 Usuários Específicos">
+                          {usuarios.map(u => (
+                            <option key={`user_${u.id}`} value={`user_${u.id}`}>{u.name} ({u.email})</option>
+                          ))}
+                        </optgroup>
+                      </select>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'hsl(var(--bg-main)/0.3)', padding: '6px 12px', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
+                        <Clock size={12} style={{ color: 'hsl(var(--text-muted))' }} />
+                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-secondary))' }}>SLA (Horas)</span>
+                        <input 
+                          type="number"
+                          className="tauze-input small"
+                          style={{ width: '60px', height: '24px', padding: '0 8px', marginLeft: 'auto' }}
+                          value={app.slaHours}
+                          onChange={e => updateApprover(app.level, 'slaHours', parseInt(e.target.value) || 0)}
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
+
+                  {/* Seta ligando ao próximo */}
+                  {index < approvers.length - 1 && (
+                    <div style={{ position: 'relative', zIndex: 1, display: 'flex', paddingLeft: '17px', margin: '8px 0' }}>
+                      <div style={{ width: '16px', height: '16px', background: 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid hsl(var(--border))' }}>
+                        <ArrowDown size={10} style={{ color: 'hsl(var(--text-muted))' }} />
+                      </div>
+                    </div>
+                  )}
+                </React.Fragment>
               ))}
             </div>
             <span className="input-hint" style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '12px', display: 'block' }}>
-              A solicitação só passará para a próxima etapa se aprovada na etapa anterior.
+              A solicitação só passará para a próxima etapa se a anterior aprovar no prazo do SLA.
             </span>
           </div>
         </div>
 
+      </div>
+
+      {/* PAINEL ORÁCULO DE RESUMO DE REGRA */}
+      <div style={{ marginTop: '24px', padding: '16px', background: 'hsl(var(--brand)/0.1)', border: '1px dashed hsl(var(--brand)/0.4)', borderRadius: '12px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <Info size={24} style={{ color: 'hsl(var(--brand))', flexShrink: 0 }} />
+        <div>
+          <div style={{ fontSize: '11px', fontWeight: 900, color: 'hsl(var(--brand))', textTransform: 'uppercase', marginBottom: '4px' }}>Tradução da Regra Preditiva</div>
+          <div style={{ fontSize: '13px', color: 'hsl(var(--text-main))', lineHeight: '1.4', fontWeight: 500 }}>
+            {ruleTranslation}
+          </div>
+        </div>
       </div>
 
       <style>{`
@@ -498,6 +566,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
           transform: translateX(20px);
         }
       `}</style>
+      </div>
     </SidePanel>
   );
 };

@@ -9,7 +9,9 @@ import {
   Sprout,
   Shield,
   Sun,
-  Flame
+  Flame,
+  AlertTriangle,
+  Lightbulb
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
@@ -99,6 +101,21 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
 
   const [loading, setLoading] = useState(false);
 
+  const totalCapacity = React.useMemo(() => {
+    const a = parseFloat(formData.area);
+    const cap = parseFloat(formData.capacidade_ua);
+    if (!isNaN(a) && !isNaN(cap) && a > 0) return (a * cap).toFixed(1);
+    return null;
+  }, [formData.area, formData.capacidade_ua]);
+
+  const daysSinceFertilization = React.useMemo(() => {
+    if (!formData.data_ultima_fertilizacao) return null;
+    const diff = Date.now() - new Date(formData.data_ultima_fertilizacao).getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  }, [formData.data_ultima_fertilizacao]);
+
+  const needsAttention = formData.plantas_daninhas === 'Alta Infestação' || formData.estado_cerca === 'Ruim' || formData.estado_cerca === 'Necessita Reparo';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -166,7 +183,14 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> Capacidade (UA/ha)</label>
+            <label className="tauze-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span><Activity size={14} /> Capacidade (UA/ha)</span>
+              {totalCapacity && (
+                <span className="carencia-badge" style={{ padding: '2px 8px', fontSize: '10px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', borderRadius: '4px' }}>
+                  Total: {totalCapacity} UA
+                </span>
+              )}
+            </label>
             <input 
               className="tauze-input"
               type="number" 
@@ -208,6 +232,11 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
               value={formData.data_ultima_fertilizacao}
               onChange={(e) => setFormData({...formData, data_ultima_fertilizacao: e.target.value})}
             />
+            {daysSinceFertilization !== null && daysSinceFertilization < 30 && daysSinceFertilization >= 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2', borderRadius: '8px', fontSize: '11px', fontWeight: 600, marginTop: '8px' }}>
+                <AlertTriangle size={14} /> Atenção: Área em provável período de carência química ({daysSinceFertilization} dias).
+              </div>
+            )}
           </div>
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
@@ -242,6 +271,11 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
                 <span>Reforma</span>
               </div>
             </div>
+            {needsAttention && formData.status === 'grazing' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px', background: '#fffbeb', color: '#d97706', border: '1px solid #fef3c7', borderRadius: '8px', fontSize: '11px', fontWeight: 600, marginTop: '8px' }}>
+                <AlertTriangle size={14} /> Sugestão: Devido às condições sanitárias ou de estrutura, considere alterar para "Descanso" ou "Reforma".
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -360,6 +394,25 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
           </div>
         </div>
       </section>
+
+      {/* Smart Card Resumo Forrageiro */}
+      {formData.area && formData.capacidade_ua && (
+        <div style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', background: 'linear-gradient(135deg, hsl(var(--brand)/0.08) 0%, hsl(var(--brand)/0.02) 100%)', border: '1px solid hsl(var(--brand)/0.15)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+          <div style={{ background: 'white', padding: '8px', borderRadius: '10px', color: 'hsl(var(--brand))', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <Lightbulb size={24} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <h4 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: 800, color: 'hsl(var(--brand))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Resumo Agronômico da Área
+            </h4>
+            <p style={{ margin: 0, fontSize: '13px', lineHeight: 1.5, color: 'hsl(var(--text-main))' }}>
+              O pasto <strong style={{ color: 'hsl(var(--text-main))' }}>{formData.nome || '___'}</strong> possui <strong style={{ color: 'hsl(var(--text-main))' }}>{formData.area} hectares</strong>. 
+              Com uma lotação estipulada de {formData.capacidade_ua} UA/ha, a área pode suportar fisicamente até <strong style={{ color: '#10b981' }}>{totalCapacity} Unidades Animais</strong> no total.
+              O status atual de manejo está definido como <strong style={{ textTransform: 'uppercase' }}>{formData.status === 'grazing' ? 'Em Pastejo' : formData.status === 'resting' ? 'Em Descanso' : formData.status === 'degraded' ? 'Degradado' : 'Em Reforma'}</strong>.
+            </p>
+          </div>
+        </div>
+      )}
     </SidePanel>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Hash, 
   Calendar, 
@@ -9,7 +9,10 @@ import {
   CreditCard,
   ShoppingCart,
   Banknote,
-  Wallet
+  Wallet,
+  ClipboardList,
+  MapPin,
+  TrendingDown
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { InsumoEntryTable } from './InsumoEntryTable';
@@ -39,19 +42,23 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   const [items, setItems] = useState<any[]>(initialData?.itens || []);
 
   const [formData, setFormData] = useState({
+    quotation_id: initialData?.quotation_id || '',
     company_id: initialData?.company_id || activeCompany?.id || '',
     order_number: initialData?.order_number || '',
     supplier_id: initialData?.supplier_id || '',
     date: initialData?.date || new Date().toISOString().split('T')[0],
     delivery_date: initialData?.delivery_date || '',
-    total_value: initialData?.total_value || '',
-    notes: initialData?.notes || '',
+    freight_type: initialData?.freight_type || 'CIF',
+    freight_value: initialData?.freight_value || '',
+    discount: initialData?.discount || '',
+    total_value: initialData?.total_value || '0',
+    delivery_instructions: initialData?.delivery_instructions || '',
+    description: initialData?.description || '', // Old notes
     payment_condition: initialData?.payment_condition || 'vista',
     payment_method: initialData?.payment_method || 'Boleto',
     installments: initialData?.installments || 1,
     bank_account_id: initialData?.bank_account_id || '',
-    generate_financial: true,
-    description: initialData?.description || ''
+    generate_financial: true
   });
 
   useEffect(() => {
@@ -80,19 +87,35 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     if (data) setBankAccounts(data);
   };
 
+  // Cálculos Financeiros
+  const subtotal = useMemo(() => {
+    return items.reduce((acc, item) => acc + (Number(item.total) || 0), 0);
+  }, [items]);
+
+  const freightValue = parseFloat(formData.freight_value) || 0;
+  const discountValue = parseFloat(formData.discount) || 0;
+
+  const totalLiquido = useMemo(() => {
+    const total = subtotal + freightValue - discountValue;
+    return total > 0 ? total : 0;
+  }, [subtotal, freightValue, discountValue]);
+
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, total_value: totalLiquido.toString() }));
+  }, [totalLiquido]);
+
   // Handle installment generation
   useEffect(() => {
-    if (formData.payment_condition === 'prazo' && formData.total_value) {
+    if (formData.payment_condition === 'prazo' && totalLiquido > 0) {
       generateInstallments();
     } else {
       setInstallmentsList([]);
     }
-  }, [formData.payment_condition, formData.installments, formData.total_value]);
+  }, [formData.payment_condition, formData.installments, totalLiquido]);
 
   const generateInstallments = () => {
     const count = formData.installments;
-    const total = parseFloat(formData.total_value) || 0;
-    const valuePerInstallment = parseFloat((total / count).toFixed(2));
+    const valuePerInstallment = parseFloat((totalLiquido / count).toFixed(2));
     const newList = [];
 
     for (let i = 1; i <= count; i++) {
@@ -101,7 +124,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       newList.push({
         id: i,
         dueDate: date.toISOString().split('T')[0],
-        value: i === count ? parseFloat((total - (valuePerInstallment * (count - 1))).toFixed(2)) : valuePerInstallment
+        value: i === count ? parseFloat((totalLiquido - (valuePerInstallment * (count - 1))).toFixed(2)) : valuePerInstallment
       });
     }
     setInstallmentsList(newList);
@@ -113,19 +136,15 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     ));
   };
 
-  // Auto-calculate total from items
-  useEffect(() => {
-    const total = items.reduce((acc, item) => acc + (item.total || 0), 0);
-    if (total > 0) {
-      setFormData(prev => ({ ...prev, total_value: total.toString() }));
-    }
-  }, [items]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (totalLiquido <= 0) {
+      alert("O total do pedido deve ser maior que zero.");
+      return;
+    }
     setLoading(true);
     try {
-      await onSubmit({ ...formData, itens: items, installmentsList });
+      await onSubmit({ ...formData, itens: items, installmentsList, total_value: totalLiquido });
       onClose();
     } catch (error) {
       console.error('Error submitting order:', error);
@@ -151,6 +170,32 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
           <div className="tauze-section-badge">PASSO 01</div>
           <h4 className="tauze-section-title">Identificação do Pedido</h4>
         </div>
+
+        <div className="tauze-input-grid grid-col-2" style={{ marginBottom: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Hash size={14} /> Número do Pedido (OC)</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: OC-2024-001..." 
+              value={formData.order_number}
+              onChange={(e) => setFormData({...formData, order_number: e.target.value})}
+              required 
+            />
+          </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><ClipboardList size={14} /> Origem (Cotação Vencedora)</label>
+            <SearchableSelect 
+              value={formData.quotation_id}
+              onChange={(val: any) => setFormData({...formData, quotation_id: val})}
+              options={[
+                { value: '', label: 'Criação Manual (Sem origem)' },
+                { value: 'COT-001', label: 'COT-001 - Fertilizantes Safra (Vencedor: Bayer)' },
+              ]}
+            />
+          </div>
+        </div>
+
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
             <label className="tauze-label"><Building2 size={14} /> Empresa / Unidade Compradora</label>
@@ -176,21 +221,10 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
             />
           </div>
         </div>
-        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
+        
+        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
-            <label className="tauze-label"><Hash size={14} /> Número do Pedido (OC)</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="Ex: OC-2024-001..." 
-              value={formData.order_number}
-              onChange={(e) => setFormData({...formData, order_number: e.target.value})}
-              required 
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Data</label>
+            <label className="tauze-label"><Calendar size={14} /> Data de Emissão</label>
             <input 
               className="tauze-input"
               type="date" 
@@ -201,7 +235,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Truck size={14} /> Previsão de Entrega</label>
+            <label className="tauze-label"><Truck size={14} /> Previsão de Entrega (SLA)</label>
             <input 
               className="tauze-input"
               type="date" 
@@ -216,29 +250,66 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 02</div>
-          <h4 className="tauze-section-title">Itens do Pedido</h4>
+          <h4 className="tauze-section-title">Itens e Fechamento Financeiro</h4>
         </div>
+        
         <div className="tauze-input-grid grid-col-1">
           <InsumoEntryTable 
             items={items}
             onChange={setItems}
           />
         </div>
-        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
-          <div className="tauze-field-group" style={{ gridColumn: '1 / span 2' }}>
-            {/* Empty space filler */}
-          </div>
-          <div className="tauze-field-group">
-            <label className="tauze-label"><DollarSign size={14} /> Valor Total (R$)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              step="0.01"
-              placeholder="0.00" 
-              value={formData.total_value}
-              onChange={(e) => setFormData({...formData, total_value: e.target.value})}
-              required
-            />
+
+        {/* MEGA RESUMO FINANCEIRO */}
+        <div style={{ marginTop: '24px', background: 'hsl(var(--bg-main)/0.5)', border: '1px solid hsl(var(--border))', borderRadius: '16px', padding: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1.5fr', gap: '24px', alignItems: 'flex-start' }}>
+            
+            {/* Inputs de Ajuste */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', gridColumn: 'span 3' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                <div style={{ padding: '12px', background: 'hsl(var(--bg-card))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+                  <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontWeight: 800, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <ShoppingCart size={12}/> Subtotal dos Itens
+                  </span>
+                  <div style={{ fontSize: '16px', fontWeight: 700, marginTop: '8px', color: 'hsl(var(--text-main))' }}>
+                    {subtotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="tauze-label" style={{ fontSize: '11px' }}><Truck size={12}/> Valor do Frete (R$)</label>
+                  <input 
+                    className="tauze-input"
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00" 
+                    value={formData.freight_value}
+                    onChange={(e) => setFormData({...formData, freight_value: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="tauze-label" style={{ fontSize: '11px' }}><TrendingDown size={12}/> Desconto Global (R$)</label>
+                  <input 
+                    className="tauze-input"
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00" 
+                    value={formData.discount}
+                    onChange={(e) => setFormData({...formData, discount: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* TOTAL LÍQUIDO */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', background: 'hsl(var(--brand)/0.1)', padding: '24px', borderRadius: '12px', border: '2px dashed hsl(var(--brand)/0.3)' }}>
+              <span style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--brand))', letterSpacing: '0.05em' }}>TOTAL DO PEDIDO</span>
+              <span style={{ fontSize: '28px', fontWeight: 900, color: 'hsl(var(--text-main))', marginTop: '4px' }}>
+                {totalLiquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+            </div>
+
           </div>
         </div>
       </section>
@@ -246,11 +317,42 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 03</div>
-          <h4 className="tauze-section-title">Condições de Pagamento e Financeiro</h4>
+          <h4 className="tauze-section-title">Logística</h4>
         </div>
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
-            <label className="tauze-label"><Banknote size={14} /> Condição</label>
+            <label className="tauze-label"><Truck size={14} /> Tipo de Frete</label>
+            <SearchableSelect 
+              value={formData.freight_type}
+              onChange={(val: any) => setFormData({...formData, freight_type: val})}
+              options={[
+                { value: 'CIF', label: 'CIF (Por conta do Fornecedor)' },
+                { value: 'FOB', label: 'FOB (Por conta do Comprador)' },
+              ]}
+            />
+          </div>
+          
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><MapPin size={14} /> Instruções e Local de Entrega</label>
+            <textarea 
+              className="tauze-input"
+              placeholder="Ex: Entregar na Fazenda Santa Cruz, Barracão 3. Horário de descarga até as 16h." 
+              value={formData.delivery_instructions}
+              onChange={(e) => setFormData({...formData, delivery_instructions: e.target.value})}
+              style={{ minHeight: '60px' }}
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 04</div>
+          <h4 className="tauze-section-title">Faturamento e Contas a Pagar</h4>
+        </div>
+        <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Banknote size={14} /> Condição Comercial</label>
             <SearchableSelect 
               value={formData.payment_condition}
               onChange={(val: any) => setFormData({...formData, payment_condition: val})}
@@ -292,7 +394,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
           )}
 
           <div className="tauze-field-group" style={{ gridColumn: formData.payment_condition === 'prazo' ? 'span 1' : 'span 2' }}>
-            <label className="tauze-label"><Wallet size={14} /> Conta Bancária / Caixa</label>
+            <label className="tauze-label"><Wallet size={14} /> Conta Bancária / Caixa de Origem</label>
             <SearchableSelect 
               value={formData.bank_account_id}
               onChange={(val: any) => setFormData({...formData, bank_account_id: val})}
@@ -314,7 +416,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                 style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'hsl(var(--brand))' }}
               />
               <span style={{ fontWeight: '700', color: 'hsl(var(--brand))' }}>
-                Gerar Financeiro Automático (Contas a Pagar)
+                Gerar Títulos no Financeiro Automático (Contas a Pagar)
               </span>
             </label>
           </div>
@@ -350,9 +452,9 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: '16px', textAlign: 'right', fontSize: '11px', fontWeight: '700', color: installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) === parseFloat(formData.total_value).toFixed(2) ? 'green' : 'red' }}>
+              <div style={{ marginTop: '16px', textAlign: 'right', fontSize: '11px', fontWeight: '700', color: installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) === totalLiquido.toFixed(2) ? 'green' : 'red' }}>
                 Soma das Parcelas: {installmentsList.reduce((acc, i) => acc + i.value, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                {installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) !== parseFloat(formData.total_value).toFixed(2) && (
+                {installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) !== totalLiquido.toFixed(2) && (
                   <span style={{ display: 'block', fontSize: '10px', marginTop: '4px' }}>(Divergente do total do pedido)</span>
                 )}
               </div>
@@ -363,18 +465,16 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
 
       <section className="tauze-form-section">
         <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 04</div>
-          <h4 className="tauze-section-title">Informações Adicionais</h4>
+          <h4 className="tauze-section-title" style={{ fontSize: '13px' }}>Observações Adicionais</h4>
         </div>
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> Observações Adicionais</label>
             <textarea 
               className="tauze-input"
-              placeholder="Condições especiais de frete, observações de descarga, etc..." 
+              placeholder="Anotações gerais..." 
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              style={{ minHeight: '80px' }}
+              style={{ minHeight: '60px' }}
             />
           </div>
         </div>

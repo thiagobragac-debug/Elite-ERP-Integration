@@ -178,7 +178,7 @@ function PressureMeter({ cap, adding }: { cap: PastureCapacity; adding: number }
         )}
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
-        <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))' }}>{total} UA total / {cap.area} ha</span>
+        <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))' }}>{total.toFixed(1)} UA total / {cap.area} ha</span>
         <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Capacidade: {cap.max} UA</span>
       </div>
       {pct > 100 && (
@@ -215,6 +215,8 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
   const [animals, setAnimals] = useState<any[]>([]);
   const [selectedAnimals, setSelectedAnimals] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterSexo, setFilterSexo] = useState('');
+  const [filterCategoria, setFilterCategoria] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [destCap, setDestCap] = useState<PastureCapacity | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -233,6 +235,8 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
     if (!isOpen) {
       setSelectedAnimals([]);
       setSearchTerm('');
+      setFilterSexo('');
+      setFilterCategoria('');
       setDestCap(null);
       setShowConfirm(false);
       setShowFilters(false);
@@ -257,7 +261,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
 
   const fetchPastures = async () => {
     const { data, error } = await applyFarmFilter(
-      supabase.from('pastos').select('id, nome, area, capacidade_ua').order('nome')
+      supabase.from('pastos').select('id, nome, area, capacidade_ua, status').order('nome')
     );
     if (error) console.error('[PastureRelocateForm] fetchPastures error:', error);
     if (data) setPastures(data);
@@ -279,12 +283,22 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
     const pasture = pastures.find(p => p.id === pastureId);
     const area = parseFloat(pasture?.area) || 0;
     const capUa = parseFloat(pasture?.capacidade_ua) || (area * 2.5);
-    const { count } = await supabase
+    
+    // Fetch all animals in the target pasture to calculate accurate current UA
+    const { data } = await supabase
       .from('animais')
-      .select('*', { count: 'exact', head: true })
+      .select('peso_atual')
       .eq('pasto_id', pastureId)
       .in('status', ['ATIVO', 'Ativo', 'ativo']);
-    setDestCap({ current: count || 0, max: capUa, area });
+      
+    let currentUa = 0;
+    if (data) {
+      currentUa = data.reduce((acc, a) => {
+         const p = parseFloat(a.peso_atual);
+         return acc + (!isNaN(p) && p > 0 ? p / 450 : 1);
+      }, 0);
+    }
+    setDestCap({ current: currentUa, max: capUa, area });
   };
 
   const toggleAnimal = (id: string) => {
@@ -292,15 +306,32 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
   };
 
   const filteredAnimals = useMemo(() => {
-    if (!searchTerm) return animals;
-    const q = searchTerm.toLowerCase();
-    return animals.filter(a =>
-      (a.brinco || '').toLowerCase().includes(q) ||
-      (a.raca || '').toLowerCase().includes(q) ||
-      (a.categoria || '').toLowerCase().includes(q) ||
-      (a.sexo || '').toLowerCase().includes(q)
-    );
-  }, [animals, searchTerm]);
+    return animals.filter(a => {
+      const q = searchTerm.toLowerCase();
+      const matchSearch = !searchTerm || 
+        (a.brinco || '').toLowerCase().includes(q) ||
+        (a.raca || '').toLowerCase().includes(q) ||
+        (a.categoria || '').toLowerCase().includes(q) ||
+        (a.sexo || '').toLowerCase().includes(q);
+      
+      const matchSexo = !filterSexo || a.sexo === filterSexo;
+      const matchCategoria = !filterCategoria || a.categoria === filterCategoria;
+
+      return matchSearch && matchSexo && matchCategoria;
+    });
+  }, [animals, searchTerm, filterSexo, filterCategoria]);
+
+  const getAnimalUa = (animal: any) => {
+    const peso = parseFloat(animal.peso_atual);
+    return !isNaN(peso) && peso > 0 ? peso / 450 : 1;
+  };
+
+  const selectedUaTotal = useMemo(() => {
+    return selectedAnimals.reduce((acc, id) => {
+      const animal = animals.find(a => a.id === id);
+      return acc + (animal ? getAnimalUa(animal) : 0);
+    }, 0);
+  }, [selectedAnimals, animals]);
 
   const selectAll = () => {
     if (selectedAnimals.length === filteredAnimals.length && filteredAnimals.length > 0) {
@@ -332,7 +363,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
       if (!error) {
         if (activeTenantId) {
           const afterUaHa = destCap && destCap.area > 0
-            ? ((destCap.current + selectedAnimals.length) / destCap.area).toFixed(2)
+            ? ((destCap.current + selectedUaTotal) / destCap.area).toFixed(2)
             : '—';
 
           await logAudit({
@@ -341,7 +372,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
             action: 'TRANSFER_BATCH',
             entity: 'Pasto',
             entity_id: sourcePastureId,
-            description: `Transferência de ${selectedAnimals.length} animais do pasto "${sourceName}" para "${targetName}" | Motivo: ${motivo} | Data: ${date} | Pressão pós: ${afterUaHa} UA/ha`,
+            description: `Transferência de ${selectedAnimals.length} animais (${selectedUaTotal.toFixed(1)} UA) do pasto "${sourceName}" para "${targetName}" | Motivo: ${motivo} | Data: ${date} | Pressão pós: ${afterUaHa} UA/ha`,
             old_data: { pasto_id: sourcePastureId, animals_count: selectedAnimals.length },
             new_data: { pasto_id: targetPastureId, motivo, data: date }
           });
@@ -377,9 +408,9 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
   // Confirmation overlay (portal → covers entire screen)
   const confirmOverlay = showConfirm ? ReactDOM.createPortal(
     (() => {
-      const afterCount = (destCap?.current || 0) + selectedAnimals.length;
-      const afterUaHa = destCap && destCap.area > 0 ? (afterCount / destCap.area).toFixed(2) : null;
-      const afterPct = destCap?.max ? Math.round((afterCount / destCap.max) * 100) : null;
+      const afterUa = (destCap?.current || 0) + selectedUaTotal;
+      const afterUaHa = destCap && destCap.area > 0 ? (afterUa / destCap.area).toFixed(2) : null;
+      const afterPct = destCap?.max ? Math.round((afterUa / destCap.max) * 100) : null;
       return (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: 'hsl(var(--bg-card))', borderRadius: '20px', padding: '32px', maxWidth: '480px', width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.35)' }}>
@@ -395,7 +426,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
             <div style={{ background: 'hsl(var(--bg-main))', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
               <Row label="Pasto de Origem" value={sourceName} />
               <Row label="Pasto de Destino" value={targetName} />
-              <Row label="Animais" value={`${selectedAnimals.length} selecionados`} />
+              <Row label="Animais" value={`${selectedAnimals.length} cab. (${selectedUaTotal.toFixed(1)} UA)`} />
               <Row label="Motivo" value={motivo} />
               <Row label="Data" value={new Date(date + 'T12:00:00').toLocaleDateString('pt-BR')} />
               {afterUaHa && (
@@ -459,7 +490,18 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
               label={<><Trees size={12} /> Pasto de Destino</>}
               exclude={sourcePastureId}
             />
-            {destCap && <PressureMeter cap={destCap} adding={selectedAnimals.length} />}
+            {(() => {
+              const target = pastures.find(p => p.id === targetPastureId);
+              if (target && (target.status === 'resting' || target.status === 'renovation')) {
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px', background: '#fffbeb', color: '#d97706', border: '1px solid #fef3c7', borderRadius: '8px', fontSize: '11px', fontWeight: 600, marginTop: '8px' }}>
+                    <AlertTriangle size={14} /> Atenção: Área de destino está em {target.status === 'resting' ? 'Descanso' : 'Reforma'}. A transferência pode prejudicar o pasto.
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            {destCap && <PressureMeter cap={destCap} adding={selectedUaTotal} />}
           </div>
 
           <div className="tauze-field-group">
@@ -501,7 +543,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
               <Users size={14} /> Selecionar Animais
               {animals.length > 0 && (
                 <span style={{ background: 'hsl(var(--border))', borderRadius: '99px', padding: '1px 7px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-main))', marginLeft: '6px' }}>
-                  {selectedAnimals.length}/{filteredAnimals.length}
+                  {selectedAnimals.length}/{filteredAnimals.length} cab. ({selectedUaTotal.toFixed(1)} UA)
                 </span>
               )}
             </label>
@@ -528,20 +570,46 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
 
           {/* Smart search — inside FILTROS panel */}
           {showFilters && animals.length > 0 && (
-            <div className="search-glass-box small" style={{ marginBottom: '8px' }}>
-              <Search size={14} className="s-icon" />
-              <input
-                type="text"
-                placeholder="Buscar por brinco, raça, categoria, sexo..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                autoFocus
-              />
-              {searchTerm && (
-                <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 4px' }}>
-                  <X size={14} />
-                </button>
-              )}
+            <div className="search-glass-box small" style={{ marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+                <Search size={14} className="s-icon" />
+                <input
+                  type="text"
+                  placeholder="Buscar por brinco, raça..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  autoFocus
+                  style={{ flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: '13px' }}
+                />
+                {searchTerm && (
+                  <button type="button" onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 4px' }}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select 
+                  style={{ flex: 1, fontSize: '12px', padding: '6px 8px', borderRadius: '6px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-card))', color: 'hsl(var(--text-main))' }}
+                  value={filterSexo}
+                  onChange={e => setFilterSexo(e.target.value)}
+                >
+                  <option value="">Qualquer Sexo</option>
+                  <option value="MACHO">Machos</option>
+                  <option value="FEMEA">Fêmeas</option>
+                </select>
+                <select 
+                  style={{ flex: 1, fontSize: '12px', padding: '6px 8px', borderRadius: '6px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-card))', color: 'hsl(var(--text-main))' }}
+                  value={filterCategoria}
+                  onChange={e => setFilterCategoria(e.target.value)}
+                >
+                  <option value="">Qualquer Categoria</option>
+                  <option value="Bezerro(a)">Bezerro(a)</option>
+                  <option value="Novilha">Novilha</option>
+                  <option value="Garrote">Garrote</option>
+                  <option value="Vaca">Vaca</option>
+                  <option value="Touro">Touro</option>
+                </select>
+              </div>
             </div>
           )}
 

@@ -10,7 +10,10 @@ import {
   User,
   Search,
   Check,
-  ChevronDown
+  ChevronDown,
+  Wallet,
+  CreditCard,
+  Building
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { fetchCNPJData } from '../../utils/cnpj';
@@ -19,6 +22,7 @@ import { maskCPFCNPJ } from '../../utils/format';
 import { isValidDocument } from '../../utils/validation';
 import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
+import { geocodeAddress } from '../../utils/geocoding';
 import toast from 'react-hot-toast';
 import { SearchableSelect } from './SearchableSelect';
 
@@ -48,8 +52,15 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
     estado: '',
     pais: 'Brasil',
     status: 'ATIVO',
+    inscricao_estadual: '',
+    banco: '',
+    agencia: '',
+    conta: '',
+    chave_pix: '',
     is_global: true,
-    fazendas_vinculadas: [] as string[]
+    fazendas_vinculadas: [] as string[],
+    latitude: null as number | null,
+    longitude: null as number | null
   });
 
   const { farms, activeTenantId, activeFarm } = useTenant();
@@ -120,8 +131,15 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
         estado: initialData.estado || '',
         pais: initialData.pais || 'Brasil',
         status: initialData.status || 'ATIVO',
+        inscricao_estadual: initialData.inscricao_estadual || '',
+        banco: initialData.banco || '',
+        agencia: initialData.agencia || '',
+        conta: initialData.conta || '',
+        chave_pix: initialData.chave_pix || '',
         is_global: initialData.is_global !== undefined ? initialData.is_global : true,
-        fazendas_vinculadas: initialData.fazendas_vinculadas || []
+        fazendas_vinculadas: initialData.fazendas_vinculadas || [],
+        latitude: initialData.latitude || null,
+        longitude: initialData.longitude || null
       });
     } else {
       setFormData({
@@ -141,8 +159,15 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
         estado: '',
         pais: 'Brasil',
         status: 'ATIVO',
+        inscricao_estadual: '',
+        banco: '',
+        agencia: '',
+        conta: '',
+        chave_pix: '',
         is_global: true,
-        fazendas_vinculadas: []
+        fazendas_vinculadas: [],
+        latitude: null,
+        longitude: null
       });
     }
   }, [initialData, isOpen]);
@@ -154,6 +179,11 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
     setLoading(true);
     try {
       const data = await fetchCNPJData(cleanCNPJ);
+      
+      // Auto-geocoding the fetched address
+      const geoQuery = [data.logradouro, data.numero !== 'SN' && data.numero !== 'S/N' ? data.numero : '', data.bairro, data.municipio, data.uf, 'Brasil'].filter(Boolean).join(', ');
+      const geo = await geocodeAddress(geoQuery);
+
       setFormData(prev => ({
         ...prev,
         nome: data.razao_social,
@@ -167,7 +197,9 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
         bairro: data.bairro,
         cidade: data.municipio,
         estado: data.uf,
-        pais: 'Brasil'
+        pais: 'Brasil',
+        latitude: geo.latitude,
+        longitude: geo.longitude
       }));
     } catch (err) {
       toast.error('Não foi possível localizar este CNPJ. Verifique os dados ou digite manualmente.');
@@ -183,14 +215,26 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
     setLoading(true);
     try {
       const data = await fetchCEPData(cleanCEP);
+      
+      const logradouro = data.street || formData.logradouro;
+      const bairro = data.neighborhood || formData.bairro;
+      const cidade = data.city || formData.cidade;
+      const estado = data.state || formData.estado;
+      
+      // Auto-geocoding the fetched address
+      const geoQuery = [logradouro, formData.numero, bairro, cidade, estado, 'Brasil'].filter(Boolean).join(', ');
+      const geo = await geocodeAddress(geoQuery);
+
       setFormData(prev => ({
         ...prev,
         tipo_logradouro: data.tipo_logradouro || prev.tipo_logradouro,
-        logradouro: data.street || prev.logradouro,
-        bairro: data.neighborhood || prev.bairro,
-        cidade: data.city || prev.cidade,
-        estado: data.state || prev.estado,
-        pais: 'BRASIL'
+        logradouro: logradouro,
+        bairro: bairro,
+        cidade: cidade,
+        estado: estado,
+        pais: 'BRASIL',
+        latitude: geo.latitude || prev.latitude,
+        longitude: geo.longitude || prev.longitude
       }));
     } catch (err) {
       toast.error('Não foi possível localizar este CEP. Verifique os dados ou digite manualmente.');
@@ -225,18 +269,12 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Parceiro"}
       size="large"
     >
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 190px', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
-          <label><Building2 size={14} /> Nome / Razão Social</label>
-          <input 
-            type="text" 
-            placeholder="Ex: Agropecuária Fertilizantes Ltda" 
-            value={formData.nome}
-            onChange={(e) => setFormData({...formData, nome: e.target.value})}
-            required 
-          />
-        </div>
+      <div className="form-section-title full-width" style={{ marginTop: 0 }}>
+        <Building size={16} />
+        <span>Identificação Fiscal</span>
+      </div>
 
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><FileText size={14} /> CNPJ / CPF</label>
           <div className="tauze-input-with-action">
@@ -272,11 +310,32 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
             </span>
           )}
         </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Building2 size={14} /> Nome / Razão Social</label>
+          <input 
+            type="text" 
+            placeholder="Ex: Agropecuária Fertilizantes Ltda" 
+            value={formData.nome}
+            onChange={(e) => setFormData({...formData, nome: e.target.value})}
+            required 
+          />
+        </div>
       </div>
 
-      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
-        <div className="tauze-field-group">
-          <label><Tag size={14} /> Categoria</label>
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><FileText size={14} /> Inscrição Estadual (Opcional)</label>
+          <input 
+            type="text" 
+            placeholder="Ex: ISENTO ou 123456789" 
+            value={formData.inscricao_estadual}
+            onChange={(e) => setFormData({...formData, inscricao_estadual: e.target.value})}
+          />
+        </div>
+        
+        <div className="tauze-field-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Tag size={14} /> Categoria Principal</label>
           <SearchableSelect 
             value={formData.categoria}
             onChange={handleCategoriaChange}
@@ -287,7 +346,33 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
             creatable={true}
           />
         </div>
+      </div>
 
+      <div className="form-section-title full-width" style={{ marginTop: '24px' }}>
+        <User size={16} />
+        <span>Contato Comercial</span>
+      </div>
+
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><User size={14} /> Pessoa de Contato</label>
+          <input 
+            type="text" 
+            placeholder="Nome do contato" 
+            value={formData.contato}
+            onChange={(e) => setFormData({...formData, contato: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label><Phone size={14} /> Telefone</label>
+          <input 
+            type="text" 
+            placeholder="(00) 00000-0000" 
+            value={formData.telefone}
+            onChange={(e) => setFormData({...formData, telefone: e.target.value})}
+          />
+        </div>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
           <label><Mail size={14} /> E-mail</label>
           <input 
@@ -297,26 +382,6 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
             onChange={(e) => setFormData({...formData, email: e.target.value})}
           />
         </div>
-      </div>
-
-      <div className="form-group">
-        <label><User size={14} /> Pessoa de Contato</label>
-        <input 
-          type="text" 
-          placeholder="Nome do contato" 
-          value={formData.contato}
-          onChange={(e) => setFormData({...formData, contato: e.target.value})}
-        />
-      </div>
-
-      <div className="form-group">
-        <label><Phone size={14} /> Telefone</label>
-        <input 
-          type="text" 
-          placeholder="(00) 00000-0000" 
-          value={formData.telefone}
-          onChange={(e) => setFormData({...formData, telefone: e.target.value})}
-        />
       </div>
 
       <div className="form-section-title full-width">
@@ -433,6 +498,54 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
             value={formData.pais}
             onChange={(e) => setFormData({...formData, pais: e.target.value})}
           />
+        </div>
+      </div>
+
+      <div className="form-section-title full-width" style={{ marginTop: '24px' }}>
+        <Wallet size={16} />
+        <span>Dados Financeiros (Faturamento)</span>
+      </div>
+      
+      <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Chave PIX</label>
+          <input 
+            type="text" 
+            placeholder="CPF, CNPJ, Celular ou Email" 
+            value={formData.chave_pix}
+            onChange={(e) => setFormData({...formData, chave_pix: e.target.value})}
+          />
+        </div>
+        
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
+          <label>Banco (Opcional)</label>
+          <input 
+            type="text" 
+            placeholder="Ex: 341 - Itaú" 
+            value={formData.banco}
+            onChange={(e) => setFormData({...formData, banco: e.target.value})}
+          />
+        </div>
+
+        <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label>Agência</label>
+            <input 
+              type="text" 
+              placeholder="0000" 
+              value={formData.agencia}
+              onChange={(e) => setFormData({...formData, agencia: e.target.value})}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label>Conta</label>
+            <input 
+              type="text" 
+              placeholder="00000-0" 
+              value={formData.conta}
+              onChange={(e) => setFormData({...formData, conta: e.target.value})}
+            />
+          </div>
         </div>
       </div>
 

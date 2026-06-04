@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShieldCheck, 
   Plus, 
@@ -6,7 +6,11 @@ import {
   Clock, 
   Zap, 
   History,
-  Trash2
+  Trash2,
+  CalendarCheck,
+  Info,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
@@ -138,6 +142,24 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
     onClose();
   };
 
+  // --- ENGINE PREDITIVA DE CALENDÁRIO ---
+  const smartSchedule = useMemo(() => {
+    if (!selectedProtocol || !startDate) return [];
+    
+    const baseDate = new Date(startDate);
+    if (isNaN(baseDate.getTime())) return [];
+
+    return selectedProtocol.steps.map((step: any) => {
+      const scheduledDate = new Date(baseDate);
+      scheduledDate.setDate(scheduledDate.getDate() + (parseInt(step.day) || 0));
+      return {
+        ...step,
+        scheduledDateStr: scheduledDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+        isToday: step.day === 0
+      };
+    });
+  }, [selectedProtocol, startDate]);
+
   return (
     <SidePanel
       isOpen={isOpen}
@@ -225,10 +247,55 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                     </div>
 
                     <div className="tauze-field-group">
-                      <label className="tauze-label">Data de Início</label>
+                      <label className="tauze-label">Data de Início (D0)</label>
                       <input type="date" className="tauze-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
                     </div>
                   </div>
+
+                  {smartSchedule.length > 0 && (
+                    <div style={{ marginTop: '16px' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '16px' }}>Projeção do Calendário Zootécnico</div>
+                      
+                      <div style={{ position: 'relative', paddingLeft: '16px' }}>
+                        {/* Linha da Timeline */}
+                        <div style={{ position: 'absolute', left: '27px', top: '24px', bottom: '24px', width: '2px', background: 'hsl(var(--border))', zIndex: 0 }} />
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', zIndex: 1 }}>
+                          {smartSchedule.map((step: any, idx: number) => (
+                            <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+                              <div style={{ 
+                                width: '24px', height: '24px', borderRadius: '50%', background: step.isToday ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))', 
+                                border: step.isToday ? 'none' : '2px solid hsl(var(--border))', 
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', color: step.isToday ? 'white' : 'transparent', marginTop: '4px' 
+                              }}>
+                                {step.isToday && <CheckCircle2 size={14} />}
+                              </div>
+                              <div style={{ flex: 1, padding: '12px 16px', background: step.isToday ? 'hsl(var(--brand)/0.05)' : 'white', border: `1px solid ${step.isToday ? 'hsl(var(--brand)/0.3)' : 'hsl(var(--border))'}`, borderRadius: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '11px', fontWeight: 900, color: step.isToday ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}>D{step.day}</span>
+                                  <span style={{ fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>{step.scheduledDateStr}</span>
+                                </div>
+                                <div style={{ fontSize: '13px', fontWeight: 700 }}>{step.product}</div>
+                                <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>{step.dose} • {step.via}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {smartSchedule.length > 0 && (
+                    <div style={{ padding: '16px', background: 'hsl(var(--brand)/0.1)', border: '1px dashed hsl(var(--brand)/0.4)', borderRadius: '12px', display: 'flex', gap: '12px', marginTop: '8px' }}>
+                      <CalendarCheck size={20} style={{ color: 'hsl(var(--brand))' }} />
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>Impacto na Agenda</div>
+                        <div style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', marginTop: '2px', lineHeight: '1.4' }}>
+                          Ao confirmar, <strong>{smartSchedule.length} eventos sanitários</strong> serão adicionados ao calendário oficial da fazenda para este {targetType.toLowerCase()}.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ) : isCreating ? (
@@ -265,22 +332,33 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {newProtocol.steps.map((step, idx) => (
-                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: '8px', padding: '12px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
-                          <input type="number" className="tauze-input" style={{ padding: '8px' }} value={step.day} onChange={e => {
+                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 140px', gap: '8px', padding: '12px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+                          <input type="number" className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} value={step.day} onChange={e => {
                             const steps = [...newProtocol.steps];
                             steps[idx].day = parseInt(e.target.value);
                             setNewProtocol({...newProtocol, steps});
                           }} />
-                          <input type="text" className="tauze-input" style={{ padding: '8px' }} placeholder="Produto" value={step.product} onChange={e => {
+                          <input type="text" className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} placeholder="Produto" value={step.product} onChange={e => {
                             const steps = [...newProtocol.steps];
                             steps[idx].product = e.target.value;
                             setNewProtocol({...newProtocol, steps});
                           }} />
-                          <input type="text" className="tauze-input" style={{ padding: '8px' }} placeholder="Dose" value={step.dose} onChange={e => {
+                          <input type="text" className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} placeholder="Dose (Ex: 2ml)" value={step.dose} onChange={e => {
                             const steps = [...newProtocol.steps];
                             steps[idx].dose = e.target.value;
                             setNewProtocol({...newProtocol, steps});
                           }} />
+                          <select className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} value={step.via} onChange={e => {
+                            const steps = [...newProtocol.steps];
+                            steps[idx].via = e.target.value;
+                            setNewProtocol({...newProtocol, steps});
+                          }}>
+                            <option value="Subcutânea">Subcutânea</option>
+                            <option value="Intramuscular">Intramuscular</option>
+                            <option value="Oral">Oral</option>
+                            <option value="Intravenosa">Intravenosa</option>
+                            <option value="Tópico">Tópico</option>
+                          </select>
                         </div>
                       ))}
                     </div>
@@ -300,23 +378,33 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <span style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Cronograma</span>
-                  {selectedProtocol.steps && Array.isArray(selectedProtocol.steps) ? (
-                    selectedProtocol.steps.map((step: any, idx: number) => (
-                      <div key={idx} style={{ padding: '16px', borderRadius: '16px', background: 'hsl(var(--bg-main)/0.3)', border: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'hsl(var(--text-main))', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900 }}>D{step.day}</div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '14px', fontWeight: 800 }}>{step.product}</div>
-                          <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>{step.dose} • {step.via || 'N/A'}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: '16px' }}>
+                  <span style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '16px' }}>Cronograma Padrão</span>
+                  
+                  <div style={{ position: 'relative', paddingLeft: '8px' }}>
+                    {/* Linha da Timeline */}
+                    {selectedProtocol.steps && selectedProtocol.steps.length > 0 && (
+                      <div style={{ position: 'absolute', left: '26px', top: '16px', bottom: '24px', width: '2px', background: 'hsl(var(--border))', zIndex: 0 }} />
+                    )}
+
+                    {selectedProtocol.steps && Array.isArray(selectedProtocol.steps) ? (
+                      selectedProtocol.steps.map((step: any, idx: number) => (
+                        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', position: 'relative', zIndex: 1, marginBottom: idx === selectedProtocol.steps.length - 1 ? 0 : '16px' }}>
+                          <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'white', border: '2px solid hsl(var(--border))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+                            D{step.day}
+                          </div>
+                          <div style={{ flex: 1, padding: '12px 16px', borderRadius: '12px', background: 'hsl(var(--bg-main)/0.3)', border: '1px solid hsl(var(--border))' }}>
+                            <div style={{ fontSize: '14px', fontWeight: 800 }}>{step.product}</div>
+                            <div style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 600, marginTop: '2px' }}>{step.dose} • {step.via || 'N/A'}</div>
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div style={{ padding: '20px', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
+                        Nenhuma etapa configurada para este protocolo.
                       </div>
-                    ))
-                  ) : (
-                    <div style={{ padding: '20px', textAlign: 'center', color: 'hsl(var(--text-muted))' }}>
-                      Nenhuma etapa configurada para este protocolo.
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </motion.div>
             ) : (

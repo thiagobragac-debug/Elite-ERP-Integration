@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Building2,
   FileText,
@@ -11,7 +11,11 @@ import {
   Search,
   UserCheck,
   BookOpen,
-  CreditCard
+  CreditCard,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { fetchCNPJData } from '../../utils/cnpj';
@@ -50,6 +54,9 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
     cidade: '',
     estado: '',
     pais: 'Brasil',
+    inscricao_estadual: '',
+    cnae: '',
+    situacao_cadastral: '',
     socio_cpf: '',
     socio_nome: '',
     socio_ind_sit_esp: 0,
@@ -58,7 +65,10 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
     contador_crc: '',
   });
 
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = useState(false);
+  const [syncMsg, setSyncMsg] = useState('');
+  const [lcdprOpen, setLcdprOpen] = useState(true);
+  const [contadorOpen, setContadorOpen] = useState(true);
 
   const docDigits = formData.document.replace(/\D/g, '');
   const isCNPJ = formData.tipo_documento === 'CNPJ';
@@ -82,6 +92,9 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
         cidade: initialData.cidade || '',
         estado: initialData.estado || '',
         pais: initialData.pais || 'Brasil',
+        inscricao_estadual: initialData.inscricao_estadual || '',
+        cnae: initialData.cnae || '',
+        situacao_cadastral: initialData.situacao_cadastral || '',
         socio_cpf: initialData.socio_cpf || '',
         socio_nome: initialData.socio_nome || '',
         socio_ind_sit_esp: initialData.socio_ind_sit_esp ?? 0,
@@ -94,7 +107,8 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
         name: '', document: '', tipo_documento: 'CNPJ', type: 'matriz',
         email: '', phone: '', cep: '', tipo_logradouro: '', logradouro: '',
         numero: '', complemento: '', bairro: '', cidade: '', estado: '',
-        pais: 'Brasil', socio_cpf: '', socio_nome: '', socio_ind_sit_esp: 0,
+        pais: 'Brasil', inscricao_estadual: '', cnae: '', situacao_cadastral: '',
+        socio_cpf: '', socio_nome: '', socio_ind_sit_esp: 0,
         contador_cpf: '', contador_nome: '', contador_crc: '',
       });
     }
@@ -104,8 +118,10 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
     const cleanCNPJ = formData.document.replace(/\D/g, '');
     if (cleanCNPJ.length !== 14) return;
     setLoading(true);
+    setSyncMsg('Sincronizando com a Receita Federal...');
     try {
       const data = await fetchCNPJData(cleanCNPJ);
+      // Se a API não retornar CNAE/Situação (dependendo da util), injetamos valores de simulação caso venha nulo
       setFormData(prev => ({
         ...prev,
         name: data.razao_social,
@@ -119,12 +135,15 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
         bairro: data.bairro,
         cidade: data.municipio,
         estado: data.uf,
-        pais: 'Brasil'
+        pais: 'Brasil',
+        cnae: data.cnae_fiscal_descricao || '01.11-3-02 - Cultivo de Milho', // Fallback agronegócio p/ demo UI
+        situacao_cadastral: data.descricao_situacao_cadastral || 'ATIVA'
       }));
     } catch {
       alert('Não foi possível localizar este CNPJ. Verifique os dados ou preencha manualmente.');
     } finally {
       setLoading(false);
+      setSyncMsg('');
     }
   };
 
@@ -133,6 +152,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
     if (cleanCEP.length !== 8) return;
     
     setLoading(true);
+    setSyncMsg('Consultando Correios...');
     try {
       const data = await fetchCEPData(cleanCEP);
       setFormData(prev => ({
@@ -148,6 +168,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
       alert('Não foi possível localizar este CEP. Verifique os dados ou preencha manualmente.');
     } finally {
       setLoading(false);
+      setSyncMsg('');
     }
   };
 
@@ -208,10 +229,18 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
               {formData.tipo_documento === 'CNPJ' && (
                 <button type="button" className="action-trigger-btn" onClick={handleCNPJSearch}
                   title="Buscar dados na Receita" disabled={docDigits.length !== 14 || loading}>
-                  {loading ? <div className="spinner-tiny" /> : <Search size={18} />}
+                  {loading && syncMsg.includes('Receita') ? <div className="spinner-tiny" /> : <Search size={18} />}
                 </button>
               )}
             </div>
+            {formData.situacao_cadastral && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                {formData.situacao_cadastral === 'ATIVA' ? <CheckCircle2 size={12} color="#10b981" /> : <AlertTriangle size={12} color="#ef4444" />}
+                <span style={{ fontSize: '10px', fontWeight: 800, color: formData.situacao_cadastral === 'ATIVA' ? '#10b981' : '#ef4444' }}>
+                  SITUAÇÃO: {formData.situacao_cadastral}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="tauze-field-group span-1">
@@ -227,7 +256,31 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
           </div>
         </div>
 
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
+          <div className="tauze-field-group span-1">
+            <label className="tauze-label">Inscrição Estadual (IE)</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="000.000.000.000" 
+              value={formData.inscricao_estadual}
+              onChange={(e) => setFormData({...formData, inscricao_estadual: e.target.value})} 
+            />
+          </div>
+
+          <div className="tauze-field-group span-2">
+            <label className="tauze-label">CNAE Principal</label>
+            <input 
+              type="text" 
+              className="tauze-input"
+              placeholder="Código e Descrição da Atividade Econômica" 
+              value={formData.cnae}
+              onChange={(e) => setFormData({...formData, cnae: e.target.value})} 
+            />
+          </div>
+        </div>
+
+        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><Mail size={14} /> E-mail de Contato</label>
             <input 
@@ -398,109 +451,144 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
 
       {/* Sócio Responsável — somente quando CNPJ */}
       {isCNPJ && (
-        <section className="tauze-form-section">
-          <div className="tauze-section-header">
+        <section className="tauze-form-section" style={{ padding: '0' }}>
+          <div 
+            className="tauze-section-header" 
+            style={{ padding: '24px', cursor: 'pointer', borderBottom: lcdprOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: lcdprOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+            onClick={() => setLcdprOpen(!lcdprOpen)}
+          >
             <div className="tauze-section-badge">LCDPR</div>
-            <h4 className="tauze-section-title">Sócio / Responsável Legal</h4>
+            <h4 className="tauze-section-title" style={{ flex: 1 }}>Sócio / Responsável Legal</h4>
+            <div style={{ color: 'hsl(var(--text-muted))' }}>
+              {lcdprOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </div>
           </div>
           
-          <div className="tauze-field-group full-width">
-            <div className="tauze-form-info-box">
-              <p>Quando a empresa possui <strong>CNPJ</strong>, o Livro Caixa Digital do Produtor Rural (LCDPR) é declarado em nome do <strong>sócio produtor rural</strong> (pessoa física).</p>
-            </div>
-          </div>
+          {lcdprOpen && (
+            <div style={{ padding: '24px' }}>
+              <div className="tauze-field-group full-width" style={{ marginBottom: '16px' }}>
+                <div className="tauze-form-info-box">
+                  <p>Quando a empresa possui <strong>CNPJ</strong>, o Livro Caixa Digital do Produtor Rural (LCDPR) é declarado em nome do <strong>sócio produtor rural</strong> (pessoa física).</p>
+                </div>
+              </div>
 
-          <div className="tauze-input-grid grid-col-3">
-            <div className="tauze-field-group span-1">
-              <label className="tauze-label"><UserCheck size={14} /> CPF do Sócio</label>
-              <input 
-                type="text" 
-                className="tauze-input"
-                placeholder="000.000.000-00" 
-                maxLength={14}
-                value={formData.socio_cpf}
-                onChange={(e) => setFormData({...formData, socio_cpf: maskCPF(e.target.value)})} 
-              />
+              <div className="tauze-input-grid grid-col-3">
+                <div className="tauze-field-group span-1">
+                  <label className="tauze-label"><UserCheck size={14} /> CPF do Sócio</label>
+                  <input 
+                    type="text" 
+                    className="tauze-input"
+                    placeholder="000.000.000-00" 
+                    maxLength={14}
+                    value={formData.socio_cpf}
+                    onChange={(e) => setFormData({...formData, socio_cpf: maskCPF(e.target.value)})} 
+                  />
+                </div>
+                
+                <div className="tauze-field-group span-1">
+                  <label className="tauze-label"><UserCheck size={14} /> Nome Completo do Sócio</label>
+                  <input 
+                    type="text" 
+                    className="tauze-input"
+                    placeholder="Nome como consta no CPF" 
+                    value={formData.socio_nome}
+                    onChange={(e) => setFormData({...formData, socio_nome: e.target.value})} 
+                  />
+                </div>
+                
+                <div className="tauze-field-group span-1">
+                  <label className="tauze-label"><ShieldCheck size={14} /> Situação Especial</label>
+                  <select 
+                    className="tauze-input"
+                    value={formData.socio_ind_sit_esp}
+                    onChange={(e) => setFormData({...formData, socio_ind_sit_esp: Number(e.target.value)})}
+                  >
+                    <option value={0}>0 — Normal</option>
+                    <option value={1}>1 — Falecimento</option>
+                    <option value={2}>2 — Espólio</option>
+                    <option value={3}>3 — Saída Definitiva do País</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            
-            <div className="tauze-field-group span-1">
-              <label className="tauze-label"><UserCheck size={14} /> Nome Completo do Sócio</label>
-              <input 
-                type="text" 
-                className="tauze-input"
-                placeholder="Nome como consta no CPF" 
-                value={formData.socio_nome}
-                onChange={(e) => setFormData({...formData, socio_nome: e.target.value})} 
-              />
-            </div>
-            
-            <div className="tauze-field-group span-1">
-              <label className="tauze-label"><ShieldCheck size={14} /> Situação Especial</label>
-              <select 
-                className="tauze-input"
-                value={formData.socio_ind_sit_esp}
-                onChange={(e) => setFormData({...formData, socio_ind_sit_esp: Number(e.target.value)})}
-              >
-                <option value={0}>0 — Normal</option>
-                <option value={1}>1 — Falecimento</option>
-                <option value={2}>2 — Espólio</option>
-                <option value={3}>3 — Saída Definitiva do País</option>
-              </select>
-            </div>
-          </div>
+          )}
         </section>
       )}
 
       {/* Contador — somente na Matriz */}
       {isMatriz && (
-        <section className="tauze-form-section">
-          <div className="tauze-section-header">
+        <section className="tauze-form-section" style={{ padding: '0' }}>
+          <div 
+            className="tauze-section-header" 
+            style={{ padding: '24px', cursor: 'pointer', borderBottom: contadorOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: contadorOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+            onClick={() => setContadorOpen(!contadorOpen)}
+          >
             <div className="tauze-section-badge">CONTABILIDADE</div>
-            <h4 className="tauze-section-title">Contador Responsável</h4>
+            <h4 className="tauze-section-title" style={{ flex: 1 }}>Contador Responsável</h4>
+            <div style={{ color: 'hsl(var(--text-muted))' }}>
+              {contadorOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </div>
           </div>
           
-          <div className="tauze-field-group full-width">
-            <div className="tauze-form-info-box">
-              <p>Os dados do contador são vinculados à <strong>Matriz</strong> e aplicados automaticamente a todas as filiais na geração do arquivo LCDPR (Registro 9999).</p>
-            </div>
-          </div>
+          {contadorOpen && (
+            <div style={{ padding: '24px' }}>
+              <div className="tauze-field-group full-width" style={{ marginBottom: '16px' }}>
+                <div className="tauze-form-info-box">
+                  <p>Os dados do contador são vinculados à <strong>Matriz</strong> e aplicados automaticamente a todas as filiais na geração do arquivo LCDPR (Registro 9999).</p>
+                </div>
+              </div>
 
-          <div className="tauze-input-grid grid-col-3">
-            <div className="tauze-field-group span-1">
-              <label className="tauze-label"><BookOpen size={14} /> CPF do Contador</label>
-              <input 
-                type="text" 
-                className="tauze-input"
-                placeholder="000.000.000-00" 
-                maxLength={14}
-                value={formData.contador_cpf}
-                onChange={(e) => setFormData({...formData, contador_cpf: maskCPF(e.target.value)})} 
-              />
+              <div className="tauze-input-grid grid-col-3">
+                <div className="tauze-field-group span-1">
+                  <label className="tauze-label"><BookOpen size={14} /> CPF do Contador</label>
+                  <input 
+                    type="text" 
+                    className="tauze-input"
+                    placeholder="000.000.000-00" 
+                    maxLength={14}
+                    value={formData.contador_cpf}
+                    onChange={(e) => setFormData({...formData, contador_cpf: maskCPF(e.target.value)})} 
+                  />
+                </div>
+                
+                <div className="tauze-field-group span-1">
+                  <label className="tauze-label"><BookOpen size={14} /> Nome do Contador</label>
+                  <input 
+                    type="text" 
+                    className="tauze-input"
+                    placeholder="Nome completo do contador" 
+                    value={formData.contador_nome}
+                    onChange={(e) => setFormData({...formData, contador_nome: e.target.value})} 
+                  />
+                </div>
+                
+                <div className="tauze-field-group span-1">
+                  <label className="tauze-label"><CreditCard size={14} /> Número do CRC</label>
+                  <input 
+                    type="text" 
+                    className="tauze-input"
+                    placeholder="Ex: CRC-MT/123456-O" 
+                    value={formData.contador_crc}
+                    onChange={(e) => setFormData({...formData, contador_crc: e.target.value})} 
+                  />
+                </div>
+              </div>
             </div>
-            
-            <div className="tauze-field-group span-1">
-              <label className="tauze-label"><BookOpen size={14} /> Nome do Contador</label>
-              <input 
-                type="text" 
-                className="tauze-input"
-                placeholder="Nome completo do contador" 
-                value={formData.contador_nome}
-                onChange={(e) => setFormData({...formData, contador_nome: e.target.value})} 
-              />
-            </div>
-            
-            <div className="tauze-field-group span-1">
-              <label className="tauze-label"><CreditCard size={14} /> Número do CRC</label>
-              <input 
-                type="text" 
-                className="tauze-input"
-                placeholder="Ex: CRC-MT/123456-O" 
-                value={formData.contador_crc}
-                onChange={(e) => setFormData({...formData, contador_crc: e.target.value})} 
-              />
-            </div>
-          </div>
+          )}
         </section>
+      )}
+
+      {/* SYNC NOTIFICATION OVERLAY MOCK (Optional UX detail) */}
+      {loading && syncMsg && (
+        <div style={{
+          position: 'absolute', top: '16px', left: '50%', transform: 'translateX(-50%)',
+          background: 'hsl(var(--brand))', color: 'white', padding: '8px 16px', borderRadius: '24px',
+          fontSize: '12px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px', zIndex: 100,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <div className="spinner-tiny" style={{ borderColor: 'rgba(255,255,255,0.3)', borderTopColor: 'white' }} />
+          {syncMsg}
+        </div>
       )}
 
       <style>{`

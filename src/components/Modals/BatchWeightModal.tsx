@@ -36,6 +36,10 @@ interface WeightRow {
   evolucao: number;
   gmd: number;
   isTypoWarning: boolean;
+  isTimeTravelWarning: boolean;
+  arrobas: number;
+  diasParaAbate: number | null;
+  isAbate: boolean;
 }
 
 export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onClose, onSaveSuccess }) => {
@@ -158,7 +162,11 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
             newWeight: '',
             evolucao: 0,
             gmd: 0,
-            isTypoWarning: false
+            isTypoWarning: false,
+            isTimeTravelWarning: false,
+            arrobas: 0,
+            diasParaAbate: null,
+            isAbate: false
           };
         });
         
@@ -185,27 +193,55 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     row.newWeight = val;
     
     const newWeightVal = parseFloat(val);
-    if (!isNaN(newWeightVal) && row.lastWeight > 0) {
-      const diff = newWeightVal - row.lastWeight;
-      row.evolucao = diff;
+    if (!isNaN(newWeightVal) && newWeightVal > 0) {
+      row.arrobas = (newWeightVal * 0.5) / 15;
       
       const lastDate = row.lastDate ? new Date(row.lastDate) : null;
       const currDate = new Date(defaultDate);
       
-      let diffDays = 1;
-      if (lastDate) {
-        const diffTime = currDate.getTime() - lastDate.getTime();
-        diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+      if (lastDate && currDate < lastDate) {
+        row.isTimeTravelWarning = true;
+      } else {
+        row.isTimeTravelWarning = false;
       }
       
-      row.gmd = diff / diffDays;
-      
-      const percentChange = (diff / row.lastWeight) * 100;
-      row.isTypoWarning = Math.abs(percentChange) > 15;
+      if (row.lastWeight > 0) {
+        const diff = newWeightVal - row.lastWeight;
+        row.evolucao = diff;
+        
+        let diffDays = 1;
+        if (lastDate && !row.isTimeTravelWarning) {
+          const diffTime = currDate.getTime() - lastDate.getTime();
+          diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+        }
+        
+        row.gmd = diff / diffDays;
+        
+        const percentChange = (diff / row.lastWeight) * 100;
+        row.isTypoWarning = Math.abs(percentChange) > 15;
+      }
+
+      // Slaughter prediction
+      const targetWeight = activeFarm?.pesoAbateKg || 450;
+      if (newWeightVal >= targetWeight) {
+        row.isAbate = true;
+        row.diasParaAbate = 0;
+      } else if (row.gmd > 0) {
+        row.isAbate = false;
+        row.diasParaAbate = Math.ceil((targetWeight - newWeightVal) / row.gmd);
+      } else {
+        row.isAbate = false;
+        row.diasParaAbate = null;
+      }
+
     } else {
       row.evolucao = 0;
       row.gmd = 0;
       row.isTypoWarning = false;
+      row.isTimeTravelWarning = false;
+      row.arrobas = 0;
+      row.diasParaAbate = null;
+      row.isAbate = false;
     }
     
     setRows(newRows);
@@ -430,9 +466,26 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     e.target.value = '';
   };
 
-  // #8 — Smart save with confirmation for partial saves
+  // #8 — Smart save with confirmation for partial saves & business rules
   const handleSaveClick = (e: React.FormEvent) => {
     e.preventDefault();
+
+    const typedRows = rows.filter(r => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight)));
+    
+    // Check Time Travel
+    const hasTimeTravel = typedRows.some(r => r.isTimeTravelWarning);
+    if (hasTimeTravel) {
+      alert('❌ Erro Zootécnico: Existem animais com Data de Pesagem inferior à última pesagem registrada. Corrija a data padrão ou remova a pesagem desses animais.');
+      return;
+    }
+
+    // Check Nutrition Warning (Safra)
+    const loosingWeightCount = typedRows.filter(r => r.gmd < 0).length;
+    if (typedRows.length > 0 && loosingWeightCount / typedRows.length >= 0.3) {
+      const confirmNutrition = confirm(`⚠️ ALERTA AGRONÔMICO: ${(loosingWeightCount / typedRows.length * 100).toFixed(0)}% deste lote apresentou perda de peso. Recomenda-se avaliar o pasto ou suplementação. Deseja registrar as pesagens mesmo assim?`);
+      if (!confirmNutrition) return;
+    }
+
     const pending = rows.length - filledCount;
     if (pending > 0 && filledCount > 0) {
       // Show inline summary instead of confirm dialog
@@ -503,7 +556,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   const avgGmd = typedRows.length > 0 ? typedRows.reduce((sum, r) => sum + r.gmd, 0) / typedRows.length : 0;
   const totalGain = typedRows.reduce((sum, r) => sum + r.evolucao, 0);
   const warningCount = typedRows.filter(r => r.isTypoWarning).length;
-  const abateCount = typedRows.filter(r => parseFloat(r.newWeight) >= 450).length;
+  const abateCount = typedRows.filter(r => parseFloat(r.newWeight) >= (activeFarm?.pesoAbateKg || 450)).length;
 
   // #1 — progress bar color
   const progressColor = progressPct === 100 ? '#10b981' : progressPct >= 50 ? 'hsl(var(--brand))' : 'hsl(38 92% 50%)';
@@ -517,6 +570,97 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       icon={Scale}
       size="xlarge"
       hideSubmit={true}
+      customFooter={
+        <div style={{ padding: '0px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', overflow: 'hidden' }}>
+            {rows.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '4px' }}>
+                <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                  Progresso:
+                </span>
+                <span style={{ fontSize: '11.5px', fontWeight: 900, color: progressColor, whiteSpace: 'nowrap' }}>
+                  {filledCount}/{rows.length}
+                </span>
+                <div style={{ width: '80px', height: '6px', background: 'hsl(var(--bg-main))', borderRadius: '3px', overflow: 'hidden', display: 'inline-block' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${progressPct}%`,
+                    background: progressPct === 100
+                      ? 'linear-gradient(90deg, #10b981, #059669)'
+                      : progressPct >= 50
+                      ? 'linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.8))'
+                      : 'linear-gradient(90deg, hsl(38 92% 50%), hsl(38 92% 65%))',
+                    borderRadius: '3px',
+                    transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }} />
+                </div>
+                <span style={{ fontSize: '11.5px', fontWeight: 900, color: progressColor, whiteSpace: 'nowrap' }}>
+                  {progressPct.toFixed(0)}%
+                </span>
+                {warningCount > 0 && (
+                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'hsl(38 92% 50%)', background: 'hsl(38 92% 50% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(38 92% 50% / 0.2)', whiteSpace: 'nowrap' }}>
+                    ⚠️ {warningCount}
+                  </span>
+                )}
+                {abateCount > 0 && (
+                  <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#10b981', background: 'hsl(142 71% 45% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(142 71% 45% / 0.2)', whiteSpace: 'nowrap' }}>
+                    🏆 {abateCount}
+                  </span>
+                )}
+                <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', marginLeft: '4px' }} />
+              </div>
+            )}
+
+            {filledCount > 0 ? (
+              <>
+                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  Média: <strong style={{ color: 'hsl(var(--text-main))' }}>{avgNewWeight.toFixed(1)} kg</strong>
+                </span>
+                <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', flexShrink: 0 }} />
+                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  GMD: <strong style={{ color: avgGmd >= 0 ? '#10b981' : '#ef4444' }}>{avgGmd.toFixed(2)} kg/dia</strong>
+                </span>
+                <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', flexShrink: 0 }} />
+                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                  Ganho total: <strong style={{ color: totalGain >= 0 ? '#10b981' : '#ef4444' }}>{totalGain >= 0 ? `+${totalGain.toFixed(1)}` : totalGain.toFixed(1)} kg</strong>
+                </span>
+              </>
+            ) : (
+              <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted) / 0.5)', fontWeight: 600 }}>
+                Preencha os pesos para ver as estatísticas
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button type="button" onClick={onClose} className="glass-btn secondary" style={{ padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveClick}
+              disabled={isSubmitting || filledCount === 0}
+              className="primary-btn"
+              style={{
+                padding: '10px 24px', borderRadius: '12px', fontSize: '13px', fontWeight: 900,
+                cursor: isSubmitting || filledCount === 0 ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                opacity: filledCount === 0 ? 0.5 : 1,
+                background: pendingCount > 0 && filledCount > 0 ? 'linear-gradient(135deg, hsl(38 92% 45%), hsl(38 92% 55%))' : undefined,
+                boxShadow: filledCount > 0 ? '0 4px 14px hsl(var(--brand) / 0.3)' : 'none'
+              }}
+            >
+              {isSubmitting ? (
+                <><Loader2 size={16} className="spin" /> Salvando...</>
+              ) : pendingCount > 0 && filledCount > 0 ? (
+                <><AlertTriangle size={16} /> Salvar {filledCount} de {rows.length}</>
+              ) : (
+                <><CheckCircle2 size={16} /> Salvar {filledCount} Pesagens</>
+              )}
+            </button>
+          </div>
+        </div>
+      }
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
         {/* ── Filters Row ── */}
@@ -710,16 +854,16 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                 <tr style={{ background: 'hsl(var(--bg-card))', borderBottom: '2px solid hsl(var(--border))' }}>
                   <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Animal / Brinco</th>
                   <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Peso Anterior (kg)</th>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center', width: '180px' }}>Novo Peso (kg)</th>
+                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center', width: '220px' }}>Novo Peso (kg | @)</th>
                   <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Evolução (kg)</th>
                   <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>GMD Projetado</th>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Status</th>
+                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center', width: '200px' }}>Status / Predição</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, index) => {
                   const newW = parseFloat(row.newWeight);
-                  const isAbate = !isNaN(newW) && newW >= 450;
+                  const isAbate = !isNaN(newW) && newW >= (activeFarm?.pesoAbateKg || 450);
                   const isPesado = row.newWeight !== '' && !isNaN(newW);
                   const isFocused = focusedIndex === index;
 
@@ -761,91 +905,107 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                       </td>
 
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <input
-                          type="number"
-                          step="0.1"
-                          id={`weight-input-${index}`}
-                          placeholder="0.00"
-                          value={row.newWeight}
-                          onChange={(e) => handleWeightChange(index, e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, index)}
-                          onFocus={() => { setActiveFocusedIndex(index); setFocusedIndex(index); }}
-                          onBlur={() => setFocusedIndex(null)}
-                          style={{
-                            width: '100%', padding: '8px 12px',
-                            background: isFocused ? 'hsl(var(--brand) / 0.05)' : 'hsl(var(--bg-card))',
-                            border: row.isTypoWarning
-                              ? '1.5px solid hsl(38 92% 50%)'
-                              : isFocused
-                              ? '1.5px solid hsl(var(--brand))'
-                              : isPesado
-                              ? '1.5px solid hsl(142 71% 45% / 0.4)'
-                              : '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            color: 'hsl(var(--text-main))',
-                            fontSize: '14px', fontWeight: 800, textAlign: 'center', outline: 'none',
-                            boxShadow: row.isTypoWarning ? '0 0 0 3px hsl(38 92% 50% / 0.15)' :
-                              isFocused ? '0 0 0 3px hsl(var(--brand) / 0.12)' : 'none',
-                            transition: 'all 0.15s'
-                          }}
-                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                          <input
+                            type="number"
+                            step="0.1"
+                            id={`weight-input-${index}`}
+                            placeholder="0.00"
+                            value={row.newWeight}
+                            onChange={(e) => handleWeightChange(index, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, index)}
+                            onFocus={() => { setActiveFocusedIndex(index); setFocusedIndex(index); }}
+                            onBlur={() => setFocusedIndex(null)}
+                            style={{
+                              width: '100%', padding: '8px 12px',
+                              background: isFocused ? 'hsl(var(--brand) / 0.05)' : 'hsl(var(--bg-card))',
+                              border: row.isTimeTravelWarning
+                                ? '1.5px solid #ef4444'
+                                : row.isTypoWarning
+                                ? '1.5px solid hsl(38 92% 50%)'
+                                : isFocused
+                                ? '1.5px solid hsl(var(--brand))'
+                                : isPesado
+                                ? '1.5px solid hsl(142 71% 45% / 0.4)'
+                                : '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              color: 'hsl(var(--text-main))',
+                              fontSize: '14px', fontWeight: 800, textAlign: 'center', outline: 'none',
+                              boxShadow: row.isTimeTravelWarning ? '0 0 0 3px rgba(239, 68, 68, 0.15)' :
+                                row.isTypoWarning ? '0 0 0 3px hsl(38 92% 50% / 0.15)' :
+                                isFocused ? '0 0 0 3px hsl(var(--brand) / 0.12)' : 'none',
+                              transition: 'all 0.15s'
+                            }}
+                          />
+                          {row.arrobas > 0 && !row.isTimeTravelWarning && (
+                            <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--brand))', background: 'hsl(var(--brand) / 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
+                              ~ {row.arrobas.toFixed(1)} @
+                            </div>
+                          )}
+                          {row.isTimeTravelWarning && (
+                            <div style={{ fontSize: '10px', fontWeight: 800, color: '#ef4444', marginTop: '2px' }}>
+                              Data Retroativa!
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       <td style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'center' }}>
-                        {row.newWeight ? (
+                        {row.newWeight && !row.isTimeTravelWarning ? (
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <span style={{
                               fontSize: '13px', fontWeight: 900,
                               color: row.evolucao > 0 ? '#10b981' : row.evolucao < 0 ? '#ef4444' : 'hsl(var(--text-muted))'
                             }}>
-                              {row.evolucao >= 0 ? `+${row.evolucao.toFixed(2)}` : row.evolucao.toFixed(2)} kg
-                            </span>
-                            <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted) / 0.7)', marginTop: '2px', fontWeight: 600 }}>
-                              {(((parseFloat(row.newWeight?.toString().replace(/[^\d.-]/g, '')) || 0) * 0.54) / 15).toFixed(1)} @
+                              {row.evolucao > 0 ? '+' : ''}{row.evolucao.toFixed(2)} kg
                             </span>
                           </div>
                         ) : (
-                          <span style={{ color: 'hsl(var(--text-muted) / 0.35)', fontSize: '12px' }}>--</span>
+                          <span style={{ color: 'hsl(var(--text-muted) / 0.5)', fontSize: '12px' }}>--</span>
                         )}
                       </td>
 
                       <td style={{ padding: '12px 16px', fontWeight: 800, textAlign: 'center' }}>
-                        {row.newWeight ? (
-                          <span style={{
-                            fontSize: '13px', fontWeight: 900,
-                            color: row.gmd >= 0.8 ? '#10b981' : row.gmd >= 0.4 ? 'hsl(38 92% 50%)' : row.gmd < 0 ? '#ef4444' : 'hsl(var(--text-main))'
-                          }}>
-                            {row.gmd.toFixed(2)}
-                            <span style={{ fontSize: '9px', color: 'hsl(var(--text-muted))', fontWeight: 600, marginLeft: '2px' }}>kg/dia</span>
-                          </span>
+                        {row.newWeight && !row.isTimeTravelWarning ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <span style={{
+                              fontSize: '13px', fontWeight: 900,
+                              color: row.gmd > 0 ? '#10b981' : row.gmd < 0 ? '#ef4444' : 'hsl(var(--text-muted))'
+                            }}>
+                              {row.gmd > 0 ? '+' : ''}{row.gmd.toFixed(3)} kg/d
+                            </span>
+                          </div>
                         ) : (
-                          <span style={{ color: 'hsl(var(--text-muted) / 0.35)', fontSize: '12px' }}>--</span>
+                          <span style={{ color: 'hsl(var(--text-muted) / 0.5)', fontSize: '12px' }}>--</span>
                         )}
                       </td>
 
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                          {row.isTypoWarning && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'hsl(38 92% 50% / 0.1)', color: 'hsl(38 92% 50%)', padding: '2px 8px', borderRadius: '6px', fontSize: '9.5px', fontWeight: 800, textTransform: 'uppercase' }}>
-                              <AlertTriangle size={10} /> Alerta
-                            </span>
-                          )}
-                          {isAbate && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'hsl(142 71% 45% / 0.1)', color: '#10b981', padding: '2px 8px', borderRadius: '6px', fontSize: '9.5px', fontWeight: 900, textTransform: 'uppercase' }}>
-                              <Award size={10} /> Abate
-                            </span>
-                          )}
-                          {isPesado && !row.isTypoWarning && !isAbate && (
-                            <span style={{ fontSize: '10px', fontWeight: 700, color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
-                              <CheckCircle2 size={12} /> OK
-                            </span>
-                          )}
-                          {!isPesado && (
-                            <span style={{ color: 'hsl(var(--text-muted) / 0.4)', fontSize: '11px', fontWeight: 600 }}>
-                              {isFocused ? '✏️ Digitando...' : 'Pendente'}
-                            </span>
-                          )}
-                        </div>
+                        {!isPesado ? (
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', padding: '4px 10px', background: 'hsl(var(--bg-main))', borderRadius: '12px' }}>
+                            Pendente
+                          </span>
+                        ) : row.isTimeTravelWarning ? (
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#ef4444', padding: '4px 10px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px' }}>
+                            Bloqueado (Data)
+                          </span>
+                        ) : row.isTypoWarning ? (
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(38 92% 50%)', padding: '4px 10px', background: 'hsl(38 92% 50% / 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                            <AlertTriangle size={12} /> Divergência
+                          </span>
+                        ) : row.isAbate ? (
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: '#10b981', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                            🏆 Ponto de Abate
+                          </span>
+                        ) : row.diasParaAbate !== null ? (
+                          <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--brand))', padding: '4px 10px', background: 'hsl(var(--brand) / 0.1)', borderRadius: '12px' }}>
+                            ⏳ Faltam {row.diasParaAbate}d
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px' }}>
+                            Pesado
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -901,103 +1061,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
           </div>
         )}
 
-        {/* ── Footer ── */}
-        <div style={{
-          borderTop: '1px solid hsl(var(--border) / 0.5)',
-          background: 'hsl(var(--bg-card) / 0.3)',
-          marginTop: 'auto'
-        }}>
-          {/* Stats + Buttons row */}
-          <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', overflow: 'hidden' }}>
-              {rows.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '4px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                    Progresso:
-                  </span>
-                  <span style={{ fontSize: '11.5px', fontWeight: 900, color: progressColor, whiteSpace: 'nowrap' }}>
-                    {filledCount}/{rows.length}
-                  </span>
-                  <div style={{ width: '80px', height: '6px', background: 'hsl(var(--bg-main))', borderRadius: '3px', overflow: 'hidden', display: 'inline-block' }}>
-                    <div style={{
-                      height: '100%',
-                      width: `${progressPct}%`,
-                      background: progressPct === 100
-                        ? 'linear-gradient(90deg, #10b981, #059669)'
-                        : progressPct >= 50
-                        ? 'linear-gradient(90deg, hsl(var(--brand)), hsl(var(--brand) / 0.8))'
-                        : 'linear-gradient(90deg, hsl(38 92% 50%), hsl(38 92% 65%))',
-                      borderRadius: '3px',
-                      transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }} />
-                  </div>
-                  <span style={{ fontSize: '11.5px', fontWeight: 900, color: progressColor, whiteSpace: 'nowrap' }}>
-                    {progressPct.toFixed(0)}%
-                  </span>
-                  {warningCount > 0 && (
-                    <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'hsl(38 92% 50%)', background: 'hsl(38 92% 50% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(38 92% 50% / 0.2)', whiteSpace: 'nowrap' }}>
-                      ⚠️ {warningCount}
-                    </span>
-                  )}
-                  {abateCount > 0 && (
-                    <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#10b981', background: 'hsl(142 71% 45% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(142 71% 45% / 0.2)', whiteSpace: 'nowrap' }}>
-                      🏆 {abateCount}
-                    </span>
-                  )}
-                  <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', marginLeft: '4px' }} />
-                </div>
-              )}
 
-              {filledCount > 0 ? (
-                <>
-                  <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                    Média: <strong style={{ color: 'hsl(var(--text-main))' }}>{avgNewWeight.toFixed(1)} kg</strong>
-                  </span>
-                  <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', flexShrink: 0 }} />
-                  <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                    GMD: <strong style={{ color: avgGmd >= 0 ? '#10b981' : '#ef4444' }}>{avgGmd.toFixed(2)} kg/dia</strong>
-                  </span>
-                  <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', flexShrink: 0 }} />
-                  <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted))', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                    Ganho total: <strong style={{ color: totalGain >= 0 ? '#10b981' : '#ef4444' }}>{totalGain >= 0 ? `+${totalGain.toFixed(1)}` : totalGain.toFixed(1)} kg</strong>
-                  </span>
-                </>
-              ) : (
-                <span style={{ fontSize: '11.5px', color: 'hsl(var(--text-muted) / 0.5)', fontWeight: 600 }}>
-                  Preencha os pesos para ver as estatísticas
-                </span>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button type="button" onClick={onClose} className="glass-btn secondary" style={{ padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveClick}
-                disabled={isSubmitting || filledCount === 0}
-                className="primary-btn"
-                style={{
-                  padding: '10px 24px', borderRadius: '12px', fontSize: '13px', fontWeight: 900,
-                  cursor: isSubmitting || filledCount === 0 ? 'not-allowed' : 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  opacity: filledCount === 0 ? 0.5 : 1,
-                  background: pendingCount > 0 && filledCount > 0 ? 'linear-gradient(135deg, hsl(38 92% 45%), hsl(38 92% 55%))' : undefined,
-                  boxShadow: filledCount > 0 ? '0 4px 14px hsl(var(--brand) / 0.3)' : 'none'
-                }}
-              >
-                {isSubmitting ? (
-                  <><Loader2 size={16} className="spin" /> Salvando...</>
-                ) : pendingCount > 0 && filledCount > 0 ? (
-                  <><AlertTriangle size={16} /> Salvar {filledCount} de {rows.length}</>
-                ) : (
-                  <><CheckCircle2 size={16} /> Salvar {filledCount} Pesagens</>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
 
         <style>{`
           .batch-row-hover:hover { background: hsl(var(--brand) / 0.02) !important; }

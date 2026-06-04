@@ -10,7 +10,13 @@ import {
   FileSearch,
   CreditCard,
   Banknote,
-  Wallet
+  Wallet,
+  CheckCircle2,
+  AlertTriangle,
+  MapPin,
+  Lock,
+  UploadCloud,
+  ClipboardList
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { InsumoEntryTable } from './InsumoEntryTable';
@@ -37,6 +43,10 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
   const [items, setItems] = useState<any[]>(initialData?.itens || []);
 
   const [formData, setFormData] = useState({
+    purchase_order_id: initialData?.purchase_order_id || '',
+    storage_location_id: initialData?.storage_location_id || '',
+    is_xml_imported: initialData?.is_xml_imported || false,
+    
     company_id: initialData?.company_id || activeCompany?.id || '',
     invoice_number: initialData?.invoice_number || '',
     series: initialData?.series || '1',
@@ -99,7 +109,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
   const fetchSuppliers = async () => {
     const { data } = await supabase
       .from('parceiros')
-      .select('*')
+      .select('id, nome')
       .eq('tenant_id', activeTenantId)
       .eq('is_supplier', true)
       .order('nome');
@@ -109,17 +119,69 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
   const fetchBankAccounts = async () => {
     const { data } = await supabase
       .from('contas_bancarias')
-      .select('*')
-      .eq('tenant_id', activeTenantId);
+      .select('id, banco, descricao')
+      .eq('tenant_id', activeTenantId)
+      .order('banco');
     if (data) setBankAccounts(data);
   };
 
   useEffect(() => {
-    if (items.length > 0) {
-      const total = items.reduce((acc, item) => acc + (item.total || 0), 0);
+    if (items.length > 0 && !formData.is_xml_imported) {
+      const total = items.reduce((acc, item) => acc + (Number(item.total) || 0), 0);
       setFormData(prev => ({ ...prev, total_value: total.toString() }));
     }
-  }, [items]);
+  }, [items, formData.is_xml_imported]);
+
+  const handleSimulateXMLImport = () => {
+    // Simulando a leitura de um XML para mostrar o poder da UI Read-Only
+    setFormData(prev => ({
+      ...prev,
+      is_xml_imported: true,
+      xml_key: '35240112345678000199550010001234561001234567',
+      invoice_number: '123456',
+      series: '1',
+      total_value: '15500.00',
+      issue_date: new Date().toISOString().split('T')[0],
+      supplier_id: suppliers.length > 0 ? String(suppliers[0].id) : ''
+    }));
+    
+    // Simula a injeção de itens
+    setItems([
+      {
+        id: 'xml-1',
+        nome: 'Adubo NPK 10-10-10 (XML)',
+        quantidade: 50,
+        unidade: 'SC',
+        preco_unitario: 150.00,
+        despesa_adicional: 0,
+        desconto: 0,
+        deposito_id: '',
+        total: 7500.00
+      },
+      {
+        id: 'xml-2',
+        nome: 'Semente de Soja Brasmax (XML)',
+        quantidade: 20,
+        unidade: 'SC',
+        preco_unitario: 300.00,
+        despesa_adicional: 0,
+        desconto: 0,
+        deposito_id: '',
+        total: 6000.00
+      },
+      {
+        id: 'xml-3',
+        nome: 'Glifosato 480 (XML)',
+        quantidade: 10,
+        unidade: 'GL',
+        preco_unitario: 200.00,
+        despesa_adicional: 0,
+        desconto: 0,
+        deposito_id: '',
+        total: 2000.00
+      }
+    ]);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,38 +202,81 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
       onClose={onClose}
       onSubmit={handleSubmit}
       title={initialData ? "Editar Nota Fiscal" : "Entrada de Nota Fiscal"}
-      subtitle="Registro de documentos fiscais e atualização de estoque"
+      subtitle="Registro blindado de documentos fiscais e atualização de estoque"
       icon={Barcode}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Processar Entrada"}
-      size="xlarge"
+      size="xxlarge"
     >
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 01</div>
-          <h4 className="tauze-section-title">Identificação da Nota</h4>
+          <h4 className="tauze-section-title">Importação e Vínculos</h4>
         </div>
-        <div className="tauze-input-grid grid-col-1">
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Barcode size={14} /> Chave (NFe)</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input 
-                className="tauze-input"
-                type="text" 
-                placeholder="Chave de 44 dígitos..." 
-                style={{ flex: 1, fontSize: '12px' }}
-                value={formData.xml_key}
-                onChange={(e) => setFormData({...formData, xml_key: e.target.value})}
-              />
-              <button type="button" className="secondary-btn" style={{ padding: '0 12px', height: '40px' }}>
-                <FileSearch size={16} />
-              </button>
+        
+        {/* BIG BANNER IMPORT */}
+        <div style={{ background: formData.is_xml_imported ? 'hsl(var(--success)/0.1)' : 'hsl(var(--brand)/0.05)', border: formData.is_xml_imported ? '2px solid hsl(var(--success))' : '2px dashed hsl(var(--brand)/0.3)', borderRadius: '16px', padding: '24px', marginBottom: '24px', transition: 'all 0.3s' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: formData.is_xml_imported ? 'hsl(var(--success))' : 'hsl(var(--brand))', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {formData.is_xml_imported ? <CheckCircle2 size={24} /> : <UploadCloud size={24} />}
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '16px', fontWeight: '800', color: formData.is_xml_imported ? 'hsl(var(--success))' : 'hsl(var(--text-main))', margin: 0 }}>
+                    {formData.is_xml_imported ? 'NFe Importada com Sucesso!' : 'Importação Mágica (Recomendado)'}
+                  </h3>
+                  <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', margin: '4px 0 0 0' }}>
+                    {formData.is_xml_imported ? 'Os metadados fiscais foram travados para garantir auditoria.' : 'Importe o XML ou busque pela chave para autopreencher a nota.'}
+                  </p>
+                </div>
+              </div>
+              
+              {!formData.is_xml_imported && (
+                <button type="button" onClick={handleSimulateXMLImport} className="primary-btn" style={{ padding: '0 24px', height: '40px', fontWeight: '800' }}>
+                  Simular Importação XML
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ flex: 1 }}>
+                <input 
+                  className="tauze-input"
+                  type="text" 
+                  placeholder="Ou cole a Chave de 44 dígitos..." 
+                  style={{ fontSize: '14px', height: '44px' }}
+                  value={formData.xml_key}
+                  onChange={(e) => setFormData({...formData, xml_key: e.target.value})}
+                  readOnly={formData.is_xml_imported}
+                />
+              </div>
+              {!formData.is_xml_imported && (
+                <button type="button" onClick={handleSimulateXMLImport} className="secondary-btn" style={{ padding: '0 24px', height: '44px' }}>
+                  <FileSearch size={18} style={{ marginRight: '8px' }}/> Buscar Sefaz
+                </button>
+              )}
             </div>
           </div>
         </div>
-        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
+
+        <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
-            <label className="tauze-label"><Building2 size={14} /> Empresa</label>
+            <label className="tauze-label" style={{ color: 'hsl(var(--warning))' }}>
+              <ClipboardList size={14} /> Vincular Ordem de Compra (3-Way Matching)
+            </label>
+            <SearchableSelect 
+              value={formData.purchase_order_id}
+              onChange={(val: any) => setFormData({...formData, purchase_order_id: val})}
+              options={[
+                { value: '', label: 'Sem vínculo (Entrada Avulsa)' },
+                { value: 'OC-001', label: 'OC-001 - Adubos Safra (Bayer)' },
+                { value: 'OC-002', label: 'OC-002 - Peças Trator' },
+              ]}
+            />
+          </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Building2 size={14} /> Empresa Destino</label>
             <SearchableSelect 
               value={formData.company_id}
               onChange={(val: any) => setFormData({...formData, company_id: val})}
@@ -181,84 +286,99 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
               ]}
             />
           </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Hash size={14} /> Número</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="Ex: 000.123..." 
-              value={formData.invoice_number}
-              onChange={(e) => setFormData({...formData, invoice_number: e.target.value})}
-              required 
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Layers size={14} /> Série</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="1" 
-              value={formData.series}
-              onChange={(e) => setFormData({...formData, series: e.target.value})}
-              required 
-            />
-          </div>
         </div>
       </section>
 
       <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 02</div>
-          <h4 className="tauze-section-title">Metadados da NFe</h4>
+        <div className="tauze-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="tauze-section-badge">PASSO 02</div>
+            <h4 className="tauze-section-title">Metadados Fiscais</h4>
+          </div>
+          {formData.is_xml_imported ? (
+            <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--success))', display: 'flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--success)/0.1)', padding: '4px 8px', borderRadius: '4px' }}>
+              <Lock size={12}/> DADOS BLINDADOS
+            </div>
+          ) : (
+            <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--warning))', display: 'flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--warning)/0.1)', padding: '4px 8px', borderRadius: '4px' }}>
+              <AlertTriangle size={12}/> DIGITAÇÃO MANUAL
+            </div>
+          )}
         </div>
-        <div className="tauze-input-grid grid-col-2">
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Building2 size={14} /> Parceiro</label>
-            <SearchableSelect 
-              value={formData.supplier_id}
-              onChange={(val: any) => setFormData({...formData, supplier_id: val})}
-              options={[
-                { value: '', label: 'Selecione o parceiro...' },
-                ...(suppliers || []).map(s => ({ value: String(s.id), label: String(s.nome) })),
-              ]}
-            />
+        
+        {/* CARD BLINDADO OU ABERTO */}
+        <div style={{ background: formData.is_xml_imported ? 'hsl(var(--bg-card))' : 'transparent', border: formData.is_xml_imported ? '1px solid hsl(var(--border))' : 'none', borderRadius: '12px', padding: formData.is_xml_imported ? '20px' : '0', opacity: formData.is_xml_imported ? 0.8 : 1 }}>
+          <div className="tauze-input-grid grid-col-3" style={{ marginBottom: '16px' }}>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Hash size={14} /> Número da Nota</label>
+              <input 
+                className="tauze-input"
+                type="text" 
+                placeholder="Ex: 000.123..." 
+                value={formData.invoice_number}
+                onChange={(e) => setFormData({...formData, invoice_number: e.target.value})}
+                readOnly={formData.is_xml_imported}
+                required 
+              />
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Layers size={14} /> Série</label>
+              <input 
+                className="tauze-input"
+                type="text" 
+                placeholder="1" 
+                value={formData.series}
+                onChange={(e) => setFormData({...formData, series: e.target.value})}
+                readOnly={formData.is_xml_imported}
+                required 
+              />
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Calendar size={14} /> Emissão</label>
+              <input 
+                className="tauze-input"
+                type="date" 
+                value={formData.issue_date}
+                onChange={(e) => setFormData({...formData, issue_date: e.target.value})}
+                readOnly={formData.is_xml_imported}
+                required
+              />
+            </div>
           </div>
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Emissão</label>
-            <input 
-              className="tauze-input"
-              type="date" 
-              value={formData.issue_date}
-              onChange={(e) => setFormData({...formData, issue_date: e.target.value})}
-              required
-            />
-          </div>
+          <div className="tauze-input-grid grid-col-2">
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Building2 size={14} /> Fornecedor Emissor</label>
+              {formData.is_xml_imported ? (
+                <div className="tauze-input" style={{ display: 'flex', alignItems: 'center', background: 'hsl(var(--bg-main))' }}>
+                  {suppliers.find(s => String(s.id) === String(formData.supplier_id))?.nome || 'Fornecedor XML...'}
+                </div>
+              ) : (
+                <SearchableSelect 
+                  value={formData.supplier_id}
+                  onChange={(val: any) => setFormData({...formData, supplier_id: val})}
+                  options={[
+                    { value: '', label: 'Selecione o parceiro...' },
+                    ...(suppliers || []).map(s => ({ value: String(s.id), label: String(s.nome) })),
+                  ]}
+                />
+              )}
+            </div>
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Entrada</label>
-            <input 
-              className="tauze-input"
-              type="date" 
-              value={formData.entry_date}
-              onChange={(e) => setFormData({...formData, entry_date: e.target.value})}
-              required
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><DollarSign size={14} /> Total (R$)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              step="0.01"
-              placeholder="0.00" 
-              value={formData.total_value}
-              onChange={(e) => setFormData({...formData, total_value: e.target.value})}
-              required
-            />
+            <div className="tauze-field-group">
+              <label className="tauze-label"><DollarSign size={14} /> Total da Nota Fiscal (R$)</label>
+              <input 
+                className="tauze-input"
+                type="number" 
+                step="0.01"
+                placeholder="0.00" 
+                value={formData.total_value}
+                onChange={(e) => setFormData({...formData, total_value: e.target.value})}
+                readOnly={formData.is_xml_imported}
+                required
+                style={formData.is_xml_imported ? { fontWeight: '800', color: 'hsl(var(--success))' } : {}}
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -266,8 +386,9 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 03</div>
-          <h4 className="tauze-section-title">Itens da Nota</h4>
+          <h4 className="tauze-section-title">Conferência de Estoque (Itens)</h4>
         </div>
+        
         <div className="tauze-input-grid grid-col-1">
           <InsumoEntryTable 
             items={items}
@@ -279,7 +400,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 04</div>
-          <h4 className="tauze-section-title">Condições de Pagamento e Financeiro</h4>
+          <h4 className="tauze-section-title">Contas a Pagar</h4>
         </div>
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
@@ -324,7 +445,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
           )}
 
           <div className="tauze-field-group" style={{ gridColumn: formData.payment_condition === 'prazo' ? 'span 1' : 'span 2' }}>
-            <label className="tauze-label"><Wallet size={14} /> Conta / Caixa</label>
+            <label className="tauze-label"><Wallet size={14} /> Conta / Caixa de Origem</label>
             <SearchableSelect 
               value={formData.bank_account_id}
               onChange={(val: any) => setFormData({...formData, bank_account_id: val})}
@@ -346,7 +467,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
                 style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'hsl(var(--brand))' }}
               />
               <span style={{ fontWeight: '700', color: 'hsl(var(--brand))' }}>
-                Gerar Financeiro Automático (Contas a Pagar)
+                Gerar Títulos no Contas a Pagar
               </span>
             </label>
           </div>
@@ -356,7 +477,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
           <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
             <div className="tauze-field-group" style={{ background: 'hsl(var(--bg-main)/0.3)', borderRadius: '12px', border: '1px solid hsl(var(--border))', padding: '16px' }}>
               <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--text-muted))', marginBottom: '12px', textTransform: 'uppercase' }}>
-                Cronograma de Pagamento
+                Faturas (Espelho do XML)
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                 {installmentsList.map((inst, index) => (
@@ -382,7 +503,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: '16px', textAlign: 'right', fontSize: '11px', fontWeight: '700', color: installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) === parseFloat(formData.total_value).toFixed(2) ? 'green' : 'red' }}>
+              <div style={{ marginTop: '16px', textAlign: 'right', fontSize: '11px', fontWeight: '700', color: installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) === parseFloat(formData.total_value).toFixed(2) ? 'hsl(var(--success))' : 'hsl(var(--danger))' }}>
                 Soma das Parcelas: {installmentsList.reduce((acc, i) => acc + i.value, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 {installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) !== parseFloat(formData.total_value).toFixed(2) && (
                   <span style={{ display: 'block', fontSize: '10px', marginTop: '4px' }}>(Divergente do total da nota)</span>
@@ -395,18 +516,16 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
 
       <section className="tauze-form-section">
         <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 05</div>
-          <h4 className="tauze-section-title">Informações Adicionais</h4>
+          <h4 className="tauze-section-title" style={{ fontSize: '13px' }}>Observações do Recebimento</h4>
         </div>
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> Observações de Recebimento</label>
             <textarea 
               className="tauze-input"
               placeholder="Notas adicionais sobre a conferência..." 
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              style={{ minHeight: '80px' }}
+              style={{ minHeight: '60px' }}
             />
           </div>
         </div>

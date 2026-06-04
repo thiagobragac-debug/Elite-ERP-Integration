@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -317,6 +317,57 @@ export const FuelManagement: React.FC = () => {
       align: 'center' as const
     }
   ];
+  const autonomyAnalysis = useMemo(() => {
+    if (!logs || logs.length === 0) return [];
+
+    const grouped = logs.reduce((acc: any, log: any) => {
+      const id = log.maquina_id;
+      if (!id) return acc;
+      
+      if (!acc[id]) {
+        acc[id] = {
+          nome: log.maquinas?.nome || 'Desconhecido',
+          unidade_medida: log.tipo_combustivel === 'Especial' ? 'km' : 'horas', // Placeholder if not fully fetched
+          litrosTotais: 0,
+          custoTotal: 0,
+          medidores: [],
+        };
+      }
+      
+      acc[id].litrosTotais += Number(log.litros || 0);
+      acc[id].custoTotal += Number(log.valor_total || 0);
+      if (log.valor_medidor) {
+        acc[id].medidores.push(Number(log.valor_medidor));
+      }
+      
+      return acc;
+    }, {});
+
+    return Object.values(grouped).map((m: any) => {
+      let deltaMedidor = 0;
+      let consumoReal = 0;
+      
+      if (m.medidores.length > 1) {
+        const min = Math.min(...m.medidores);
+        const max = Math.max(...m.medidores);
+        deltaMedidor = max - min;
+        
+        if (deltaMedidor > 0) {
+          if (m.unidade_medida === 'horas') {
+            consumoReal = m.litrosTotais / deltaMedidor; // L/h
+          } else {
+            consumoReal = deltaMedidor / m.litrosTotais; // km/L
+          }
+        }
+      }
+      
+      return {
+        ...m,
+        deltaMedidor,
+        consumoReal
+      };
+    }).sort((a: any, b: any) => b.custoTotal - a.custoTotal);
+  }, [logs]);
 
   return (
     <div className="fuel-page animate-slide-up">
@@ -508,40 +559,82 @@ export const FuelManagement: React.FC = () => {
         hideSubmit={true}
       >
         <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            {Object.entries(
-              logs.reduce((acc: any, log: any) => {
-                const name = log.maquinas?.nome || 'Desconhecido';
-                if (!acc[name]) acc[name] = { litros: 0, abastecimentos: 0, custo: 0 };
-                acc[name].litros += Number(log.litros);
-                acc[name].abastecimentos += 1;
-                acc[name].custo += Number(log.valor_total);
-                return acc;
-              }, {})
-            ).map(([name, data]: [string, any]) => (
-              <div key={name} style={{ background: 'hsl(var(--bg-main)/0.5)', padding: '20px', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span style={{ fontWeight: 800, fontSize: '14px' }}>{name}</span>
-                  <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--brand))', background: 'hsl(var(--brand)/0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-                    {(data.litros / data.abastecimentos).toFixed(1)} L/médio
-                  </span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 700, textTransform: 'uppercase' }}>Consumido</label>
-                    <span style={{ fontWeight: 800 }}>{data.litros.toLocaleString()} L</span>
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 700, textTransform: 'uppercase' }}>Custo</label>
-                    <span style={{ fontWeight: 800 }}>{data.custo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+          {autonomyAnalysis.length === 0 ? (
+            <EmptyState 
+              title="Sem dados de telemetria"
+              description="Registre mais de um abastecimento para a mesma máquina com o horímetro preenchido para calcular o L/h real."
+              icon={Activity}
+            />
+          ) : (
+            <>
+              {/* Executive Summary */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ padding: '16px', background: 'hsl(var(--bg-main))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}><DollarSign size={12}/> Gasto Total Frota</span>
+                  <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '8px', color: '#ef4444' }}>
+                    {autonomyAnalysis.reduce((acc, curr) => acc + curr.custoTotal, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </div>
                 </div>
-                <div style={{ height: '4px', background: 'hsl(var(--border))', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.min(100, (data.litros / 1000) * 100)}%`, height: '100%', background: 'hsl(var(--brand))' }} />
+                <div style={{ padding: '16px', background: 'hsl(var(--bg-main))', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}><Droplets size={12}/> Volume Queimado</span>
+                  <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '8px', color: '#3b82f6' }}>
+                    {autonomyAnalysis.reduce((acc, curr) => acc + curr.litrosTotais, 0).toLocaleString()} L
+                  </div>
+                </div>
+                <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}><TrendingDown size={12}/> Top Despesa</span>
+                  <div style={{ fontSize: '16px', fontWeight: 800, marginTop: '8px', color: '#1e293b' }}>
+                    {autonomyAnalysis[0]?.nome}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Ranking Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+                {autonomyAnalysis.map((m: any, index: number) => {
+                  const isGargalo = index < 2 && m.custoTotal > 5000;
+                  return (
+                    <div key={index} style={{ background: 'hsl(var(--bg-main)/0.5)', padding: '20px', borderRadius: '16px', border: `1px solid ${isGargalo ? '#ef4444' : 'hsl(var(--border))'}`, position: 'relative', overflow: 'hidden' }}>
+                      {isGargalo && <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#ef4444' }} />}
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', paddingLeft: isGargalo ? '12px' : '0' }}>
+                        <div>
+                          <span style={{ fontWeight: 800, fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {m.nome}
+                            {isGargalo && <span style={{ fontSize: '10px', background: '#ef4444', color: 'white', padding: '2px 6px', borderRadius: '12px' }}>GARGALO</span>}
+                          </span>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: '20px', fontWeight: 900, color: isGargalo ? '#ef4444' : '#1e293b' }}>
+                            {m.consumoReal > 0 ? m.consumoReal.toFixed(1) : '---'} <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>{m.unidade_medida === 'horas' ? 'L/h' : 'km/L'}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', background: 'hsl(var(--bg-main))', padding: '12px', borderRadius: '8px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 700, textTransform: 'uppercase' }}>Trabalho (Período)</label>
+                          <span style={{ fontWeight: 700, color: '#3b82f6' }}>{m.deltaMedidor > 0 ? m.deltaMedidor : '---'} {m.unidade_medida === 'horas' ? 'h' : 'km'}</span>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 700, textTransform: 'uppercase' }}>Volume</label>
+                          <span style={{ fontWeight: 700, color: '#1e293b' }}>{m.litrosTotais.toLocaleString()} L</span>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 700, textTransform: 'uppercase' }}>Custo Total</label>
+                          <span style={{ fontWeight: 700, color: '#ef4444' }}>{m.custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 700, textTransform: 'uppercase' }}>Abastecimentos</label>
+                          <span style={{ fontWeight: 700, color: '#1e293b' }}>{m.medidores.length}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </SidePanel>
     </div>

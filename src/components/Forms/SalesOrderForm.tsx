@@ -12,7 +12,9 @@ import {
   Building2,
   Banknote,
   Wallet,
-  CreditCard
+  CreditCard,
+  Briefcase,
+  Lock
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { InsumoEntryTable } from './InsumoEntryTable';
@@ -42,6 +44,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
   const [formData, setFormData] = useState({
     company_id: initialData?.company_id || activeCompany?.id || '',
     clientId: initialData?.client_id || '',
+    seller_id: initialData?.seller_id || '',
     orderNumber: initialData?.order_number || '',
     date: initialData?.date || new Date().toISOString().split('T')[0],
     status: initialData?.status || 'pending',
@@ -81,7 +84,8 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
     const { data } = await supabase
       .from('contas_bancarias')
       .select('*')
-      .eq('tenant_id', activeTenantId);
+      .eq('tenant_id', activeTenantId)
+      .order('banco');
     if (data) setBankAccounts(data);
   };
 
@@ -121,7 +125,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
   // Auto-calculate total from items
   useEffect(() => {
     const total = (formData.items || []).reduce((acc: number, item: any) => acc + (item.total || 0), 0);
-    if (total > 0 && total !== formData.totalValue) {
+    if (total !== formData.totalValue) {
       setFormData(prev => ({ ...prev, totalValue: total }));
     }
   }, [formData.items]);
@@ -139,24 +143,26 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
     }
   };
 
+  const comissaoEmReais = (formData.totalValue * (formData.comissao / 100)).toFixed(2);
+
   return (
     <SidePanel
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
       title={initialData ? "Editar Pedido de Venda" : "Novo Pedido de Venda"}
-      subtitle="Registre os detalhes da venda e logística de saída."
+      subtitle="Registre os detalhes da venda comercial e comissões."
       icon={ShoppingCart}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Pedido"}
-      size="xlarge"
+      size="xxlarge"
     >
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 01</div>
-          <h4 className="tauze-section-title">Identificação do Pedido</h4>
+          <h4 className="tauze-section-title">Identificação Comercial</h4>
         </div>
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
             <label className="tauze-label"><Building2 size={14} /> Empresa / Unidade Vendedora</label>
             <SearchableSelect 
@@ -180,7 +186,23 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
               ]}
             />
           </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label" style={{ color: 'hsl(var(--brand))' }}>
+              <Briefcase size={14} /> Vendedor / Representante
+            </label>
+            <SearchableSelect 
+              value={formData.seller_id}
+              onChange={(val: any) => setFormData({...formData, seller_id: val})}
+              options={[
+                { value: '', label: 'Selecione o vendedor...' },
+                { value: 'vend-1', label: 'João Silva (Interno)' },
+                { value: 'vend-2', label: 'Mário Consultor Agro' },
+              ]}
+            />
+          </div>
         </div>
+        
         <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><Hash size={14} /> Número do Pedido (PV)</label>
@@ -229,12 +251,14 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
         <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
             <label className="tauze-label"><Truck size={14} /> Transportadora</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="Nome da empresa..." 
+            <SearchableSelect 
               value={formData.transportadora}
-              onChange={(e) => setFormData({...formData, transportadora: e.target.value})}
+              onChange={(val: any) => setFormData({...formData, transportadora: val})}
+              options={[
+                { value: '', label: 'Frota Própria' },
+                { value: 'trans-1', label: 'TransAgro Logística' },
+                { value: 'trans-2', label: 'Expresso Safra' },
+              ]}
             />
           </div>
 
@@ -243,24 +267,24 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
             <input 
               className="tauze-input"
               type="text" 
-              placeholder="ABC-1234" 
+              placeholder="Ex: ABC-1234" 
               value={formData.placa_veiculo}
-              onChange={(e) => setFormData({...formData, placa_veiculo: e.target.value})}
+              onChange={(e) => setFormData({...formData, placa_veiculo: e.target.value.toUpperCase()})}
             />
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> GTA</label>
+            <label className="tauze-label"><FileText size={14} /> GTA (Guia de Trânsito)</label>
             <input 
               className="tauze-input"
               type="text" 
-              placeholder="Número GTA" 
+              placeholder="Número GTA..." 
               value={formData.numero_gta}
               onChange={(e) => setFormData({...formData, numero_gta: e.target.value})}
             />
           </div>
         </div>
-        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
+        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '12px', border: '1px solid hsl(var(--brand)/0.2)' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><TrendingUp size={14} /> Comissão (%)</label>
             <input 
@@ -270,6 +294,16 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
               placeholder="0.0" 
               value={formData.comissao}
               onChange={(e) => setFormData({...formData, comissao: parseFloat(e.target.value) || 0})}
+            />
+          </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label" style={{ color: 'hsl(var(--brand))' }}><DollarSign size={14} /> Valor da Comissão (R$)</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              value={`R$ ${comissaoEmReais}`}
+              readOnly
+              style={{ fontWeight: '800', background: 'transparent', border: '1px dashed hsl(var(--brand)/0.5)', color: 'hsl(var(--brand))' }}
             />
           </div>
         </div>
@@ -286,19 +320,22 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
             onChange={(items) => setFormData({ ...formData, items })}
           />
         </div>
-        <div className="tauze-input-grid grid-col-3" style={{ marginTop: '16px' }}>
-          <div className="tauze-field-group" style={{ gridColumn: '1 / span 2' }}></div>
-          <div className="tauze-field-group">
-            <label className="tauze-label"><DollarSign size={14} /> Valor Total (R$)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              step="0.01"
-              placeholder="0.00" 
-              value={formData.totalValue}
-              onChange={(e) => setFormData({...formData, totalValue: parseFloat(e.target.value) || 0})}
-              required
-            />
+        
+        {/* METADADOS BLINDADOS */}
+        <div style={{ marginTop: '16px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ width: '300px' }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--success))', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+              <Lock size={12}/> TOTAL TRAVADO PELOS ITENS
+            </div>
+            <div className="tauze-field-group">
+              <input 
+                className="tauze-input"
+                type="text" 
+                value={formData.totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                readOnly
+                style={{ fontWeight: '900', fontSize: '18px', color: 'hsl(var(--success))', background: 'hsl(var(--bg-card))', textAlign: 'right', padding: '12px' }}
+              />
+            </div>
           </div>
         </div>
       </section>
@@ -366,15 +403,15 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
 
         <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '12px', border: '1px dashed hsl(var(--brand)/0.3)', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'hsl(var(--success)/0.05)', padding: '16px', borderRadius: '12px', border: '1px dashed hsl(var(--success)/0.3)', cursor: 'pointer' }}>
               <input 
                 type="checkbox" 
                 checked={formData.generate_financial}
                 onChange={(e) => setFormData({...formData, generate_financial: e.target.checked})}
-                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'hsl(var(--brand))' }}
+                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'hsl(var(--success))' }}
               />
-              <span style={{ fontWeight: '700', color: 'hsl(var(--brand))' }}>
-                Gerar Financeiro Automático (Contas a Receber)
+              <span style={{ fontWeight: '700', color: 'hsl(var(--success))' }}>
+                Gerar Títulos no Contas a Receber
               </span>
             </label>
           </div>
@@ -434,7 +471,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
               placeholder="Detalhes sobre a entrega, local de embarque ou condições especiais..." 
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}
-              style={{ minHeight: '80px' }}
+              style={{ minHeight: '60px' }}
             />
           </div>
         </div>

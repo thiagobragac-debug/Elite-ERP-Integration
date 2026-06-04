@@ -10,7 +10,11 @@ import {
   DollarSign,
   TrendingUp,
   Building2,
-  MapPin
+  MapPin,
+  Calculator,
+  Activity,
+  Award,
+  CircleDot
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
@@ -28,10 +32,13 @@ interface AnimalFormProps {
 export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const [formData, setFormData] = useState({
     brinco: '',
+    brinco_eletronico: '',
     raca: '',
     sexo: 'M',
     data_nascimento: '',
+    idade_meses: '',
     fazenda_id: '',
+    lote_id: '',
     pasto_id: '',
     status: 'Ativo',
     peso_inicial: '',
@@ -46,11 +53,13 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
   const { activeTenantId } = useTenant();
   const [fazendas, setFazendas] = useState<any[]>([]);
   const [pastos, setPastos] = useState<any[]>([]);
+  const [lotes, setLotes] = useState<any[]>([]);
   const [racas, setRacas] = useState<any[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingFazendas, setLoadingFazendas] = useState(false);
   const [loadingPastos, setLoadingPastos] = useState(false);
+  const [loadingLotes, setLoadingLotes] = useState(false);
 
   React.useEffect(() => {
     if (isOpen && activeTenantId) {
@@ -61,10 +70,13 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     if (initialData) {
       setFormData({
         brinco: initialData.brinco || '',
+        brinco_eletronico: initialData.brinco_eletronico || '',
         raca: initialData.raca || '',
         sexo: initialData.sexo || 'M',
         data_nascimento: initialData.data_nascimento || '',
+        idade_meses: initialData.idade_meses || '',
         fazenda_id: initialData.fazenda_id || '',
+        lote_id: initialData.lote_id || '',
         pasto_id: initialData.pasto_id || '',
         status: initialData.status || 'Ativo',
         peso_inicial: initialData.peso_inicial ? initialData.peso_inicial.toString().replace(/[^\d.-]/g, '') : '',
@@ -79,10 +91,13 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     } else {
       setFormData({
         brinco: '',
+        brinco_eletronico: '',
         raca: '',
         sexo: 'M',
         data_nascimento: '',
+        idade_meses: '',
         fazenda_id: '',
+        lote_id: '',
         pasto_id: '',
         status: 'Ativo',
         peso_inicial: '',
@@ -100,8 +115,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
   React.useEffect(() => {
     if (formData.fazenda_id) {
       fetchPastos(formData.fazenda_id);
+      fetchLotes(formData.fazenda_id);
     } else {
       setPastos([]);
+      setLotes([]);
     }
   }, [formData.fazenda_id]);
 
@@ -136,6 +153,70 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
       setLoadingPastos(false);
     }
   };
+
+  const fetchLotes = async (fazendaId: string) => {
+    setLoadingLotes(true);
+    try {
+      const { data } = await supabase
+        .from('lotes')
+        .select('id, nome')
+        .eq('fazenda_id', fazendaId)
+        .order('nome');
+      setLotes(data || []);
+    } catch {
+      setLotes([]);
+    } finally {
+      setLoadingLotes(false);
+    }
+  };
+
+  // UX: Sincronizar Data de Nascimento <-> Idade em Meses
+  const handleIdadeChange = (meses: string) => {
+    setFormData(prev => {
+      if (!meses) return { ...prev, idade_meses: '', data_nascimento: '' };
+      const m = parseInt(meses);
+      if (isNaN(m)) return prev;
+      const date = new Date();
+      date.setMonth(date.getMonth() - m);
+      return { ...prev, idade_meses: meses, data_nascimento: date.toISOString().split('T')[0] };
+    });
+  };
+
+  const handleDataNascimentoChange = (dataStr: string) => {
+    setFormData(prev => {
+      if (!dataStr) return { ...prev, data_nascimento: '', idade_meses: '' };
+      const birth = new Date(dataStr);
+      const now = new Date();
+      let months = (now.getFullYear() - birth.getFullYear()) * 12;
+      months -= birth.getMonth();
+      months += now.getMonth();
+      if (months < 0) months = 0;
+      return { ...prev, data_nascimento: dataStr, idade_meses: months.toString() };
+    });
+  };
+
+  // Regra de Negócio: Sugestão de Categoria Automática
+  React.useEffect(() => {
+    if (!formData.data_nascimento && !formData.idade_meses) return;
+    const months = parseInt(formData.idade_meses) || 0;
+    
+    let suggestedCat = formData.categoria;
+    
+    if (formData.sexo === 'M') {
+      if (months <= 12) suggestedCat = 'Bezerro';
+      else if (months <= 24) suggestedCat = 'Garrote';
+      else if (months <= 36) suggestedCat = 'Boi Magro';
+      else suggestedCat = 'Boi Gordo';
+    } else {
+      if (months <= 12) suggestedCat = 'Bezerra';
+      else if (months <= 24) suggestedCat = 'Novilha';
+      else suggestedCat = 'Vaca';
+    }
+
+    if (suggestedCat !== formData.categoria) {
+      setFormData(prev => ({ ...prev, categoria: suggestedCat }));
+    }
+  }, [formData.idade_meses, formData.sexo]);
 
   const fetchRacas = async () => {
     if (!activeTenantId) return;
@@ -205,6 +286,17 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     }
   };
 
+  // Regra Financeira: Cálculo do Custo por Arroba Estimado
+  const custoArroba = React.useMemo(() => {
+    const valor = parseFloat(formData.valor_compra);
+    const peso = parseFloat(formData.peso_inicial);
+    if (!isNaN(valor) && !isNaN(peso) && peso > 0) {
+      const arrobas = peso / 30;
+      return (valor / arrobas).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    return null;
+  }, [formData.valor_compra, formData.peso_inicial]);
+
   return (
     <SidePanel
       isOpen={isOpen}
@@ -224,7 +316,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         </div>
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
-            <label className="tauze-label"><Hash size={14} /> Número do Brinco</label>
+            <label className="tauze-label"><Hash size={14} /> Brinco Visual (Manejo)</label>
             <input 
               className="tauze-input"
               type="text" 
@@ -233,6 +325,38 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
               onChange={(e) => setFormData({...formData, brinco: e.target.value})}
               required 
             />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><CircleDot size={14} /> Brinco Eletrônico (RFID)</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: 076 0000 1234 5678" 
+              value={formData.brinco_eletronico}
+              onChange={(e) => setFormData({...formData, brinco_eletronico: e.target.value})}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Nascimento / Idade</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <input 
+                className="tauze-input"
+                type="date" 
+                title="Data de Nascimento"
+                value={formData.data_nascimento}
+                onChange={(e) => handleDataNascimentoChange(e.target.value)}
+              />
+              <input 
+                className="tauze-input"
+                type="number" 
+                placeholder="Idade (meses)" 
+                title="Idade em Meses"
+                value={formData.idade_meses}
+                onChange={(e) => handleIdadeChange(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="tauze-field-group">
@@ -245,16 +369,6 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
                 ...racas.map(r => ({ value: r.nome, label: r.nome }))
               ]}
               creatable={true}
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Data de Nascimento</label>
-            <input 
-              className="tauze-input"
-              type="date" 
-              value={formData.data_nascimento}
-              onChange={(e) => setFormData({...formData, data_nascimento: e.target.value})}
             />
           </div>
 
@@ -296,16 +410,29 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           <div className="tauze-section-badge">PASSO 02</div>
           <h4 className="tauze-section-title">Localização do Animal</h4>
         </div>
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
             <label className="tauze-label"><Building2 size={14} /> Fazenda de Destino</label>
             <SearchableSelect 
               value={formData.fazenda_id}
-              onChange={(val: any) => setFormData({...formData, fazenda_id: val, pasto_id: ''})}
+              onChange={(val: any) => setFormData({...formData, fazenda_id: val, pasto_id: '', lote_id: ''})}
               disabled={loadingFazendas}
               options={[
                 { value: '', label: loadingFazendas ? 'Carregando fazendas...' : 'Selecionar Fazenda...' },
                 ...fazendas.map(f => ({ value: String(f.id), label: f.nome }))
+              ]}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Award size={14} /> Lote de Destino (Opcional)</label>
+            <SearchableSelect 
+              value={formData.lote_id}
+              onChange={(val: any) => setFormData({...formData, lote_id: val})}
+              disabled={!formData.fazenda_id || loadingLotes}
+              options={[
+                { value: '', label: !formData.fazenda_id ? 'Selecione a fazenda' : loadingLotes ? 'Carregando lotes...' : 'Sem lote definido' },
+                ...lotes.map(l => ({ value: String(l.id), label: l.nome }))
               ]}
             />
           </div>
@@ -317,7 +444,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
               onChange={(val: any) => setFormData({...formData, pasto_id: val})}
               disabled={!formData.fazenda_id || loadingPastos}
               options={[
-                { value: '', label: !formData.fazenda_id ? 'Selecione a fazenda primeiro' : loadingPastos ? 'Carregando pastos...' : 'Sem pasto definido' },
+                { value: '', label: !formData.fazenda_id ? 'Selecione a fazenda' : loadingPastos ? 'Carregando pastos...' : 'Sem pasto definido' },
                 ...pastos.map(p => ({ value: String(p.id), label: p.nome }))
               ]}
             />
@@ -372,7 +499,14 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           </div>
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><DollarSign size={14} /> Valor de Compra (R$)</label>
+            <label className="tauze-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span><DollarSign size={14} /> Valor de Compra (R$)</span>
+              {custoArroba && formData.origem === 'Comprado' && (
+                <span className="carencia-badge" style={{ padding: '2px 8px', fontSize: '10px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', borderRadius: '4px' }}>
+                  Aprox. {custoArroba} / @
+                </span>
+              )}
+            </label>
             <input 
               className="tauze-input"
               type="number" 
@@ -404,7 +538,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Beef size={14} /> Categoria</label>
+            <label className="tauze-label"><Beef size={14} /> Categoria {formData.idade_meses ? <span style={{fontSize:'10px', color:'var(--brand)'}}>(Auto-Sugerido)</span> : ''}</label>
             <SearchableSelect 
               value={formData.categoria}
               onChange={handleCategoriaChange}
