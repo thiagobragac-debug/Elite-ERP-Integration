@@ -50,6 +50,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { PurchaseRequestFilterModal } from './components/PurchaseRequestFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const PurchaseRequest: React.FC = () => {
   const { activeTenantId } = useTenant();
@@ -330,10 +331,7 @@ export const PurchaseRequest: React.FC = () => {
     <div className="requests-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <ShoppingCart size={14} fill="currentColor" />
-            <span>TAUZE PROCUREMENT v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Solicitação de Compra' }]} />
           <h1 className="page-title">Solicitação de Compra</h1>
           <p className="page-subtitle">Fluxo interno de requisições de materiais, serviços e reposição de ativos em tempo real.</p>
         </div>

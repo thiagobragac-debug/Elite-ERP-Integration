@@ -49,6 +49,7 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ClientManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
@@ -429,10 +430,7 @@ export const ClientManagement: React.FC = () => {
       )}
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Users size={14} fill="currentColor" />
-            <span>TAUZE CRM v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Vendas', href: '/vendas/dashboard' }, { label: 'Gestão de Clientes' }]} />
           <h1 className="page-title">Gestão de Clientes</h1>
           <p className="page-subtitle">Gestão de clientes, análise de crédito e histórico comercial consolidado em tempo real.</p>
         </div>

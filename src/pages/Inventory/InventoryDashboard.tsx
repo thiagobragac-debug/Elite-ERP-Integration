@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -38,6 +38,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const InventoryDashboard: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, applyTenantFilter, activeTenantId } = useFarmFilter();
@@ -194,10 +195,7 @@ export const InventoryDashboard: React.FC = () => {
     <div className="inventory-hub animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Package size={14} fill="currentColor" />
-            <span>INVENTORY INTELLIGENCE HUB</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Gestão Estratégica de Estoque' }]} />
           <h1 className="page-title">Gestão Estratégica de Estoque</h1>
           <p className="page-subtitle">Visão executiva de patrimônio, ruptura de estoque e rastreabilidade de insumos.</p>
         </div>
@@ -347,7 +345,7 @@ export const InventoryDashboard: React.FC = () => {
       </div>
 
       <style>{`
-        .inventory-hub { padding: 24px; }
+        .inventory-hub { }
         .inventory-hub-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 24px; }
         .hub-section { background: hsl(var(--bg-card)); border-radius: 24px; border: 1px solid hsl(var(--border)); padding: 24px; box-shadow: var(--shadow-sm); }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }

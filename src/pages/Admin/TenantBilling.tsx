@@ -24,6 +24,7 @@ import { isValidUUID } from '../../utils/validation';
 import { BillingFilterModal } from './components/BillingFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const TenantBilling: React.FC = () => {
   const { tenant } = useTenant();
@@ -262,10 +263,7 @@ export const TenantBilling: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <DollarSign size={14} fill="currentColor" />
-            <span>FINANCEIRO & ASSINATURA</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Gestão de Assinatura' }]} />
           <h1 className="page-title">Gestão de Assinatura</h1>
           <p className="page-subtitle">Gerencie seu plano atual, faturas e opções de upgrade.</p>
         </div>

@@ -32,6 +32,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import './LivestockDashboard.css';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const LivestockDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -172,10 +173,7 @@ export const LivestockDashboard: React.FC = () => {
     <div className="livestock-dashboard animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Zap size={14} fill="currentColor" />
-            <span>TAUZE LIVESTOCK INTELLIGENCE</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Intelligence Hub' }]} />
           <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Visão 360º da performance biológica, sanitária e nutricional do rebanho.</p>
         </div>

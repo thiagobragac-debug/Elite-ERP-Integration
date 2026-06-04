@@ -36,6 +36,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { FinanceFilterModal } from './components/FinanceFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import './CashFlow.css';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
@@ -294,10 +295,8 @@ export const CashFlow: React.FC = () => {
     <div className="cash-flow-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge premium">
-            <Sparkles size={14} fill="currentColor" />
-            <span>TAUZE TREASURY v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Financeiro & Banco', href: '/financeiro' }, { label: 'Fluxo de Caixa' }]} />
+
           <h1 className="page-title">Fluxo de Caixa Unificado</h1>
           <p className="page-subtitle">Gestão operacional e inteligência financeira avançada em um único dashboard.</p>
         </div>

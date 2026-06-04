@@ -24,6 +24,7 @@ import {
 import { Globe, Calendar, Filter, TrendingUp, TrendingDown, DollarSign, Activity, BarChart2 } from 'lucide-react';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 interface QuoteData {
   date: string;
@@ -234,10 +235,7 @@ export const MarketSeasonality: React.FC = () => {
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Calendar size={14} fill="currentColor" />
-            <span>SAZONALIDADE</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Mercado', href: '/mercado/indicadores' }, { label: 'Comparativo Ano a Ano' }]} />
           <h1 className="page-title">Comparativo Ano a Ano</h1>
           <p className="page-subtitle">Sobreposição de curvas históricas para identificar ciclos de safra e entressafra</p>
         </div>

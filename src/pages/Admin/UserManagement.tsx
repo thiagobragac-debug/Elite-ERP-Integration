@@ -64,6 +64,7 @@ import { UserFilterModal } from './components/UserFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const UserManagement: React.FC = () => {
   const { activeFarm, userProfile, refreshProfile } = useTenant();
@@ -719,10 +720,7 @@ export const UserManagement: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Lock size={14} fill="currentColor" />
-            <span>TAUZE ACCESS v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Governança & Segurança de Acesso' }]} />
           <h1 className="page-title">Governança & Segurança de Acesso</h1>
           <p className="page-subtitle">Gestão estratégica de identidades, perfis de permissão e políticas críticas de segurança.</p>
         </div>

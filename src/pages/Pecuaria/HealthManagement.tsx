@@ -33,6 +33,7 @@ import { HealthProtocolsModal } from './components/HealthProtocolsModal';
 import { HealthFilterModal } from './components/HealthFilterModal';
 import './HealthManagement.css';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const HealthManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -270,10 +271,7 @@ export const HealthManagement: React.FC = () => {
     <div className="health-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <ShieldCheck size={14} fill="currentColor" />
-            <span>TAUZE LIVESTOCK v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão Sanitária' }]} />
           <h1 className="page-title">Gestão Sanitária</h1>
           <p className="page-subtitle">Rastreabilidade de vacinas, tratamentos e controle de carência medicamentosa em tempo real.</p>
         </div>

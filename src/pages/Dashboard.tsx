@@ -24,6 +24,7 @@ import { useFarmFilter } from '../hooks/useFarmFilter';
 import { useReportData } from '../hooks/useReportData';
 import { TauzeStatCard } from '../components/Cards/TauzeStatCard';
 import './Dashboard.css';
+import { Breadcrumb } from '../components/Navigation/Breadcrumb';
 
 export const Dashboard: React.FC = () => {
   const { activeFarm } = useFarmFilter();
@@ -64,10 +65,7 @@ export const Dashboard: React.FC = () => {
     <div className="dashboard-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <LayoutGrid size={14} fill="currentColor" />
-            <span>TAUZE PANORAMA v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Tauze Pecuária' }, { label: 'Panorama Tauze' }]} />
           <h1 className="page-title">Panorama Tauze</h1>
           <p className="page-subtitle">Visão consolidada da operação agropecuária na unidade {activeFarm?.name || 'Global'} em tempo real.</p>
         </div>

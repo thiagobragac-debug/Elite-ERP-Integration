@@ -16,6 +16,7 @@ import { motion } from 'framer-motion';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const WarehouseDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -235,10 +236,7 @@ export const WarehouseDetails: React.FC = () => {
             <ArrowLeft size={20} />
           </button>
           <div className="header-brand-group" style={{ margin: 0 }}>
-            <div className="brand-badge">
-              <Layout size={14} fill="currentColor" />
-              <span>DETALHES DO DEPÓSITO</span>
-            </div>
+            <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: warehouse?.nome || 'Carregando...' }]} />
             <h1 className="page-title">{warehouse?.nome || 'Carregando...'}</h1>
             <p className="page-subtitle">
               {warehouse?.tipo || 'Depósito'} • {warehouse?.localizacao_tecnica || 'Sede'}

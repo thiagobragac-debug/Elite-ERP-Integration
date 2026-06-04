@@ -51,6 +51,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const CompanyManagement: React.FC = () => {
   const { activeFarm, tenant, activeTenantId } = useTenant();
@@ -499,10 +500,7 @@ export const CompanyManagement: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Building2 size={14} fill="currentColor" />
-            <span>TAUZE ADMIN v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Gestão de Unidades & Matrizes' }]} />
           <h1 className="page-title">Gestão de Unidades & Matrizes</h1>
           <p className="page-subtitle">Governança organizacional de instâncias produtivas, matrizes e filiais do ecossistema.</p>
         </div>

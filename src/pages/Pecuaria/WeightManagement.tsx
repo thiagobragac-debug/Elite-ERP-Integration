@@ -30,6 +30,7 @@ import { ScaleConfigModal } from './components/ScaleConfigModal';
 import { WeightFilterModal } from './components/WeightFilterModal';
 import { BatchWeightModal } from '../../components/Modals/BatchWeightModal';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 
 // Brazilian Cattle Market Lot Performance Dashboard
@@ -581,10 +582,7 @@ export const WeightManagement: React.FC = () => {
     <div className="weight-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Scale size={14} fill="currentColor" />
-            <span>TAUZE LIVESTOCK v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Controle de Pesagem' }]} />
           <h1 className="page-title">Controle de Pesagem</h1>
           <p className="page-subtitle">Monitoramento de ganho de peso individual e performance do lote em tempo real.</p>
         </div>

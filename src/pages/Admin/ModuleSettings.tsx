@@ -4,6 +4,7 @@ import { CategorySettingsTab } from './CategoryManagement';
 import { SystemSettingsTab } from './SystemSettingsTab';
 import { RoleSettingsTab } from './RoleManagement';
 import { NcmSettingsTab } from '../Inventory/InventorySettings';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ModuleSettings: React.FC = () => {
   const [activeModule, setActiveModule] = useState('sistema');
@@ -90,10 +91,7 @@ export const ModuleSettings: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Settings size={14} fill="currentColor" />
-            <span>CENTRAL DE GOVERNANÇA v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Configuração de Módulos' }]} />
           <h1 className="page-title">Configuração de Módulos</h1>
           <p className="page-subtitle">Centralize parâmetros, categorias e regras fiscais de todos os módulos.</p>
         </div>

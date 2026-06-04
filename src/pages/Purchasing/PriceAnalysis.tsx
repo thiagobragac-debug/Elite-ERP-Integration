@@ -36,6 +36,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const PriceAnalysis: React.FC = () => {
   const { activeFarm } = useTenant();
@@ -239,10 +240,7 @@ export const PriceAnalysis: React.FC = () => {
     <div className="price-analysis-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <TrendingUp size={14} fill="currentColor" />
-            <span>TAUZE INTELLIGENCE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Análise de Preço' }]} />
           <h1 className="page-title">Análise de Preço</h1>
           <p className="page-subtitle">Monitoramento de variações de custo, tendências de mercado e inteligência de compra baseada em dados históricos.</p>
         </div>

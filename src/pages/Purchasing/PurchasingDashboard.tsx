@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -36,6 +36,7 @@ import { supabase } from '../../lib/supabase';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { 
   BarChart, 
   Bar, 
@@ -209,10 +210,7 @@ export const PurchasingDashboard: React.FC = () => {
     <div className="purchasing-hub animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: '#6366f115', color: '#6366f1', border: '1px solid #6366f120' }}>
-            <ShoppingCart size={12} fill="currentColor" />
-            <span>TAUZE PROCUREMENT INTELLIGENCE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Intelligence Hub' }]} />
           <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Centro de comando estratégico para gestão de suprimentos e eficiência logística.</p>
         </div>
@@ -407,7 +405,7 @@ export const PurchasingDashboard: React.FC = () => {
       </div>
 
       <style>{`
-        .purchasing-hub { padding: 24px; }
+        .purchasing-hub { }
         .purchasing-hub-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-top: 24px; }
         .hub-section { background: hsl(var(--bg-card)); border-radius: 24px; border: 1px solid hsl(var(--border)); padding: 24px; box-shadow: var(--shadow-sm); }
         .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }

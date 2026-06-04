@@ -56,6 +56,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { FleetFilterModal } from './components/FleetFilterModal';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const FleetManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -449,10 +450,7 @@ export const FleetManagement: React.FC = () => {
     <div className="fleet-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Truck size={14} fill="currentColor" />
-            <span>TAUZE FLEET v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Frota & Máquinas', href: '/frota/dashboard' }, { label: 'Gestão de Frota' }]} />
           <h1 className="page-title">Gestão de Frota</h1>
           <p className="page-subtitle">Telemetria de ativos, controle de manutenção e eficiência operacional do maquinário em tempo real.</p>
         </div>

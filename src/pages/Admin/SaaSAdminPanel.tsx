@@ -61,6 +61,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'campaigns' | 'billing' | 'health' | 'settings';
 
@@ -1717,10 +1718,7 @@ export const SaaSAdminPanel: React.FC = () => {
       />
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            {React.createElement(tabConfig[activeTab].icon, { size: 14, fill: "currentColor" })}
-            <span>SAAS INFRASTRUCTURE v5.1 - Live</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: tabConfig[activeTab].title }]} />
           <h1 className="page-title">
             {tabConfig[activeTab].title}
           </h1>

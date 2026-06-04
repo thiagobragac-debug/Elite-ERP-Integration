@@ -35,6 +35,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const WarehouseManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const [warehouses, setWarehouses] = useState<any[]>([]);
@@ -337,10 +338,7 @@ export const WarehouseManagement: React.FC = () => {
     <div className="inventory-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Layout size={14} fill="currentColor" />
-            <span>TAUZE WAREHOUSE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Gestão de Depósitos' }]} />
           <h1 className="page-title">Gestão de Depósitos</h1>
           <p className="page-subtitle">Configuração de almoxarifados, silos e centros de distribuição vinculados à unidade.</p>
         </div>

@@ -15,6 +15,7 @@ import { ModernTable } from '../../../components/DataTable/ModernTable';
 import { EmptyState } from '../../../components/Feedback/EmptyState';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../../components/Navigation/Breadcrumb';
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const ANO_ATUAL = new Date().getFullYear();
@@ -387,10 +388,8 @@ export const LCDPRPage: React.FC = () => {
       {/* Header */}
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge premium">
-            <BookOpen size={14} fill="currentColor" />
-            <span>TAUZE LCDPR</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Financeiro & Banco', href: '/financeiro' }, { label: 'Obrigações Fiscais' }]} />
+
           <h1 className="page-title">Livro Caixa Digital do Produtor Rural</h1>
           <p className="page-subtitle">Escrituração fiscal da atividade rural · Geração do arquivo para entrega à Receita Federal</p>
         </div>

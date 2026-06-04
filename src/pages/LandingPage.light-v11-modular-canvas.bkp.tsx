@@ -179,9 +179,7 @@ export const LandingPage: React.FC = () => {
       <nav className={`matrix-navbar ${scrolled ? 'elevated' : ''}`}>
         <div className="navbar-inner">
           <div className="brand-logo-group">
-            <div className="brand-badge">
-              <TauzeLogo size={34} />
-            </div>
+            <Breadcrumb paths={[{ label: 'Tauze Pecuária' }, { label: 'Página' }]} />
             <div className="brand-title-column">
               <span className="brand-name">tauze</span>
               <span className="brand-description">Enterprise Agribusiness Suite</span>
@@ -1092,6 +1090,7 @@ export const LandingPage: React.FC = () => {
       {/* -------------------- EMBEDDED SYSTEM MODULAR DESIGN -------------------- */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+import { Breadcrumb } from '../components/Navigation/Breadcrumb';
 
         .tauze-erp-matrix {
           /* Color Design Tokens */

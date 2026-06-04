@@ -59,6 +59,7 @@ import { formatNumber } from '../../utils/format';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const InventoryManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
@@ -545,10 +546,7 @@ export const InventoryManagement: React.FC = () => {
     <div className="inventory-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Package size={14} fill="currentColor" />
-            <span>TAUZE INVENTORY v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Gestão de Insumos' }]} />
           <h1 className="page-title">Gestão de Insumos</h1>
           <p className="page-subtitle">Rastreabilidade de estoque, custo médio e predição de suprimentos em tempo real.</p>
         </div>

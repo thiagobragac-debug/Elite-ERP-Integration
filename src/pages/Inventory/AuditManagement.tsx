@@ -50,6 +50,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { AuditFilterModal } from './components/AuditFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const AuditManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
@@ -344,10 +345,7 @@ export const AuditManagement: React.FC = () => {
     <div className="audit-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <ClipboardCheck size={14} fill="currentColor" />
-            <span>TAUZE AUDIT v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Inventário & Auditoria' }]} />
           <h1 className="page-title">Inventário & Auditoria</h1>
           <p className="page-subtitle">Reconciliação física vs. contábil, análise de divergências e controle rigoroso de perdas.</p>
         </div>

@@ -38,6 +38,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ConfinementManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload, isGlobalMode } = useFarmFilter();
@@ -275,10 +276,7 @@ export const ConfinementManagement: React.FC = () => {
     <div className="confinement-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Building2 size={14} fill="currentColor" />
-            <span>TAUZE LIVESTOCK v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Módulo Confinamento' }]} />
           <h1 className="page-title">Módulo Confinamento</h1>
           <p className="page-subtitle">Terminação intensiva, controle de DOF e projeção de performance em tempo real.</p>
         </div>

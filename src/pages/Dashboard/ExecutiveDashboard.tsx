@@ -41,6 +41,7 @@ import { isValidUUID } from '../../utils/validation';
 import { generateHistoricalSparkline } from '../../lib/tauze_historical_engine';
 
 import './ExecutiveDashboard.css';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -559,10 +560,7 @@ export const ExecutiveDashboard: React.FC = () => {
     <div className={`executive-page animate-slide-up ${isTVMode ? 'tv-mode' : ''}`}>
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Zap size={14} fill="currentColor" />
-            <span>TAUZE INTELLIGENCE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Dashboard', href: '/painel' }, { label: isGlobalMode ? 'Centro de Comando Global' : 'Centro de Comando' }]} />
           <h1 className="page-title">{isGlobalMode ? 'Centro de Comando Global' : 'Centro de Comando'}</h1>
           <p className="page-subtitle">Visão analítica consolidada do patrimônio e performance produtiva. <span style={{color: 'var(--brand)', fontWeight: 800}}>(SISTEMA ATIVO)</span></p>
         </div>

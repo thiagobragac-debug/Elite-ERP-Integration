@@ -22,6 +22,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const AdminIntelligenceHub: React.FC = () => {
   const { tenant } = useTenant();
@@ -97,10 +98,7 @@ export const AdminIntelligenceHub: React.FC = () => {
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Activity size={14} fill="currentColor" />
-            <span>ADMIN INTELLIGENCE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Intelligence Hub Administrativo' }]} />
           <h1 className="page-title">Intelligence Hub Administrativo</h1>
           <p className="page-subtitle">Visão estratégica de governança, conformidade de segurança e saúde operacional do tenant.</p>
         </div>
@@ -211,24 +209,7 @@ export const AdminIntelligenceHub: React.FC = () => {
       </div>
 
       <style>{`
-        .admin-intelligence-page {
-          display: flex;
-          flex-direction: column;
-          gap: 24px;
-        }
-
-        .admin-intelligence-grid {
-          display: grid;
-          grid-template-columns: 2fr 1fr 1fr;
-          gap: 24px;
-        }
-
-        .intelligence-panel {
-          background: hsl(var(--bg-card));
-          border-radius: 28px;
-          border: 1px solid #f1f5f9;
-          padding: 24px;
-          display: flex;
+        display: flex;
           flex-direction: column;
           gap: 20px;
         }

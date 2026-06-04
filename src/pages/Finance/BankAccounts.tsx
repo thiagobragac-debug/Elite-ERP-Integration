@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -54,6 +54,7 @@ import { isValidUUID } from '../../utils/validation';
 import { useViewMode } from '../../hooks/useViewMode';
 
 import { useTenant } from '../../contexts/TenantContext';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const BankAccounts: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -420,12 +421,9 @@ export const BankAccounts: React.FC = () => {
     <div className="bank-accounts-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <ShieldCheck size={14} fill="currentColor" />
-            <span>TAUZE TREASURY v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Financeiro', href: '/financeiro/intelligence' }, { label: 'Gestão de Tesouraria' }]} />
           <h1 className="page-title">Gestão de Tesouraria</h1>
-          <p className="page-subtitle">Centralização de saldos bancários, monitoramento de custódia e controle de liquidez.</p>
+          <p className="page-subtitle" style={{ marginTop: '8px' }}>Centralização de saldos bancários, monitoramento de custódia e controle de liquidez.</p>
         </div>
         <div className="page-actions">
           <button className="glass-btn secondary">

@@ -12,6 +12,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { PriceAlertModal } from './components/PriceAlertModal';
 import './MarketIntelligenceDashboard.css';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 interface QuoteData {
   date: string;
@@ -152,10 +153,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Globe size={14} fill="currentColor" />
-            <span>MARKET INTELLIGENCE</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Mercado', href: '/mercado/indicadores' }, { label: 'Intelligence Hub: Mercado' }]} />
           <h1 className="page-title">Intelligence Hub: Mercado</h1>
           <p className="page-subtitle">Análise avançada de indicadores e histórico de preços</p>
         </div>

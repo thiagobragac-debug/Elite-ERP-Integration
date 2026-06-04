@@ -23,6 +23,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -210,10 +211,7 @@ export const FleetDashboard: React.FC = () => {
     <div className="fleet-hub animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Zap size={14} fill="currentColor" />
-            <span>FLEET INTELLIGENCE HUB</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Frota & Máquinas', href: '/frota/dashboard' }, { label: 'Gestão Estratégica de Frota' }]} />
           <h1 className="page-title">Gestão Estratégica de Frota</h1>
           <p className="page-subtitle">Central de comando para monitoramento de custos, telemetria e disponibilidade mecânica.</p>
         </div>
@@ -350,7 +348,6 @@ export const FleetDashboard: React.FC = () => {
 
       <style>{`
         .fleet-hub {
-          padding: 24px;
         }
 
         .next-gen-kpi-grid {

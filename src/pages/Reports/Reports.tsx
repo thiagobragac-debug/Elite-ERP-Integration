@@ -46,6 +46,7 @@ import { ReportFilterModal } from './components/ReportFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 
 export const Reports: React.FC = () => {
@@ -245,10 +246,7 @@ export const Reports: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Sparkles size={14} fill="currentColor" />
-            <span>TAUZE INTELLIGENCE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Tauze Pecuária' }, { label: 'Relatórios Operacionais' }]} />
           <h1 className="page-title">Relatórios Operacionais</h1>
           <p className="page-subtitle">
             {isGlobalMode 

@@ -6,6 +6,7 @@ import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveCo
 import { useTenant } from '../../contexts/TenantContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const MarketB3Calculator: React.FC = () => {
   const { activeFarmId, isGlobalMode, activeTenantId } = useTenant();
@@ -87,10 +88,7 @@ export const MarketB3Calculator: React.FC = () => {
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header" style={{ marginBottom: '24px' }}>
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Calculator size={14} fill="currentColor" />
-            <span>CALCULADORA DE HEDGE B3</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Mercado', href: '/mercado/indicadores' }, { label: 'Calculadora de Base' }]} />
           <h1 className="page-title">Calculadora de Base</h1>
           <p className="page-subtitle">Cruzamento do Mercado Físico (CEPEA) vs Mercado Futuro (B3)</p>
         </div>

@@ -38,7 +38,9 @@ import {
   X,
   AlertCircle,
   Gauge,
-  Activity
+  Activity,
+  Zap,
+  DollarSign
 } from 'lucide-react';
 import { FormModal } from '../../components/Forms/FormModal';
 import { SidePanel } from '../../components/Layout/SidePanel';
@@ -52,6 +54,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { MaintenanceFilterModal } from './components/MaintenanceFilterModal';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const MaintenanceManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -459,10 +462,7 @@ export const MaintenanceManagement: React.FC = () => {
     <div className="maintenance-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Wrench size={14} fill="currentColor" />
-            <span>TAUZE FLEET v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Frota & Máquinas', href: '/frota/dashboard' }, { label: 'Manutenção de Frota' }]} />
           <h1 className="page-title">Manutenção de Frota</h1>
           <p className="page-subtitle">Rastreabilidade completa de intervenções mecânicas, revisões preventivas e custos em tempo real.</p>
         </div>

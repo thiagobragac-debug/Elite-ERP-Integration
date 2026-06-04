@@ -50,6 +50,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { QuotationFilterModal } from './components/QuotationFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const QuotationMap: React.FC = () => {
   const { activeTenantId } = useTenant();
@@ -395,10 +396,7 @@ export const QuotationMap: React.FC = () => {
     <div className="quotation-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <BarChart2 size={14} fill="currentColor" />
-            <span>TAUZE PROCUREMENT v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Mapa de Cotação' }]} />
           <h1 className="page-title">Mapa de Cotação</h1>
           <p className="page-subtitle">Análise comparativa de mercado, saving de suprimentos e tomada de decisão estratégica em tempo real.</p>
         </div>

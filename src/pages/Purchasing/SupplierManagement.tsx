@@ -54,6 +54,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import './SupplierManagement.css';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const SupplierManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -484,10 +485,7 @@ export const SupplierManagement: React.FC = () => {
       )}
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Building2 size={14} fill="currentColor" />
-            <span>TAUZE PROCUREMENT v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Gestão de Fornecedores' }]} />
           <h1 className="page-title">Gestão de Fornecedores</h1>
           <p className="page-subtitle">Homologação de fornecedores, análise de performance e histórico transacional de compras em tempo real.</p>
         </div>

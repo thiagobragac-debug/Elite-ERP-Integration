@@ -51,6 +51,7 @@ import { SalesFilterModal } from './components/SalesFilterModal';
 import { ClientFilterModal } from './components/ClientFilterModal';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const SalesOrders: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -603,10 +604,7 @@ export const SalesOrders: React.FC = () => {
     <div className="orders-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Tag size={14} fill="currentColor" />
-            <span>TAUZE COMMERCE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Vendas', href: '/vendas/dashboard' }, { label: 'Pedidos de Venda' }]} />
           <h1 className="page-title">Pedidos de Venda</h1>
           <p className="page-subtitle">Monitoramento do fluxo comercial, desde a emissão da ordem até a entrega final ao parceiro.</p>
         </div>

@@ -48,6 +48,7 @@ import { SidePanel } from '../../components/Layout/SidePanel';
 import { ReconFilterModal } from './components/ReconFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Filter } from 'lucide-react';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const BankReconciliation: React.FC = () => {
   const { activeFarm, activeTenantId } = useTenant();
@@ -325,10 +326,7 @@ export const BankReconciliation: React.FC = () => {
     <div className="recon-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <RefreshCw size={14} fill="currentColor" />
-            <span>TAUZE RECON v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Financeiro', href: '/financeiro/intelligence' }, { label: 'Conciliação Bancária' }]} />
           <h1 className="page-title">Conciliação Bancária</h1>
           <p className="page-subtitle">Verifique se os lançamentos do banco coincidem com o seu controle interno em tempo real.</p>
         </div>

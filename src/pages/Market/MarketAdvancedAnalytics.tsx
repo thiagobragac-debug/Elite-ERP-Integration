@@ -30,6 +30,7 @@ import { Globe, TrendingUp, TrendingDown, Filter, Crosshair, FileText, DollarSig
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 interface QuoteData {
   date: string;
@@ -278,10 +279,7 @@ export const MarketAdvancedAnalytics: React.FC = () => {
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <TrendingUp size={14} fill="currentColor" />
-            <span>ANÁLISE TÉCNICA</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Mercado', href: '/mercado/indicadores' }, { label: 'Análise Avançada' }]} />
           <h1 className="page-title">Análise Avançada</h1>
           <p className="page-subtitle">Ferramentas de análise gráfica, médias móveis e identificação de topos e fundos</p>
         </div>

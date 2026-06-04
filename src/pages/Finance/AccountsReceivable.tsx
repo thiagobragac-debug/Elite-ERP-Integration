@@ -39,6 +39,7 @@ import './AccountsReceivable.css';
 import { useReportData } from '../../hooks/useReportData';
 import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const AccountsReceivable: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
@@ -292,10 +293,7 @@ export const AccountsReceivable: React.FC = () => {
     <div className="receivable-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <HandCoins size={14} fill="currentColor" />
-            <span>TAUZE RECEIVABLES v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Financeiro', href: '/financeiro/intelligence' }, { label: 'Contas a Receber' }]} />
           <h1 className="page-title">Contas a Receber</h1>
           <p className="page-subtitle">Rastreabilidade de receitas, liquidação de faturas e saúde do crédito em tempo real.</p>
         </div>

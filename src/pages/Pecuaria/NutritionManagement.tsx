@@ -30,6 +30,7 @@ import { NutritionFilterModal } from './components/NutritionFilterModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const NutritionManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -252,10 +253,7 @@ export const NutritionManagement: React.FC = () => {
     <div className="nutrition-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Utensils size={14} fill="currentColor" />
-            <span>TAUZE LIVESTOCK v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Nutrição' }]} />
           <h1 className="page-title">Gestão de Nutrição</h1>
           <p className="page-subtitle">Formulações de precisão, controle de custos e monitoramento de conversão alimentar em tempo real.</p>
         </div>

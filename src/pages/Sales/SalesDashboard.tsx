@@ -38,6 +38,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const SalesDashboard: React.FC = () => {
   const { activeFarmId, activeTenantId, isGlobalMode } = useTenant();
@@ -278,10 +279,8 @@ export const SalesDashboard: React.FC = () => {
     <div className="sales-intelligence-hub animate-slide-up">
       <header className="hub-header">
         <div className="hub-brand">
-          <div className="hub-badge">
-            <Zap size={14} fill="currentColor" />
-            <span>SALES INTELLIGENCE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Venda & CRM', href: '/vendas/dashboard' }, { label: 'Sales Intelligence' }]} />
+
           <h1 className="hub-title">Hub de Inteligência Comercial</h1>
           <p className="hub-subtitle">Visão executiva da performance de vendas, saúde da carteira e auditoria de margens.</p>
         </div>
@@ -446,8 +445,8 @@ export const SalesDashboard: React.FC = () => {
       </div>
 
       <style>{`
-        .sales-intelligence-hub { padding: 24px; display: flex; flex-direction: column; gap: 24px; }
-        .hub-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .sales-intelligence-hub { display: flex; flex-direction: column; gap: 24px; }
+        .hub-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
         .hub-brand .hub-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: hsl(var(--brand) / 0.1); color: hsl(var(--brand)); border-radius: 100px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 12px; border: 1px solid hsl(var(--brand) / 0.2); }
         .hub-title { font-size: 28px; font-weight: 900; color: hsl(var(--text-main)); letter-spacing: -0.02em; }
         .hub-subtitle { color: hsl(var(--text-muted)); font-size: 14px; font-weight: 500; }

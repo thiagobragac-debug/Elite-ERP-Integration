@@ -16,6 +16,7 @@ import { motion } from 'framer-motion';
 import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ProfilePage: React.FC = () => {
   const { userProfile } = useTenant();
@@ -56,10 +57,7 @@ export const ProfilePage: React.FC = () => {
     <div className="profile-page-container">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <User size={14} fill="currentColor" />
-            <span>TAUZE PROFILE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Minha Identidade Digital' }]} />
           <h1 className="page-title">Minha Identidade Digital</h1>
           <p className="page-subtitle">Gerencie suas informações pessoais, preferências de interface e histórico de segurança.</p>
         </div>

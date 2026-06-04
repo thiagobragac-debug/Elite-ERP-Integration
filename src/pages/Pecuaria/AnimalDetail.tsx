@@ -20,6 +20,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TauzeMainChart } from '../../components/Charts/TauzeMainChart';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { formatNumber } from '../../utils/format';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import './AnimalDetail.css';
 
 export const AnimalDetail: React.FC = () => {
@@ -166,6 +167,7 @@ export const AnimalDetail: React.FC = () => {
     <div className="animal-detail-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Rebanho', href: '/pecuaria/animal' }, { label: 'Detalhes' }]} />
           <button className="back-btn" onClick={() => navigate('/pecuaria/animal')}>
             <ArrowLeft size={20} />
             VOLTAR

@@ -32,6 +32,7 @@ import { HealthForm } from '../../components/Forms/HealthForm';
 import { PurchaseOrderForm } from '../../components/Forms/PurchaseOrderForm';
 import { SalesOrderForm } from '../../components/Forms/SalesOrderForm';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 /* ─── Mapa de ícones e rótulos por tabela ─── */
 const MODULE_ICONS: Record<string, React.ElementType> = {
@@ -250,10 +251,7 @@ export const AuditLog: React.FC = () => {
       {/* ── Cabeçalho padrão ── */}
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge" style={{ background: 'hsl(var(--bg-sidebar))', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.3)' }}>
-            <Shield size={14} fill="currentColor" />
-            <span>TAUZE AUDIT v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Rastreabilidade & Auditoria' }]} />
           <h1 className="page-title">Rastreabilidade & Auditoria</h1>
           <p className="page-subtitle">
             Monitoramento técnico e operacional de todas as transações e alterações de dados em tempo real.

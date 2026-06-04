@@ -51,6 +51,7 @@ import { PurchasingFilterModal } from './components/PurchasingFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useApprovalQueue } from '../../hooks/useApprovalQueue';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const PurchaseOrder: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -389,10 +390,7 @@ export const PurchaseOrder: React.FC = () => {
     <div className="orders-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <ShoppingCart size={14} fill="currentColor" />
-            <span>TAUZE PROCUREMENT v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Ordens de Compra (OC)' }]} />
           <h1 className="page-title">Ordens de Compra (OC)</h1>
           <p className="page-subtitle">Gestão de suprimentos, negociações com fornecedores e controle de recebimento físico.</p>
         </div>

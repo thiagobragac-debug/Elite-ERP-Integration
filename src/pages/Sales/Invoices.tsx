@@ -50,6 +50,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { OutputInvoiceFilterModal } from './components/OutputInvoiceFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const Invoices: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -347,10 +348,7 @@ export const Invoices: React.FC = () => {
     <div className="invoice-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <ShieldCheck size={14} fill="currentColor" />
-            <span>TAUZE FISCAL v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Vendas', href: '/vendas/dashboard' }, { label: 'Nota Fiscal de Saída' }]} />
           <h1 className="page-title">Nota Fiscal de Saída</h1>
           <p className="page-subtitle">Emissão, monitoramento de protocolos SEFAZ e gestão de obrigações fiscais eletrônicas em tempo real.</p>
         </div>

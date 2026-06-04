@@ -23,6 +23,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useReportData } from '../../hooks/useReportData';
 import { 
   ResponsiveContainer, 
@@ -152,10 +153,8 @@ export const FinanceIntelligenceHub: React.FC = () => {
     <div className="intelligence-hub-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge premium">
-            <Brain size={14} fill="currentColor" />
-            <span>TAUZE INTELLIGENCE v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Financeiro & Banco', href: '/financeiro/dashboard' }, { label: 'Intelligence Hub' }]} />
+
           <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Central de comando estratégico com visão preditiva e indicadores de alta fidelidade.</p>
         </div>
@@ -433,14 +432,7 @@ export const FinanceIntelligenceHub: React.FC = () => {
       </div>
 
       <style>{`
-        .intelligence-hub-page { display: flex; flex-direction: column; gap: 24px; padding-bottom: 2rem; }
-        .intelligence-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; margin-top: 1.5rem; }
-        .intelligence-main { display: flex; flex-direction: column; gap: 24px; }
-        
-        .hub-sections-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-        .hub-card { 
-          padding: 24px; 
-          min-height: 380px; 
+        min-height: 380px; 
           background: hsl(var(--bg-card)); 
           border-radius: 1.25rem; 
           border: 1px solid hsl(var(--border)); 

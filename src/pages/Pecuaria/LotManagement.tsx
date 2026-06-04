@@ -41,6 +41,7 @@ import { logAudit } from '../../utils/audit';
 import { useViewMode } from '../../hooks/useViewMode';
 import './LotManagement.css';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const LotManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -388,10 +389,7 @@ export const LotManagement: React.FC = () => {
     <div className="lot-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Layers size={14} fill="currentColor" />
-            <span>TAUZE LIVESTOCK v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Lotes' }]} />
           <h1 className="page-title">Gestão de Lotes</h1>
           <p className="page-subtitle">Organização do rebanho, rastreabilidade por grupo e controle de lotação em tempo real.</p>
         </div>

@@ -311,43 +311,6 @@ export const MFAEnroll: React.FC = () => {
       </div>
 
       <style>{`
-        .mfa-enroll-page {
-          min-height: 100vh;
-          width: 100vw;
-          background: #0f172a;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-family: 'Inter', sans-serif;
-          position: fixed;
-          top: 0;
-          left: 0;
-          z-index: 9999;
-        }
-
-        .mfa-bg {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-          overflow: hidden;
-        }
-
-        .mfa-bg .glow {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 80vw;
-          height: 80vw;
-          background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%);
-        }
-
-        .mfa-container {
-          position: relative;
-          width: 100%;
-          max-width: 480px;
-          padding: 24px;
         }
 
         .mfa-card {

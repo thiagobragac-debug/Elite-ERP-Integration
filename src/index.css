@@ -250,7 +250,7 @@ a {
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 20px;

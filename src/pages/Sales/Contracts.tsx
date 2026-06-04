@@ -50,6 +50,7 @@ import { ContractFilterModal } from './components/ContractFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useApprovalQueue } from '../../hooks/useApprovalQueue';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const Contracts: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -351,10 +352,7 @@ export const Contracts: React.FC = () => {
     <div className="contract-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <ShieldCheck size={14} fill="currentColor" />
-            <span>TAUZE CONTRACTS v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Vendas', href: '/vendas/dashboard' }, { label: 'Contratos de Venda & Hedge' }]} />
           <h1 className="page-title">Contratos de Venda & Hedge</h1>
           <p className="page-subtitle">Gestão de instrumentos contratuais, fixação de preços futuros e rastreabilidade de compromissos.</p>
         </div>

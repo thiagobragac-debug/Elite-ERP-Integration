@@ -1,6 +1,4 @@
-.cash-flow-page {
-  padding: 24px;
-  display: flex;
+display: flex;
   flex-direction: column;
   gap: 24px;
 }
@@ -8,7 +6,7 @@
 .page-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 8px;
 }
 
@@ -243,7 +241,7 @@
 }
 
 .status-pill.active { background: #ecfdf5; color: #065f46; border: 1px solid #d1fae5; }
-.status-pill.warning { background: hsl(var(--bg-card));7ed; color: #9a3412; border: 1px solid #ffedd5; }
+.status-pill.warning { background: #fff7ed; color: #9a3412; border: 1px solid #ffedd5; }
 
 .modern-actions {
   display: flex;

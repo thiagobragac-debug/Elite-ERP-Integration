@@ -51,6 +51,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { FuelFilterModal } from './components/FuelFilterModal';
 import './FuelManagement.css';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const FuelManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
@@ -373,10 +374,7 @@ export const FuelManagement: React.FC = () => {
     <div className="fuel-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Fuel size={14} fill="currentColor" />
-            <span>TAUZE FLEET v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Frota & Máquinas', href: '/frota/dashboard' }, { label: 'Gestão de Abastecimento' }]} />
           <h1 className="page-title">Gestão de Abastecimento</h1>
           <p className="page-subtitle">Telemetria de consumo, análise de autonomia e controle rigoroso de custos energéticos.</p>
         </div>

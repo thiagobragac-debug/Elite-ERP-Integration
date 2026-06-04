@@ -32,6 +32,7 @@ import { ReproductionFilterModal } from './components/ReproductionFilterModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ReproductionManagement: React.FC = () => {
   const { activeFarm, activeTenantId, activeFarmId, isGlobalMode, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -308,10 +309,7 @@ export const ReproductionManagement: React.FC = () => {
     <div className="repro-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Heart size={14} fill="currentColor" />
-            <span>TAUZE LIVESTOCK v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Reprodução' }]} />
           <h1 className="page-title">Gestão de Reprodução</h1>
           <p className="page-subtitle">Controle de biotecnologias, diagnóstico de gestação e monitoramento de parição em tempo real.</p>
         </div>

@@ -31,6 +31,7 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
 import { PastureRelocateForm } from '../../components/Forms/PastureRelocateForm';
 import { AssignAnimalForm } from '../../components/Forms/AssignAnimalForm';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 const PastureManagement: React.FC = () => {
   const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } = useFarmFilter();
@@ -501,10 +502,7 @@ const PastureManagement: React.FC = () => {
     <div className="pasture-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <Trees size={14} fill="currentColor" />
-            <span>TAUZE AGRO v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Pastagens' }]} />
           <h1 className="page-title">Gestão de Pastagens</h1>
           <p className="page-subtitle">Monitoramento de capacidade de suporte, pressão de pastejo e rotação.</p>
         </div>

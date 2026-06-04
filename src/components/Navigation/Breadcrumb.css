@@ -1,0 +1,42 @@
+.tauze-breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0px 0px;
+  margin-bottom: 8px;
+}
+
+.tauze-breadcrumb-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--text-muted));
+  transition: all 0.2s ease;
+}
+
+.tauze-breadcrumb-link {
+  color: hsl(var(--text-muted));
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.tauze-breadcrumb-link:hover {
+  color: hsl(var(--text-main));
+}
+
+.tauze-breadcrumb-current {
+  color: hsl(var(--brand));
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tauze-breadcrumb-separator {
+  color: hsl(var(--text-muted) / 0.5);
+  display: flex;
+  align-items: center;
+}

@@ -46,6 +46,7 @@ import { MovementFilterModal } from './components/MovementFilterModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const MovementManagement: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, activeFarm } = useFarmFilter();
@@ -475,10 +476,7 @@ export const MovementManagement: React.FC = () => {
     <div className="movement-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <ArrowRightLeft size={14} fill="currentColor" />
-            <span>TAUZE INVENTORY v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Movimentação de Estoque' }]} />
           <h1 className="page-title">Movimentação de Estoque</h1>
           <p className="page-subtitle">Rastreabilidade total de entradas, saídas e transferências de insumos em tempo real.</p>
         </div>

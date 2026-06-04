@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   Scale, 
@@ -285,7 +285,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
               .modal-overlay {
                 position: absolute !important;
                 inset: 0 !important;
-                background: hsl(var(--bg-card)); !important;
+                background: hsl(var(--bg-card)) !important;
                 display: block !important;
                 padding: 0 !important;
                 z-index: auto !important;
@@ -298,7 +298,7 @@ export const NutritionSimulatorModal: React.FC<NutritionSimulatorModalProps> = (
                 max-height: none !important;
                 box-shadow: none !important;
                 border: none !important;
-                background: hsl(var(--bg-card)); !important;
+                background: hsl(var(--bg-card)) !important;
                 display: block !important;
                 overflow: visible !important;
               }

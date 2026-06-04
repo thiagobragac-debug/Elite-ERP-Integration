@@ -46,6 +46,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { PurchasingFilterModal } from './components/PurchasingFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const EntryInvoice: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
@@ -344,10 +345,7 @@ export const EntryInvoice: React.FC = () => {
     <div className="entry-invoice-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <ArrowDownLeft size={14} fill="currentColor" />
-            <span>TAUZE PROCUREMENT v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Notas Fiscais de Entrada' }]} />
           <h1 className="page-title">Notas Fiscais de Entrada</h1>
           <p className="page-subtitle">Recebimento de mercadorias, conferência física/fiscal e alimentação automática do estoque em tempo real.</p>
         </div>

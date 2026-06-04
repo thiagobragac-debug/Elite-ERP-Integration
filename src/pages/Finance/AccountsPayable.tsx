@@ -46,6 +46,7 @@ import { useReportData } from '../../hooks/useReportData';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useApprovalQueue } from '../../hooks/useApprovalQueue';
 import toast from 'react-hot-toast';
+import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const AccountsPayable: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
@@ -321,10 +322,7 @@ export const AccountsPayable: React.FC = () => {
     <div className="payable-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <div className="brand-badge">
-            <CreditCard size={14} fill="currentColor" />
-            <span>TAUZE PAYABLES v5.0</span>
-          </div>
+          <Breadcrumb paths={[{ label: 'Financeiro', href: '/financeiro/intelligence' }, { label: 'Contas a Pagar' }]} />
           <h1 className="page-title">Contas a Pagar</h1>
           <p className="page-subtitle">Gestão de obrigações, fluxo de saída e controle rigoroso de parceiros.</p>
         </div>
