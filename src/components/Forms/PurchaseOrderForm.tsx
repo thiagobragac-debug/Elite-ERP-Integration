@@ -58,7 +58,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
     payment_method: initialData?.payment_method || 'Boleto',
     installments: initialData?.installments || 1,
     bank_account_id: initialData?.bank_account_id || '',
-    generate_financial: true
+    generate_financial: initialData ? initialData.generate_financial : false
   });
 
   useEffect(() => {
@@ -257,6 +257,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
           <InsumoEntryTable 
             items={items}
             onChange={setItems}
+            companyId={formData.company_id}
           />
         </div>
 
@@ -319,7 +320,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
           <div className="tauze-section-badge">PASSO 03</div>
           <h4 className="tauze-section-title">Logística</h4>
         </div>
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid" style={{ gridTemplateColumns: '1fr 2.5fr' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><Truck size={14} /> Tipo de Frete</label>
             <SearchableSelect 
@@ -332,10 +333,9 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
             />
           </div>
           
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <div className="tauze-field-group">
             <label className="tauze-label"><MapPin size={14} /> Instruções e Local de Entrega</label>
-            <textarea 
-              className="tauze-input"
+            <textarea className="tauze-input tauze-textarea"
               placeholder="Ex: Entregar na Fazenda Santa Cruz, Barracão 3. Horário de descarga até as 16h." 
               value={formData.delivery_instructions}
               onChange={(e) => setFormData({...formData, delivery_instructions: e.target.value})}
@@ -350,7 +350,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
           <div className="tauze-section-badge">PASSO 04</div>
           <h4 className="tauze-section-title">Faturamento e Contas a Pagar</h4>
         </div>
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid" style={{ gridTemplateColumns: formData.payment_condition === 'prazo' ? '1.5fr 1.5fr 1fr 2fr 1.2fr' : '1fr 1fr 1.5fr 1.2fr' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><Banknote size={14} /> Condição Comercial</label>
             <SearchableSelect 
@@ -393,7 +393,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
             </div>
           )}
 
-          <div className="tauze-field-group" style={{ gridColumn: formData.payment_condition === 'prazo' ? 'span 1' : 'span 2' }}>
+          <div className="tauze-field-group">
             <label className="tauze-label"><Wallet size={14} /> Conta Bancária / Caixa de Origem</label>
             <SearchableSelect 
               value={formData.bank_account_id}
@@ -404,19 +404,17 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
               ]}
             />
           </div>
-        </div>
 
-        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-          <div className="tauze-field-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'hsl(var(--brand)/0.05)', padding: '16px', borderRadius: '12px', border: '1px dashed hsl(var(--brand)/0.3)', cursor: 'pointer' }}>
+          <div className="tauze-field-group" style={{ justifyContent: 'flex-end' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'hsl(var(--brand)/0.05)', padding: '0 16px', height: '48px', borderRadius: '14px', border: '1px dashed hsl(var(--brand)/0.3)', cursor: 'pointer', transition: 'all 0.2s' }}>
               <input 
                 type="checkbox" 
                 checked={formData.generate_financial}
                 onChange={(e) => setFormData({...formData, generate_financial: e.target.checked})}
-                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'hsl(var(--brand))' }}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'hsl(var(--brand))', flexShrink: 0 }}
               />
-              <span style={{ fontWeight: '700', color: 'hsl(var(--brand))' }}>
-                Gerar Títulos no Financeiro Automático (Contas a Pagar)
+              <span style={{ fontWeight: '700', color: 'hsl(var(--brand))', fontSize: '11px', lineHeight: 1.2 }}>
+                Gerar Financeiro
               </span>
             </label>
           </div>
@@ -469,8 +467,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
         </div>
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
-            <textarea 
-              className="tauze-input"
+            <textarea className="tauze-input tauze-textarea"
               placeholder="Anotações gerais..." 
               value={formData.description}
               onChange={(e) => setFormData({...formData, description: e.target.value})}

@@ -322,8 +322,7 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
             <label className="tauze-label"><FileText size={14} /> Descrição / Observações</label>
-            <textarea 
-              className="tauze-input"
+            <textarea className="tauze-input tauze-textarea"
               placeholder="Notas sobre a formulação..." 
               value={formData.descricao}
               onChange={(e) => setFormData({...formData, descricao: e.target.value})}

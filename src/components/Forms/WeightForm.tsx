@@ -333,6 +333,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
       onClose={onClose}
       onSubmit={handleSubmit}
       title={initialData ? "Editar Pesagem" : "Nova Pesagem"}
+      size="large"
       subtitle="Registre o peso individual de um animal."
       icon={Scale}
       loading={loading}
@@ -345,9 +346,9 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
             <h4 className="tauze-section-title">Dados da Pesagem</h4>
           </div>
 
-          <div className="tauze-input-grid grid-col-2">
+          <div className="tauze-input-grid" style={{ gridTemplateColumns: '3fr 1fr 1fr' }}>
             {/* #1 — Chip + Search */}
-            <div className="tauze-field-group" style={{ gridColumn: 'span 2', position: 'relative' }}>
+            <div className="tauze-field-group" style={{ position: 'relative' }}>
               <label className="tauze-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Hash size={14} /> Selecionar Animal (Brinco)
               </label>
@@ -453,29 +454,32 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
 
             {/* #3 — Peso com validação visual e Arroba */}
             <div className="tauze-field-group">
-              <label className="tauze-label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Scale size={14} /> Novo Peso (kg)</span>
-                {hasWeight && (
-                  <span className="animate-fade-in" style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--brand))', background: 'hsl(var(--brand)/0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-                    ~ {arrobas.toFixed(1)} @
-                  </span>
-                )}
+              <label className="tauze-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Scale size={14} /> Novo Peso (kg)
               </label>
-              <input
-                className="tauze-input"
-                ref={pesoInputRef}
-                type="number"
-                step="0.1"
-                placeholder="0.0"
-                value={formData.peso}
-                onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
-                required
-                style={{
-                  borderColor: getWeightBorderColor(),
-                  boxShadow: getWeightGlow(),
-                  transition: 'border-color 0.2s, box-shadow 0.2s'
-                }}
-              />
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  className="tauze-input no-spin"
+                  ref={pesoInputRef}
+                  type="number"
+                  step="0.1"
+                  placeholder="0.0"
+                  value={formData.peso}
+                  onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
+                  required
+                  style={{
+                    paddingRight: '64px',
+                    borderColor: getWeightBorderColor(),
+                    boxShadow: getWeightGlow(),
+                    transition: 'border-color 0.2s, box-shadow 0.2s'
+                  }}
+                />
+                {hasWeight && (
+                  <div className="animate-fade-in" style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--brand))', background: 'hsl(var(--brand)/0.1)', padding: '3px 6px', borderRadius: '6px', pointerEvents: 'none' }}>
+                    ~ {arrobas.toFixed(1)} @
+                  </div>
+                )}
+              </div>
               {hasWeight && !isTypoWarning && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '10px', fontWeight: 700, color: 'hsl(142 71% 45%)' }}>
                   <CheckCircle2 size={11} />

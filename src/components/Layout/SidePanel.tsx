@@ -18,6 +18,7 @@ interface SidePanelProps {
   hideSubmit?: boolean;
   isReadOnly?: boolean;
   customFooter?: ReactNode;
+  contentPadding?: string | number;
 }
 
 export const SidePanel: React.FC<SidePanelProps> = ({
@@ -35,7 +36,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   iconSubmit: IconSubmit = Save,
   hideSubmit = false,
   isReadOnly = false,
-  customFooter
+  customFooter,
+  contentPadding
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -122,11 +124,11 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           background: linear-gradient(90deg, transparent, hsl(var(--brand) / 0.5), transparent);
         }
         .tauze-sidepanel-content {
-          padding: 32px;
+          padding: ${contentPadding !== undefined ? (typeof contentPadding === 'number' ? `${contentPadding}px` : contentPadding) : '32px'};
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 32px;
+          gap: ${contentPadding !== undefined ? '0px' : '32px'};
           flex: 1;
         }
         .tauze-sidepanel-footer {

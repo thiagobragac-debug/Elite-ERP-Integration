@@ -31,9 +31,10 @@ interface InsumoEntryTableProps {
   items: InsumoItem[];
   onChange: (items: InsumoItem[]) => void;
   isReadOnly?: boolean;
+  companyId?: string;
 }
 
-export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onChange, isReadOnly = false }) => {
+export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onChange, isReadOnly = false, companyId }) => {
   const { activeTenantId } = useTenant();
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
   const [depositos, setDepositos] = useState<any[]>([]);
@@ -45,7 +46,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
       fetchProducts();
       fetchDepositos();
     }
-  }, [activeTenantId]);
+  }, [activeTenantId, companyId]);
 
   const fetchProducts = async () => {
     const { data } = await supabase
@@ -57,11 +58,16 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ items, onCha
   };
 
   const fetchDepositos = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('depositos')
       .select('id, nome')
-      .eq('tenant_id', activeTenantId)
-      .order('nome');
+      .eq('tenant_id', activeTenantId);
+      
+    if (companyId) {
+      query = query.eq('fazenda_id', companyId);
+    }
+    
+    const { data } = await query.order('nome');
     if (data) setDepositos(data);
   };
 

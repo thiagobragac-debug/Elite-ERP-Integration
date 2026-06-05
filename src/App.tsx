@@ -301,7 +301,7 @@ export function App() {
       <AuthProvider>
         <TenantProvider>
           <CepeaProvider>
-            <Toaster />
+            <Toaster containerStyle={{ zIndex: 999999 }} />
             <AppContent />
           </CepeaProvider>
         </TenantProvider>

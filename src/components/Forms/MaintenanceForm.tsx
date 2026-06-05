@@ -273,8 +273,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClos
         <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><FileText size={14} /> Descrição do Problema / Serviço</label>
-            <textarea 
-              className="tauze-input"
+            <textarea className="tauze-input tauze-textarea"
               placeholder="Detalhe o que será realizado..." 
               value={formData.descricao}
               onChange={(e) => setFormData({...formData, descricao: e.target.value})}

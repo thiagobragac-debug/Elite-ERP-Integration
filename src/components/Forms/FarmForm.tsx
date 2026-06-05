@@ -301,7 +301,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
             <div className="tauze-input-grid grid-col-1">
               <div className="tauze-field-group">
                 <label className="tauze-label"><FileText size={14} /> Observações / Descrição</label>
-                <textarea className="tauze-input" placeholder="Breve descrição da atividade principal da unidade..."
+                <textarea className="tauze-input tauze-textarea" placeholder="Breve descrição da atividade principal da unidade..."
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})} rows={3} />
               </div>

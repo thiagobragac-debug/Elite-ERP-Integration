@@ -499,8 +499,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         <div className="tauze-input-grid grid-col-1">
           <div className="tauze-field-group">
             <label className="tauze-label"><FileText size={14} /> Descrição / Notas</label>
-            <textarea 
-              className="tauze-input"
+            <textarea className="tauze-input tauze-textarea"
               style={{ minHeight: '80px' }}
               placeholder="Informações adicionais sobre o produto..." 
               value={formData.descricao}

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
+import { ColorPicker } from './ColorPicker';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 
@@ -31,16 +32,7 @@ interface LotFormProps {
   loading?: boolean;
 }
 
-const LOT_COLORS = [
-  { value: '#6366f1', label: 'Indigo' },
-  { value: '#10b981', label: 'Verde' },
-  { value: '#f97316', label: 'Laranja' },
-  { value: '#ef4444', label: 'Vermelho' },
-  { value: '#8b5cf6', label: 'Roxo' },
-  { value: '#06b6d4', label: 'Ciano' },
-  { value: '#ec4899', label: 'Rosa' },
-  { value: '#64748b', label: 'Cinza' }
-];
+
 
 export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const [formData, setFormData] = useState({
@@ -61,7 +53,10 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
     regime_alimentar: '',
     custo_diario: '',
     exige_rastreabilidade: false,
-    cor: '#6366f1'
+    cor: '#6366f1',
+    programa_bonificacao: '',
+    meta_rendimento_carcaca: '',
+    peso_carcaca_alvo: ''
   });
 
   const { activeTenantId } = useTenant();
@@ -123,7 +118,10 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
         regime_alimentar: initialData.regime_alimentar || '',
         custo_diario: initialData.custo_diario ? initialData.custo_diario.toString().replace(/[^\d.-]/g, '') : '',
         exige_rastreabilidade: initialData.exige_rastreabilidade || false,
-        cor: initialData.cor || '#6366f1'
+        cor: initialData.cor || '#6366f1',
+        programa_bonificacao: initialData.programa_bonificacao || '',
+        meta_rendimento_carcaca: initialData.meta_rendimento_carcaca ? initialData.meta_rendimento_carcaca.toString().replace(/[^\d.-]/g, '') : '',
+        peso_carcaca_alvo: initialData.peso_carcaca_alvo ? initialData.peso_carcaca_alvo.toString().replace(/[^\d.-]/g, '') : ''
       });
     } else {
       setFormData({
@@ -144,7 +142,10 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
         regime_alimentar: '',
         custo_diario: '',
         exige_rastreabilidade: false,
-        cor: '#6366f1'
+        cor: '#6366f1',
+        programa_bonificacao: '',
+        meta_rendimento_carcaca: '',
+        peso_carcaca_alvo: ''
       });
     }
   }, [initialData, isOpen]);
@@ -259,33 +260,7 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
             />
           </div>
 
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><Palette size={14} /> Cor de Identificação</label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px', minHeight: '38px' }}>
-              {LOT_COLORS.map(color => (
-                <button
-                  key={color.value}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, cor: color.value })}
-                  style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: color.value,
-                    border: formData.cor === color.value ? '2px solid white' : '2px solid transparent',
-                    boxShadow: formData.cor === color.value 
-                      ? `0 0 0 2px ${color.value}, 0 4px 10px rgba(0,0,0,0.15)` 
-                      : '0 2px 4px rgba(0,0,0,0.05)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    transform: formData.cor === color.value ? 'scale(1.15)' : 'scale(1)',
-                    padding: 0
-                  }}
-                  title={color.label}
-                />
-              ))}
-            </div>
-          </div>
+
         </div>
       </section>
 
@@ -295,7 +270,7 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
           <h4 className="tauze-section-title">Planejamento & Destino</h4>
         </div>
         
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
             <label className="tauze-label">
               <Building2 size={14} /> Fazenda de Destino
@@ -339,7 +314,7 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
             <label className="tauze-label">
               <Clock size={14} /> Ciclo Estimado
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px' }}>
               <input 
                 className="tauze-input"
                 type="number" 
@@ -357,6 +332,31 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
               />
             </div>
           </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><CheckCircle2 size={14} /> Prog. de Qualidade</label>
+            <SearchableSelect 
+              value={formData.programa_bonificacao}
+              onChange={(val: any) => setFormData({...formData, programa_bonificacao: val})}
+              options={[
+                { value: '', label: 'Nenhum / Padrão' },
+                { value: 'COTA_HILTON', label: 'Cota Hilton' },
+                { value: 'ANGUS_CERTIFICADO', label: 'Carne Angus Certificada' },
+                { value: 'PRECOCE_MS', label: 'Precoce MS' },
+                { value: 'BOI_EUROPA', label: 'Boi Europa (Trace)' }
+              ]}
+            />
+          </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><TrendingUp size={14} /> Meta de Rendimento (%)</label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.1"
+              placeholder="Ex: 54.5" 
+              value={formData.meta_rendimento_carcaca}
+              onChange={(e) => setFormData({...formData, meta_rendimento_carcaca: e.target.value})}
+            />
+          </div>
         </div>
       </section>
 
@@ -366,7 +366,7 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
           <h4 className="tauze-section-title">Regras e Restrições</h4>
         </div>
         
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
             <label className="tauze-label">
               <ShieldCheck size={14} /> Sexo Permitido
@@ -492,6 +492,20 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
               onChange={(e) => setFormData({...formData, capacidade: e.target.value})}
             />
           </div>
+          
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <Scale size={14} /> Peso de Carcaça Alvo (@)
+            </label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.1"
+              placeholder="Ex: 21" 
+              value={formData.peso_carcaca_alvo}
+              onChange={(e) => setFormData({...formData, peso_carcaca_alvo: e.target.value})}
+            />
+          </div>
         </div>
       </section>
 
@@ -501,7 +515,11 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
           <h4 className="tauze-section-title">Status e Configuração</h4>
         </div>
         
-        <div className="tauze-input-grid grid-col-1">
+        <div className="tauze-input-grid grid-col-2">
+          <ColorPicker
+            value={formData.cor}
+            onChange={(val) => setFormData({ ...formData, cor: val })}
+          />
           <div className="tauze-field-group">
             <label className="tauze-label"><Activity size={14} /> Status Inicial</label>
             <SearchableSelect 

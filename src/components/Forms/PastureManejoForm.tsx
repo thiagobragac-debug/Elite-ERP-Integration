@@ -188,8 +188,7 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, on
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
             <label className="tauze-label"><Activity size={14} /> Observações de Manejo</label>
-            <textarea 
-              className="tauze-input"
+            <textarea className="tauze-input tauze-textarea"
               placeholder="Ex: Utilizado 200kg/ha de ureia, praga identificada: cigarrinha..." 
               value={formData.observacoes}
               onChange={(e) => setFormData({...formData, observacoes: e.target.value})}

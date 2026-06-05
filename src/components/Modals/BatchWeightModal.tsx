@@ -568,8 +568,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       title="Lançamento Rápido em Massa (Modo Curral)"
       subtitle="Selecione o lote ou todos os animais para inserir pesos em série usando navegação por teclado."
       icon={Scale}
-      size="xlarge"
+      size="xxlarge"
       hideSubmit={true}
+      contentPadding={0}
       customFooter={
         <div style={{ padding: '0px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap', overflow: 'hidden' }}>
@@ -670,7 +671,8 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
           borderBottom: '1px solid hsl(var(--border) / 0.4)',
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
-          gap: '20px'
+          gap: '20px',
+          alignItems: 'flex-end'
         }}>
           <div>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
@@ -852,9 +854,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ position: 'sticky', top: 0, zIndex: 2 }}>
                 <tr style={{ background: 'hsl(var(--bg-card))', borderBottom: '2px solid hsl(var(--border))' }}>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Animal / Brinco</th>
+                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', width: '260px' }}>Animal / Brinco</th>
                   <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Peso Anterior (kg)</th>
-                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center', width: '220px' }}>Novo Peso (kg | @)</th>
+                  <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center', width: '160px' }}>Novo Peso (kg | @)</th>
                   <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>Evolução (kg)</th>
                   <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center' }}>GMD Projetado</th>
                   <th style={{ padding: '10px 16px', fontSize: '11px', fontWeight: 900, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', textAlign: 'center', width: '200px' }}>Status / Predição</th>
@@ -905,45 +907,48 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                       </td>
 
                       <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                          <input
-                            type="number"
-                            step="0.1"
-                            id={`weight-input-${index}`}
-                            placeholder="0.00"
-                            value={row.newWeight}
-                            onChange={(e) => handleWeightChange(index, e.target.value)}
-                            onKeyDown={(e) => handleKeyDown(e, index)}
-                            onFocus={() => { setActiveFocusedIndex(index); setFocusedIndex(index); }}
-                            onBlur={() => setFocusedIndex(null)}
-                            style={{
-                              width: '100%', padding: '8px 12px',
-                              background: isFocused ? 'hsl(var(--brand) / 0.05)' : 'hsl(var(--bg-card))',
-                              border: row.isTimeTravelWarning
-                                ? '1.5px solid #ef4444'
-                                : row.isTypoWarning
-                                ? '1.5px solid hsl(38 92% 50%)'
-                                : isFocused
-                                ? '1.5px solid hsl(var(--brand))'
-                                : isPesado
-                                ? '1.5px solid hsl(142 71% 45% / 0.4)'
-                                : '1px solid hsl(var(--border))',
-                              borderRadius: '8px',
-                              color: 'hsl(var(--text-main))',
-                              fontSize: '14px', fontWeight: 800, textAlign: 'center', outline: 'none',
-                              boxShadow: row.isTimeTravelWarning ? '0 0 0 3px rgba(239, 68, 68, 0.15)' :
-                                row.isTypoWarning ? '0 0 0 3px hsl(38 92% 50% / 0.15)' :
-                                isFocused ? '0 0 0 3px hsl(var(--brand) / 0.12)' : 'none',
-                              transition: 'all 0.15s'
-                            }}
-                          />
-                          {row.arrobas > 0 && !row.isTimeTravelWarning && (
-                            <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--brand))', background: 'hsl(var(--brand) / 0.1)', padding: '2px 8px', borderRadius: '4px' }}>
-                              ~ {row.arrobas.toFixed(1)} @
-                            </div>
-                          )}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                          <div style={{ position: 'relative', width: '100%' }}>
+                            <input
+                              type="number"
+                              step="0.1"
+                              className="no-spin"
+                              id={`weight-input-${index}`}
+                              placeholder="0.00"
+                              value={row.newWeight}
+                              onChange={(e) => handleWeightChange(index, e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, index)}
+                              onFocus={() => { setActiveFocusedIndex(index); setFocusedIndex(index); }}
+                              onBlur={() => setFocusedIndex(null)}
+                              style={{
+                                width: '100%', padding: '8px 45px 8px 12px',
+                                background: isFocused ? 'hsl(var(--brand) / 0.05)' : 'hsl(var(--bg-card))',
+                                border: row.isTimeTravelWarning
+                                  ? '1.5px solid #ef4444'
+                                  : row.isTypoWarning
+                                  ? '1.5px solid hsl(38 92% 50%)'
+                                  : isFocused
+                                  ? '1.5px solid hsl(var(--brand))'
+                                  : isPesado
+                                  ? '1.5px solid hsl(142 71% 45% / 0.4)'
+                                  : '1px solid hsl(var(--border))',
+                                borderRadius: '8px',
+                                color: 'hsl(var(--text-main))',
+                                fontSize: '14px', fontWeight: 800, textAlign: 'center', outline: 'none',
+                                boxShadow: row.isTimeTravelWarning ? '0 0 0 3px rgba(239, 68, 68, 0.15)' :
+                                  row.isTypoWarning ? '0 0 0 3px hsl(38 92% 50% / 0.15)' :
+                                  isFocused ? '0 0 0 3px hsl(var(--brand) / 0.12)' : 'none',
+                                transition: 'all 0.15s'
+                              }}
+                            />
+                            {row.arrobas > 0 && !row.isTimeTravelWarning && (
+                              <div style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--brand))', background: 'hsl(var(--brand) / 0.1)', padding: '3px 6px', borderRadius: '4px', pointerEvents: 'none' }}>
+                                {row.arrobas.toFixed(1)} @
+                              </div>
+                            )}
+                          </div>
                           {row.isTimeTravelWarning && (
-                            <div style={{ fontSize: '10px', fontWeight: 800, color: '#ef4444', marginTop: '2px' }}>
+                            <div style={{ fontSize: '10px', fontWeight: 800, color: '#ef4444' }}>
                               Data Retroativa!
                             </div>
                           )}
@@ -990,9 +995,14 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                             Bloqueado (Data)
                           </span>
                         ) : row.isTypoWarning ? (
-                          <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(38 92% 50%)', padding: '4px 10px', background: 'hsl(38 92% 50% / 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-                            <AlertTriangle size={12} /> Divergência
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(38 92% 50%)', padding: '4px 10px', background: 'hsl(38 92% 50% / 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                              <AlertTriangle size={12} /> Divergência
+                            </span>
+                            <span style={{ fontSize: '9px', fontWeight: 800, color: 'hsl(38 92% 50%)', textTransform: 'uppercase' }}>
+                              {row.evolucao > 0 ? 'Ganho > 30%' : 'Perda > 30%'}
+                            </span>
+                          </div>
                         ) : row.isAbate ? (
                           <span style={{ fontSize: '11px', fontWeight: 800, color: '#10b981', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
                             🏆 Ponto de Abate

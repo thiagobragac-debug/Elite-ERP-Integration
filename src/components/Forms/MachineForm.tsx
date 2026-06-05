@@ -511,8 +511,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
             <div className="tauze-input-grid grid-col-1">
               <div className="tauze-field-group">
                 <label className="tauze-label"><Tag size={14} /> Observações Gerais</label>
-                <textarea 
-                  className="tauze-input"
+                <textarea className="tauze-input tauze-textarea"
                   placeholder="Histórico de avarias, notas sobre garantia ou especificações extras..." 
                   value={formData.observacoes}
                   onChange={(e) => setFormData({...formData, observacoes: e.target.value})}

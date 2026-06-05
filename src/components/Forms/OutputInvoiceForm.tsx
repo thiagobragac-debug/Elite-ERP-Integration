@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import ReactDOM from 'react-dom';
+import toast from 'react-hot-toast';
 import { 
   FileText, 
   User,
+  Users,
   Calendar,
   DollarSign,
   Package,
@@ -18,7 +21,8 @@ import {
   Wallet,
   ClipboardList,
   Lock,
-  Scale
+  Scale,
+  AlertCircle
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
@@ -34,11 +38,14 @@ interface OutputInvoiceFormProps {
 }
 
 export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, companies, activeCompany } = useTenant();
   const [formData, setFormData] = useState({
+    company_id: initialData?.company_id || activeCompany?.id || '',
+    seller_id: initialData?.seller_id || '',
     sales_order_id: initialData?.sales_order_id || '',
     invoice_number: initialData?.numero_nota || 'Gerado pela SEFAZ',
     series: initialData?.serie || '1',
+    modelo_fiscal: initialData?.modelo_fiscal || '55',
     client_id: initialData?.cliente_id || '',
     date: initialData?.data_emissao || new Date().toISOString().split('T')[0],
     total_value: initialData?.valor_total?.toString() || '0',
@@ -55,7 +62,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
     payment_method: initialData?.payment_method || 'Boleto',
     installments: initialData?.installments || 1,
     bank_account_id: initialData?.bank_account_id || '',
-    generate_financial: true,
+    generate_financial: initialData ? initialData.generate_financial : true,
     
     description: initialData?.observacoes || ''
   });
@@ -65,6 +72,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [installmentsList, setInstallmentsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showFinancialConfirm, setShowFinancialConfirm] = useState(false);
 
   useEffect(() => {
     if (isOpen && activeFarm) {
@@ -91,6 +99,27 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
     const total = items.reduce((acc, curr) => acc + (curr.total || 0), 0);
     setFormData(prev => ({ ...prev, total_value: total.toString() }));
   }, [items]);
+
+  const isFinancialDisabledByOrder = useMemo(() => {
+    if (!formData.sales_order_id) return false;
+    // Mock simples: PV-001 gerou financeiro, PV-002 NÃO gerou
+    const mockOrdersDB: any = {
+      'PV-001': { generate_financial: true },
+      'PV-002': { generate_financial: false }
+    };
+    return mockOrdersDB[formData.sales_order_id]?.generate_financial || false;
+  }, [formData.sales_order_id]);
+
+  // Se um Pedido for vinculado, verifica a regra original dele
+  useEffect(() => {
+    if (formData.sales_order_id) {
+      if (isFinancialDisabledByOrder) {
+        setFormData(prev => ({ ...prev, generate_financial: false }));
+      } else {
+        setFormData(prev => ({ ...prev, generate_financial: true }));
+      }
+    }
+  }, [formData.sales_order_id, isFinancialDisabledByOrder]);
 
   // Handle installment generation
   useEffect(() => {
@@ -125,6 +154,15 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
     ));
   };
 
+  const handleGenerateFinancialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecking = e.target.checked;
+    if (!isChecking) {
+      setShowFinancialConfirm(true);
+    } else {
+      setFormData(prev => ({ ...prev, generate_financial: true }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -136,10 +174,41 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
     }
   };
 
+  const financialConfirmOverlay = showFinancialConfirm ? ReactDOM.createPortal(
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(5, 8, 15, 0.75)', backdropFilter: 'blur(4px)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'hsl(var(--bg-card))', borderRadius: '16px', padding: '24px', maxWidth: '420px', width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', border: '1px solid hsl(var(--border))' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'hsl(var(--warning)/0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--warning))' }}>
+            <AlertCircle size={20} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>Atenção</h3>
+            <p style={{ margin: 0, fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Confirmação necessária</p>
+          </div>
+        </div>
+        <p style={{ margin: '0 0 24px 0', fontSize: '13px', color: 'hsl(var(--text-main))', lineHeight: 1.5 }}>
+          Tem certeza que deseja registrar esta Nota SEM gerar os títulos financeiros? As obrigações no Contas a Receber não serão criadas automaticamente.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button type="button" onClick={() => setShowFinancialConfirm(false)} style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))', cursor: 'pointer', fontWeight: 700, fontSize: '13px' }}>Cancelar</button>
+          <button type="button" onClick={() => { setFormData(prev => ({ ...prev, generate_financial: false })); setShowFinancialConfirm(false); }} style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: 'hsl(var(--warning))', color: 'hsl(var(--warning-foreground))', cursor: 'pointer', fontWeight: 700, fontSize: '13px' }}>Sim, desativar</button>
+        </div>
+      </div>
+    </div>
+  , document.body) : null;
+
   return (
+    <>
+    {financialConfirmOverlay}
     <SidePanel
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={() => {
+        if (showFinancialConfirm) {
+          setShowFinancialConfirm(false);
+        } else {
+          onClose();
+        }
+      }}
       onSubmit={handleSubmit}
       title={initialData ? "Editar Nota Fiscal" : "Emitir Nota Fiscal de Saída"}
       subtitle="Faturamento de vendas, integrações financeiras e baixas de estoque."
@@ -154,22 +223,19 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
           <h4 className="tauze-section-title">Identificação da Nota</h4>
         </div>
         
-        <div className="tauze-input-grid grid-col-2" style={{ marginBottom: '16px' }}>
+        <div className="tauze-input-grid grid-col-4" style={{ marginBottom: '16px' }}>
           <div className="tauze-field-group">
-            <label className="tauze-label" style={{ color: 'hsl(var(--warning))' }}>
-              <ClipboardList size={14} /> Vincular Pedido de Venda
-            </label>
+            <label className="tauze-label"><Building2 size={14} /> Empresa / Unidade Vendedora</label>
             <SearchableSelect 
-              value={formData.sales_order_id}
-              onChange={(val: any) => setFormData({...formData, sales_order_id: val})}
+              value={formData.company_id}
+              onChange={(val: any) => setFormData({...formData, company_id: val})}
               options={[
-                { value: '', label: 'Sem vínculo (Emissão Avulsa)' },
-                { value: 'PV-001', label: 'PV-001 - Fazenda Boa Vista' },
-                { value: 'PV-002', label: 'PV-002 - Grupo Scheffer' },
+                { value: '', label: 'Selecione a empresa...' },
+                ...(companies || []).map(c => ({ value: String(c.id), label: String(c.name) })),
               ]}
             />
           </div>
-          
+
           <div className="tauze-field-group">
             <label className="tauze-label"><Settings size={14} /> Natureza da Operação (CFOP)</label>
             <SearchableSelect 
@@ -184,50 +250,33 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
               ]}
             />
           </div>
-        </div>
 
-        {/* METADADOS BLINDADOS */}
-        <div style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '16px' }}>
-          <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--brand))', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '12px' }}>
-            <Lock size={12}/> CONTROLE DO SISTEMA
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Calendar size={14} /> Data de Emissão</label>
+            <input 
+              className="tauze-input"
+              type="date" 
+              value={formData.date}
+              onChange={(e) => setFormData({...formData, date: e.target.value})}
+              required
+            />
           </div>
-          <div className="tauze-input-grid grid-col-4">
-            <div className="tauze-field-group">
-              <label className="tauze-label"><Hash size={14} /> Número da Nota</label>
-              <input 
-                className="tauze-input"
-                type="text" 
-                value={formData.invoice_number}
-                readOnly
-                style={{ background: 'hsl(var(--bg-card))', opacity: 0.8 }}
-              />
-            </div>
 
-            <div className="tauze-field-group">
-              <label className="tauze-label"><Layers size={14} /> Série</label>
-              <input 
-                className="tauze-input"
-                type="text" 
-                value={formData.series}
-                readOnly
-                style={{ background: 'hsl(var(--bg-card))', opacity: 0.8 }}
-              />
-            </div>
-            
-            <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-              <label className="tauze-label"><DollarSign size={14} /> Valor Total (R$)</label>
-              <input 
-                className="tauze-input"
-                type="number" 
-                value={formData.total_value}
-                readOnly
-                style={{ fontWeight: '800', color: 'hsl(var(--success))', background: 'hsl(var(--bg-card))' }}
-              />
-            </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Users size={14} /> Vendedor</label>
+            <SearchableSelect 
+              value={formData.seller_id}
+              onChange={(val: any) => setFormData({...formData, seller_id: val})}
+              options={[
+                { value: '', label: 'Selecione o vendedor...' },
+                { value: 'vend-1', label: 'João Silva' },
+                { value: 'vend-2', label: 'Maria Souza' },
+              ]}
+            />
           </div>
         </div>
 
-        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
+        <div className="tauze-input-grid" style={{ gridTemplateColumns: '1fr 0.8fr 0.4fr 0.8fr 1fr', marginBottom: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><User size={14} /> Parceiro / Destinatário</label>
             <SearchableSelect 
@@ -241,16 +290,57 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Data de Emissão</label>
+            <label className="tauze-label"><Hash size={14} /> Número da Nota</label>
             <input 
               className="tauze-input"
-              type="date" 
-              value={formData.date}
-              onChange={(e) => setFormData({...formData, date: e.target.value})}
-              required
+              type="text" 
+              value={formData.invoice_number}
+              readOnly
+              style={{ background: 'hsl(var(--bg-main))', opacity: 0.8 }}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Layers size={14} /> Série</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              value={formData.series}
+              readOnly
+              style={{ background: 'hsl(var(--bg-main))', opacity: 0.8 }}
+            />
+          </div>
+          
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileDigit size={14} /> Modelo Fiscal</label>
+            <SearchableSelect 
+              value={formData.modelo_fiscal}
+              onChange={(val: any) => setFormData({...formData, modelo_fiscal: val})}
+              options={[
+                { value: '55', label: '55 - NF-e (Normal)' },
+                { value: '65', label: '65 - NFC-e (Consumidor)' },
+                { value: '11', label: '11 - Produtor Rural' },
+              ]}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label" style={{ color: 'hsl(var(--warning))' }}>
+              <ClipboardList size={14} /> Vincular Pedido de Venda
+            </label>
+            <SearchableSelect 
+              value={formData.sales_order_id}
+              onChange={(val: any) => setFormData({...formData, sales_order_id: val})}
+              options={[
+                { value: '', label: 'Sem vínculo (Emissão Avulsa)' },
+                { value: 'PV-001', label: 'PV-001 - Fazenda Boa Vista' },
+                { value: 'PV-002', label: 'PV-002 - Grupo Scheffer' },
+              ]}
             />
           </div>
         </div>
+
+          {/* CONTROLE DO SISTEMA (VALOR TOTAL) MOVIDO PARA O PASSO 04 */}
       </section>
 
       <section className="tauze-form-section">
@@ -258,8 +348,8 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
           <div className="tauze-section-badge">PASSO 02</div>
           <h4 className="tauze-section-title">Logística de Expedição</h4>
         </div>
-        <div className="tauze-input-grid grid-col-3">
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+        <div className="tauze-input-grid grid-col-4">
+          <div className="tauze-field-group">
             <label className="tauze-label"><Truck size={14} /> Transportadora</label>
             <SearchableSelect 
               value={formData.transport_company}
@@ -316,7 +406,8 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         <div className="tauze-input-grid grid-col-1">
           <InsumoEntryTable 
             items={items}
-            onChange={setItems}
+            onChange={(items) => setItems(items)}
+            companyId={formData.company_id}
           />
         </div>
       </section>
@@ -326,7 +417,21 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
           <div className="tauze-section-badge">PASSO 04</div>
           <h4 className="tauze-section-title">Contas a Receber (Faturamento)</h4>
         </div>
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid" style={{ gridTemplateColumns: formData.payment_condition === 'prazo' ? '1.5fr 1.5fr 1.5fr 1fr 2fr 1.2fr' : '1.5fr 1fr 1fr 1.5fr 1.2fr' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><DollarSign size={14} /> Total da Nota</label>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: '900', color: 'hsl(var(--success))', fontSize: '18px', letterSpacing: '-0.5px' }}>R$</span>
+              <input 
+                className="tauze-input"
+                type="text" 
+                value={parseFloat(formData.total_value || '0').toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                readOnly
+                style={{ fontWeight: '900', color: 'hsl(var(--success))', fontSize: '18px', height: '42px', paddingLeft: '44px', letterSpacing: '-0.5px', background: 'hsl(var(--bg-main))' }}
+              />
+            </div>
+          </div>
+
           <div className="tauze-field-group">
             <label className="tauze-label"><Banknote size={14} /> Condição</label>
             <SearchableSelect 
@@ -340,7 +445,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><CreditCard size={14} /> Meio de Pagamento (Fatura)</label>
+            <label className="tauze-label"><CreditCard size={14} /> Meio de Pagamento</label>
             <SearchableSelect 
               value={formData.payment_method}
               onChange={(val: any) => setFormData({...formData, payment_method: val})}
@@ -366,7 +471,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
             </div>
           )}
 
-          <div className="tauze-field-group" style={{ gridColumn: formData.payment_condition === 'prazo' ? 'span 1' : 'span 2' }}>
+          <div className="tauze-field-group">
             <label className="tauze-label"><Wallet size={14} /> Conta de Destino</label>
             <SearchableSelect 
               value={formData.bank_account_id}
@@ -377,19 +482,18 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
               ]}
             />
           </div>
-        </div>
 
-        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-          <div className="tauze-field-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'hsl(var(--success)/0.05)', padding: '16px', borderRadius: '12px', border: '1px dashed hsl(var(--success)/0.3)', cursor: 'pointer' }}>
+          <div className="tauze-field-group" style={{ justifyContent: 'flex-end' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', background: isFinancialDisabledByOrder ? 'hsl(var(--bg-main))' : 'hsl(var(--success)/0.05)', padding: '0 16px', height: '48px', borderRadius: '14px', border: isFinancialDisabledByOrder ? '1px dashed hsl(var(--border))' : '1px dashed hsl(var(--success)/0.3)', cursor: isFinancialDisabledByOrder ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isFinancialDisabledByOrder ? 0.6 : 1 }}>
               <input 
                 type="checkbox" 
                 checked={formData.generate_financial}
-                onChange={(e) => setFormData({...formData, generate_financial: e.target.checked})}
-                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: 'hsl(var(--success))' }}
+                onChange={handleGenerateFinancialChange}
+                style={{ width: '18px', height: '18px', cursor: isFinancialDisabledByOrder ? 'not-allowed' : 'pointer', accentColor: 'hsl(var(--success))', flexShrink: 0 }}
+                disabled={isFinancialDisabledByOrder}
               />
-              <span style={{ fontWeight: '700', color: 'hsl(var(--success))' }}>
-                Gerar Títulos no Contas a Receber
+              <span style={{ fontWeight: '700', color: isFinancialDisabledByOrder ? 'hsl(var(--text-muted))' : 'hsl(var(--success))', fontSize: '11px', lineHeight: 1.2 }}>
+                Gerar Financeiro {isFinancialDisabledByOrder && '(Gerado no Pedido)'}
               </span>
             </label>
           </div>
@@ -455,5 +559,6 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         </div>
       </section>
     </SidePanel>
+    </>
   );
 };

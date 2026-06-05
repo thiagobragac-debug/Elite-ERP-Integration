@@ -314,7 +314,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           <div className="tauze-section-badge">PASSO 01</div>
           <h4 className="tauze-section-title">Identificação Básica</h4>
         </div>
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
             <label className="tauze-label"><Hash size={14} /> Brinco Visual (Manejo)</label>
             <input 
@@ -338,11 +338,34 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
             />
           </div>
 
+          <div className="tauze-field-group" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+            <label className="tauze-label"><User size={14} /> Sexo</label>
+            <div className="tauze-form-radio-group" style={{ height: '48px', marginTop: 0 }}>
+              <div 
+                className={`tauze-form-radio-item ${formData.sexo === 'M' ? 'active-macho' : ''}`}
+                style={{ height: '48px', padding: 0, boxSizing: 'border-box', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => setFormData({...formData, sexo: 'M'})}
+              >
+                <User size={16} />
+                <span>Macho</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.sexo === 'F' ? 'active-femea' : ''}`}
+                style={{ height: '48px', padding: 0, boxSizing: 'border-box', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => setFormData({...formData, sexo: 'F'})}
+              >
+                <User size={16} />
+                <span>Fêmea</span>
+              </div>
+            </div>
+          </div>
+
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Nascimento / Idade</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px' }}>
               <input 
                 className="tauze-input"
+                style={{ flex: '2', minWidth: 0 }}
                 type="date" 
                 title="Data de Nascimento"
                 value={formData.data_nascimento}
@@ -350,6 +373,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
               />
               <input 
                 className="tauze-input"
+                style={{ flex: '0.8', minWidth: 0 }}
                 type="number" 
                 placeholder="Idade (meses)" 
                 title="Idade em Meses"
@@ -383,25 +407,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
             />
           </div>
 
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><User size={14} /> Sexo</label>
-            <div className="tauze-form-radio-group">
-              <div 
-                className={`tauze-form-radio-item ${formData.sexo === 'M' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, sexo: 'M'})}
-              >
-                <User size={16} />
-                <span>Macho</span>
-              </div>
-              <div 
-                className={`tauze-form-radio-item ${formData.sexo === 'F' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, sexo: 'F'})}
-              >
-                <User size={16} />
-                <span>Fêmea</span>
-              </div>
-            </div>
-          </div>
+
         </div>
       </section>
 
@@ -457,10 +463,10 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           <div className="tauze-section-badge">PASSO 03</div>
           <h4 className="tauze-section-title">Origem e Genealogia</h4>
         </div>
-        <div className="tauze-input-grid grid-col-2">
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+        <div className="tauze-input-grid grid-col-3">
+          <div className="tauze-field-group" style={{ gridColumn: 'span 3' }}>
             <label className="tauze-label"><Users size={14} /> Origem do Animal</label>
-            <div className="tauze-form-radio-group">
+            <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div 
                 className={`tauze-form-radio-item ${formData.origem === 'Nascido' ? 'active' : ''}`}
                 onClick={() => setFormData({...formData, origem: 'Nascido'})}
@@ -468,10 +474,16 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
                 <span>Nascido na Fazenda</span>
               </div>
               <div 
-                className={`tauze-form-radio-item ${formData.origem === 'Comprado' ? 'active' : ''}`}
+                className={`tauze-form-radio-item ${formData.origem === 'Comprado' ? 'active-comprado' : ''}`}
                 onClick={() => setFormData({...formData, origem: 'Comprado'})}
               >
                 <span>Comprado (Entrada)</span>
+              </div>
+              <div 
+                className={`tauze-form-radio-item ${formData.origem === 'Doação' ? 'active-doacao' : ''}`}
+                onClick={() => setFormData({...formData, origem: 'Doação'})}
+              >
+                <span>Doação</span>
               </div>
             </div>
           </div>
@@ -498,7 +510,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
             />
           </div>
 
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <div className="tauze-field-group">
             <label className="tauze-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span><DollarSign size={14} /> Valor de Compra (R$)</span>
               {custoArroba && formData.origem === 'Comprado' && (
@@ -514,7 +526,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
               placeholder="0.00" 
               value={formData.valor_compra}
               onChange={(e) => setFormData({...formData, valor_compra: e.target.value})}
-              disabled={formData.origem === 'Nascido'}
+              disabled={formData.origem !== 'Comprado'}
             />
           </div>
         </div>

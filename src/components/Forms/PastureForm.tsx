@@ -39,7 +39,9 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
     fazenda_id: '',
     estado_cerca: 'Bom',
     sombreamento: 'Natural',
-    plantas_daninhas: 'Baixa'
+    plantas_daninhas: 'Baixa',
+    sistema_pastejo: 'Contínuo',
+    coordenadas: ''
   });
 
   const [farms, setFarms] = useState<any[]>([]);
@@ -77,7 +79,9 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
         fazenda_id: initialData.fazenda_id || '',
         estado_cerca: initialData.estado_cerca || 'Bom',
         sombreamento: initialData.sombreamento || 'Natural',
-        plantas_daninhas: initialData.plantas_daninhas || 'Baixa'
+        plantas_daninhas: initialData.plantas_daninhas || 'Baixa',
+        sistema_pastejo: initialData.sistema_pastejo || 'Contínuo',
+        coordenadas: initialData.coordenadas || ''
       });
     } else {
       setFormData({
@@ -94,7 +98,9 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
         fazenda_id: '',
         estado_cerca: 'Bom',
         sombreamento: 'Natural',
-        plantas_daninhas: 'Baixa'
+        plantas_daninhas: 'Baixa',
+        sistema_pastejo: 'Contínuo',
+        coordenadas: ''
       });
     }
   }, [initialData, isOpen]);
@@ -144,7 +150,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
           <h4 className="tauze-section-title">Dados Principais</h4>
         </div>
         
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
             <label className="tauze-label"><Map size={14} /> Selecionar Fazenda / Unidade</label>
             <SearchableSelect 
@@ -157,7 +163,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
             />
           </div>
 
-          <div className="tauze-field-group">
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
             <label className="tauze-label"><Map size={14} /> Nome do Pasto</label>
             <input 
               className="tauze-input"
@@ -201,6 +207,17 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
               required
             />
           </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Map size={14} /> Coordenadas (Lat/Long)</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: -15.7801, -47.9292" 
+              value={formData.coordenadas}
+              onChange={(e) => setFormData({...formData, coordenadas: e.target.value})}
+            />
+          </div>
         </div>
       </section>
 
@@ -210,7 +227,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
           <h4 className="tauze-section-title">Condições da Pastagem</h4>
         </div>
         
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid grid-col-3">
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Trees size={14} /> Tipo de Capim</label>
@@ -221,6 +238,19 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
               value={formData.tipo_capim}
               onChange={(e) => setFormData({...formData, tipo_capim: e.target.value})}
               required
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Map size={14} /> Sistema de Pastejo</label>
+            <SearchableSelect 
+              value={formData.sistema_pastejo}
+              onChange={(val: any) => setFormData({...formData, sistema_pastejo: val})}
+              options={[
+                { value: 'Contínuo', label: 'Contínuo' },
+                { value: 'Rotacionado', label: 'Rotacionado' },
+                { value: 'Diferido', label: 'Diferido' }
+              ]}
             />
           </div>
 
@@ -239,32 +269,32 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
             )}
           </div>
 
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <div className="tauze-field-group" style={{ gridColumn: 'span 3' }}>
             <label className="tauze-label"><Tag size={14} /> Status da Área</label>
             <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
               <div 
-                className={`tauze-form-radio-item ${formData.status === 'grazing' ? 'active' : ''}`}
+                className={`tauze-form-radio-item ${formData.status === 'grazing' ? 'active-grazing' : ''}`}
                 onClick={() => setFormData({...formData, status: 'grazing'})}
               >
                 <Trees size={16} />
                 <span>Pastejo</span>
               </div>
               <div 
-                className={`tauze-form-radio-item ${formData.status === 'resting' ? 'active' : ''}`}
+                className={`tauze-form-radio-item ${formData.status === 'resting' ? 'active-resting' : ''}`}
                 onClick={() => setFormData({...formData, status: 'resting'})}
               >
                 <Calendar size={16} />
                 <span>Descanso</span>
               </div>
               <div 
-                className={`tauze-form-radio-item ${formData.status === 'degraded' ? 'active' : ''}`}
+                className={`tauze-form-radio-item ${formData.status === 'degraded' ? 'active-degraded' : ''}`}
                 onClick={() => setFormData({...formData, status: 'degraded'})}
               >
                 <Activity size={16} />
                 <span>Degradado</span>
               </div>
               <div 
-                className={`tauze-form-radio-item ${formData.status === 'renovation' ? 'active' : ''}`}
+                className={`tauze-form-radio-item ${formData.status === 'renovation' ? 'active-renovation' : ''}`}
                 onClick={() => setFormData({...formData, status: 'renovation'})}
               >
                 <Sprout size={16} />
@@ -338,7 +368,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
           <h4 className="tauze-section-title">Infraestrutura & Saúde</h4>
         </div>
         
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid grid-col-3">
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Shield size={14} /> Estado da Cerca</label>
@@ -382,7 +412,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
             />
           </div>
 
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+          <div className="tauze-field-group" style={{ gridColumn: 'span 3' }}>
             <label className="tauze-label"><Tag size={14} /> Observações Técnicas</label>
             <textarea 
               className="tauze-input tauze-textarea"

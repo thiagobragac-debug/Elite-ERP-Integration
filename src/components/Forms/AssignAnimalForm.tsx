@@ -25,6 +25,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
 import toast from 'react-hot-toast';
 import { SearchableSelect } from './SearchableSelect';
+import { Save } from 'lucide-react';
 
 type AssignMode = 'lote' | 'pasto';
 
@@ -88,26 +89,27 @@ function DestSearch({ items, value, onChange, placeholder, icon, label }: DestSe
   const handleClear = (e: React.MouseEvent) => { e.stopPropagation(); onChange('', ''); setQuery(''); };
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>
+    <div ref={ref} style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <label className="tauze-label">
         {label}
       </label>
       <div
         onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 50); }}
-        style={{ display: 'flex', alignItems: 'center', gap: '6px', border: `1.5px solid ${open ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`, borderRadius: '10px', padding: '8px 10px', cursor: 'text', background: 'hsl(var(--bg-card))', transition: 'border-color 0.15s', minHeight: '38px' }}
+        className={`tauze-input ${open ? 'focus' : ''}`}
+        style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'text', padding: '0 16px', outline: open ? 'none' : '', borderColor: open ? 'hsl(var(--brand))' : '', boxShadow: open ? '0 0 0 4px hsl(var(--brand) / 0.1)' : '' }}
       >
-        <Search size={13} style={{ color: 'hsl(var(--text-muted))', flexShrink: 0 }} />
+        <Search size={14} style={{ color: 'hsl(var(--text-muted))', flexShrink: 0 }} />
         {open ? (
           <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} placeholder={selected ? selected.nome : placeholder}
-            style={{ border: 'none', outline: 'none', flex: 1, fontSize: '13px', background: 'transparent', color: 'hsl(var(--text-main))' }} autoComplete="off" />
+            style={{ border: 'none', outline: 'none', flex: 1, fontSize: '14px', fontWeight: 600, background: 'transparent', color: 'hsl(var(--text-main))', height: '100%' }} autoComplete="off" />
         ) : (
-          <span style={{ flex: 1, fontSize: '13px', color: selected ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))', fontWeight: selected ? 700 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ flex: 1, fontSize: '14px', color: selected ? 'hsl(var(--text-main))' : 'hsl(var(--text-muted))', fontWeight: selected ? 600 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {selected ? selected.nome : placeholder}
           </span>
         )}
         {value
-          ? <button type="button" onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 2px', flexShrink: 0 }}><X size={13} /></button>
-          : <ChevronDown size={13} style={{ color: 'hsl(var(--text-muted))', flexShrink: 0 }} />}
+          ? <button type="button" onClick={handleClear} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))', display: 'flex', padding: '0 2px', flexShrink: 0 }}><X size={14} /></button>
+          : <ChevronDown size={14} style={{ color: 'hsl(var(--text-muted))', flexShrink: 0 }} />}
       </div>
       {open && (
         <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 1000, background: 'hsl(var(--bg-card))', border: '1.5px solid hsl(var(--brand))', borderRadius: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', maxHeight: '220px', overflowY: 'auto' }}>
@@ -499,7 +501,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
 
   return (
     <>
-    <SidePanel size="medium"
+    <SidePanel size="xlarge"
 
       isOpen={isOpen}
       onClose={onClose}
@@ -509,6 +511,24 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
       icon={entityIcon}
       loading={loading}
       submitLabel={`Revisar Associação (${selectedAnimals.length})`}
+      customFooter={
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '16px' }}>
+          <div style={{ flex: 1, maxWidth: '400px' }}>
+            {destCapacity && (
+              <CapacityBar current={destCapacity.current} max={destCapacity.max} adding={selectedAddingValue} unit={isLoteMode ? 'Cab.' : 'UA'} />
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <button type="button" className="glass-btn secondary" onClick={onClose}>
+              Cancelar
+            </button>
+            <button type="submit" className="primary-btn" disabled={loading} style={{ boxShadow: '0 8px 20px hsl(var(--brand) / 0.2)' }}>
+              <Save size={18} />
+              {loading ? 'Processando...' : `Revisar Associação (${selectedAnimals.length})`}
+            </button>
+          </div>
+        </div>
+      }
     >
       <section className="tauze-form-section">
         <div className="tauze-section-header">
@@ -524,7 +544,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
               onChange={(id, name) => { setSelectedDestination(id); setSelectedDestName(name); }}
               placeholder={`Buscar ${entityLabel.toLowerCase()}...`}
               icon={isLoteMode ? <Layers size={13} /> : <Trees size={13} />}
-              label={<>{isLoteMode ? <Layers size={12} /> : <Trees size={12} />} {entityLabel} de Destino</>}
+              label={<>{isLoteMode ? <Layers size={14} /> : <Trees size={14} />} {entityLabel} de Destino</>}
             />
             {(() => {
               const dest = destinations.find(d => d.id === selectedDestination);
@@ -545,9 +565,6 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px', background: '#fffbeb', color: '#d97706', border: '1px solid #fef3c7', borderRadius: '8px', fontSize: '11px', fontWeight: 600, marginBottom: '8px' }}>
                       <AlertTriangle size={14} /> Atenção: Área de destino está em {dest.status === 'resting' ? 'Descanso' : 'Reforma'}.
                     </div>
-                  )}
-                  {destCapacity && (
-                    <CapacityBar current={destCapacity.current} max={destCapacity.max} adding={selectedAddingValue} unit={isLoteMode ? 'Cab.' : 'UA'} />
                   )}
                 </div>
               );
@@ -625,8 +642,8 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
           <>
 
             {showFilters && (
-              <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div className="search-glass-box small" style={{ marginBottom: '0' }}>
+              <div style={{ marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'center', width: '100%' }}>
+                <div className="search-glass-box small" style={{ margin: 0, flex: 2 }}>
                   <Search size={14} className="s-icon" />
                   <input
                     type="text"
@@ -641,8 +658,6 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
                     </button>
                   )}
                 </div>
-                
-                <div style={{ display: 'flex', gap: '10px' }}>
                   <div style={{ flex: 1 }}>
                     <SearchableSelect 
                       value={filterSexo}
@@ -664,7 +679,6 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
                       ]}
                     />
                   </div>
-                </div>
               </div>
             )}
 
@@ -675,32 +689,30 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
               ) : filteredAnimals.length === 0 ? (
                 <div className="picker-empty">Nenhum animal encontrado com esse filtro.</div>
               ) : (
-                <div className="picker-grid-adv">
+                <div className="picker-list-adv">
                   {filteredAnimals.map(animal => {
                     const isBlocked = isLoteMode && destinations.find(d => d.id === selectedDestination)?.sexo_permitido && destinations.find(d => d.id === selectedDestination)?.sexo_permitido !== 'MISTO' && animal.sexo && animal.sexo !== destinations.find(d => d.id === selectedDestination)?.sexo_permitido;
                     return (
                       <div
                         key={animal.id}
-                        className={`picker-item-adv ${selectedAnimals.includes(animal.id) ? 'active' : ''}`}
+                        className={`picker-list-item ${selectedAnimals.includes(animal.id) ? 'active' : ''}`}
                         onClick={() => !isBlocked && toggleAnimal(animal.id, animal.sexo)}
                         style={isBlocked ? { opacity: 0.6, cursor: 'not-allowed', background: 'hsl(var(--danger)/0.05)', borderColor: 'hsl(var(--danger)/0.2)' } : {}}
                       >
-                        <div className="p-check-adv">
-                          {selectedAnimals.includes(animal.id) ? <CheckCircle2 size={15} /> : <div className="p-check-empty" />}
+                        <div className="p-check-adv" style={{ marginTop: 0 }}>
+                          {selectedAnimals.includes(animal.id) ? <CheckCircle2 size={18} /> : <div className="p-check-empty" style={{ width: '18px', height: '18px' }} />}
                         </div>
-                      <div className="p-info-adv">
-                        <span className="p-brinco-adv">#{animal.brinco}</span>
-                        <span className="p-raca-adv">{animal.raca || '—'}</span>
-                        <div className="p-tags-adv">
+                        <div className="p-info-row">
+                          <span className="p-brinco-adv" style={{ minWidth: '70px', fontSize: '13px' }}>#{animal.brinco}</span>
+                          <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>{animal.raca || '—'}</span>
                           {animal.categoria && <span className="p-tag">{animal.categoria}</span>}
-                          {animal.sexo && <span className="p-tag" style={{ background: animal.sexo === 'MACHO' ? '#eff6ff' : '#fdf2f8', color: animal.sexo === 'MACHO' ? '#3b82f6' : '#ec4899' }}>{animal.sexo === 'MACHO' ? '♂' : '♀'}</span>}
+                          {animal.sexo && <span className="p-tag" style={{ background: animal.sexo === 'MACHO' ? '#eff6ff' : '#fdf2f8', color: animal.sexo === 'MACHO' ? '#3b82f6' : '#ec4899' }}>{animal.sexo === 'MACHO' ? 'M' : 'F'}</span>}
                         </div>
-                        <div className="p-stats-adv">
-                          {animal.peso_atual && <span><Weight size={9} style={{ display: 'inline', verticalAlign: 'middle' }} /> {animal.peso_atual}kg</span>}
-                          {animal.data_nascimento && <span>🎂 {calcAge(animal.data_nascimento)}</span>}
+                        <div className="p-stats-row">
+                          {animal.peso_atual && <span><Weight size={12} /> {animal.peso_atual}kg</span>}
+                          {animal.data_nascimento && <span style={{ minWidth: '70px' }}>🎂 {calcAge(animal.data_nascimento)}</span>}
                         </div>
                       </div>
-                    </div>
                   )})}
                 </div>
               )}
@@ -713,20 +725,19 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onCl
       <style>{`
         .tauze-selection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .text-btn-sm { background: none; border: none; font-size: 10px; font-weight: 800; color: hsl(var(--brand)); cursor: pointer; letter-spacing: 0.05em; text-transform: uppercase; display: inline-flex; align-items: center; }
-        .tauze-animal-picker { max-height: 280px; overflow-y: auto; background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 12px; }
-        .picker-grid-adv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
-        .picker-item-adv { display: flex; align-items: flex-start; gap: 8px; padding: 10px; background: hsl(var(--bg-card)); border: 1.5px solid hsl(var(--border)); border-radius: 10px; cursor: pointer; transition: all 0.18s; }
-        .picker-item-adv:hover { border-color: hsl(var(--brand)); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .picker-item-adv.active { border-color: hsl(var(--brand)); background: hsl(var(--brand) / 0.05); }
-        .p-check-adv { width: 18px; height: 18px; flex-shrink: 0; color: hsl(var(--brand)); margin-top: 1px; }
-        .p-check-empty { width: 16px; height: 16px; border: 2px solid hsl(var(--border)); border-radius: 4px; }
-        .p-info-adv { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
-        .p-brinco-adv { font-size: 12px; font-weight: 800; color: hsl(var(--text-main)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .p-raca-adv { font-size: 10px; font-weight: 600; color: hsl(var(--text-muted)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .p-tags-adv { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
-        .p-tag { font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 5px; background: hsl(var(--brand) / 0.08); color: hsl(var(--brand)); text-transform: uppercase; letter-spacing: 0.04em; }
-        .p-stats-adv { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
-        .p-stats-adv span { font-size: 9px; font-weight: 700; color: hsl(var(--text-muted)); display: flex; align-items: center; gap: 2px; }
+        .tauze-animal-picker { max-height: 400px; overflow-y: auto; background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); border-radius: 12px; padding: 12px; }
+        .picker-list-adv { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .picker-list-item { display: flex; align-items: center; padding: 10px 14px; background: hsl(var(--bg-card)); border: 1px solid hsl(var(--border)); border-radius: 12px; cursor: pointer; transition: all 0.15s; }
+        .picker-list-item:hover { border-color: hsl(var(--brand)); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .picker-list-item.active { border-color: hsl(var(--brand)); background: hsl(var(--brand) / 0.05); }
+        .p-info-row { display: flex; align-items: center; gap: 12px; flex: 1; margin-left: 12px; }
+        .p-stats-row { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+        .p-stats-row span { font-size: 11px; font-weight: 700; color: hsl(var(--text-muted)); display: flex; align-items: center; gap: 4px; }
+        .p-check-adv { display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex-shrink: 0; color: hsl(var(--brand)); }
+        .p-check-empty { width: 18px; height: 18px; border: 2px solid hsl(var(--border)); border-radius: 4px; }
+        .p-brinco-adv { font-size: 13px; font-weight: 800; color: hsl(var(--text-main)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .p-raca-adv { font-size: 11px; font-weight: 600; color: hsl(var(--text-muted)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .p-tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px; background: hsl(var(--brand) / 0.08); color: hsl(var(--brand)); text-transform: uppercase; letter-spacing: 0.04em; }
         .picker-loading, .picker-empty { padding: 24px; text-align: center; font-size: 12px; font-weight: 600; color: hsl(var(--text-muted)); }
         .assign-empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 16px; text-align: center; background: hsl(var(--bg-main)); border: 1px solid hsl(var(--border)); border-radius: 12px; color: hsl(var(--text-muted)); }
         .assign-empty-state h4 { font-size: 14px; font-weight: 800; color: hsl(var(--text-main)); margin: 0; }

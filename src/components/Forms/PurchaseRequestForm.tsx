@@ -211,8 +211,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
                 <span style={{color: '#ef4444', fontSize: '10px', marginLeft: '6px', fontWeight: 800}}>* OBRIGATÓRIO PARA ESTA PRIORIDADE</span>
               )}
             </label>
-            <textarea 
-              className="tauze-input"
+            <textarea className="tauze-input tauze-textarea"
               style={{ minHeight: '80px', resize: 'vertical' }}
               placeholder="Explique detalhadamente o porquê desta compra para o aprovador financeiro..." 
               value={formData.justification}
@@ -244,6 +243,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
             <InsumoEntryTable 
               items={items}
               onChange={setItems}
+              companyId={formData.company_id}
             />
           </div>
         </div>
