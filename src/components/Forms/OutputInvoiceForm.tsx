@@ -22,7 +22,10 @@ import {
   ClipboardList,
   Lock,
   Scale,
-  AlertCircle
+  AlertCircle,
+  UploadCloud,
+  FileSearch,
+  X
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
@@ -64,7 +67,9 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
     bank_account_id: initialData?.bank_account_id || '',
     generate_financial: initialData ? initialData.generate_financial : true,
     
-    description: initialData?.observacoes || ''
+    description: initialData?.observacoes || '',
+    is_xml_imported: false,
+    xml_key: ''
   });
   const [items, setItems] = useState<any[]>(initialData?.itens || []);
 
@@ -73,6 +78,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
   const [installmentsList, setInstallmentsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showFinancialConfirm, setShowFinancialConfirm] = useState(false);
+  const [showXMLField, setShowXMLField] = useState(false);
 
   useEffect(() => {
     if (isOpen && activeFarm) {
@@ -163,6 +169,83 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
     }
   };
 
+  const handleXMLDoubleClick = () => {
+    if (formData.is_xml_imported) return;
+    
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xml';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (file) {
+        toast.promise(
+          new Promise((resolve) => setTimeout(resolve, 1500)),
+          {
+            loading: 'Analisando XML externo...',
+            success: `XML importado com sucesso!`,
+            error: 'Falha ao importar o XML'
+          }
+        ).then(() => {
+          setFormData(prev => ({
+            ...prev,
+            is_xml_imported: true,
+            nature_of_operation: 'Venda de Produção Própria',
+            company_id: companies.length > 0 ? String(companies[0].id) : '',
+            customer_id: clients.length > 0 ? String(clients[0].id) : '',
+          }));
+          
+          setItems([{
+            id: 'xml-out-1',
+            nome: 'Produto Importado do XML',
+            quantidade: 10,
+            unidade: 'UN',
+            preco_unitario: 100.00,
+            despesa_adicional: 0,
+            desconto: 0,
+            deposito_id: '',
+            total: 1000.00
+          }]);
+        });
+      }
+      document.body.removeChild(input);
+    };
+    input.click();
+  };
+
+  const handleSefazMock = () => {
+    toast.promise(
+      new Promise((resolve) => setTimeout(resolve, 1500)),
+      {
+        loading: 'Buscando dados na SEFAZ...',
+        success: `Nota importada da SEFAZ com sucesso!`,
+        error: 'Chave não encontrada'
+      }
+    ).then(() => {
+      setFormData(prev => ({
+        ...prev,
+        is_xml_imported: true,
+        nature_of_operation: 'Venda de Produção Própria',
+        company_id: companies.length > 0 ? String(companies[0].id) : '',
+        customer_id: clients.length > 0 ? String(clients[0].id) : '',
+      }));
+      setItems([{
+        id: 'xml-out-2',
+        nome: 'Produto Buscado na SEFAZ',
+        quantidade: 15,
+        unidade: 'UN',
+        preco_unitario: 100.00,
+        despesa_adicional: 0,
+        desconto: 0,
+        deposito_id: '',
+        total: 1500.00
+      }]);
+      setShowXMLField(false);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -218,9 +301,60 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
       size="xxlarge"
     >
       <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 01</div>
-          <h4 className="tauze-section-title">Identificação da Nota</h4>
+        <div className="tauze-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="tauze-section-badge">PASSO 01</div>
+            <h4 className="tauze-section-title">Identificação da Nota</h4>
+          </div>
+          {!showXMLField ? (
+            <button 
+              type="button" 
+              onClick={() => setShowXMLField(true)} 
+              style={{ 
+                background: 'transparent', 
+                border: 'none', 
+                color: 'hsl(var(--text-muted))', 
+                fontSize: '11px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                cursor: 'pointer',
+                fontWeight: 700,
+                padding: '4px 8px',
+                borderRadius: '6px',
+              }} 
+              title="Importar XML ou buscar Chave"
+              onMouseEnter={(e) => { e.currentTarget.style.color = 'hsl(var(--brand))'; e.currentTarget.style.background = 'hsl(var(--brand)/0.1)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = 'hsl(var(--text-muted))'; e.currentTarget.style.background = 'transparent'; }}
+            >
+              <UploadCloud size={12} /> Importar NF-e
+            </button>
+          ) : (
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+               <div style={{ position: 'relative' }}>
+                 <input 
+                   type="text" 
+                   value={formData.xml_key}
+                   onChange={(e) => setFormData({...formData, xml_key: e.target.value.replace(/\D/g, '')})}
+                   onDoubleClick={handleXMLDoubleClick}
+                   placeholder="Chave de acesso (ou duplo clique)..." 
+                   style={{ width: '250px', height: '26px', fontSize: '11px', borderRadius: '6px', border: '1px solid hsl(var(--border))', padding: '0 40px 0 8px', background: 'transparent', color: 'hsl(var(--text-main))', outline: 'none' }}
+                   title="Cole a chave de acesso ou dê dois cliques para upload de arquivo"
+                 />
+                 {formData.xml_key?.length === 44 && <span style={{ position: 'absolute', right: '4px', top: '4px', fontSize: '9px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 4px', borderRadius: '4px', fontWeight: 800 }}>NF-e</span>}
+                 {formData.xml_key?.length === 50 && <span style={{ position: 'absolute', right: '4px', top: '4px', fontSize: '9px', background: 'hsl(var(--warning)/0.1)', color: 'hsl(var(--warning))', padding: '2px 4px', borderRadius: '4px', fontWeight: 800 }}>NFS-e</span>}
+               </div>
+               <button type="button" onClick={handleSefazMock} style={{ height: '26px', padding: '0 8px', borderRadius: '6px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', color: 'hsl(var(--text-main))', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                 <FileSearch size={12} /> Sefaz
+               </button>
+               <button type="button" onClick={handleXMLDoubleClick} style={{ height: '26px', padding: '0 8px', borderRadius: '6px', background: 'hsl(var(--brand))', border: 'none', color: '#fff', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600 }}>
+                 <UploadCloud size={12} /> XML
+               </button>
+               <button type="button" onClick={() => setShowXMLField(false)} style={{ height: '26px', width: '26px', borderRadius: '6px', background: 'transparent', border: 'none', color: 'hsl(var(--text-muted))', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Cancelar">
+                 <X size={14} />
+               </button>
+            </div>
+          )}
         </div>
         
         <div className="tauze-input-grid grid-col-4" style={{ marginBottom: '16px' }}>

@@ -167,6 +167,9 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.xml';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+
     input.onchange = (e: any) => {
       const file = e.target.files[0];
       if (file) {
@@ -181,6 +184,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
           handleSimulateXMLImport();
         });
       }
+      document.body.removeChild(input);
     };
     input.click();
   };
@@ -364,8 +368,10 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
 
             {/* BOTÃO E CAMPO XML JUNTOS NO GRID */}
             <div className="tauze-field-group">
-              <label className="tauze-label" style={{ color: 'hsl(var(--brand))' }} title="Dê um duplo clique no campo para importar o arquivo XML">
-                <UploadCloud size={14} /> Importar XML
+              <label className="tauze-label" style={{ color: 'hsl(var(--brand))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} title="Dê um duplo clique no campo para importar o arquivo XML">
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><UploadCloud size={14} /> Importar XML</span>
+                {formData.xml_key?.length === 44 && <span style={{ fontSize: '10px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>NF-e</span>}
+                {formData.xml_key?.length === 50 && <span style={{ fontSize: '10px', background: 'hsl(var(--warning)/0.1)', color: 'hsl(var(--warning))', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>NFS-e</span>}
               </label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input 
@@ -373,7 +379,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
                   type="text" 
                   placeholder="Chave ou duplo clique p/ arquivo..." 
                   value={formData.xml_key}
-                  onChange={(e) => setFormData({...formData, xml_key: e.target.value})}
+                  onChange={(e) => setFormData({...formData, xml_key: e.target.value.replace(/\D/g, '')})}
                   onDoubleClick={handleXMLDoubleClick}
                   readOnly={formData.is_xml_imported}
                   style={{ flex: 1, cursor: formData.is_xml_imported ? 'default' : 'pointer' }}
