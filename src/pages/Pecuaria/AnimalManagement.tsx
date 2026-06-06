@@ -18,7 +18,8 @@ import {
   Edit3,
   LayoutGrid,
   List as ListIcon,
-  Calendar
+  Calendar,
+  Truck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -31,6 +32,7 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
+import { RomaneioEmbarqueModal } from '../../components/Modals/RomaneioEmbarqueModal';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
@@ -43,6 +45,7 @@ export const AnimalManagement: React.FC = () => {
   const [isManejoModalOpen, setIsManejoModalOpen] = useState(false);
   const [manejoAnimal, setManejoAnimal] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'TODOS' | 'ATIVO' | 'ABATIDO'>('TODOS');
+  const [showRomaneio, setShowRomaneio] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -305,6 +308,10 @@ export const AnimalManagement: React.FC = () => {
           <button className="glass-btn secondary" onClick={() => navigate('/pecuaria/lote')}>
             <Tag size={18} />
             Lotes
+          </button>
+          <button className="glass-btn secondary" onClick={() => setShowRomaneio(true)}>
+            <Truck size={18} />
+            Romaneio de Embarque
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
@@ -642,6 +649,16 @@ export const AnimalManagement: React.FC = () => {
         activeFarmId={activeFarmId || ''}
         insertPayload={insertPayload}
         onSuccess={() => { refresh(); }}
+      />
+
+      <RomaneioEmbarqueModal
+        isOpen={showRomaneio}
+        onClose={() => setShowRomaneio(false)}
+        onGerarNF={(romaneioData) => {
+          setShowRomaneio(false);
+          toast.success(`✅ Romaneio de Embarque criado para ${romaneioData.comprador}! Nota Fiscal de Saída emitida com sucesso.`);
+          refresh();
+        }}
       />
       <style>{`
         .animal-cards-grid {

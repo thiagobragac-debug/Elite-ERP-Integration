@@ -22,7 +22,10 @@ import {
   Tag,
   Archive,
   RefreshCw,
-  Activity
+  Activity,
+  AlertCircle,
+  Clock,
+  Truck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
@@ -31,6 +34,7 @@ import { LotForm } from '../../components/Forms/LotForm';
 import { RelocateForm } from '../../components/Forms/RelocateForm';
 import { AssignAnimalForm } from '../../components/Forms/AssignAnimalForm';
 import { AnimalListModal } from '../../components/Modals/AnimalListModal';
+import { ProcessarLoteModal } from '../../components/Modals/ProcessarLoteModal';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
@@ -54,7 +58,33 @@ export const LotManagement: React.FC = () => {
   const [selectedLot, setSelectedLot] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [lotToView, setLotToView] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'ATIVO' | 'ARQUIVADO'>('ATIVO');
+  const [activeTab, setActiveTab] = useState<'ATIVO' | 'PENDENTE' | 'ARQUIVADO'>('ATIVO');
+  const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
+  const [lotToProcess, setLotToProcess] = useState<any>(null);
+  const [mockPendingLots, setMockPendingLots] = useState<any[]>([
+    {
+      id: 'lot-pend-1',
+      nome: 'Lote NF 4589 - Recria Nelore',
+      data_criacao: '2026-05-30',
+      data_limite: '2026-06-04',
+      quantidade_nota: 60,
+      custo_total_aquisicao: 90000,
+      custo_por_cabeca: 1500,
+      fornecedor: 'Fazenda Santa Rita',
+      status: 'PENDENTE'
+    },
+    {
+      id: 'lot-pend-2',
+      nome: 'Lote NF 4612 - Bezerros Angus',
+      data_criacao: '2026-06-03',
+      data_limite: '2026-06-08',
+      quantidade_nota: 40,
+      custo_total_aquisicao: 72000,
+      custo_por_cabeca: 1800,
+      fornecedor: 'Estância Bela Vista',
+      status: 'PENDENTE'
+    }
+  ]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -255,8 +285,9 @@ export const LotManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'log_lotes', 'Relatório de Lotes');
   };
 
-  const filteredLots = localLots.filter(l => {
+  const filteredLots = (activeTab === 'PENDENTE' ? mockPendingLots : localLots).filter(l => {
     const matchesSearch = (l.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
+    if (activeTab === 'PENDENTE') return matchesSearch;
     const status = (l.status || '').toUpperCase();
     const matchesTab = activeTab === 'ATIVO' ? (status === 'ATIVO' || !l.status) : status === 'ARQUIVADO';
     
@@ -429,6 +460,16 @@ export const LotManagement: React.FC = () => {
             Lotes Ativos
           </button>
           <button 
+            className={`tauze-tab-item ${activeTab === 'PENDENTE' ? 'active' : ''}`}
+            onClick={() => setActiveTab('PENDENTE')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            Pendentes
+            <span style={{ fontSize: '10px', background: 'hsl(var(--warning))', color: '#000', padding: '2px 6px', borderRadius: '10px', fontWeight: 800 }}>
+              {mockPendingLots.length}
+            </span>
+          </button>
+          <button 
             className={`tauze-tab-item ${activeTab === 'ARQUIVADO' ? 'active' : ''}`}
             onClick={() => setActiveTab('ARQUIVADO')}
           >
@@ -595,6 +636,95 @@ export const LotManagement: React.FC = () => {
               </div>
             ) : (
               filteredLots.map(l => {
+                if (activeTab === 'PENDENTE') {
+                  const isSlaExpired = new Date(l.data_limite) < new Date('2026-06-05');
+                  return (
+                    <div 
+                      key={l.id} 
+                      className={`lot-card-premium ${isSlaExpired ? 'danger-badge' : 'warning-badge'}`}
+                      style={{ 
+                        animation: isSlaExpired ? 'pulse-border 2s infinite' : 'none',
+                      }}
+                    >
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          left: 0, top: 0, bottom: 0, width: '6px',
+                          backgroundColor: isSlaExpired ? '#ef4444' : '#f59e0b',
+                          boxShadow: `4px 0 15px ${isSlaExpired ? '#ef4444' : '#f59e0b'}55`,
+                          zIndex: 2
+                        }}
+                      />
+                      <div className="card-left-section" style={{ width: '120px' }}>
+                        <div 
+                          className="card-avatar"
+                          style={{
+                            backgroundColor: isSlaExpired ? 'rgba(239, 68, 68, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                            color: isSlaExpired ? '#ef4444' : '#f59e0b',
+                            borderColor: isSlaExpired ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)'
+                          }}
+                        >
+                          <Truck size={28} />
+                        </div>
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textAlign: 'center', margin: '4px 0' }}>
+                          NF DE ENTRADA
+                        </span>
+                      </div>
+
+                      <div className="card-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '16px 20px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <h3 style={{ fontSize: '15.5px', fontWeight: 900, color: 'hsl(var(--text-main))', margin: 0 }}>{l.nome}</h3>
+                            <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>Fornecedor: {l.fornecedor}</span>
+                          </div>
+                          <span className={`status-pill mini ${isSlaExpired ? 'stopped' : 'warning-badge'}`} style={{ textTransform: 'uppercase', fontSize: '9px', fontWeight: 800 }}>
+                            {isSlaExpired ? '⚠️ SLA Expirado' : '⏳ Aguardando'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', background: 'hsl(var(--bg-main)/0.4)', padding: '10px 14px', borderRadius: '12px', border: '1px solid hsl(var(--border)/0.5)' }}>
+                          <div>
+                            <div style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Animais na NF</div>
+                            <div style={{ fontSize: '14px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>{l.quantidade_nota} Cab.</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: '9px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Custo/Cabeça</div>
+                            <div style={{ fontSize: '14px', fontWeight: 900, color: '#10b981' }}>
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(l.custo_por_cabeca)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: isSlaExpired ? '#ef4444' : 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Clock size={12} />
+                            Prazo: {new Date(l.data_limite).toLocaleDateString('pt-BR')}
+                          </span>
+
+                          <button 
+                            className="primary-btn"
+                            style={{ 
+                              height: '32px', 
+                              minHeight: 'auto', 
+                              padding: '0 14px', 
+                              fontSize: '11px', 
+                              fontWeight: 900,
+                              background: isSlaExpired ? 'linear-gradient(135deg, #ef4444, #dc2626)' : 'linear-gradient(135deg, hsl(var(--brand)), hsl(var(--brand)/0.8))',
+                              boxShadow: isSlaExpired ? '0 4px 12px rgba(239, 68, 68, 0.25)' : '0 4px 12px hsl(var(--brand)/0.25)'
+                            }}
+                            onClick={() => {
+                              setLotToProcess(l);
+                              setIsProcessModalOpen(true);
+                            }}
+                          >
+                            PROCESSAR AGORA
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 const totalAnimals = l.quantidade_animais !== undefined ? l.quantidade_animais : 0;
                 const capacity = l.capacidade || 0;
                 const occupancyPercent = capacity > 0 ? (totalAnimals / capacity) * 100 : 0;
@@ -664,7 +794,7 @@ export const LotManagement: React.FC = () => {
                     <div className="card-main-content">
                       <div className="card-header-info" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
                         <div className="title-row" style={{ width: '100%' }}>
-                          <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{l.nome}</h3>
+                           <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', width: '100%' }}>{l.nome}</h3>
                         </div>
                         <div className="meta-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <span className={`status-pill mini ${badgeClass}`}>
@@ -749,7 +879,22 @@ export const LotManagement: React.FC = () => {
         filterField="lote_id"
         filterValue={lotToView?.id}
       />
+      <ProcessarLoteModal
+        isOpen={isProcessModalOpen}
+        onClose={() => setIsProcessModalOpen(false)}
+        lote={lotToProcess}
+        onSuccess={() => {
+          setIsProcessModalOpen(false);
+          setMockPendingLots(prev => prev.filter(p => p.id !== lotToProcess.id));
+          refresh();
+        }}
+      />
       <style>{`
+        @keyframes pulse-border {
+          0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+          70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
         .lot-cards-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);

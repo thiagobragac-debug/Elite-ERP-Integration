@@ -28,6 +28,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
 import { logAudit } from '../../utils/audit';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 type SettingTab = 'system' | 'bi' | 'canvas' | 'governance';
 
@@ -84,6 +85,14 @@ export const SystemSettingsTab: React.FC<{
   const location = useLocation();
   const { tenant, refreshData, userProfile, refreshProfile } = useTenant();
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  
+  const handleSetTheme = (targetTheme: 'light' | 'dark') => {
+    if (theme !== targetTheme) {
+      toggleTheme();
+    }
+  };
+
   const [isSaving, setIsSaving] = useState(false);
   const [saveScope, setSaveScope] = useState<'global' | 'personal'>('global');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -105,6 +114,19 @@ export const SystemSettingsTab: React.FC<{
   const [auditLogsEnabled, setAuditLogsEnabled] = useState<boolean>(
     tenant?.settings?.security?.auditLogsEnabled ?? true
   );
+  const [sidebarAlerts, setSidebarAlerts] = useState<{
+    enabled: boolean;
+    lotes: boolean;
+    financeiro: boolean;
+    sanidade: boolean;
+    configuracoes: boolean;
+  }>({
+    enabled: true,
+    lotes: true,
+    financeiro: true,
+    sanidade: true,
+    configuracoes: true
+  });
 
   useEffect(() => {
     // O roteamento interno de tabs agora é controlado pelo ModuleSettings.
@@ -117,6 +139,17 @@ export const SystemSettingsTab: React.FC<{
     
     if (tenant?.settings?.metric_targets) {
       setMetricTargets(tenant.settings.metric_targets);
+    }
+
+    const dbAlerts = userProfile?.settings?.sidebar_alerts || tenant?.settings?.sidebar_alerts;
+    if (dbAlerts) {
+      setSidebarAlerts({
+        enabled: dbAlerts.enabled ?? true,
+        lotes: dbAlerts.lotes ?? true,
+        financeiro: dbAlerts.financeiro ?? true,
+        sanidade: dbAlerts.sanidade ?? true,
+        configuracoes: dbAlerts.configuracoes ?? true
+      });
     }
   }, [location.pathname, tenant, userProfile]);
 
@@ -147,6 +180,7 @@ export const SystemSettingsTab: React.FC<{
         ...(targetData || {}),
         selected_metrics: selectedMetrics,
         metric_targets: metricTargets,
+        sidebar_alerts: sidebarAlerts,
         updated_at: new Date().toISOString()
       };
 
@@ -323,8 +357,82 @@ export const SystemSettingsTab: React.FC<{
                     <h3>Visual da Interface</h3>
                   </div>
                   <div className="appearance-grid">
-                    <div className="theme-card active">Modo Claro (Tauze)</div>
-                    <div className="theme-card">Modo Escuro (Diamond)</div>
+                    <div 
+                      className={`theme-card ${theme === 'light' ? 'active' : ''}`}
+                      onClick={() => handleSetTheme('light')}
+                    >
+                      Modo Claro (Tauze)
+                    </div>
+                    <div 
+                      className={`theme-card ${theme === 'dark' ? 'active' : ''}`}
+                      onClick={() => handleSetTheme('dark')}
+                    >
+                      Modo Escuro (Diamond)
+                    </div>
+                  </div>
+                </section>
+
+                <section className="settings-panel">
+                  <div className="panel-header">
+                    <Monitor size={18} />
+                    <h3>Alertas da Barra Lateral</h3>
+                  </div>
+                  <div className="switch-list">
+                    <div className="premium-switch">
+                      <div className="info">
+                        <span className="t">Ativar Indicadores de Alertas</span>
+                        <span className="d">Mostrar bolinhas com contadores de pendências no menu lateral.</span>
+                      </div>
+                      <div 
+                        className={`toggle-box ${sidebarAlerts.enabled ? 'active' : ''}`}
+                        onClick={() => setSidebarAlerts(prev => ({ ...prev, enabled: !prev.enabled }))}
+                      ></div>
+                    </div>
+                    
+                    {sidebarAlerts.enabled && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px', paddingLeft: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input 
+                            type="checkbox" 
+                            id="alert-lotes"
+                            checked={sidebarAlerts.lotes}
+                            onChange={(e) => setSidebarAlerts(prev => ({ ...prev, lotes: e.target.checked }))}
+                            style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', cursor: 'pointer' }}
+                          />
+                          <label htmlFor="alert-lotes" style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>Alertas de Lotes Pendentes/Divergentes</label>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input 
+                            type="checkbox" 
+                            id="alert-financeiro"
+                            checked={sidebarAlerts.financeiro}
+                            onChange={(e) => setSidebarAlerts(prev => ({ ...prev, financeiro: e.target.checked }))}
+                            style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', cursor: 'pointer' }}
+                          />
+                          <label htmlFor="alert-financeiro" style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>Alertas de Finanças Vencidas (Pagar/Receber)</label>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input 
+                            type="checkbox" 
+                            id="alert-sanidade"
+                            checked={sidebarAlerts.sanidade}
+                            onChange={(e) => setSidebarAlerts(prev => ({ ...prev, sanidade: e.target.checked }))}
+                            style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', cursor: 'pointer' }}
+                          />
+                          <label htmlFor="alert-sanidade" style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>Alertas de Sanidade (Carência/Quarentena)</label>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <input 
+                            type="checkbox" 
+                            id="alert-configuracoes"
+                            checked={sidebarAlerts.configuracoes}
+                            onChange={(e) => setSidebarAlerts(prev => ({ ...prev, configuracoes: e.target.checked }))}
+                            style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', cursor: 'pointer' }}
+                          />
+                          <label htmlFor="alert-configuracoes" style={{ fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', cursor: 'pointer' }}>Alertas de Faturas & Planos Vencidos</label>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </section>
               </div>
@@ -813,6 +921,7 @@ export const SystemSettingsTab: React.FC<{
           position: relative; 
           cursor: pointer; 
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+          flex-shrink: 0;
         }
         .toggle-box::after { 
           content: ''; 

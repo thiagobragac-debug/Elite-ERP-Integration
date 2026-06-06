@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
+import { useSidebarAlerts } from '../../hooks/useSidebarAlerts';
 import './Sidebar.css';
 
 interface NavItem {
@@ -173,6 +174,15 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
   const { activeFarm, farms, setActiveFarm, isGlobalMode, setGlobalMode, userProfile, tenant, activeTenantId } = useTenant();
   const [pendingApprovals, setPendingApprovals] = useState(0);
 
+  const { alerts } = useSidebarAlerts();
+  const alertPrefs = userProfile?.settings?.sidebar_alerts || tenant?.settings?.sidebar_alerts || {
+    enabled: true,
+    lotes: true,
+    financeiro: true,
+    sanidade: true,
+    configuracoes: true
+  };
+
   useEffect(() => {
     if (!activeTenantId) return;
     const fetchPending = async () => {
@@ -277,7 +287,28 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                     <item.icon size={20} className="menu-icon" />
                     <span>{item.title}</span>
                   </div>
-                  {openMenus.includes(item.title) ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  {openMenus.includes(item.title) ? <ChevronDown size={16} /> : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {item.title === 'Financeiro & Banco' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
+                        <span style={{ background: '#ef4444', color: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 900 }}>
+                          {alerts.financeiro}
+                        </span>
+                      )}
+                      {item.title === 'Pecuária' && alertPrefs.enabled && (
+                        ((alertPrefs.lotes && alerts.lotes > 0) || (alertPrefs.sanidade && alerts.sanidade > 0)) && (
+                          <span style={{ background: 'hsl(var(--warning))', color: '#000', padding: '1px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 900 }}>
+                            {(alertPrefs.lotes ? alerts.lotes : 0) + (alertPrefs.sanidade ? alerts.sanidade : 0)}
+                          </span>
+                        )
+                      )}
+                      {item.title === 'Administração' && alertPrefs.enabled && alertPrefs.configuracoes && alerts.configuracoes > 0 && (
+                        <span style={{ background: '#ef4444', color: 'white', padding: '1px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 900 }}>
+                          {alerts.configuracoes}
+                        </span>
+                      )}
+                      <ChevronRight size={16} />
+                    </div>
+                  )}
                 </button>
                 <AnimatePresence>
                   {openMenus.includes(item.title) && (
@@ -308,6 +339,76 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                               textAlign: 'center'
                             }}>
                               {pendingApprovals}
+                            </span>
+                          )}
+                          {sub.title === 'Lote' && alertPrefs.enabled && alertPrefs.lotes && alerts.lotes > 0 && (
+                            <span style={{ 
+                              background: 'hsl(var(--warning))', 
+                              color: '#000', 
+                              padding: '1px 5px', 
+                              borderRadius: '4px', 
+                              fontSize: '9px', 
+                              fontWeight: 900,
+                              minWidth: '16px',
+                              textAlign: 'center'
+                            }}>
+                              {alerts.lotes}
+                            </span>
+                          )}
+                          {sub.title === 'Sanidade' && alertPrefs.enabled && alertPrefs.sanidade && alerts.sanidade > 0 && (
+                            <span style={{ 
+                              background: '#ef4444', 
+                              color: 'white', 
+                              padding: '1px 5px', 
+                              borderRadius: '4px', 
+                              fontSize: '9px', 
+                              fontWeight: 900,
+                              minWidth: '16px',
+                              textAlign: 'center'
+                            }}>
+                              {alerts.sanidade}
+                            </span>
+                          )}
+                          {sub.title === 'Conta a Pagar' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
+                            <span style={{ 
+                              background: '#ef4444', 
+                              color: 'white', 
+                              padding: '1px 5px', 
+                              borderRadius: '4px', 
+                              fontSize: '9px', 
+                              fontWeight: 900,
+                              minWidth: '16px',
+                              textAlign: 'center'
+                            }}>
+                              {alerts.financeiro}
+                            </span>
+                          )}
+                          {sub.title === 'Conta a Receber' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
+                            <span style={{ 
+                              background: '#ef4444', 
+                              color: 'white', 
+                              padding: '1px 5px', 
+                              borderRadius: '4px', 
+                              fontSize: '9px', 
+                              fontWeight: 900,
+                              minWidth: '16px',
+                              textAlign: 'center'
+                            }}>
+                              {alerts.financeiro}
+                            </span>
+                          )}
+                          {sub.title === 'Assinatura & Planos' && alertPrefs.enabled && alertPrefs.configuracoes && alerts.configuracoes > 0 && (
+                            <span style={{ 
+                              background: '#ef4444', 
+                              color: 'white', 
+                              padding: '1px 5px', 
+                              borderRadius: '4px', 
+                              fontSize: '9px', 
+                              fontWeight: 900,
+                              minWidth: '16px',
+                              textAlign: 'center'
+                            }}>
+                              {alerts.configuracoes}
                             </span>
                           )}
                         </Link>

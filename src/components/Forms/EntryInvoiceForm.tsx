@@ -21,13 +21,15 @@ import {
   ClipboardList,
   AlertCircle,
   FileDigit,
-  Settings
+  Settings,
+  Beef
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { InsumoEntryTable } from './InsumoEntryTable';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
+import { LoteRecebimentoModal } from '../Modals/LoteRecebimentoModal';
 
 interface EntryInvoiceFormProps {
   isOpen: boolean;
@@ -73,6 +75,14 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [installmentsList, setInstallmentsList] = useState<any[]>([]);
   const [showFinancialConfirm, setShowFinancialConfirm] = useState(false);
+  const [showLoteModal, setShowLoteModal] = useState(false);
+  const [loteModalDismissed, setLoteModalDismissed] = useState(false);
+
+  // Detecta se a nota contém animais/gado
+  const animalKeywords = ['bovino', 'gado', 'nelore', 'angus', 'brahman', 'bezerro', 'novilho', 'boi', 'vaca', 'animal', 'rebanho', 'cabeca', 'cabeça'];
+  const hasLivestockItems = items.some((item: any) => 
+    animalKeywords.some(kw => (item.nome || '').toLowerCase().includes(kw))
+  );
 
   useEffect(() => {
     if (activeTenantId) {
@@ -323,6 +333,23 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
           )}
         </div>
         
+        {/* BANNER DE DETECÇÃO DE GADO */}
+        {hasLivestockItems && !loteModalDismissed && (
+          <div style={{ background: 'hsl(var(--warning)/0.08)', border: '1px solid hsl(var(--warning)/0.3)', borderRadius: '12px', padding: '14px 18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'hsl(var(--warning)/0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--warning))', flexShrink: 0 }}>
+              <Beef size={18} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>🐄 Detectamos animais nesta nota!</p>
+              <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Deseja criar um Lote de Recebimento no Módulo Pecuária para rastrear estes animais individualmente?</p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+              <button type="button" onClick={() => setShowLoteModal(true)} style={{ padding: '8px 14px', borderRadius: '8px', background: 'hsl(var(--warning))', border: 'none', color: '#000', fontSize: '11px', fontWeight: 800, cursor: 'pointer' }}>Criar Lote</button>
+              <button type="button" onClick={() => setLoteModalDismissed(true)} style={{ padding: '8px 14px', borderRadius: '8px', background: 'transparent', border: '1px solid hsl(var(--border))', color: 'hsl(var(--text-muted))', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>Ignorar</button>
+            </div>
+          </div>
+        )}
+
         {/* CARD BLINDADO OU ABERTO */}
         <div style={{ background: formData.is_xml_imported ? 'hsl(var(--bg-card))' : 'transparent', border: formData.is_xml_imported ? '1px solid hsl(var(--border))' : 'none', borderRadius: '12px', padding: formData.is_xml_imported ? '20px' : '0', opacity: formData.is_xml_imported ? 0.8 : 1 }}>
           
@@ -637,6 +664,21 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         </div>
       </section>
     </SidePanel>
+    <LoteRecebimentoModal
+      isOpen={showLoteModal}
+      onClose={() => setShowLoteModal(false)}
+      quantidadeCabecas={items.reduce((acc: number, item: any) => acc + (item.quantidade || 0), 0)}
+      valorTotal={parseFloat(formData.total_value) || 0}
+      fornecedor={suppliers.find((s: any) => String(s.id) === String(formData.supplier_id))?.nome}
+      onSuccess={(loteId, tipo) => {
+        setShowLoteModal(false);
+        setLoteModalDismissed(true);
+        toast.success(tipo === 'pendente' 
+          ? '✅ Lote pendente criado! Acesse Pecuária > Lotes para processar os animais quando chegarem.'
+          : '✅ Lote vinculado com sucesso! Custo por cabeça calculado automaticamente.'
+        );
+      }}
+    />
     </>
   );
 };

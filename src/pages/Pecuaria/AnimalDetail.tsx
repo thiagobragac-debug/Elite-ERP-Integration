@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
+import {
   ArrowLeft, 
   Beef, 
   Calendar, 
@@ -12,7 +12,8 @@ import {
   History,
   Edit3,
   Trash2,
-  FileText
+  FileText,
+  QrCode
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
@@ -21,16 +22,28 @@ import { TauzeMainChart } from '../../components/Charts/TauzeMainChart';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { formatNumber } from '../../utils/format';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { RastreabilidadeModal } from '../../components/Modals/RastreabilidadeModal';
+import { AnimalForm } from '../../components/Forms/AnimalForm';
+import { QuickManejoModal } from './components/QuickManejoModal';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { exportToPDF } from '../../utils/export';
+import { jsPDF } from 'jspdf';
+import toast from 'react-hot-toast';
 import './AnimalDetail.css';
 
 export const AnimalDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { activeFarmId, activeTenantId, insertPayload } = useFarmFilter();
   const [animal, setAnimal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [weightHistory, setWeightHistory] = useState<any[]>([]);
   const [gmdHistory, setGmdHistory] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [showRastreabilidade, setShowRastreabilidade] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isManejoModalOpen, setIsManejoModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -163,6 +176,292 @@ export const AnimalDetail: React.FC = () => {
   // Regra de Negócio: Carência Sanitária (Simulando verificação em registros de manejo)
   const isUnderGracePeriod = events.some(e => e.type === 'MEDICAMENTO' && new Date(e.expiryDate) > new Date());
 
+  const handleEditSubmit = async (formData: any) => {
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        brinco: formData.brinco,
+        raca: formData.raca,
+        sexo: formData.sexo,
+        data_nascimento: formData.data_nascimento,
+        fazenda_id: formData.fazenda_id || null,
+        status: formData.status || 'Ativo',
+        peso_inicial: parseFloat(formData.peso_inicial) || 0,
+        pelagem: formData.pelagem,
+        origem: formData.origem,
+        mae_brinco: formData.mae_brinco,
+        pai_brinco: formData.pai_brinco,
+        valor_compra: parseFloat(formData.valor_compra) || 0,
+        categoria: formData.categoria,
+        finalidade: formData.finalidade
+      };
+
+      const { error } = await supabase.from('animais').update(payload).eq('id', animal.id);
+      if (error) throw error;
+
+      setIsEditModalOpen(false);
+      fetchAnimalData();
+      toast.success('✅ Animal atualizado com sucesso!');
+    } catch (err: any) {
+      toast.error('❌ Erro ao salvar animal: ' + err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRelatorio = () => {
+    if (!animal) {
+      toast.error('Dados do animal não carregados.');
+      return;
+    }
+
+    const publicLink = `https://rastreio.fazenda.app/animal/${animal.id}`;
+
+    toast.promise(
+      new Promise<void>(async (resolve, reject) => {
+        try {
+          let qrBase64 = '';
+          try {
+            const qrRes = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(publicLink)}`);
+            const qrBlob = await qrRes.blob();
+            qrBase64 = await new Promise<string>((res) => {
+              const reader = new FileReader();
+              reader.onloadend = () => res(reader.result as string);
+              reader.readAsDataURL(qrBlob);
+            });
+          } catch (qrErr) {
+            console.warn('Falha ao obter imagem do QR Code:', qrErr);
+          }
+
+          setTimeout(() => {
+            try {
+              const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+              });
+
+          const wGain = currentWeight - (animal.peso_inicial || 0);
+          let ageStr = 'Não Informada';
+          if (animal.data_nascimento) {
+            const months = Math.floor((new Date().getTime() - new Date(animal.data_nascimento).getTime()) / (1000 * 3600 * 24 * 30.44));
+            ageStr = `${months} meses`;
+          }
+
+          // ─── HEADER ───
+          // Slate Background
+          doc.setFillColor(15, 23, 42);
+          doc.rect(0, 0, 210, 42, 'F');
+          
+          // Accent Emerald Bar
+          doc.setFillColor(16, 185, 129);
+          doc.rect(0, 42, 210, 3, 'F');
+
+          // Brand Label
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(16);
+          doc.text("TAUZE PECUÁRIA", 15, 18);
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(148, 163, 184);
+          doc.text("REGISTRO DE RASTREABILIDADE INDIVIDUAL", 15, 25);
+          doc.text(`Fazenda: ${animal.fazendas?.name || 'Visão Geral'}`, 15, 30);
+
+          // Big ID Pill Badge on the Right
+          doc.setFillColor(16, 185, 129);
+          doc.roundedRect(145, 13, 50, 16, 4, 4, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(14);
+          doc.text(`#${animal.brinco}`, 170, 23, { align: 'center' });
+          doc.setFontSize(8);
+          doc.text("BRINCO ATIVO", 170, 27, { align: 'center' });
+
+          // ─── GRID DE DADOS (DADOS CADASTRAIS vs MÉTRICAS) ───
+          // Left Box - Cadastro
+          doc.setDrawColor(226, 232, 240);
+          doc.setFillColor(255, 255, 255);
+          doc.roundedRect(15, 53, 85, 102, 4, 4, 'FD');
+
+          doc.setTextColor(15, 23, 42);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text("DADOS CADASTRAIS", 22, 62);
+          doc.setDrawColor(241, 245, 249);
+          doc.line(22, 65, 92, 65);
+
+          const drawField = (label: string, val: string, x: number, y: number) => {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(7.5);
+            doc.setTextColor(100, 116, 139);
+            doc.text(label.toUpperCase(), x, y);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(9.5);
+            doc.setTextColor(15, 23, 42);
+            doc.text(val || '-', x, y + 4.5);
+          };
+
+          drawField("Raça / Genética", animal.raca, 22, 73);
+          drawField("Sexo", animal.sexo === 'M' ? 'Macho' : 'Fêmea', 22, 87);
+          drawField("Idade Cronológica", ageStr, 22, 101);
+          drawField("Pelagem", animal.pelagem || 'Não Informada', 22, 115);
+          drawField("Pai (Genealogia)", animal.pai_brinco || 'Não Informado', 22, 129);
+          drawField("Mãe (Genealogia)", animal.mae_brinco || 'Não Informada', 22, 143);
+
+          // Right Box - Metricas
+          doc.roundedRect(110, 53, 85, 102, 4, 4, 'FD');
+
+          doc.setTextColor(15, 23, 42);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text("DESEMPENHO OPERACIONAL", 117, 62);
+          doc.line(117, 65, 187, 65);
+
+          drawField("Peso de Entrada", `${animal.peso_inicial || 0} kg`, 117, 73);
+          drawField("Peso Atual (Último)", `${currentWeight || 0} kg`, 117, 87);
+          
+          // Ganho de peso com cor verde se positivo
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text("GANHO DE PESO ACUMULADO", 117, 101);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(9.5);
+          doc.setTextColor(wGain >= 0 ? 16 : 220, wGain >= 0 ? 185 : 38, wGain >= 0 ? 129 : 38);
+          doc.text(`${wGain >= 0 ? '+' : ''}${wGain.toFixed(1)} kg`, 117, 105.5);
+
+          drawField("GMD Médio Diário", `${realGmd.toFixed(3)} kg/dia`, 117, 115);
+          drawField("Lote de Manejo", animal.lotes?.nome || 'Sem Lote', 117, 129);
+          drawField("Origem do Animal", animal.origem || 'Nascimento', 117, 143);
+
+          // ─── TIMELINE (HISTÓRICO E MANEJOS) ───
+          doc.setDrawColor(226, 232, 240);
+          doc.setFillColor(255, 255, 255);
+          doc.roundedRect(15, 163, 180, 95, 4, 4, 'FD');
+
+          doc.setTextColor(15, 23, 42);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(10);
+          doc.text("HISTÓRICO DE MANEJOS E EVENTOS", 22, 172);
+          doc.line(22, 175, 188, 175);
+
+          // Vertical timeline line
+          doc.setDrawColor(16, 185, 129);
+          doc.line(30, 184, 30, 242);
+
+          const listEvents = events.slice(0, 4); // Limit to last 4 events to fit nicely
+          listEvents.forEach((ev, idx) => {
+            const evY = 188 + idx * 14;
+            
+            // Draw bullet point
+            doc.setFillColor(255, 255, 255);
+            doc.setDrawColor(16, 185, 129);
+            doc.circle(30, evY - 1, 1.8, 'FD');
+
+            // Date
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(8);
+            doc.setTextColor(100, 116, 139);
+            doc.text(new Date(ev.date).toLocaleDateString('pt-BR'), 36, evY - 1.5);
+
+            // Event description text
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor(15, 23, 42);
+            doc.text(`${ev.type}: ${ev.desc}`, 36, evY + 2.5);
+          });
+
+          if (listEvents.length === 0) {
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(148, 163, 184);
+            doc.text("Nenhum evento registrado na linha do tempo.", 36, 190);
+          }
+
+          // ─── FOOTER CONTEÚDO (QR CODE / SEGURANÇA) ───
+          // Draw fake QR Code / Verification card in bottom footer
+          doc.setDrawColor(241, 245, 249);
+          doc.setFillColor(248, 250, 252);
+          doc.roundedRect(15, 264, 180, 20, 3, 3, 'FD');
+
+          // Define and draw a mathematically valid Code 39 barcode
+          const drawCode39 = (x: number, y: number, textStr: string, barHeight: number = 10, barWidth: number = 0.28) => {
+            const code39Map: Record<string, string> = {
+              '0': '101001101101', '1': '110100101011', '2': '101100101011', '3': '110110010101',
+              '4': '101001101011', '5': '110100110101', '6': '101100110101', '7': '101001011011',
+              '8': '110100101101', '9': '101100101101', 'A': '110101001011', 'B': '101101001011',
+              'C': '110110100101', 'D': '101011001011', 'E': '110101100101', 'F': '101101100101',
+              'G': '101010011011', 'H': '110101001101', 'I': '101101001101', 'J': '101011001101',
+              'K': '110101010011', 'L': '101101010011', 'M': '110110101001', 'N': '101011010011',
+              'O': '110101101001', 'P': '101101101001', 'Q': '101010110011', 'R': '110101011001',
+              'S': '101101011001', 'T': '101011011001', 'U': '110010101011', 'V': '100110101011',
+              'W': '110011010101', 'X': '100101101011', 'Y': '110010110101', 'Z': '100110110101',
+              '-': '100101011011', '.': '110010101101', ' ': '100110101101', '*': '100101101101'
+            };
+
+            const cleanText = `*${textStr.toUpperCase().replace(/[^A-Z0-9\-\.\s]/g, '')}*`;
+            let currentX = x;
+            doc.setFillColor(15, 23, 42);
+
+            for (let i = 0; i < cleanText.length; i++) {
+              const char = cleanText[i];
+              const pattern = code39Map[char] || code39Map['*'];
+              
+              for (let p = 0; p < pattern.length; p++) {
+                if (pattern[p] === '1') {
+                  doc.rect(currentX, y, barWidth, barHeight, 'F');
+                }
+                currentX += barWidth;
+              }
+              currentX += barWidth;
+            }
+          };
+
+          drawCode39(22, 269, animal.brinco || '00000');
+
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(7);
+          doc.setTextColor(100, 116, 139);
+          doc.text("ID DE VERIFICAÇÃO INTEGRADO", 62, 273);
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.5);
+          doc.setTextColor(15, 23, 42);
+          doc.text(`Código Único: ${animal.id?.slice(0, 18).toUpperCase()}`, 62, 277);
+          doc.text("Certificado emitido digitalmente pelo módulo Tauze Rastreabilidade.", 62, 281);
+
+          // Embed real scannable QR Code image if successfully fetched
+          if (qrBase64) {
+            doc.addImage(qrBase64, 'PNG', 177, 266, 16, 16);
+          }
+
+          // Page numbers and metadata
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(7.5);
+          doc.setTextColor(148, 163, 184);
+          doc.text(`Página 1 de 1`, 195, 290, { align: 'right' });
+          
+          const blob = doc.output('blob');
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+          resolve();
+          } catch (err) {
+            reject(err);
+          }
+        }, 1200);
+        } catch (outerErr) {
+          reject(outerErr);
+        }
+      }),
+      {
+        loading: 'Gerando dossiê de identidade do animal…',
+        success: '📊 Visualização do relatório aberta em nova guia!',
+        error: 'Erro ao gerar dossiê.',
+      }
+    );
+  };
+
   return (
     <div className="animal-detail-page animate-slide-up">
       <header className="page-header">
@@ -179,9 +478,10 @@ export const AnimalDetail: React.FC = () => {
           <p className="page-subtitle">{animal.raca} | {animal.sexo === 'M' ? 'Macho' : 'Fêmea'} | Lote: {animal.lotes?.nome || 'Sem Lote'}</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary"><Edit3 size={18} /> EDITAR</button>
-          <button className="glass-btn secondary"><FileText size={18} /> RELATÓRIO</button>
-          <button className="primary-btn"><Activity size={18} /> NOVO MANEJO</button>
+          <button className="glass-btn secondary" onClick={() => setIsEditModalOpen(true)}><Edit3 size={18} /> EDITAR</button>
+          <button className="glass-btn secondary" onClick={() => setShowRastreabilidade(true)}><QrCode size={18} /> RASTREABILIDADE</button>
+          <button className="glass-btn secondary" onClick={handleRelatorio}><FileText size={18} /> RELATÓRIO</button>
+          <button className="primary-btn" onClick={() => setIsManejoModalOpen(true)}><Activity size={18} /> NOVO MANEJO</button>
         </div>
       </header>
 
@@ -332,6 +632,27 @@ export const AnimalDetail: React.FC = () => {
           </div>
         </section>
       </div>
+      <RastreabilidadeModal
+        isOpen={showRastreabilidade}
+        onClose={() => setShowRastreabilidade(false)}
+        animal={animal}
+      />
+      <AnimalForm 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSubmit={handleEditSubmit}
+        initialData={animal}
+        loading={isSubmitting}
+      />
+      <QuickManejoModal
+        isOpen={isManejoModalOpen}
+        onClose={() => setIsManejoModalOpen(false)}
+        animal={animal}
+        activeTenantId={activeTenantId || ''}
+        activeFarmId={activeFarmId || ''}
+        insertPayload={insertPayload}
+        onSuccess={() => { fetchAnimalData(); }}
+      />
     </div>
   );
 };
