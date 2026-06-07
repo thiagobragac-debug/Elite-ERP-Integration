@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { 
   Package, 
   Tag,
@@ -29,7 +30,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
   const { tenant } = useTenant();
   const [categories, setCategories] = useState<{value: string, label: string}[]>([]);
   const [ncms, setNcms] = useState<{value: string, label: string}[]>([]);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('ProductForm_formData', {
     nome: '',
     categoria: '',
     categoria_id: '',
@@ -194,6 +195,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         is_sellable: initialData.is_sellable !== undefined ? initialData.is_sellable : false,
         is_storable: initialData.is_storable !== undefined ? initialData.is_storable : true,
         is_active: initialData.is_active !== undefined ? initialData.is_active : true
+      });
+    } else if (!isOpen) {
+      setFormData({
+        nome: '',
+        categoria: '',
+        categoria_id: '',
+        unidade: 'un',
+        estoque_minimo: '0',
+        estoque_atual: '0',
+        custo_medio: '0',
+        descricao: '',
+        ean: '',
+        ncm: '',
+        marca: '',
+        localizacao: '',
+        is_purchasable: true,
+        is_sellable: false,
+        is_storable: true,
+        is_active: true
       });
     }
   }, [initialData, isOpen]);

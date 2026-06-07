@@ -326,8 +326,8 @@ export const BankReconciliation: React.FC = () => {
     <div className="recon-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Financeiro', href: '/financeiro/intelligence' }, { label: 'Conciliação Bancária' }]} />
-          <h1 className="page-title">Conciliação Bancária</h1>
+          <Breadcrumb paths={[{ label: 'Financeiro', href: '/financeiro/intelligence' }, { label: 'Conciliações Bancária' }]} />
+          <h1 className="page-title">Conciliações Bancária</h1>
           <p className="page-subtitle">Verifique se os lançamentos do banco coincidem com o seu controle interno em tempo real.</p>
         </div>
         <div className="page-actions">
@@ -822,7 +822,7 @@ export const BankReconciliation: React.FC = () => {
           }
         }
 
-        .recon-page { display: flex; flex-direction: column; gap: 16px; }
+        .recon-page { }
         .recon-workspace { display: grid; grid-template-columns: 1fr 40px 1fr; gap: 16px; align-items: start; }
         .recon-column { display: flex; flex-direction: column; gap: 20px; }
         .column-header-tauze { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.25rem; }

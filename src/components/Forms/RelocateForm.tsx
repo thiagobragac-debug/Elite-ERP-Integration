@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import ReactDOM from 'react-dom';
 import {
   ArrowRightLeft,
@@ -249,7 +251,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onS
   const [destCapacity, setDestCapacity] = useState<{ current: number; max: number } | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('RelocateForm_formData', {
     sourceLotId: initialSourceLotId || '',
     sourceLotName: '',
     targetLotId: '',

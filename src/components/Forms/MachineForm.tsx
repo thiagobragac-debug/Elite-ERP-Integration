@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Truck, 
   Calendar,
@@ -29,7 +31,7 @@ interface MachineFormProps {
 }
 
 export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('MachineForm_formData', {
     nome: '',
     marca: '',
     modelo: '',

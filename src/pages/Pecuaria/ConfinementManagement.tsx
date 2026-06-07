@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 import { 
   Building2, 
   Plus, 
@@ -44,12 +47,16 @@ export const ConfinementManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload, isGlobalMode } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ATIVOS' | 'HISTORICO'>('ATIVOS');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'ATIVOS' | 'HISTORICO') || 'ATIVOS';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useViewMode('pecuaria-confinamento', 'grid');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('ConfinementManagement_isModalOpen', false);
   const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -276,8 +283,8 @@ export const ConfinementManagement: React.FC = () => {
     <div className="confinement-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Módulo Confinamento' }]} />
-          <h1 className="page-title">Módulo Confinamento</h1>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Confinamento' }]} />
+          <h1 className="page-title">Confinamento</h1>
           <p className="page-subtitle">Terminação intensiva, controle de DOF e projeção de performance em tempo real.</p>
         </div>
         <div className="page-actions">

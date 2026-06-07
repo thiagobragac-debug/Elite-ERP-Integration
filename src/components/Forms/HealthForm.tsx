@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   HeartPulse, 
   Calendar,
@@ -27,7 +29,7 @@ interface HealthFormProps {
 }
 
 export const HealthForm: React.FC<HealthFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('HealthForm_formData', {
     tipo: 'vacina',
     titulo: '',
     animal_id: '',

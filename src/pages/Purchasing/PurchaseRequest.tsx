@@ -1,4 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -16,7 +18,7 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
     return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
   });
 }
-import { useNavigate } from 'react-router-dom';
+import { useNavigate , useSearchParams } from 'react-router-dom';
 import { 
   ShoppingCart, 
   Plus, 
@@ -59,8 +61,12 @@ export const PurchaseRequest: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [requests, setRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'PENDING' | 'QUOTING'>('PENDING');
+  const [isModalOpen, setIsModalOpen] = usePersistentState('PurchaseRequest_isModalOpen', false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'PENDING' | 'QUOTING') || 'PENDING';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -331,8 +337,8 @@ export const PurchaseRequest: React.FC = () => {
     <div className="requests-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Solicitação de Compra' }]} />
-          <h1 className="page-title">Solicitação de Compra</h1>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Solicitações de Compra' }]} />
+          <h1 className="page-title">Solicitações de Compra</h1>
           <p className="page-subtitle">Fluxo interno de requisições de materiais, serviços e reposição de ativos em tempo real.</p>
         </div>
         <div className="page-actions">

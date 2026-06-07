@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -62,8 +65,12 @@ export const BankAccounts: React.FC = () => {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'BALANCES' | 'CASHFLOW'>('BALANCES');
+  const [isModalOpen, setIsModalOpen] = usePersistentState('BankAccounts_isModalOpen', false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'BALANCES' | 'CASHFLOW') || 'BALANCES';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -421,8 +428,8 @@ export const BankAccounts: React.FC = () => {
     <div className="bank-accounts-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Financeiro', href: '/financeiro/intelligence' }, { label: 'Gestão de Tesouraria' }]} />
-          <h1 className="page-title">Gestão de Tesouraria</h1>
+          <Breadcrumb paths={[{ label: 'Financeiro', href: '/financeiro/intelligence' }, { label: 'Contas Bancária' }]} />
+          <h1 className="page-title">Contas Bancária</h1>
           <p className="page-subtitle" style={{ marginTop: '8px' }}>Centralização de saldos bancários, monitoramento de custódia e controle de liquidez.</p>
         </div>
         <div className="page-actions">

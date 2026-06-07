@@ -19,6 +19,7 @@ interface SidePanelProps {
   isReadOnly?: boolean;
   customFooter?: ReactNode;
   contentPadding?: string | number;
+  submitDisabled?: boolean;
 }
 
 export const SidePanel: React.FC<SidePanelProps> = ({
@@ -37,7 +38,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   hideSubmit = false,
   isReadOnly = false,
   customFooter,
-  contentPadding
+  contentPadding,
+  submitDisabled = false,
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -212,7 +214,17 @@ export const SidePanel: React.FC<SidePanelProps> = ({
                   {isReadOnly ? 'Fechar' : cancelLabel}
                 </button>
                 {!hideSubmit && !isReadOnly && (
-                  <button type="submit" className="primary-btn" disabled={loading} style={{ boxShadow: '0 8px 20px hsl(var(--brand) / 0.2)' }}>
+                  <button 
+                    type="submit" 
+                    className="primary-btn" 
+                    disabled={loading || submitDisabled} 
+                    style={{ 
+                      boxShadow: submitDisabled ? 'none' : '0 8px 20px hsl(var(--brand) / 0.2)',
+                      opacity: submitDisabled ? 0.5 : 1,
+                      cursor: submitDisabled ? 'not-allowed' : 'pointer',
+                    }}
+                    title={submitDisabled ? 'Resolva os itens sem vínculo antes de salvar' : undefined}
+                  >
                     <IconSubmit size={18} />
                     {loading ? 'Processando...' : submitLabel}
                   </button>

@@ -153,8 +153,8 @@ export const MarketIntelligenceDashboard: React.FC = () => {
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Mercado', href: '/mercado/indicadores' }, { label: 'Intelligence Hub: Mercado' }]} />
-          <h1 className="page-title">Intelligence Hub: Mercado</h1>
+          <Breadcrumb paths={[{ label: 'Mercado', href: '/mercado/indicadores' }, { label: 'Intelligence Hub' }]} />
+          <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Análise avançada de indicadores e histórico de preços</p>
         </div>
 

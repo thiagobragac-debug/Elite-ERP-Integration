@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Map, 
   Maximize,
@@ -25,7 +27,7 @@ interface PastureFormProps {
 }
 
 export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('PastureForm_formData', {
     nome: '',
     area: '',
     capacidade_ua: '2.5',

@@ -211,8 +211,8 @@ export const FleetDashboard: React.FC = () => {
     <div className="fleet-hub animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Frota & Máquinas', href: '/frota/dashboard' }, { label: 'Gestão Estratégica de Frota' }]} />
-          <h1 className="page-title">Gestão Estratégica de Frota</h1>
+          <Breadcrumb paths={[{ label: 'Frota & Máquinas', href: '/frota/dashboard' }, { label: 'Intelligence Hub' }]} />
+          <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Central de comando para monitoramento de custos, telemetria e disponibilidade mecânica.</p>
         </div>
         <div className="page-actions">

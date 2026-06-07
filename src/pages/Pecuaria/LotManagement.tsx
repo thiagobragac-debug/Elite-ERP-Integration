@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
 import { 
@@ -52,13 +54,17 @@ export const LotManagement: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('LotManagement_isModalOpen', false);
   const [isRelocateModalOpen, setIsRelocateModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [selectedLot, setSelectedLot] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [lotToView, setLotToView] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'ATIVO' | 'PENDENTE' | 'ARQUIVADO'>('ATIVO');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'ATIVO' | 'PENDENTE' | 'ARQUIVADO') || 'ATIVO';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
   const [lotToProcess, setLotToProcess] = useState<any>(null);
   const [mockPendingLots, setMockPendingLots] = useState<any[]>([
@@ -420,8 +426,8 @@ export const LotManagement: React.FC = () => {
     <div className="lot-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Lotes' }]} />
-          <h1 className="page-title">Gestão de Lotes</h1>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Lotes' }]} />
+          <h1 className="page-title">Lotes</h1>
           <p className="page-subtitle">Organização do rebanho, rastreabilidade por grupo e controle de lotação em tempo real.</p>
         </div>
         <div className="page-actions">

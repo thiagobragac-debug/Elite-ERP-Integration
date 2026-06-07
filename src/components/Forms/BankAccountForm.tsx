@@ -1,4 +1,6 @@
 import { SearchableSelect } from './SearchableSelect';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import React, { useState } from 'react';
 import { 
   Building2, 
@@ -23,7 +25,7 @@ interface BankAccountFormProps {
 export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { companies, activeCompany } = useTenant();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('BankAccountForm_formData', {
     banco: '',
     agencia: '',
     conta: '',

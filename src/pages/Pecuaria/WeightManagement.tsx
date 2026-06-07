@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 import { 
   Scale, 
   Plus, 
@@ -295,12 +298,16 @@ export const WeightManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('WeightManagement_isModalOpen', false);
   const [selectedWeight, setSelectedWeight] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'RECENT' | 'PERFORMANCE'>('RECENT');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'RECENT' | 'PERFORMANCE') || 'RECENT';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     minWeight: 0,
@@ -582,8 +589,8 @@ export const WeightManagement: React.FC = () => {
     <div className="weight-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Controle de Pesagem' }]} />
-          <h1 className="page-title">Controle de Pesagem</h1>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Pesagens & GMD' }]} />
+          <h1 className="page-title">Pesagens & GMD</h1>
           <p className="page-subtitle">Monitoramento de ganho de peso individual e performance do lote em tempo real.</p>
         </div>
         <div className="page-actions">

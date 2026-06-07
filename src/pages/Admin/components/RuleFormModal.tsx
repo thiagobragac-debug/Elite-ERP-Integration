@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../../hooks/usePersistentState';
+
 import { Shield, Layers, Plus, Minus, Trash2, ArrowRight, User, Briefcase, Clock, ArrowDown, Info } from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
@@ -31,7 +33,7 @@ export const RuleFormModal: React.FC<RuleFormModalProps> = ({
   initialData
 }) => {
   const { activeTenantId } = useTenant();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('RuleFormModal_formData', {
     module: '',
     stages: 1,
     active: true

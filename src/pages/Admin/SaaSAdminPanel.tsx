@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate , useSearchParams } from 'react-router-dom';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TenantForm } from '../../components/Forms/TenantForm';
@@ -69,7 +69,11 @@ export const SaaSAdminPanel: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<SaaSAdminTab>('overview');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as SaaSAdminTab) || 'overview';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [tenantsViewMode, setTenantsViewMode] = useViewMode('saas-admin-tenants', 'grid');

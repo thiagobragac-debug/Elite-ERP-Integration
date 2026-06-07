@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 import { 
   Heart, 
   Plus, 
@@ -37,9 +40,13 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const ReproductionManagement: React.FC = () => {
   const { activeFarm, activeTenantId, activeFarmId, isGlobalMode, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'ESTACAO' | 'PARTOS'>('ESTACAO');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'ESTACAO' | 'PARTOS') || 'ESTACAO';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('ReproductionManagement_isModalOpen', false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -309,8 +316,8 @@ export const ReproductionManagement: React.FC = () => {
     <div className="repro-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Reprodução' }]} />
-          <h1 className="page-title">Gestão de Reprodução</h1>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Reprodução' }]} />
+          <h1 className="page-title">Reprodução</h1>
           <p className="page-subtitle">Controle de biotecnologias, diagnóstico de gestação e monitoramento de parição em tempo real.</p>
         </div>
         <div className="page-actions">

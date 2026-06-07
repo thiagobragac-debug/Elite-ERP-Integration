@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Layers,
   Tag,
@@ -35,7 +37,7 @@ interface LotFormProps {
 
 
 export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('LotForm_formData', {
     nome: '',
     finalidade: '',
     descricao: '',

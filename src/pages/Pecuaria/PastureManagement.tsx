@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Trees, 
   Plus, 
@@ -41,7 +42,11 @@ const PastureManagement: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [page, setPage] = useState(1);
   const pageSize = 12;
-  const [activeTab, setActiveTab] = useState<'all' | 'resting' | 'occupied'>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'all' | 'resting' | 'occupied') || 'all';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -502,8 +507,8 @@ const PastureManagement: React.FC = () => {
     <div className="pasture-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Pastagens' }]} />
-          <h1 className="page-title">Gestão de Pastagens</h1>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Pastos' }]} />
+          <h1 className="page-title">Pastos</h1>
           <p className="page-subtitle">Monitoramento de capacidade de suporte, pressão de pastejo e rotação.</p>
         </div>
         <div className="page-actions">

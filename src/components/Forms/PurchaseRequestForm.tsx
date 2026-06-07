@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   FileText, 
   User, 
@@ -34,7 +36,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<any[]>(initialData?.items || []);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('PurchaseRequestForm_formData', {
     company_id: initialData?.company_id || activeCompany?.id || '',
     title: initialData?.title || '',
     requester: initialData?.requester || '',
@@ -44,6 +46,23 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
     priority: initialData?.priority || 'medium',
     justification: initialData?.justification || ''
   });
+
+  // Reseta todo o estado ao fechar o painel (evita dados do último lançamento persistirem)
+  useEffect(() => {
+    if (!isOpen && !initialData) {
+      setItems([]);
+      setFormData({
+        company_id: activeCompany?.id || '',
+        title: '',
+        requester: '',
+        cost_center: '',
+        project: '',
+        deadline: new Date().toISOString().split('T')[0],
+        priority: 'medium',
+        justification: ''
+      });
+    }
+  }, [isOpen]);
 
   // Cálculo automático do valor total baseado nos itens (Regra de Negócio de Compras)
   const totalEstimatedValue = useMemo(() => {

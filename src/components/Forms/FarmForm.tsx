@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import {
   Map,
   Maximize,
@@ -27,7 +29,7 @@ interface FarmFormProps {
 
 export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { companies } = useTenant();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('FarmForm_formData', {
     name: '',
     registrationNumber: '',
     nirf: '',

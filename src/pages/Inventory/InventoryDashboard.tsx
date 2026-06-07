@@ -195,8 +195,8 @@ export const InventoryDashboard: React.FC = () => {
     <div className="inventory-hub animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Gestão Estratégica de Estoque' }]} />
-          <h1 className="page-title">Gestão Estratégica de Estoque</h1>
+          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Intelligence Hub' }]} />
+          <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Visão executiva de patrimônio, ruptura de estoque e rastreabilidade de insumos.</p>
         </div>
         <div className="page-actions">

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   RefreshCcw, 
   CreditCard,
@@ -24,7 +26,7 @@ interface ReconciliationFormProps {
 
 export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm } = useTenant();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('ReconciliationForm_formData', {
     account_id: '',
     period: 'Mês Atual',
     file: null as any,

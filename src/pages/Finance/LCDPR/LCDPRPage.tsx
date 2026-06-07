@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 import { Search,
   BookOpen, Plus, Download, RefreshCw, FileText,
   ChevronDown, ChevronUp, Trash2, Edit3, CheckCircle,
@@ -23,13 +26,17 @@ const ANO_ATUAL = new Date().getFullYear();
 export const LCDPRPage: React.FC = () => {
   const { tenant, activeFarm } = useTenant();
   const [anoCalendario, setAnoCalendario] = useState(ANO_ATUAL);
-  const [activeTab, setActiveTab] = useState<'lancamentos'|'resumo'|'gerar'>('lancamentos');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'lancamentos'|'resumo'|'gerar') || 'lancamentos';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [lancamentos, setLancamentos] = useState<any[]>([]);
   const [fazendas, setFazendas] = useState<any[]>([]);
   const [contas, setContas] = useState<any[]>([]);
   const [unidadeMatriz, setUnidadeMatriz] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('LCDPRPage_isModalOpen', false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [filterTipo, setFilterTipo] = useState<'TODOS'|'R'|'D'>('TODOS');
   const [generating, setGenerating] = useState(false);
@@ -388,7 +395,7 @@ export const LCDPRPage: React.FC = () => {
       {/* Header */}
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Financeiro & Banco', href: '/financeiro' }, { label: 'Obrigações Fiscais' }]} />
+          <Breadcrumb paths={[{ label: 'Financeiro & Banco', href: '/financeiro' }, { label: 'LCDPR' }]} />
 
           <h1 className="page-title">Livro Caixa Digital do Produtor Rural</h1>
           <p className="page-subtitle">Escrituração fiscal da atividade rural · Geração do arquivo para entrega à Receita Federal</p>

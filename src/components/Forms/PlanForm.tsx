@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { Check, Server, Users, HardDrive, Building2, Activity, CheckSquare, Square, Globe, ShieldAlert, Star, PiggyBank, DollarSign } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 import { SidePanel } from '../Layout/SidePanel';
@@ -12,7 +14,7 @@ interface PlanFormProps {
 }
 
 export const PlanForm: React.FC<PlanFormProps> = ({ isOpen, onClose, onSubmit, initialData, isSubmitting = false }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('PlanForm_formData', {
     name: '',
     price: '',
     pricePerUserExtra: '',

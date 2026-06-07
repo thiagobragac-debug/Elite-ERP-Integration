@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Package, 
   ClipboardCheck,
@@ -32,7 +34,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit,
   
   const [warehouses, setWarehouses] = useState<any[]>([]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('AuditForm_formData', {
     title: '',
     date: new Date().toISOString().split('T')[0],
     responsible: '',

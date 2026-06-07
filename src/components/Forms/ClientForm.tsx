@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   User, 
   Phone, 
@@ -35,7 +37,7 @@ interface ClientFormProps {
 }
 
 export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('ClientForm_formData', {
     name: '',
     cnpj: '',
     categoria_id: '',

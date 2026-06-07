@@ -466,7 +466,7 @@ export const AnimalDetail: React.FC = () => {
     <div className="animal-detail-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Rebanho', href: '/pecuaria/animal' }, { label: 'Detalhes' }]} />
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Animais', href: '/pecuaria/animal' }, { label: 'Detalhes' }]} />
           <button className="back-btn" onClick={() => navigate('/pecuaria/animal')}>
             <ArrowLeft size={20} />
             VOLTAR

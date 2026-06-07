@@ -1,4 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -57,8 +60,12 @@ export const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ISSUED' | 'CANCELED'>('ISSUED');
+  const [isModalOpen, setIsModalOpen] = usePersistentState('Invoices_isModalOpen', false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'ISSUED' | 'CANCELED') || 'ISSUED';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -348,8 +355,8 @@ export const Invoices: React.FC = () => {
     <div className="invoice-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Vendas', href: '/vendas/dashboard' }, { label: 'Nota Fiscal de Saída' }]} />
-          <h1 className="page-title">Nota Fiscal de Saída</h1>
+          <Breadcrumb paths={[{ label: 'Vendas', href: '/vendas/dashboard' }, { label: 'Notas Fiscais de Saída' }]} />
+          <h1 className="page-title">Notas Fiscais de Saída</h1>
           <p className="page-subtitle">Emissão, monitoramento de protocolos SEFAZ e gestão de obrigações fiscais eletrônicas em tempo real.</p>
         </div>
         <div className="page-actions">

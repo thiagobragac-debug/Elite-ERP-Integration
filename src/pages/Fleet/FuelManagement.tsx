@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -58,8 +61,12 @@ export const FuelManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'LOG' | 'ANALYSIS'>('LOG');
+  const [isModalOpen, setIsModalOpen] = usePersistentState('FuelManagement_isModalOpen', false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'LOG' | 'ANALYSIS') || 'LOG';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [selectedLog, setSelectedLog] = useState<any>(null);
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -374,8 +381,8 @@ export const FuelManagement: React.FC = () => {
     <div className="fuel-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Frota & Máquinas', href: '/frota/dashboard' }, { label: 'Gestão de Abastecimento' }]} />
-          <h1 className="page-title">Gestão de Abastecimento</h1>
+          <Breadcrumb paths={[{ label: 'Máquina & Frota', href: '/frota/dashboard' }, { label: 'Abastecimentos' }]} />
+          <h1 className="page-title">Abastecimentos</h1>
           <p className="page-subtitle">Telemetria de consumo, análise de autonomia e controle rigoroso de custos energéticos.</p>
         </div>
         <div className="page-actions">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle, 
@@ -63,7 +64,11 @@ interface PendingItem {
 
 export const ApprovalCenter: React.FC = () => {
   const { activeTenantId } = useTenant();
-  const [activeTab, setActiveTab] = useState<TabType>('pendencies');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as TabType) || 'pendencies';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [viewMode, setViewMode] = useViewMode('admin-approval-center', 'grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -427,8 +432,8 @@ export const ApprovalCenter: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Central de Aprovações' }]} />
-          <h1 className="page-title">Central de Aprovações</h1>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Aprovações' }]} />
+          <h1 className="page-title">Aprovações</h1>
           <p className="page-subtitle">Gestão de regras operacionais e painel de pendências de autorização.</p>
         </div>
         <div className="page-actions">

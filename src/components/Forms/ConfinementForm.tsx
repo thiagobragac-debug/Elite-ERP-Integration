@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Building, 
   Users,
@@ -29,7 +31,7 @@ interface ConfinementFormProps {
 export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClose, onSubmit }) => {
   const { activeFarm } = useTenant();
   const [lots, setLots] = useState<any[]>([]);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('ConfinementForm_formData', {
     nome_curral: '',
     capacidade_animais: '100',
     dof_alvo: '90',

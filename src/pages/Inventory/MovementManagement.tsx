@@ -1,4 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -53,9 +56,13 @@ export const MovementManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [movements, setMovements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('MovementManagement_isModalOpen', false);
   const [modalType, setModalType] = useState<'in' | 'out' | 'transfer'>('in');
-  const [activeTab, setActiveTab] = useState<'LOG' | 'ANALYSIS'>('LOG');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'LOG' | 'ANALYSIS') || 'LOG';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [selectedMovement, setSelectedMovement] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -476,8 +483,8 @@ export const MovementManagement: React.FC = () => {
     <div className="movement-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Movimentação de Estoque' }]} />
-          <h1 className="page-title">Movimentação de Estoque</h1>
+          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Movimentações' }]} />
+          <h1 className="page-title">Movimentações</h1>
           <p className="page-subtitle">Rastreabilidade total de entradas, saídas e transferências de insumos em tempo real.</p>
         </div>
         <div className="page-actions">

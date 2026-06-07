@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Shield, 
   Lock,
@@ -42,7 +44,7 @@ const TEMPLATES = [
 ];
 
 export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('ProfileForm_formData', {
     nome: '',
     descricao: '',
     is_global: false,

@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -61,8 +64,12 @@ export const MaintenanceManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY' | 'PLANS'>('ACTIVE');
+  const [isModalOpen, setIsModalOpen] = usePersistentState('MaintenanceManagement_isModalOpen', false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'ACTIVE' | 'HISTORY' | 'PLANS') || 'ACTIVE';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isChecklistOpen, setIsChecklistOpen] = useState(false);
@@ -462,8 +469,8 @@ export const MaintenanceManagement: React.FC = () => {
     <div className="maintenance-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Frota & Máquinas', href: '/frota/dashboard' }, { label: 'Manutenção de Frota' }]} />
-          <h1 className="page-title">Manutenção de Frota</h1>
+          <Breadcrumb paths={[{ label: 'Máquina & Frota', href: '/frota/dashboard' }, { label: 'Manutenções' }]} />
+          <h1 className="page-title">Manutenções</h1>
           <p className="page-subtitle">Rastreabilidade completa de intervenções mecânicas, revisões preventivas e custos em tempo real.</p>
         </div>
         <div className="page-actions">

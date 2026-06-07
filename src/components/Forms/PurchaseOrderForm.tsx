@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Hash, 
   Calendar, 
@@ -41,7 +43,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
   const [installmentsList, setInstallmentsList] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>(initialData?.itens || []);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('PurchaseOrderForm_formData', {
     quotation_id: initialData?.quotation_id || '',
     company_id: initialData?.company_id || activeCompany?.id || '',
     order_number: initialData?.order_number || '',
@@ -67,6 +69,33 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
       fetchBankAccounts();
     }
   }, [activeTenantId]);
+
+  // Reseta todo o estado ao fechar o painel (evita dados do último lançamento persistirem)
+  useEffect(() => {
+    if (!isOpen && !initialData) {
+      setItems([]);
+      setInstallmentsList([]);
+      setFormData({
+        quotation_id: '',
+        company_id: activeCompany?.id || '',
+        order_number: '',
+        supplier_id: '',
+        date: new Date().toISOString().split('T')[0],
+        delivery_date: '',
+        freight_type: 'CIF',
+        freight_value: '',
+        discount: '',
+        total_value: '0',
+        delivery_instructions: '',
+        description: '',
+        payment_condition: 'vista',
+        payment_method: 'Boleto',
+        installments: 1,
+        bank_account_id: '',
+        generate_financial: false,
+      });
+    }
+  }, [isOpen]);
 
   const fetchSuppliers = async () => {
     const { data } = await supabase

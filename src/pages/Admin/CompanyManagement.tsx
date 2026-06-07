@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -55,7 +56,11 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const CompanyManagement: React.FC = () => {
   const { activeFarm, tenant, activeTenantId } = useTenant();
-  const [activeTab, setActiveTab] = useState<'companies' | 'farms'>('companies');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'companies' | 'farms') || 'companies';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [searchTerm, setSearchTerm] = useState('');
   const [companies, setCompanies] = useState<any[]>([]);
   const [farms, setFarms] = useState<any[]>([]);
@@ -500,8 +505,8 @@ export const CompanyManagement: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Gestão de Unidades & Matrizes' }]} />
-          <h1 className="page-title">Gestão de Unidades & Matrizes</h1>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Empresas & Fazendas' }]} />
+          <h1 className="page-title">Empresas & Fazendas</h1>
           <p className="page-subtitle">Governança organizacional de instâncias produtivas, matrizes e filiais do ecossistema.</p>
         </div>
         <div className="page-actions">

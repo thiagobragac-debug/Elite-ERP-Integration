@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Fuel, 
   Truck,
@@ -30,7 +32,7 @@ interface FuelFormProps {
 
 export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm } = useTenant();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('FuelForm_formData', {
     machine_id: '',
     estoque_id: '',
     date: new Date().toISOString().split('T')[0],

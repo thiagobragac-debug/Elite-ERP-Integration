@@ -1,4 +1,6 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -65,7 +67,7 @@ export const FleetManagement: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const [machines, setMachines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('FleetManagement_isModalOpen', false);
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -450,8 +452,8 @@ export const FleetManagement: React.FC = () => {
     <div className="fleet-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Frota & Máquinas', href: '/frota/dashboard' }, { label: 'Gestão de Frota' }]} />
-          <h1 className="page-title">Gestão de Frota</h1>
+          <Breadcrumb paths={[{ label: 'Máquina & Frota', href: '/frota/dashboard' }, { label: 'Máquinas & Equipamentos' }]} />
+          <h1 className="page-title">Máquinas & Equipamentos</h1>
           <p className="page-subtitle">Telemetria de ativos, controle de manutenção e eficiência operacional do maquinário em tempo real.</p>
         </div>
         <div className="page-actions">

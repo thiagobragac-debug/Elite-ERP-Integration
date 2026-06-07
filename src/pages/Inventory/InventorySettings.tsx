@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { supabase } from '../../lib/supabase';
 import { Tag, Plus, Trash2, Edit2, Layers, CheckCircle, XCircle, Search, Hash, CloudDownload, ChevronRight, Download } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
@@ -19,7 +21,7 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
   const { tenant } = useTenant();
   const [ncms, setNcms] = useState<NCM[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('InventorySettings_isModalOpen', false);
   const [editItem, setEditItem] = useState<NCM | null>(null);
   
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -27,7 +29,7 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
   const [importResults, setImportResults] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('InventorySettings_formData', {
     codigo: '',
     descricao: '',
     is_active: true

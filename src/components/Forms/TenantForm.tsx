@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Building2, 
   CreditCard, 
@@ -25,7 +27,7 @@ interface TenantFormProps {
 }
 
 export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmit, initialData, availablePlans = [] }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('TenantForm_formData', {
     name: '',
     cnpj: '',
     email: '',

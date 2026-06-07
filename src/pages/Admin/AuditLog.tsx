@@ -50,7 +50,7 @@ const MODULE_LABELS: Record<string, string> = {
   contas_receber: 'Contas a Receber',
   pedidos_venda: 'Pedidos de Venda',
   maquinas: 'Frota & Máquinas',
-  sanidade: 'Gestão Sanitária',
+  sanidade: 'Sanidade',
   pastos: 'Gestão de Pastos',
 };
 

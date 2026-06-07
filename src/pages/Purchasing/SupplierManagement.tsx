@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -59,10 +62,14 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const SupplierManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('SupplierManagement_isModalOpen', false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
   const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'HOMOLOGADO' | 'PENDENTE'>('HOMOLOGADO');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'HOMOLOGADO' | 'PENDENTE') || 'HOMOLOGADO';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [loading, setLoading] = useState(true);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -485,8 +492,8 @@ export const SupplierManagement: React.FC = () => {
       )}
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Gestão de Fornecedores' }]} />
-          <h1 className="page-title">Gestão de Fornecedores</h1>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Fornecedores' }]} />
+          <h1 className="page-title">Fornecedores</h1>
           <p className="page-subtitle">Homologação de fornecedores, análise de performance e histórico transacional de compras em tempo real.</p>
         </div>
         <div className="page-actions">

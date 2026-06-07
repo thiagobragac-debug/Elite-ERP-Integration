@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Wrench, 
   Settings,
@@ -29,7 +31,7 @@ interface MaintenanceFormProps {
 
 export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm } = useTenant();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('MaintenanceForm_formData', {
     maquina_id: '',
     tipo: 'preventive',
     descricao: '',

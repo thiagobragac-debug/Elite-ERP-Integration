@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   FileText, 
   User,
@@ -35,7 +37,7 @@ interface ContractFormProps {
 export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm, activeTenantId, activeCompany, companies } = useTenant();
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('ContractForm_formData', {
     company_id: initialData?.company_id || activeCompany?.id || '',
     contract_number: '',
     type: 'Venda de Gado (Futuro)',

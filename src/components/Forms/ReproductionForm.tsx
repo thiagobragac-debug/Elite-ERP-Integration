@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Heart, 
   Baby,
@@ -26,7 +28,7 @@ interface ReproductionFormProps {
 }
 
 export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('ReproductionForm_formData', {
     animal_id: '',
     tipo_evento: 'IATF',
     data_evento: new Date().toISOString().split('T')[0],

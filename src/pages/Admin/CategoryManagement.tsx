@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { supabase } from '../../lib/supabase';
 import { Tag, Search, Plus, Trash2, Edit2, AlertTriangle, Layers, CheckCircle, XCircle, Database } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
@@ -25,9 +27,9 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
   const [loading, setLoading] = useState(true);
   
   // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('CategoryManagement_isModalOpen', false);
   const [editItem, setEditItem] = useState<Categoria | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('CategoryManagement_formData', {
     nome: '',
     cor: '#94a3b8',
     is_active: true,

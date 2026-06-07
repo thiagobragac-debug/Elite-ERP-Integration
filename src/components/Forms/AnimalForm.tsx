@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Beef, 
   Hash, 
@@ -30,7 +32,7 @@ interface AnimalFormProps {
 }
 
 export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('AnimalForm_formData', {
     brinco: '',
     brinco_eletronico: '',
     raca: '',

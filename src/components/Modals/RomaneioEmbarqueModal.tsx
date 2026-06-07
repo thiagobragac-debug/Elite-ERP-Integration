@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import toast from 'react-hot-toast';
 import {
   Truck,
@@ -61,7 +63,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Step 2 - Embarque data
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('RomaneioEmbarqueModal_formData', {
     comprador: '',
     data_embarque: new Date().toISOString().split('T')[0],
     destino: '',

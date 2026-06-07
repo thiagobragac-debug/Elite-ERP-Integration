@@ -1,4 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -59,8 +62,12 @@ export const PurchaseOrder: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'OPEN' | 'HISTORY'>('OPEN');
+  const [isModalOpen, setIsModalOpen] = usePersistentState('PurchaseOrder_isModalOpen', false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'OPEN' | 'HISTORY') || 'OPEN';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -390,8 +397,8 @@ export const PurchaseOrder: React.FC = () => {
     <div className="orders-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Ordens de Compra (OC)' }]} />
-          <h1 className="page-title">Ordens de Compra (OC)</h1>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Pedidos de Compra (PC)' }]} />
+          <h1 className="page-title">Pedidos de Compra (PC)</h1>
           <p className="page-subtitle">Gestão de suprimentos, negociações com fornecedores e controle de recebimento físico.</p>
         </div>
         <div className="page-actions">

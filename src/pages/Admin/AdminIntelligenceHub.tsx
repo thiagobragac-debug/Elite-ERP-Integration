@@ -98,8 +98,8 @@ export const AdminIntelligenceHub: React.FC = () => {
     <div className="admin-intelligence-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Intelligence Hub Administrativo' }]} />
-          <h1 className="page-title">Intelligence Hub Administrativo</h1>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Intelligence Hub' }]} />
+          <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Visão estratégica de governança, conformidade de segurança e saúde operacional do tenant.</p>
         </div>
         <div className="page-actions">
@@ -209,7 +209,14 @@ export const AdminIntelligenceHub: React.FC = () => {
       </div>
 
       <style>{`
-        display: flex;
+        .admin-intelligence-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 24px;
+        }
+
+        .intelligence-panel {
+          display: flex;
           flex-direction: column;
           gap: 20px;
         }

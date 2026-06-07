@@ -2,6 +2,8 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Scale, 
   Calendar,
@@ -95,7 +97,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
   const [weightHistory, setWeightHistory] = useState<any[]>([]);
   const [todayCount, setTodayCount] = useState(0);
   const [animalSelected, setAnimalSelected] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('WeightForm_formData', {
     animal_id: '',
     data_pesagem: new Date().toISOString().split('T')[0],
     peso: '',

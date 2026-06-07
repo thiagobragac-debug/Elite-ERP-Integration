@@ -277,14 +277,14 @@ export const SalesDashboard: React.FC = () => {
 
   return (
     <div className="sales-intelligence-hub animate-slide-up">
-      <header className="hub-header">
-        <div className="hub-brand">
-          <Breadcrumb paths={[{ label: 'Venda & CRM', href: '/vendas/dashboard' }, { label: 'Sales Intelligence' }]} />
+      <header className="page-header">
+        <div className="header-brand-group">
+          <Breadcrumb paths={[{ label: 'Venda & CRM', href: '/vendas/dashboard' }, { label: 'Intelligence Hub' }]} />
 
-          <h1 className="hub-title">Hub de Inteligência Comercial</h1>
-          <p className="hub-subtitle">Visão executiva da performance de vendas, saúde da carteira e auditoria de margens.</p>
+          <h1 className="page-title">Intelligence Hub</h1>
+          <p className="page-subtitle">Visão executiva da performance de vendas, saúde da carteira e auditoria de margens.</p>
         </div>
-        <div className="hub-actions">
+        <div className="page-actions">
           <button className="glass-btn secondary">
             <History size={18} />
             RELATÓRIOS BI
@@ -445,12 +445,7 @@ export const SalesDashboard: React.FC = () => {
       </div>
 
       <style>{`
-        .sales-intelligence-hub { display: flex; flex-direction: column; gap: 24px; }
-        .hub-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .hub-brand .hub-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: hsl(var(--brand) / 0.1); color: hsl(var(--brand)); border-radius: 100px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; margin-bottom: 12px; border: 1px solid hsl(var(--brand) / 0.2); }
-        .hub-title { font-size: 28px; font-weight: 900; color: hsl(var(--text-main)); letter-spacing: -0.02em; }
-        .hub-subtitle { color: hsl(var(--text-muted)); font-size: 14px; font-weight: 500; }
-        .hub-actions { display: flex; gap: 12px; }
+        .sales-intelligence-hub { }
         .intelligence-grid { display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: auto auto; gap: 24px; }
         .intelligence-card { background: hsl(var(--bg-card)); border-radius: 24px; border: 1px solid hsl(var(--border)); padding: 24px; box-shadow: var(--shadow-sm); transition: 0.3s; }
         .intelligence-card:hover { box-shadow: var(--shadow-md); border-color: hsl(var(--brand) / 0.3); }

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   CheckCircle2, 
   CreditCard, 
@@ -34,7 +36,7 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
   const { activeFarm } = useTenant();
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('BatchLiquidationModal_formData', {
     bank_account_id: '',
     payment_date: new Date().toISOString().split('T')[0]
   });

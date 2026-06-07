@@ -1,14 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, Plus, Search } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { CategorySettingsTab } from './CategoryManagement';
 import { SystemSettingsTab } from './SystemSettingsTab';
 import { RoleSettingsTab } from './RoleManagement';
 import { NcmSettingsTab } from '../Inventory/InventorySettings';
+import { CertificateSettingsTab } from './CertificateSettingsTab';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ModuleSettings: React.FC = () => {
-  const [activeModule, setActiveModule] = useState('sistema');
-  const [activeSetting, setActiveSetting] = useState('system');
+  // ─── Estado sincronizado com a URL ───────────────────────────────────────
+  // Usando searchParams como fonte de verdade: a URL persiste quando o usuário
+  // troca de aba/janela do SO e volta, evitando reset de estado indesejado.
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const activeModule = searchParams.get('modulo') || 'sistema';
+  const activeSetting = searchParams.get('aba') || 'system';
+
+  const setActiveModule = (mod: string, setting?: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('modulo', mod);
+      next.set('aba', setting || getSettingsForModule(mod)[0].id);
+      return next;
+    }, { replace: true });
+    setSearchTerm('');
+  };
+
+  const setActiveSetting = (setting: string) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('aba', setting);
+      return next;
+    }, { replace: true });
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [triggerCreate, setTriggerCreate] = useState(0);
   const [triggerImport, setTriggerImport] = useState(0);
@@ -32,6 +58,7 @@ export const ModuleSettings: React.FC = () => {
           { id: 'system', label: 'Parâmetros' },
           { id: 'cargos', label: 'Cargos Corporativos' },
           { id: 'governance', label: 'Políticas' },
+          { id: 'certificados', label: 'Certificados Fiscais' },
           { id: 'bi', label: 'BI' },
           { id: 'canvas', label: 'Canvas' }
         ];
@@ -75,12 +102,11 @@ export const ModuleSettings: React.FC = () => {
 
   const handleModuleSwitch = (modId: string) => {
     setActiveModule(modId);
-    setActiveSetting(getSettingsForModule(modId)[0].id);
-    setSearchTerm('');
   };
 
   const getActionLabel = () => {
     if (activeModule === 'sistema') {
+      if (activeSetting === 'certificados') return 'NOVO CERTIFICADO';
       return systemIsSaving ? 'SINCRONIZANDO...' : systemSaveSuccess ? 'CONFIGURAÇÕES SALVAS' : 'SALVAR ALTERAÇÕES';
     }
     if (activeSetting === 'ncms') return 'NOVO NCM';
@@ -91,8 +117,8 @@ export const ModuleSettings: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Configuração de Módulos' }]} />
-          <h1 className="page-title">Configuração de Módulos</h1>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Configurações' }]} />
+          <h1 className="page-title">Configurações</h1>
           <p className="page-subtitle">Centralize parâmetros, categorias e regras fiscais de todos os módulos.</p>
         </div>
         <div className="page-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -103,11 +129,12 @@ export const ModuleSettings: React.FC = () => {
             </button>
           )}
           <button 
-            className={`primary-btn ${activeModule === 'sistema' && systemSaveSuccess ? 'success' : ''}`} 
+            className={`primary-btn ${activeModule === 'sistema' && activeSetting !== 'certificados' && systemSaveSuccess ? 'success' : ''}`} 
             onClick={() => setTriggerCreate(prev => prev + 1)}
-            disabled={activeModule === 'sistema' && systemIsSaving}
+            disabled={activeModule === 'sistema' && activeSetting !== 'certificados' && systemIsSaving}
           >
             {activeModule === 'sistema' ? (
+              activeSetting === 'certificados' ? <Plus size={18} /> :
               systemIsSaving ? <Settings size={18} className="animate-spin" /> : 
               systemSaveSuccess ? <Settings size={18} /> : <Settings size={18} />
             ) : <Plus size={18} />}
@@ -184,7 +211,7 @@ export const ModuleSettings: React.FC = () => {
           </div>
 
           {/* Settings Content */}
-          {activeModule === 'sistema' && (
+          {activeModule === 'sistema' && activeSetting !== 'cargos' && activeSetting !== 'certificados' && (
             <SystemSettingsTab 
               activeTab={activeSetting} 
               triggerSave={triggerCreate} 
@@ -195,6 +222,7 @@ export const ModuleSettings: React.FC = () => {
             />
           )}
           {activeSetting === 'cargos' && <RoleSettingsTab searchTerm={searchTerm} triggerCreate={triggerCreate} />}
+          {activeSetting === 'certificados' && <CertificateSettingsTab searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'categorias' && <CategorySettingsTab modulo={activeModule} searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'racas' && <CategorySettingsTab modulo="racas" searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'unidades' && <CategorySettingsTab modulo="unidades" searchTerm={searchTerm} triggerCreate={triggerCreate} />}

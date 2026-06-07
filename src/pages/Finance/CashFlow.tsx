@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useNavigate , useSearchParams } from 'react-router-dom';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -56,9 +58,13 @@ export const CashFlow: React.FC = () => {
   const { data: rawTransactions, stats: reportStats, loading, error, refresh } = useReportData('fluxo-caixa');
   const transactions = rawTransactions || [];
   
-  const [activeTab, setActiveTab] = useState<'ALL' | 'INFLOW' | 'OUTFLOW'>('ALL');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'ALL' | 'INFLOW' | 'OUTFLOW') || 'ALL';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID'>('ALL');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('CashFlow_isModalOpen', false);
   const [transactionType, setTransactionType] = useState<'payable' | 'receivable'>('payable');
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -297,7 +303,7 @@ export const CashFlow: React.FC = () => {
         <div className="header-brand-group">
           <Breadcrumb paths={[{ label: 'Financeiro & Banco', href: '/financeiro' }, { label: 'Fluxo de Caixa' }]} />
 
-          <h1 className="page-title">Fluxo de Caixa Unificado</h1>
+          <h1 className="page-title">Fluxo de Caixa</h1>
           <p className="page-subtitle">Gestão operacional e inteligência financeira avançada em um único dashboard.</p>
         </div>
         <div className="page-actions" style={{ display: 'flex', gap: '12px' }}>

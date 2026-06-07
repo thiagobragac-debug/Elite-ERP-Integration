@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   ArrowRightLeft, 
   Package,
@@ -40,7 +42,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
   const { applyFarmFilter, applyTenantFilter } = useFarmFilter();
   
   // Base Transaction Data
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('MovementForm_formData', {
     destino_deposito_id: '',
     tipo: defaultType as 'in' | 'out' | 'transfer' | 'adjust',
     data_movimentacao: new Date().toISOString().split('T')[0],

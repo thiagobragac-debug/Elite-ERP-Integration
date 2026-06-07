@@ -17,10 +17,10 @@ const COMMANDS = [
   { id: 'admin-intelligence', title: 'Intelligence Hub', icon: Settings, path: '/admin/intelligence', category: 'Administração' },
   { id: 'admin-aprovacoes', title: 'Aprovações', icon: Settings, path: '/admin/aprovacoes', category: 'Administração' },
   { id: 'admin-usuarios', title: 'Gestão de Usuários', icon: Users, path: '/admin/usuarios', category: 'Administração' },
-  { id: 'admin-empresa', title: 'Empresas e Fazendas', icon: Building2, path: '/admin/config', category: 'Administração' },
-  { id: 'admin-config', title: 'Configurações Globais', icon: Settings, path: '/admin/configuracoes', category: 'Administração' },
-  { id: 'admin-assinatura', title: 'Assinatura e Planos', icon: Settings, path: '/admin/assinatura', category: 'Administração' },
-  { id: 'admin-auditoria', title: 'Log de Auditoria', icon: FileText, path: '/admin/auditoria', category: 'Administração' },
+  { id: 'admin-empresa', title: 'Empresas & Fazendas', icon: Building2, path: '/admin/config', category: 'Administração' },
+  { id: 'admin-config', title: 'Configurações', icon: Settings, path: '/admin/configuracoes', category: 'Administração' },
+  { id: 'admin-assinatura', title: 'Assinatura & Planos', icon: Settings, path: '/admin/assinatura', category: 'Administração' },
+  { id: 'admin-auditoria', title: 'Logs de Auditoria', icon: FileText, path: '/admin/auditoria', category: 'Administração' },
 
   // Mercado
   { id: 'mercado-indicadores', title: 'Indicadores de Mercado', icon: Globe, path: '/mercado/indicadores', category: 'Mercado' },
@@ -33,47 +33,47 @@ const COMMANDS = [
   { id: 'pec-animal', title: 'Gestão de Animais', icon: Activity, path: '/pecuaria/animal', category: 'Pecuária' },
   { id: 'pec-lote', title: 'Gestão de Lotes', icon: Activity, path: '/pecuaria/lote', category: 'Pecuária' },
   { id: 'pec-pasto', title: 'Gestão de Pastos', icon: Activity, path: '/pecuaria/pasto', category: 'Pecuária' },
-  { id: 'pec-pesagem', title: 'Pesagem e GMD', icon: Activity, path: '/pecuaria/pesagem', category: 'Pecuária' },
+  { id: 'pec-pesagem', title: 'Gestão de Pesagens & GMD', icon: Activity, path: '/pecuaria/pesagem', category: 'Pecuária' },
   { id: 'pec-confinamento', title: 'Confinamento', icon: Activity, path: '/pecuaria/confinamento', category: 'Pecuária' },
-  { id: 'pec-reproducao', title: 'Manejo Reprodutivo', icon: Activity, path: '/pecuaria/reproducao', category: 'Pecuária' },
-  { id: 'pec-nutricao', title: 'Manejo Nutricional', icon: Activity, path: '/pecuaria/nutricao', category: 'Pecuária' },
-  { id: 'pec-sanidade', title: 'Sanidade e Saúde', icon: Activity, path: '/pecuaria/sanidade', category: 'Pecuária' },
+  { id: 'pec-reproducao', title: 'Reprodução', icon: Activity, path: '/pecuaria/reproducao', category: 'Pecuária' },
+  { id: 'pec-nutricao', title: 'Nutrição', icon: Activity, path: '/pecuaria/nutricao', category: 'Pecuária' },
+  { id: 'pec-sanidade', title: 'Sanidade', icon: Activity, path: '/pecuaria/sanidade', category: 'Pecuária' },
 
   // Máquina & Frota
   { id: 'frota-dashboard', title: 'Dashboard de Frota', icon: Truck, path: '/frota/dashboard', category: 'Máquina & Frota' },
-  { id: 'frota-maquina', title: 'Gestão de Máquinas', icon: Truck, path: '/frota/maquina', category: 'Máquina & Frota' },
+  { id: 'frota-maquina', title: 'Máquinas & Equipamentos', icon: Truck, path: '/frota/maquina', category: 'Máquina & Frota' },
   { id: 'frota-abastecimento', title: 'Abastecimentos', icon: Truck, path: '/frota/abastecimento', category: 'Máquina & Frota' },
   { id: 'frota-manutencao', title: 'Manutenções', icon: Truck, path: '/frota/manutencao', category: 'Máquina & Frota' },
 
   // Compra & Cotação
   { id: 'compras-dashboard', title: 'Dashboard de Compras', icon: ShoppingCart, path: '/compras/dashboard', category: 'Compras' },
-  { id: 'compras-fornecedor', title: 'Gestão de Fornecedores', icon: Users, path: '/compras/fornecedores', category: 'Compras' },
-  { id: 'compras-solicitacao', title: 'Solicitação de Compra', icon: ShoppingCart, path: '/compras/solicitacao', category: 'Compras' },
-  { id: 'compras-cotacao', title: 'Mapa de Cotação', icon: ShoppingCart, path: '/compras/cotacao', category: 'Compras' },
-  { id: 'compras-pedido', title: 'Pedido de Compra', icon: ShoppingCart, path: '/compras/pedido', category: 'Compras' },
+  { id: 'compras-fornecedor', title: 'Fornecedores', icon: Users, path: '/compras/fornecedores', category: 'Compras' },
+  { id: 'compras-solicitacao', title: 'Solicitações de Compra', icon: ShoppingCart, path: '/compras/solicitacao', category: 'Compras' },
+  { id: 'compras-cotacao', title: 'Mapas de Cotação', icon: ShoppingCart, path: '/compras/cotacao', category: 'Compras' },
+  { id: 'compras-pedido', title: 'Pedidos de Compra', icon: ShoppingCart, path: '/compras/pedido', category: 'Compras' },
   { id: 'compras-nota', title: 'Notas Fiscais de Entrada', icon: FileText, path: '/compras/nota', category: 'Compras' },
 
   // Venda & CRM
   { id: 'vendas-dashboard', title: 'Dashboard de Vendas', icon: TrendingUp, path: '/vendas/dashboard', category: 'Vendas & CRM' },
-  { id: 'vendas-cliente', title: 'Clientes (CRM)', icon: Users, path: '/vendas/parceiros', category: 'Vendas & CRM' },
-  { id: 'vendas-pedido', title: 'Pedido de Venda', icon: TrendingUp, path: '/vendas/pedido', category: 'Vendas & CRM' },
-  { id: 'vendas-contrato', title: 'Contratos e Hedge', icon: FileText, path: '/vendas/contrato', category: 'Vendas & CRM' },
+  { id: 'vendas-cliente', title: 'Clientes', icon: Users, path: '/vendas/parceiros', category: 'Vendas & CRM' },
+  { id: 'vendas-pedido', title: 'Pedidos de Venda', icon: TrendingUp, path: '/vendas/pedido', category: 'Vendas & CRM' },
+  { id: 'vendas-contrato', title: 'Contratos & Hedge', icon: FileText, path: '/vendas/contrato', category: 'Vendas & CRM' },
   { id: 'vendas-nota', title: 'Notas Fiscais de Saída', icon: FileText, path: '/vendas/notas', category: 'Vendas & CRM' },
 
   // Estoque
   { id: 'estoque-dashboard', title: 'Dashboard de Estoque', icon: Package, path: '/estoque/dashboard', category: 'Estoque' },
-  { id: 'estoque-insumo', title: 'Gestão de Insumos', icon: Package, path: '/estoque/insumo', category: 'Estoque' },
-  { id: 'estoque-deposito', title: 'Armazéns e Depósitos', icon: Building2, path: '/estoque/deposito', category: 'Estoque' },
-  { id: 'estoque-movimentacao', title: 'Movimentações de Estoque', icon: Package, path: '/estoque/movimentacao', category: 'Estoque' },
+  { id: 'estoque-insumo', title: 'Insumos e Serviços', icon: Package, path: '/estoque/insumo', category: 'Estoque' },
+  { id: 'estoque-deposito', title: 'Depósitos', icon: Building2, path: '/estoque/deposito', category: 'Estoque' },
+  { id: 'estoque-movimentacao', title: 'Movimentações', icon: Package, path: '/estoque/movimentacao', category: 'Estoque' },
   { id: 'estoque-inventario', title: 'Inventário', icon: FileText, path: '/estoque/inventario', category: 'Estoque' },
 
   // Financeiro
   { id: 'fin-intelligence', title: 'Dashboard Financeiro', icon: Wallet, path: '/financeiro/intelligence', category: 'Financeiro' },
   { id: 'fin-fluxo', title: 'Fluxo de Caixa', icon: TrendingUp, path: '/financeiro/fluxo', category: 'Financeiro' },
-  { id: 'fin-contas', title: 'Contas Bancárias', icon: Building2, path: '/financeiro/contas', category: 'Financeiro' },
+  { id: 'fin-contas', title: 'Contas Bancária', icon: Building2, path: '/financeiro/contas', category: 'Financeiro' },
   { id: 'fin-pagar', title: 'Contas a Pagar', icon: Wallet, path: '/financeiro/pagar', category: 'Financeiro' },
   { id: 'fin-receber', title: 'Contas a Receber', icon: Wallet, path: '/financeiro/receber', category: 'Financeiro' },
-  { id: 'fin-conciliacao', title: 'Conciliação Bancária', icon: FileText, path: '/financeiro/conciliacao', category: 'Financeiro' },
+  { id: 'fin-conciliacao', title: 'Conciliações Bancária', icon: FileText, path: '/financeiro/conciliacao', category: 'Financeiro' },
   { id: 'fin-lcdpr', title: 'Livro Caixa (LCDPR)', icon: FileText, path: '/financeiro/lcdpr', category: 'Financeiro' },
 
   // Relatórios

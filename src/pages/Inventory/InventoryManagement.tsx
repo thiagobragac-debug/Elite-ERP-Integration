@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -67,9 +68,9 @@ export const InventoryManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isMovementModalOpen, setIsMovementModalOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('InventoryManagement_isModalOpen', false);
+  const [isMovementModalOpen, setIsMovementModalOpen] = usePersistentState('InventoryManagement_isMovementModalOpen', false);
+  const [selectedProduct, setSelectedProduct] = usePersistentState<any>('InventoryManagement_selectedProduct', null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);

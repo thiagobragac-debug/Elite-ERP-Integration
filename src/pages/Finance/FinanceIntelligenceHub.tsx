@@ -153,7 +153,7 @@ export const FinanceIntelligenceHub: React.FC = () => {
     <div className="intelligence-hub-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Financeiro & Banco', href: '/financeiro/dashboard' }, { label: 'Intelligence Hub' }]} />
+          <Breadcrumb paths={[{ label: 'Financeiro & Banco', href: '/financeiro/intelligence' }, { label: 'Intelligence Hub' }]} />
 
           <h1 className="page-title">Intelligence Hub</h1>
           <p className="page-subtitle">Central de comando estratégico com visão preditiva e indicadores de alta fidelidade.</p>
@@ -432,13 +432,34 @@ export const FinanceIntelligenceHub: React.FC = () => {
       </div>
 
       <style>{`
-        min-height: 380px; 
+        .intelligence-grid {
+          display: grid;
+          grid-template-columns: 2fr 1fr;
+          gap: 24px;
+          align-items: start;
+        }
+
+        .intelligence-main {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .hub-sections-row {
+          display: grid;
+          grid-template-columns: 1.2fr 1fr;
+          gap: 24px;
+        }
+
+        .hub-card {
+          min-height: 380px; 
           background: hsl(var(--bg-card)); 
           border-radius: 1.25rem; 
           border: 1px solid hsl(var(--border)); 
           box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05);
           display: flex;
           flex-direction: column;
+          padding: 24px;
         }
         
         .card-header-hub { margin-bottom: 24px; display: flex; flex-direction: column; gap: 4px; }

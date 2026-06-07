@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 import { 
   HandCoins, 
   Plus, 
@@ -43,8 +46,12 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const AccountsReceivable: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
-  const [activeTab, setActiveTab] = useState<'TODAS' | 'PENDENTE' | 'RECEBIDO'>('TODAS');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'TODAS' | 'PENDENTE' | 'RECEBIDO') || 'TODAS';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
+  const [isModalOpen, setIsModalOpen] = usePersistentState('AccountsReceivable_isModalOpen', false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);

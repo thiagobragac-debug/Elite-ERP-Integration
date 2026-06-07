@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   BarChart2, 
   Package,
@@ -27,7 +29,7 @@ interface QuotationFormProps {
 
 export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm } = useTenant();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('QuotationForm_formData', {
     request_id: '',
     item_id: '',
     quantity: '',

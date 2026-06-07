@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { Calendar, Percent, Tag, Activity, DollarSign, Clock, Hash, ShieldCheck, CheckSquare, Square } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
@@ -13,7 +15,7 @@ interface CampaignFormProps {
 }
 
 export const CampaignForm: React.FC<CampaignFormProps> = ({ isOpen, onClose, onSubmit, initialData, availablePlans = [], isSubmitting = false }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('CampaignForm_formData', {
     name: '',
     discount_percentage: '',
     start_date: '',

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   DollarSign, 
   Calendar, 
@@ -28,7 +30,7 @@ interface TransactionFormProps {
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, type, onSubmit, initialData }) => {
   const { activeFarm, activeTenantId } = useTenant();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('TransactionForm_formData', {
     description: '',
     value: '',
     dueDate: '',

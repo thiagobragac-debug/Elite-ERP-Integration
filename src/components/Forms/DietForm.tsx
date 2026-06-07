@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Wheat, 
   Tag,
@@ -26,7 +28,7 @@ interface DietFormProps {
 }
 
 export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('DietForm_formData', {
     nome: '',
     tipo: 'Concentrado',
     descricao: '',

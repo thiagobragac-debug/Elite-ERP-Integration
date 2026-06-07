@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { 
   DollarSign, 
@@ -49,7 +50,11 @@ export const TenantBilling: React.FC = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [activeTab, setActiveTab] = useState<'plan' | 'invoices'>('plan');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'plan' | 'invoices') || 'plan';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'credit_card' | null>(null);
   const [pixGenerating, setPixGenerating] = useState(false);
@@ -263,8 +268,8 @@ export const TenantBilling: React.FC = () => {
     <div className="admin-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Gestão de Assinatura' }]} />
-          <h1 className="page-title">Gestão de Assinatura</h1>
+          <Breadcrumb paths={[{ label: 'Administração', href: '/admin/intelligence' }, { label: 'Assinatura & Planos' }]} />
+          <h1 className="page-title">Assinatura & Planos</h1>
           <p className="page-subtitle">Gerencie seu plano atual, faturas e opções de upgrade.</p>
         </div>
       </header>

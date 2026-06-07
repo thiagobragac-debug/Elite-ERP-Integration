@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate , useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Search, 
   ArrowLeft, 
@@ -26,7 +26,11 @@ export const WarehouseDetails: React.FC = () => {
   const [stockItems, setStockItems] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'stock' | 'history'>('stock');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'stock' | 'history') || 'stock';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
 
   useEffect(() => {
     if (id) {

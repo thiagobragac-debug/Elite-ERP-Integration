@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Building2, 
   Phone, 
@@ -35,7 +37,7 @@ interface SupplierFormProps {
 }
 
 export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('SupplierForm_formData', {
     nome: '',
     cnpj: '',
     contato: '',

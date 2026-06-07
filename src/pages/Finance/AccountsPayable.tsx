@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   CreditCard, 
   Plus, 
@@ -51,7 +53,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const AccountsPayable: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
   const { submitForApproval } = useApprovalQueue();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('AccountsPayable_isModalOpen', false);
   const [activeTab, setActiveTab] = useState<'TODAS' | 'PENDENTE' | 'PAGO'>('TODAS');
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);

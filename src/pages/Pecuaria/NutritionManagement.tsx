@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 import { 
   Beef, 
   Plus, 
@@ -36,8 +39,12 @@ export const NutritionManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState<'DIETAS' | 'INSUMOS'>('DIETAS');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'DIETAS' | 'INSUMOS') || 'DIETAS';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
+  const [isModalOpen, setIsModalOpen] = usePersistentState('NutritionManagement_isModalOpen', false);
   const [selectedDiet, setSelectedDiet] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -253,8 +260,8 @@ export const NutritionManagement: React.FC = () => {
     <div className="nutrition-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão de Nutrição' }]} />
-          <h1 className="page-title">Gestão de Nutrição</h1>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Nutrição' }]} />
+          <h1 className="page-title">Nutrição</h1>
           <p className="page-subtitle">Formulações de precisão, controle de custos e monitoramento de conversão alimentar em tempo real.</p>
         </div>
         <div className="page-actions">

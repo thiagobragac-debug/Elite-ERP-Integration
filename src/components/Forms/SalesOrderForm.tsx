@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   User, 
   Hash, 
@@ -41,7 +43,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
   const [installmentsList, setInstallmentsList] = useState<any[]>([]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('SalesOrderForm_formData', {
     company_id: initialData?.company_id || activeCompany?.id || '',
     clientId: initialData?.client_id || '',
     seller_id: initialData?.seller_id || '',
@@ -69,6 +71,34 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
       fetchBankAccounts();
     }
   }, [activeTenantId]);
+
+  // Reseta todo o estado ao fechar o painel (evita dados do último lançamento persistirem)
+  useEffect(() => {
+    if (!isOpen && !initialData) {
+      setInstallmentsList([]);
+      setFormData({
+        company_id: activeCompany?.id || '',
+        clientId: '',
+        seller_id: '',
+        orderNumber: '',
+        date: new Date().toISOString().split('T')[0],
+        status: 'pending',
+        totalValue: 0,
+        items: [],
+        transportadora: '',
+        placa_veiculo: '',
+        numero_gta: '',
+        observacoes: '',
+        payment_condition: 'vista',
+        payment_method: 'Pix',
+        installments: 1,
+        bank_account_id: '',
+        generate_financial: false,
+        comissao: 0,
+        description: ''
+      });
+    }
+  }, [isOpen]);
 
   const fetchClients = async () => {
     const { data } = await supabase

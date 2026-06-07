@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   Trees, 
   Map, 
@@ -28,7 +30,7 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, on
   const [loading, setLoading] = useState(false);
   const [pastures, setPastures] = useState<any[]>([]);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('PastureManejoForm_formData', {
     pasto_id: initialPastureId || '',
     tipo_manejo: 'Adubação',
     data_manejo: new Date().toISOString().split('T')[0],

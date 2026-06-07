@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -54,7 +56,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const ClientManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('ClientManagement_isModalOpen', false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [clients, setClients] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'ATIVO' | 'LEAD'>('ATIVO');
@@ -430,8 +432,8 @@ export const ClientManagement: React.FC = () => {
       )}
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Vendas', href: '/vendas/dashboard' }, { label: 'Gestão de Clientes' }]} />
-          <h1 className="page-title">Gestão de Clientes</h1>
+          <Breadcrumb paths={[{ label: 'Vendas', href: '/vendas/dashboard' }, { label: 'Clientes' }]} />
+          <h1 className="page-title">Clientes</h1>
           <p className="page-subtitle">Gestão de clientes, análise de crédito e histórico comercial consolidado em tempo real.</p>
         </div>
         <div className="page-actions">

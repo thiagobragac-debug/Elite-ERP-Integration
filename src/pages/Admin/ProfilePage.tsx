@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { Search, 
   User, 
   Mail, 
@@ -23,7 +25,7 @@ export const ProfilePage: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<'info' | 'pref' | 'security'>('info');
   
   // Local state for personal info
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('ProfilePage_formData', {
     name: userProfile?.full_name || '',
     phone: ''
   });

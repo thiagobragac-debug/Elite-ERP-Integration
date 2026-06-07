@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -41,11 +44,15 @@ export const WarehouseManagement: React.FC = () => {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('WarehouseManagement_isModalOpen', false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
   const [viewMode, setViewMode] = useViewMode('inventory-warehouse-management', 'grid');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [activeTab, setActiveTab] = useState('Todos');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'Todos';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     occupation: 'all',
@@ -338,8 +345,8 @@ export const WarehouseManagement: React.FC = () => {
     <div className="inventory-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Gestão de Depósitos' }]} />
-          <h1 className="page-title">Gestão de Depósitos</h1>
+          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Depósitos' }]} />
+          <h1 className="page-title">Depósitos</h1>
           <p className="page-subtitle">Configuração de almoxarifados, silos e centros de distribuição vinculados à unidade.</p>
         </div>
         <div className="page-actions">

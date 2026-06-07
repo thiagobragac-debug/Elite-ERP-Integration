@@ -1,4 +1,6 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -16,7 +18,7 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
     return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
   });
 }
-import { useNavigate } from 'react-router-dom';
+import { useNavigate , useSearchParams } from 'react-router-dom';
 import { 
   BarChart2, 
   Plus, 
@@ -59,8 +61,12 @@ export const QuotationMap: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [quotations, setQuotations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'OPEN' | 'CLOSED'>('OPEN');
+  const [isModalOpen, setIsModalOpen] = usePersistentState('QuotationMap_isModalOpen', false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'OPEN' | 'CLOSED') || 'OPEN';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [selectedMatrixQuotation, setSelectedMatrixQuotation] = useState<any>(null);
   const [isMatrixOpen, setIsMatrixOpen] = useState(false);
@@ -396,8 +402,8 @@ export const QuotationMap: React.FC = () => {
     <div className="quotation-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Mapa de Cotação' }]} />
-          <h1 className="page-title">Mapa de Cotação</h1>
+          <Breadcrumb paths={[{ label: 'Compras', href: '/compras/dashboard' }, { label: 'Mapas de Cotação' }]} />
+          <h1 className="page-title">Mapas de Cotação</h1>
           <p className="page-subtitle">Análise comparativa de mercado, saving de suprimentos e tomada de decisão estratégica em tempo real.</p>
         </div>
         <div className="page-actions">

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   UserPlus, 
   Mail,
@@ -27,7 +29,7 @@ interface UserFormProps {
 
 export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm, farms, activeTenantId } = useTenant();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('UserForm_formData', {
     name: '',
     email: '',
     phone: '',

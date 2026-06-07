@@ -69,7 +69,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const UserManagement: React.FC = () => {
   const { activeFarm, userProfile, refreshProfile } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'profiles' | 'seguranca'>('users');
+
   const [usersList, setUsersList] = useState<any[]>([]);
   const [profilesList, setProfilesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

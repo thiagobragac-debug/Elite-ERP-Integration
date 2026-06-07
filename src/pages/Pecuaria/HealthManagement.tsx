@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
+import { useSearchParams } from 'react-router-dom';
 import { 
   HeartPulse, 
   Plus, 
@@ -38,9 +41,13 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const HealthManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'MANEJOS' | 'PROTOCOLOS'>('MANEJOS');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') as 'MANEJOS' | 'PROTOCOLOS') || 'MANEJOS';
+  const setActiveTab = (tab: string) => {
+    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+  };
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('HealthManagement_isModalOpen', false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
@@ -271,8 +278,8 @@ export const HealthManagement: React.FC = () => {
     <div className="health-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão Sanitária' }]} />
-          <h1 className="page-title">Gestão Sanitária</h1>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Sanidade' }]} />
+          <h1 className="page-title">Sanidade</h1>
           <p className="page-subtitle">Rastreabilidade de vacinas, tratamentos e controle de carência medicamentosa em tempo real.</p>
         </div>
         <div className="page-actions">

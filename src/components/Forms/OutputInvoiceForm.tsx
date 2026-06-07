@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
 import { 
@@ -30,7 +32,7 @@ import {
 import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { InsumoEntryTable } from './InsumoEntryTable';
+import { InsumoEntryTable, type InsumoItem } from './InsumoEntryTable';
 import { SearchableSelect } from './SearchableSelect';
 
 interface OutputInvoiceFormProps {
@@ -42,7 +44,7 @@ interface OutputInvoiceFormProps {
 
 export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
   const { activeFarm, companies, activeCompany } = useTenant();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('OutputInvoiceForm_formData', {
     company_id: initialData?.company_id || activeCompany?.id || '',
     seller_id: initialData?.seller_id || '',
     sales_order_id: initialData?.sales_order_id || '',
@@ -71,7 +73,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
     is_xml_imported: false,
     xml_key: ''
   });
-  const [items, setItems] = useState<any[]>(initialData?.itens || []);
+  const [items, setItems] = useState<InsumoItem[]>(initialData?.itens || []);
 
   const [clients, setClients] = useState<any[]>([]);
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
@@ -79,6 +81,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
   const [loading, setLoading] = useState(false);
   const [showFinancialConfirm, setShowFinancialConfirm] = useState(false);
   const [showXMLField, setShowXMLField] = useState(false);
+  const [pendingMatches, setPendingMatches] = useState(0);
 
   useEffect(() => {
     if (isOpen && activeFarm) {
@@ -86,6 +89,42 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
       fetchBankAccounts();
     }
   }, [isOpen, activeFarm]);
+
+  // Reseta todo o estado ao fechar o painel (evita dados do último lançamento persistirem)
+  useEffect(() => {
+    if (!isOpen && !initialData) {
+      setItems([]);
+      setInstallmentsList([]);
+      setShowFinancialConfirm(false);
+      setShowXMLField(false);
+      setPendingMatches(0);
+      setFormData({
+        company_id: activeCompany?.id || '',
+        seller_id: '',
+        sales_order_id: '',
+        invoice_number: 'Gerado pela SEFAZ',
+        series: '1',
+        modelo_fiscal: '55',
+        client_id: '',
+        date: new Date().toISOString().split('T')[0],
+        total_value: '0',
+        nature_of_operation: 'Venda de Produção Própria',
+        transport_company: '',
+        freight_type: 'CIF',
+        vehicle_plate: '',
+        gross_weight: '',
+        payment_condition: 'vista',
+        payment_method: 'Boleto',
+        installments: 1,
+        bank_account_id: '',
+        generate_financial: true,
+        description: '',
+        is_xml_imported: false,
+        xml_key: '',
+      });
+    }
+  }, [isOpen]);
+
 
   const fetchClients = async () => {
     const { data } = await supabase.from('parceiros').select('id, nome').eq('tenant_id', activeFarm?.tenantId || '').eq('is_customer', true).order('nome');
@@ -197,17 +236,22 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
             customer_id: clients.length > 0 ? String(clients[0].id) : '',
           }));
           
-          setItems([{
+          const xmlItems: InsumoItem[] = [{
             id: 'xml-out-1',
-            nome: 'Produto Importado do XML',
+            produto_id: '',
+            nome: 'PRODUTO IMPORTADO DO XML',
             quantidade: 10,
             unidade: 'UN',
             preco_unitario: 100.00,
             despesa_adicional: 0,
             desconto: 0,
             deposito_id: '',
-            total: 1000.00
-          }]);
+            total: 1000.00,
+            xml_product_code: 'XML-OUT-001',
+            xml_product_name: 'PRODUTO IMPORTADO XML DESCRIÇÃO ORIGINAL',
+            match_status: 'unmatched',
+          }];
+          setItems(xmlItems);
         });
       }
       document.body.removeChild(input);
@@ -231,17 +275,23 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         company_id: companies.length > 0 ? String(companies[0].id) : '',
         customer_id: clients.length > 0 ? String(clients[0].id) : '',
       }));
-      setItems([{
+
+      const xmlItems: InsumoItem[] = [{
         id: 'xml-out-2',
-        nome: 'Produto Buscado na SEFAZ',
+        produto_id: '',
+        nome: 'PRODUTO BUSCADO NA SEFAZ',
         quantidade: 15,
         unidade: 'UN',
         preco_unitario: 100.00,
         despesa_adicional: 0,
         desconto: 0,
         deposito_id: '',
-        total: 1500.00
-      }]);
+        total: 1500.00,
+        xml_product_code: 'SEFAZ-OUT-002',
+        xml_product_name: 'PRODUTO BUSCADO SEFAZ DESCRIÇÃO ORIGINAL',
+        match_status: 'unmatched',
+      }];
+      setItems(xmlItems);
       setShowXMLField(false);
     });
   };
@@ -298,6 +348,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
       icon={ArrowUpRight}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Transmitir NF-e"}
+      submitDisabled={pendingMatches > 0}
       size="xxlarge"
     >
       <section className="tauze-form-section">
@@ -539,10 +590,20 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, on
         </div>
         <div className="tauze-input-grid grid-col-1">
           <InsumoEntryTable 
+            key={`output-table-${formData.is_xml_imported ? 'xml' : 'manual'}-${items.length}`}
             items={items}
             onChange={(items) => setItems(items)}
             companyId={formData.company_id}
+            onPendingMatchesChange={setPendingMatches}
           />
+          {pendingMatches > 0 && (
+            <div style={{ margin: '12px 0 0', padding: '10px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <AlertCircle size={14} color="#dc2626" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626' }}>
+                {pendingMatches} {pendingMatches === 1 ? 'item sem vínculo' : 'itens sem vínculo'} com o catálogo — resolva antes de transmitir a NF-e.
+              </span>
+            </div>
+          )}
         </div>
       </section>
 

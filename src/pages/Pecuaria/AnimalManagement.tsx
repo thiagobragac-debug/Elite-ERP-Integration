@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
@@ -40,7 +42,7 @@ export const AnimalManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('AnimalManagement_isModalOpen', false);
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null);
   const [isManejoModalOpen, setIsManejoModalOpen] = useState(false);
   const [manejoAnimal, setManejoAnimal] = useState<any>(null);
@@ -300,8 +302,8 @@ export const AnimalManagement: React.FC = () => {
     <div className="animal-mgmt-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Gestão do Rebanho' }]} />
-          <h1 className="page-title">Gestão do Rebanho</h1>
+          <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Animais' }]} />
+          <h1 className="page-title">Animais</h1>
           <p className="page-subtitle">Inventário individualizado e controle de ativos biológicos em tempo real.</p>
         </div>
         <div className="page-actions">

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { supabase } from '../../lib/supabase';
 import { Search, Briefcase, Edit2, Trash2 } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
@@ -20,9 +22,9 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numb
   const [loading, setLoading] = useState(true);
   
   // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = usePersistentState('RoleManagement_isModalOpen', false);
   const [editItem, setEditItem] = useState<Cargo | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('RoleManagement_formData', {
     nome: '',
     descricao: '',
     is_active: true

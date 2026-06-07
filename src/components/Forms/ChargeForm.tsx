@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
+
 import { 
   DollarSign, 
   Building2, 
@@ -34,7 +36,7 @@ export const ChargeForm: React.FC<ChargeFormProps> = ({
   plansList = [], 
   isSubmitting = false 
 }) => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('ChargeForm_formData', {
     tenant_id: '',
     plan_name: '',
     billing_type: 'recurring', // 'recurring' ou 'one_time'

@@ -42,11 +42,11 @@ const menuItems: NavItem[] = [
     subItems: [
       { title: 'Intelligence Hub', href: '/admin/intelligence' },
       { title: 'Aprovações', href: '/admin/aprovacoes' },
-      { title: 'Usuário', href: '/admin/usuarios' },
-      { title: 'Empresa / Fazenda', href: '/admin/config' },
+      { title: 'Usuários', href: '/admin/usuarios' },
+      { title: 'Empresas & Fazendas', href: '/admin/config' },
       { title: 'Configurações', href: '/admin/configuracoes' },
       { title: 'Assinatura & Planos', href: '/admin/assinatura' },
-      { title: 'Log de Auditoria', href: '/admin/auditoria' },
+      { title: 'Logs de Auditoria', href: '/admin/auditoria' },
     ]
   },
   { 
@@ -66,10 +66,10 @@ const menuItems: NavItem[] = [
     permission: 'pecuaria',
     subItems: [
       { title: 'Intelligence Hub', href: '/pecuaria/dashboard', permission: 'pecuaria_dashboard' },
-      { title: 'Animal', href: '/pecuaria/animal', permission: 'pecuaria_animais' },
-      { title: 'Lote', href: '/pecuaria/lote', permission: 'pecuaria_animais' },
-      { title: 'Pasto', href: '/pecuaria/pasto', permission: 'pecuaria_animais' },
-      { title: 'Pesagem & GMD', href: '/pecuaria/pesagem', permission: 'pecuaria_animais' },
+      { title: 'Animais', href: '/pecuaria/animal', permission: 'pecuaria_animais' },
+      { title: 'Lotes', href: '/pecuaria/lote', permission: 'pecuaria_animais' },
+      { title: 'Pastos', href: '/pecuaria/pasto', permission: 'pecuaria_animais' },
+      { title: 'Pesagens & GMD', href: '/pecuaria/pesagem', permission: 'pecuaria_animais' },
       { title: 'Confinamento', href: '/pecuaria/confinamento', permission: 'pecuaria_animais' },
       { title: 'Reprodução', href: '/pecuaria/reproducao', permission: 'pecuaria_saude' },
       { title: 'Nutrição', href: '/pecuaria/nutricao', permission: 'pecuaria_saude' },
@@ -82,9 +82,9 @@ const menuItems: NavItem[] = [
     permission: 'frota',
     subItems: [
       { title: 'Intelligence Hub', href: '/frota/dashboard' },
-      { title: 'Máquina', href: '/frota/maquina' },
-      { title: 'Abastecimento', href: '/frota/abastecimento', permission: 'frota_abastecimento' },
-      { title: 'Manutenção', href: '/frota/manutencao', permission: 'frota_manutencao' },
+      { title: 'Máquinas & Equipamentos', href: '/frota/maquina' },
+      { title: 'Abastecimentos', href: '/frota/abastecimento', permission: 'frota_abastecimento' },
+      { title: 'Manutenções', href: '/frota/manutencao', permission: 'frota_manutencao' },
     ]
   },
   { 
@@ -93,11 +93,11 @@ const menuItems: NavItem[] = [
     permission: 'compras',
     subItems: [
       { title: 'Intelligence Hub', href: '/compras/dashboard' },
-      { title: 'Fornecedor', href: '/compras/fornecedores', permission: 'compras_fornecedores' },
-      { title: 'Solicitação de Compra', href: '/compras/solicitacao', permission: 'compras_pedidos' },
-      { title: 'Mapa de Cotação', href: '/compras/cotacao', permission: 'compras_pedidos' },
-      { title: 'Pedido de Compra', href: '/compras/pedido', permission: 'compras_pedidos' },
-      { title: 'Nota Fiscal de Entrada', href: '/compras/nota' },
+      { title: 'Fornecedores', href: '/compras/fornecedores', permission: 'compras_fornecedores' },
+      { title: 'Solicitações de Compra', href: '/compras/solicitacao', permission: 'compras_pedidos' },
+      { title: 'Mapas de Cotação', href: '/compras/cotacao', permission: 'compras_pedidos' },
+      { title: 'Pedidos de Compra', href: '/compras/pedido', permission: 'compras_pedidos' },
+      { title: 'Notas Fiscais de Entrada', href: '/compras/nota' },
     ]
   },
   { 
@@ -106,10 +106,10 @@ const menuItems: NavItem[] = [
     permission: 'comercial',
     subItems: [
       { title: 'Intelligence Hub', href: '/vendas/dashboard' },
-      { title: 'Cliente (CRM)', href: '/vendas/parceiros', permission: 'comercial_clientes' },
-      { title: 'Pedido de Venda', href: '/vendas/pedido', permission: 'comercial_pedidos' },
-      { title: 'Contrato & Hedge', href: '/vendas/contrato', permission: 'comercial_pedidos' },
-      { title: 'Nota Fiscal de Saída', href: '/vendas/notas' },
+      { title: 'Clientes', href: '/vendas/parceiros', permission: 'comercial_clientes' },
+      { title: 'Pedidos de Venda', href: '/vendas/pedido', permission: 'comercial_pedidos' },
+      { title: 'Contratos & Hedge', href: '/vendas/contrato', permission: 'comercial_pedidos' },
+      { title: 'Notas Fiscais de Saída', href: '/vendas/notas' },
     ]
   },
   { 
@@ -118,9 +118,9 @@ const menuItems: NavItem[] = [
     permission: 'logistica',
     subItems: [
       { title: 'Intelligence Hub', href: '/estoque/dashboard' },
-      { title: 'Insumo', href: '/estoque/insumo', permission: 'logistica_armazens' },
-      { title: 'Depósito', href: '/estoque/deposito', permission: 'logistica_armazens' },
-      { title: 'Movimentação', href: '/estoque/movimentacao' },
+      { title: 'Insumos e Serviços', href: '/estoque/insumo', permission: 'logistica_armazens' },
+      { title: 'Depósitos', href: '/estoque/deposito', permission: 'logistica_armazens' },
+      { title: 'Movimentações', href: '/estoque/movimentacao' },
       { title: 'Inventário', href: '/estoque/inventario' },
     ]
   },
@@ -131,10 +131,10 @@ const menuItems: NavItem[] = [
     subItems: [
       { title: 'Intelligence Hub', href: '/financeiro/intelligence', permission: 'financeiro_dashboard' },
       { title: 'Fluxo de Caixa', href: '/financeiro/fluxo' },
-      { title: 'Conta Bancária', href: '/financeiro/contas', permission: 'financeiro_bancos' },
-      { title: 'Conta a Pagar', href: '/financeiro/pagar', permission: 'financeiro_operacoes' },
-      { title: 'Conta a Receber', href: '/financeiro/receber', permission: 'financeiro_operacoes' },
-      { title: 'Conciliação Bancária', href: '/financeiro/conciliacao', permission: 'financeiro_bancos' },
+      { title: 'Contas Bancária', href: '/financeiro/contas', permission: 'financeiro_bancos' },
+      { title: 'Contas a Pagar', href: '/financeiro/pagar', permission: 'financeiro_operacoes' },
+      { title: 'Contas a Receber', href: '/financeiro/receber', permission: 'financeiro_operacoes' },
+      { title: 'Conciliações Bancária', href: '/financeiro/conciliacao', permission: 'financeiro_bancos' },
       { title: 'LCDPR', href: '/financeiro/lcdpr' },
     ]
   },
@@ -229,7 +229,7 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
         ...item,
         subItems: item.subItems.filter(sub => {
           if (!checkPermission(sub.permission)) return false;
-          if (sub.title === 'Log de Auditoria' && !auditEnabled) return false;
+          if (sub.title === 'Logs de Auditoria' && !auditEnabled) return false;
           return true;
         })
       };
@@ -341,7 +341,7 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                               {pendingApprovals}
                             </span>
                           )}
-                          {sub.title === 'Lote' && alertPrefs.enabled && alertPrefs.lotes && alerts.lotes > 0 && (
+                          {sub.title === 'Lotes' && alertPrefs.enabled && alertPrefs.lotes && alerts.lotes > 0 && (
                             <span style={{ 
                               background: 'hsl(var(--warning))', 
                               color: '#000', 
@@ -369,7 +369,7 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                               {alerts.sanidade}
                             </span>
                           )}
-                          {sub.title === 'Conta a Pagar' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
+                          {sub.title === 'Contas a Pagar' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
                             <span style={{ 
                               background: '#ef4444', 
                               color: 'white', 
@@ -383,7 +383,7 @@ export const Sidebar: React.FC<{ isCollapsed?: boolean; onToggleCollapse?: () =>
                               {alerts.financeiro}
                             </span>
                           )}
-                          {sub.title === 'Conta a Receber' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
+                          {sub.title === 'Contas a Receber' && alertPrefs.enabled && alertPrefs.financeiro && alerts.financeiro > 0 && (
                             <span style={{ 
                               background: '#ef4444', 
                               color: 'white', 

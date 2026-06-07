@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
 import { 
@@ -25,11 +26,12 @@ import {
   Beef
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
-import { InsumoEntryTable } from './InsumoEntryTable';
+import { InsumoEntryTable, type InsumoItem } from './InsumoEntryTable';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
 import { LoteRecebimentoModal } from '../Modals/LoteRecebimentoModal';
+import { readNFeFile, nfeDateToInputDate } from '../../utils/parseNFeXML';
 
 interface EntryInvoiceFormProps {
   isOpen: boolean;
@@ -47,9 +49,9 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
   const { activeTenantId, activeCompany, companies } = useTenant();
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [items, setItems] = useState<any[]>(initialData?.itens || []);
+  const [items, setItems] = usePersistentState<InsumoItem[]>('EntryInvoice_items', initialData?.itens || []);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = usePersistentState('EntryInvoice_formData', {
     purchase_order_id: initialData?.purchase_order_id || '',
     storage_location_id: initialData?.storage_location_id || '',
     is_xml_imported: initialData?.is_xml_imported || false,
@@ -73,16 +75,27 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
   });
 
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
-  const [installmentsList, setInstallmentsList] = useState<any[]>([]);
+  const [installmentsList, setInstallmentsList] = usePersistentState<any[]>('EntryInvoice_installmentsList', []);
   const [showFinancialConfirm, setShowFinancialConfirm] = useState(false);
   const [showLoteModal, setShowLoteModal] = useState(false);
   const [loteModalDismissed, setLoteModalDismissed] = useState(false);
+  const [pendingMatches, setPendingMatches] = useState(0);
 
-  // Detecta se a nota contém animais/gado
-  const animalKeywords = ['bovino', 'gado', 'nelore', 'angus', 'brahman', 'bezerro', 'novilho', 'boi', 'vaca', 'animal', 'rebanho', 'cabeca', 'cabeça'];
-  const hasLivestockItems = items.some((item: any) => 
-    animalKeywords.some(kw => (item.nome || '').toLowerCase().includes(kw))
-  );
+  // Detecta se a nota contém animais/gado (usa NCM fiscal como fonte da verdade, e regex como fallback)
+  const animalRegex = /\b(bovino|gado|nelore|angus|brahman|bezerro|novilho|boi|vaca|animal|rebanho|cabeça|cabeca)s?\b/i;
+  const hasLivestockItems = items.some((item: any) => {
+    // 1. Validação fiscal direta (NCM Capítulo 01 - Animais Vivos, ou 0102 - Bovinos)
+    const ncmStr = String(item.xml_ncm || '').replace(/\D/g, '');
+    if (ncmStr && (ncmStr.startsWith('0102') || ncmStr.startsWith('01'))) {
+      return true;
+    }
+    // 2. Fallback de texto se a unidade de medida remeter a animal
+    const unitStr = String(item.unidade || '').toUpperCase();
+    if ((unitStr === 'CB' || unitStr === 'CABEÇA' || unitStr === 'KG') && animalRegex.test(item.nome || '')) {
+      return true;
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (activeTenantId) {
@@ -90,6 +103,39 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
       fetchBankAccounts();
     }
   }, [activeTenantId]);
+
+  // Reseta todo o estado ao fechar o painel (evita dados do último lançamento persistirem)
+  useEffect(() => {
+    if (!isOpen && !initialData) {
+      setItems([]);
+      setInstallmentsList([]);
+      setShowFinancialConfirm(false);
+      setShowLoteModal(false);
+      setLoteModalDismissed(false);
+      setPendingMatches(0);
+      setFormData({
+        purchase_order_id: '',
+        storage_location_id: '',
+        is_xml_imported: false,
+        company_id: activeCompany?.id || '',
+        invoice_number: '',
+        series: '1',
+        supplier_id: '',
+        issue_date: new Date().toISOString().split('T')[0],
+        entry_date: new Date().toISOString().split('T')[0],
+        total_value: '',
+        modelo_fiscal: '55',
+        nature_of_operation: 'Compra para Industrialização',
+        xml_key: '',
+        description: '',
+        payment_condition: 'vista',
+        payment_method: 'Boleto',
+        installments: 1,
+        bank_account_id: '',
+        generate_financial: true,
+      });
+    }
+  }, [isOpen]);
 
   // Handle installment generation
   useEffect(() => {
@@ -171,83 +217,138 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
     }
   }, [formData.purchase_order_id, isFinancialDisabledByOrder]);
 
+  // ----------------------------------------------------------------
+  // IMPORTAÇÃO REAL DE XML NF-e (browser-side via DOMParser)
+  // ----------------------------------------------------------------
   const handleXMLDoubleClick = () => {
     if (formData.is_xml_imported) return;
-    
+
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.xml';
+    input.accept = '.xml,text/xml,application/xml';
     input.style.display = 'none';
     document.body.appendChild(input);
 
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
-      if (file) {
-        toast.promise(
-          new Promise((resolve) => setTimeout(resolve, 1500)),
-          {
-            loading: 'Analisando e processando XML...',
-            success: `XML importado com sucesso!`,
-            error: 'Falha ao importar o XML'
-          }
-        ).then(() => {
-          handleSimulateXMLImport();
-        });
+    input.onchange = async (e: any) => {
+      const file: File = e.target.files[0];
+      if (!file) {
+        document.body.removeChild(input);
+        return;
       }
-      document.body.removeChild(input);
+
+      const loadingToast = toast.loading(`Lendo ${file.name}...`);
+      try {
+        const nfe = await readNFeFile(file);
+
+        // Avisa sobre warnings não-fatais
+        if (nfe.warnings?.length) {
+          nfe.warnings.forEach(w => toast(w, { icon: '⚠️' }));
+        }
+
+        // Preenche os campos do formulário com dados reais da NF-e
+        setFormData(prev => ({
+          ...prev,
+          is_xml_imported: true,
+          xml_key: nfe.chNFe || '',
+          invoice_number: nfe.nNF,
+          series: nfe.serie,
+          modelo_fiscal: nfe.modelo || '55',
+          nature_of_operation: nfe.natOp || prev.nature_of_operation,
+          issue_date: nfeDateToInputDate(nfe.dhEmi),
+          total_value: nfe.vNF.toString(),
+          description: nfe.infAdic || prev.description,
+        }));
+
+        // Converte os itens reais da NF-e para o formato do InsumoItem
+        const xmlItems: InsumoItem[] = nfe.itens.map(item => ({
+          id: `xml-${item.nItem}-${Date.now()}`,
+          produto_id: '',
+          nome: item.xProd,
+          quantidade: item.qCom,
+          unidade: item.uCom,
+          preco_unitario: item.vUnCom,
+          despesa_adicional: 0,
+          desconto: 0,
+          deposito_id: '',
+          total: item.vProd,
+          // Campos XML para o matching inteligente
+          xml_product_code: item.cProd,
+          xml_product_name: item.xProd,
+          xml_ncm: item.NCM,
+          match_status: 'unmatched' as const,
+        }));
+
+        setItems(xmlItems);
+        toast.success(
+          `NF-e importada com sucesso! ${nfe.itens.length} item(s) carregados. Fornecedor: ${nfe.emit.xNome}`,
+          { id: loadingToast, duration: 5000 }
+        );
+      } catch (err: any) {
+        toast.error(
+          `Erro ao ler o XML: ${err.message || 'Arquivo inválido ou não é uma NF-e.'}`,
+          { id: loadingToast, duration: 7000 }
+        );
+      } finally {
+        document.body.removeChild(input);
+      }
     };
+
     input.click();
   };
 
-  const handleSimulateXMLImport = () => {
-    // Simulando a leitura de um XML para mostrar o poder da UI Read-Only
-    setFormData(prev => ({
-      ...prev,
-      is_xml_imported: true,
-      xml_key: '35240112345678000199550010001234561001234567',
-      invoice_number: '123456',
-      series: '1',
-      total_value: '15500.00',
-      issue_date: new Date().toISOString().split('T')[0],
-      supplier_id: suppliers.length > 0 ? String(suppliers[0].id) : ''
-    }));
+  // ----------------------------------------------------------------
+  // BUSCA SEFAZ (requer backend com certificado digital A1/A3)
+  // Esta função hoje exibe orientação; quando o backend estiver pronto,
+  // chamará uma Edge Function Supabase que consulta a SEFAZ.
+  // ----------------------------------------------------------------
+  const handleSimulateXMLImport = async () => {
+    const chave = formData.xml_key.replace(/\D/g, '');
+    if (chave.length !== 44 && chave.length !== 50) {
+      toast.error('A chave de acesso deve ter 44 dígitos (NF-e) ou 50 dígitos (NFS-e Nacional).');
+      return;
+    }
     
-    // Simula a injeção de itens
-    setItems([
-      {
-        id: 'xml-1',
-        nome: 'Adubo NPK 10-10-10 (XML)',
-        quantidade: 50,
-        unidade: 'SC',
-        preco_unitario: 150.00,
-        despesa_adicional: 0,
-        desconto: 0,
-        deposito_id: '',
-        total: 7500.00
-      },
-      {
-        id: 'xml-2',
-        nome: 'Semente de Soja Brasmax (XML)',
-        quantidade: 20,
-        unidade: 'SC',
-        preco_unitario: 300.00,
-        despesa_adicional: 0,
-        desconto: 0,
-        deposito_id: '',
-        total: 6000.00
-      },
-      {
-        id: 'xml-3',
-        nome: 'Glifosato 480 (XML)',
-        quantidade: 10,
-        unidade: 'GL',
-        preco_unitario: 200.00,
-        despesa_adicional: 0,
-        desconto: 0,
-        deposito_id: '',
-        total: 2000.00
+    if (!formData.company_id) {
+      toast.error('Selecione uma Empresa Favorecida / Destinatário antes de buscar na SEFAZ.');
+      return;
+    }
+
+    const loadingToast = toast.loading('Consultando portal da SEFAZ com certificado digital...', {
+      style: {
+        background: 'hsl(var(--bg-card))',
+        color: 'hsl(var(--text-main))',
+        border: '1px solid hsl(var(--border))',
       }
-    ]);
+    });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('fetch-sefaz-nfe', {
+        body: {
+          chave_acesso: chave,
+          tenant_id: tenant?.id,
+          company_id: formData.company_id
+        }
+      });
+
+      if (error || !data?.success) {
+        throw new Error(data?.error || error?.message || 'Falha ao buscar Nota na SEFAZ.');
+      }
+
+      toast.success(data.message || 'Nota encontrada e importada com sucesso!', { id: loadingToast });
+      
+      // Recebemos o XML mockado em Base64, parseamos e atualizamos o form!
+      if (data.xmlBase64) {
+        const xmlString = atob(data.xmlBase64);
+        processParsedXml(xmlString, chave); // Reaproveitamos a função de parse nativa que já existe
+      }
+
+    } catch (err: any) {
+      console.error(err);
+      toast.error(
+        `Erro SEFAZ: ${err.message}`,
+        { id: loadingToast, duration: 8000 }
+      );
+    }
   };
 
   const handleGenerateFinancialChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -313,6 +414,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
       icon={Barcode}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Processar Entrada"}
+      submitDisabled={pendingMatches > 0}
       size="xxlarge"
     >
       {/* IMPORTAÇÃO E METADADOS FUNDIDOS NO PASSO 01 */}
@@ -506,10 +608,21 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
         
         <div className="tauze-input-grid grid-col-1">
           <InsumoEntryTable 
+            key={`entry-table-${formData.is_xml_imported ? 'xml' : 'manual'}-${items.length}`}
             items={items}
             onChange={setItems}
             companyId={formData.company_id}
+            supplierId={formData.supplier_id || undefined}
+            onPendingMatchesChange={setPendingMatches}
           />
+          {pendingMatches > 0 && (
+            <div style={{ margin: '12px 0 0', padding: '10px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <AlertCircle size={14} color="#dc2626" style={{ flexShrink: 0 }} />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626' }}>
+                {pendingMatches} {pendingMatches === 1 ? 'item sem vínculo' : 'itens sem vínculo'} com o catálogo — resolva antes de processar a entrada.
+              </span>
+            </div>
+          )}
         </div>
       </section>
 
