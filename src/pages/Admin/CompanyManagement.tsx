@@ -53,8 +53,10 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useServerPagination } from '../../hooks/useServerPagination';
 
 export const CompanyManagement: React.FC = () => {
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeFarm, tenant, activeTenantId } = useTenant();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'companies' | 'farms') || 'companies';
@@ -91,15 +93,15 @@ export const CompanyManagement: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [activeTenantId, tenant]);
+  }, [activeTenantId, tenant, page]);
 
   const fetchData = async () => {
     if (!activeTenantId) return;
     setLoading(true);
     try {
       const [{ data: unitsData }, { data: farmsData }] = await Promise.all([
-        supabase.from('unidades').select('*').limit(500).eq('tenant_id', activeTenantId),
-        supabase.from('fazendas').select('*').limit(500).eq('tenant_id', activeTenantId)
+        supabase.from('unidades').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId),
+        supabase.from('fazendas').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId)
       ]);
 
       if (unitsData) setCompanies(unitsData);
@@ -291,10 +293,10 @@ export const CompanyManagement: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('audit_logs')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('tenant_id', tenant.id)
         .order('created_at', { ascending: false })
-        .limit(20);
+        ;
 
       if (error) throw error;
 

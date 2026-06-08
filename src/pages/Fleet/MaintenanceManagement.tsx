@@ -58,8 +58,10 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { MaintenanceFilterModal } from './components/MaintenanceFilterModal';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useServerPagination } from '../../hooks/useServerPagination';
 
 export const MaintenanceManagement: React.FC = () => {
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
@@ -108,11 +110,13 @@ export const MaintenanceManagement: React.FC = () => {
       fetchOrders();
       fetchMachines();
     }
-  }, [activeFarm]);
+  }, [activeFarm, page]);
 
   const [machines, setMachines] = useState<any[]>([]);
   const fetchMachines = async () => {
-    const { data } = await supabase.from('maquinas').select('*').eq('fazenda_id', activeFarm?.id);
+    const range = getRange();
+      const { data, count, error } = await supabase.from('maquinas').select('*', { count: 'exact' }).eq('fazenda_id', activeFarm?.id).range(range.from, range.to);
+      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
     if (data) setMachines(data);
   };
   const [stats, setStats] = useState<any[]>([]);
@@ -126,7 +130,7 @@ export const MaintenanceManagement: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [activeFarm, isGlobalMode, activeTenantId]);
+  }, [activeFarm, isGlobalMode, activeTenantId, page]);
 
   // Health Score Calculation
   const healthScore = useMemo(() => {
@@ -164,11 +168,13 @@ export const MaintenanceManagement: React.FC = () => {
       const fetchPromise = (async () => {
         let query = supabase
           .from('manutencao_frota')
-          .select('id, maquina_id, tipo, descricao, data_inicio, custo, responsavel, status, created_at, maquinas:maquina_id (nome)')
+          .select('id, maquina_id, tipo, descricao, data_inicio, custo, responsavel, status, created_at, maquinas:maquina_id (nome)', { count: 'exact' })
           .order('data_inicio', { ascending: false });
         
         query = applyFarmFilter(query);
-        const { data, error } = await query;
+        const range = getRange();
+      const { data, count, error } = await query.range(range.from, range.to);
+      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
         
         if (error) throw error;
         return data;
@@ -1076,7 +1082,7 @@ export const MaintenanceManagement: React.FC = () => {
         subtitle="Inspeção técnica obrigatória para maquinário pesado"
         icon={Settings}
         submitLabel="Finalizar e Gerar OS"
-        isSubmitDisabled={!isChecklistValid}
+        submitDisabled={!isChecklistValid}
       >
         <div style={{ background: 'hsl(var(--bg-main))', borderRadius: '16px', padding: '16px', marginBottom: '24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid hsl(var(--border))' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

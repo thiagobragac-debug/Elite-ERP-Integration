@@ -62,10 +62,12 @@ import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useServerPagination } from '../../hooks/useServerPagination';
 
 type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'campaigns' | 'billing' | 'health' | 'settings';
 
 export const SaaSAdminPanel: React.FC = () => {
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -170,8 +172,8 @@ export const SaaSAdminPanel: React.FC = () => {
       setTenantsLoading(true);
       const { data, error }: any = await supabase
         .from('tenants')
-        .select('*')
-        .limit(500)
+        .select('*', { count: 'exact' })
+        
         .order('id', { ascending: true })
         .order('created_at', { ascending: true });
 
@@ -218,7 +220,7 @@ export const SaaSAdminPanel: React.FC = () => {
       setInvoicesLoading(true);
       const { data, error }: any = await supabase
         .from('saas_invoices')
-        .select('*, tenants(nome)')
+        .select('*, tenants(nome)', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -255,8 +257,8 @@ export const SaaSAdminPanel: React.FC = () => {
       setPlansLoading(true);
       const { data, error }: any = await supabase
         .from('saas_plans')
-        .select('*')
-        .limit(500)
+        .select('*', { count: 'exact' })
+        
         .order('price', { ascending: true });
 
       if (error) throw error;
@@ -289,7 +291,7 @@ export const SaaSAdminPanel: React.FC = () => {
       setCampaignsLoading(true);
       const { data, error }: any = await supabase
         .from('saas_campaigns')
-        .select('*')
+        .select('*', { count: 'exact' })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -334,7 +336,7 @@ export const SaaSAdminPanel: React.FC = () => {
   const checkServicesStatus = async (currentTenantsCount = 0, currentInvoicesCount = 0) => {
     try {
       const start = Date.now();
-      const { error } = await supabase.from('saas_plans').select('id').limit(1);
+      const { error } = await supabase.from('saas_plans').select('id', { count: 'exact' });
       const latency = Date.now() - start;
       
       if (error) throw error;
@@ -358,9 +360,9 @@ export const SaaSAdminPanel: React.FC = () => {
     try {
       const { data, error }: any = await supabase
         .from('audit_logs')
-        .select('*, tenants(nome)')
+        .select('*, tenants(nome)', { count: 'exact' })
         .order('created_at', { ascending: false })
-        .limit(20);
+        ;
 
       if (error) throw error;
 
@@ -1048,7 +1050,7 @@ export const SaaSAdminPanel: React.FC = () => {
     let isSuccess = false;
     let latency = 0;
     try {
-      const { error } = await supabase.from('saas_plans').select('id').limit(1);
+      const { error } = await supabase.from('saas_plans').select('id', { count: 'exact' });
       if (!error) {
         isSuccess = true;
         latency = Date.now() - start;
@@ -1097,7 +1099,7 @@ export const SaaSAdminPanel: React.FC = () => {
     // Perform actual database check/ping
     let isSuccess = false;
     try {
-      const { error } = await supabase.from('saas_plans').select('id').limit(1);
+      const { error } = await supabase.from('saas_plans').select('id', { count: 'exact' });
       if (!error) {
         isSuccess = true;
       }
@@ -1140,7 +1142,7 @@ export const SaaSAdminPanel: React.FC = () => {
     // Real database ping
     let isSuccess = false;
     try {
-      const { error } = await supabase.from('saas_plans').select('id').limit(1);
+      const { error } = await supabase.from('saas_plans').select('id', { count: 'exact' });
       if (!error) isSuccess = true;
     } catch (e) {
       console.error(e);
@@ -1186,7 +1188,9 @@ export const SaaSAdminPanel: React.FC = () => {
     let isSuccess = false;
     let detailsStr = '';
     try {
-      const { data, error } = await supabase.from('saas_gateway_settings').select('*');
+      const range = getRange();
+      const { data, count, error } = await supabase.from('saas_gateway_settings').select('*', { count: 'exact' }).range(range.from, range.to);
+      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
       if (!error && data && data.length > 0) {
         isSuccess = true;
         const activeGateways = data.filter((g: any) => g.is_active).map((g: any) => g.gateway_name.toUpperCase());
@@ -1237,7 +1241,7 @@ export const SaaSAdminPanel: React.FC = () => {
     // Real database ping
     let isSuccess = false;
     try {
-      const { error } = await supabase.from('saas_plans').select('id').limit(1);
+      const { error } = await supabase.from('saas_plans').select('id', { count: 'exact' });
       if (!error) isSuccess = true;
     } catch (e) {
       console.error(e);
@@ -1278,7 +1282,7 @@ export const SaaSAdminPanel: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('saas_gateway_settings')
-        .select('*').limit(500);
+        .select('*', { count: 'exact' });
 
       if (error) throw error;
 
@@ -2988,6 +2992,10 @@ export const SaaSAdminPanel: React.FC = () => {
                   {campaignsViewMode === 'list' ? (
                     <ModernTable 
                       data={filteredCampaigns}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
                       columns={campaignColumns}
                       loading={false}
                       onRowClick={(item) => {

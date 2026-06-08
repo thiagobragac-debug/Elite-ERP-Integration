@@ -57,12 +57,14 @@ import { isValidUUID } from '../../utils/validation';
 import { useViewMode } from '../../hooks/useViewMode';
 
 import { useTenant } from '../../contexts/TenantContext';
+import { useServerPagination } from '../../hooks/useServerPagination';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const BankAccounts: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const { activeCompany, companies } = useTenant();
   const [accounts, setAccounts] = useState<any[]>([]);
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(10);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('BankAccounts_isModalOpen', false);
@@ -84,10 +86,10 @@ export const BankAccounts: React.FC = () => {
   });
 
   const [stats, setStats] = useState<any[]>([
-    { label: 'Liquidez Disponível', value: '---', icon: Wallet, color: '#10b981', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
-    { label: 'Utilização de Limites', value: '---', icon: CreditCard, color: '#ef4444', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
-    { label: 'Custódia Bancária', value: '---', icon: Building, color: '#3b82f6', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
-    { label: 'Yield Estratégico', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual') },
+    { label: 'Liquidez Disponível', value: '---', icon: Wallet, color: '#10b981', progress: 0, sparkline: buildSparkline([], 'created_at', 'saldo_atual') },
+    { label: 'Utilização de Limites', value: '---', icon: CreditCard, color: '#ef4444', progress: 0, sparkline: buildSparkline([], 'created_at', 'saldo_atual') },
+    { label: 'Custódia Bancária', value: '---', icon: Building, color: '#3b82f6', progress: 0, sparkline: buildSparkline([], 'created_at', 'saldo_atual') },
+    { label: 'Yield Estratégico', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, sparkline: buildSparkline([], 'created_at', 'saldo_atual') },
   ]);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export const BankAccounts: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [activeFarm, isGlobalMode, activeTenantId]);
+  }, [activeFarm, isGlobalMode, activeTenantId, page]);
 
   const fetchAccounts = async () => {
     const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
@@ -111,7 +113,7 @@ export const BankAccounts: React.FC = () => {
       const fetchPromise = (async () => {
         let query = supabase
           .from('contas_bancarias')
-          .select('*').limit(500)
+          .select('*')
           .order('banco', { ascending: true })
           .eq('tenant_id', activeTenantId);
         
@@ -129,12 +131,12 @@ export const BankAccounts: React.FC = () => {
       );
 
       const data: any = await Promise.race([fetchPromise, timeoutPromise]);
-      
-      const [] = data || [];
-      setAccounts([]);
+      const kpiData = data?.kpiData || [];
+      const gridItems = data?.gridData || [];
+      setAccounts(gridItems);
 
-      const totalSaldos = [].reduce((acc: number, curr: any) => acc + Number(curr.saldo_atual || 0), 0);
-      const totalLimites = [].reduce((acc: number, curr: any) => acc + Number(curr.limite_credito || 0), 0);
+      const totalSaldos = kpiData.reduce((acc: number, curr: any) => acc + Number(curr.saldo_atual || 0), 0);
+      const totalLimites = kpiData.reduce((acc: number, curr: any) => acc + Number(curr.limite_credito || 0), 0);
       const liquidezTotal = totalSaldos + totalLimites;
       
       setStats([
@@ -142,7 +144,7 @@ export const BankAccounts: React.FC = () => {
           label: 'Liquidez Disponível', 
           value: liquidezTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
           icon: Wallet, color: '#10b981', progress: 100, change: 'Saldos + Limites', periodLabel: 'Real-Time',
-          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
+          sparkline: buildSparkline(kpiData || [], 'created_at', 'saldo_atual')
         },
         { 
           label: 'Utilização de Limites', 
@@ -150,37 +152,37 @@ export const BankAccounts: React.FC = () => {
           icon: CreditCard, color: '#ef4444', 
           progress: totalLimites > 0 ? (Math.abs(Math.min(0, totalSaldos)) / totalLimites) * 100 : 0,
           change: totalLimites > 0 ? totalLimites.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Sem limites cadastrados', periodLabel: 'Crédito Tomado',
-          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
+          sparkline: buildSparkline(kpiData || [], 'created_at', 'saldo_atual')
         },
         { 
-          label: 'Custódia Bancária', value: [].length > 0 ? [].length : '---', icon: Building, color: '#3b82f6', 
-          progress: [].length > 0 ? 100 : 0, 
-          change: [].length > 0 ? 'Instituições' : 'Sem contas', periodLabel: 'Pontos de Contato',
-          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
+          label: 'Custódia Bancária', value: kpiData.length > 0 ? kpiData.length : '---', icon: Building, color: '#3b82f6', 
+          progress: kpiData.length > 0 ? 100 : 0, 
+          change: kpiData.length > 0 ? 'Instituições' : 'Sem contas', periodLabel: 'Pontos de Contato',
+          sparkline: buildSparkline(kpiData || [], 'created_at', 'saldo_atual')
         },
         { 
           label: 'Benchmark Médio', 
           value: (() => {
-            const withBenchmark = [].filter((a: any) => a.benchmark_rendimento);
+            const withBenchmark = kpiData.filter((a: any) => a.benchmark_rendimento);
             if (withBenchmark.length === 0) return '---';
             const avg = withBenchmark.reduce((acc: number, a: any) => acc + Number(a.benchmark_rendimento || 0), 0) / withBenchmark.length;
             return avg > 0 ? `${avg.toFixed(2)}%` : '---';
           })(),
           icon: TrendingUp, color: '#f59e0b', 
           progress: (() => {
-            const withBenchmark = [].filter((a: any) => a.benchmark_rendimento);
+            const withBenchmark = kpiData.filter((a: any) => a.benchmark_rendimento);
             if (withBenchmark.length === 0) return 0;
             const avg = withBenchmark.reduce((acc: number, a: any) => acc + Number(a.benchmark_rendimento || 0), 0) / withBenchmark.length;
             return Math.min(100, avg * 10);
           })(),
           trend: 'up' as const, 
-          change: [].filter((a: any) => a.benchmark_rendimento).length > 0 ? 'Rendimento cadastrado' : 'Sem benchmark', 
+          change: kpiData.filter((a: any) => a.benchmark_rendimento).length > 0 ? 'Rendimento cadastrado' : 'Sem benchmark', 
           periodLabel: 'Rendimento Médio',
-          sparkline: buildSparkline([] || [], 'created_at', 'saldo_atual')
+          sparkline: buildSparkline(kpiData || [], 'created_at', 'saldo_atual')
         },
       ]);
     } catch (err) {
-      setAccounts([]);
+      
       setStats([
         { label: 'Liquidez Disponível', value: '---', icon: Wallet, color: '#10b981', progress: 0, change: 'Erro de Conexão', periodLabel: 'Modo Real', sparkline: [] },
         { label: 'Utilização de Limites', value: '---', icon: CreditCard, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Crédito Tomado', sparkline: [] },

@@ -121,7 +121,6 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
     setSyncMsg('Sincronizando com a Receita Federal...');
     try {
       const data = await fetchCNPJData(cleanCNPJ);
-      // Se a API não retornar CNAE/Situação (dependendo da util), injetamos valores de simulação caso venha nulo
       setFormData(prev => ({
         ...prev,
         name: data.razao_social,
@@ -136,8 +135,8 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
         cidade: data.municipio,
         estado: data.uf,
         pais: 'Brasil',
-        cnae: data.cnae_fiscal_descricao || '01.11-3-02 - Cultivo de Milho', // Fallback agronegócio p/ demo UI
-        situacao_cadastral: data.descricao_situacao_cadastral || 'ATIVA'
+        cnae: (data as any).cnae_fiscal_descricao || '01.11-3-02 - Cultivo de Milho',
+        situacao_cadastral: (data as any).descricao_situacao_cadastral || 'ATIVA'
       }));
     } catch {
       alert('Não foi possível localizar este CNPJ. Verifique os dados ou preencha manualmente.');

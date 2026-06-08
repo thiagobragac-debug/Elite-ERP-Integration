@@ -262,10 +262,10 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
               />
               
               <MapBounds 
-                markers={showRoute ? selectedIds.map(id => {
+                markers={showRoute ? (selectedIds.map(id => {
                   const sup = filteredSuppliers.find(s => s.id === id);
                   return sup ? getCoord(sup) : [0,0];
-                }).filter(c => c[0] !== 0) : filteredSuppliers.map(sup => getCoord(sup))} 
+                }).filter(c => c[0] !== 0) as [number, number][]) : filteredSuppliers.map(sup => getCoord(sup))} 
                 focusedCoord={focusedCoord}
               />
               
@@ -274,7 +274,7 @@ export const SupplierNetworkMapModal: React.FC<SupplierNetworkMapModalProps> = (
                   positions={selectedIds.map(id => {
                     const sup = filteredSuppliers.find(s => s.id === id);
                     return sup ? getCoord(sup) : [0,0];
-                  }).filter(c => c[0] !== 0)}
+                  }).filter(c => c[0] !== 0) as [number, number][]}
                   color="#10b981"
                   weight={4}
                   opacity={0.7}

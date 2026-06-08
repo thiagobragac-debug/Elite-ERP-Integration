@@ -52,8 +52,10 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useServerPagination } from '../../hooks/useServerPagination';
 
 export const ClientManagement: React.FC = () => {
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('ClientManagement_isModalOpen', false);
@@ -86,7 +88,7 @@ export const ClientManagement: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [activeFarm, isGlobalMode, activeTenantId, debouncedSearch, filterValues, activeTab]);
+  }, [activeFarm, isGlobalMode, activeTenantId, debouncedSearch, filterValues, activeTab, page]);
 
   const [searchParams] = useSearchParams();
 
@@ -117,7 +119,7 @@ export const ClientManagement: React.FC = () => {
     // Fetch Clients
     const { data: clientData } = await supabase
       .from('parceiros')
-      .select('*').limit(500)
+      .select('*', { count: 'exact' })
       .eq('tenant_id', tenantId)
       .eq('is_customer', true)
       .order('nome', { ascending: true });
@@ -125,7 +127,7 @@ export const ClientManagement: React.FC = () => {
     // Fetch Sales Data for Intelligence
     const { data: salesData } = await supabase
       .from('pedidos_venda')
-      .select('*').limit(500)
+      .select('*', { count: 'exact' })
       .eq('tenant_id', tenantId);
 
     if (clientData) {
@@ -239,7 +241,7 @@ export const ClientManagement: React.FC = () => {
         if (cleanCnpj && cleanCnpj.length > 0) {
             const { data: existing } = await supabase
               .from('parceiros')
-              .select('id, is_supplier, is_customer')
+              .select('id, is_supplier, is_customer', { count: 'exact' })
               .eq('cnpj_cpf', formData.cnpj)
               .maybeSingle();
 

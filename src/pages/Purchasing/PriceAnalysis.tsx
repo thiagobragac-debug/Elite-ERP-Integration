@@ -37,8 +37,10 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useServerPagination } from '../../hooks/useServerPagination';
 
 export const PriceAnalysis: React.FC = () => {
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeFarm } = useTenant();
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -48,7 +50,7 @@ export const PriceAnalysis: React.FC = () => {
   useEffect(() => {
     if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
     fetchPriceData();
-  }, [activeFarm]);
+  }, [activeFarm, page]);
 
   const fetchPriceData = async () => {
     setLoading(true);

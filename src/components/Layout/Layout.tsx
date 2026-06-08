@@ -8,8 +8,10 @@ import { ProfileSidebar } from '../Navigation/ProfileSidebar';
 import { BillingBanner } from '../Billing/BillingBanner';
 import { GlobalCopilot } from '../Copilot/GlobalCopilot';
 import './Layout.css';
+import { useLiveSync } from '../../contexts/useLiveSync';
 
 export const Layout: React.FC = () => {
+  useLiveSync();
   const location = useLocation();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isKioskMode, setIsKioskMode] = useState(false);

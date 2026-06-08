@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useFarmFilter } from './useFarmFilter';
 import { isValidUUID } from '../utils/validation';
 import type { ReportData } from '../types/reports';
@@ -52,54 +52,29 @@ interface UseReportOptions {
 export const useReportData = (reportId: string | null, options: UseReportOptions | number = 1, pageSizeParam: number = 20) => {
   const { activeTenantId, activeFarmId, isGlobalMode } = useFarmFilter();
   
-  // Handle both old positional and new object-based signatures
   const isObjectOptions = typeof options === 'object' && options !== null;
   const page = isObjectOptions ? (options as UseReportOptions).page || 1 : (options as number);
   const pageSize = isObjectOptions ? (options as UseReportOptions).pageSize || 20 : pageSizeParam;
   const filters = isObjectOptions ? (options as UseReportOptions).filters || {} : {};
 
-  const [reportState, setReportState] = useState<ReportData & { totalCount: number, loading: boolean, error: string | null }>({
-    data: [],
-    stats: [],
-    columns: [],
-    totalCount: 0,
-    loading: false,
-    error: null,
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['report', reportId, activeTenantId, activeFarmId, page, pageSize, JSON.stringify(filters)],
+    queryFn: async () => {
+      if (!reportId || !activeTenantId) return { data: [], stats: [], columns: [], totalCount: 0 };
+      const result = await fetchReportDataById(reportId, activeTenantId, activeFarmId || undefined, page, pageSize, filters);
+      return result;
+    },
+    enabled: !!reportId && !!activeTenantId,
   });
 
-  const [refreshSalt, setRefreshSalt] = useState(0);
-  const refresh = () => setRefreshSalt(prev => prev + 1);
-
-  useEffect(() => {
-    if (!reportId || !activeTenantId) return;
-
-    const fetchReportData = async () => {
-      setReportState(prev => ({ ...prev, loading: true, error: null }));
-      
-      try {
-        const result = await fetchReportDataById(reportId, activeTenantId, activeFarmId || undefined, page, pageSize, filters);
-        setReportState({
-          ...result,
-          healthScore: (result as any).healthScore || 0,
-          totalCount: result.totalCount || 0,
-          loading: false,
-          error: null
-        });
-      } catch (err: any) {
-        console.error(`[useReportData] Erro ao carregar relatório ${reportId}:`, err);
-        setReportState({ 
-          data: [], 
-          stats: [], 
-          columns: [], 
-          totalCount: 0,
-          loading: false, 
-          error: err.message || 'Erro inesperado ao processar dados.'
-        });
-      }
-    };
-
-    fetchReportData();
-  }, [reportId, activeTenantId, activeFarmId, isGlobalMode, page, pageSize, JSON.stringify(filters), refreshSalt]);
-
-  return { ...reportState, refresh };
+  return {
+    data: data?.data || [],
+    stats: data?.stats || [],
+    columns: data?.columns || [],
+    totalCount: data?.totalCount || 0,
+    healthScore: (data as any)?.healthScore || 0,
+    loading: isLoading,
+    error: error ? (error as any).message : null,
+    refresh: refetch
+  };
 };

@@ -1,4 +1,5 @@
-background: hsl(var(--bg-main));
+.fuel-page {
+  background: hsl(var(--bg-main));
   min-height: calc(100vh - var(--header-height));
 }
 

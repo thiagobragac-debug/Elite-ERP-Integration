@@ -59,8 +59,10 @@ import { FleetFilterModal } from './components/FleetFilterModal';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useServerPagination } from '../../hooks/useServerPagination';
 
 export const FleetManagement: React.FC = () => {
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,16 +95,16 @@ export const FleetManagement: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [activeFarmId, isGlobalMode, activeTenantId]);
+  }, [activeFarmId, isGlobalMode, activeTenantId, page]);
 
   const fetchMachines = async () => {
     setLoading(true);
     try {
       // Buscar máquinas e abastecimentos em paralelo para calcular consumo real
-      let machQuery = supabase.from('maquinas').select('*');
+      let machQuery = supabase.from('maquinas').select('*', { count: 'exact' });
       machQuery = applyFarmFilter(machQuery);
 
-      let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id');
+      let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id', { count: 'exact' });
       fuelQuery = applyFarmFilter(fuelQuery);
 
       const [machResult, fuelResult] = await Promise.all([machQuery, fuelQuery]);
@@ -313,8 +315,8 @@ export const FleetManagement: React.FC = () => {
     try {
       // Buscar histórico real de manutenções e abastecimentos do banco
       const [maintResult, fuelResult] = await Promise.all([
-        supabase.from('manutencao_frota').select('*').eq('maquina_id', machine.id).order('data_inicio', { ascending: false }).limit(10),
-        supabase.from('abastecimentos').select('*').eq('maquina_id', machine.id).order('data', { ascending: false }).limit(10)
+        supabase.from('manutencao_frota').select('*', { count: 'exact' }).eq('maquina_id', machine.id).order('data_inicio', { ascending: false }),
+        supabase.from('abastecimentos').select('*', { count: 'exact' }).eq('maquina_id', machine.id).order('data', { ascending: false })
       ]);
 
       const maintItems = (maintResult.data || []).map((m: any) => ({

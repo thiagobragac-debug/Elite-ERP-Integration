@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { supabase } from '../../lib/supabase';
-import { Search, Briefcase, Edit2, Trash2 } from 'lucide-react';
+import { Search, Briefcase, Edit2, Trash2 } from 'lucide-react'; 
+import { useServerPagination } from '../../hooks/useServerPagination';
 import { useTenant } from '../../contexts/TenantContext';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { SidePanel } from '../../components/Layout/SidePanel';
@@ -47,7 +48,7 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numb
     try {
       const { data, error } = await supabase
         .from('cargos')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('tenant_id', tenant.id)
         .order('nome');
 

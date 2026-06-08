@@ -29,15 +29,7 @@ export const CertificateSettingsTab: React.FC<CertificateSettingsTabProps> = ({ 
   });
   const [editingCert, setEditingCert] = useState<any>(null);
   
-  const [formData, setFormData] = usePersistentState('CertificateSettingsTab_formData', () => {
-    // Restaura o rascunho do formulário do sessionStorage
-    try {
-      const saved = sessionStorage.getItem(FORM_SESSION_KEY);
-      return saved ? JSON.parse(saved) : { company_id: '', titular: '', cnpj_cpf: '', senha: '', pfx_base64: '' };
-    } catch {
-      return { company_id: '', titular: '', cnpj_cpf: '', senha: '', pfx_base64: '' };
-    }
-  });
+  const [formData, setFormData] = usePersistentState('CertificateSettingsTab_formData', { company_id: '', titular: '', cnpj_cpf: '', senha: '', pfx_base64: '' });
 
   // Persiste o estado do formulário no sessionStorage a cada mudança
   useEffect(() => {

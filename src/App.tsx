@@ -17,6 +17,7 @@ import { PermissionGuard } from './components/Guards/PermissionGuard';
 import { CommandPalette } from './components/Navigation/CommandPalette';
 import { useSuperAdmin } from './hooks/useSuperAdmin';
 import { CepeaProvider } from './contexts/CepeaContext';
+import { OfflineSyncProvider } from './contexts/OfflineSyncContext';
 
 import PastureManagement from './pages/Pecuaria/PastureManagement';
 
@@ -298,14 +299,16 @@ function AppContent() {
 export function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <TenantProvider>
-          <CepeaProvider>
-            <Toaster containerStyle={{ zIndex: 999999 }} />
-            <AppContent />
-          </CepeaProvider>
-        </TenantProvider>
-      </AuthProvider>
+      <OfflineSyncProvider>
+        <AuthProvider>
+          <TenantProvider>
+            <CepeaProvider>
+              <Toaster containerStyle={{ zIndex: 999999 }} />
+              <AppContent />
+            </CepeaProvider>
+          </TenantProvider>
+        </AuthProvider>
+      </OfflineSyncProvider>
     </ThemeProvider>
   );
 }

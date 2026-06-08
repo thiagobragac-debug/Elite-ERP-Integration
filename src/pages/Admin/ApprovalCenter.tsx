@@ -38,6 +38,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useServerPagination } from '../../hooks/useServerPagination';
 
 type TabType = 'pendencies' | 'rules';
 
@@ -63,6 +64,7 @@ interface PendingItem {
 }
 
 export const ApprovalCenter: React.FC = () => {
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeTenantId } = useTenant();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as TabType) || 'pendencies';
@@ -93,14 +95,14 @@ export const ApprovalCenter: React.FC = () => {
     if (activeTenantId) {
       fetchData();
     }
-  }, [activeTenantId]);
+  }, [activeTenantId, page]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       const [rulesRes, queueRes] = await Promise.all([
-        supabase.from('approval_rules').select('*').eq('tenant_id', activeTenantId).order('created_at', { ascending: false }),
-        supabase.from('approval_queue').select('*').eq('tenant_id', activeTenantId).order('created_at', { ascending: false })
+        supabase.from('approval_rules').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId).order('created_at', { ascending: false }),
+        supabase.from('approval_queue').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId).order('created_at', { ascending: false })
       ]);
 
       if (rulesRes.data) {
@@ -528,6 +530,10 @@ export const ApprovalCenter: React.FC = () => {
             >
               <ModernTable 
                 data={filteredPendencies}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
                 columns={pendencyColumns}
                 loading={loading}
                 hideHeader={true}
@@ -605,6 +611,10 @@ export const ApprovalCenter: React.FC = () => {
               {viewMode === 'list' ? (
                 <ModernTable 
                   data={filteredRules}
+            totalCount={totalCount}
+            currentPage={page}
+            onPageChange={setPage}
+            itemsPerPage={pageSize}
                   columns={rulesColumns}
                   loading={loading}
                   hideHeader={true}

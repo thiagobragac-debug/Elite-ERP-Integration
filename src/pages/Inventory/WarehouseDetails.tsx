@@ -17,8 +17,10 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useServerPagination } from '../../hooks/useServerPagination';
 
 export const WarehouseDetails: React.FC = () => {
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -44,7 +46,7 @@ export const WarehouseDetails: React.FC = () => {
       // 1. Fetch Warehouse Info
       const { data: wData } = await supabase
         .from('depositos')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('id', id)
         .single();
       

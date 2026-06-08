@@ -159,7 +159,7 @@ export const FinanceIntelligenceHub: React.FC = () => {
           <p className="page-subtitle">Central de comando estratégico com visão preditiva e indicadores de alta fidelidade.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={refresh}>
+          <button className="glass-btn secondary" onClick={() => refresh()}>
             <RefreshCw size={18} />
             RECALCULAR
           </button>

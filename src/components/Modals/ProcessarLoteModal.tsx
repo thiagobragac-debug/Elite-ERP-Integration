@@ -100,7 +100,7 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
 
   /* ── Handlers ── */
   const handleKeyEnter = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>, nextRef: React.RefObject<HTMLElement>) => {
+    (e: React.KeyboardEvent<HTMLInputElement>, nextRef: React.RefObject<any>) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         nextRef.current?.focus();

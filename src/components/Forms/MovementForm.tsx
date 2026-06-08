@@ -76,14 +76,16 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
 
   useEffect(() => {
     if (initialData) {
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         destino_deposito_id: initialData.destino_deposito_id || '',
         tipo: initialData.tipo || defaultType,
         data_movimentacao: initialData.data_movimentacao ? new Date(initialData.data_movimentacao).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         origem_destino: initialData.origem_destino || '',
         responsavel: initialData.responsavel || '',
         deposito_origem_id: initialData.deposito_id || ''
-      });
+      }));
+
       setItems([{
         id: initialData.id, // Keep ID for update
         produto_id: initialData.produto_id || '',

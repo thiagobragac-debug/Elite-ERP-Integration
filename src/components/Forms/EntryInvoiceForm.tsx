@@ -31,7 +31,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
 import { LoteRecebimentoModal } from '../Modals/LoteRecebimentoModal';
-import { readNFeFile, nfeDateToInputDate } from '../../utils/parseNFeXML';
+import { readNFeFile, nfeDateToInputDate, parseNFeXML } from '../../utils/parseNFeXML';
 
 interface EntryInvoiceFormProps {
   isOpen: boolean;
@@ -325,7 +325,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
       const { data, error } = await supabase.functions.invoke('fetch-sefaz-nfe', {
         body: {
           chave_acesso: chave,
-          tenant_id: tenant?.id,
+          tenant_id: activeTenantId,
           company_id: formData.company_id
         }
       });
@@ -339,7 +339,43 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
       // Recebemos o XML mockado em Base64, parseamos e atualizamos o form!
       if (data.xmlBase64) {
         const xmlString = atob(data.xmlBase64);
-        processParsedXml(xmlString, chave); // Reaproveitamos a função de parse nativa que já existe
+        const nfe = parseNFeXML(xmlString);
+
+        if (nfe.warnings?.length) {
+          nfe.warnings.forEach(w => toast(w, { icon: '⚠️' }));
+        }
+
+        setFormData(prev => ({
+          ...prev,
+          is_xml_imported: true,
+          xml_key: chave || nfe.chNFe || '',
+          invoice_number: nfe.nNF,
+          series: nfe.serie,
+          modelo_fiscal: nfe.modelo || '55',
+          nature_of_operation: nfe.natOp || prev.nature_of_operation,
+          issue_date: nfeDateToInputDate(nfe.dhEmi),
+          total_value: nfe.vNF.toString(),
+          description: nfe.infAdic || prev.description,
+        }));
+
+        const xmlItems: InsumoItem[] = nfe.itens.map(item => ({
+          id: `xml-${item.nItem}-${Date.now()}`,
+          produto_id: '',
+          nome: item.xProd,
+          quantidade: item.qCom,
+          unidade: item.uCom,
+          preco_unitario: item.vUnCom,
+          despesa_adicional: 0,
+          desconto: 0,
+          deposito_id: '',
+          total: item.vProd,
+          xml_product_code: item.cProd,
+          xml_product_name: item.xProd,
+          xml_ncm: item.NCM,
+          match_status: 'unmatched' as const,
+        }));
+
+        setItems(xmlItems);
       }
 
     } catch (err: any) {

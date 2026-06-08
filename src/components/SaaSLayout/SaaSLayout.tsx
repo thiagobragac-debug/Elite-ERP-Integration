@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { SaaSSidebar } from './SaaSSidebar';
 import { Header } from '../Layout/Header';
 import '../Layout/Layout.css'; // Reuse layout styles for structure
+import { useLiveSync } from '../../contexts/useLiveSync';
 
 interface SaaSLayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface SaaSLayoutProps {
 
 export const SaaSLayout: React.FC<SaaSLayoutProps> = ({ children }) => {
   const location = useLocation();
+  useLiveSync();
 
   useEffect(() => {
     window.scrollTo(0, 0);

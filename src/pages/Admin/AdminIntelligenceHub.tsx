@@ -103,7 +103,7 @@ export const AdminIntelligenceHub: React.FC = () => {
           <p className="page-subtitle">Visão estratégica de governança, conformidade de segurança e saúde operacional do tenant.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={refresh}>
+          <button className="glass-btn secondary" onClick={() => refresh()}>
             <Clock size={18} />
             ATUALIZAR DASHBOARD
           </button>

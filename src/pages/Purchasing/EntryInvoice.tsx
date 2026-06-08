@@ -17,7 +17,7 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
     return { value: Number(v.toFixed(2)), label: new Date(bStart + bucketMs / 2).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
   });
 }
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Activity,
   Plus, 
@@ -59,7 +59,7 @@ export const EntryInvoice: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'INVOICES' | 'FISCAL') || 'INVOICES';
   const setActiveTab = (tab: string) => {
-    setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
+    setSearchParams((prev: URLSearchParams) => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedInvoice, setSelectedInvoice] = usePersistentState<any>('EntryInvoice_selectedInvoice', null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);

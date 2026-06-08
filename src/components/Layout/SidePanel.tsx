@@ -5,7 +5,7 @@ import { X, Save, type LucideIcon } from 'lucide-react';
 interface SidePanelProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit?: (e: React.FormEvent) => void;
   title: string;
   subtitle?: string;
   icon: LucideIcon;

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { supabase } from '../../lib/supabase';
-import { Tag, Search, Plus, Trash2, Edit2, AlertTriangle, Layers, CheckCircle, XCircle, Database } from 'lucide-react';
+import { Tag, Search, Plus, Trash2, Edit2, AlertTriangle, Layers, CheckCircle, XCircle, Database } from 'lucide-react'; 
+import { useServerPagination } from '../../hooks/useServerPagination';
 import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
@@ -56,7 +57,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
     try {
       const fetchPromise = supabase
         .from('categorias_sistema')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('tenant_id', tenant.id)
         .order('nome');
 

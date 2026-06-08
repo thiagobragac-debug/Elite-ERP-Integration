@@ -39,7 +39,9 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useServerPagination } from '../../hooks/useServerPagination';
 export const WarehouseManagement: React.FC = () => {
+  const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,19 +88,23 @@ export const WarehouseManagement: React.FC = () => {
     } else {
       setLoading(false);
     }
-  }, [activeFarmId, activeTenantId, isGlobalMode]);
+  }, [activeFarmId, activeTenantId, isGlobalMode, page]);
 
   const fetchFarms = async () => {
-    let query = supabase.from('fazendas').select('id, nome');
+    let query = supabase.from('fazendas').select('id, nome', { count: 'exact' });
     query = applyTenantFilter(query);
-    const { data } = await query;
+    const range = getRange();
+      const { data, count, error } = await query.range(range.from, range.to);
+      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
     if (data) setFarms(data);
   };
 
   const fetchUnidades = async () => {
-    let query = supabase.from('categorias_sistema').select('*').eq('modulo', 'unidades').eq('is_active', true).order('nome');
+    let query = supabase.from('categorias_sistema').select('*', { count: 'exact' }).eq('modulo', 'unidades').eq('is_active', true).order('nome');
     query = applyTenantFilter(query);
-    const { data } = await query;
+    const range = getRange();
+      const { data, count, error } = await query.range(range.from, range.to);
+      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
     if (data) setUnidades(data);
   };
 
@@ -117,7 +123,9 @@ export const WarehouseManagement: React.FC = () => {
           )
         `).order('nome', { ascending: true });
       query = applyFarmFilter(query);
-      const { data, error } = await query;
+      const range = getRange();
+      const { data, count, error } = await query.range(range.from, range.to);
+      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
 
       if (data) {
         const processed = data.map((w: any) => {
@@ -178,7 +186,7 @@ export const WarehouseManagement: React.FC = () => {
     if (selectedWarehouse && payload.status === 'inativo' && selectedWarehouse.status === 'ativo') {
       const { data: balanceData, error: balanceError } = await supabase
         .from('movimentacoes_estoque')
-        .select('quantidade, tipo')
+        .select('quantidade, tipo', { count: 'exact' })
         .eq('deposito_id', selectedWarehouse.id);
 
       if (!balanceError && balanceData) {
