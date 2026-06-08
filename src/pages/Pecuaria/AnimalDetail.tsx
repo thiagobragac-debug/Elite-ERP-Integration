@@ -31,87 +31,123 @@ import { jsPDF } from 'jspdf';
 import toast from 'react-hot-toast';
 import './AnimalDetail.css';
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 export const AnimalDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { activeFarmId, activeTenantId, insertPayload } = useFarmFilter();
-  const [animal, setAnimal] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [weightHistory, setWeightHistory] = useState<any[]>([]);
-  const [gmdHistory, setGmdHistory] = useState<any[]>([]);
-  const [events, setEvents] = useState<any[]>([]);
   const [showRastreabilidade, setShowRastreabilidade] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isManejoModalOpen, setIsManejoModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      fetchAnimalData();
-    }
-  }, [id]);
-
-  const fetchAnimalData = async () => {
-    setLoading(true);
-    try {
-      // Fetch animal info
-      const { data: animalData } = await supabase
+  // Fetch animal info
+  const { data: animal, isLoading: animalLoading } = useQuery({
+    queryKey: ['animal', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('animais')
         .select('*, lotes(nome)')
         .eq('id', id)
         .single();
-      
-      if (animalData) {
-        setAnimal(animalData);
-        
-        // Fetch weight history
-        const { data: weights } = await supabase
-          .from('pesagens')
-          .select('*').limit(500)
-          .eq('animal_id', id)
-          .order('data_pesagem', { ascending: true });
-        
-        if (weights) {
-          const chartFormatted = weights.map((w: any) => ({
-            label: new Date(w.data_pesagem).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-            value: w.peso,
-            date: w.data_pesagem
-          }));
-          setWeightHistory(chartFormatted);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id
+  });
 
-          // Calcular histórico de GMD real entre pesagens consecutivas
-          const gmdHistoryData: any[] = [];
-          for (let i = 1; i < weights.length; i++) {
-            const prev = weights[i - 1];
-            const curr = weights[i];
-            const wDiff = curr.peso - prev.peso;
-            const tDiff = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / (1000 * 3600 * 24);
-            const days = Math.max(1, Math.floor(tDiff));
-            const gmdVal = wDiff / days;
-            gmdHistoryData.push({
-              value: Number(gmdVal.toFixed(3)),
-              label: new Date(curr.data_pesagem).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-            });
-          }
-          setGmdHistory(gmdHistoryData);
-        }
+  // Fetch weight history
+  const { data: weights = [], isLoading: weightsLoading } = useQuery({
+    queryKey: ['animal_weights', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('pesagens')
+        .select('*').limit(500)
+        .eq('animal_id', id)
+        .order('data_pesagem', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id
+  });
 
-        // Fetch other events (mocking for now, could be from other tables)
-        setEvents([
-          { date: animalData.created_at, type: 'ENTRADA', desc: 'Entrada na fazenda (Compra/Nascimento)' },
-          ...(weights || []).map((w: any) => ({ 
-            date: w.data_pesagem, 
-            type: 'PESAGEM', 
-            desc: `Pesagem realizada: ${w.peso}kg` 
-          }))
-        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+  const loading = animalLoading || weightsLoading;
+
+  const weightHistory = React.useMemo(() => {
+    return weights.map((w: any) => ({
+      label: new Date(w.data_pesagem).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      value: w.peso,
+      date: w.data_pesagem
+    }));
+  }, [weights]);
+
+  const gmdHistory = React.useMemo(() => {
+    const gmdHistoryData: any[] = [];
+    for (let i = 1; i < weights.length; i++) {
+      const prev = weights[i - 1];
+      const curr = weights[i];
+      const wDiff = curr.peso - prev.peso;
+      const tDiff = (new Date(curr.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / (1000 * 3600 * 24);
+      const days = Math.max(1, Math.floor(tDiff));
+      const gmdVal = wDiff / days;
+      gmdHistoryData.push({
+        value: Number(gmdVal.toFixed(3)),
+        label: new Date(curr.data_pesagem).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+      });
     }
+    return gmdHistoryData;
+  }, [weights]);
+
+  const events = React.useMemo(() => {
+    if (!animal) return [];
+    return [
+      { date: animal.created_at, type: 'ENTRADA', desc: 'Entrada na fazenda (Compra/Nascimento)' },
+      ...weights.map((w: any) => ({ 
+        date: w.data_pesagem, 
+        type: 'PESAGEM', 
+        desc: `Pesagem realizada: ${w.peso}kg` 
+      }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [animal, weights]);
+
+  const editAnimalMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.from('animais').update(payload).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['animal', id] });
+      setIsEditModalOpen(false);
+      toast.success('✅ Animal atualizado com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao salvar animal: ' + err.message);
+    }
+  });
+
+  const handleEditSubmit = async (formData: any) => {
+    const payload = {
+      brinco: formData.brinco,
+      raca: formData.raca,
+      sexo: formData.sexo,
+      data_nascimento: formData.data_nascimento,
+      fazenda_id: formData.fazenda_id || null,
+      status: formData.status || 'Ativo',
+      peso_inicial: parseFloat(formData.peso_inicial) || 0,
+      pelagem: formData.pelagem,
+      origem: formData.origem,
+      mae_brinco: formData.mae_brinco,
+      pai_brinco: formData.pai_brinco,
+      valor_compra: parseFloat(formData.valor_compra) || 0,
+      categoria: formData.categoria,
+      finalidade: formData.finalidade
+    };
+
+    editAnimalMutation.mutate(payload);
   };
+
+  const isSubmitting = editAnimalMutation.isPending;;
 
   if (loading) {
     return (
@@ -174,40 +210,8 @@ export const AnimalDetail: React.FC = () => {
   const projectionSparkline = getProjectionSparkline();
 
   // Regra de Negócio: Carência Sanitária (Simulando verificação em registros de manejo)
-  const isUnderGracePeriod = events.some(e => e.type === 'MEDICAMENTO' && new Date(e.expiryDate) > new Date());
+  const isUnderGracePeriod = events.some((e: any) => e.type === 'MEDICAMENTO' && e.expiryDate && new Date(e.expiryDate) > new Date());
 
-  const handleEditSubmit = async (formData: any) => {
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        brinco: formData.brinco,
-        raca: formData.raca,
-        sexo: formData.sexo,
-        data_nascimento: formData.data_nascimento,
-        fazenda_id: formData.fazenda_id || null,
-        status: formData.status || 'Ativo',
-        peso_inicial: parseFloat(formData.peso_inicial) || 0,
-        pelagem: formData.pelagem,
-        origem: formData.origem,
-        mae_brinco: formData.mae_brinco,
-        pai_brinco: formData.pai_brinco,
-        valor_compra: parseFloat(formData.valor_compra) || 0,
-        categoria: formData.categoria,
-        finalidade: formData.finalidade
-      };
-
-      const { error } = await supabase.from('animais').update(payload).eq('id', animal.id);
-      if (error) throw error;
-
-      setIsEditModalOpen(false);
-      fetchAnimalData();
-      toast.success('✅ Animal atualizado com sucesso!');
-    } catch (err: any) {
-      toast.error('❌ Erro ao salvar animal: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleRelatorio = () => {
     if (!animal) {
@@ -651,7 +655,10 @@ export const AnimalDetail: React.FC = () => {
         activeTenantId={activeTenantId || ''}
         activeFarmId={activeFarmId || ''}
         insertPayload={insertPayload}
-        onSuccess={() => { fetchAnimalData(); }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['animal', id] });
+          queryClient.invalidateQueries({ queryKey: ['animal_weights', id] });
+        }}
       />
     </div>
   );

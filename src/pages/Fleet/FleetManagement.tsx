@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
@@ -67,8 +68,7 @@ export const FleetManagement: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [machines, setMachines] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('FleetManagement_isModalOpen', false);
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
   const [selectedMachine, setSelectedMachine] = useState<any>(null);
@@ -76,7 +76,6 @@ export const FleetManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyTitle, setHistoryTitle] = useState('');
-  const [stats, setStats] = useState<any[]>([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -88,101 +87,106 @@ export const FleetManagement: React.FC = () => {
   });
   const [viewMode, setViewMode] = useViewMode('fleet-management', 'grid');
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchMachines();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, isGlobalMode, activeTenantId, page]);
-
-  const fetchMachines = async () => {
-    setLoading(true);
-    try {
-      // Buscar máquinas e abastecimentos em paralelo para calcular consumo real
-      let machQuery = supabase.from('maquinas').select('*', { count: 'exact' });
+  const { data: machinesData, isLoading: loadingMachines } = useQuery({
+    queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let machQuery = supabase.from('maquinas').select('*');
       machQuery = applyFarmFilter(machQuery);
-
-      let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id', { count: 'exact' });
-      fuelQuery = applyFarmFilter(fuelQuery);
-
-      const [machResult, fuelResult] = await Promise.all([machQuery, fuelQuery]);
-
-      if (machResult.error) throw machResult.error;
-
-      const finalData = machResult.data || [];
-      const transformedData = finalData.map((m: any) => ({
+      const { data, error } = await machQuery;
+      if (error) throw error;
+      const finalData = data || [];
+      return finalData.map((m: any) => ({
         ...m,
         modelo: m.modelo || 'N/A',
         categoria: m.tipo || 'Geral',
         ano: m.ano || 'N/A',
         status: m.status || 'active'
       }));
+    },
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+  });
 
-      setMachines(transformedData);
-      const total = transformedData.length;
-      const emManutencao = transformedData.filter((m: any) => m.status === 'maintenance').length;
-      const emOperacao = total - emManutencao;
-      const disponibilidade = total > 0 ? (emOperacao / total) * 100 : 0;
+  const machines = machinesData || [];
 
-      // Calcular consumo médio REAL de abastecimentos do banco
-      const fuelData = fuelResult.data || [];
-      const totalLitros = fuelData.reduce((acc: number, f: any) => acc + Number(f.litros || 0), 0);
-      const machinesWithFuel = new Set(fuelData.map((f: any) => f.maquina_id)).size;
-      const avgConsumo = machinesWithFuel > 0 ? totalLitros / machinesWithFuel : 0;
+  const { data: fuelData = [], isLoading: loadingFuel } = useQuery({
+    queryKey: ['fuelStats', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let fuelQuery = supabase.from('abastecimentos').select('litros, maquina_id');
+      fuelQuery = applyFarmFilter(fuelQuery);
+      const { data, error } = await fuelQuery;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+  });
 
-      setStats([
-        {
-          label: 'Frota Operacional',
-          value: total > 0 ? total : '---',
-          icon: Truck,
-          color: 'hsl(var(--brand))',
-          progress: 100,
-          change: total > 0 ? `${total} ativos` : 'Sem máquinas',
-          periodLabel: 'Frota Geral',
-          sparkline: buildSparkline(machines || [], 'created_at', null)
-        },
-        {
-          label: 'Em Manutenção',
-          value: emManutencao,
-          icon: Tool,
-          color: '#ef4444',
-          progress: total > 0 ? (emManutencao / total) * 100 : 0,
-          change: emManutencao > 0 ? 'Parada técnica' : 'Frota operacional',
-          periodLabel: 'Parada Técnica',
-          sparkline: buildSparkline(machines || [], 'created_at', null)
-        },
-        {
-          label: 'Consumo Total (L)',
-          value: totalLitros > 0 ? `${totalLitros.toLocaleString('pt-BR')} L` : '---',
-          icon: Activity,
-          color: '#f59e0b',
-          progress: totalLitros > 0 ? Math.min(100, (totalLitros / 1000) * 10) : 0,
-          trend: totalLitros > 0 ? 'up' : 'none',
-          change: avgConsumo > 0 ? `Média: ${avgConsumo.toFixed(0)}L/máq.` : 'Sem abastecimentos',
-          periodLabel: 'Total Abastecido',
-          sparkline: buildSparkline(machines || [], 'created_at', null)
-        },
-        {
-          label: 'Disponibilidade',
-          value: total > 0 ? `${disponibilidade.toFixed(1)}%` : '---',
-          icon: AlertCircle,
-          color: '#10b981',
-          progress: disponibilidade,
-          trend: disponibilidade >= 80 ? 'up' : 'down',
-          change: total > 0 ? 'Uptime calculado' : 'Sem dados',
-          periodLabel: 'Uptime Real',
-          sparkline: buildSparkline(machines || [], 'created_at', null)
-        },
-      ]);
-    } catch (err) {
-      console.warn('[Fleet] Falling back to empty state due to schema/network error:', err);
-      setMachines([]);
-    } finally {
-      setLoading(false);
+  const loading = loadingMachines || loadingFuel;
+
+  const stats = useMemo(() => {
+    if (machines.length === 0) {
+      return [
+        { label: 'Frota Operacional', value: '---', icon: Truck, color: 'hsl(var(--brand))', progress: 0, trend: 'none' as const, change: 'Sem máquinas', periodLabel: 'Frota Geral', sparkline: [] },
+        { label: 'Em Manutenção', value: 0, icon: Tool, color: '#ef4444', progress: 0, trend: 'none' as const, change: 'Frota operacional', periodLabel: 'Parada Técnica', sparkline: [] },
+        { label: 'Consumo Total (L)', value: '---', icon: Activity, color: '#f59e0b', progress: 0, trend: 'none' as const, change: 'Sem abastecimentos', periodLabel: 'Total Abastecido', sparkline: [] },
+        { label: 'Disponibilidade', value: '---', icon: AlertCircle, color: '#10b981', progress: 0, trend: 'none' as const, change: 'Sem dados', periodLabel: 'Uptime Real', sparkline: [] },
+      ];
     }
-  };
+    const total = machines.length;
+    const emManutencao = machines.filter((m: any) => m.status === 'maintenance').length;
+    const emOperacao = total - emManutencao;
+    const disponibilidade = total > 0 ? (emOperacao / total) * 100 : 0;
+
+    const totalLitros = fuelData.reduce((acc: number, f: any) => acc + Number(f.litros || 0), 0);
+    const machinesWithFuel = new Set(fuelData.map((f: any) => f.maquina_id)).size;
+    const avgConsumo = machinesWithFuel > 0 ? totalLitros / machinesWithFuel : 0;
+
+    return [
+      {
+        label: 'Frota Operacional',
+        value: total > 0 ? total : '---',
+        icon: Truck,
+        color: 'hsl(var(--brand))',
+        progress: 100,
+        trend: 'none' as const,
+        change: total > 0 ? `${total} ativos` : 'Sem máquinas',
+        periodLabel: 'Frota Geral',
+        sparkline: buildSparkline(machines || [], 'created_at', null)
+      },
+      {
+        label: 'Em Manutenção',
+        value: emManutencao,
+        icon: Tool,
+        color: '#ef4444',
+        progress: total > 0 ? (emManutencao / total) * 100 : 0,
+        trend: 'none' as const,
+        change: emManutencao > 0 ? 'Parada técnica' : 'Frota operacional',
+        periodLabel: 'Parada Técnica',
+        sparkline: buildSparkline(machines || [], 'created_at', null)
+      },
+      {
+        label: 'Consumo Total (L)',
+        value: totalLitros > 0 ? `${totalLitros.toLocaleString('pt-BR')} L` : '---',
+        icon: Activity,
+        color: '#f59e0b',
+        progress: totalLitros > 0 ? Math.min(100, (totalLitros / 1000) * 10) : 0,
+        trend: totalLitros > 0 ? ('up' as const) : ('none' as const),
+        change: avgConsumo > 0 ? `Média: ${avgConsumo.toFixed(0)}L/máq.` : 'Sem abastecimentos',
+        periodLabel: 'Total Abastecido',
+        sparkline: buildSparkline(machines || [], 'created_at', null)
+      },
+      {
+        label: 'Disponibilidade',
+        value: total > 0 ? `${disponibilidade.toFixed(1)}%` : '---',
+        icon: AlertCircle,
+        color: '#10b981',
+        progress: disponibilidade,
+        trend: disponibilidade >= 80 ? ('up' as const) : ('down' as const),
+        change: total > 0 ? 'Uptime calculated' : 'Sem dados',
+        periodLabel: 'Uptime Real',
+        sparkline: buildSparkline(machines || [], 'created_at', null)
+      },
+    ];
+  }, [machines, fuelData]);
 
   const handleOpenCreate = () => {
     setSelectedMachine(null);
@@ -194,14 +198,8 @@ export const FleetManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (formData: any) => {
-    if (!canCreate && !selectedMachine) {
-      toast.error('⚠️ Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.');
-      return;
-    }
-    
-    setLoading(true);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (formData: any) => {
       const payload = {
         nome: formData.nome,
         tipo: formData.categoria,
@@ -233,35 +231,74 @@ export const FleetManagement: React.FC = () => {
         const { error } = await supabase.from('maquinas').insert([payload]);
         if (error) throw error;
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode] });
       setIsModalOpen(false);
-      fetchMachines();
-    } catch (err) {
-      console.error('Error saving machine:', err);
-      toast.error(`Erro ao salvar máquina: ${(err as Error)?.message || JSON.stringify(err)}`);
-    } finally {
-      setLoading(false);
+      toast.success(selectedMachine ? 'Ativo atualizado com sucesso!' : 'Ativo cadastrado com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao salvar máquina: ${err.message}`);
     }
+  });
+
+  const handleSubmit = async (formData: any) => {
+    if (!canCreate && !selectedMachine) {
+      toast.error('⚠️ Selecione uma unidade específica para cadastrar um novo ativo. No modo Visão Global, a fazenda proprietária deve ser definida.');
+      return;
+    }
+    saveMutation.mutate(formData);
   };
+
+  const maintenanceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const { error } = await supabase.from('manutencao_frota').insert([{
+        maquina_id: data.maquina_id,
+        tipo: data.tipo,
+        descricao: data.descricao,
+        data_inicio: data.data_inicio,
+        custo: (parseFloat(data.custo_pecas) || 0) + (parseFloat(data.custo_mao_obra) || 0),
+        responsavel: data.responsavel,
+        status: data.status,
+        ...insertPayload
+      }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode] });
+      setIsMaintenanceModalOpen(false);
+      toast.success('Manutenção registrada com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao salvar manutenção: ${err.message}`);
+    }
+  });
 
   const handleMaintenanceSubmit = async (data: any) => {
     if (!canCreate) {
       toast.error('⚠️ Selecione uma unidade específica para registrar uma manutenção. No modo Visão Global, a fazenda deve ser definida.');
       return;
     }
-    const { error } = await supabase.from('manutencao_frota').insert([{
-      maquina_id: data.maquina_id,
-      tipo: data.tipo,
-      descricao: data.descricao,
-      data_inicio: data.data_inicio,
-      custo: (parseFloat(data.custo_pecas) || 0) + (parseFloat(data.custo_mao_obra) || 0),
-      responsavel: data.responsavel,
-      status: data.status,
-      ...insertPayload
-    }]);
-    if (!error) {
-      setIsMaintenanceModalOpen(false);
-      fetchMachines();
+    maintenanceMutation.mutate(data);
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('maquinas').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['machines', activeFarmId, activeTenantId, isGlobalMode] });
+      toast.success('Ativo excluído com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao excluir ativo: ${err.message}`);
     }
+  });
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja excluir este ativo?')) return;
+    deleteMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -302,11 +339,7 @@ export const FleetManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'frota_veiculos', 'Relatório de Frota e Maquinários');
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este ativo?')) return;
-    const { error } = await supabase.from('maquinas').delete().eq('id', id);
-    if (!error) fetchMachines();
-  };
+
 
   const handleViewHistory = async (machine: any) => {
     setHistoryTitle(`Histórico: ${machine.nome}`);
@@ -480,7 +513,7 @@ export const FleetManagement: React.FC = () => {
             change={stat.change}
             periodLabel={stat.periodLabel}
             sparkline={stat.sparkline}
-            trend={stat.trend}
+            trend={stat.trend === 'up' || stat.trend === 'down' ? stat.trend : undefined}
           />
         ))}
       </div>

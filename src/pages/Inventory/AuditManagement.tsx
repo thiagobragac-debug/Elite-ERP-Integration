@@ -54,12 +54,13 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { AuditFilterModal } from './components/AuditFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 export const AuditManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [audits, setAudits] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = usePersistentState('AuditManagement_isModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'HISTORY' | 'CRITICAL') || 'HISTORY';
@@ -70,7 +71,6 @@ export const AuditManagement: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -79,101 +79,64 @@ export const AuditManagement: React.FC = () => {
     dateEnd: ''
   });
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchAudits();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode]);
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-  const fetchAudits = async () => {
-    if (!activeFarmId && !isGlobalMode) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      const fetchPromise = (async () => {
-        let query = supabase
-          .from('auditorias_estoque')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(500);
-        
-        query = applyFarmFilter(query);
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const data: any = await Promise.race([fetchPromise, timeoutPromise]);
+  const { data: audits = [], isLoading: loading } = useQuery({
+    queryKey: ['audits', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let query = supabase
+        .from('auditorias_estoque')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
       
-      if (data) {
-        setAudits(data);
-        
-        const concluidas = data.filter((a: any) => a.status === 'completed').length;
-        const emAndamento = data.filter((a: any) => a.status === 'in_progress').length;
-        const avgAccuracy = data.length > 0 
-          ? data.reduce((acc: number, curr: any) => acc + (curr.accuracy || 0), 0) / data.length 
-          : 0;
-        const custoPerdas = data.reduce((acc: number, curr: any) => acc + (curr.custo_divergencia || 0), 0);
-        const tempoMedio = data.length > 0
-          ? data.reduce((acc: number, curr: any) => acc + (curr.tempo_auditoria_horas || 0), 0) / data.length
-          : 0;
-        
-        setStats([
-          { label: 'Auditorias Concluídas', value: concluidas > 0 ? concluidas : '---', icon: ClipboardCheck, color: '#10b981', 
-            progress: data.length > 0 ? (concluidas / data.length) * 100 : 0, 
-            change: concluidas > 0 ? 'Concluídas' : 'Nenhuma concluída',
-            sparkline: buildSparkline(data || [], 'data_inicio', 'divergencias_total')
-          },
-          { label: 'Acuracidade Geral', value: avgAccuracy > 0 ? `${avgAccuracy.toFixed(1)}%` : '---', icon: PieChart, color: '#3b82f6', 
-            progress: avgAccuracy > 0 ? avgAccuracy : 0, 
-            trend: avgAccuracy > 95 ? 'up' as const : 'down' as const, 
-            change: 'Média de Inventário',
-            sparkline: buildSparkline(data || [], 'data_inicio', 'acuracidade_perc')
-          },
-          { label: 'Custo de Perdas (Shrinkage)', 
-            value: custoPerdas > 0 ? custoPerdas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
-            icon: DollarSign, color: '#ef4444', 
-            progress: custoPerdas > 0 ? Math.min(100, (custoPerdas / 10000) * 100) : 0, 
-            trend: custoPerdas > 0 ? 'up' as const : 'neutral' as const, 
-            change: custoPerdas > 0 ? 'Prejuízo Contabilizado' : 'Sem Perdas',
-            sparkline: buildSparkline(data || [], 'data_inicio', 'custo_divergencia')
-          },
-          { label: 'Tempo Médio de Auditoria', 
-            value: tempoMedio > 0 ? `${tempoMedio.toFixed(1)}h` : '---', 
-            icon: Clock, color: '#8b5cf6', 
-            progress: tempoMedio > 0 ? Math.max(0, 100 - (tempoMedio * 5)) : 0, 
-            trend: tempoMedio > 0 ? 'down' as const : 'neutral' as const, 
-            change: tempoMedio > 0 ? 'Horas por inventário' : 'Sem dados',
-            sparkline: buildSparkline(data || [], 'data_inicio', 'tempo_auditoria_horas')
-          },
-        ]);
-      }
-    } catch (err) {
-      console.warn('[Audit] Fetch error:', err);
-      setAudits([]);
-      setStats([
-        { label: 'Auditorias Pendentes', value: 0, icon: AlertCircle, color: '#ed6c02', progress: 0, change: '',
-          sparkline: buildSparkline([], 'data_inicio', 'divergencias_total') },
-        { label: 'Acuracidade Geral', value: '0%', icon: PieChart, color: '#3b82f6', progress: 0, change: '',
-          sparkline: buildSparkline([], 'data_inicio', 'acuracidade_perc') },
-        { label: 'Custo de Perdas', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '',
-          sparkline: buildSparkline([], 'data_inicio', 'custo_divergencia') },
-        { label: 'Tempo Médio', value: '0h', icon: Clock, color: '#8b5cf6', progress: 0, change: '',
-          sparkline: buildSparkline([], 'data_inicio', 'tempo_auditoria_horas') },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      query = applyFarmFilter(query);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isReady
+  });
+
+  const concluidas = audits.filter((a: any) => a.status === 'completed').length;
+  const emAndamento = audits.filter((a: any) => a.status === 'in_progress').length;
+  const avgAccuracy = audits.length > 0 
+    ? audits.reduce((acc: number, curr: any) => acc + (curr.accuracy || 0), 0) / audits.length 
+    : 0;
+  const custoPerdas = audits.reduce((acc: number, curr: any) => acc + (curr.custo_divergencia || 0), 0);
+  const tempoMedio = audits.length > 0
+    ? audits.reduce((acc: number, curr: any) => acc + (curr.tempo_auditoria_horas || 0), 0) / audits.length
+    : 0;
+
+  const stats = [
+    { label: 'Auditorias Concluídas', value: concluidas > 0 ? concluidas : '---', icon: ClipboardCheck, color: '#10b981', 
+      progress: audits.length > 0 ? (concluidas / audits.length) * 100 : 0, 
+      change: concluidas > 0 ? 'Concluídas' : 'Nenhuma concluída',
+      sparkline: buildSparkline(audits || [], 'data_inicio', 'divergencias_total')
+    },
+    { label: 'Acuracidade Geral', value: avgAccuracy > 0 ? `${avgAccuracy.toFixed(1)}%` : '---', icon: PieChart, color: '#3b82f6', 
+      progress: avgAccuracy > 0 ? avgAccuracy : 0, 
+      trend: (avgAccuracy > 95 ? 'up' : 'down') as any, 
+      change: 'Média de Inventário',
+      sparkline: buildSparkline(audits || [], 'data_inicio', 'acuracidade_perc')
+    },
+    { label: 'Custo de Perdas (Shrinkage)', 
+      value: custoPerdas > 0 ? custoPerdas.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+      icon: DollarSign, color: '#ef4444', 
+      progress: custoPerdas > 0 ? Math.min(100, (custoPerdas / 10000) * 100) : 0, 
+      trend: (custoPerdas > 0 ? 'up' : 'neutral') as any, 
+      change: custoPerdas > 0 ? 'Prejuízo Contabilizado' : 'Sem Perdas',
+      sparkline: buildSparkline(audits || [], 'data_inicio', 'custo_divergencia')
+    },
+    { label: 'Tempo Médio de Auditoria', 
+      value: tempoMedio > 0 ? `${tempoMedio.toFixed(1)}h` : '---', 
+      icon: Clock, color: '#8b5cf6', 
+      progress: tempoMedio > 0 ? Math.max(0, 100 - (tempoMedio * 5)) : 0, 
+      trend: (tempoMedio > 0 ? 'down' : 'neutral') as any, 
+      change: tempoMedio > 0 ? 'Horas por inventário' : 'Sem dados',
+      sparkline: buildSparkline(audits || [], 'data_inicio', 'tempo_auditoria_horas')
+    },
+  ];
 
   const handleOpenCreate = () => {
     setSelectedAudit(null);
@@ -185,8 +148,28 @@ export const AuditManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const saveAuditMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (selectedAudit) {
+        const { error } = await supabase.from('auditorias_estoque').update(payload).eq('id', selectedAudit.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('auditorias_estoque').insert([payload]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
+      setIsModalOpen(false);
+      toast.success(selectedAudit ? 'Auditoria atualizada!' : 'Auditoria registrada!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao salvar auditoria: ' + err.message);
+    }
+  });
+
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
+    if (!activeFarm) return;
     
     const payload = {
       titulo: formData.title,
@@ -198,13 +181,7 @@ export const AuditManagement: React.FC = () => {
       tenant_id: activeFarm.tenantId
     };
 
-    if (selectedAudit) {
-      const { error } = await supabase.from('auditorias_estoque').update(payload).eq('id', selectedAudit.id);
-      if (!error) { setIsModalOpen(false); fetchAudits(); }
-    } else {
-      const { error } = await supabase.from('auditorias_estoque').insert([payload]);
-      if (!error) { setIsModalOpen(false); fetchAudits(); }
-    }
+    saveAuditMutation.mutate(payload);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -241,10 +218,23 @@ export const AuditManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'log_auditorias', 'Relatório de Auditoria de Estoque');
   };
 
+  const deleteAuditMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('auditorias_estoque').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['audits'] });
+      toast.success('Auditoria excluída com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao excluir auditoria: ' + err.message);
+    }
+  });
+
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta auditoria?')) return;
-    const { error } = await supabase.from('auditorias_estoque').delete().eq('id', id);
-    if (!error) fetchAudits();
+    deleteAuditMutation.mutate(id);
   };
 
   const handleViewDetails = (audit: any) => {

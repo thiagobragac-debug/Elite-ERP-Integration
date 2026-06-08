@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
-
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import { 
   HandCoins, 
@@ -68,14 +68,13 @@ export const AccountsReceivable: React.FC = () => {
   const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [page, setPage] = useState(1);
   const pageSize = 25;
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
-  const { data: rawInvoices, stats, totalCount, loading, error, refresh } = useReportData('contas-receber', {
+  const { data: rawInvoices, stats, totalCount, loading, error } = useReportData('contas-receber', {
     page,
     pageSize,
     filters: {
@@ -101,14 +100,10 @@ export const AccountsReceivable: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (formData: any) => {
-    if (!canCreate && !selectedInvoice) {
-      toast.error('âš ï¸ Selecione uma unidade específica para registrar uma nova receita. No modo Visão Global, a fazenda beneficiária deve ser definida.');
-      return;
-    }
+  const queryClient = useQueryClient();
 
-    setIsSubmitting(true);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (formData: any) => {
       const payload = {
         descricao: formData.description,
         valor_total: parseFloat(formData.value),
@@ -124,27 +119,45 @@ export const AccountsReceivable: React.FC = () => {
           .from('contas_receber')
           .update(payload)
           .eq('id', selectedInvoice.id);
-        
         if (error) throw error;
-        
-        setIsModalOpen(false);
-        refresh();
       } else {
         const { error } = await supabase
           .from('contas_receber')
           .insert([{ ...payload, ...insertPayload }]);
-
         if (error) throw error;
-        
-        setIsModalOpen(false);
-        refresh();
       }
-    } catch (err: any) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report', 'contas-receber'] });
+      setIsModalOpen(false);
+      toast.success('Receita salva com sucesso!');
+    },
+    onError: (err: any) => {
       console.error('[AccountsReceivable] Erro ao salvar:', err);
-      toast.error('âŒ Erro ao salvar receita: ' + (err.message || 'Erro desconhecido'));
-    } finally {
-      setIsSubmitting(false);
+      toast.error('❌ Erro ao salvar receita: ' + (err.message || 'Erro desconhecido'));
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('contas_receber').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report', 'contas-receber'] });
+      toast.success('Receita excluída com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir receita: ' + err.message);
+    }
+  });
+
+  const handleSubmit = async (formData: any) => {
+    if (!canCreate && !selectedInvoice) {
+      toast.error('⚠️ Selecione uma unidade específica para registrar uma nova receita. No modo Visão Global, a fazenda beneficiária deve ser definida.');
+      return;
+    }
+    saveMutation.mutate(formData);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -176,16 +189,10 @@ export const AccountsReceivable: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
-    try {
-      const { error } = await supabase.from('contas_receber').delete().eq('id', id);
-      if (error) throw error;
-      refresh();
-    } catch (err: any) {
-      toast.error('âŒ Erro ao excluir receita: ' + err.message);
-    }
+    deleteMutation.mutate(id);
   };
 
-  const handleMarkAsReceived = async (id: string) => {
+  const handleMarkAsReceived = (id: string) => {
     setSelectedInvoice(invoices.find(i => i.id === id));
     setIsBatchModalOpen(true);
   };
@@ -499,7 +506,7 @@ export const AccountsReceivable: React.FC = () => {
           setSelectedInvoice(null);
         }}
         onSuccess={() => {
-          refresh();
+          queryClient.invalidateQueries({ queryKey: ['report', 'contas-receber'] });
           setSelectedItems([]);
         }}
         selectedIds={selectedInvoice ? [selectedInvoice.id] : selectedItems}

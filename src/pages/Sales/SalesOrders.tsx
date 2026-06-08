@@ -56,11 +56,11 @@ import { HistoryModal } from '../../components/Modals/HistoryModal';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 export const SalesOrders: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = usePersistentState('SalesOrders_isModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'OPEN' | 'CLOSED') || 'OPEN';
@@ -80,8 +80,6 @@ export const SalesOrders: React.FC = () => {
     missingGta: false
   });
   const [isLogisticsAuditActive, setIsLogisticsAuditActive] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -89,28 +87,21 @@ export const SalesOrders: React.FC = () => {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const debouncedSearch = useDebounce(searchTerm, 500);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchOrders();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode, debouncedSearch, filterValues, activeTab]);
+  const queryClient = useQueryClient();
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+
+  const { data: rawOrders = [], isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['pedidos-venda', activeTenantId, activeFarmId, isGlobalMode, filterValues, activeTab],
+    queryFn: async () => {
+      if (!isReady || !activeTenantId) return [];
+
       let query = supabase
         .from('pedidos_venda')
         .select('*')
         .order('created_at', { ascending: false });
       
       query = applyFarmFilter(query);
-
-      if (debouncedSearch) {
-        query = query.ilike('numero_pedido', `%${debouncedSearch}%`);
-      }
 
       if (activeTab === 'OPEN') {
         query = query.neq('status', 'delivered');
@@ -133,7 +124,6 @@ export const SalesOrders: React.FC = () => {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        // Buscar parceiros separadamente
         const clienteIds = [...new Set(data.map((d: any) => d.cliente_id).filter(Boolean))];
         let parceirosMap: Record<string, string> = {};
         if (clienteIds.length > 0) {
@@ -141,7 +131,7 @@ export const SalesOrders: React.FC = () => {
           if (parceiros) parceiros.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
         }
 
-        const enrichedOrders = data.map((order: any) => {
+        return data.map((order: any) => {
           const estimatedCost = order.valor_total * 0.72;
           const margin = ((order.valor_total - estimatedCost) / (order.valor_total || 1)) * 100;
           const isHighRisk = order.valor_total > 500000;
@@ -154,74 +144,74 @@ export const SalesOrders: React.FC = () => {
             clientRating: 'B'
           };
         });
-
-        // Filtro de search no cliente após o enriquecimento
-        const finalOrders = debouncedSearch
-          ? enrichedOrders.filter((o: any) =>
-              (o.numero_pedido || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-              (o.parceiros?.nome || '').toLowerCase().includes(debouncedSearch.toLowerCase())
-            )
-          : enrichedOrders;
-
-        setOrders(finalOrders);
-        const valorTotal = finalOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-        const avgMargin = enrichedOrders.reduce((acc: number, curr: any) => acc + curr.margin, 0) / (enrichedOrders.length || 1);
-        
-        setStats([
-          { 
-            label: 'Pipeline Comercial', 
-            value: valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: DollarSign, color: '#10b981', progress: 100, change: `${finalOrders.length} ordens`, periodLabel: 'Faturamento Bruto',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-          { 
-            label: 'Saúde da Margem', 
-            value: `${avgMargin.toFixed(1)}%`, 
-            icon: TrendingUp, color: avgMargin > 20 ? '#10b981' : '#f59e0b', 
-            progress: Math.min(avgMargin * 2, 100), change: 'Margem Operacional', periodLabel: 'Lucratividade Est.',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-          { 
-            label: 'Exposição de Risco', 
-            value: enrichedOrders.filter((o: any) => o.isHighRisk).length, 
-            icon: AlertTriangle, color: '#ef4444', 
-            progress: (enrichedOrders.filter((o: any) => o.isHighRisk).length / (data.length || 1)) * 100, 
-            change: 'Acima do Limite', periodLabel: 'Auditoria',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-          { 
-            label: 'Taxa de Conclusão', 
-            value: (() => {
-              const entregues = data.filter((o: any) => o.status === 'delivered').length;
-              return data.length > 0 ? `${((entregues / data.length) * 100).toFixed(0)}%` : '---';
-            })(),
-            icon: Zap, color: '#3b82f6', 
-            progress: (() => {
-              const entregues = data.filter((o: any) => o.status === 'delivered').length;
-              return data.length > 0 ? (entregues / data.length) * 100 : 0;
-            })(),
-            trend: 'up' as const, 
-            change: `${data.filter((o: any) => o.status === 'delivered').length} pedidos entregues`, 
-            periodLabel: 'Concluído',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-        ]);
-      } else {
-        setOrders([]);
-        setStats([
-          { label: 'Pipeline Comercial', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Sem pedidos', periodLabel: 'Faturamento Bruto', sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-          { label: 'Saúde da Margem', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '---', periodLabel: 'Lucratividade Est.', sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-          { label: 'Exposição de Risco', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: '---', periodLabel: 'Auditoria', sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-          { label: 'Taxa de Conclusão', value: '---', icon: Zap, color: '#3b82f6', progress: 0, change: 'Sem dados', periodLabel: 'Concluído', sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-        ]);
       }
-    } catch (err) {
-      console.error('[SalesOrders] Erro ao buscar pedidos:', err);
-      setOrders([]);
-    } finally {
-      setLoading(false);
+      return [];
+    },
+    enabled: isReady && !!activeTenantId
+  });
+
+  if (queryError) {
+    console.error("[SalesOrders] Query error:", queryError);
+  }
+
+  const orders = React.useMemo(() => {
+    if (!debouncedSearch) return rawOrders;
+    return rawOrders.filter((o: any) =>
+      (o.numero_pedido || '').toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (o.parceiros?.nome || '').toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
+  }, [rawOrders, debouncedSearch]);
+
+  const stats = React.useMemo(() => {
+    if (!rawOrders || rawOrders.length === 0) {
+      return [
+        { label: 'Pipeline Comercial', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Sem pedidos', periodLabel: 'Faturamento Bruto', sparkline: [] },
+        { label: 'Saúde da Margem', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '---', periodLabel: 'Lucratividade Est.', sparkline: [] },
+        { label: 'Exposição de Risco', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: '---', periodLabel: 'Auditoria', sparkline: [] },
+        { label: 'Taxa de Conclusão', value: '---', icon: Zap, color: '#3b82f6', progress: 0, change: 'Sem dados', periodLabel: 'Concluído', sparkline: [] },
+      ];
     }
-  };
+
+    const valorTotal = rawOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+    const avgMargin = rawOrders.reduce((acc: number, curr: any) => acc + curr.margin, 0) / rawOrders.length;
+    const highRiskCount = rawOrders.filter((o: any) => o.isHighRisk).length;
+    const entregues = rawOrders.filter((o: any) => o.status === 'delivered').length;
+    const taxaConclusao = rawOrders.length > 0 ? `${((entregues / rawOrders.length) * 100).toFixed(0)}%` : '---';
+
+    return [
+      { 
+        label: 'Pipeline Comercial', 
+        value: valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
+        icon: DollarSign, color: '#10b981', progress: 100, change: `${rawOrders.length} ordens`, periodLabel: 'Faturamento Bruto',
+        sparkline: buildSparkline(rawOrders, 'created_at', 'valor_total')
+      },
+      { 
+        label: 'Saúde da Margem', 
+        value: `${avgMargin.toFixed(1)}%`, 
+        icon: TrendingUp, color: avgMargin > 20 ? '#10b981' : '#f59e0b', 
+        progress: Math.min(avgMargin * 2, 100), change: 'Margem Operacional', periodLabel: 'Lucratividade Est.',
+        sparkline: buildSparkline(rawOrders, 'created_at', 'valor_total')
+      },
+      { 
+        label: 'Exposição de Risco', 
+        value: highRiskCount, 
+        icon: AlertTriangle, color: '#ef4444', 
+        progress: (highRiskCount / rawOrders.length) * 100, 
+        change: 'Acima do Limite', periodLabel: 'Auditoria',
+        sparkline: buildSparkline(rawOrders, 'created_at', 'valor_total')
+      },
+      { 
+        label: 'Taxa de Conclusão', 
+        value: taxaConclusao,
+        icon: Zap, color: '#3b82f6', 
+        progress: rawOrders.length > 0 ? (entregues / rawOrders.length) * 100 : 0,
+        trend: 'up' as const, 
+        change: `${entregues} pedidos entregues`, 
+        periodLabel: 'Concluído',
+        sparkline: buildSparkline(rawOrders, 'created_at', 'valor_total')
+      },
+    ];
+  }, [rawOrders]);
 
   const handleOpenCreate = () => {
     setSelectedOrder(null);
@@ -233,14 +223,8 @@ export const SalesOrders: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (data: any) => {
-    if (!canCreate && !selectedOrder) {
-      toast.error('âš ï¸ Selecione uma unidade específica para registrar um pedido. No modo Visão Global, defina a fazenda emitente antes de prosseguir.');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (data: any) => {
       const payload = {
         numero_pedido: data.orderNumber,
         cliente_id: data.clientId,
@@ -261,52 +245,80 @@ export const SalesOrders: React.FC = () => {
       if (selectedOrder) {
         const { error } = await supabase.from('pedidos_venda').update(payload).eq('id', selectedOrder.id);
         if (error) throw error;
-        setIsModalOpen(false); 
-        fetchOrders();
       } else {
         const { error } = await supabase.from('pedidos_venda').insert([{ ...payload, ...insertPayload }]);
         if (error) throw error;
-        setIsModalOpen(false); 
-        fetchOrders();
       }
-    } catch (err: any) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pedidos-venda'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      setIsModalOpen(false);
+      toast.success('Pedido de venda salvo com sucesso!');
+    },
+    onError: (err: any) => {
       console.error('[SalesOrders] Erro ao salvar pedido:', err);
-      toast.error('âŒ Erro ao salvar pedido de venda: ' + (err.message || 'Erro desconhecido'));
-    } finally {
-      setIsSubmitting(false);
+      toast.error('❌ Erro ao salvar pedido de venda: ' + (err.message || 'Erro desconhecido'));
     }
-  };
+  });
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este pedido?')) return;
-    try {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase.from('pedidos_venda').delete().eq('id', id);
       if (error) throw error;
-      fetchOrders();
-    } catch (err: any) {
-      toast.error('âŒ Erro ao excluir pedido: ' + err.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pedidos-venda'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('Pedido excluído com sucesso!');
+    },
+    onError: (err: any) => {
+      console.error('[SalesOrders] Erro ao excluir pedido:', err);
+      toast.error('❌ Erro ao excluir pedido: ' + err.message);
     }
-  };
+  });
 
-  const handleUpdateOrderStatus = async (id: string, newStatus: 'pending' | 'delivered' | 'canceled') => {
-    setUpdatingStatus(id);
-    const prevOrders = [...orders];
-    setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o));
-
-    try {
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: 'pending' | 'delivered' | 'canceled' }) => {
       const { error } = await supabase
         .from('pedidos_venda')
         .update({ status: newStatus })
         .eq('id', id);
-
       if (error) throw error;
-      fetchOrders();
-    } catch (err: any) {
-      setOrders(prevOrders);
-      toast.error('âŒ Erro ao atualizar status do pedido: ' + err.message);
-    } finally {
+    },
+    onMutate: () => {
+      // no-op
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pedidos-venda'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('Status do pedido atualizado com sucesso!');
+    },
+    onError: (err: any) => {
+      console.error('[SalesOrders] Erro ao atualizar status:', err);
+      toast.error('❌ Erro ao atualizar status: ' + err.message);
+    },
+    onSettled: () => {
       setUpdatingStatus(null);
     }
+  });
+
+  const handleSubmit = async (data: any) => {
+    if (!canCreate && !selectedOrder) {
+      toast.error('⚠️ Selecione uma unidade específica para registrar um pedido. No modo Visão Global, defina a fazenda emitente antes de prosseguir.');
+      return;
+    }
+    saveMutation.mutate(data);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja excluir este pedido?')) return;
+    deleteMutation.mutate(id);
+  };
+
+  const handleUpdateOrderStatus = async (id: string, newStatus: 'pending' | 'delivered' | 'canceled') => {
+    setUpdatingStatus(id);
+    updateStatusMutation.mutate({ id, newStatus });
   };
 
   const renderKanbanCard = (order: any, index: number) => {
@@ -507,7 +519,6 @@ export const SalesOrders: React.FC = () => {
       setHistoryLoading(false);
     }, 800);
   };
-
   const columns = [
     {
       header: 'Pedido / Código',

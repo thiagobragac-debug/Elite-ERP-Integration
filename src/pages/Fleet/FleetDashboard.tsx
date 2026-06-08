@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Truck, 
   Settings, 
@@ -44,168 +45,155 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
 
 export const FleetDashboard: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, activeTenantId } = useFarmFilter();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any[]>([]);
-  const [criticalMachines, setCriticalMachines] = useState<any[]>([]);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchDashboardData();
-    } else {
-      setLoading(false);
+  const { data: dashboardData, isLoading: loading } = useQuery({
+    queryKey: ['fleet_dashboard', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      const queries = [
+        applyFarmFilter(supabase.from('maquinas').select('id, nome, tipo, placa, status, created_at').limit(500)),
+        applyFarmFilter(supabase.from('abastecimentos').select('*, maquinas(nome)').order('data', { ascending: false }).limit(5)),
+        applyFarmFilter(supabase.from('manutencao_frota').select('*, maquinas(nome)').order('data_inicio', { ascending: false }).limit(5)),
+        supabase.rpc('calculate_fleet_consumption', { p_tenant_id: activeTenantId || '', p_fazenda_id: isGlobalMode ? null : activeFarmId }),
+        applyFarmFilter(supabase.from('manutencao_frota').select('custo, maquina_id, status'))
+      ];
+
+      const [machRes, fuelRes, maintRes, consumptionRes, maintStatsRes] = await Promise.all(queries);
+      
+      if (machRes.error) throw machRes.error;
+      if (fuelRes.error) throw fuelRes.error;
+      if (maintRes.error) throw maintRes.error;
+      if (maintStatsRes.error) throw maintStatsRes.error;
+
+      // Transform machines to include missing fields for UI
+      const transformedMachines = (machRes.data || []).map((m: any) => ({
+        ...m,
+        modelo: m.tipo || 'Maquinário',
+        ano: 'N/A',
+        status: m.status || 'active',
+        hodometro: 0
+      }));
+
+      return { 
+        machines: transformedMachines, 
+        fuelings: fuelRes.data || [], 
+        maintenance: maintRes.data || [],
+        consumption: consumptionRes.data || { total_litros: 0, total_custo: 0, media_litros: 0 },
+        maintStats: maintStatsRes.data || []
+      };
+    },
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+  });
+
+  const criticalMachines = useMemo(() => {
+    if (!dashboardData) return [];
+    const { machines, maintStats } = dashboardData;
+    // Identificar máquinas em manutenção ativa
+    const inMaintIds = new Set(
+      maintStats
+        .filter((m: any) => m.status !== 'CONCLUIDO' && m.status !== 'completed' && m.status !== 'FINALIZADO')
+        .map((m: any) => m.maquina_id)
+    );
+    return machines.filter((m: any) => inMaintIds.has(m.id)).slice(0, 4);
+  }, [dashboardData]);
+
+  const recentActivities = useMemo(() => {
+    if (!dashboardData) return [];
+    const { fuelings, maintenance } = dashboardData;
+    return [
+      ...(fuelings || []).map((f: any) => ({ 
+        type: 'fuel', 
+        date: f.data, 
+        title: `Abastecimento: ${f.maquinas?.nome || 'Equipamento'}`, 
+        subtitle: `${f.litros}L`,
+        value: `R$ ${f.valor_total}`
+      })),
+      ...(maintenance || []).map((m: any) => ({ 
+        type: 'maint', 
+        date: m.data_inicio, 
+        title: `Manutenção: ${m.maquinas?.nome || 'Equipamento'}`, 
+        subtitle: m.descricao || 'Reparo Geral',
+        value: m.status === 'CONCLUIDO' || m.status === 'completed' ? 'Finalizada' : 'Em Aberto'
+      }))
+    ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6);
+  }, [dashboardData]);
+
+  const stats = useMemo(() => {
+    if (!dashboardData) {
+      return [
+        { label: 'Disponibilidade Real', value: '---', icon: Truck, color: 'hsl(var(--brand))', progress: 0, trend: 'none' as const, change: 'Processando...', sparkline: [] },
+        { label: 'Custo Total Frota (TCO)', value: '---', icon: DollarSign, color: '#ef4444', progress: 0, trend: 'none' as const, change: 'Processando...', periodLabel: 'Custo Acumulado', sparkline: [] },
+        { label: 'MTBF (Confiabilidade)', value: '---', icon: Zap, color: '#10b981', progress: 0, trend: 'none' as const, change: 'Processando...', periodLabel: 'Ciclo Falhas', sparkline: [] },
+        { label: 'Eficiência Diesel', value: '---', icon: Droplets, color: '#f59e0b', progress: 0, trend: 'none' as const, change: 'Processando...', periodLabel: 'Consumo Médio', sparkline: [] },
+      ];
     }
-  }, [activeFarmId, activeTenantId, isGlobalMode]);
+    const { machines, fuelings, maintenance, consumption, maintStats } = dashboardData;
+    const total = machines.length;
+    
+    const inMaintIds = new Set(
+      maintStats
+        .filter((m: any) => m.status !== 'CONCLUIDO' && m.status !== 'completed' && m.status !== 'FINALIZADO')
+        .map((m: any) => m.maquina_id)
+    );
 
-  const fetchDashboardData = async () => {
-    if (!activeFarmId && !isGlobalMode) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
-    setLoading(true);
-    try {
-      const fetchPromise = (async () => {
-        const queries = [
-          applyFarmFilter(supabase.from('maquinas').select('id, nome, tipo, placa, status, created_at').limit(500)),
-          applyFarmFilter(supabase.from('abastecimentos').select('*, maquinas(nome)').order('data', { ascending: false }).limit(5)),
-          applyFarmFilter(supabase.from('manutencao_frota').select('*, maquinas(nome)').order('data_inicio', { ascending: false }).limit(5)),
-          supabase.rpc('calculate_fleet_consumption', { p_tenant_id: activeTenantId || '', p_fazenda_id: isGlobalMode ? null : activeFarmId }),
-          applyFarmFilter(supabase.from('manutencao_frota').select('custo, maquina_id, status'))
-        ];
+    const inField = machines.filter((m: any) => m.status === 'ATIVO' && !inMaintIds.has(m.id)).length;
+    const availability = total > 0 ? (inField / total) * 100 : 0;
 
-        const [machRes, fuelRes, maintRes, consumptionRes, maintStatsRes] = await Promise.all(queries);
-        
-        // Transform machines to include missing fields for UI
-        const transformedMachines = (machRes.data || []).map((m: any) => ({
-          ...m,
-          modelo: m.tipo || 'Maquinário',
-          ano: 'N/A',
-          status: m.status || 'active',
-          hodometro: 0
-        }));
+    const totalFuelCost = Number(consumption?.total_custo || 0);
+    const totalMaintCost = maintStats.reduce((acc: number, cur: any) => acc + Number(cur.custo || 0), 0);
+    const totalTCO = totalFuelCost + totalMaintCost;
+    
+    const failures = maintStats.length;
+    const mtbf = failures > 0 ? Math.round((total * 720) / failures) : 0;
 
-        return { 
-          machines: transformedMachines, 
-          fuelings: fuelRes.data || [], 
-          maintenance: maintRes.data || [],
-          consumption: consumptionRes.data || { total_litros: 0, total_custo: 0, media_litros: 0 },
-          maintStats: maintStatsRes.data || []
-        };
-      })();
+    const avgDiesel = Number(consumption?.media_litros || 0);
 
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const result: any = await Promise.race([fetchPromise, timeoutPromise]);
-      const { machines, fuelings, maintenance, consumption, maintStats } = result;
-
-      if (machines) {
-        const total = machines.length;
-        
-        // Identificar máquinas em manutenção ativa
-        const inMaintIds = new Set(
-          maintStats
-            .filter((m: any) => m.status !== 'CONCLUIDO' && m.status !== 'completed' && m.status !== 'FINALIZADO')
-            .map((m: any) => m.maquina_id)
-        );
-
-        const inField = machines.filter((m: any) => m.status === 'ATIVO' && !inMaintIds.has(m.id)).length;
-        const availability = total > 0 ? (inField / total) * 100 : 0;
-
-        // Calcular TCO Real: Soma de Abastecimentos + Soma de Manutenções
-        const totalFuelCost = Number(consumption?.total_custo || 0);
-        const totalMaintCost = maintStats.reduce((acc: number, cur: any) => acc + Number(cur.custo || 0), 0);
-        const totalTCO = totalFuelCost + totalMaintCost;
-        
-        // MTBF Dinâmico
-        const failures = maintStats.length;
-        const mtbf = failures > 0 ? Math.round((total * 720) / failures) : 0;
-
-        const avgDiesel = Number(consumption?.media_litros || 0);
-
-        setStats([
-          { 
-            label: 'Disponibilidade Real', 
-            value: availability > 0 ? `${availability.toFixed(1)}%` : '---', 
-            icon: Truck, 
-            color: 'hsl(var(--brand))', 
-            progress: availability,
-            change: availability > 0 ? 'Uptime calculado' : 'Sem dados',
-            sparkline: buildSparkline(machines, 'created_at', null)
-          },
-          { 
-            label: 'Custo Total Frota (TCO)', 
-            value: totalTCO > 0 ? `R$ ${(totalTCO / 1000).toFixed(1)}k` : '---', 
-            icon: DollarSign, 
-            color: '#ef4444', 
-            progress: totalTCO > 0 ? Math.min(100, (totalTCO / 500000) * 100) : 0,
-            trend: totalTCO > 0 ? 'up' : 'none',
-            change: totalTCO > 0 ? 'Combustível + Oficina' : 'Sem custos registrados',
-            periodLabel: 'Custo Acumulado',
-            sparkline: buildSparkline(fuelings, 'data', 'valor_total')
-          },
-          { 
-            label: 'MTBF (Confiabilidade)', 
-            value: mtbf > 0 ? `${mtbf}h` : '---', 
-            icon: Zap, 
-            color: '#10b981', 
-            progress: mtbf > 0 ? Math.min(100, (mtbf / 1000) * 100) : 0,
-            trend: mtbf > 0 ? 'up' : 'none',
-            change: mtbf > 0 ? `${failures} ocorrências registradas` : 'Sem manutenções',
-            periodLabel: 'Ciclo Falhas',
-            sparkline: buildSparkline(maintenance, 'data_inicio', 'custo')
-          },
-          { 
-            label: 'Eficiência Diesel', 
-            value: avgDiesel > 0 ? `${avgDiesel.toFixed(1)} L/abast.` : '---', 
-            icon: Droplets, 
-            color: '#f59e0b', 
-            progress: avgDiesel > 0 ? Math.min(100, (avgDiesel / 200) * 100) : 0,
-            trend: avgDiesel > 0 ? 'up' : 'none',
-            change: avgDiesel > 0 ? 'Média real de abastecimentos' : 'Sem abastecimentos',
-            periodLabel: 'Consumo Médio',
-            sparkline: buildSparkline(fuelings, 'data', 'litros')
-          },
-        ]);
-
-        setCriticalMachines(machines
-          .filter((m: any) => inMaintIds.has(m.id))
-          .slice(0, 4)
-        );
-      }
-
-      const activities = [
-        ...(fuelings || []).map((f: any) => ({ 
-          type: 'fuel', 
-          date: f.data, 
-          title: `Abastecimento: ${f.maquinas?.nome || 'Equipamento'}`, 
-          subtitle: `${f.litros}L`,
-          value: `R$ ${f.valor_total}`
-        })),
-        ...(maintenance || []).map((m: any) => ({ 
-          type: 'maint', 
-          date: m.data_inicio, 
-          title: `Manutenção: ${m.maquinas?.nome || 'Equipamento'}`, 
-          subtitle: m.descricao || 'Reparo Geral',
-          value: m.status === 'CONCLUIDO' || m.status === 'completed' ? 'Finalizada' : 'Em Aberto'
-        }))
-      ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 6);
-
-      setRecentActivities(activities);
-
-    } catch (err) {
-      console.warn("FleetDashboard: Fetch error:", err);
-      setStats([
-        { label: 'Disponibilidade Real', value: '---', icon: Truck, color: 'hsl(var(--brand))', progress: 0, change: 'Erro de Conexão', sparkline: [] },
-        { label: 'TCO Médio Frota', value: '---', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Erro de Conexão', sparkline: [] },
-        { label: 'MTBF (Confiabilidade)', value: '---', icon: Zap, color: '#10b981', progress: 0, change: 'Erro de Conexão', sparkline: [] },
-        { label: 'Eficiência Diesel', value: '---', icon: Droplets, color: '#f59e0b', progress: 0, change: 'Erro de Conexão', sparkline: [] }
-      ]);
-      setCriticalMachines([]);
-      setRecentActivities([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    return [
+      { 
+        label: 'Disponibilidade Real', 
+        value: availability > 0 ? `${availability.toFixed(1)}%` : '---', 
+        icon: Truck, 
+        color: 'hsl(var(--brand))', 
+        progress: availability,
+        trend: 'none' as const,
+        change: availability > 0 ? 'Uptime calculated' : 'Sem dados',
+        periodLabel: 'Uptime',
+        sparkline: buildSparkline(machines, 'created_at', null)
+      },
+      { 
+        label: 'Custo Total Frota (TCO)', 
+        value: totalTCO > 0 ? `R$ ${(totalTCO / 1000).toFixed(1)}k` : '---', 
+        icon: DollarSign, 
+        color: '#ef4444', 
+        progress: totalTCO > 0 ? Math.min(100, (totalTCO / 500000) * 100) : 0,
+        trend: totalTCO > 0 ? 'up' : 'none',
+        change: totalTCO > 0 ? 'Combustível + Oficina' : 'Sem custos registrados',
+        periodLabel: 'Custo Acumulado',
+        sparkline: buildSparkline(fuelings, 'data', 'valor_total')
+      },
+      { 
+        label: 'MTBF (Confiabilidade)', 
+        value: mtbf > 0 ? `${mtbf}h` : '---', 
+        icon: Zap, 
+        color: '#10b981', 
+        progress: mtbf > 0 ? Math.min(100, (mtbf / 1000) * 100) : 0,
+        trend: mtbf > 0 ? 'up' : 'none',
+        change: mtbf > 0 ? `${failures} ocorrências registradas` : 'Sem manutenções',
+        periodLabel: 'Ciclo Falhas',
+        sparkline: buildSparkline(maintenance, 'data_inicio', 'custo')
+      },
+      { 
+        label: 'Eficiência Diesel', 
+        value: avgDiesel > 0 ? `${avgDiesel.toFixed(1)} L/abast.` : '---', 
+        icon: Droplets, 
+        color: '#f59e0b', 
+        progress: avgDiesel > 0 ? Math.min(100, (avgDiesel / 200) * 100) : 0,
+        trend: avgDiesel > 0 ? 'up' : 'none',
+        change: avgDiesel > 0 ? 'Média real de abastecimentos' : 'Sem abastecimentos',
+        periodLabel: 'Consumo Médio',
+        sparkline: buildSparkline(fuelings, 'data', 'litros')
+      },
+    ];
+  }, [dashboardData]);
 
   return (
     <div className="fleet-hub animate-slide-up">
@@ -237,7 +225,7 @@ export const FleetDashboard: React.FC = () => {
             change={stat.change}
             periodLabel={stat.periodLabel}
             sparkline={stat.sparkline}
-            trend={stat.trend}
+            trend={stat.trend === 'up' || stat.trend === 'down' ? stat.trend : undefined}
           />
         ))}
       </div>
@@ -254,7 +242,7 @@ export const FleetDashboard: React.FC = () => {
           </div>
 
           <div className="critical-assets-grid">
-            {criticalMachines.length > 0 ? criticalMachines.map(m => (
+            {criticalMachines.length > 0 ? criticalMachines.map((m: any) => (
               <div key={m.id} className="asset-health-card">
                 <div className="asset-header">
                   <div className="asset-icon">

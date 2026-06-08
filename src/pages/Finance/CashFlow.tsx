@@ -31,6 +31,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TransactionForm } from '../../components/Forms/TransactionForm';
 import { ModernTable } from '../../components/DataTable/ModernTable';
@@ -54,8 +55,27 @@ interface Transaction {
 }
 
 export const CashFlow: React.FC = () => {
+  const queryClient = useQueryClient();
   const { canCreate, insertPayload } = useFarmFilter();
   const { data: rawTransactions, stats: reportStats, loading, error, refresh } = useReportData('fluxo-caixa');
+
+  // Mutation: Insert cash inflow/outflow transaction
+  const insertTransactionMutation = useMutation({
+    mutationFn: async (payload: { table: string; dbPayload: any }) => {
+      const { error } = await supabase.from(payload.table).insert([payload.dbPayload]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsModalOpen(false);
+      // Invalidate the cache to reload table & KPIs re-rendered from useReportData
+      queryClient.invalidateQueries({ queryKey: ['report', 'fluxo-caixa'] });
+      toast.success('Transação registrada com sucesso!');
+    },
+    onError: (err: any) => {
+      console.error(err);
+      toast.error('Erro ao registrar operação: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
   const transactions = rawTransactions || [];
   
   const [searchParams, setSearchParams] = useSearchParams();

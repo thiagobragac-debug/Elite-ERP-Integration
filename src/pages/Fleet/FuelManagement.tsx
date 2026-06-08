@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -60,8 +62,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const FuelManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [logs, setLogs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('FuelManagement_isModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'LOG' | 'ANALYSIS') || 'LOG';
@@ -80,106 +81,74 @@ export const FuelManagement: React.FC = () => {
     dateEnd: ''
   });
 
-  // FIX: `data` only exists inside fetchLogs — use [] as safe initial sparkline
-  const [stats, setStats] = useState<any[]>([
-    { label: 'Consumo Energético', value: '0 L', icon: Droplets, color: '#10b981', progress: 0, sparkline: [] },
-    { label: 'Custo de Operação', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, sparkline: [] },
-    { label: 'Eficiência de Frota', value: '0%', icon: Gauge, color: '#3b82f6', progress: 0, sparkline: [] },
-    { label: 'Preço Médio (L)', value: 'R$ 0,00', icon: BarChart3, color: '#f59e0b', progress: 0, sparkline: [] },
-  ]);
-
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarm;
-    if (isReady) {
-      fetchLogs();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarm, isGlobalMode, activeTenantId]);
-
-  const fetchLogs = async () => {
-    if (!activeFarmId && !isGlobalMode) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-
-    try {
-      const fetchPromise = (async () => {
-        let query = supabase
-          .from('abastecimentos')
-          .select('*, maquinas:maquina_id(nome)')
-          .order('data', { ascending: false })
-          .limit(500);
-        
-        query = applyFarmFilter(query);
-        const { data, error } = await query;
-        if (error) throw error;
-        return data;
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const data = (await Promise.race([fetchPromise, timeoutPromise]) as any[]) || [];
+  const { data: logs = [], isLoading: loading, error } = useQuery({
+    queryKey: ['fuel_logs', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let query = supabase
+        .from('abastecimentos')
+        .select('*, maquinas:maquina_id(nome)')
+        .order('data', { ascending: false })
+        .limit(500);
       
-      setLogs(data);
-      const totalLitros = data.reduce((acc, curr) => acc + Number(curr.litros || 0), 0);
-      const gastoTotal = data.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
-      const precoMedio = gastoTotal / (totalLitros || 1);
-      
-      setStats([
-        { label: 'Consumo Energético', value: totalLitros > 0 ? `${totalLitros.toLocaleString()} L` : '---', icon: Droplets, color: '#10b981', progress: totalLitros > 0 ? 100 : 0, change: totalLitros > 0 ? 'Total período' : 'Sem abastecimentos',
-          sparkline: buildSparkline(data, 'data', 'litros')
-        },
-        { label: 'Custo de Operação', value: gastoTotal > 0 ? gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#ef4444', 
-          progress: gastoTotal > 0 ? Math.min(100, (gastoTotal / 50000) * 100) : 0, 
-          trend: gastoTotal > 0 ? 'up' as const : 'neutral' as const, 
-          change: gastoTotal > 0 ? 'Gasto Acumulado' : 'Sem gastos',
-          sparkline: buildSparkline(data, 'data', 'valor_total')
-        },
-        { 
-          label: 'Eficiência Diesel', 
-          value: (() => {
-            const maquinas = new Set(data.map((l: any) => l.maquina_id).filter(Boolean));
-            const totalMaq = maquinas.size;
-            if (totalMaq === 0 || data.length === 0) return '---';
-            const mediaLitros = totalLitros / data.length;
-            const eficientes = data.filter((l: any) => Number(l.litros || 0) <= mediaLitros).length;
-            const pct = Math.round((eficientes / data.length) * 100);
-            return `${pct}%`;
-          })(),
-          icon: Gauge, color: '#3b82f6', 
-          progress: (() => {
-            if (data.length === 0) return 0;
-            const mediaLitros = totalLitros / data.length;
-            const eficientes = data.filter((l: any) => Number(l.litros || 0) <= mediaLitros).length;
-            return Math.round((eficientes / data.length) * 100);
-          })(),
-          change: data.length > 0 ? 'Diesel abaixo da média' : 'Sem dados',
-          sparkline: buildSparkline(data, 'data', null)
-        },
-        { label: 'Preço Médio (L)', value: precoMedio > 0 ? precoMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: BarChart3, color: '#f59e0b', 
-          progress: precoMedio > 0 ? Math.min(100, (precoMedio / 10) * 100) : 0, 
-          change: precoMedio > 0 ? 'Custo/Litro' : 'Sem dados',
-          sparkline: buildSparkline(data, 'data', 'valor_total')
-        },
-      ]);
-    } catch (err) {
-      console.warn('[Fuel] Fetch error:', err);
-      setLogs([]);
-      // FIX: `data` is not in scope here — use empty sparklines
-      setStats([
-        { label: 'Consumo Energético', value: '---', icon: Droplets, color: '#10b981', progress: 0, change: 'Erro ao carregar', sparkline: [] },
-        { label: 'Custo de Operação', value: '---', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Erro ao carregar', sparkline: [] },
-        { label: 'Eficiência de Frota', value: '---', icon: Gauge, color: '#3b82f6', progress: 0, change: 'Erro ao carregar', sparkline: [] },
-        { label: 'Preço Médio (L)', value: '---', icon: BarChart3, color: '#f59e0b', progress: 0, change: 'Erro ao carregar', sparkline: [] },
-      ]);
-    } finally {
-      setLoading(false);
+      query = applyFarmFilter(query);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+  });
+
+  const stats = useMemo(() => {
+    if (!logs || logs.length === 0) {
+      return [
+        { label: 'Consumo Energético', value: '---', icon: Droplets, color: '#10b981', progress: 0, change: 'Sem dados', sparkline: [] },
+        { label: 'Custo de Operação', value: '---', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Sem dados', sparkline: [] },
+        { label: 'Eficiência de Frota', value: '---', icon: Gauge, color: '#3b82f6', progress: 0, change: 'Sem dados', sparkline: [] },
+        { label: 'Preço Médio (L)', value: '---', icon: BarChart3, color: '#f59e0b', progress: 0, change: 'Sem dados', sparkline: [] },
+      ];
     }
-  };
+    const totalLitros = logs.reduce((acc, curr) => acc + Number(curr.litros || 0), 0);
+    const gastoTotal = logs.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
+    const precoMedio = gastoTotal / (totalLitros || 1);
+
+    return [
+      { label: 'Consumo Energético', value: totalLitros > 0 ? `${totalLitros.toLocaleString()} L` : '---', icon: Droplets, color: '#10b981', progress: totalLitros > 0 ? 100 : 0, change: totalLitros > 0 ? 'Total período' : 'Sem abastecimentos',
+        sparkline: buildSparkline(logs, 'data', 'litros')
+      },
+      { label: 'Custo de Operação', value: gastoTotal > 0 ? gastoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#ef4444', 
+        progress: gastoTotal > 0 ? Math.min(100, (gastoTotal / 50000) * 100) : 0, 
+        trend: gastoTotal > 0 ? ('up' as const) : undefined, 
+        change: gastoTotal > 0 ? 'Gasto Acumulado' : 'Sem gastos',
+        sparkline: buildSparkline(logs, 'data', 'valor_total')
+      },
+      { 
+        label: 'Eficiência Diesel', 
+        value: (() => {
+          const maquinas = new Set(logs.map((l: any) => l.maquina_id).filter(Boolean));
+          const totalMaq = maquinas.size;
+          if (totalMaq === 0 || logs.length === 0) return '---';
+          const mediaLitros = totalLitros / logs.length;
+          const eficientes = logs.filter((l: any) => Number(l.litros || 0) <= mediaLitros).length;
+          const pct = Math.round((eficientes / logs.length) * 100);
+          return `${pct}%`;
+        })(),
+        icon: Gauge, color: '#3b82f6', 
+        progress: (() => {
+          if (logs.length === 0) return 0;
+          const mediaLitros = totalLitros / logs.length;
+          const eficientes = logs.filter((l: any) => Number(l.litros || 0) <= mediaLitros).length;
+          return Math.round((eficientes / logs.length) * 100);
+        })(),
+        change: logs.length > 0 ? 'Diesel abaixo da média' : 'Sem dados',
+        sparkline: buildSparkline(logs, 'data', null)
+      },
+      { label: 'Preço Médio (L)', value: precoMedio > 0 ? precoMedio.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: BarChart3, color: '#f59e0b', 
+        progress: precoMedio > 0 ? Math.min(100, (precoMedio / 10) * 100) : 0, 
+        change: precoMedio > 0 ? 'Custo/Litro' : 'Sem dados',
+        sparkline: buildSparkline(logs, 'data', 'valor_total')
+      },
+    ];
+  }, [logs]);
 
   const handleOpenCreate = () => {
     setSelectedLog(null);
@@ -191,28 +160,43 @@ export const FuelManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (formData: any) => {
-    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
-    const payload = {
-      maquina_id: formData.machine_id,
-      estoque_id: formData.estoque_id,
-      data: formData.date,
-      litros: parseFloat(formData.liters),
-      valor_total: parseFloat(formData.total_cost),
-      valor_medidor: parseFloat(formData.meter_value),
-      tipo_combustivel: formData.fuel_type,
-      responsavel: formData.responsible,
-      fazenda_id: activeFarm.id,
-      tenant_id: activeFarm.tenantId
-    };
+  const saveMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const payload = {
+        maquina_id: formData.machine_id,
+        estoque_id: formData.estoque_id,
+        data: formData.date,
+        litros: parseFloat(formData.liters),
+        valor_total: parseFloat(formData.total_cost),
+        valor_medidor: parseFloat(formData.meter_value),
+        tipo_combustivel: formData.fuel_type,
+        responsavel: formData.responsible,
+        fazenda_id: activeFarm?.id,
+        tenant_id: activeTenantId
+      };
 
-    if (selectedLog) {
-      const { error } = await supabase.from('abastecimentos').update(payload).eq('id', selectedLog.id);
-      if (!error) { setIsModalOpen(false); fetchLogs(); }
-    } else {
-      const { error } = await supabase.from('abastecimentos').insert([payload]);
-      if (!error) { setIsModalOpen(false); fetchLogs(); }
+      if (selectedLog) {
+        const { error } = await supabase.from('abastecimentos').update(payload).eq('id', selectedLog.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('abastecimentos').insert([payload]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fuel_logs', activeFarmId, activeTenantId, isGlobalMode] });
+      queryClient.invalidateQueries({ queryKey: ['fleet_dashboard'] });
+      setIsModalOpen(false);
+      toast.success(selectedLog ? 'Abastecimento atualizado com sucesso!' : 'Abastecimento registrado com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao salvar abastecimento: ' + err.message);
     }
+  });
+
+  const handleSubmit = async (formData: any) => {
+    if (!activeFarm) return;
+    saveMutation.mutate(formData);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -248,10 +232,24 @@ export const FuelManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'log_abastecimento', 'Relatório de Abastecimento de Frota');
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('abastecimentos').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fuel_logs', activeFarmId, activeTenantId, isGlobalMode] });
+      queryClient.invalidateQueries({ queryKey: ['fleet_dashboard'] });
+      toast.success('Abastecimento excluído com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir abastecimento: ' + err.message);
+    }
+  });
+
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este abastecimento?')) return;
-    const { error } = await supabase.from('abastecimentos').delete().eq('id', id);
-    if (!error) fetchLogs();
+    deleteMutation.mutate(id);
   };
 
   const columns = [
@@ -433,7 +431,7 @@ export const FuelManagement: React.FC = () => {
             color={stat.color}
             progress={stat.progress}
             change={stat.change || '---'}
-            trend={stat.trend || 'up'}
+            trend={stat.trend === 'up' || stat.trend === 'down' ? stat.trend : undefined}
             sparkline={stat.sparkline}
           
             periodLabel="Frota Ativa"

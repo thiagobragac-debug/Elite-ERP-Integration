@@ -32,6 +32,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TauzeMainChart } from '../../components/Charts/TauzeMainChart';
 import { KPISkeleton, TableSkeleton } from '../../components/Feedback/Skeleton';
@@ -61,37 +62,425 @@ function buildSparkline(records: any[], dateField: string, valueField: string | 
 }
 
 export const ExecutiveDashboard: React.FC = () => {
+  const queryClient = useQueryClient();
 
   const { tenant, userProfile } = useTenant();
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, applyTenantFilter, activeTenantId } = useFarmFilter();
-  const [kpiData, setKpiData] = useState<any[]>([
-    { id: 'gmd', label: 'Evolução de GMD', value: '---', icon: Activity, color: '#10b981', progress: 0 },
-    { id: 'caixa', label: 'Fluxo de Caixa', value: '---', icon: DollarSign, color: '#f59e0b', progress: 0 },
-    { id: 'lotacao', label: 'Taxa de Lotação', value: '---', icon: PieChart, color: '#3b82f6', progress: 0 },
-    { id: 'ebitda', label: 'EBITDA Projetado', value: '---', icon: TrendingUp, color: '#8b5cf6', progress: 0 }
-  ]);
-  const [loading, setLoading] = useState(true);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  
+  
+  
   const [isTVMode, setIsTVMode] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [copilotInput, setCopilotInput] = useState('');
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [chartData, setChartData] = useState<any[]>([]);
+  
   const [activeChartMetric, setActiveChartMetric] = useState<'gmd' | 'peso' | 'arroba'>('gmd');
   const [chartMode, setChartMode] = useState<'line' | 'bar'>('line');
   const [targetValue, setTargetValue] = useState<number>(1.2);
-  const [strategicInsights, setStrategicInsights] = useState({ projAbate: '---', desvioMeta: '---', ecc: '---' });
+  
   const [chatHistory, setChatHistory] = useState<any[]>([]);
   const navigate = useNavigate();
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
+  const { data: dashboardData, isLoading: loading, refetch } = useQuery({
+    queryKey: ['executive_stats', activeTenantId, activeFarmId, isGlobalMode],
+    queryFn: async () => {
+      if (!isGlobalMode && !isValidUUID(activeFarmId)) {
+        return {
+          animalCount: 0,
+          bankAccounts: [],
+          stockData: [],
+          pesagens: [],
+          activities: [],
+          eccData: [],
+          gmd: 0,
+          lotation: { area_total: 0, media_lotacao: 0, pastos_descanso: 0 },
+          reprod: { eventos_total: 0, ias_mes: 0, taxa_sucesso: 0 },
+          fleet: { total_litros: 0, total_custo: 0, media_litros: 0 },
+          financePagar: [],
+          financeReceber: [],
+          sparkRebanho: [],
+          sparkCaixa: [],
+          sparkGmd: [],
+          sparkLotacao: [],
+          sparkEstoque: []
+        };
+      }
+
+      const queries = [
+        applyFarmFilter(supabase.from('animais').select('*', { count: 'exact', head: true })).then((r: any) => r).catch((e: any) => ({ count: 0, data: null, error: e })),
+        applyTenantFilter(supabase.from('contas_bancarias').select('saldo_atual')).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+        applyFarmFilter(supabase.from('produtos').select('estoque_atual, custo_medio')).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+        applyFarmFilter(supabase.from('pesagens').select('peso, data_pesagem').order('data_pesagem', { ascending: true }).limit(200)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+        applyFarmFilter(supabase.from('pesagens').select('created_at, observacao, animais(brinco)').order('created_at', { ascending: false }).limit(4)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+        applyFarmFilter(supabase.from('manejo_reproducao').select('ecc').not('ecc', 'is', null).limit(100)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+        
+        Promise.resolve(supabase.rpc('calculate_herd_gmd', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: 0, error: e })),
+        Promise.resolve(supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
+        Promise.resolve(supabase.rpc('get_reproductive_stats', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
+        Promise.resolve(supabase.rpc('calculate_fleet_consumption', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
+        Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_pagar', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+        Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_receber', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
+        
+        generateHistoricalSparkline('rebanho', activeTenantId || '', isGlobalMode ? null : activeFarmId, 365),
+        generateHistoricalSparkline('caixa', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30),
+        generateHistoricalSparkline('gmd', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30),
+        generateHistoricalSparkline('lotacao', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30),
+        generateHistoricalSparkline('estoque', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30)
+      ];
+
+      const [
+        animalRes, 
+        bankRes, 
+        stockRes, 
+        weightsRes, 
+        activitiesRes,
+        eccRes,
+        gmdRes,
+        lotationRes,
+        reprodRes,
+        fleetRes,
+        financePagarRes,
+        financeReceberRes,
+        sparkRebanho,
+        sparkCaixa,
+        sparkGmd,
+        sparkLotacao,
+        sparkEstoque
+      ]: any[] = await Promise.all(queries);
+
+      return { 
+        animalCount: animalRes.count || 0, 
+        bankAccounts: bankRes.data || [], 
+        stockData: stockRes.data || [],
+        pesagens: weightsRes.data || [],
+        activities: activitiesRes.data || [],
+        eccData: eccRes.data || [],
+        gmd: gmdRes.data !== null ? Number(gmdRes.data) : 0,
+        lotation: lotationRes.data || { area_total: 0, media_lotacao: 0, pastos_descanso: 0 },
+        reprod: reprodRes.data || { eventos_total: 0, ias_mes: 0, taxa_sucesso: 0 },
+        fleet: fleetRes.data || { total_litros: 0, total_custo: 0, media_litros: 0 },
+        financePagar: financePagarRes.data || [],
+        financeReceber: financeReceberRes.data || [],
+        sparkRebanho,
+        sparkCaixa,
+        sparkGmd,
+        sparkLotacao,
+        sparkEstoque
+      };
+    },
+    enabled: isReady
+  });
+
+  // Real-time Studio Sync Hook
   useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchExecutiveStats();
-    } else {
-      setLoading(false);
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'tauze_selected_metrics') {
+        refetch();
+      }
+    };
+    const handleFocus = () => {
+      refetch();
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refetch]);
+
+  const fetchExecutiveStats = () => {
+    refetch();
+  };
+
+  // Extract structured derived variables from queries
+  const animalCount = dashboardData?.animalCount || 0;
+  const bankAccounts = dashboardData?.bankAccounts || [];
+  const stockData = dashboardData?.stockData || [];
+  const pesagens = dashboardData?.pesagens || [];
+  const activities = dashboardData?.activities || [];
+  const eccData = dashboardData?.eccData || [];
+  const gmd = dashboardData?.gmd || 0;
+  const lotation = dashboardData?.lotation || { area_total: 0, media_lotacao: 0, pastos_descanso: 0 };
+  const reprod = dashboardData?.reprod || { eventos_total: 0, ias_mes: 0, taxa_sucesso: 0 };
+  const fleet = dashboardData?.fleet || { total_litros: 0, total_custo: 0, media_litros: 0 };
+  const financePagar = dashboardData?.financePagar || [];
+  const financeReceber = dashboardData?.financeReceber || [];
+  const sparkRebanho = dashboardData?.sparkRebanho || [];
+  const sparkCaixa = dashboardData?.sparkCaixa || [];
+  const sparkGmd = dashboardData?.sparkGmd || [];
+  const sparkLotacao = dashboardData?.sparkLotacao || [];
+  const sparkEstoque = dashboardData?.sparkEstoque || [];
+
+  const totalCash = bankAccounts?.reduce((acc: any, curr: any) => acc + Number(curr.saldo_atual), 0) || 0;
+  const totalStockValue = stockData?.reduce((acc: any, curr: any) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0) || 0;
+
+  const gmdVal = gmd || 0;
+  const gmdText = gmdVal > 0 ? (gmdVal.toFixed(3) + ' kg') : '---';
+
+  const targetWeight = 500;
+  const latestWeights = pesagens?.slice(-10) || [];
+  const avgWeight = latestWeights.length > 0 ? latestWeights.reduce((acc: any, w: any) => acc + Number(w.peso), 0) / latestWeights.length : 0;
+  
+  let projAbateText = '---';
+  if (avgWeight > 0 && gmdVal > 0 && avgWeight < targetWeight) {
+    const daysToSlaughter = (targetWeight - avgWeight) / gmdVal;
+    if (daysToSlaughter < 3650) {
+      const projDate = new Date();
+      projDate.setDate(projDate.getDate() + daysToSlaughter);
+      projAbateText = projDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase();
     }
-  }, [activeFarmId, activeTenantId, isGlobalMode]);
+  }
+
+  let desvioMetaText = '---';
+  if (gmdVal > 0) {
+    const deviation = ((gmdVal - 1.0) / 1.0) * 100;
+    desvioMetaText = (deviation > 0 ? '+' : '') + deviation.toFixed(1) + '%';
+  } else {
+    desvioMetaText = '0.0%';
+  }
+
+  let eccText = '---';
+  if (eccData && eccData.length > 0) {
+    const avgEcc = eccData.reduce((acc: any, row: any) => acc + Number(row.ecc), 0) / eccData.length;
+    eccText = avgEcc.toFixed(2) + ' avg';
+  } else {
+    eccText = '0.00 avg';
+  }
+  
+  const strategicInsights = { projAbate: projAbateText, desvioMeta: desvioMetaText, ecc: eccText };
+
+  const areaTotal = Number(lotation?.area_total || 0);
+  const lotacaoVal = areaTotal > 0 ? (animalCount / areaTotal) : 0;
+  const lotacaoText = lotacaoVal > 0 ? (lotacaoVal.toFixed(2) + ' UA/ha') : '---';
+
+  const paidReceber = financeReceber?.find((x: any) => x.status === 'PAGO')?.total_value || 0;
+  const paidPagar = financePagar?.find((x: any) => x.status === 'PAGO')?.total_value || 0;
+  const fluxoCaixaVal = totalCash > 0 ? totalCash : (Number(paidReceber) - Number(paidPagar));
+
+  const totalReceber = financeReceber?.reduce((acc: number, x: any) => acc + Number(x.total_value || 0), 0) || 0;
+  const totalPagar = financePagar?.reduce((acc: number, x: any) => acc + Number(x.total_value || 0), 0) || 0;
+  const ebitdaVal = totalReceber > 0 ? ((totalReceber - totalPagar) / totalReceber) * 100 : 0;
+  const ebitdaText = (totalReceber > 0 || totalPagar > 0) ? (ebitdaVal.toFixed(1) + '%') : '---';
+
+  const dieselVal = Number(fleet?.media_litros || 0);
+  const dieselText = dieselVal > 0 ? (dieselVal.toFixed(1) + ' L/h') : '---';
+
+  const prenhezVal = Number(reprod?.taxa_sucesso || 0);
+  const prenhezText = Number(reprod?.eventos_total) > 0 ? (prenhezVal.toFixed(1) + '%') : '---';
+
+  const allStats = [
+    { 
+      id: 'rebanho',
+      label: 'Total de Rebanho',
+      value: animalCount > 0 ? animalCount.toLocaleString() : '---',
+      icon: Beef,
+      color: '#f97316',
+      progress: animalCount > 0 ? 100 : 0,
+      trend: (animalCount > 0 ? 'up' : 'none'),
+      change: animalCount > 0 ? 'Rebanho cadastrado' : 'Sem animais',
+      periodLabel: 'Todo o Período',
+      sparkline: sparkRebanho
+    },
+    { 
+      id: 'gmd',
+      label: 'Evolução de GMD', 
+      value: gmdText, 
+      icon: Activity, 
+      color: '#10b981', 
+      progress: Math.min(Math.round(gmdVal * 100), 100) || 0, 
+      trend: (gmdVal > 0 ? (gmdVal >= 0.8 ? 'up' : 'down') : 'none'),
+      change: gmdVal > 0 ? 'Calculado de pesagens' : 'Sem pesagens registradas',
+      periodLabel: 'Evolução 30d',
+      sparkline: sparkGmd.length > 0 ? sparkGmd : []
+    },
+    { 
+      id: 'lotacao',
+      label: 'Taxa de Lotação', 
+      value: lotacaoText, 
+      icon: PieChart, 
+      color: '#3b82f6', 
+      progress: Math.min(Math.round(lotacaoVal * 50), 100) || 0, 
+      trend: (lotacaoVal > 0 ? (lotacaoVal >= 1.5 ? 'up' : 'down') : 'none'),
+      change: lotacaoVal > 0 ? 'Pressão de pastejo' : 'Sem dados de pasto',
+      periodLabel: 'Evolução 30d',
+      sparkline: sparkLotacao.length > 0 ? sparkLotacao : []
+    },
+    { 
+      id: 'caixa',
+      label: 'Fluxo de Caixa', 
+      value: fluxoCaixaVal !== 0 ? 'R$ ' + (fluxoCaixaVal / 1000).toFixed(1) + 'k' : '---', 
+      icon: DollarSign, 
+      color: '#f59e0b', 
+      progress: fluxoCaixaVal > 0 ? Math.min(100, Math.round((fluxoCaixaVal / Math.max(fluxoCaixaVal, 1)) * 100)) : 0,
+      trend: (fluxoCaixaVal > 0 ? 'up' : fluxoCaixaVal < 0 ? 'down' : 'none'),
+      change: fluxoCaixaVal !== 0 ? 'Saldo bancário consolidado' : 'Sem dados bancários',
+      periodLabel: 'Evolução 30d',
+      sparkline: sparkCaixa.length > 0 ? sparkCaixa : []
+    },
+    { 
+      id: 'estoque',
+      label: 'Valor de Estoque', 
+      value: totalStockValue > 0 ? 'R$ ' + (totalStockValue / 1000).toFixed(1) + 'k' : '---', 
+      icon: Package, 
+      color: '#6366f1', 
+      progress: totalStockValue > 0 ? 100 : 0,
+      trend: (totalStockValue > 0 ? 'up' : 'none'),
+      change: totalStockValue > 0 ? 'Custo médio × estoque' : 'Sem produtos em estoque',
+      periodLabel: 'Evolução 30d',
+      sparkline: sparkEstoque.length > 0 ? sparkEstoque : []
+    },
+    { 
+      id: 'ebitda',
+      label: 'EBITDA Projetado', 
+      value: ebitdaText, 
+      icon: TrendingUp, 
+      color: '#8b5cf6', 
+      progress: ebitdaVal > 0 ? Math.min(Math.round(ebitdaVal), 100) : 0, 
+      trend: (ebitdaVal > 0 ? (ebitdaVal >= 20 ? 'up' : 'down') : 'none'),
+      change: ebitdaVal !== 0 ? 'Receitas menos despesas' : 'Sem dados financeiros',
+      periodLabel: 'Projeção Anual',
+      sparkline: buildSparkline([...(financeReceber || []), ...(financePagar || [])], 'data_vencimento', 'total_value')
+    },
+    { 
+      id: 'diesel',
+      label: 'Eficiência Diesel', 
+      value: dieselText, 
+      icon: Activity, 
+      color: '#ef4444', 
+      progress: dieselVal > 0 ? Math.min(Math.round((dieselVal / 20) * 100), 100) : 0, 
+      trend: (dieselVal > 0 ? (dieselVal <= 14 ? 'up' : 'down') : 'none'),
+      change: dieselVal > 0 ? 'Média de abastecimentos' : 'Sem abastecimentos',
+      periodLabel: 'Consumo Médio',
+      sparkline: buildSparkline(pesagens || [], 'data_pesagem', 'peso')
+    },
+    { 
+      id: 'mortalidade',
+      label: 'Taxa Mortalidade', 
+      value: '---', 
+      icon: AlertCircle, 
+      color: '#ef4444', 
+      progress: 0, 
+      trend: 'none',
+      change: 'Disponível em breve',
+      periodLabel: 'Sanidade',
+      sparkline: []
+    },
+    { 
+      id: 'arroba_custo',
+      label: 'Custo p/ @ Produzida', 
+      value: '---', 
+      icon: DollarSign, 
+      color: '#16a34a', 
+      progress: 0, 
+      trend: 'none',
+      change: 'Disponível em breve',
+      periodLabel: 'Financeiro',
+      sparkline: []
+    },
+    { 
+      id: 'prenhez',
+      label: 'Taxa de Prenhez', 
+      value: prenhezText, 
+      icon: Activity, 
+      color: '#db2777', 
+      progress: prenhezVal > 0 ? Math.round(prenhezVal) : 0, 
+      trend: (prenhezVal > 0 ? (prenhezVal >= 80 ? 'up' : 'down') : 'none'),
+      change: Number(reprod?.eventos_total) > 0 ? 'Calculado de eventos' : 'Sem eventos reprodutivos',
+      periodLabel: 'Reprodução',
+      sparkline: buildSparkline(pesagens || [], 'data_pesagem', null)
+    },
+    { 
+      id: 'ims',
+      label: 'Ingestão Mat. Seca', 
+      value: '---', 
+      icon: Activity, 
+      color: '#ea580c', 
+      progress: 0, 
+      trend: 'none',
+      change: '---',
+      periodLabel: 'Nutrição',
+      sparkline: []
+    },
+    { 
+      id: 'cocho',
+      label: 'Disp. de Cocho', 
+      value: '---', 
+      icon: LayoutGrid, 
+      color: '#0891b2', 
+      progress: 0, 
+      trend: 'none',
+      change: '---',
+      periodLabel: 'Logística',
+      sparkline: []
+    },
+    { id: 'conversao_alim', label: 'Conversão Alimentar', value: '---', icon: Activity, color: '#10b981', progress: 0, trend: 'none', change: '---', periodLabel: 'Nutrição', sparkline: [] },
+    { id: 'produtividade_ha', label: 'Produtividade (@/ha)', value: '---', icon: TrendingUp, color: '#16a34a', progress: 0, trend: 'none', change: '---', periodLabel: 'Performance', sparkline: [] },
+    { id: 'ciclo_engorda', label: 'Ciclo de Engorda', value: '---', icon: Clock, color: '#3b82f6', progress: 0, trend: 'none', change: '---', periodLabel: 'Pecuária', sparkline: [] },
+    { id: 'saving_compras', label: 'Saving de Compras', value: '---', icon: DollarSign, color: '#10b981', progress: 0, trend: 'none', change: '---', periodLabel: 'Suprimentos', sparkline: [] },
+    { id: 'lead_time', label: 'Lead Time Médio', value: '---', icon: Clock, color: '#f59e0b', progress: 0, trend: 'none', change: '---', periodLabel: 'Suprimentos', sparkline: [] },
+    { id: 'acuracidade_est', label: 'Acuracidade Estoque', value: '---', icon: Settings, color: '#10b981', progress: 0, trend: 'none', change: '---', periodLabel: 'Estoque', sparkline: [] },
+    { id: 'ruptura_est', label: 'Índice de Ruptura', value: '---', icon: AlertCircle, color: '#ef4444', progress: 0, trend: 'none', change: '---', periodLabel: 'Estoque', sparkline: [] },
+    { id: 'manutencao_hora', label: 'Custo Manutenção/h', icon: Settings, color: '#3b82f6', value: '---', trend: 'none', change: '---', periodLabel: 'Frota', progress: 0, sparkline: [] },
+    { id: 'disponibilidade_frota', label: 'Disp. de Frota', icon: Monitor, color: '#10b981', value: '---', trend: 'none', change: '---', periodLabel: 'Frota', progress: 0, sparkline: [] },
+    { id: 'margem_contribuicao', label: 'Margem Contrib.', icon: TrendingUp, color: '#8b5cf6', value: '---', trend: 'none', change: '---', periodLabel: 'Financeiro', progress: 0, sparkline: [] },
+    { id: 'break_even', label: 'Break-even (@)', icon: Target, color: '#16a34a', value: '---', trend: 'none', change: '---', periodLabel: 'Financeiro', progress: 0, sparkline: [] },
+    { id: 'ticket_venda', label: 'Ticket Médio Venda', icon: DollarSign, color: '#f59e0b', value: '---', trend: 'none', change: '---', periodLabel: 'Vendas', progress: 0, sparkline: [] },
+    { id: 'ebitda_operacional', label: 'EBITDA Operacional', icon: Zap, color: '#8b5cf6', value: '---', trend: 'none', change: '---', periodLabel: 'Financeiro', progress: 0, sparkline: [] },
+    { id: 'burn_rate', label: 'Burn Rate / Runway', icon: Activity, color: '#f59e0b', value: '---', trend: 'none', change: '---', periodLabel: 'Estratégico', progress: 0, sparkline: [] },
+    { id: 'ponto_equilibrio', label: 'Ponto de Equilíbrio', icon: Target, color: '#3b82f6', value: '---', trend: 'none', change: '---', periodLabel: 'Financeiro', progress: 0, sparkline: [] },
+    { id: 'checklist_logistico', label: 'Checklist Logístico', icon: Check, color: '#10b981', value: '---', trend: 'none', change: '---', periodLabel: 'Logística', progress: 0, sparkline: [] },
+    { id: 'divergencia_log', label: 'Divergência de Frete', icon: AlertCircle, color: '#ef4444', value: '---', trend: 'none', change: '---', periodLabel: 'Logística', progress: 0, sparkline: [] },
+    { id: 'carbono_estoque', label: 'Estoque de Carbono', icon: Globe, color: '#059669', value: '---', trend: 'none', change: '---', periodLabel: 'ESG', progress: 0, sparkline: [] },
+    { id: 'compliance_amb', label: 'Compliance Amb.', icon: Shield, color: '#10b981', value: '---', trend: 'none', change: '---', periodLabel: 'ESG', progress: 0, sparkline: [] },
+    { id: 'preco_arroba', label: 'Cotação da @ (B3)', icon: TrendingUp, color: '#8b5cf6', value: '---', trend: 'none', change: '---', periodLabel: 'Mercado', progress: 0, sparkline: [] }
+  ];
+
+  const savedLocal = localStorage.getItem('tauze_selected_metrics');
+  let selectedIds = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
+  
+  if (savedLocal) {
+    try {
+      selectedIds = JSON.parse(savedLocal);
+    } catch (e) {
+      console.error("Erro ao ler métricas do localStorage", e);
+    }
+  }
+  
+  if (!selectedIds || selectedIds.length === 0) {
+    selectedIds = ['gmd', 'lotacao', 'caixa', 'estoque'];
+  }
+  
+  const kpiData = selectedIds
+    .map((id: string) => allStats.find(s => s.id === id))
+    .filter(Boolean);
+
+  let chartData: any[] = [];
+  if (pesagens && pesagens.length > 0) {
+    const sorted = [...pesagens].sort((a: any, b: any) => new Date(a.data_pesagem).getTime() - new Date(b.data_pesagem).getTime());
+    chartData = Array.from({ length: 7 }, (_, i) => {
+      const idx = Math.floor((i / 7) * sorted.length);
+      const w = sorted[idx];
+      const weekLabel = 'Sem ' + String(i + 1).padStart(2, '0');
+      return {
+        label: weekLabel,
+        peso: Number(w?.peso || 0),
+        gmd: Number(w?.gmd_periodo || 0) || (i > 0 && sorted[idx - 1] ? Math.max(0, (Number(w?.peso) - Number(sorted[idx > 0 ? idx - 1 : 0]?.peso)) / 7) : 0),
+        arroba: Number(w?.peso || 0) / 15,
+      };
+    });
+  } else {
+    chartData = Array.from({ length: 7 }, (_, i) => ({
+      label: 'Sem ' + String(i + 1).padStart(2, '0'),
+      peso: 0, gmd: 0, arroba: 0,
+    }));
+  }
+
+  const recentActivities = activities || [];
+
+
+
 
   useEffect(() => {
     if (isTVMode) {
@@ -169,393 +558,6 @@ export const ExecutiveDashboard: React.FC = () => {
     return 300 - (targetValue * 10); // 20@ ~ 100px from bottom
   };
 
-  const fetchExecutiveStats = async () => {
-    if (!isGlobalMode && !isValidUUID(activeFarmId)) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      console.log('[Dashboard] Buscando estatísticas resilientes em paralelo. Modo Global:', isGlobalMode);
-      
-      const fetchPromise = (async () => {
-        const queries = [
-          applyFarmFilter(supabase.from('animais').select('*', { count: 'exact', head: true })).then((r: any) => r).catch((e: any) => ({ count: 0, data: null, error: e })),
-          applyTenantFilter(supabase.from('contas_bancarias').select('saldo_atual')).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
-          applyFarmFilter(supabase.from('produtos').select('estoque_atual, custo_medio')).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
-          applyFarmFilter(supabase.from('pesagens').select('peso, data_pesagem').order('data_pesagem', { ascending: true }).limit(200)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
-          applyFarmFilter(supabase.from('pesagens').select('created_at, observacao, animais(brinco)').order('created_at', { ascending: false }).limit(4)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
-          applyFarmFilter(supabase.from('manejo_reproducao').select('ecc').not('ecc', 'is', null).limit(100)).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
-          
-          // RPCs de cálculo real
-          Promise.resolve(supabase.rpc('calculate_herd_gmd', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: 0, error: e })),
-          Promise.resolve(supabase.rpc('get_paddock_lotation_summary', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
-          Promise.resolve(supabase.rpc('get_reproductive_stats', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
-          Promise.resolve(supabase.rpc('calculate_fleet_consumption', { p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: null, error: e })),
-          Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_pagar', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
-          Promise.resolve(supabase.rpc('get_finance_summary', { p_table_name: 'contas_receber', p_tenant_id: activeTenantId, p_fazenda_id: isGlobalMode ? null : activeFarmId })).then((r: any) => r).catch((e: any) => ({ data: [], error: e })),
-          
-          generateHistoricalSparkline('rebanho', activeTenantId || '', isGlobalMode ? null : activeFarmId, 365),
-          generateHistoricalSparkline('caixa', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30),
-          generateHistoricalSparkline('gmd', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30),
-          generateHistoricalSparkline('lotacao', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30),
-          generateHistoricalSparkline('estoque', activeTenantId || '', isGlobalMode ? null : activeFarmId, 30)
-        ];
-
-        const [
-          animalRes, 
-          bankRes, 
-          stockRes, 
-          weightsRes, 
-          activitiesRes,
-          eccRes,
-          gmdRes,
-          lotationRes,
-          reprodRes,
-          fleetRes,
-          financePagarRes,
-          financeReceberRes,
-          sparkRebanho,
-          sparkCaixa,
-          sparkGmd,
-          sparkLotacao,
-          sparkEstoque
-        ]: any[] = await Promise.all(queries);
-
-        return { 
-          animalCount: animalRes.count || 0, 
-          bankAccounts: bankRes.data || [], 
-          stockData: stockRes.data || [],
-          pesagens: weightsRes.data || [],
-          activities: activitiesRes.data || [],
-          eccData: eccRes.data || [],
-          gmd: gmdRes.data !== null ? Number(gmdRes.data) : 0,
-          lotation: lotationRes.data || { area_total: 0, media_lotacao: 0, pastos_descanso: 0 },
-          reprod: reprodRes.data || { eventos_total: 0, ias_mes: 0, taxa_sucesso: 0 },
-          fleet: fleetRes.data || { total_litros: 0, total_custo: 0, media_litros: 0 },
-          financePagar: financePagarRes.data || [],
-          financeReceber: financeReceberRes.data || [],
-          sparkRebanho,
-          sparkCaixa,
-          sparkGmd,
-          sparkLotacao,
-          sparkEstoque
-        };
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const result: any = await Promise.race([fetchPromise, timeoutPromise]);
-      const { 
-        animalCount, 
-        bankAccounts, 
-        stockData, 
-        pesagens, 
-        activities,
-        eccData,
-        gmd,
-        lotation,
-        reprod,
-        fleet,
-        financePagar,
-        financeReceber,
-        sparkRebanho,
-        sparkCaixa,
-        sparkGmd,
-        sparkLotacao,
-        sparkEstoque
-      } = result;
-      
-      const totalCash = bankAccounts?.reduce((acc: any, curr: any) => acc + Number(curr.saldo_atual), 0) || 0;
-      const totalStockValue = stockData?.reduce((acc: any, curr: any) => acc + (Number(curr.estoque_atual || 0) * Number(curr.custo_medio || 0)), 0) || 0;
-
-      // Cálculos Dinâmicos
-      const gmdVal = gmd || 0;
-      const gmdText = gmdVal > 0 ? `${gmdVal.toFixed(3)} kg` : '---';
-
-      const targetWeight = 500;
-      const latestWeights = pesagens?.slice(-10) || [];
-      const avgWeight = latestWeights.length > 0 ? latestWeights.reduce((acc: any, w: any) => acc + Number(w.peso), 0) / latestWeights.length : 0;
-      
-      let projAbateText = '---';
-      if (avgWeight > 0 && gmdVal > 0 && avgWeight < targetWeight) {
-        const daysToSlaughter = (targetWeight - avgWeight) / gmdVal;
-        if (daysToSlaughter < 3650) {
-          const projDate = new Date();
-          projDate.setDate(projDate.getDate() + daysToSlaughter);
-          projAbateText = projDate.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).toUpperCase();
-        }
-      }
-
-      let desvioMetaText = '---';
-      if (gmdVal > 0) {
-        const deviation = ((gmdVal - 1.0) / 1.0) * 100;
-        desvioMetaText = `${deviation > 0 ? '+' : ''}${deviation.toFixed(1)}%`;
-      } else {
-        desvioMetaText = '0.0%';
-      }
-
-      let eccText = '---';
-      if (eccData && eccData.length > 0) {
-        const avgEcc = eccData.reduce((acc: any, row: any) => acc + Number(row.ecc), 0) / eccData.length;
-        eccText = `${avgEcc.toFixed(2)} avg`;
-      } else {
-        eccText = '0.00 avg';
-      }
-      
-      setStrategicInsights({ projAbate: projAbateText, desvioMeta: desvioMetaText, ecc: eccText });
-
-      const areaTotal = Number(lotation?.area_total || 0);
-      const lotacaoVal = areaTotal > 0 ? (animalCount / areaTotal) : 0;
-      const lotacaoText = lotacaoVal > 0 ? `${lotacaoVal.toFixed(2)} UA/ha` : '---';
-
-      const paidReceber = financeReceber?.find((x: any) => x.status === 'PAGO')?.total_value || 0;
-      const paidPagar = financePagar?.find((x: any) => x.status === 'PAGO')?.total_value || 0;
-      const fluxoCaixaVal = totalCash > 0 ? totalCash : (Number(paidReceber) - Number(paidPagar));
-
-      const totalReceber = financeReceber?.reduce((acc: number, x: any) => acc + Number(x.total_value || 0), 0) || 0;
-      const totalPagar = financePagar?.reduce((acc: number, x: any) => acc + Number(x.total_value || 0), 0) || 0;
-      const ebitdaVal = totalReceber > 0 ? ((totalReceber - totalPagar) / totalReceber) * 100 : 0;
-      const ebitdaText = (totalReceber > 0 || totalPagar > 0) ? `${ebitdaVal.toFixed(1)}%` : '---';
-
-      const dieselVal = Number(fleet?.media_litros || 0);
-      const dieselText = dieselVal > 0 ? `${dieselVal.toFixed(1)} L/h` : '---';
-
-      const prenhezVal = Number(reprod?.taxa_sucesso || 0);
-      const prenhezText = Number(reprod?.eventos_total) > 0 ? `${prenhezVal.toFixed(1)}%` : '---';
-
-      // Calcular mortalidade real: animais com status=morto nos últimos 30 dias / total ativo
-      const deadInPeriod = (pesagens?.length || 0) > 0 ? 0 : 0; // placeholder até query de mortalidade existir
-      const mortalidadeText = animalCount > 0 ? '---' : '---'; // será implementado com query de status=MORTO
-
-      // Custo por arroba: custo total operacional / (peso total rebanho / 15)
-      const custoArroba = totalStockValue > 0 && animalCount > 0 ? '---' : '---'; // requer integração de custos
-
-      const allStats = [
-        { 
-          id: 'rebanho',
-          label: 'Total de Rebanho',
-          value: animalCount > 0 ? animalCount.toLocaleString() : '---',
-          icon: Beef,
-          color: '#f97316',
-          progress: animalCount > 0 ? 100 : 0,
-          trend: animalCount > 0 ? 'up' : 'none',
-          change: animalCount > 0 ? 'Rebanho cadastrado' : 'Sem animais',
-          periodLabel: 'Todo o Período',
-          sparkline: sparkRebanho
-        },
-        { 
-          id: 'gmd',
-          label: 'Evolução de GMD', 
-          value: gmdText, 
-          icon: Activity, 
-          color: '#10b981', 
-          progress: Math.min(Math.round(gmdVal * 100), 100) || 0, 
-          trend: gmdVal > 0 ? (gmdVal >= 0.8 ? 'up' : 'down') : 'none',
-          change: gmdVal > 0 ? 'Calculado de pesagens' : 'Sem pesagens registradas',
-          periodLabel: 'Evolução 30d',
-          sparkline: sparkGmd.length > 0 ? sparkGmd : []
-        },
-        { 
-          id: 'lotacao',
-          label: 'Taxa de Lotação', 
-          value: lotacaoText, 
-          icon: PieChart, 
-          color: '#3b82f6', 
-          progress: Math.min(Math.round(lotacaoVal * 50), 100) || 0, 
-          trend: lotacaoVal > 0 ? (lotacaoVal >= 1.5 ? 'up' : 'down') : 'none',
-          change: lotacaoVal > 0 ? 'Pressão de pastejo' : 'Sem dados de pasto',
-          periodLabel: 'Evolução 30d',
-          sparkline: sparkLotacao.length > 0 ? sparkLotacao : []
-        },
-        { 
-          id: 'caixa',
-          label: 'Fluxo de Caixa', 
-          value: fluxoCaixaVal !== 0 ? `R$ ${(fluxoCaixaVal / 1000).toFixed(1)}k` : '---', 
-          icon: DollarSign, 
-          color: '#f59e0b', 
-          progress: fluxoCaixaVal > 0 ? Math.min(100, Math.round((fluxoCaixaVal / Math.max(fluxoCaixaVal, 1)) * 100)) : 0,
-          trend: fluxoCaixaVal > 0 ? 'up' : fluxoCaixaVal < 0 ? 'down' : 'none',
-          change: fluxoCaixaVal !== 0 ? 'Saldo bancário consolidado' : 'Sem dados bancários',
-          periodLabel: 'Evolução 30d',
-          sparkline: sparkCaixa.length > 0 ? sparkCaixa : []
-        },
-        { 
-          id: 'estoque',
-          label: 'Valor de Estoque', 
-          value: totalStockValue > 0 ? `R$ ${(totalStockValue / 1000).toFixed(1)}k` : '---', 
-          icon: Package, 
-          color: '#6366f1', 
-          progress: totalStockValue > 0 ? 100 : 0,
-          trend: totalStockValue > 0 ? 'up' : 'none',
-          change: totalStockValue > 0 ? 'Custo médio × estoque' : 'Sem produtos em estoque',
-          periodLabel: 'Evolução 30d',
-          sparkline: sparkEstoque.length > 0 ? sparkEstoque : []
-        },
-        { 
-          id: 'ebitda',
-          label: 'EBITDA Projetado', 
-          value: ebitdaText, 
-          icon: TrendingUp, 
-          color: '#8b5cf6', 
-          progress: ebitdaVal > 0 ? Math.min(Math.round(ebitdaVal), 100) : 0, 
-          trend: ebitdaVal > 0 ? (ebitdaVal >= 20 ? 'up' : 'down') : 'none',
-          change: ebitdaVal !== 0 ? 'Receitas menos despesas' : 'Sem dados financeiros',
-          periodLabel: 'Projeção Anual',
-          sparkline: buildSparkline([...(financeReceber || []), ...(financePagar || [])], 'data_vencimento', 'total_value')
-        },
-        { 
-          id: 'diesel',
-          label: 'Eficiência Diesel', 
-          value: dieselText, 
-          icon: Activity, 
-          color: '#ef4444', 
-          progress: dieselVal > 0 ? Math.min(Math.round((dieselVal / 20) * 100), 100) : 0, 
-          trend: dieselVal > 0 ? (dieselVal <= 14 ? 'up' : 'down') : 'none',
-          change: dieselVal > 0 ? 'Média de abastecimentos' : 'Sem abastecimentos',
-          periodLabel: 'Consumo Médio',
-          sparkline: buildSparkline(pesagens || [], 'data_pesagem', 'peso')
-        },
-        { 
-          id: 'mortalidade',
-          label: 'Taxa Mortalidade', 
-          value: '---', 
-          icon: AlertCircle, 
-          color: '#ef4444', 
-          progress: 0, 
-          trend: 'none',
-          change: 'Disponível em breve',
-          periodLabel: 'Sanidade',
-          sparkline: []
-        },
-        { 
-          id: 'arroba_custo',
-          label: 'Custo p/ @ Produzida', 
-          value: '---', 
-          icon: DollarSign, 
-          color: '#16a34a', 
-          progress: 0, 
-          trend: 'none',
-          change: 'Disponível em breve',
-          periodLabel: 'Financeiro',
-          sparkline: []
-        },
-        { 
-          id: 'prenhez',
-          label: 'Taxa de Prenhez', 
-          value: prenhezText, 
-          icon: Activity, 
-          color: '#db2777', 
-          progress: prenhezVal > 0 ? Math.round(prenhezVal) : 0, 
-          trend: prenhezVal > 0 ? (prenhezVal >= 80 ? 'up' : 'down') : 'none',
-          change: Number(reprod?.eventos_total) > 0 ? 'Calculado de eventos' : 'Sem eventos reprodutivos',
-          periodLabel: 'Reprodução',
-          sparkline: buildSparkline(pesagens || [], 'data_pesagem', null)
-        },
-        { 
-          id: 'ims',
-          label: 'Ingestão Mat. Seca', 
-          value: '---', 
-          icon: Activity, 
-          color: '#ea580c', 
-          progress: 0, 
-          trend: 'none',
-          change: '---',
-          periodLabel: 'Nutrição',
-          sparkline: []
-        },
-        { 
-          id: 'cocho',
-          label: 'Disp. de Cocho', 
-          value: '---', 
-          icon: LayoutGrid, 
-          color: '#0891b2', 
-          progress: 0, 
-          trend: 'none',
-          change: '---',
-          periodLabel: 'Logística',
-          sparkline: []
-        },
-        { id: 'conversao_alim', label: 'Conversão Alimentar', value: '---', icon: Activity, color: '#10b981', progress: 0, trend: 'none', change: '---', periodLabel: 'Nutrição', sparkline: [] },
-        { id: 'produtividade_ha', label: 'Produtividade (@/ha)', value: '---', icon: TrendingUp, color: '#16a34a', progress: 0, trend: 'none', change: '---', periodLabel: 'Performance', sparkline: [] },
-        { id: 'ciclo_engorda', label: 'Ciclo de Engorda', value: '---', icon: Clock, color: '#3b82f6', progress: 0, trend: 'none', change: '---', periodLabel: 'Pecuária', sparkline: [] },
-        { id: 'saving_compras', label: 'Saving de Compras', value: '---', icon: DollarSign, color: '#10b981', progress: 0, trend: 'none', change: '---', periodLabel: 'Suprimentos', sparkline: [] },
-        { id: 'lead_time', label: 'Lead Time Médio', value: '---', icon: Clock, color: '#f59e0b', progress: 0, trend: 'none', change: '---', periodLabel: 'Suprimentos', sparkline: [] },
-        { id: 'acuracidade_est', label: 'Acuracidade Estoque', value: '---', icon: Settings, color: '#10b981', progress: 0, trend: 'none', change: '---', periodLabel: 'Estoque', sparkline: [] },
-        { id: 'ruptura_est', label: 'Índice de Ruptura', value: '---', icon: AlertCircle, color: '#ef4444', progress: 0, trend: 'none', change: '---', periodLabel: 'Estoque', sparkline: [] },
-        { id: 'manutencao_hora', label: 'Custo Manutenção/h', icon: Settings, color: '#3b82f6', value: '---', trend: 'none', change: '---', periodLabel: 'Frota', progress: 0, sparkline: [] },
-        { id: 'disponibilidade_frota', label: 'Disp. de Frota', icon: Monitor, color: '#10b981', value: '---', trend: 'none', change: '---', periodLabel: 'Frota', progress: 0, sparkline: [] },
-        { id: 'margem_contribuicao', label: 'Margem Contrib.', icon: TrendingUp, color: '#8b5cf6', value: '---', trend: 'none', change: '---', periodLabel: 'Financeiro', progress: 0, sparkline: [] },
-        { id: 'break_even', label: 'Break-even (@)', icon: Target, color: '#16a34a', value: '---', trend: 'none', change: '---', periodLabel: 'Financeiro', progress: 0, sparkline: [] },
-        { id: 'ticket_venda', label: 'Ticket Médio Venda', icon: DollarSign, color: '#f59e0b', value: '---', trend: 'none', change: '---', periodLabel: 'Vendas', progress: 0, sparkline: [] },
-        { id: 'ebitda_operacional', label: 'EBITDA Operacional', icon: Zap, color: '#8b5cf6', value: '---', trend: 'none', change: '---', periodLabel: 'Financeiro', progress: 0, sparkline: [] },
-        { id: 'burn_rate', label: 'Burn Rate / Runway', icon: Activity, color: '#f59e0b', value: '---', trend: 'none', change: '---', periodLabel: 'Estratégico', progress: 0, sparkline: [] },
-        { id: 'ponto_equilibrio', label: 'Ponto de Equilíbrio', icon: Target, color: '#3b82f6', value: '---', trend: 'none', change: '---', periodLabel: 'Financeiro', progress: 0, sparkline: [] },
-        { id: 'checklist_logistico', label: 'Checklist Logístico', icon: Check, color: '#10b981', value: '---', trend: 'none', change: '---', periodLabel: 'Logística', progress: 0, sparkline: [] },
-        { id: 'divergencia_log', label: 'Divergência de Frete', icon: AlertCircle, color: '#ef4444', value: '---', trend: 'none', change: '---', periodLabel: 'Logística', progress: 0, sparkline: [] },
-        { id: 'carbono_estoque', label: 'Estoque de Carbono', icon: Globe, color: '#059669', value: '---', trend: 'none', change: '---', periodLabel: 'ESG', progress: 0, sparkline: [] },
-        { id: 'compliance_amb', label: 'Compliance Amb.', icon: Shield, color: '#10b981', value: '---', trend: 'none', change: '---', periodLabel: 'ESG', progress: 0, sparkline: [] },
-        { id: 'preco_arroba', label: 'Cotação da @ (B3)', icon: TrendingUp, color: '#8b5cf6', value: '---', trend: 'none', change: '---', periodLabel: 'Mercado', progress: 0, sparkline: [] }
-
-      ];
-      
-      const savedLocal = localStorage.getItem('tauze_selected_metrics');
-      let selectedIds = userProfile?.settings?.selected_metrics || tenant?.settings?.selected_metrics;
-      
-      if (savedLocal) {
-        try {
-          selectedIds = JSON.parse(savedLocal);
-        } catch (e) {
-          console.error("Erro ao ler métricas do localStorage", e);
-        }
-      }
-      
-      if (!selectedIds || selectedIds.length === 0) {
-        selectedIds = ['gmd', 'lotacao', 'caixa', 'estoque'];
-      }
-      
-      const filteredStats = selectedIds
-        .map((id: string) => allStats.find(s => s.id === id))
-        .filter(Boolean);
-
-      setKpiData(filteredStats);
-
-      if (pesagens && pesagens.length > 0) {
-        // Build weekly buckets from real pesagens data
-        const sorted = [...pesagens].sort((a: any, b: any) => new Date(a.data_pesagem).getTime() - new Date(b.data_pesagem).getTime());
-        const buckets = Array.from({ length: 7 }, (_, i) => {
-          const idx = Math.floor((i / 7) * sorted.length);
-          const w = sorted[idx];
-          const weekLabel = `Sem ${String(i + 1).padStart(2, '0')}`;
-          return {
-            label: weekLabel,
-            peso: Number(w?.peso || 0),
-            gmd: Number(w?.gmd_periodo || 0) || (i > 0 && sorted[idx - 1] ? Math.max(0, (Number(w?.peso) - Number(sorted[idx > 0 ? idx - 1 : 0]?.peso)) / 7) : 0),
-            arroba: Number(w?.peso || 0) / 15,
-          };
-        });
-        setChartData(buckets as any);
-      } else {
-        const empty = Array.from({ length: 7 }, (_, i) => ({
-          label: `Sem ${String(i + 1).padStart(2, '0')}`,
-          peso: 0, gmd: 0, arroba: 0,
-        }));
-        setChartData(empty as any);
-      }
-
-      setRecentActivities(activities || []);
-
-    } catch (err) {
-      console.error('Error fetching executive stats:', err);
-      setKpiData(prev => prev.length > 4 ? prev : prev); 
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
   return (
     <div className={`executive-page animate-slide-up ${isTVMode ? 'tv-mode' : ''}`}>
       <header className="page-header">
@@ -585,7 +587,7 @@ export const ExecutiveDashboard: React.FC = () => {
           Array(4).fill(0).map((_, i) => (
             <KPISkeleton key={i} />
           ))
-        ) : kpiData.map((kpi, idx) => (
+        ) : kpiData.map((kpi: any, idx: number) => (
           <TauzeStatCard 
             key={kpi.id || idx}
             label={kpi.label}
@@ -724,7 +726,7 @@ export const ExecutiveDashboard: React.FC = () => {
               <div style={{ padding: '20px' }}>
                 <TableSkeleton />
               </div>
-            ) : recentActivities.length > 0 ? recentActivities.map((act, i) => (
+            ) : recentActivities.length > 0 ? recentActivities.map((act: any, i: number) => (
               <div key={i} className="activity-item">
                 <div className="activity-icon" style={{ background: i % 2 === 0 ? 'hsl(var(--brand) / 0.1)' : '#fef2f2' }}>
                   {i % 2 === 0 ? <Beef size={20} color="hsl(var(--brand))" /> : <Activity size={20} color="#ef4444" />}
@@ -774,7 +776,7 @@ export const ExecutiveDashboard: React.FC = () => {
               </div>
               <div className="modal-body-scroll">
                 <div className="history-timeline">
-                  {recentActivities.map((act, i) => (
+                  {recentActivities.map((act: any, i: number) => (
                     <div key={i} className="timeline-item">
                       <div className="t-icon">
                         {i % 2 === 0 ? <Beef size={18} /> : <Activity size={18} />}

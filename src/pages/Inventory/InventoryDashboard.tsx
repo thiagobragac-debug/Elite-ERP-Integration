@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -38,159 +38,152 @@ import { useTenant } from '../../contexts/TenantContext';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { useQuery } from '@tanstack/react-query';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const InventoryDashboard: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, applyTenantFilter, activeTenantId } = useFarmFilter();
-  const [loading, setLoading] = useState(true);
-  const [criticalItems, setCriticalItems] = useState<any[]>([]);
-  const [recentMovements, setRecentMovements] = useState<any[]>([]);
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-  const [stats, setStats] = useState<any[]>([
-    { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Calculando...', sparkline: [] },
-    { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'stable' as const, change: 'Verificando...', sparkline: [] },
-    { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'stable' as const, change: 'Auditando...', sparkline: [] },
-    { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#3b82f6', progress: 0, trend: 'stable' as const, change: 'Sincronizando...', sparkline: [] }
-  ]);
+  // Query 1: Products data
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ['inventory_products', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let query = supabase.from('produtos').select('id, nome, estoque_atual, estoque_minimo, custo_medio, unidade, categoria, created_at');
+      query = applyFarmFilter(query);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: isReady
+  });
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchDashboardData();
-    } else {
-      setLoading(false);
+  // Query 2: Recent Movements
+  const { data: movements = [], isLoading: movementsLoading } = useQuery({
+    queryKey: ['inventory_recent_movements', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let query = supabase.from('movimentacoes_estoque')
+        .select('id, tipo, data_movimentacao, quantidade, responsavel, produtos(nome, unidade)')
+        .order('created_at', { ascending: false })
+        .limit(6);
+      query = applyFarmFilter(query);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: isReady
+  });
+
+  // Query 3: Outgoing Movements of last 30 days
+  const { data: outMovements = [], isLoading: outMovementsLoading } = useQuery({
+    queryKey: ['inventory_outgoing_movements', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      let query = supabase.from('movimentacoes_estoque')
+        .select('quantidade, valor_unitario, tipo, data_movimentacao')
+        .eq('tipo', 'out')
+        .gte('data_movimentacao', thirtyDaysAgo.toISOString());
+      query = applyFarmFilter(query);
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: isReady
+  });
+
+  const loading = productsLoading || movementsLoading || outMovementsLoading;
+
+  // Deriving Stats, Critical Items and Recent Movements via useMemo
+  const stats = useMemo(() => {
+    if (loading || !products.length) {
+      return [
+        { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#10b981', progress: 0, trend: 'none' as const, change: 'Calculando...', sparkline: [] },
+        { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, trend: 'none' as const, change: 'Verificando...', sparkline: [] },
+        { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#f59e0b', progress: 0, trend: 'none' as const, change: 'Auditando...', sparkline: [] },
+        { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#3b82f6', progress: 0, trend: 'none' as const, change: 'Sincronizando...', sparkline: [] }
+      ];
     }
-  }, [activeFarmId, activeTenantId, isGlobalMode]);
 
-  const fetchDashboardData = async () => {
-    if (!activeFarmId && !isGlobalMode) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
-    setLoading(true);
-    try {
-      const fetchPromise = (async () => {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const totalValue = products.reduce((acc: number, p: any) => acc + (Number(p?.estoque_atual || 0) * Number(p?.custo_medio || 0)), 0);
+    const criticalCount = products.filter((p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0)).length;
+    const maturityCount = products.filter((p: any) => Number(p?.estoque_atual || 0) < (Number(p?.estoque_minimo || 0) * 0.5)).length;
 
-        const queries = [
-          applyFarmFilter(supabase.from('produtos').select('id, nome, estoque_atual, estoque_minimo, custo_medio, unidade, categoria')),
-          applyFarmFilter(supabase.from('movimentacoes_estoque').select('id, tipo, data_movimentacao, quantidade, responsavel, produtos(nome, unidade)').order('created_at', { ascending: false }).limit(6)),
-          applyFarmFilter(supabase.from('movimentacoes_estoque').select('quantidade, valor_unitario, tipo, data_movimentacao').eq('tipo', 'out').gte('data_movimentacao', thirtyDaysAgo.toISOString()))
-        ];
+    const totalOutgoingValue = outMovements.reduce((acc: number, m: any) => acc + (Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0)), 0);
+    const calculatedTurnover = totalValue > 0 ? (totalOutgoingValue / totalValue) : 0;
+    const turnover = calculatedTurnover > 0 ? calculatedTurnover : 0;
 
-        const [prodRes, moveRes, outMovRes] = await Promise.all(queries);
-        
-        if (prodRes.error) throw prodRes.error;
-        if (moveRes.error) throw moveRes.error;
-        if (outMovRes.error) throw outMovRes.error;
-        
-        return { 
-          products: prodRes.data || [], 
-          movements: moveRes.data || [],
-          outMovements: outMovRes.data || [] 
-        };
-      })();
+    const sparklineGiro = Array.from({ length: 30 }).map((_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - 30 + i + 1);
+      const dayStr = d.toISOString().split('T')[0];
+      const dayTotal = outMovements
+        .filter((m: any) => m.data_movimentacao?.startsWith(dayStr))
+        .reduce((acc: number, m: any) => acc + (Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0)), 0);
+      return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    });
 
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
+    return [
+      { 
+        label: 'Patrimônio em Insumos', 
+        value: totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR')}` : '---', 
+        icon: DollarSign, 
+        color: '#10b981', 
+        progress: totalValue > 0 ? 85 : 0,
+        trend: 'none' as const,
+        change: 'Capital Imobilizado',
+        sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
+      },
+      { 
+        label: 'Ruptura de Estoque', 
+        value: String(criticalCount), 
+        icon: AlertTriangle, 
+        color: '#ef4444', 
+        progress: products.length > 0 ? (criticalCount / products.length) * 100 : 0,
+        trend: criticalCount > 0 ? ('up' as const) : ('none' as const),
+        change: 'Itens p/ Reposição',
+        sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
+      },
+      { 
+        label: 'Maturidade (30d)', 
+        value: `${maturityCount} itens`, 
+        icon: FlaskConical, 
+        color: '#f59e0b', 
+        progress: products.length > 0 ? (maturityCount / products.length) * 100 : 0,
+        trend: maturityCount > 0 ? ('up' as const) : ('none' as const),
+        change: 'Risco de Perda',
+        sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
+      },
+      { 
+        label: 'Giro de Estoque', 
+        value: turnover > 0 ? `${turnover.toFixed(1)}x` : '---', 
+        icon: Zap, 
+        color: '#3b82f6', 
+        progress: Math.min(Number((turnover * 30).toFixed(0)), 100),
+        trend: turnover > 1.0 ? ('up' as const) : ('none' as const),
+        change: 'Eficiência Logística',
+        sparkline: turnover > 0 ? sparklineGiro : []
+      },
+    ];
+  }, [loading, products, outMovements]);
 
-      const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      const products = result?.products || [];
-      const movements = result?.movements || [];
-      const outMovements = result?.outMovements || [];
+  const criticalItems = useMemo(() => {
+    return products
+      .filter((p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0))
+      .slice(0, 4);
+  }, [products]);
 
-      if (products.length >= 0) {
-        const totalValue = products.reduce((acc: number, p: any) => acc + (Number(p?.estoque_atual || 0) * Number(p?.custo_medio || 0)), 0);
-        const criticalCount = products.filter((p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0)).length;
-        
-        const maturityCount = products.filter((p: any) => Number(p?.estoque_atual || 0) < (Number(p?.estoque_minimo || 0) * 0.5)).length;
+  const recentMovements = useMemo(() => {
+    return movements.map((m: any) => ({
+      type: m?.tipo || 'in',
+      date: m?.data_movimentacao || new Date().toISOString(),
+      title: m?.produtos?.nome || 'Item',
+      subtitle: `${m?.quantidade || 0} ${m?.produtos?.unidade || ''} • ${m?.responsavel || 'N/A'}`,
+      value: m?.tipo === 'in' ? 'Entrada' : 'Saída'
+    }));
+  }, [movements]);
 
-        const totalOutgoingValue = outMovements.reduce((acc: number, m: any) => acc + (Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0)), 0);
-        const calculatedTurnover = totalValue > 0 ? (totalOutgoingValue / totalValue) : 0;
-        const turnover = calculatedTurnover > 0 ? calculatedTurnover : 0;
-
-        const sparklineGiro = Array.from({ length: 30 }).map((_, i) => {
-          const d = new Date();
-          d.setDate(d.getDate() - 30 + i + 1);
-          const dayStr = d.toISOString().split('T')[0];
-          const dayTotal = outMovements
-            .filter((m: any) => m.data_movimentacao?.startsWith(dayStr))
-            .reduce((acc: number, m: any) => acc + (Number(m?.quantidade || 0) * Number(m?.valor_unitario || 0)), 0);
-          return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
-        });
-
-        setStats([
-          { 
-            label: 'Patrimônio em Insumos', 
-            value: totalValue > 0 ? `R$ ${totalValue.toLocaleString('pt-BR')}` : '---', 
-            icon: DollarSign, 
-            color: '#10b981', 
-            progress: totalValue > 0 ? 85 : 0,
-            change: 'Capital Imobilizado',
-            sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
-          },
-          { 
-            label: 'Ruptura de Estoque', 
-            value: String(criticalCount), 
-            icon: AlertTriangle, 
-            color: '#ef4444', 
-            progress: products.length > 0 ? (criticalCount / products.length) * 100 : 0,
-            trend: criticalCount > 0 ? 'up' : 'stable',
-            change: 'Itens p/ Reposição',
-            sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
-          },
-          { 
-            label: 'Maturidade (30d)', 
-            value: `${maturityCount} itens`, 
-            icon: FlaskConical, 
-            color: '#f59e0b', 
-            progress: products.length > 0 ? (maturityCount / products.length) * 100 : 0,
-            trend: maturityCount > 0 ? 'up' : 'stable',
-            change: 'Risco de Perda',
-            sparkline: buildSparkline(products, 'created_at', 'estoque_atual')
-          },
-          { 
-            label: 'Giro de Estoque', 
-            value: turnover > 0 ? `${turnover.toFixed(1)}x` : '---', 
-            icon: Zap, 
-            color: '#3b82f6', 
-            progress: Math.min(Number((turnover * 30).toFixed(0)), 100),
-            trend: turnover > 1.0 ? 'up' : 'stable',
-            change: 'Eficiência Logística',
-            sparkline: turnover > 0 ? sparklineGiro : []
-          },
-        ]);
-
-        setCriticalItems(products
-          .filter((p: any) => Number(p?.estoque_atual || 0) < Number(p?.estoque_minimo || 0))
-          .slice(0, 4)
-        );
-      }
-
-      if (movements.length >= 0) {
-        setRecentMovements(movements.map((m: any) => ({
-          type: m?.tipo || 'in',
-          date: m?.data_movimentacao || new Date().toISOString(),
-          title: m?.produtos?.nome || 'Item',
-          subtitle: `${m?.quantidade || 0} ${m?.produtos?.unidade || ''} • ${m?.responsavel || 'N/A'}`,
-          value: m?.tipo === 'in' ? 'Entrada' : 'Saída'
-        })));
-      }
-
-    } catch (err) {
-      console.warn("InventoryDashboard: Fetch error:", err);
-      setStats([
-        { label: 'Patrimônio em Insumos', value: '---', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Erro de Conexão', sparkline: [] },
-        { label: 'Ruptura de Estoque', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Erro de Conexão', sparkline: [] },
-        { label: 'Maturidade (30d)', value: '---', icon: FlaskConical, color: '#ef4444', progress: 0, change: 'Erro de Conexão', sparkline: [] },
-        { label: 'Giro de Estoque', value: '---', icon: Zap, color: '#ef4444', progress: 0, change: 'Erro de Conexão', sparkline: [] }
-      ]);
-      setCriticalItems([]);
-      setRecentMovements([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Import React useMemo
   return (
     <div className="inventory-hub animate-slide-up">
       <header className="page-header">
@@ -234,7 +227,14 @@ export const InventoryDashboard: React.FC = () => {
         ) : stats.map((stat, idx) => (
           <TauzeStatCard 
             key={idx}
-            {...stat}
+            label={stat.label}
+            value={stat.value}
+            icon={stat.icon}
+            color={stat.color}
+            progress={stat.progress}
+            change={stat.change}
+            trend={stat.trend === 'up' ? 'up' : undefined}
+            sparkline={stat.sparkline}
           />
         ))}
       </div>

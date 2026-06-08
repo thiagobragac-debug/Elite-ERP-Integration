@@ -54,16 +54,15 @@ import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 export const ClientManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('ClientManagement_isModalOpen', false);
   const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [clients, setClients] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'ATIVO' | 'LEAD'>('ATIVO');
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any[]>([]);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -81,62 +80,37 @@ export const ClientManagement: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const debouncedSearch = useDebounce(searchTerm, 500);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarm;
-    if (isReady) {
-      fetchClients();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarm, isGlobalMode, activeTenantId, debouncedSearch, filterValues, activeTab, page]);
+  const queryClient = useQueryClient();
 
-  const [searchParams] = useSearchParams();
+  const tenantId = activeTenantId || activeFarm?.tenantId;
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarm;
 
-  // Deep Linking: Abre o parceiro automaticamente se vier da auditoria
-  useEffect(() => {
-    const id = searchParams.get('id');
-    if (id && clients.length > 0) {
-      console.log('[DeepLink] Tentando abrir parceiro:', id);
-      const client = clients.find(c => c.id === id);
-      if (client) {
-        console.log('[DeepLink] Parceiro encontrado, abrindo modal...');
-        handleOpenEdit(client);
-        // Limpa os params para evitar loops
-        window.history.replaceState({}, '', window.location.pathname);
-      } else {
-        console.warn('[DeepLink] Parceiro não encontrado na lista atual');
-      }
-    }
-  }, [searchParams, clients]);
+  const { data: crmData = { enrichedClients: [], totalSales: 0 }, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['parceiros-crm', tenantId, isReady],
+    queryFn: async () => {
+      if (!isReady || !tenantId) return { enrichedClients: [], totalSales: 0 };
 
-  const fetchClients = async () => {
-    setLoading(true);
-    const tenantId = activeTenantId || activeFarm?.tenantId;
-    if (!tenantId) {
-      setLoading(false);
-      return;
-    }
-    // Fetch Clients
-    const { data: clientData } = await supabase
-      .from('parceiros')
-      .select('*', { count: 'exact' })
-      .eq('tenant_id', tenantId)
-      .eq('is_customer', true)
-      .order('nome', { ascending: true });
-    
-    // Fetch Sales Data for Intelligence
-    const { data: salesData } = await supabase
-      .from('pedidos_venda')
-      .select('*', { count: 'exact' })
-      .eq('tenant_id', tenantId);
+      const { data: clientData, error: clientError } = await supabase
+        .from('parceiros')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('is_customer', true)
+        .order('nome', { ascending: true });
 
-    if (clientData) {
-      const enrichedClients = clientData.map(client => {
+      if (clientError) throw clientError;
+
+      const { data: salesData, error: salesError } = await supabase
+        .from('pedidos_venda')
+        .select('*')
+        .eq('tenant_id', tenantId);
+
+      if (salesError) throw salesError;
+
+      const enrichedClients = (clientData || []).map(client => {
         const clientSales = salesData?.filter(s => s.cliente_id === client.id) || [];
         const ltv = clientSales.reduce((acc, s) => acc + Number(s.valor_total || 0), 0);
         const lastSale = clientSales.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
         
-        // Churn Logic: No purchase in > 90 days for active clients
         const daysSinceLastSale = lastSale ? (new Date().getTime() - new Date(lastSale.created_at).getTime()) / (1000 * 3600 * 24) : 999;
         const churnRisk = daysSinceLastSale > 90 && ltv > 0;
 
@@ -150,45 +124,83 @@ export const ClientManagement: React.FC = () => {
         };
       });
 
-      setClients(enrichedClients);
-      
       const totalSales = salesData?.reduce((acc, s) => acc + Number(s.valor_total || 0), 0) || 0;
-      const activeCount = enrichedClients.filter(c => c.status?.toUpperCase() === 'ATIVO').length;
 
-      setStats([
-        { label: 'Rede de Parceiros', 
-          value: enrichedClients.length > 0 ? enrichedClients.length : '---', 
-          icon: Users, color: '#10b981', 
-          progress: enrichedClients.length > 0 ? 100 : 0, 
-          change: enrichedClients.length > 0 ? 'Base Total' : 'Sem clientes',
-          sparkline: buildSparkline(enrichedClients, 'created_at', null)
-        },
-        { label: 'Receita Retida (LTV)', 
-          value: totalSales > 0 ? `R$ ${(totalSales / 1000).toFixed(1)}k` : '---', 
-          icon: TrendingUp, color: '#3b82f6', 
-          progress: totalSales > 0 ? Math.min(100, Math.log10(totalSales + 1) * 15) : 0, 
-          trend: totalSales > 0 ? 'up' as const : 'neutral' as const, 
-          change: totalSales > 0 ? 'Total Histórico' : 'Sem vendas',
-          sparkline: buildSparkline(enrichedClients, 'created_at', null)
-        },
-        { label: 'Risco de Churn', 
-          value: (() => { const ch = enrichedClients.filter(c => c.churnRisk).length; return ch > 0 ? ch : '---'; })(),
-          icon: AlertTriangle, color: '#ef4444', 
-          progress: enrichedClients.length > 0 ? (enrichedClients.filter(c => c.churnRisk).length / enrichedClients.length) * 100 : 0, 
-          change: enrichedClients.filter(c => c.churnRisk).length > 0 ? 'Inativos >90d' : 'Nenhum em risco',
-          sparkline: buildSparkline(enrichedClients, 'created_at', null)
-        },
-        { label: 'Aderência VIP', 
-          value: enrichedClients.length > 0 ? `${((enrichedClients.filter(c => String(c.rating || '').startsWith('A')).length / (enrichedClients.length || 1)) * 100).toFixed(0)}%` : '---',
-          icon: Star, color: '#f59e0b', 
-          progress: enrichedClients.length > 0 ? (enrichedClients.filter(c => String(c.rating || '').startsWith('A')).length / enrichedClients.length) * 100 : 0, 
-          change: enrichedClients.length > 0 ? 'Rating A+' : 'Sem dados',
-          sparkline: buildSparkline(enrichedClients, 'created_at', null)
-        },
-      ]);
+      return { enrichedClients, totalSales };
+    },
+    enabled: isReady && !!tenantId
+  });
+
+  const clients = crmData.enrichedClients;
+  const totalSales = crmData.totalSales;
+
+  if (queryError) {
+    console.error("[ClientManagement] Query error:", queryError);
+  }
+
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const id = searchParams.get('id');
+    if (id && clients.length > 0) {
+      console.log('[DeepLink] Tentando abrir parceiro:', id);
+      const client = clients.find((c) => c.id === id);
+      if (client) {
+        console.log('[DeepLink] Parceiro encontrado, abrindo modal...');
+        handleOpenEdit(client);
+        window.history.replaceState({}, '', window.location.pathname);
+      } else {
+        console.warn('[DeepLink] Parceiro não encontrado na lista atual');
+      }
     }
-    setLoading(false);
-  };
+  }, [searchParams, clients]);
+
+  const stats = React.useMemo(() => {
+    if (!clients || clients.length === 0) {
+      return [
+        { label: 'Rede de Parceiros', value: '---', icon: Users, color: '#10b981', progress: 0, change: 'Sem clientes', sparkline: [] },
+        { label: 'Receita Retida (LTV)', value: '---', icon: TrendingUp, color: '#3b82f6', progress: 0, change: 'Sem vendas', sparkline: [] },
+        { label: 'Risco de Churn', value: '---', icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Nenhum em risco', sparkline: [] },
+        { label: 'Aderência VIP', value: '---', icon: Star, color: '#f59e0b', progress: 0, change: 'Sem dados', sparkline: [] }
+      ];
+    }
+
+    return [
+      { 
+        label: 'Rede de Parceiros', 
+        value: clients.length > 0 ? clients.length : '---', 
+        icon: Users, color: '#10b981', 
+        progress: clients.length > 0 ? 100 : 0, 
+        change: clients.length > 0 ? 'Base Total' : 'Sem clientes',
+        sparkline: buildSparkline(clients, 'created_at', null)
+      },
+      { 
+        label: 'Receita Retida (LTV)', 
+        value: totalSales > 0 ? 'R$ ' + (totalSales / 1000).toFixed(1) + 'k' : '---', 
+        icon: TrendingUp, color: '#3b82f6', 
+        progress: totalSales > 0 ? Math.min(100, Math.log10(totalSales + 1) * 15) : 0, 
+        trend: totalSales > 0 ? 'up' : 'neutral', 
+        change: totalSales > 0 ? 'Total Histórico' : 'Sem vendas',
+        sparkline: buildSparkline(clients, 'created_at', null)
+      },
+      { 
+        label: 'Risco de Churn', 
+        value: (() => { const ch = clients.filter((c) => c.churnRisk).length; return ch > 0 ? ch : '---'; })(),
+        icon: AlertTriangle, color: '#ef4444', 
+        progress: clients.length > 0 ? (clients.filter((c) => c.churnRisk).length / clients.length) * 100 : 0, 
+        change: clients.filter((c) => c.churnRisk).length > 0 ? 'Inativos >90d' : 'Nenhum em risco',
+        sparkline: buildSparkline(clients, 'created_at', null)
+      },
+      { 
+        label: 'Aderência VIP', 
+        value: clients.length > 0 ? ((clients.filter((c) => String(c.rating || '').startsWith('A')).length / (clients.length || 1)) * 100).toFixed(0) + '%' : '---',
+        icon: Star, color: '#f59e0b', 
+        progress: clients.length > 0 ? (clients.filter((c) => String(c.rating || '').startsWith('A')).length / clients.length) * 100 : 0, 
+        change: clients.length > 0 ? 'Rating A+' : 'Sem dados',
+        sparkline: buildSparkline(clients, 'created_at', null)
+      },
+    ];
+  }, [clients, totalSales]);
 
   const handleOpenCreate = () => {
     setSelectedClient(null);
@@ -200,11 +212,8 @@ export const ClientManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (formData: any) => {
-    if (!activeTenantId && !activeFarm && !selectedClient) return;
-    
-    setIsSubmitting(true);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (formData: any) => {
       const payload = {
         nome: formData.name,
         cnpj_cpf: formData.cnpj,
@@ -233,60 +242,78 @@ export const ClientManagement: React.FC = () => {
           fazendas_vinculadas: formData.fazendas_vinculadas
         }).eq('id', selectedClient.id);
         if (error) throw error;
-        setIsModalOpen(false); 
-        fetchClients();
       } else {
-        // Verificar se já existe um parceiro com esse CNPJ/CPF (unificação Opção B)
         let cleanCnpj = formData.cnpj?.replace(/\D/g, '');
         if (cleanCnpj && cleanCnpj.length > 0) {
-            const { data: existing } = await supabase
-              .from('parceiros')
-              .select('id, is_supplier, is_customer', { count: 'exact' })
-              .eq('cnpj_cpf', formData.cnpj)
-              .maybeSingle();
+          const { data: existing } = await supabase
+            .from('parceiros')
+            .select('id, is_supplier, is_customer')
+            .eq('cnpj_cpf', formData.cnpj)
+            .maybeSingle();
 
-            if (existing) {
-                if (existing.is_customer) {
-                    toast.error('❌ Este CPF/CNPJ já está cadastrado como cliente!');
-                    setIsSubmitting(false);
-                    return;
-                }
-                
-                // Já existe, vamos apenas atualizar e "ativar" a flag de cliente
-                const { error } = await supabase.from('parceiros').update({
-                    ...payload,
-                    is_customer: true,
-                    tenant_id: activeTenantId || activeFarm?.tenantId,
-                    is_global: formData.is_global,
-                    fazendas_vinculadas: formData.fazendas_vinculadas
-                }).eq('id', existing.id);
-                if (error) throw error;
-                
-                toast.error(`Parceiro unificado! Um cadastro com este CNPJ/CPF já existia (Fornecedor). Ele agora também é um Cliente.`);
-                setIsModalOpen(false); 
-                fetchClients();
-                setIsSubmitting(false);
-                return;
+          if (existing) {
+            if (existing.is_customer) {
+              throw new Error('Este CPF/CNPJ já está cadastrado como cliente!');
             }
+            
+            const { error } = await supabase.from('parceiros').update({
+              ...payload,
+              is_customer: true,
+              tenant_id: tenantId,
+              is_global: formData.is_global,
+              fazendas_vinculadas: formData.fazendas_vinculadas
+            }).eq('id', existing.id);
+            if (error) throw error;
+            return { unificado: true };
+          }
         }
 
         const { error } = await supabase.from('parceiros').insert([{ 
           ...payload, 
           is_customer: true,
-          tenant_id: activeTenantId || activeFarm?.tenantId,
+          tenant_id: tenantId,
           is_global: formData.is_global,
           fazendas_vinculadas: formData.fazendas_vinculadas
         }]);
         if (error) throw error;
-        setIsModalOpen(false); 
-        fetchClients();
       }
-    } catch (err: any) {
+      return { unificado: false };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['parceiros-crm'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      setIsModalOpen(false);
+      if (data?.unificado) {
+        toast.success('Parceiro unificado! Ele agora também é um Cliente.');
+      } else {
+        toast.success('Cliente salvo com sucesso!');
+      }
+    },
+    onError: (err: any) => {
       console.error('[ClientManagement] Erro ao salvar parceiro:', err);
-      toast.error('âŒ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
-    } finally {
-      setIsSubmitting(false);
+      toast.error('❌ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('parceiros').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['parceiros-crm'] });
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('Parceiro excluído com sucesso!');
+    },
+    onError: (err: any) => {
+      console.error('[ClientManagement] Erro ao excluir parceiro:', err);
+      toast.error('❌ Erro ao excluir parceiro: ' + err.message);
+    }
+  });
+
+  const handleSubmit = async (formData: any) => {
+    if (!tenantId && !selectedClient) return;
+    saveMutation.mutate(formData);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -326,13 +353,7 @@ export const ClientManagement: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este parceiro?')) return;
-    try {
-      const { error } = await supabase.from('parceiros').delete().eq('id', id);
-      if (error) throw error;
-      fetchClients();
-    } catch (err: any) {
-      toast.error('âŒ Erro ao excluir parceiro: ' + err.message);
-    }
+    deleteMutation.mutate(id);
   };
 
   const handleViewHistory = (client: any) => {
@@ -476,7 +497,7 @@ export const ClientManagement: React.FC = () => {
             color={stat.color}
             progress={stat.progress}
             change={stat.change || '---'}
-            trend={stat.trend}
+            trend={stat.trend as "up" | "down" | undefined}
             sparkline={stat.sparkline}
           
             periodLabel="Carteira Ativa"

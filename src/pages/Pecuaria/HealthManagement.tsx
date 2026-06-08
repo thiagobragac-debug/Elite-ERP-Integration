@@ -36,17 +36,19 @@ import { HealthProtocolsModal } from './components/HealthProtocolsModal';
 import { HealthFilterModal } from './components/HealthFilterModal';
 import './HealthManagement.css';
 import toast from 'react-hot-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const HealthManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'MANEJOS' | 'PROTOCOLOS') || 'MANEJOS';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [isModalOpen, setIsModalOpen] = usePersistentState('HealthManagement_isModalOpen', false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -83,15 +85,38 @@ export const HealthManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este registro sanitário?')) return;
-    try {
+  const deleteHealthMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase.from('sanidade').delete().eq('id', id);
       if (error) throw error;
-      refresh();
-    } catch (err: any) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Registro sanitário excluído!');
+    },
+    onError: (err: any) => {
       toast.error('❌ Erro ao excluir registro: ' + err.message);
     }
+  });
+
+  const applyProtocolMutation = useMutation({
+    mutationFn: async (insertions: any[]) => {
+      const { error } = await supabase.from('sanidade').insert(insertions);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      setIsProtocolsModalOpen(false);
+      toast.success('✅ Protocolo aplicado com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao aplicar protocolo: ' + err.message);
+    }
+  });
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja excluir este registro sanitário?')) return;
+    deleteHealthMutation.mutate(id);
   };
 
   const handleViewDetails = (event: any) => {
@@ -203,29 +228,8 @@ export const HealthManagement: React.FC = () => {
     }
   ];
 
-  const handleSubmit = async (data: any) => {
-    if (!canCreate && !selectedEvent) {
-      toast.error('⚠️ Selecione uma unidade específica para registrar um novo manejo sanitário.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        tipo: data.tipo,
-        titulo: data.titulo,
-        animal_id: data.animal_id || null,
-        lote_id: data.lote_id || null,
-        data_manejo: data.data_manejo,
-        produto: data.produto,
-        dose: data.dose,
-        via_aplicacao: data.via_aplicacao,
-        local_aplicacao: data.local_aplicacao,
-        carencia_dias: parseInt(data.carencia_dias) || 0,
-        observacao: data.observacao,
-        status: data.status
-      };
-
+  const saveHealthMutation = useMutation({
+    mutationFn: async (payload: any) => {
       if (selectedEvent) {
         const { error } = await supabase.from('sanidade').update(payload).eq('id', selectedEvent.id);
         if (error) throw error;
@@ -233,14 +237,39 @@ export const HealthManagement: React.FC = () => {
         const { error } = await supabase.from('sanidade').insert([{ ...payload, ...insertPayload }]);
         if (error) throw error;
       }
-
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsModalOpen(false);
-      refresh();
-    } catch (err: any) {
+      toast.success(selectedEvent ? '✅ Registro sanitário atualizado!' : '✅ Registro sanitário cadastrado!');
+    },
+    onError: (err: any) => {
       toast.error('❌ Erro ao salvar registro sanitário: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const handleSubmit = async (data: any) => {
+    if (!canCreate && !selectedEvent) {
+      toast.error('⚠️ Selecione uma unidade específica para registrar um novo manejo sanitário.');
+      return;
+    }
+
+    const payload = {
+      tipo: data.tipo,
+      titulo: data.titulo,
+      animal_id: data.animal_id || null,
+      lote_id: data.lote_id || null,
+      data_manejo: data.data_manejo,
+      produto: data.produto,
+      dose: data.dose,
+      via_aplicacao: data.via_aplicacao,
+      local_aplicacao: data.local_aplicacao,
+      carencia_dias: parseInt(data.carencia_dias) || 0,
+      observacao: data.observacao,
+      status: data.status
+    };
+
+    saveHealthMutation.mutate(payload);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -401,7 +430,7 @@ export const HealthManagement: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleSubmit}
         initialData={selectedEvent}
-        loading={isSubmitting}
+        loading={(saveHealthMutation.isPending || applyProtocolMutation.isPending)}
       />
 
       <HistoryModal 
@@ -418,42 +447,26 @@ export const HealthManagement: React.FC = () => {
         onClose={() => setIsProtocolsModalOpen(false)}
         onApply={async (data) => {
           const { protocol, targetType, targetId, startDate } = data;
-          setIsSubmitting(true);
-          try {
-            const start = new Date(startDate);
-            const insertions = protocol.steps.map((step: any) => {
-              const manejoDate = new Date(start);
-              manejoDate.setDate(manejoDate.getDate() + step.day);
-              
-              return {
-                ...insertPayload,
-                titulo: `Protocolo: ${protocol.name}`,
-                tipo: 'PROTOCOLO',
-                data_manejo: manejoDate.toISOString().split('T')[0],
-                produto: step.product,
-                dose: step.dose,
-                status: step.day === 0 ? 'REALIZADO' : 'PENDENTE',
-                animal_id: targetType === 'ANIMAL' ? targetId : null,
-                lote_id: targetType === 'LOTE' ? targetId : null,
-                observacao: `Etapa D${step.day} do protocolo ${protocol.name}`
-              };
-            });
+          const start = new Date(startDate);
+          const insertions = protocol.steps.map((step: any) => {
+            const manejoDate = new Date(start);
+            manejoDate.setDate(manejoDate.getDate() + step.day);
+            
+            return {
+              ...insertPayload,
+              titulo: `Protocolo: ${protocol.name}`,
+              tipo: 'PROTOCOLO',
+              data_manejo: manejoDate.toISOString().split('T')[0],
+              produto: step.product,
+              dose: step.dose,
+              status: step.day === 0 ? 'REALIZADO' : 'PENDENTE',
+              animal_id: targetType === 'ANIMAL' ? targetId : null,
+              lote_id: targetType === 'LOTE' ? targetId : null,
+              observacao: `Etapa D${step.day} do protocolo ${protocol.name}`
+            };
+          });
 
-            const { error } = await supabase
-              .from('sanidade')
-              .insert(insertions);
-
-            if (error) throw error;
-
-            toast.success(`✅ Protocolo ${protocol.name} aplicado com sucesso! ${insertions.length} manejos agendados.`);
-            refresh();
-          } catch (err: any) {
-            console.error('Error applying protocol:', err);
-            alert('❌ Erro ao aplicar protocolo: ' + err.message);
-          } finally {
-            setIsSubmitting(false);
-            setIsProtocolsModalOpen(false);
-          }
+          applyProtocolMutation.mutate(insertions);
         }}
       />
       <style>{`

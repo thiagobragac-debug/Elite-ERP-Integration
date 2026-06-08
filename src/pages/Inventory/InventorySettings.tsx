@@ -4,6 +4,7 @@ import { usePersistentState } from '../../hooks/usePersistentState';
 import { supabase } from '../../lib/supabase';
 import { Tag, Plus, Trash2, Edit2, Layers, CheckCircle, XCircle, Search, Hash, CloudDownload, ChevronRight, Download } from 'lucide-react';
 import { useTenant } from '../../contexts/TenantContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { SidePanel } from '../../components/Layout/SidePanel';
@@ -19,8 +20,8 @@ interface NCM {
 
 export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: number, triggerImport: number }> = ({ searchTerm, triggerCreate, triggerImport }) => {
   const { tenant } = useTenant();
-  const [ncms, setNcms] = useState<NCM[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
+  
   const [isModalOpen, setIsModalOpen] = usePersistentState('InventorySettings_isModalOpen', false);
   const [editItem, setEditItem] = useState<NCM | null>(null);
   
@@ -35,9 +36,92 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
     is_active: true
   });
 
-  useEffect(() => {
-    fetchNCMs();
-  }, [tenant]);
+  const { data: ncms = [], isLoading: loading } = useQuery({
+    queryKey: ['ncms', tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return [];
+      const { data, error } = await supabase
+        .from('estoque_ncms')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .order('codigo');
+      if (error) throw error;
+      return (data || []) as NCM[];
+    },
+    enabled: !!tenant?.id
+  });
+
+  const saveNcmMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (editItem) {
+        const { error } = await supabase.from('estoque_ncms').update(payload).eq('id', editItem.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('estoque_ncms').insert([{ ...payload, tenant_id: tenant!.id }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ncms'] });
+      setIsModalOpen(false);
+      toast.success(editItem ? 'NCM atualizado!' : 'NCM cadastrado!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao salvar NCM. Verifique se o código já existe.');
+    }
+  });
+
+  const deleteNcmMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('estoque_ncms').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ncms'] });
+      toast.success('NCM excluído!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao excluir NCM. Ele pode estar sendo usado por um insumo.');
+    }
+  });
+
+  const importNcmMutation = useMutation({
+    mutationFn: async (ncm: any) => {
+      let codigoFormatado = ncm.codigo.replace(/D/g, '');
+      codigoFormatado = codigoFormatado.replace(/(d{4})(d{2})(d{2})/, '$1.$2.$3');
+
+      const { error } = await supabase.from('estoque_ncms').insert([{
+        tenant_id: tenant!.id,
+        codigo: codigoFormatado,
+        descricao: ncm.descricao,
+        is_active: true
+      }]);
+      if (error) throw error;
+      return ncm.codigo;
+    },
+    onSuccess: (_, codigo) => {
+      queryClient.invalidateQueries({ queryKey: ['ncms'] });
+      toast.success('NCM importado com sucesso!');
+      setImportResults(prev => prev.filter(r => r.codigo !== codigo));
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao importar. Este código já deve estar cadastrado no seu sistema.');
+    }
+  });
+
+  const handleImportNcm = (ncm: any) => {
+    importNcmMutation.mutate(ncm);
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveNcmMutation.mutate(formData);
+  };
+
+  const handleDelete = (id: string) => {
+    if (!confirm('Deseja realmente excluir este NCM?')) return;
+    deleteNcmMutation.mutate(id);
+  };
 
   useEffect(() => {
     if (triggerCreate > 0) {
@@ -76,58 +160,6 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
     }
   };
 
-  const handleImportNcm = async (ncm: any) => {
-    try {
-      // Ensure it's formatted as NNNN.NN.NN
-      let codigoFormatado = ncm.codigo.replace(/\D/g, '');
-      codigoFormatado = codigoFormatado.replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3');
-
-      const { error } = await supabase.from('estoque_ncms').insert([{
-        tenant_id: tenant!.id,
-        codigo: codigoFormatado,
-        descricao: ncm.descricao,
-        is_active: true
-      }]);
-      
-      if (error) throw error;
-      
-      toast.success('NCM importado com sucesso!');
-      fetchNCMs();
-      // Remove from list so it doesn't get imported again
-      setImportResults(prev => prev.filter(r => r.codigo !== ncm.codigo));
-    } catch (err: any) {
-      toast.error('Erro ao importar. Este código já deve estar cadastrado no seu sistema.');
-    }
-  };
-
-  const fetchNCMs = async () => {
-    if (!tenant) return;
-    setLoading(true);
-    
-    try {
-      const fetchPromise = supabase
-        .from('estoque_ncms')
-        .select('*')
-        .eq('tenant_id', tenant.id)
-        .order('codigo');
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      const { data, error } = result;
-
-      if (error) throw error;
-      setNcms(data || []);
-    } catch (err) {
-      console.warn('[InventorySettings] Fetch error:', err);
-      setNcms([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleOpenCreate = () => {
     setEditItem(null);
     setFormData({ codigo: '', descricao: '', is_active: true });
@@ -142,43 +174,6 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
       is_active: ncm.is_active
     });
     setIsModalOpen(true);
-  };
-
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!tenant) return;
-
-    try {
-      if (editItem) {
-        const { error } = await supabase
-          .from('estoque_ncms')
-          .update(formData)
-          .eq('id', editItem.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('estoque_ncms')
-          .insert([{ ...formData, tenant_id: tenant.id }]);
-        if (error) throw error;
-      }
-      setIsModalOpen(false);
-      fetchNCMs();
-    } catch (err) {
-      console.error('Error saving NCM:', err);
-      toast.error('Erro ao salvar NCM. Verifique se o código já existe.');
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente excluir este NCM?')) return;
-    try {
-      const { error } = await supabase.from('estoque_ncms').delete().eq('id', id);
-      if (error) throw error;
-      fetchNCMs();
-    } catch (err) {
-      console.error('Error deleting NCM:', err);
-      toast.error('Erro ao excluir NCM. Ele pode estar sendo usado por um insumo.');
-    }
   };
 
   const filtered = ncms.filter(c => 

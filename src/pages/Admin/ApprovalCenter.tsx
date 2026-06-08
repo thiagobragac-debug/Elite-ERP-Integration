@@ -63,6 +63,8 @@ interface PendingItem {
   reference_id?: string;
 }
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
 export const ApprovalCenter: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeTenantId } = useTenant();
@@ -73,7 +75,6 @@ export const ApprovalCenter: React.FC = () => {
   };
   const [viewMode, setViewMode] = useViewMode('admin-approval-center', 'grid');
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
   
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [filters, setFilters] = useState({
@@ -87,75 +88,96 @@ export const ApprovalCenter: React.FC = () => {
 
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
   const [selectedRule, setSelectedRule] = useState<ApprovalRule | null>(null);
-  
-  const [rules, setRules] = useState<ApprovalRule[]>([]);
-  const [pendencies, setPendencies] = useState<PendingItem[]>([]);
 
-  useEffect(() => {
-    if (activeTenantId) {
-      fetchData();
-    }
-  }, [activeTenantId, page]);
+  const queryClient = useQueryClient();
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  const isReady = !!activeTenantId;
+
+  // Query approval rules & approval queue
+  const { data: approvalData = { rules: [], pendencies: [] }, isLoading: loading, error: queryError } = useQuery({
+    queryKey: ['approvals', activeTenantId],
+    queryFn: async () => {
+      if (!activeTenantId) return { rules: [], pendencies: [] };
       const [rulesRes, queueRes] = await Promise.all([
         supabase.from('approval_rules').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId).order('created_at', { ascending: false }),
         supabase.from('approval_queue').select('*', { count: 'exact' }).eq('tenant_id', activeTenantId).order('created_at', { ascending: false })
       ]);
 
-      if (rulesRes.data) {
-        setRules(rulesRes.data.map((r: any) => ({
-          id: r.id,
-          module: r.module,
-          condition: r.condition_label,
-          stages: r.stages,
-          active: r.active
-        })));
-      }
+      const rules = (rulesRes.data || []).map((r: any) => ({
+        id: r.id,
+        module: r.module,
+        condition: r.condition_label,
+        stages: r.stages,
+        active: r.active
+      }));
 
-      if (queueRes.data) {
-        setPendencies(queueRes.data.map((q: any) => ({
-          db_id: q.id,
-          id: q.id.slice(0, 8).toUpperCase(),
-          type: q.type,
-          requester: q.requester,
-          date: new Date(q.created_at).toLocaleDateString('pt-BR'),
-          amount: parseFloat(q.amount) || 0,
-          status: q.status,
-          stage: q.current_stage,
-          totalStages: q.total_stages,
-          reference_id: q.reference_id
-        })));
-      }
-    } catch (err) {
-      console.error('Error fetching approval data:', err);
-    } finally {
-      setLoading(false);
+      const pendencies = (queueRes.data || []).map((q: any) => ({
+        db_id: q.id,
+        id: q.id.slice(0, 8).toUpperCase(),
+        type: q.type,
+        requester: q.requester,
+        date: new Date(q.created_at).toLocaleDateString('pt-BR'),
+        amount: parseFloat(q.amount) || 0,
+        status: q.status,
+        stage: q.current_stage,
+        totalStages: q.total_stages,
+        reference_id: q.reference_id
+      }));
+
+      return { rules, pendencies };
+    },
+    enabled: isReady
+  });
+
+  const rules = approvalData.rules;
+  const pendencies = approvalData.pendencies;
+
+  if (queryError) {
+    console.error("[ApprovalCenter] Query error:", queryError);
+  }
+
+  const toggleRuleMutation = useMutation({
+    mutationFn: async (rule: ApprovalRule) => {
+      const { error } = await supabase.from('approval_rules').update({ active: !rule.active }).eq('id', rule.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      toast.success('Regra atualizada com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao alternar regra: ' + err.message);
     }
-  };
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-  };
+  });
 
   const handleToggleRule = async (id: string) => {
-    const rule = rules.find(r => r.id === id);
+    const rule = rules.find((r) => r.id === id);
     if (!rule) return;
-    setRules(prev => prev.map(r => r.id === id ? { ...r, active: !r.active } : r));
-    await supabase.from('approval_rules').update({ active: !rule.active }).eq('id', id);
+    toggleRuleMutation.mutate(rule);
   };
+
+  const deleteRuleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('approval_rules').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      toast.success('Regra excluída com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir regra: ' + err.message);
+    }
+  });
 
   const handleDeleteRule = async (id: string) => {
     if (confirm('Tem certeza que deseja excluir esta regra?')) {
-      setRules(prev => prev.filter(r => r.id !== id));
-      await supabase.from('approval_rules').delete().eq('id', id);
+      deleteRuleMutation.mutate(id);
     }
   };
 
-  const handleSaveRule = async (data: any) => {
-    try {
+  const saveRuleMutation = useMutation({
+    mutationFn: async (data: any) => {
       const payload = {
         tenant_id: activeTenantId,
         module: data.module,
@@ -166,21 +188,29 @@ export const ApprovalCenter: React.FC = () => {
       };
 
       if (selectedRule) {
-        await supabase.from('approval_rules').update(payload).eq('id', selectedRule.id);
+        const { error } = await supabase.from('approval_rules').update(payload).eq('id', selectedRule.id);
+        if (error) throw error;
       } else {
-        await supabase.from('approval_rules').insert([payload]);
+        const { error } = await supabase.from('approval_rules').insert([payload]);
+        if (error) throw error;
       }
-      fetchData();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
       setIsRuleModalOpen(false);
-    } catch (err) {
-      console.error(err);
-      toast.error('Erro ao salvar regra.');
+      toast.success('Regra salva com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao salvar regra: ' + err.message);
     }
+  });
+
+  const handleSaveRule = async (data: any) => {
+    saveRuleMutation.mutate(data);
   };
 
-  const handleApprove = async (item: PendingItem) => {
-    if (!item.db_id) return;
-    try {
+  const approveMutation = useMutation({
+    mutationFn: async (item: PendingItem) => {
       let nextStage = item.stage;
       let newStatus = item.status;
 
@@ -190,52 +220,80 @@ export const ApprovalCenter: React.FC = () => {
         newStatus = 'approved';
       }
 
-      setPendencies(prev => prev.map(p => p.db_id === item.db_id ? { ...p, stage: nextStage, status: newStatus } : p));
-      
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('approval_queue').update({
+      const { error } = await supabase.from('approval_queue').update({
         current_stage: nextStage,
         status: newStatus,
         approved_by: user?.id,
         approved_at: newStatus === 'approved' ? new Date().toISOString() : null
       }).eq('id', item.db_id);
 
-    } catch (err) {
-      console.error(err);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      toast.success('Solicitação processada com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao aprovar: ' + err.message);
     }
+  });
+
+  const handleApprove = async (item: PendingItem) => {
+    approveMutation.mutate(item);
   };
+
+  const rejectMutation = useMutation({
+    mutationFn: async (item: PendingItem) => {
+      const { error } = await supabase.from('approval_queue').update({ status: 'rejected' }).eq('id', item.db_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      toast.success('Solicitação rejeitada.');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao rejeitar: ' + err.message);
+    }
+  });
 
   const handleReject = async (item: PendingItem) => {
-    if (!item.db_id) return;
-    try {
-      setPendencies(prev => prev.map(p => p.db_id === item.db_id ? { ...p, status: 'rejected' } : p));
-      await supabase.from('approval_queue').update({ status: 'rejected' }).eq('id', item.db_id);
-    } catch (err) {
-      console.error(err);
-    }
+    rejectMutation.mutate(item);
   };
 
-  const handleRevert = async (item: PendingItem) => {
-    if (!item.db_id) return;
-    if (!confirm('Tem certeza que deseja reverter esta decisão? O status voltará para pendente.')) return;
-    try {
-      setPendencies(prev => prev.map(p => p.db_id === item.db_id ? { ...p, status: 'pending', stage: 1 } : p));
-      await supabase.from('approval_queue').update({ 
+  const revertMutation = useMutation({
+    mutationFn: async (item: PendingItem) => {
+      const { error } = await supabase.from('approval_queue').update({ 
         status: 'pending', 
         current_stage: 1, 
         approved_by: null, 
         approved_at: null 
       }).eq('id', item.db_id);
-    } catch (err) {
-      console.error(err);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] });
+      toast.success('Decisão revertida com sucesso.');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao reverter decisão: ' + err.message);
     }
+  });
+
+  const handleRevert = async (item: PendingItem) => {
+    if (!confirm('Tem certeza que deseja reverter esta decisão? O status voltará para pendente.')) return;
+    revertMutation.mutate(item);
   };
 
-  const pendingCount = pendencies.filter(p => p.status === 'pending').length;
-  const approvedCount = pendencies.filter(p => p.status === 'approved').length;
-  const rejectedCount = pendencies.filter(p => p.status === 'rejected').length;
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+  };
 
-  const pendingAmount = pendencies.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
+  const pendingCount = pendencies.filter((p) => p.status === 'pending').length;
+  const approvedCount = pendencies.filter((p) => p.status === 'approved').length;
+  const rejectedCount = pendencies.filter((p) => p.status === 'rejected').length;
+
+  const pendingAmount = pendencies.filter((p) => p.status === 'pending').reduce((sum, p) => sum + p.amount, 0);
 
   const stats = [
     { 
@@ -259,7 +317,6 @@ export const ApprovalCenter: React.FC = () => {
       sparkline: rejectedCount > 0 ? [{ value: 0 }, { value: 1 }, { value: 0 }, { value: 2 }, { value: rejectedCount }] : []
     }
   ];
-
   const pendencyColumns = [
     {
       header: 'ID / Tipo',

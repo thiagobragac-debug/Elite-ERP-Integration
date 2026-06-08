@@ -41,12 +41,14 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ConfinementManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload, isGlobalMode } = useFarmFilter();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ATIVOS' | 'HISTORICO') || 'ATIVOS';
   const setActiveTab = (tab: string) => {
@@ -82,42 +84,42 @@ export const ConfinementManagement: React.FC = () => {
 
   const confinements = rawConfinements || [];
 
+  const addPenMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.from('confinamento').insert([payload]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      setIsModalOpen(false);
+      toast.success('✅ Check-in realizado com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao realizar check-in: ' + err.message);
+    }
+  });
+
   const handleAddPen = async (data: any) => {
     if (!canCreate && !activeFarmId) {
       toast.error('⚠️ Selecione uma unidade específica para realizar o check-in.');
       return;
     }
     
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        nome_curral: data.nome_curral,
-        capacidade_animais: parseInt(data.capacidade_animais),
-        dof_alvo: parseInt(data.dof_alvo),
-        peso_entrada: parseFloat(data.peso_entrada),
-        data_inicio: data.data_inicio,
-        lote_id: data.lote_id || null
-      };
+    const payload = {
+      nome_curral: data.nome_curral,
+      capacidade_animais: parseInt(data.capacidade_animais),
+      dof_alvo: parseInt(data.dof_alvo),
+      peso_entrada: parseFloat(data.peso_entrada),
+      data_inicio: data.data_inicio,
+      lote_id: data.lote_id || null,
+      ...insertPayload
+    };
 
-      const { error } = await supabase.from('confinamento').insert([{
-        ...payload,
-        ...insertPayload
-      }]);
-
-      if (error) throw error;
-      setIsModalOpen(false);
-      refresh();
-    } catch (err: any) {
-      toast.error('❌ Erro ao realizar check-in: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    addPenMutation.mutate(payload);
   };
 
-  const handleCheckOut = async (data: any) => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-    try {
+  const checkOutMutation = useMutation({
+    mutationFn: async (data: any) => {
       const { error } = await supabase
         .from('confinamento')
         .update({
@@ -127,15 +129,20 @@ export const ConfinementManagement: React.FC = () => {
           status: 'archived'
         })
         .eq('id', data.id);
-
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsCheckOutModalOpen(false);
-      refresh();
-    } catch (err: any) {
+      toast.success('✅ Check-out realizado com sucesso!');
+    },
+    onError: (err: any) => {
       toast.error('❌ Erro ao realizar check-out: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const handleCheckOut = async (data: any) => {
+    checkOutMutation.mutate(data);
   };
 
   const handleViewDetails = (pen: any) => {
@@ -268,15 +275,23 @@ export const ConfinementManagement: React.FC = () => {
     }
   ];
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este curral?')) return;
-    try {
+  const deleteConfinementMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase.from('confinamento').delete().eq('id', id);
       if (error) throw error;
-      refresh();
-    } catch (err: any) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Curral excluído!');
+    },
+    onError: (err: any) => {
       toast.error('❌ Erro ao excluir curral: ' + err.message);
     }
+  });
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja excluir este curral?')) return;
+    deleteConfinementMutation.mutate(id);
   };
 
   return (
@@ -948,7 +963,7 @@ export const ConfinementManagement: React.FC = () => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleAddPen} 
-        loading={isSubmitting}
+        loading={(addPenMutation.isPending || checkOutMutation.isPending)}
       />
 
       <HistoryModal 

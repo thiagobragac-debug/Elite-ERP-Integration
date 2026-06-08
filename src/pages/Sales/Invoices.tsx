@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -58,8 +59,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const Invoices: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('Invoices_isModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ISSUED' | 'CANCELED') || 'ISSUED';
@@ -70,7 +70,6 @@ export const Invoices: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -81,114 +80,95 @@ export const Invoices: React.FC = () => {
     onlyConciliated: false
   });
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchInvoices();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, isGlobalMode, activeTenantId]);
-
-  const fetchInvoices = async () => {
-    setLoading(true);
-    try {
+  const { data: invoices = [], isLoading: loading, error } = useQuery({
+    queryKey: ['invoices', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
       let query = supabase.from('notas_saida').select('*').order('created_at', { ascending: false }).limit(500);
       query = applyFarmFilter(query);
       const { data, error } = await query;
+      if (error) throw error;
+      if (!data || data.length === 0) return [];
 
-      if (error) {
-        console.error('[Invoices] fetchInvoices error:', error);
-        setLoading(false);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        // Buscar parceiros separadamente para evitar problemas com FK hint no PostgREST
-        const clienteIds = [...new Set(data.map(d => d.cliente_id).filter(Boolean))];
-        let parceirosMap: Record<string, string> = {};
-        if (clienteIds.length > 0) {
-          const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', clienteIds);
-          if (parceiros) {
-            parceiros.forEach(p => { parceirosMap[p.id] = p.nome; });
-          }
+      const clienteIds = [...new Set(data.map(d => d.cliente_id).filter(Boolean))];
+      let parceirosMap: Record<string, string> = {};
+      if (clienteIds.length > 0) {
+        const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', clienteIds);
+        if (parceiros) {
+          parceiros.forEach(p => { parceirosMap[p.id] = p.nome; });
         }
-
-        // Enriching with fiscal intelligence
-        const enrichedInvoices = data.map(inv => {
-          const taxRate = inv.natureza_operacao?.toLowerCase().includes('venda') ? 0.023 : 0.015;
-          const taxValue = Number(inv.valor_total) * taxRate;
-          const hasFinancialLink = true;
-          
-          return {
-            ...inv,
-            parceiros: { nome: parceirosMap[inv.cliente_id] || 'N/A' },
-            taxValue,
-            taxRate: (taxRate * 100).toFixed(1),
-            hasFinancialLink,
-            cfop: inv.natureza_operacao?.includes('5101') ? '5.101' : '5.102'
-          };
-        });
-
-        setInvoices(enrichedInvoices);
-        const totalValor = data.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
-        const totalTax = enrichedInvoices.reduce((acc, curr) => acc + curr.taxValue, 0);
-        
-        setStats([
-          { label: 'Faturamento Bruto', 
-            value: totalValor > 0 ? totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
-            icon: DollarSign, color: '#10b981', 
-            progress: totalValor > 0 ? 100 : 0, 
-            change: totalValor > 0 ? 'Vendas Emitidas' : 'Sem notas emitidas', 
-            trend: 'up' as const,
-            sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total')
-          },
-          { label: 'Carga Tributária', 
-            value: totalTax > 0 ? totalTax.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
-            icon: ShieldCheck, color: '#ef4444', 
-            progress: totalValor > 0 ? (totalTax / totalValor) * 100 : 0, 
-            change: totalValor > 0 ? `${((totalTax/totalValor)*100).toFixed(1)}% sobre faturamento` : 'Sem dados',
-            sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total')
-          },
-          { label: 'Eficiência Fiscal', 
-            value: (() => {
-              const autorizadas = data.filter(d => d.status === 'authorized').length;
-              return data.length > 0 ? `${((autorizadas / data.length) * 100).toFixed(0)}%` : '---';
-            })(),
-            icon: CheckCircle2, color: '#3b82f6', 
-            progress: (() => {
-              const autorizadas = data.filter(d => d.status === 'authorized').length;
-              return data.length > 0 ? (autorizadas / data.length) * 100 : 0;
-            })(),
-            change: 'Protocolos Autorizados',
-            sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total')
-          },
-          { label: 'Nota de Maior Valor', 
-            value: (() => {
-              const max = Math.max(...data.map(d => Number(d.valor_total || 0)));
-              return max > 0 ? max.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---';
-            })(),
-            icon: Activity, color: '#f59e0b', 
-            progress: 0,
-            change: data.length > 0 ? 'Maior NF emitida' : 'Sem dados',
-            sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total')
-          },
-        ]);
-      } else {
-        setInvoices([]);
-        setStats([
-          { label: 'Faturamento Bruto', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Sem dados', trend: 'up' as const, sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total') },
-          { label: 'Carga Tributária', value: '---', icon: ShieldCheck, color: '#ef4444', progress: 0, change: 'Sem dados', sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total') },
-          { label: 'Eficiência Fiscal', value: '---', icon: CheckCircle2, color: '#3b82f6', progress: 0, change: 'Sem dados', sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total') },
-          { label: 'Nota de Maior Valor', value: '---', icon: Activity, color: '#f59e0b', progress: 0, change: 'Sem dados', sparkline: buildSparkline(data || [], 'data_emissao', 'valor_total') },
-        ]);
       }
-    } catch (err) {
-      console.error('[Invoices] unexpected error:', err);
-    } finally {
-      setLoading(false);
+
+      return data.map(inv => {
+        const taxRate = inv.natureza_operacao?.toLowerCase().includes('venda') ? 0.023 : 0.015;
+        const taxValue = Number(inv.valor_total) * taxRate;
+        const hasFinancialLink = true;
+        
+        return {
+          ...inv,
+          parceiros: { nome: parceirosMap[inv.cliente_id] || 'N/A' },
+          taxValue,
+          taxRate: (taxRate * 100).toFixed(1),
+          hasFinancialLink,
+          cfop: inv.natureza_operacao?.includes('5101') ? '5.101' : '5.102'
+        };
+      });
+    },
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+  });
+
+  const stats = useMemo(() => {
+    if (!invoices || invoices.length === 0) {
+      return [
+        { label: 'Faturamento Bruto', value: '---', icon: DollarSign, color: '#10b981', progress: 0, change: 'Sem dados', trend: 'up' as const, sparkline: [] },
+        { label: 'Carga Tributária', value: '---', icon: ShieldCheck, color: '#ef4444', progress: 0, change: 'Sem dados', sparkline: [] },
+        { label: 'Eficiência Fiscal', value: '---', icon: CheckCircle2, color: '#3b82f6', progress: 0, change: 'Sem dados', sparkline: [] },
+        { label: 'Nota de Maior Valor', value: '---', icon: Activity, color: '#f59e0b', progress: 0, change: 'Sem dados', sparkline: [] },
+      ];
     }
-  };
+    const totalValor = invoices.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+    const totalTax = invoices.reduce((acc: number, curr: any) => acc + curr.taxValue, 0);
+
+    return [
+      { label: 'Faturamento Bruto', 
+        value: totalValor > 0 ? totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+        icon: DollarSign, color: '#10b981', 
+        progress: totalValor > 0 ? 100 : 0, 
+        change: totalValor > 0 ? 'Vendas Emitidas' : 'Sem notas emitidas', 
+        trend: 'up' as const,
+        sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+      },
+      { label: 'Carga Tributária', 
+        value: totalTax > 0 ? totalTax.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+        icon: ShieldCheck, color: '#ef4444', 
+        progress: totalValor > 0 ? (totalTax / totalValor) * 100 : 0, 
+        change: totalValor > 0 ? `${((totalTax/totalValor)*100).toFixed(1)}% sobre faturamento` : 'Sem dados',
+        sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+      },
+      { label: 'Eficiência Fiscal', 
+        value: (() => {
+          const autorizadas = invoices.filter((d: any) => d.status === 'authorized').length;
+          return invoices.length > 0 ? `${((autorizadas / invoices.length) * 100).toFixed(0)}%` : '---';
+        })(),
+        icon: CheckCircle2, color: '#3b82f6', 
+        progress: (() => {
+          const autorizadas = invoices.filter((d: any) => d.status === 'authorized').length;
+          return invoices.length > 0 ? (autorizadas / invoices.length) * 100 : 0;
+        })(),
+        change: 'Protocolos Autorizados',
+        sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+      },
+      { label: 'Nota de Maior Valor', 
+        value: (() => {
+          const max = Math.max(...invoices.map((d: any) => Number(d.valor_total || 0)));
+          return max > 0 ? max.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---';
+        })(),
+        icon: Activity, color: '#f59e0b', 
+        progress: 0,
+        change: invoices.length > 0 ? 'Maior NF emitida' : 'Sem dados',
+        sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+      },
+    ];
+  }, [invoices]);
 
 
   const handleOpenCreate = () => {
@@ -201,36 +181,63 @@ export const Invoices: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const saveMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const payload = {
+        numero_nota: data.invoice_number,
+        serie: data.series,
+        cliente_id: data.client_id,
+        natureza_operacao: data.nature_of_operation,
+        data_emissao: data.date,
+        valor_total: parseFloat(data.total_value),
+        transportadora: data.transport_company,
+        observacoes: data.description,
+        status: selectedInvoice?.status || 'authorized'
+      };
+
+      if (selectedInvoice) {
+        const { error } = await supabase.from('notas_saida').update(payload).eq('id', selectedInvoice.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('notas_saida').insert([{ ...payload, ...insertPayload }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices', activeFarmId, activeTenantId, isGlobalMode] });
+      setIsModalOpen(false);
+      toast.success(selectedInvoice ? 'Nota fiscal atualizada com sucesso!' : 'Nota fiscal emitida com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao salvar nota fiscal: ' + err.message);
+    }
+  });
+
   const handleSubmit = async (data: any) => {
     if (!canCreate) {
       toast.error('⚠️ Selecione uma unidade específica para emitir uma nova nota fiscal. No modo Visão Global, a fazenda emitente deve ser definida.');
       return;
     }
-    const payload = {
-      numero_nota: data.invoice_number,
-      serie: data.series,
-      cliente_id: data.client_id,
-      natureza_operacao: data.nature_of_operation,
-      data_emissao: data.date,
-      valor_total: parseFloat(data.total_value),
-      transportadora: data.transport_company,
-      observacoes: data.description,
-      status: selectedInvoice?.status || 'authorized'
-    };
-
-    if (selectedInvoice) {
-      const { error } = await supabase.from('notas_saida').update(payload).eq('id', selectedInvoice.id);
-      if (!error) { setIsModalOpen(false); fetchInvoices(); }
-    } else {
-      const { error } = await supabase.from('notas_saida').insert([{ ...payload, ...insertPayload }]);
-      if (!error) { setIsModalOpen(false); fetchInvoices(); }
-    }
+    saveMutation.mutate(data);
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('notas_saida').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices', activeFarmId, activeTenantId, isGlobalMode] });
+      toast.success('Nota fiscal excluída com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir nota fiscal: ' + err.message);
+    }
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir esta nota fiscal?')) return;
-    const { error } = await supabase.from('notas_saida').delete().eq('id', id);
-    if (!error) fetchInvoices();
+    deleteMutation.mutate(id);
   };
 
   const handleViewDetails = (inv: any) => {

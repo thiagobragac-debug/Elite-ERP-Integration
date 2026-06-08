@@ -29,6 +29,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { NutritionSimulatorModal } from './components/NutritionSimulatorModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { NutritionFilterModal } from './components/NutritionFilterModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -37,8 +38,9 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const NutritionManagement: React.FC = () => {
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'DIETAS' | 'INSUMOS') || 'DIETAS';
   const setActiveTab = (tab: string) => {
@@ -81,24 +83,8 @@ export const NutritionManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (data: any) => {
-    if (!canCreate && !selectedDiet) {
-      toast.error('⚠️ Selecione uma unidade específica para formular uma nova dieta.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        nome: data.nome,
-        tipo: data.tipo,
-        ingredientes: data.ingredientes,
-        custo_por_kg: parseFloat(data.custo_por_kg),
-        percentual_ms: parseFloat(data.percentual_ms),
-        descricao: data.descricao,
-        status: data.status
-      };
-
+  const saveDietMutation = useMutation({
+    mutationFn: async (payload: any) => {
       if (selectedDiet) {
         const { error } = await supabase.from('dietas').update(payload).eq('id', selectedDiet.id);
         if (error) throw error;
@@ -106,25 +92,53 @@ export const NutritionManagement: React.FC = () => {
         const { error } = await supabase.from('dietas').insert([{ ...payload, ...insertPayload }]);
         if (error) throw error;
       }
-
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsModalOpen(false);
-      refresh();
-    } catch (err: any) {
+      toast.success(selectedDiet ? '✅ Dieta atualizada!' : '✅ Dieta formulada!');
+    },
+    onError: (err: any) => {
       toast.error('❌ Erro ao salvar dieta: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const handleSubmit = async (data: any) => {
+    if (!canCreate && !selectedDiet) {
+      toast.error('⚠️ Selecione uma unidade específica para formular uma nova dieta.');
+      return;
+    }
+
+    const payload = {
+      nome: data.nome,
+      tipo: data.tipo,
+      ingredientes: data.ingredientes,
+      custo_por_kg: parseFloat(data.custo_por_kg),
+      percentual_ms: parseFloat(data.percentual_ms),
+      descricao: data.descricao,
+      status: data.status
+    };
+
+    saveDietMutation.mutate(payload);
   };
+
+  const deleteDietMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('dietas').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Dieta excluída!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir dieta: ' + err.message);
+    }
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir esta dieta?')) return;
-    try {
-      const { error } = await supabase.from('dietas').delete().eq('id', id);
-      if (error) throw error;
-      refresh();
-    } catch (err: any) {
-      toast.error('❌ Erro ao excluir dieta: ' + err.message);
-    }
+    deleteDietMutation.mutate(id);
   };
 
   const handleViewHistory = async (dietId: string) => {
@@ -388,7 +402,7 @@ export const NutritionManagement: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleSubmit}
         initialData={selectedDiet}
-        loading={isSubmitting}
+        loading={saveDietMutation.isPending}
       />
 
       <HistoryModal 

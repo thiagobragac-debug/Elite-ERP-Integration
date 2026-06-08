@@ -48,6 +48,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ProductForm } from '../../components/Forms/ProductForm';
 import { MovementForm } from '../../components/Forms/MovementForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
@@ -62,12 +63,12 @@ import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
+
 export const InventoryManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('InventoryManagement_isModalOpen', false);
   const [isMovementModalOpen, setIsMovementModalOpen] = usePersistentState('InventoryManagement_isMovementModalOpen', false);
   const [selectedProduct, setSelectedProduct] = usePersistentState<any>('InventoryManagement_selectedProduct', null);
@@ -85,71 +86,48 @@ export const InventoryManagement: React.FC = () => {
     minPrice: 0,
     maxPrice: 1000000
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestedProducts, setRequestedProducts] = useState<Record<string, boolean>>({});
-  const [requestLoading, setRequestLoading] = useState<Record<string, boolean>>({});
 
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(12);
-  const [totalCount, setTotalCount] = useState(0);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchProducts();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues.categoria]);
-  const fetchProducts = async () => {
-    setLoading(true);
-    try {
-      const fetchPromise = (async () => {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-        let query = supabase
-          .from('produtos')
-          .select('id, nome, categoria, unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao', { count: 'exact' })
-          .order('nome', { ascending: true })
-          .range(from, to);
-        
-        query = applyTenantFilter(query);
+  // React Query fetch
+  const { data: queryData = { products: [], totalCount: 0 }, isLoading: loading } = useQuery({
+    queryKey: ['inventory_products', activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues.categoria],
+    queryFn: async () => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
-        if (filterValues.categoria !== 'all') {
-          query = query.eq('categoria', filterValues.categoria);
-        }
-
-        if (searchTerm) {
-          query = query.ilike('nome', `%${searchTerm}%`);
-        }
-
-        const { data, count, error } = await query;
-        if (error) throw error;
-        return { data, count };
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      const data = result?.data || [];
-      const count = result?.count || 0;
+      let query = supabase
+        .from('produtos')
+        .select('id, nome, categoria, unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao', { count: 'exact' })
+        .order('nome', { ascending: true })
+        .range(from, to);
       
-      setProducts(data);
-      setTotalCount(count);
-    } catch (err) {
-      console.warn('[Inventory] Resilience Pattern Engaged:', err);
-      setProducts([]);
-      setTotalCount(0);
-    } finally {
-      setLoading(false);
-    }
-  };
+      query = applyTenantFilter(query);
+
+      if (filterValues.categoria !== 'all') {
+        query = query.eq('categoria', filterValues.categoria);
+      }
+
+      if (debouncedSearch) {
+        query = query.ilike('nome', `%${debouncedSearch}%`);
+      }
+
+      const { data, count, error } = await query;
+      if (error) throw error;
+      return { products: data || [], totalCount: count || 0 };
+    },
+    enabled: isReady
+  });
+
+  const products = queryData.products;
+  const totalCount = queryData.totalCount;
 
   const handleOpenCreate = () => {
     setSelectedProduct(null);
@@ -165,14 +143,9 @@ export const InventoryManagement: React.FC = () => {
     setSelectedProduct((prev: any) => ({ ...prev, hasHistory: count ? count > 0 : false }));
   };
 
-  const handleSubmit = async (data: any) => {
-    if (!canCreate && !selectedProduct) {
-      toast.error('âš ï¸ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
+  // Mutations
+  const saveProductMutation = useMutation({
+    mutationFn: async (data: any) => {
       const payload = {
         nome: data.nome,
         categoria: data.categoria,
@@ -197,35 +170,38 @@ export const InventoryManagement: React.FC = () => {
           .from('produtos')
           .update(payload)
           .eq('id', selectedProduct.id);
-        
         if (error) throw error;
-        
-        setIsModalOpen(false);
-        fetchProducts();
       } else {
         const { error } = await supabase
           .from('produtos')
           .insert([payload]);
-        
         if (error) throw error;
-        
-        setIsModalOpen(false);
-        fetchProducts();
       }
-    } catch (err: any) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory_products'] });
+      setIsModalOpen(false);
+      toast.success(selectedProduct ? 'Produto atualizado!' : 'Produto cadastrado!');
+    },
+    onError: (err: any) => {
       console.error('[Inventory] Erro ao salvar produto:', err);
-      toast.error('âŒ Erro ao salvar produto: ' + (err.message || 'Erro desconhecido'));
-    } finally {
-      setIsSubmitting(false);
+      toast.error('❌ Erro ao salvar produto: ' + (err.message || 'Erro desconhecido'));
     }
+  });
+
+  const handleSubmit = async (data: any) => {
+    if (!canCreate && !selectedProduct) {
+      toast.error('⚠️ Selecione uma unidade específica para cadastrar um novo produto. No modo Visão Global, a fazenda deve ser definida.');
+      return;
+    }
+    saveProductMutation.mutate(data);
   };
 
-  const handleMovementSubmit = async (data: any) => {
-    if (!activeFarm) return;
-    
-    setIsSubmitting(true);
-    try {
-      // Call the FIFO processing RPC
+  const isSubmitting = saveProductMutation.isPending;
+
+  const processMovementMutation = useMutation({
+    mutationFn: async (data: any) => {
+      if (!activeFarm) throw new Error('Unidade não selecionada');
       const { error } = await supabase.rpc('process_fifo_movement', {
         p_produto_id: data.produto_id,
         p_deposito_id: data.deposito_id,
@@ -237,17 +213,21 @@ export const InventoryManagement: React.FC = () => {
         p_responsavel: data.responsavel,
         p_origem_destino: data.origem_destino
       });
-
       if (error) throw error;
-
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory_products'] });
       setIsMovementModalOpen(false);
-      fetchProducts();
-    } catch (err: any) {
+      toast.success('Movimentação FIFO processada com sucesso!');
+    },
+    onError: (err: any) => {
       console.error('[Inventory] Error processing FIFO movement:', err);
-      toast.error('âŒ Erro ao processar movimentação FIFO: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
+      toast.error('❌ Erro ao processar movimentação FIFO: ' + err.message);
     }
+  });
+
+  const handleMovementSubmit = async (data: any) => {
+    processMovementMutation.mutate(data);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -283,47 +263,50 @@ export const InventoryManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'inventario_produtos', 'Relatório de Inventário de Insumos');
   };
 
-  const handleDelete = async (item: any) => {
-    try {
-      // Check if item has history
+  const deleteProductMutation = useMutation({
+    mutationFn: async (item: any) => {
       const { count } = await supabase.from('estoque_movimentacao').select('*', { count: 'exact', head: true }).eq('produto_id', item.id);
       const hasHistory = count ? count > 0 : false;
 
       if (!hasHistory) {
-        // Hard delete
-        if (!confirm(`Tem certeza que deseja excluir permanentemente o item "${item.nome}"?`)) return;
+        if (!confirm(`Tem certeza que deseja excluir permanentemente o item "${item.nome}"?`)) return { cancelled: true };
         const { error } = await supabase.from('produtos').delete().eq('id', item.id);
         if (error) throw error;
-        fetchProducts();
+        return { type: 'hard' };
       } else {
-        // Soft delete
         if (item.is_storable && Number(item.estoque_atual || 0) > 0) {
-          toast.error(`âŒ Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`);
-          return;
+          throw new Error(`Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`);
         }
-        if (!confirm(`O item "${item.nome}" possui histórico no sistema e não pode ser excluído. Deseja inativá-lo para que não apareça mais nas rotinas?`)) return;
+        if (!confirm(`O item "${item.nome}" possui histórico no sistema e não pode ser excluído. Deseja inativá-lo para que não apareça mais nas rotinas?`)) return { cancelled: true };
         
         const { error } = await supabase.from('produtos').update({ is_active: false }).eq('id', item.id);
         if (error) throw error;
-        fetchProducts();
+        return { type: 'soft' };
       }
-    } catch (err: any) {
-      toast.error('âŒ Erro na operação: ' + err.message);
+    },
+    onSuccess: (res) => {
+      if (res?.cancelled) return;
+      queryClient.invalidateQueries({ queryKey: ['inventory_products'] });
+      toast.success(res.type === 'hard' ? 'Item excluído com sucesso!' : 'Item inativado com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro na operação: ' + err.message);
     }
+  });
+
+  const handleDelete = async (item: any) => {
+    deleteProductMutation.mutate(item);
   };
 
-  const handleAutoPurchaseRequest = async (product: any) => {
-    const farmId = activeFarmId || activeFarm?.id;
-    const tenantId = activeTenantId || activeFarm?.tenantId;
+  const autoPurchaseMutation = useMutation({
+    mutationFn: async (product: any) => {
+      const farmId = activeFarmId || activeFarm?.id;
+      const tenantId = activeTenantId || activeFarm?.tenantId;
 
-    if (!farmId || !tenantId) {
-      alert('âš ï¸ Selecione uma fazenda específica para solicitar a compra.');
-      return;
-    }
+      if (!farmId || !tenantId) {
+        throw new Error('Selecione uma fazenda específica para solicitar a compra.');
+      }
 
-    setRequestLoading(prev => ({ ...prev, [product.id]: true }));
-
-    try {
       const diff = Math.max(1, Number(product.estoque_minimo || 0) - Number(product.estoque_atual || 0));
       const valorEstimado = Math.max(100, diff * Number(product.custo_medio || 0));
 
@@ -344,14 +327,26 @@ export const InventoryManagement: React.FC = () => {
         .insert([payload]);
 
       if (error) throw error;
-
-      setRequestedProducts(prev => ({ ...prev, [product.id]: true }));
-    } catch (err: any) {
+      return product.id;
+    },
+    onSuccess: (productId) => {
+      setRequestedProducts(prev => ({ ...prev, [productId]: true }));
+      toast.success('Solicitação de compra gerada com sucesso!');
+    },
+    onError: (err: any) => {
       console.error('[Inventory] Erro ao solicitar compra:', err);
-      toast.error('âŒ Erro ao solicitar compra: ' + (err.message || 'Erro desconhecido'));
-    } finally {
-      setRequestLoading(prev => ({ ...prev, [product.id]: false }));
+      toast.error('❌ Erro ao solicitar compra: ' + (err.message || 'Erro desconhecido'));
     }
+  });
+
+  const handleAutoPurchaseRequest = async (product: any) => {
+    autoPurchaseMutation.mutate(product);
+  };
+
+  const requestLoading = {
+    ...Object.fromEntries(
+      (products || []).map(p => [p.id, autoPurchaseMutation.isPending && autoPurchaseMutation.variables?.id === p.id])
+    )
   };
 
   const handleViewHistory = async (product: any) => {

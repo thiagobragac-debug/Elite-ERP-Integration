@@ -43,6 +43,7 @@ import {
 import { motion } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTenant } from '../../contexts/TenantContext';
 import { QuotationForm } from '../../components/Forms/QuotationForm';
 import { QuotationMatrixModal } from './components/QuotationMatrixModal';
@@ -58,9 +59,8 @@ export const QuotationMap: React.FC = () => {
   const { activeTenantId } = useTenant();
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [quotations, setQuotations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = usePersistentState('QuotationMap_isModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'OPEN' | 'CLOSED') || 'OPEN';
@@ -78,101 +78,73 @@ export const QuotationMap: React.FC = () => {
     dateStart: '',
     dateEnd: ''
   });
-  const [historyItems, setHistoryItems] = useState<any[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchQuotations();
-    } else {
-      setLoading(false);
-      setStats([
-        { label: 'Mapas em Análise', value: '---', icon: BarChart2, color: '#10b981', progress: 0, change: 'Aguardando', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
-        { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#3b82f6', progress: 0, change: 'Aguardando', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
-        { label: 'Densidade de Rede', value: '---', icon: Building2, color: '#f59e0b', progress: 0, change: 'Aguardando', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
-        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Aguardando', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
-      ]);
-    }
-  }, [activeFarmId, isGlobalMode, activeTenantId]);
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-  const fetchQuotations = async () => {
-    setLoading(true);
-    try {
+  // React Query Fetch
+  const { data: quotations = [], isLoading: loading } = useQuery({
+    queryKey: ['purchasing_quotations', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
       let query = supabase.from('mapas_cotacao').select('id, status, produto_id, quantidade, unidade, dados_fornecedores, fazenda_id, tenant_id, created_at').limit(500).order('created_at', { ascending: false });
       query = applyFarmFilter(query);
-      const { data } = await query;
-      
-      if (data) {
-        setQuotations(data);
-        const abertas = data.filter(q => q.status === 'analyzing').length;
-        
-        // Calculate real saving metrics
-        let totalSaving = 0;
-        let totalBids = 0;
-        data.forEach(q => {
-          const bids = (q.dados_fornecedores as any) || (q as any).suppliers || [];
-          totalBids += bids.length;
-          if (bids.length > 1) {
-            const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
-            const max = Math.max(...prices);
-            const min = Math.min(...prices);
-            totalSaving += (max - min);
-          }
-        });
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []).map((q: any) => ({
+        ...q,
+        titulo: q.produto_id,
+        suppliers: q.dados_fornecedores || []
+      }));
+    },
+    enabled: isReady
+  });
 
-        const avgBids = data.length > 0 ? (totalBids / data.length).toFixed(1) : 0;
-        
-        setStats([
-          { label: 'Mapas em Análise', 
-            value: abertas > 0 ? abertas : '---', 
-            icon: BarChart2, color: '#10b981', 
-            progress: data.length > 0 ? (abertas / data.length) * 100 : 0, 
-            change: abertas > 0 ? 'Processos Ativos' : 'Nenhum ativo',
-            sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
-          },
-          { label: 'Saving Acumulado', 
-            value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---', 
-            icon: TrendingDown, color: '#3b82f6', 
-            progress: totalSaving > 0 ? Math.min(100, Math.log10(totalSaving + 1) * 20) : 0, 
-            trend: totalSaving > 0 ? 'down' as const : 'neutral' as const, 
-            change: totalSaving > 0 ? 'Economia Real' : 'Sem saving',
-            sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
-          },
-          { label: 'Densidade de Rede', 
-            value: data.length > 0 && totalBids > 0 ? `${avgBids} propostas` : '---', 
-            icon: Building2, color: '#f59e0b', 
-            progress: data.length > 0 ? Math.min(100, Number(avgBids) * 20) : 0, 
-            change: data.length > 0 ? 'Média por Mapa' : 'Sem cotações',
-            sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
-          },
-          { label: 'Cotações Fechadas', 
-            value: (() => { const fechadas = data.filter(q => q.status === 'closed').length; return fechadas > 0 ? fechadas : '---'; })(),
-            icon: Target, color: '#166534', 
-            progress: data.length > 0 ? (data.filter(q => q.status === 'closed').length / data.length) * 100 : 0, 
-            change: data.length > 0 ? 'Contratos firmados' : 'Sem dados',
-            sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
-          },
-        ]);
-        if (data.length === 0) {
-          setQuotations([]);
-          setStats([
-            { label: 'Mapas em Análise', value: '---', icon: BarChart2, color: '#10b981', progress: 0, change: 'Sem Processos', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
-            { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#3b82f6', progress: 0, trend: 'neutral' as const, change: 'Sem Economia', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
-            { label: 'Densidade de Rede', value: '---', icon: Building2, color: '#f59e0b', progress: 0, change: 'Sem Média', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
-            { label: 'Cotações Fechadas', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Sem Acuracidade', sparkline: buildSparkline(quotations || [], 'created_at', 'preco') },
-          ]);
-        }
-      }
-    } catch (err) {
-      console.error('[QuotationMap] Error:', err);
-      // Fallback de erro
-      console.error('[QuotationMap] Error:', err);
-    } finally {
-      setLoading(false);
+  // Calculate real saving metrics dynamically
+  const abertas = quotations.filter(q => q.status === 'analyzing').length;
+  let totalSaving = 0;
+  let totalBids = 0;
+  quotations.forEach(q => {
+    const bids = (q.dados_fornecedores as any) || (q as any).suppliers || [];
+    totalBids += bids.length;
+    if (bids.length > 1) {
+      const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
+      const max = Math.max(...prices);
+      const min = Math.min(...prices);
+      totalSaving += (max - min);
     }
-  };
+  });
+  const avgBids = quotations.length > 0 ? (totalBids / quotations.length).toFixed(1) : 0;
+
+  const stats = [
+    { label: 'Mapas em Análise', 
+      value: abertas > 0 ? abertas : '---', 
+      icon: BarChart2, color: '#10b981', 
+      progress: quotations.length > 0 ? (abertas / quotations.length) * 100 : 0, 
+      change: abertas > 0 ? 'Processos Ativos' : 'Nenhum ativo',
+      sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
+    },
+    { label: 'Saving Acumulado', 
+      value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---', 
+      icon: TrendingDown, color: '#3b82f6', 
+      progress: totalSaving > 0 ? Math.min(100, Math.log10(totalSaving + 1) * 20) : 0, 
+      trend: totalSaving > 0 ? 'down' as const : undefined, 
+      change: totalSaving > 0 ? 'Economia Real' : 'Sem saving',
+      sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
+    },
+    { label: 'Densidade de Rede', 
+      value: quotations.length > 0 && totalBids > 0 ? `${avgBids} propostas` : '---', 
+      icon: Building2, color: '#f59e0b', 
+      progress: quotations.length > 0 ? Math.min(100, Number(avgBids) * 20) : 0, 
+      change: quotations.length > 0 ? 'Média por Mapa' : 'Sem cotações',
+      sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
+    },
+    { label: 'Cotações Fechadas', 
+      value: (() => { const fechadas = quotations.filter(q => q.status === 'closed').length; return fechadas > 0 ? fechadas : '---'; })(),
+      icon: Target, color: '#166534', 
+      progress: quotations.length > 0 ? (quotations.filter(q => q.status === 'closed').length / quotations.length) * 100 : 0, 
+      change: quotations.length > 0 ? 'Contratos firmados' : 'Sem dados',
+      sparkline: buildSparkline(quotations || [], 'created_at', 'preco')
+    },
+  ];
 
   const handleOpenCreate = () => {
     setSelectedQuotation(null);
@@ -184,32 +156,59 @@ export const QuotationMap: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const saveQuotationMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const payload = {
+        produto_id: formData.item_id,
+        quantidade: parseFloat(formData.quantity),
+        unidade: formData.unit,
+        dados_fornecedores: formData.suppliers,
+        status: selectedQuotation?.status || 'analyzing'
+      };
+
+      if (selectedQuotation) {
+        const { error } = await supabase.from('mapas_cotacao').update(payload).eq('id', selectedQuotation.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('mapas_cotacao').insert([{ ...payload, ...insertPayload }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_quotations'] });
+      setIsModalOpen(false);
+      toast.success(selectedQuotation ? 'Mapa de cotação atualizado!' : 'Mapa de cotação criado!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao salvar cotação: ' + err.message);
+    }
+  });
+
   const handleSubmit = async (formData: any) => {
     if (!canCreate) {
       toast.error('⚠️ Selecione uma unidade específica para criar um mapa de cotação. No modo Visão Global, a fazenda emitente deve ser definida.');
       return;
     }
-    const payload = {
-      produto_id: formData.item_id,
-      quantidade: parseFloat(formData.quantity),
-      unidade: formData.unit,
-      dados_fornecedores: formData.suppliers,
-      status: selectedQuotation?.status || 'analyzing'
-    };
-
-    if (selectedQuotation) {
-      const { error } = await supabase.from('mapas_cotacao').update(payload).eq('id', selectedQuotation.id);
-      if (!error) { setIsModalOpen(false); fetchQuotations(); }
-    } else {
-      const { error } = await supabase.from('mapas_cotacao').insert([{ ...payload, ...insertPayload }]);
-      if (!error) { setIsModalOpen(false); fetchQuotations(); }
-    }
+    saveQuotationMutation.mutate(formData);
   };
+
+  const deleteQuotationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('mapas_cotacao').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_quotations'] });
+      toast.success('Mapa de cotação excluído!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao excluir cotação: ' + err.message);
+    }
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este mapa de cotação?')) return;
-    const { error } = await supabase.from('mapas_cotacao').delete().eq('id', id);
-    if (!error) fetchQuotations();
+    deleteQuotationMutation.mutate(id);
   };
 
   const handleViewDetails = (quot: any) => {
@@ -217,41 +216,50 @@ export const QuotationMap: React.FC = () => {
     setIsMatrixOpen(true);
   };
 
-  const handleApproveSupplier = async (quotationId: string, chosenSupplier: any) => {
-    const quot = quotations.find(q => q.id === quotationId);
-    if (!quot) return;
+  const approveSupplierMutation = useMutation({
+    mutationFn: async ({ quotationId, chosenSupplier }: { quotationId: string; chosenSupplier: any }) => {
+      const quot = quotations.find(q => q.id === quotationId);
+      if (!quot) throw new Error('Cotação não localizada');
 
-    const rawSuppliers = quot.suppliers || quot.dados_fornecedores || [];
-    const updatedSuppliers = rawSuppliers.map((s: any) => {
-      const isMatch = (s.supplier_id && s.supplier_id === chosenSupplier.supplier_id) ||
-                      (s.name && s.name === chosenSupplier.name) ||
-                      (s.parceiro_nome && s.parceiro_nome === chosenSupplier.parceiro_nome) ||
-                      (Number(s.price || s.preco) === Number(chosenSupplier.price || chosenSupplier.preco) &&
-                       Number(s.delivery_days || s.deliveryDays || s.prazo_entrega) === Number(chosenSupplier.delivery_days || chosenSupplier.deliveryDays || chosenSupplier.prazo_entrega));
-      
-      return {
-        ...s,
-        isWinner: isMatch,
-        vencedor: isMatch
-      };
-    });
+      const rawSuppliers = quot.suppliers || quot.dados_fornecedores || [];
+      const updatedSuppliers = rawSuppliers.map((s: any) => {
+        const isMatch = (s.supplier_id && s.supplier_id === chosenSupplier.supplier_id) ||
+                        (s.name && s.name === chosenSupplier.name) ||
+                        (s.parceiro_nome && s.parceiro_nome === chosenSupplier.parceiro_nome) ||
+                        (Number(s.price || s.preco) === Number(chosenSupplier.price || chosenSupplier.preco) &&
+                         Number(s.delivery_days || s.deliveryDays || s.prazo_entrega) === Number(chosenSupplier.delivery_days || chosenSupplier.deliveryDays || chosenSupplier.prazo_entrega));
+        
+        return {
+          ...s,
+          isWinner: isMatch,
+          vencedor: isMatch
+        };
+      });
 
-    const { error } = await supabase
-      .from('mapas_cotacao')
-      .update({
-        status: 'closed',
-        dados_fornecedores: updatedSuppliers
-      })
-      .eq('id', quotationId);
+      const { error } = await supabase
+        .from('mapas_cotacao')
+        .update({
+          status: 'closed',
+          dados_fornecedores: updatedSuppliers
+        })
+        .eq('id', quotationId);
 
-    if (!error) {
-      setQuotations(prev => prev.map(q => q.id === quotationId ? { ...q, status: 'closed', dados_fornecedores: updatedSuppliers } : q));
+      if (error) throw error;
+      return { quotationId, updatedSuppliers };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_quotations'] });
       setIsMatrixOpen(false);
-      fetchQuotations();
-    } else {
-      console.error('[QuotationMap] Error approving supplier:', error);
-      toast.error('❌ Erro ao aprovar parceiro: ' + (error.message || 'Erro desconhecido'));
+      toast.success('Fornecedor aprovado e mapa de cotação encerrado!');
+    },
+    onError: (err: any) => {
+      console.error('[QuotationMap] Error approving supplier:', err);
+      toast.error('❌ Erro ao aprovar parceiro: ' + (err.message || 'Erro desconhecido'));
     }
+  });
+
+  const handleApproveSupplier = async (quotationId: string, chosenSupplier: any) => {
+    approveSupplierMutation.mutate({ quotationId, chosenSupplier });
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {

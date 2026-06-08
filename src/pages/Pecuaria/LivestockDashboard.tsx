@@ -31,6 +31,7 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import './LivestockDashboard.css';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
@@ -40,119 +41,108 @@ export const LivestockDashboard: React.FC = () => {
   const operationalQueue = rawQueue || [];
 
   const { activeFarmId, activeTenantId, isGlobalMode, applyFarmFilter } = useFarmFilter();
-  const [reproStats, setReproStats] = useState<any>({ taxa_sucesso: 0 });
-  const [autonomyDays, setAutonomyDays] = useState<number>(0);
-  const [performanceData, setPerformanceData] = useState<any[]>([]);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const fetchExtraData = async () => {
-      if (!activeTenantId) return;
-      try {
-        const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-        if (!isReady) return;
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-        // Fetch reproductive stats for Taxa de Prenhez
-        const farmParam = isGlobalMode ? null : activeFarmId;
-        const reproPromise = supabase.rpc('get_reproductive_stats', {
-          p_tenant_id: activeTenantId,
-          p_fazenda_id: farmParam
-        });
+  // Query 1: Reproductive stats mapping
+  const { data: reproStats = { taxa_sucesso: 0 } } = useQuery({
+    queryKey: ['repro_stats', activeTenantId, activeFarmId, isGlobalMode],
+    queryFn: async () => {
+      const farmParam = isGlobalMode ? null : activeFarmId;
+      const { data, error } = await supabase.rpc('get_reproductive_stats', {
+        p_tenant_id: activeTenantId,
+        p_fazenda_id: farmParam
+      });
+      if (error) throw error;
+      return data || { taxa_sucesso: 0 };
+    },
+    enabled: isReady && !!activeTenantId
+  });
 
-        // Fetch products for Silo Autonomy
-        const productsPromise = applyFarmFilter(
-          supabase.from('produtos').select('nome, estoque_atual, categoria')
-        );
+  // Query 2: Silo Autonomy calculation
+  const { data: autonomyDays = 0 } = useQuery({
+    queryKey: ['silo_autonomy', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let prodQuery = supabase.from('produtos').select('nome, estoque_atual, categoria');
+      prodQuery = applyFarmFilter(prodQuery);
+      const { data: products, error: prodError } = await prodQuery;
+      if (prodError) throw prodError;
 
-        // Fetch animal count for Silo Autonomy calculation
-        const animalsCountPromise = applyFarmFilter(
-          supabase.from('animais').select('*', { count: 'exact', head: true })
-        );
+      let animQuery = supabase.from('animais').select('*', { count: 'exact', head: true });
+      animQuery = applyFarmFilter(animQuery);
+      const { count: totalAnimals, error: animError } = await animQuery;
+      if (animError) throw animError;
 
-        // Fetch weighing data for GMD chart
-        const sixWeeksAgo = new Date();
-        sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
-        const weighingPromise = applyFarmFilter(
-          supabase.from('pesagens')
-            .select('data_pesagem, peso')
-            .gte('data_pesagem', sixWeeksAgo.toISOString().split('T')[0])
-            .order('data_pesagem', { ascending: true })
-        );
+      const nutritionStock = (products || []).reduce((sum: number, p: any) => {
+        const isNut = p.categoria === 'Nutrição' || 
+                      p.nome?.toLowerCase().includes('silo') || 
+                      p.nome?.toLowerCase().includes('ração') ||
+                      p.nome?.toLowerCase().includes('racao');
+        return isNut ? sum + (Number(p.estoque_atual) || 0) : sum;
+      }, 0);
 
-        const [reproRes, prodRes, animCountRes, weighingRes] = await Promise.all([
-          reproPromise,
-          productsPromise,
-          animalsCountPromise,
-          weighingPromise
-        ]);
+      const dailyConsumption = (totalAnimals || 0) * 10;
+      return (dailyConsumption > 0 && nutritionStock > 0)
+        ? Math.ceil(nutritionStock / dailyConsumption)
+        : 0;
+    },
+    enabled: isReady
+  });
 
-        // 1. Reproductive stats mapping
-        if (!reproRes.error && reproRes.data) {
-          setReproStats(reproRes.data);
+  // Query 3: Weekly GMD calculation
+  const { data: performanceData = [] } = useQuery({
+    queryKey: ['weekly_gmd_performance', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      const sixWeeksAgo = new Date();
+      sixWeeksAgo.setDate(sixWeeksAgo.getDate() - 42);
+      let weighingQuery = supabase.from('pesagens')
+        .select('data_pesagem, peso')
+        .gte('data_pesagem', sixWeeksAgo.toISOString().split('T')[0])
+        .order('data_pesagem', { ascending: true });
+      weighingQuery = applyFarmFilter(weighingQuery);
+      const { data: weighings, error: weighError } = await weighingQuery;
+      if (weighError) throw weighError;
+
+      const weeklyData = Array(6).fill(0).map((_, i) => {
+        const start = new Date();
+        start.setDate(start.getDate() - (6 - i) * 7);
+        const end = new Date();
+        end.setDate(end.getDate() - (5 - i) * 7);
+        return { start, end, label: `Sem 0${i + 1}`, weights: [] as number[] };
+      });
+
+      (weighings || []).forEach((w: any) => {
+        const date = new Date(w.data_pesagem);
+        const slot = weeklyData.find(s => date >= s.start && date < s.end);
+        if (slot) {
+          slot.weights.push(Number(w.peso) || 0);
+        }
+      });
+
+      return weeklyData.map((slot, i) => {
+        const avgWeight = slot.weights.length > 0 ? (slot.weights.reduce((sum, w) => sum + w, 0) / slot.weights.length) : 0;
+        let calculatedGMD = 0.842;
+        if (i > 0) {
+          const prevSlot = weeklyData[i - 1];
+          const prevAvg = prevSlot.weights.length > 0 ? (prevSlot.weights.reduce((sum, w) => sum + w, 0) / prevSlot.weights.length) : 0;
+          if (avgWeight > 0 && prevAvg > 0 && avgWeight > prevAvg) {
+            calculatedGMD = (avgWeight - prevAvg) / 7;
+          }
+        }
+        
+        if (calculatedGMD <= 0 || calculatedGMD > 2) {
+          calculatedGMD = 0;
         }
 
-        // 2. Silo Autonomy calculation
-        const totalAnimals = animCountRes.count || 0;
-        const nutritionStock = (prodRes.data || []).reduce((sum: number, p: any) => {
-          const isNut = p.categoria === 'Nutrição' || 
-                        p.nome?.toLowerCase().includes('silo') || 
-                        p.nome?.toLowerCase().includes('ração') ||
-                        p.nome?.toLowerCase().includes('racao');
-          return isNut ? sum + (Number(p.estoque_atual) || 0) : sum;
-        }, 0);
-
-        const dailyConsumption = totalAnimals * 10; // 10kg/dia por animal
-        const calculatedAutonomy = (dailyConsumption > 0 && nutritionStock > 0)
-          ? Math.ceil(nutritionStock / dailyConsumption)
-          : 0;
-        setAutonomyDays(calculatedAutonomy);
-
-        // 3. Weekly GMD calculation
-        const weeklyData = Array(6).fill(0).map((_, i) => {
-          const start = new Date();
-          start.setDate(start.getDate() - (6 - i) * 7);
-          const end = new Date();
-          end.setDate(end.getDate() - (5 - i) * 7);
-          return { start, end, label: `Sem 0${i + 1}`, weights: [] as number[] };
-        });
-
-        (weighingRes.data || []).forEach((w: any) => {
-          const date = new Date(w.data_pesagem);
-          const slot = weeklyData.find(s => date >= s.start && date < s.end);
-          if (slot) {
-            slot.weights.push(Number(w.peso) || 0);
-          }
-        });
-
-        const newPerformanceData = weeklyData.map((slot, i) => {
-          const avgWeight = slot.weights.length > 0 ? (slot.weights.reduce((sum, w) => sum + w, 0) / slot.weights.length) : 0;
-          let calculatedGMD = 0.842;
-          if (i > 0) {
-            const prevSlot = weeklyData[i - 1];
-            const prevAvg = prevSlot.weights.length > 0 ? (prevSlot.weights.reduce((sum, w) => sum + w, 0) / prevSlot.weights.length) : 0;
-            if (avgWeight > 0 && prevAvg > 0 && avgWeight > prevAvg) {
-              calculatedGMD = (avgWeight - prevAvg) / 7;
-            }
-          }
-          
-          if (calculatedGMD <= 0 || calculatedGMD > 2) {
-            calculatedGMD = 0;
-          }
-
-          return {
-            label: slot.label,
-            value: Number(calculatedGMD.toFixed(3))
-          };
-        });
-
-        setPerformanceData(newPerformanceData);
-
-      } catch (err) {
-        console.warn("[LivestockDashboard] Error fetching extra stats, using premium defaults:", err);
-      }
-    };
-
-    fetchExtraData();
-  }, [activeFarmId, activeTenantId, isGlobalMode, loading]);
+        return {
+          label: slot.label,
+          value: Number(calculatedGMD.toFixed(3))
+        };
+      });
+    },
+    enabled: isReady
+  });
 
   if (error) {
     console.error("[LivestockDashboard] Dashboard Error:", error);
@@ -178,7 +168,10 @@ export const LivestockDashboard: React.FC = () => {
           <p className="page-subtitle">Visão 360º da performance biológica, sanitária e nutricional do rebanho.</p>
         </div>
         <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => { refresh(); }}>
+          <button className="glass-btn secondary" onClick={() => { queryClient.invalidateQueries({ queryKey: ['report'] });
+            queryClient.invalidateQueries({ queryKey: ['repro_stats'] });
+            queryClient.invalidateQueries({ queryKey: ['silo_autonomy'] });
+            queryClient.invalidateQueries({ queryKey: ['weekly_gmd_performance'] }); }}>
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
             SINCRONIZAR
           </button>

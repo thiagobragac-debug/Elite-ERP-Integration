@@ -5,12 +5,17 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { Layout } from './components/Layout/Layout';
-import { LandingPage } from './pages/LandingPage';
+// Lazy Loads
+const LandingPage = React.lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
+const PastureManagement = React.lazy(() => import('./pages/Pecuaria/PastureManagement'));
+
 import { SaaSLayout } from './components/SaaSLayout/SaaSLayout';
 import { SuperAdminGuard } from './components/Guards/SuperAdminGuard';
 import { Login } from './pages/Auth/Login';
 import { TenantRegistration } from './pages/Auth/TenantRegistration';
 import { RoleSelector } from './pages/Auth/RoleSelector';
+import { ErrorBoundary } from './components/Feedback/ErrorBoundary';
+
 import { MFAEnroll } from './pages/Auth/MFAEnroll';
 import { MFAGuard } from './components/Guards/MFAGuard';
 import { PermissionGuard } from './components/Guards/PermissionGuard';
@@ -18,8 +23,6 @@ import { CommandPalette } from './components/Navigation/CommandPalette';
 import { useSuperAdmin } from './hooks/useSuperAdmin';
 import { CepeaProvider } from './contexts/CepeaContext';
 import { OfflineSyncProvider } from './contexts/OfflineSyncContext';
-
-import PastureManagement from './pages/Pecuaria/PastureManagement';
 
 // Lazy Loads
 const AnimalManagement = React.lazy(() => import('./pages/Pecuaria/AnimalManagement'));
@@ -303,8 +306,10 @@ export function App() {
         <AuthProvider>
           <TenantProvider>
             <CepeaProvider>
-              <Toaster containerStyle={{ zIndex: 999999 }} />
-              <AppContent />
+              <ErrorBoundary>
+                <Toaster containerStyle={{ zIndex: 999999 }} />
+                <AppContent />
+              </ErrorBoundary>
             </CepeaProvider>
           </TenantProvider>
         </AuthProvider>
@@ -312,5 +317,6 @@ export function App() {
     </ThemeProvider>
   );
 }
+
 
 export default App;

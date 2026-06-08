@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReportData } from '../../hooks/useReportData';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
@@ -36,6 +38,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 const PastureManagement: React.FC = () => {
   const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } = useFarmFilter();
+  const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedPasture, setSelectedPasture] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -61,8 +64,7 @@ const PastureManagement: React.FC = () => {
   const [isManejoOpen, setIsManejoOpen] = useState(false);
   const [manejoPastureId, setManejoPastureId] = useState<string | undefined>(undefined);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyItems, setHistoryItems] = useState<any[]>([]);
+  const [selectedPastureId, setSelectedPastureId] = useState<string | null>(null);
   const [selectedPastureName, setSelectedPastureName] = useState('');
   const [isRelocateOpen, setIsRelocateOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
@@ -72,16 +74,15 @@ const PastureManagement: React.FC = () => {
     setIsManejoOpen(true);
   };
 
-  const handleOpenHistory = async (pasture: any) => {
-    setSelectedPastureName(pasture.nome);
-    setIsHistoryOpen(true);
-    setHistoryLoading(true);
-    try {
+  const { data: rawHistoryLogs = null, isLoading: historyLoading } = useQuery({
+    queryKey: ['pastos', 'history', selectedPastureId],
+    queryFn: async () => {
+      if (!selectedPastureId) return null;
       const { data: pastoLogs, error: err1 } = await supabase
         .from('audit_logs')
         .select('*')
         .eq('entity', 'pastos')
-        .eq('entity_id', pasture.id);
+        .eq('entity_id', selectedPastureId);
 
       const { data: loteLogs, error: err2 } = await supabase
         .from('audit_logs')
@@ -91,71 +92,78 @@ const PastureManagement: React.FC = () => {
       if (err1) throw err1;
       if (err2) throw err2;
 
-      const filteredLoteLogs = (loteLogs || []).filter(item => 
-        item.new_data?.pasto_id === pasture.id || 
-        item.old_data?.pasto_id === pasture.id
-      );
+      return { pastoLogs: pastoLogs || [], loteLogs: loteLogs || [] };
+    },
+    enabled: !!selectedPastureId,
+  });
 
-      const allLogs = [...(pastoLogs || []), ...filteredLoteLogs].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+  const historyItems = React.useMemo(() => {
+    if (!selectedPastureId || !rawHistoryLogs) return [];
+    const { pastoLogs = [], loteLogs = [] } = rawHistoryLogs as any;
+    const filteredLoteLogs = (loteLogs || []).filter((item: any) => 
+      item.new_data?.pasto_id === selectedPastureId || 
+      item.old_data?.pasto_id === selectedPastureId
+    );
 
-      const formattedItems = allLogs.map((item: any) => {
-        let title = 'Evento no Pasto';
-        let subtitle = item.description || '';
-        let value = 'INFO';
-        let status: 'success' | 'warning' | 'info' = 'info';
+    const allLogs = [...pastoLogs, ...filteredLoteLogs].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
 
-        if (item.action === 'INSERT' && item.entity === 'pastos') {
-          title = 'Pasto Cadastrado';
-          subtitle = `Área inicial: ${item.new_data?.area || 0} ha | Capim: ${item.new_data?.tipo_capim || 'N/A'}`;
-          value = 'CADASTRADO';
-          status = 'success';
-        } else if (item.action === 'MANEJO' || item.description?.includes('Manejo')) {
-          title = 'Manejo Registrado';
-          subtitle = item.description || '';
-          value = 'MANEJO';
+    return allLogs.map((item: any) => {
+      let title = 'Evento no Pasto';
+      let subtitle = item.description || '';
+      let value = 'INFO';
+      let status: 'success' | 'warning' | 'info' = 'info';
+
+      if (item.action === 'INSERT' && item.entity === 'pastos') {
+        title = 'Pasto Cadastrado';
+        subtitle = `Área inicial: ${item.new_data?.area || 0} ha | Capim: ${item.new_data?.tipo_capim || 'N/A'}`;
+        value = 'CADASTRADO';
+        status = 'success';
+      } else if (item.action === 'MANEJO' || item.description?.includes('Manejo')) {
+        title = 'Manejo Registrado';
+        subtitle = item.description || '';
+        value = 'MANEJO';
+        status = 'info';
+      } else if (item.action === 'UPDATE' && item.entity === 'pastos') {
+        const oldStatus = item.old_data?.status;
+        const newStatus = item.new_data?.status;
+        if (oldStatus !== newStatus && newStatus) {
+          title = 'Mudança de Status';
+          subtitle = `Pasto alterado para status: ${newStatus === 'resting' ? 'Descanso' : newStatus === 'grazing' ? 'Pastejo' : 'Degradado'}`;
+          value = newStatus === 'resting' ? 'DESCANSO' : newStatus === 'grazing' ? 'PASTEJO' : 'DEGRADADO';
+          status = newStatus === 'resting' ? 'info' : newStatus === 'grazing' ? 'success' : 'warning';
+        } else {
+          title = 'Dados Atualizados';
+          subtitle = 'Alterações nas configurações ou limites físicos';
+          value = 'EDITADO';
           status = 'info';
-        } else if (item.action === 'UPDATE' && item.entity === 'pastos') {
-          const oldStatus = item.old_data?.status;
-          const newStatus = item.new_data?.status;
-          if (oldStatus !== newStatus && newStatus) {
-            title = 'Mudança de Status';
-            subtitle = `Pasto alterado para status: ${newStatus === 'resting' ? 'Descanso' : newStatus === 'grazing' ? 'Pastejo' : 'Degradado'}`;
-            value = newStatus === 'resting' ? 'DESCANSO' : newStatus === 'grazing' ? 'PASTEJO' : 'DEGRADADO';
-            status = newStatus === 'resting' ? 'info' : newStatus === 'grazing' ? 'success' : 'warning';
-          } else {
-            title = 'Dados Atualizados';
-            subtitle = 'Alterações nas configurações ou limites físicos';
-            value = 'EDITADO';
-            status = 'info';
-          }
-        } else if (item.entity === 'lotes') {
-          const isEntrance = item.new_data?.pasto_id === pasture.id;
-          title = isEntrance ? 'Entrada de Lote' : 'Saída de Lote';
-          subtitle = isEntrance 
-            ? `Lote "${item.new_data?.nome}" transferido para este pasto`
-            : `Lote "${item.old_data?.nome}" transferido para outro pasto`;
-          value = isEntrance ? 'ENTRADA' : 'SAÍDA';
-          status = isEntrance ? 'success' : 'warning';
         }
+      } else if (item.entity === 'lotes') {
+        const isEntrance = item.new_data?.pasto_id === selectedPastureId;
+        title = isEntrance ? 'Entrada de Lote' : 'Saída de Lote';
+        subtitle = isEntrance 
+          ? `Lote "${item.new_data?.nome}" transferido para este pasto`
+          : `Lote "${item.old_data?.nome}" transferido para outro pasto`;
+        value = isEntrance ? 'ENTRADA' : 'SAÍDA';
+        status = isEntrance ? 'success' : 'warning';
+      }
 
-        return {
-          id: item.id,
-          date: item.created_at,
-          title,
-          subtitle,
-          value,
-          status
-        };
-      });
+      return {
+        id: item.id,
+        date: item.created_at,
+        title,
+        subtitle,
+        value,
+        status
+      };
+    });
+  }, [rawHistoryLogs, selectedPastureId]);
 
-      setHistoryItems(formattedItems);
-    } catch (err) {
-      console.error('Error fetching pasture history:', err);
-    } finally {
-      setHistoryLoading(false);
-    }
+  const handleOpenHistory = (pasture: any) => {
+    setSelectedPastureName(pasture.nome);
+    setSelectedPastureId(pasture.id);
+    setIsHistoryOpen(true);
   };
 
   const handleOpenCreate = () => {
@@ -168,20 +176,53 @@ const PastureManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
+  const deletePastureMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('pastos').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Pasto excluído!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir pasto: ' + err.message);
+      refresh();
+    }
+  });
+
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este pasto?')) return;
     
     // Optimistic delete
     setLocalPastures(prev => prev.filter(p => p.id !== id));
 
-    try {
-      const { error } = await supabase.from('pastos').delete().eq('id', id);
-      if (error) throw error;
-      refresh();
-    } catch (err: any) {
-      console.warn('DB delete failed, using local fallback state:', err.message);
-    }
+    deletePastureMutation.mutate(id);
   };
+
+  const savePastureMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (selectedPasture) {
+        const { error } = await supabase
+          .from('pastos')
+          .update(payload)
+          .eq('id', selectedPasture.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('pastos').insert([payload]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      setIsFormOpen(false);
+      toast.success(selectedPasture ? '✅ Pasto atualizado!' : '✅ Pasto cadastrado!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao salvar pasto: ' + err.message);
+      refresh();
+    }
+  });
 
   const handleSubmit = async (data: any) => {
     const payload = {
@@ -209,16 +250,6 @@ const PastureManagement: React.FC = () => {
         ...payload,
         area: `${payload.area} ha`,
       } : p));
-      
-      try {
-        const { error } = await supabase
-          .from('pastos')
-          .update(payload)
-          .eq('id', selectedPasture.id);
-        if (error) throw error;
-      } catch (err: any) {
-        console.warn('DB update failed, using local fallback state:', err.message);
-      }
     } else {
       const mockNewId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11);
       const newPasture = {
@@ -230,17 +261,31 @@ const PastureManagement: React.FC = () => {
       };
       // Optimistic insert
       setLocalPastures(prev => [newPasture, ...prev]);
-
-      try {
-        const { error } = await supabase.from('pastos').insert([payload]);
-        if (error) throw error;
-      } catch (err: any) {
-        console.warn('DB insert failed, using local fallback state:', err.message);
-      }
     }
-    setIsFormOpen(false);
-    refresh();
+
+    savePastureMutation.mutate(payload);
   };
+
+  const vazioSanitarioMutation = useMutation({
+    mutationFn: async (pastureId: string) => {
+      const { error } = await supabase
+        .from('pastos')
+        .update({
+          status: 'resting',
+          lotacao: '0.00 UA'
+        })
+        .eq('id', pastureId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Vazio sanitário iniciado!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao iniciar vazio sanitário: ' + err.message);
+      refresh();
+    }
+  });
 
   const handleVazioSanitario = async (pasture: any) => {
     if (!confirm(`Deseja iniciar o Vazio Sanitário (descanso) para o pasto "${pasture.nome}"? Isso zerará a lotação atual.`)) return;
@@ -252,19 +297,7 @@ const PastureManagement: React.FC = () => {
       lotacao: '0.00 UA'
     } : p));
 
-    try {
-      const { error } = await supabase
-        .from('pastos')
-        .update({
-          status: 'resting',
-          lotacao: '0.00 UA'
-        })
-        .eq('id', pasture.id);
-      if (error) throw error;
-      refresh();
-    } catch (err: any) {
-      console.warn('DB update failed for Vazio Sanitário:', err.message);
-    }
+    vazioSanitarioMutation.mutate(pasture.id);
   };
 
   const { 
@@ -842,7 +875,10 @@ const PastureManagement: React.FC = () => {
 
       <HistoryModal
         isOpen={isHistoryOpen}
-        onClose={() => setIsHistoryOpen(false)}
+        onClose={() => {
+          setIsHistoryOpen(false);
+          setSelectedPastureId(null);
+        }}
         title={`Histórico - ${selectedPastureName}`}
         subtitle="Linha do tempo de ocupação, manejos e manutenções"
         items={historyItems}

@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useDebounce } from '../../hooks/useDebounce';
 import { PurchaseOrderForm } from '../../components/Forms/PurchaseOrderForm';
@@ -59,9 +60,8 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const PurchaseOrder: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const { submitForApproval } = useApprovalQueue();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = usePersistentState('PurchaseOrder_isModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'OPEN' | 'HISTORY') || 'OPEN';
@@ -72,7 +72,6 @@ export const PurchaseOrder: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
@@ -83,27 +82,19 @@ export const PurchaseOrder: React.FC = () => {
     dateEnd: '',
     onlyDelayed: false
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchOrders();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues, activeTab]);
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-  const fetchOrders = async () => {
-    setLoading(true);
-    try {
+  // React Query Fetch
+  const { data: queryData = { orders: [], totalCount: 0 }, isLoading: loading } = useQuery({
+    queryKey: ['purchasing_orders', activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues, activeTab],
+    queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
@@ -144,69 +135,69 @@ export const PurchaseOrder: React.FC = () => {
       const { data, count, error } = await query;
       if (error) throw error;
       
-      if (data) {
-        // Buscar fornecedores separadamente
-        const fornecedorIds = [...new Set(data.map((d: any) => d.fornecedor_id).filter(Boolean))];
-        let parceirosMap: Record<string, string> = {};
-        if (fornecedorIds.length > 0) {
-          const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', fornecedorIds);
-          if (parceiros) parceiros.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
-        }
+      if (!data) return { orders: [], totalCount: 0 };
 
-        const enriched = data.map((d: any) => ({
-          ...d,
-          parceiros: { nome: parceirosMap[d.fornecedor_id] || 'N/A' }
-        }));
-
-        setOrders(enriched);
-        setTotalCount(count || 0);
-        const exposure = data.filter((o: any) => o.status !== 'received').reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-        const totalPurchased = data.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-        
-        setStats([
-          { label: 'Exposição de Caixa', value: exposure.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#3b82f6', progress: 100, change: 'Ordens em Aberto',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-          { label: 'Investimento Mensal', value: totalPurchased.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: ShoppingCart, color: '#10b981', progress: 100, change: 'Gasto Consolidado',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-          { 
-            label: 'SLA de Entrega', 
-            value: (() => {
-              const received = data.filter((o: any) => o.status === 'received').length;
-              return data.length > 0 ? `${((received / data.length) * 100).toFixed(0)}%` : '---';
-            })(),
-            icon: Truck, color: '#166534', 
-            progress: (() => {
-              const received = data.filter((o: any) => o.status === 'received').length;
-              return data.length > 0 ? (received / data.length) * 100 : 0;
-            })(),
-            change: 'Pedidos Recebidos', trend: 'up' as const,
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-          { 
-            label: 'Ordens em Atraso', 
-            value: (() => {
-              const delayed = data.filter((o: any) => o.status !== 'received' && o.previsao_entrega && new Date(o.previsao_entrega) < new Date()).length;
-              return delayed > 0 ? delayed : (data.length > 0 ? 0 : '---');
-            })(), 
-            icon: Clock, color: '#f59e0b', 
-            progress: (() => {
-              const delayed = data.filter((o: any) => o.status !== 'received' && o.previsao_entrega && new Date(o.previsao_entrega) < new Date()).length;
-              return data.length > 0 ? (delayed / data.length) * 100 : 0;
-            })(),
-            change: 'Atraso Logístico',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-        ]);
+      // Buscar fornecedores separadamente
+      const fornecedorIds = [...new Set(data.map((d: any) => d.fornecedor_id).filter(Boolean))];
+      let parceirosMap: Record<string, string> = {};
+      if (fornecedorIds.length > 0) {
+        const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', fornecedorIds);
+        if (parceiros) parceiros.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
       }
-    } catch (err) {
-      console.error('[PurchaseOrder]', err);
-      setOrders([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      const enriched = data.map((d: any) => ({
+        ...d,
+        parceiros: { nome: parceirosMap[d.fornecedor_id] || 'N/A' }
+      }));
+
+      return { orders: enriched, totalCount: count || 0 };
+    },
+    enabled: isReady
+  });
+
+  const orders = queryData.orders;
+  const totalCount = queryData.totalCount;
+
+  // Dynamic stats calculation
+  const exposure = orders.filter((o: any) => o.status !== 'received').reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+  const totalPurchased = orders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+
+  const stats = [
+    { label: 'Exposição de Caixa', value: exposure.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: DollarSign, color: '#3b82f6', progress: 100, change: 'Ordens em Aberto',
+      sparkline: buildSparkline(orders || [], 'created_at', 'valor_total')
+    },
+    { label: 'Investimento Mensal', value: totalPurchased.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), icon: ShoppingCart, color: '#10b981', progress: 100, change: 'Gasto Consolidado',
+      sparkline: buildSparkline(orders || [], 'created_at', 'valor_total')
+    },
+    { 
+      label: 'SLA de Entrega', 
+      value: (() => {
+        const received = orders.filter((o: any) => o.status === 'received').length;
+        return orders.length > 0 ? `${((received / orders.length) * 100).toFixed(0)}%` : '---';
+      })(),
+      icon: Truck, color: '#166534', 
+      progress: (() => {
+        const received = orders.filter((o: any) => o.status === 'received').length;
+        return orders.length > 0 ? (received / orders.length) * 100 : 0;
+      })(),
+      change: 'Pedidos Recebidos', trend: 'up' as const,
+      sparkline: buildSparkline(orders || [], 'created_at', 'valor_total')
+    },
+    { 
+      label: 'Ordens em Atraso', 
+      value: (() => {
+        const delayed = orders.filter((o: any) => o.status !== 'received' && o.previsao_entrega && new Date(o.previsao_entrega) < new Date()).length;
+        return delayed > 0 ? delayed : (orders.length > 0 ? 0 : '---');
+      })(), 
+      icon: Clock, color: '#f59e0b', 
+      progress: (() => {
+        const delayed = orders.filter((o: any) => o.status !== 'received' && o.previsao_entrega && new Date(o.previsao_entrega) < new Date()).length;
+        return orders.length > 0 ? (delayed / orders.length) * 100 : 0;
+      })(),
+      change: 'Atraso Logístico',
+      sparkline: buildSparkline(orders || [], 'created_at', 'valor_total')
+    },
+  ];
 
   const handleOpenCreate = () => {
     setSelectedOrder(null);
@@ -218,11 +209,8 @@ export const PurchaseOrder: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (data: any) => {
-    if (!activeFarm) return;
-    
-    setIsSubmitting(true);
-    try {
+  const saveOrderMutation = useMutation({
+    mutationFn: async (data: any) => {
       const payload = {
         numero_pedido: data.order_number,
         fornecedor_id: data.supplier_id,
@@ -252,48 +240,61 @@ export const PurchaseOrder: React.FC = () => {
           userData.user?.email || 'Usuário'
         );
       }
-      
-      setIsModalOpen(false); 
-      fetchOrders(); 
-    } catch (err: any) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_orders'] });
+      setIsModalOpen(false);
+      toast.success(selectedOrder ? 'Ordem de compra atualizada!' : 'Ordem de compra criada e enviada para aprovação!');
+    },
+    onError: (err: any) => {
       console.error('[PurchaseOrder] Erro ao salvar ordem:', err);
-      toast.error('âŒ Erro ao salvar ordem de compra: ' + (err.message || 'Erro desconhecido'));
-    } finally {
-      setIsSubmitting(false);
+      toast.error('❌ Erro ao salvar ordem de compra: ' + (err.message || 'Erro desconhecido'));
     }
+  });
+
+  const handleSubmit = async (data: any) => {
+    if (!activeFarm) return;
+    saveOrderMutation.mutate(data);
+  };
+
+  const isSubmitting = saveOrderMutation.isPending;
+
+  const deleteOrderMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('pedidos_compra').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_orders'] });
+      toast.success('Ordem de compra excluída!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir ordem: ' + err.message);
+    }
+  });
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja excluir esta ordem de compra?')) return;
+    deleteOrderMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const exportData = orders.map(item => ({
-      ID: item.id?.slice(0, 8).toUpperCase(),
-      Pedido: item.numero_pedido || '-',
-      Parceiro: item.fornecedores?.nome || '-',
-      Previsao: item.previsao_entrega ? new Date(item.previsao_entrega).toLocaleDateString() : '-',
+      Numero_Ordem: item.numero_ordem,
+      Fornecedor: item.fornecedor || '-',
+      Data_Criacao: item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '-',
       Valor_Total: item.valor_total || 0,
-      Forma_Pagto: item.forma_pagamento || '-',
-      Status: item.status === 'received' ? 'Recebido' : 'Em Trânsito'
+      Status: item.status || '-'
     }));
 
     if (format === 'csv') exportToCSV(exportData, 'pedidos_compra');
     else if (format === 'excel') exportToExcel(exportData, 'pedidos_compra');
-    else if (format === 'pdf') exportToPDF(exportData, 'pedidos_compra', 'Relatório de Pedidos de Compra');
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta ordem de compra?')) return;
-    try {
-      const { error } = await supabase.from('pedidos_compra').delete().eq('id', id);
-      if (error) throw error;
-      fetchOrders();
-    } catch (err: any) {
-      toast.error('âŒ Erro ao excluir ordem: ' + err.message);
-    }
+    else if (format === 'pdf') exportToPDF(exportData, 'pedidos_compra', 'Relatório de Ordens de Compra');
   };
 
   const handleViewHistory = async (order: any) => {
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
-    // Simulating API call for history
     setTimeout(() => {
       setHistoryItems([
         { id: '1', date: order.created_at, title: 'Ordem Emitida', subtitle: `Emissão #${order.numero_pedido}`, value: 'OK', status: 'success' },

@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { SidePanel } from '../../components/Layout/SidePanel';
@@ -43,8 +44,7 @@ import { useServerPagination } from '../../hooks/useServerPagination';
 export const WarehouseManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
-  const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('WarehouseManagement_isModalOpen', false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
@@ -65,8 +65,7 @@ export const WarehouseManagement: React.FC = () => {
   const [stockModalWarehouseId, setStockModalWarehouseId] = useState<string | null>(null);
   const [stockModalWarehouseName, setStockModalWarehouseName] = useState<string | null>(null);
 
-  const [farms, setFarms] = useState<any[]>([]);
-  const [unidades, setUnidades] = useState<any[]>([]);
+
   
   // Track selected structure type to show dynamic fields
   const [selectedType, setSelectedType] = useState<string>('Galpão');
@@ -79,38 +78,12 @@ export const WarehouseManagement: React.FC = () => {
     }
   }, [selectedWarehouse]);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchWarehouses();
-      fetchFarms();
-      fetchUnidades();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode, page]);
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-  const fetchFarms = async () => {
-    let query = supabase.from('fazendas').select('id, nome', { count: 'exact' });
-    query = applyTenantFilter(query);
-    const range = getRange();
-      const { data, count, error } = await query.range(range.from, range.to);
-      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
-    if (data) setFarms(data);
-  };
-
-  const fetchUnidades = async () => {
-    let query = supabase.from('categorias_sistema').select('*', { count: 'exact' }).eq('modulo', 'unidades').eq('is_active', true).order('nome');
-    query = applyTenantFilter(query);
-    const range = getRange();
-      const { data, count, error } = await query.range(range.from, range.to);
-      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
-    if (data) setUnidades(data);
-  };
-
-  const fetchWarehouses = async () => {
-    setLoading(true);
-    try {
+  // Query 1: Warehouses
+  const { data: warehouses = [], isLoading: loading } = useQuery({
+    queryKey: ['warehouses', activeFarmId, activeTenantId, isGlobalMode, page],
+    queryFn: async () => {
       let query = supabase.from('depositos').select(`
           *,
           movimentacoes_estoque (
@@ -126,38 +99,95 @@ export const WarehouseManagement: React.FC = () => {
       const range = getRange();
       const { data, count, error } = await query.range(range.from, range.to);
       if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
+      if (error) throw error;
 
-      if (data) {
-        const processed = data.map((w: any) => {
-          let valorTotal = 0;
-          const saldo = w.movimentacoes_estoque?.reduce((acc: number, curr: any) => {
-            const qty = Number(curr.quantidade);
-            const isEntry = curr.tipo === 'IN' || curr.tipo === 'in';
-            const prodValue = (curr.produtos?.custo_medio || 0) * qty;
-            
-            if (isEntry) {
-              valorTotal += prodValue;
-              return acc + qty;
-            } else {
-              valorTotal -= prodValue;
-              return acc - qty;
-            }
-          }, 0) || 0;
+      return ((data || []).map((w: any) => {
+        let valorTotal = 0;
+        const saldo = w.movimentacoes_estoque?.reduce((acc: number, curr: any) => {
+          const qty = Number(curr.quantidade);
+          const isEntry = curr.tipo === 'IN' || curr.tipo === 'in';
+          const prodValue = (curr.produtos?.custo_medio || 0) * qty;
+          
+          if (isEntry) {
+            valorTotal += prodValue;
+            return acc + qty;
+          } else {
+            valorTotal -= prodValue;
+            return acc - qty;
+          }
+        }, 0) || 0;
 
-          return { 
-            ...w, 
-            saldo_atual: saldo,
-            valor_total: Math.max(0, valorTotal)
-          };
-        });
-        setWarehouses(processed);
+        return { 
+          ...w, 
+          saldo_atual: saldo,
+          valor_total: Math.max(0, valorTotal)
+        };
+      })) as any[];
+    },
+    enabled: isReady
+  });
+
+  // Query 2: Farms
+  const { data: farms = [] } = useQuery({
+    queryKey: ['warehouse_farms', activeTenantId],
+    queryFn: async () => {
+      let query = supabase.from('fazendas').select('id, nome');
+      query = applyTenantFilter(query);
+      const range = getRange();
+      const { data, error } = await query.range(range.from, range.to);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!activeTenantId
+  });
+
+  // Query 3: Unidades
+  const { data: unidades = [] } = useQuery({
+    queryKey: ['warehouse_unidades', activeTenantId],
+    queryFn: async () => {
+      let query = supabase.from('categorias_sistema').select('*').eq('modulo', 'unidades').eq('is_active', true).order('nome');
+      query = applyTenantFilter(query);
+      const range = getRange();
+      const { data, error } = await query.range(range.from, range.to);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: !!activeTenantId
+  });
+
+  const saveWarehouseMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (selectedWarehouse) {
+        const { error } = await supabase.from('depositos').update(payload).eq('id', selectedWarehouse.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('depositos').insert([{ ...payload, ...insertPayload }]);
+        if (error) throw error;
       }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      setIsModalOpen(false);
+      toast.success(selectedWarehouse ? 'Depósito atualizado!' : 'Depósito cadastrado!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao salvar depósito: ' + err.message);
     }
-  };
+  });
+
+  const deleteWarehouseMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('depositos').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warehouses'] });
+      toast.success('Depósito excluído!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao excluir depósito: ' + err.message);
+    }
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,10 +206,6 @@ export const WarehouseManagement: React.FC = () => {
       tipo: formData.get('tipo'),
       localizacao_tecnica: formData.get('localizacao_tecnica'),
       tenant_id: activeTenantId,
-      // Fake fields for UI demonstration (In a real app, they'd be added to the database schema):
-      // responsavel_tecnico: formData.get('responsavel_tecnico'),
-      // custo_operacional: formData.get('custo_operacional'),
-      // possui_termometria: formData.get('possui_termometria') === 'on'
     };
 
     // Check if inactivating and verify balance
@@ -201,19 +227,12 @@ export const WarehouseManagement: React.FC = () => {
       }
     }
 
-    if (selectedWarehouse) {
-      const { error } = await supabase.from('depositos').update(payload).eq('id', selectedWarehouse.id);
-      if (!error) {
-        setIsModalOpen(false);
-        fetchWarehouses();
-      }
-    } else {
-      const { error } = await supabase.from('depositos').insert([{ ...payload, ...insertPayload }]);
-      if (!error) {
-        setIsModalOpen(false);
-        fetchWarehouses();
-      }
-    }
+    saveWarehouseMutation.mutate(payload);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este depósito?')) return;
+    deleteWarehouseMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -233,13 +252,7 @@ export const WarehouseManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'log_depositos', 'Relatório de Depósitos');
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este depósito?')) return;
-    const { error } = await supabase.from('depositos').delete().eq('id', id);
-    if (!error) fetchWarehouses();
-  };
-
-   const filteredWarehouses = warehouses.filter(w => {
+  const filteredWarehouses = warehouses.filter(w => {
     const matchesSearch = (w.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (w.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTab = activeTab === 'Todos' || (w.tipo === activeTab);

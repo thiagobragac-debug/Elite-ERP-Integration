@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -64,8 +66,7 @@ export const MaintenanceManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('MaintenanceManagement_isModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ACTIVE' | 'HISTORY' | 'PLANS') || 'ACTIVE';
@@ -104,33 +105,142 @@ export const MaintenanceManagement: React.FC = () => {
   ];
   
   const [checklistItems, setChecklistItems] = useState(initialChecklist);
-
-  useEffect(() => {
-    if (activeFarm) {
-      fetchOrders();
-      fetchMachines();
-    }
-  }, [activeFarm, page]);
-
-  const [machines, setMachines] = useState<any[]>([]);
-  const fetchMachines = async () => {
-    const range = getRange();
-      const { data, count, error } = await supabase.from('maquinas').select('*', { count: 'exact' }).eq('fazenda_id', activeFarm?.id).range(range.from, range.to);
-      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
-    if (data) setMachines(data);
-  };
-  const [stats, setStats] = useState<any[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
   const [updatingStatus, setUpdatingStatus] = useState<Record<string, boolean>>({});
 
+  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
+    const filteredData = orders.filter((o: any) => {
+      const matchesSearch = ((o.maquinas as any)?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const isCompleted = o.status === 'completed' || o.status === 'CONCLUIDA' || o.status === 'finalizada';
+      const matchesTab = activeTab === 'ACTIVE' ? !isCompleted : isCompleted;
+      
+      const matchesStatus = filterValues.status === 'all' || 
+                           o.status === filterValues.status || 
+                           (filterValues.status === 'open' && (o.status === 'ABERTA' || o.status === 'pending')) ||
+                           (filterValues.status === 'completed' && isCompleted);
+      const matchesTypes = filterValues.types.length === 0 || filterValues.types.includes(o.tipo);
+      const totalCost = Number(o.custo_pecas || 0) + Number(o.custo_mao_obra || 0);
+      const matchesCost = totalCost <= filterValues.maxCost;
+      const matchesDate = (!filterValues.dateStart || new Date(o.data_inicio) >= new Date(filterValues.dateStart)) &&
+                         (!filterValues.dateEnd || new Date(o.data_inicio) <= new Date(filterValues.dateEnd));
+
+      return matchesSearch && matchesTab && matchesStatus && matchesTypes && matchesCost && matchesDate;
+    });
+
+    const exportData = filteredData.map((item: any) => ({
+      Data: item.data_inicio ? new Date(item.data_inicio).toLocaleDateString() : 'N/A',
+      Maquina: (item.maquinas as any)?.nome || 'Ativo',
+      Tipo: item.tipo,
+      Descricao: item.descricao,
+      Responsavel: item.responsavel,
+      Custo_Pecas: item.custo_pecas || 0,
+      Custo_MO: item.custo_mao_obra || 0,
+      Total: (Number(item.custo_pecas || 0) + Number(item.custo_mao_obra || 0)),
+      Status: item.status
+    }));
+
+    if (format === 'csv') exportToCSV(exportData, 'log_manutencao');
+    else if (format === 'excel') exportToExcel(exportData, 'log_manutencao');
+    else if (format === 'pdf') exportToPDF(exportData, 'log_manutencao', 'Relatório de Manutenção de Frota');
+  };
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
+
+  const range = getRange();
+
+  const { data: machinesData } = useQuery({
+    queryKey: ['machines_maint', activeFarm?.id, range.from, range.to],
+    queryFn: async () => {
+      if (!activeFarm?.id) return { data: [], count: 0 };
+      const { data, count, error } = await supabase
+        .from('maquinas')
+        .select('*', { count: 'exact' })
+        .eq('fazenda_id', activeFarm.id)
+        .range(range.from, range.to);
+      if (error) throw error;
+      return { data: data || [], count: count || 0 };
+    },
+    enabled: !!activeFarm?.id
+  });
+
+  const machines = machinesData?.data || [];
+  const machinesCount = machinesData?.count || 0;
+
   useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarm;
-    if (isReady) {
-      fetchOrders();
-    } else {
-      setLoading(false);
+    if (machinesCount !== totalCount) {
+      setTotalCount(machinesCount);
     }
-  }, [activeFarm, isGlobalMode, activeTenantId, page]);
+  }, [machinesCount, totalCount, setTotalCount]);
+
+  const { data: orders = [], isLoading: loading } = useQuery({
+    queryKey: ['maintenance_orders', activeFarmId, activeTenantId, isGlobalMode, range.from, range.to],
+    queryFn: async () => {
+      let query = supabase
+        .from('manutencao_frota')
+        .select('id, maquina_id, tipo, descricao, data_inicio, custo, responsavel, status, created_at, maquinas:maquina_id (nome)', { count: 'exact' })
+        .order('data_inicio', { ascending: false });
+      
+      query = applyFarmFilter(query);
+      const { data, error } = await query.range(range.from, range.to);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+  });
+
+  const stats = useMemo(() => {
+    if (!orders || orders.length === 0) {
+      return [
+        { label: 'OS em Aberto', value: 0, icon: AlertCircle, color: '#ed6c02', progress: 0, change: '', sparkline: [] },
+        { label: 'TCO (Manutenção)', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '', sparkline: [] },
+        { label: 'MTBF (Confiabilidade)', value: '0h', icon: Zap, color: '#10b981', progress: 0, change: '', sparkline: [] },
+        { label: 'MTTR (Eficiência)', value: '0h', icon: Clock, color: '#3b82f6', progress: 0, change: '', sparkline: [] },
+      ];
+    }
+    const abertas = orders.filter((o: any) => o.status === 'ABERTA' || o.status === 'open' || o.status === 'pending').length;
+    const custoTotal = orders.reduce((acc: number, curr: any) => acc + Number(curr.custo || 0), 0);
+    
+    const corretivas = orders.filter((o: any) => o.tipo === 'corretiva').length;
+    const mtbf = corretivas > 0 ? Math.round((orders.length / corretivas) * 30) : 0;
+    
+    const osComData = orders.filter((o: any) => 
+      (o.status === 'completed' || o.status === 'CONCLUIDA') && o.data_inicio
+    );
+    const mttr = osComData.length > 0 
+      ? Math.round(osComData.reduce((acc: number, o: any) => {
+          const days = (Date.now() - new Date(o.data_inicio).getTime()) / (1000 * 3600 * 24);
+          return acc + Math.min(days, 30);
+        }, 0) / osComData.length * 10) / 10
+      : 0;
+
+    return [
+      { label: 'OS em Aberto', value: abertas > 0 ? abertas : '---', icon: AlertCircle, color: '#ed6c02', 
+        progress: orders.length > 0 ? (abertas / orders.length) * 100 : 0, 
+        change: abertas > 0 ? 'Ordens Ativas' : 'Nenhuma OS aberta',
+        sparkline: buildSparkline(orders || [], 'data_inicio', 'custo')
+      },
+      { label: 'TCO (Manutenção)', value: custoTotal > 0 ? custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#ef4444', 
+        progress: custoTotal > 0 ? Math.min(100, (custoTotal / 100000) * 100) : 0, 
+        trend: custoTotal > 0 ? 'up' as const : 'neutral' as const, 
+        change: custoTotal > 0 ? 'Custo Total' : 'Sem custos',
+        sparkline: buildSparkline(orders || [], 'data_inicio', 'custo')
+      },
+      { label: 'MTBF (Confiabilidade)', 
+        value: mtbf > 0 ? `${mtbf}h` : '---', 
+        icon: Zap, color: '#10b981', 
+        progress: mtbf > 0 ? Math.min(100, (mtbf / 720) * 100) : 0, 
+        trend: mtbf > 0 ? 'up' as const : 'neutral' as const, 
+        change: mtbf > 0 ? `${corretivas} corretivas` : 'Sem dados',
+        sparkline: buildSparkline(orders || [], 'data_inicio', 'custo')
+      },
+      { label: 'MTTR (Resolução)', 
+        value: mttr > 0 ? `${mttr}d` : '---', 
+        icon: Clock, color: '#3b82f6', 
+        progress: mttr > 0 ? Math.max(0, 100 - (mttr * 10)) : 0, 
+        trend: mttr > 0 ? 'down' as const : 'neutral' as const, 
+        change: mttr > 0 ? 'Dias médios' : 'Sem dados',
+        sparkline: buildSparkline(orders || [], 'data_inicio', 'custo')
+      },
+    ];
+  }, [orders]);
 
   // Health Score Calculation
   const healthScore = useMemo(() => {
@@ -156,105 +266,6 @@ export const MaintenanceManagement: React.FC = () => {
     return true;
   }, [checklistMachine, checklistMeter, checklistItems]);
 
-  const fetchOrders = async () => {
-    if (!activeFarmId && !isGlobalMode) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      console.log('[Maintenance] Buscando ordens de serviço resilientes...');
-      
-      const fetchPromise = (async () => {
-        let query = supabase
-          .from('manutencao_frota')
-          .select('id, maquina_id, tipo, descricao, data_inicio, custo, responsavel, status, created_at, maquinas:maquina_id (nome)', { count: 'exact' })
-          .order('data_inicio', { ascending: false });
-        
-        query = applyFarmFilter(query);
-        const range = getRange();
-      const { data, count, error } = await query.range(range.from, range.to);
-      if (count !== null && count !== totalCount) setTimeout(() => setTotalCount(count), 0);
-        
-        if (error) throw error;
-        return data;
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const data: any = await Promise.race([fetchPromise, timeoutPromise]);
-      
-      if (data) {
-        setOrders(data);
-        const abertas = data.filter((o: any) => o.status === 'ABERTA' || o.status === 'open' || o.status === 'pending').length;
-        const custoTotal = data.reduce((acc: number, curr: any) => acc + Number(curr.custo || 0), 0);
-        const concluidas = data.filter((o: any) => o.status === 'completed' || o.status === 'CONCLUIDA' || o.status === 'finalizada').length;
-        
-        // MTBF real: tempo médio entre falhas corretas = dias totais de operação / número de ordens corretivas
-        const corretivas = data.filter((o: any) => o.tipo === 'corretiva').length;
-        const mtbf = corretivas > 0 ? Math.round((data.length / corretivas) * 30) : 0;
-        
-        // MTTR real: dias médios entre abertura e conclusão das OS concluídas
-        const osComData = data.filter((o: any) => 
-          (o.status === 'completed' || o.status === 'CONCLUIDA') && o.data_inicio
-        );
-        const mttr = osComData.length > 0 
-          ? Math.round(osComData.reduce((acc: number, o: any) => {
-              const days = (Date.now() - new Date(o.data_inicio).getTime()) / (1000 * 3600 * 24);
-              return acc + Math.min(days, 30);
-            }, 0) / osComData.length * 10) / 10
-          : 0;
-        
-        setStats([
-          { label: 'OS em Aberto', value: abertas > 0 ? abertas : '---', icon: AlertCircle, color: '#ed6c02', 
-            progress: data.length > 0 ? (abertas / data.length) * 100 : 0, 
-            change: abertas > 0 ? 'Ordens Ativas' : 'Nenhuma OS aberta',
-            sparkline: buildSparkline(data || [], 'data_inicio', 'custo')
-          },
-          { label: 'TCO (Manutenção)', value: custoTotal > 0 ? custoTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#ef4444', 
-            progress: custoTotal > 0 ? Math.min(100, (custoTotal / 100000) * 100) : 0, 
-            trend: custoTotal > 0 ? 'up' as const : 'neutral' as const, 
-            change: custoTotal > 0 ? 'Custo Total' : 'Sem custos',
-            sparkline: buildSparkline(data || [], 'data_inicio', 'custo')
-          },
-          { label: 'MTBF (Confiabilidade)', 
-            value: mtbf > 0 ? `${mtbf}h` : '---', 
-            icon: Zap, color: '#10b981', 
-            progress: mtbf > 0 ? Math.min(100, (mtbf / 720) * 100) : 0, 
-            trend: mtbf > 0 ? 'up' as const : 'neutral' as const, 
-            change: mtbf > 0 ? `${corretivas} corretivas` : 'Sem dados',
-            sparkline: buildSparkline(data || [], 'data_inicio', 'custo')
-          },
-          { label: 'MTTR (Resolução)', 
-            value: mttr > 0 ? `${mttr}d` : '---', 
-            icon: Clock, color: '#3b82f6', 
-            progress: mttr > 0 ? Math.max(0, 100 - (mttr * 10)) : 0, 
-            trend: mttr > 0 ? 'down' as const : 'neutral' as const, 
-            change: mttr > 0 ? 'Dias médios' : 'Sem dados',
-            sparkline: buildSparkline(data || [], 'data_inicio', 'custo')
-          },
-        ]);
-      }
-    } catch (err) {
-      console.warn('[Maintenance] Fetch error:', err);
-      setOrders([]);
-      setStats([
-        { label: 'OS em Aberto', value: 0, icon: AlertCircle, color: '#ed6c02', progress: 0, change: '',
-          sparkline: buildSparkline([], 'data_inicio', 'custo') },
-        { label: 'TCO (Manutenção)', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: '',
-          sparkline: buildSparkline([], 'data_inicio', 'custo') },
-        { label: 'MTBF (Confiabilidade)', value: '0h', icon: Zap, color: '#10b981', progress: 0, change: '',
-          sparkline: buildSparkline([], 'data_inicio', 'custo') },
-        { label: 'MTTR (Eficiência)', value: '0h', icon: Clock, color: '#3b82f6', progress: 0, change: '',
-          sparkline: buildSparkline([], 'data_inicio', 'custo') },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleOpenCreate = () => {
     setSelectedOrder(null);
     setIsModalOpen(true);
@@ -265,94 +276,86 @@ export const MaintenanceManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleCreateOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-  };
+  const saveMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const payload = {
+        maquina_id: data.maquina_id,
+        tipo: data.tipo,
+        descricao: data.descricao,
+        data_inicio: data.data_inicio,
+        custo: (parseFloat(data.custo_pecas) || 0) + (parseFloat(data.custo_mao_obra) || 0),
+        responsavel: data.responsavel,
+        status: data.status,
+        ...insertPayload
+      };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta ordem de serviço?')) return;
-    const { error } = await supabase.from('manutencao_frota').delete().eq('id', id);
-    if (!error) fetchOrders();
-  };
-
-  const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = orders.filter(o => {
-      const matchesSearch = (o.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const isCompleted = o.status === 'completed' || o.status === 'CONCLUIDA' || o.status === 'finalizada';
-      const matchesTab = activeTab === 'ACTIVE' ? !isCompleted : isCompleted;
-      
-      const matchesStatus = filterValues.status === 'all' || 
-                           o.status === filterValues.status || 
-                           (filterValues.status === 'open' && (o.status === 'ABERTA' || o.status === 'pending')) ||
-                           (filterValues.status === 'completed' && isCompleted);
-      const matchesTypes = filterValues.types.length === 0 || filterValues.types.includes(o.tipo);
-      const totalCost = Number(o.custo_pecas || 0) + Number(o.custo_mao_obra || 0);
-      const matchesCost = totalCost <= filterValues.maxCost;
-      const matchesDate = (!filterValues.dateStart || new Date(o.data_inicio) >= new Date(filterValues.dateStart)) &&
-                         (!filterValues.dateEnd || new Date(o.data_inicio) <= new Date(filterValues.dateEnd));
-
-      return matchesSearch && matchesTab && matchesStatus && matchesTypes && matchesCost && matchesDate;
-    });
-
-    const exportData = filteredData.map(item => ({
-      Data: item.data_inicio ? new Date(item.data_inicio).toLocaleDateString() : 'N/A',
-      Maquina: item.maquinas?.nome || 'Ativo',
-      Tipo: item.tipo,
-      Descricao: item.descricao,
-      Responsavel: item.responsavel,
-      Custo_Pecas: item.custo_pecas || 0,
-      Custo_MO: item.custo_mao_obra || 0,
-      Total: (Number(item.custo_pecas || 0) + Number(item.custo_mao_obra || 0)),
-      Status: item.status
-    }));
-
-    if (format === 'csv') exportToCSV(exportData, 'log_manutencao');
-    else if (format === 'excel') exportToExcel(exportData, 'log_manutencao');
-    else if (format === 'pdf') exportToPDF(exportData, 'log_manutencao', 'Relatório de Manutenção de Frota');
-  };
+      if (selectedOrder) {
+        const { error } = await supabase.from('manutencao_frota').update(payload).eq('id', selectedOrder.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('manutencao_frota').insert([payload]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['fleet_dashboard'] });
+      setIsModalOpen(false);
+      toast.success(selectedOrder ? 'Ordem de serviço atualizada!' : 'Ordem de serviço aberta com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao salvar ordem de serviço: ${err.message}`);
+    }
+  });
 
   const handleSubmit = async (data: any) => {
-    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
-    const payload = {
-      maquina_id: data.maquina_id,
-      tipo: data.tipo,
-      descricao: data.descricao,
-      data_inicio: data.data_inicio,
-      custo: (parseFloat(data.custo_pecas) || 0) + (parseFloat(data.custo_mao_obra) || 0),
-      responsavel: data.responsavel,
-      status: data.status,
-      ...insertPayload
-    };
-
-    if (selectedOrder) {
-      const { error } = await supabase.from('manutencao_frota').update(payload).eq('id', selectedOrder.id);
-      if (!error) { setIsModalOpen(false); fetchOrders(); }
-    } else {
-      const { error } = await supabase.from('manutencao_frota').insert([payload]);
-      if (!error) { setIsModalOpen(false); fetchOrders(); }
-    }
+    if (!activeFarm) return;
+    saveMutation.mutate(data);
   };
 
-  const handleStatusTransition = async (orderId: string, nextStatus: string) => {
-    setUpdatingStatus(prev => ({ ...prev, [orderId]: true }));
-    try {
+  const statusTransitionMutation = useMutation({
+    mutationFn: async ({ orderId, nextStatus }: { orderId: string, nextStatus: string }) => {
+      setUpdatingStatus(prev => ({ ...prev, [orderId]: true }));
       const { error } = await supabase
         .from('manutencao_frota')
         .update({ status: nextStatus })
         .eq('id', orderId);
-      
       if (error) throw error;
-      
-      // Update local state directly for responsive optimistic UI
-      setOrders(prevOrders => 
-        prevOrders.map(o => o.id === orderId ? { ...o, status: nextStatus } : o)
-      );
-    } catch (err: any) {
-      console.error('[Maintenance] Erro ao transicionar status da OS:', err);
-      alert('âŒ Erro ao atualizar status: ' + (err.message || 'Erro desconhecido'));
-    } finally {
-      setUpdatingStatus(prev => ({ ...prev, [orderId]: false }));
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['fleet_dashboard'] });
+      toast.success('Status da OS atualizado!');
+      setUpdatingStatus(prev => ({ ...prev, [variables.orderId]: false }));
+    },
+    onError: (err: any, variables) => {
+      toast.error(`Erro ao atualizar status: ${err.message}`);
+      setUpdatingStatus(prev => ({ ...prev, [variables.orderId]: false }));
     }
+  });
+
+  const handleStatusTransition = async (orderId: string, nextStatus: string) => {
+    statusTransitionMutation.mutate({ orderId, nextStatus });
+  };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('manutencao_frota').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance_orders'] });
+      queryClient.invalidateQueries({ queryKey: ['fleet_dashboard'] });
+      toast.success('Ordem de serviço excluída!');
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao excluir ordem de serviço: ${err.message}`);
+    }
+  });
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja excluir esta ordem de serviço?')) return;
+    deleteMutation.mutate(id);
   };
 
   const handleViewDetails = (order: any) => {
@@ -505,7 +508,7 @@ export const MaintenanceManagement: React.FC = () => {
             color={stat.color}
             progress={stat.progress}
             change={stat.change || '---'}
-            trend={stat.trend || 'up'}
+            trend={stat.trend === 'up' || stat.trend === 'down' ? stat.trend : undefined}
             sparkline={stat.sparkline}
           
             periodLabel="Mes Atual"
@@ -1076,7 +1079,7 @@ export const MaintenanceManagement: React.FC = () => {
           setChecklistItems(initialChecklist);
           setChecklistMachine('');
           setChecklistMeter('');
-          fetchOrders();
+          queryClient.invalidateQueries({ queryKey: ['maintenance_orders'] });
         }}
         title="Checklist Preventivo 100H"
         subtitle="Inspeção técnica obrigatória para maquinário pesado"

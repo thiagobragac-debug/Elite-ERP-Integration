@@ -26,6 +26,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ReproductionForm } from '../../components/Forms/ReproductionForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
@@ -39,13 +40,14 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ReproductionManagement: React.FC = () => {
   const { activeFarm, activeTenantId, activeFarmId, isGlobalMode, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ESTACAO' | 'PARTOS') || 'ESTACAO';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [isModalOpen, setIsModalOpen] = usePersistentState('ReproductionManagement_isModalOpen', false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -87,25 +89,8 @@ export const ReproductionManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (data: any) => {
-    if (!canCreate && !selectedEvent) {
-      toast.error('⚠️ Selecione uma unidade específica para registrar um novo evento reprodutivo.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        animal_id: data.animal_id,
-        tipo_evento: data.tipo_evento,
-        data_evento: data.data_evento,
-        resultado: data.resultado,
-        touro: data.touro,
-        ecc: data.ecc ? parseFloat(data.ecc) : null,
-        observacoes: data.observacoes,
-        status: data.status
-      };
-
+  const saveReproMutation = useMutation({
+    mutationFn: async (payload: any) => {
       if (selectedEvent) {
         const { error } = await supabase.from('eventos_reprodutivos').update(payload).eq('id', selectedEvent.id);
         if (error) throw error;
@@ -113,39 +98,73 @@ export const ReproductionManagement: React.FC = () => {
         const { error } = await supabase.from('eventos_reprodutivos').insert([{ ...payload, ...insertPayload }]);
         if (error) throw error;
       }
-
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsModalOpen(false);
-      refresh();
-    } catch (err: any) {
+      toast.success(selectedEvent ? '✅ Evento reprodutivo atualizado!' : '✅ Evento reprodutivo cadastrado!');
+    },
+    onError: (err: any) => {
       toast.error('❌ Erro ao salvar evento reprodutivo: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const handleSubmit = async (data: any) => {
+    if (!canCreate && !selectedEvent) {
+      toast.error('⚠️ Selecione uma unidade específica para registrar um novo evento reprodutivo.');
+      return;
+    }
+
+    const payload = {
+      animal_id: data.animal_id,
+      tipo_evento: data.tipo_evento,
+      data_evento: data.data_evento,
+      resultado: data.resultado,
+      touro: data.touro,
+      ecc: data.ecc ? parseFloat(data.ecc) : null,
+      observacoes: data.observacoes,
+      status: data.status
+    };
+
+    saveReproMutation.mutate(payload);
   };
 
-  const handleBatchSubmit = async (batchData: any[]) => {
-    setIsSubmitting(true);
-    try {
+  const batchSaveReproMutation = useMutation({
+    mutationFn: async (batchData: any[]) => {
       const { error } = await supabase.from('eventos_reprodutivos').insert(batchData.map(d => ({ ...d, ...insertPayload })));
       if (error) throw error;
-      refresh();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsBatchModalOpen(false);
-    } catch (err: any) {
+      toast.success('✅ Lançamento em lote salvo!');
+    },
+    onError: (err: any) => {
       toast.error('❌ Erro ao salvar lote reprodutivo: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const handleBatchSubmit = async (batchData: any[]) => {
+    batchSaveReproMutation.mutate(batchData);
   };
+
+  const deleteReproMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('eventos_reprodutivos').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Evento reprodutivo excluído!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir evento: ' + err.message);
+    }
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este evento?')) return;
-    try {
-      const { error } = await supabase.from('eventos_reprodutivos').delete().eq('id', id);
-      if (error) throw error;
-      refresh();
-    } catch (err: any) {
-      toast.error('❌ Erro ao excluir evento: ' + err.message);
-    }
+    deleteReproMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -444,7 +463,7 @@ export const ReproductionManagement: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleSubmit}
         initialData={selectedEvent}
-        loading={isSubmitting}
+        loading={(saveReproMutation.isPending || batchSaveReproMutation.isPending)}
       />
 
       <HistoryModal 

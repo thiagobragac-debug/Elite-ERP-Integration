@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useSearchParams } from 'react-router-dom';
 import { 
@@ -301,8 +302,8 @@ export const WeightManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = usePersistentState('WeightManagement_isModalOpen', false);
   const [selectedWeight, setSelectedWeight] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [historyItems, setHistoryItems] = useState<any[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
+  const [selectedAnimalBrinco, setSelectedAnimalBrinco] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'RECENT' | 'PERFORMANCE') || 'RECENT';
   const setActiveTab = (tab: string) => {
@@ -322,29 +323,65 @@ export const WeightManagement: React.FC = () => {
   const [isScaleModalOpen, setIsScaleModalOpen] = useState(false);
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
 
-  const [lots, setLots] = useState<any[]>([]);
   const [selectedLotId, setSelectedLotId] = useState<string>('all');
 
-  useEffect(() => {
-    const fetchLots = async () => {
-      if (!activeTenantId) return;
-      try {
-        let query = supabase.from('lotes').select('id, nome, status');
-        if (activeFarmId) {
-          query = query.eq('fazenda_id', activeFarmId);
-        } else {
-          query = query.eq('tenant_id', activeTenantId);
-        }
-        const { data, error } = await query;
-        if (!error && data) {
-          setLots(data);
-        }
-      } catch (err) {
-        console.error('Error fetching lots for weight management:', err);
+  const { data: lots = [] } = useQuery({
+    queryKey: ['lotes', activeTenantId, activeFarmId],
+    queryFn: async () => {
+      if (!activeTenantId) return [];
+      let query = supabase.from('lotes').select('id, nome, status');
+      if (activeFarmId) {
+        query = query.eq('fazenda_id', activeFarmId);
+      } else {
+        query = query.eq('tenant_id', activeTenantId);
       }
-    };
-    fetchLots();
-  }, [activeFarmId, activeTenantId]);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!activeTenantId,
+  });
+
+  const { data: rawHistoryItems = [], isLoading: historyLoading } = useQuery({
+    queryKey: ['pesagens', 'history', selectedAnimalId],
+    queryFn: async () => {
+      if (!selectedAnimalId) return [];
+      const { data, error } = await supabase
+        .from('pesagens')
+        .select('*')
+        .eq('animal_id', selectedAnimalId)
+        .order('data_pesagem', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedAnimalId,
+  });
+
+  const historyItems = React.useMemo(() => {
+    return rawHistoryItems.map((p: any, idx: number) => {
+      const prev = rawHistoryItems[idx + 1];
+      let gmdText = '';
+      let status: 'success' | 'warning' | 'info' = 'info';
+
+      if (prev) {
+        const days = (new Date(p.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / (1000 * 60 * 60 * 24);
+        if (days > 0) {
+          const gmdVal = (Number(p.peso) - Number(prev.peso)) / days;
+          gmdText = ` | GMD: ${gmdVal.toFixed(2)} kg/dia`;
+          status = gmdVal > 0.8 ? 'success' as const : gmdVal > 0.4 ? 'info' as const : 'warning' as const;
+        }
+      }
+
+      return {
+        id: p.id,
+        date: p.data_pesagem,
+        title: `Pesagem: ${Number(p.peso).toFixed(1)} kg`,
+        subtitle: `${p.observacao || 'Pesagem de rotina'}${gmdText}`,
+        value: `${Number(p.peso).toFixed(1)} kg`,
+        status
+      };
+    });
+  }, [rawHistoryItems]);
 
   const [page, setPage] = useState(1);
   const pageSize = 15;
@@ -358,53 +395,12 @@ export const WeightManagement: React.FC = () => {
     refresh 
   } = useReportData('pesagens', { page, pageSize });
 
-  const [selectedAnimalBrinco, setSelectedAnimalBrinco] = useState('');
-
-  const handleOpenHistory = async (weighing: any) => {
+  const handleOpenHistory = (weighing: any) => {
     const animalId = weighing.animal_id;
     const brinco = weighing.animais?.brinco || 'N/A';
     setSelectedAnimalBrinco(brinco);
+    setSelectedAnimalId(animalId);
     setIsHistoryModalOpen(true);
-    setHistoryLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('pesagens')
-        .select('*')
-        .eq('animal_id', animalId)
-        .order('data_pesagem', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedItems = (data || []).map((p: any, idx: number) => {
-        const prev = data[idx + 1];
-        let gmdText = '';
-        let status: 'success' | 'warning' | 'info' = 'info';
-
-        if (prev) {
-          const days = (new Date(p.data_pesagem).getTime() - new Date(prev.data_pesagem).getTime()) / (1000 * 60 * 60 * 24);
-          if (days > 0) {
-            const gmdVal = (Number(p.peso) - Number(prev.peso)) / days;
-            gmdText = ` | GMD: ${gmdVal.toFixed(2)} kg/dia`;
-            status = gmdVal > 0.8 ? 'success' as const : gmdVal > 0.4 ? 'info' as const : 'warning' as const;
-          }
-        }
-
-        return {
-          id: p.id,
-          date: p.data_pesagem,
-          title: `Pesagem: ${Number(p.peso).toFixed(1)} kg`,
-          subtitle: `${p.observacao || 'Pesagem de rotina'}${gmdText}`,
-          value: `${Number(p.peso).toFixed(1)} kg`,
-          status
-        };
-      });
-
-      setHistoryItems(formattedItems);
-    } catch (err) {
-      console.error('Error fetching animal weight history:', err);
-    } finally {
-      setHistoryLoading(false);
-    }
   };
 
   const handleOpenCreate = () => {
@@ -416,6 +412,111 @@ export const WeightManagement: React.FC = () => {
     setSelectedWeight(w);
     setIsModalOpen(true);
   };
+
+  const queryClient = useQueryClient();
+
+  const saveWeightMutation = useMutation({
+    mutationFn: async ({ payload, id }: { payload: any; id?: string }) => {
+      if (id) {
+        const { data, error } = await supabase
+          .from('pesagens')
+          .update(payload)
+          .eq('id', id)
+          .select();
+        if (error) throw error;
+        return { data: data?.[0], isEdit: true, id };
+      } else {
+        const { data, error } = await supabase
+          .from('pesagens')
+          .insert([payload])
+          .select();
+        if (error) throw error;
+        return { data: data?.[0], isEdit: false };
+      }
+    },
+    onMutate: async ({ payload, id }) => {
+      const queryKey = ['report', 'pesagens', activeTenantId, activeFarmId, page, pageSize, JSON.stringify({})];
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousData = queryClient.getQueryData<any>(queryKey);
+
+      if (previousData) {
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old) return old;
+          let newDataList = [...old.data];
+          if (id) {
+            newDataList = newDataList.map((item: any) => 
+              item.id === id ? { ...item, ...payload } : item
+            );
+          } else {
+            const optimisticId = `optimistic-${Date.now()}`;
+            newDataList = [
+              {
+                id: optimisticId,
+                ...payload,
+                animais: { brinco: payload.brinco || '...' }
+              },
+              ...newDataList
+            ];
+          }
+          return {
+            ...old,
+            data: newDataList,
+            totalCount: id ? old.totalCount : old.totalCount + 1
+          };
+        });
+      }
+
+      return { previousData, queryKey };
+    },
+    onError: (err: any, variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(context.queryKey, context.previousData);
+      }
+      toast.error('❌ Erro ao salvar pesagem: ' + err.message);
+    },
+    onSettled: (data, error, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: context?.queryKey });
+      refresh();
+    }
+  });
+
+  const deleteWeightMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('pesagens').delete().eq('id', id);
+      if (error) throw error;
+      return id;
+    },
+    onMutate: async (id) => {
+      const queryKey = ['report', 'pesagens', activeTenantId, activeFarmId, page, pageSize, JSON.stringify({})];
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousData = queryClient.getQueryData<any>(queryKey);
+
+      if (previousData) {
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.filter((item: any) => item.id !== id),
+            totalCount: Math.max(0, old.totalCount - 1)
+          };
+        });
+      }
+
+      return { previousData, queryKey };
+    },
+    onError: (err: any, id, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(context.queryKey, context.previousData);
+      }
+      toast.error('❌ Erro ao excluir pesagem: ' + err.message);
+    },
+    onSettled: (data, error, id, context) => {
+      queryClient.invalidateQueries({ queryKey: context?.queryKey });
+      refresh();
+    }
+  });
 
   const handleSubmit = async (formData: any) => {
     if (!canCreate && !selectedWeight) {
@@ -433,25 +534,19 @@ export const WeightManagement: React.FC = () => {
       };
 
       if (selectedWeight) {
-        const { error } = await supabase
-          .from('pesagens')
-          .update(payload)
-          .eq('id', selectedWeight.id);
-        
-        if (error) throw error;
+        await saveWeightMutation.mutateAsync({ payload, id: selectedWeight.id });
       } else {
-        const { error } = await supabase.from('pesagens').insert([{
-          ...payload,
-          ...insertPayload
-        }]);
-
-        if (error) throw error;
+        await saveWeightMutation.mutateAsync({
+          payload: {
+            ...payload,
+            ...insertPayload
+          }
+        });
       }
 
       setIsModalOpen(false);
-      refresh();
     } catch (err: any) {
-      toast.error('❌ Erro ao salvar pesagem: ' + err.message);
+      // Handled by mutation onError
     } finally {
       setIsSubmitting(false);
     }
@@ -460,11 +555,9 @@ export const WeightManagement: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir esta pesagem?')) return;
     try {
-      const { error } = await supabase.from('pesagens').delete().eq('id', id);
-      if (error) throw error;
-      refresh();
+      await deleteWeightMutation.mutateAsync(id);
     } catch (err: any) {
-      toast.error('❌ Erro ao excluir pesagem: ' + err.message);
+      // Handled by mutation onError
     }
   };
 
@@ -759,7 +852,10 @@ export const WeightManagement: React.FC = () => {
 
       <HistoryModal
         isOpen={isHistoryModalOpen}
-        onClose={() => setIsHistoryModalOpen(false)}
+        onClose={() => {
+          setIsHistoryModalOpen(false);
+          setSelectedAnimalId(null);
+        }}
         title={`Histórico de Peso - Brinco #${selectedAnimalBrinco}`}
         subtitle="Evolução de pesagens e ganho médio diário (GMD) cronológico"
         items={historyItems}

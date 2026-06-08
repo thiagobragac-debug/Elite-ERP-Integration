@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useReportData } from '../../hooks/useReportData';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
@@ -96,6 +97,7 @@ const TABLES = ['animais', 'pesagens', 'lotes', 'contas_pagar', 'contas_receber'
 
 export const AuditLog: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'INSERT' | 'UPDATE' | 'DELETE'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -167,6 +169,339 @@ export const AuditLog: React.FC = () => {
     console.error("[AuditLog] Error:", error);
   }
 
+    const updateSupplierMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const payload = {
+        nome: formData.nome,
+        cnpj_cpf: formData.cnpj,
+        contato: formData.contato,
+        email: formData.email,
+        categoria: formData.categoria,
+        cep: formData.cep,
+        tipo_logradouro: formData.tipo_logradouro,
+        logradouro: formData.logradouro,
+        numero: formData.numero,
+        complemento: formData.complemento,
+        bairro: formData.bairro,
+        cidade: formData.cidade,
+        estado: formData.estado,
+        pais: formData.pais,
+        status: formData.status
+      };
+
+      const { error } = await supabase.from('parceiros').update({
+        ...payload,
+        is_global: formData.is_global,
+        fazendas_vinculadas: formData.fazendas_vinculadas
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsSupplierFormOpen(false);
+      toast.success('Parceiro atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar parceiro:', err);
+      toast.error('Erro ao atualizar parceiro: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updateAnimalMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { error } = await supabase.from('animais').update({
+        brinco: formData.brinco,
+        raca: formData.raca,
+        sexo: formData.sexo,
+        data_nascimento: formData.data_nascimento,
+        lote_id: formData.lote_id,
+        status: formData.status,
+        peso_inicial: formData.peso_inicial,
+        pelagem: formData.pelagem,
+        origem: formData.origem,
+        mae_brinco: formData.mae_brinco,
+        pai_brinco: formData.pai_brinco,
+        valor_compra: formData.valor_compra,
+        categoria: formData.categoria,
+        finalidade: formData.finalidade
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsAnimalFormOpen(false);
+      toast.success('Animal atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar animal:', err);
+      toast.error('Erro ao atualizar animal: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updateTransactionMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const tableName = transactionFormType === 'payable' ? 'contas_pagar' : 'contas_receber';
+      const payload = {
+        descricao: formData.description,
+        valor_total: formData.value,
+        data_vencimento: formData.dueDate,
+        categoria: formData.category,
+        status: formData.status,
+        metodo_pagamento: formData.paymentMethod
+      };
+
+      const { error } = await supabase.from(tableName).update(payload).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsTransactionFormOpen(false);
+      toast.success('Lançamento financeiro atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar transação:', err);
+      toast.error('Erro ao atualizar lançamento: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updateClientMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { error } = await supabase.from('parceiros').update({
+        nome: formData.name,
+        documento: formData.cnpj,
+        tipo: formData.type,
+        email: formData.email,
+        telefone: formData.phone,
+        cep: formData.cep,
+        tipo_logradouro: formData.tipo_logradouro,
+        logradouro: formData.logradouro,
+        numero: formData.numero,
+        complemento: formData.complemento,
+        bairro: formData.bairro,
+        cidade: formData.cidade,
+        estado: formData.estado,
+        pais: formData.pais,
+        limite_credito: formData.creditLimit ? parseFloat(formData.creditLimit) || null : null,
+        status: formData.status,
+        segmento: formData.segment,
+        is_global: formData.is_global,
+        fazendas_vinculadas: formData.fazendas_vinculadas
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsClientFormOpen(false);
+      toast.success('Parceiro atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar parceiro:', err);
+      toast.error('Erro ao atualizar parceiro: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updateMachineMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { error } = await supabase.from('maquinas').update({
+        nome: formData.nome,
+        marca: formData.marca,
+        modelo: formData.modelo,
+        categoria: formData.categoria,
+        horimetro_atual: parseFloat(formData.horimetro_inicial) || 0,
+        quilometragem_atual: parseFloat(formData.quilometragem_inicial) || 0,
+        placa: formData.placa,
+        ano: parseInt(formData.ano) || null,
+        status: formData.status,
+        chassi: formData.chassi,
+        combustivel: formData.combustivel,
+        capacidade_tanque: parseFloat(formData.capacidade_tanque) || null,
+        valor_compra: parseFloat(formData.valor_compra) || null,
+        potencia: parseFloat(formData.potencia) || null,
+        peso_operacional: parseFloat(formData.peso_operacional) || null,
+        intervalo_revisao: parseFloat(formData.intervalo_revisao) || 250,
+        consumo_estimado: parseFloat(formData.consumo_estimado) || null,
+        data_proxima_revisao: formData.data_proxima_revisao || null,
+        observacoes: formData.observacoes
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsMachineFormOpen(false);
+      toast.success('Máquina/Veículo atualizada com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar máquina:', err);
+      toast.error('Erro ao atualizar máquina: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updatePastureMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { error } = await supabase.from('pastos').update({
+        nome: formData.nome,
+        area: parseFloat(formData.area) || 0,
+        capacidade_ua: parseFloat(formData.capacidade_ua) || 2.5,
+        tipo_capim: formData.tipo_capim,
+        status: formData.status,
+        data_ultima_fertilizacao: formData.data_ultima_fertilizacao || null,
+        topografia: formData.topografia,
+        tipo_solo: formData.tipo_solo,
+        agua: formData.agua,
+        observacoes: formData.observacoes
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsPastureFormOpen(false);
+      toast.success('Pasto/Piquete atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar pasto:', err);
+      toast.error('Erro ao atualizar pasto: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updateLotMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { error } = await supabase.from('lotes').update({
+        nome: formData.nome,
+        descricao: formData.descricao,
+        status: formData.status,
+        capacidade: parseInt(formData.capacidade) || null,
+        data_inicio: formData.data_inicio,
+        data_fim_prevista: formData.data_fim_prevista || null,
+        gmd_alvo: parseFloat(formData.gmd_alvo) || null,
+        peso_alvo: parseFloat(formData.peso_alvo) || null
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsLotFormOpen(false);
+      toast.success('Lote atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar lote:', err);
+      toast.error('Erro ao atualizar lote: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updateWeightMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { error } = await supabase.from('pesagens').update({
+        animal_id: formData.animal_id,
+        peso: parseFloat(formData.peso) || 0,
+        data_pesagem: formData.data_pesagem,
+        lote_id: formData.lote_id || null,
+        observacoes: formData.observacoes || null
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsWeightFormOpen(false);
+      toast.success('Pesagem atualizada com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar pesagem:', err);
+      toast.error('Erro ao atualizar pesagem: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updateHealthMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { error } = await supabase.from('sanidade').update({
+        animal_id: formData.animal_id,
+        medicamento: formData.medicamento,
+        dose: formData.dose || null,
+        data_aplicacao: formData.data_aplicacao,
+        proxima_dose: formData.proxima_dose || null,
+        veterinario: formData.veterinario || null,
+        observacoes: formData.observacoes || null
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsHealthFormOpen(false);
+      toast.success('Registro de sanidade atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar registro de sanidade:', err);
+      toast.error('Erro ao atualizar registro de sanidade: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updatePurchaseOrderMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { error } = await supabase.from('pedidos_compra').update({
+        numero: formData.numero,
+        fornecedor_id: formData.fornecedor_id || formData.parceiro_id,
+        data_pedido: formData.data_pedido,
+        data_entrega_prevista: formData.data_entrega_prevista || null,
+        valor_total: parseFloat(formData.valor_total) || 0,
+        status: formData.status,
+        observacoes: formData.observacoes || null
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsPurchaseOrderFormOpen(false);
+      toast.success('Pedido de compra atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar pedido de compra:', err);
+      toast.error('Erro ao atualizar pedido de compra: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updateSalesOrderMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const { error } = await supabase.from('pedidos_venda').update({
+        numero: formData.numero,
+        cliente_id: formData.cliente_id || formData.parceiro_id,
+        data_pedido: formData.data_pedido,
+        data_entrega_prevista: formData.data_entrega_prevista || null,
+        valor_total: parseFloat(formData.valor_total) || 0,
+        status: formData.status,
+        observacoes: formData.observacoes || null
+      }).eq('id', formInitialData.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsSalesOrderFormOpen(false);
+      toast.success('Pedido de venda atualizado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar pedido de venda:', err);
+      toast.error('Erro ao atualizar pedido de venda: ' + (err.message || 'Erro desconhecido'));
+    }
+  });
+
+    const updateDynamicMutation = useMutation({
+    mutationFn: async () => {
+      setIsSavingDynamic(true);
+      const { error } = await supabase.from(dynamicFormTableName).upsert(formInitialData);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setIsDynamicFormOpen(false);
+      toast.success('Registro original atualizado com sucesso no banco de dados!');
+      queryClient.invalidateQueries({ queryKey: ['report', 'audit-logs'] });
+    },
+    onError: (err: any) => {
+      console.error('[AuditLog] Erro ao salvar registro dinâmico:', err);
+      toast.error('Erro ao atualizar registro: ' + (err.message || 'Erro desconhecido'));
+    },
+    onSettled: () => {
+      setIsSavingDynamic(false);
+    }
+  });
+
   const dossierRoute = selectedLog ? ENTITY_ROUTES[selectedLog.table_name] : null;
   const canOpenRecord = !!(selectedLog && dossierRoute && selectedLog.action !== 'DELETE');
 
@@ -217,6 +552,7 @@ export const AuditLog: React.FC = () => {
     } else if (entityId) {
       setIsFetchingRecord(true);
       try {
+        // Usando consulta direta pontual resiliente
         const { data, error } = await supabase.from(tableName).select('*').eq('id', entityId).maybeSingle();
         if (error) throw error;
         if (data) {

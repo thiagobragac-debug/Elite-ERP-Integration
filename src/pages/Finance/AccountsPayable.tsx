@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { 
   CreditCard, 
@@ -113,14 +114,10 @@ export const AccountsPayable: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (formData: any) => {
-    if (!canCreate && !selectedBill) {
-      toast.error('âš ï¸ Selecione uma unidade específica para registrar uma nova conta. No modo Visão Global, a fazenda devedora deve ser definida.');
-      return;
-    }
+  const queryClient = useQueryClient();
 
-    setIsSubmitting(true);
-    try {
+  const saveMutation = useMutation({
+    mutationFn: async (formData: any) => {
       const payload = {
         descricao: formData.description,
         valor_total: parseFloat(formData.value),
@@ -136,20 +133,15 @@ export const AccountsPayable: React.FC = () => {
           .from('contas_pagar')
           .update(payload)
           .eq('id', selectedBill.id);
-        
         if (error) throw error;
-        
-        setIsModalOpen(false);
-        refresh();
       } else {
         const { data: newRecord, error } = await supabase
           .from('contas_pagar')
           .insert([{ ...payload, ...insertPayload }])
           .select()
           .single();
-
         if (error) throw error;
-        
+
         const { data: userData } = await supabase.auth.getUser();
         await submitForApproval(
           'Contas a Pagar',
@@ -159,16 +151,39 @@ export const AccountsPayable: React.FC = () => {
           payload.descricao || 'Nova Conta a Pagar',
           userData.user?.email || 'Usuário'
         );
-        
-        setIsModalOpen(false);
-        refresh();
       }
-    } catch (err: any) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report', 'contas-pagar'] });
+      setIsModalOpen(false);
+      toast.success('Título salvo com sucesso!');
+    },
+    onError: (err: any) => {
       console.error('[AccountsPayable] Erro ao salvar:', err);
-      toast.error('âŒ Erro ao salvar título: ' + (err.message || 'Erro desconhecido'));
-    } finally {
-      setIsSubmitting(false);
+      toast.error('❌ Erro ao salvar título: ' + (err.message || 'Erro desconhecido'));
     }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report', 'contas-pagar'] });
+      toast.success('Título excluído com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir título: ' + err.message);
+    }
+  });
+
+  const handleSubmit = async (formData: any) => {
+    if (!canCreate && !selectedBill) {
+      toast.error('⚠️ Selecione uma unidade específica para registrar uma nova conta. No modo Visão Global, a fazenda devedora deve ser definida.');
+      return;
+    }
+    saveMutation.mutate(formData);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -200,16 +215,10 @@ export const AccountsPayable: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
-    try {
-      const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
-      if (error) throw error;
-      refresh();
-    } catch (err: any) {
-      toast.error('âŒ Erro ao excluir título: ' + err.message);
-    }
+    deleteMutation.mutate(id);
   };
 
-  const handleMarkAsPaid = async (id: string) => {
+  const handleMarkAsPaid = (id: string) => {
     setSelectedBill(bills.find(b => b.id === id));
     setIsBatchModalOpen(true);
   };
@@ -523,7 +532,7 @@ export const AccountsPayable: React.FC = () => {
           setSelectedBill(null);
         }}
         onSuccess={() => {
-          refresh();
+          queryClient.invalidateQueries({ queryKey: ['report', 'contas-pagar'] });
           setSelectedItems([]);
         }}
         selectedIds={selectedBill ? [selectedBill.id] : selectedItems}

@@ -37,9 +37,12 @@ import { useViewMode } from '../../hooks/useViewMode';
 import { RomaneioEmbarqueModal } from '../../components/Modals/RomaneioEmbarqueModal';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
 
 export const AnimalManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('AnimalManagement_isModalOpen', false);
@@ -60,7 +63,6 @@ export const AnimalManagement: React.FC = () => {
   
   const [page, setPage] = useState(1);
   const pageSize = 12;
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [viewMode, setViewMode] = useViewMode('pecuaria-animal-management', 'grid');
 
   const { 
@@ -96,26 +98,8 @@ export const AnimalManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (formData: any) => {
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        brinco: formData.brinco,
-        raca: formData.raca,
-        sexo: formData.sexo,
-        data_nascimento: formData.data_nascimento,
-        fazenda_id: formData.fazenda_id || null,
-        status: formData.status || 'Ativo',
-        peso_inicial: parseFloat(formData.peso_inicial) || 0,
-        pelagem: formData.pelagem,
-        origem: formData.origem,
-        mae_brinco: formData.mae_brinco,
-        pai_brinco: formData.pai_brinco,
-        valor_compra: parseFloat(formData.valor_compra) || 0,
-        categoria: formData.categoria,
-        finalidade: formData.finalidade
-      };
-
+  const saveAnimalMutation = useMutation({
+    mutationFn: async (payload: any) => {
       if (selectedAnimal) {
         const { error } = await supabase.from('animais').update(payload).eq('id', selectedAnimal.id);
         if (error) throw error;
@@ -123,15 +107,39 @@ export const AnimalManagement: React.FC = () => {
         const { error } = await supabase.from('animais').insert([{ ...insertPayload, ...payload }]);
         if (error) throw error;
       }
-
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
       setIsModalOpen(false);
-      refresh();
-    } catch (err: any) {
+      toast.success(selectedAnimal ? '✅ Animal atualizado!' : '✅ Animal cadastrado!');
+    },
+    onError: (err: any) => {
       toast.error('❌ Erro ao salvar animal: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const handleSubmit = async (formData: any) => {
+    const payload = {
+      brinco: formData.brinco,
+      raca: formData.raca,
+      sexo: formData.sexo,
+      data_nascimento: formData.data_nascimento,
+      fazenda_id: formData.fazenda_id || null,
+      status: formData.status || 'Ativo',
+      peso_inicial: parseFloat(formData.peso_inicial) || 0,
+      pelagem: formData.pelagem,
+      origem: formData.origem,
+      mae_brinco: formData.mae_brinco,
+      pai_brinco: formData.pai_brinco,
+      valor_compra: parseFloat(formData.valor_compra) || 0,
+      categoria: formData.categoria,
+      finalidade: formData.finalidade
+    };
+
+    saveAnimalMutation.mutate(payload);
   };
+
+  const isSubmitting = saveAnimalMutation.isPending;
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const exportData = animals.map(item => ({
@@ -148,15 +156,23 @@ export const AnimalManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'log_animais', 'Inventário de Animais');
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este animal?')) return;
-    try {
+  const deleteAnimalMutation = useMutation({
+    mutationFn: async (id: string) => {
       const { error } = await supabase.from('animais').delete().eq('id', id);
       if (error) throw error;
-      refresh();
-    } catch (err: any) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Animal excluído!');
+    },
+    onError: (err: any) => {
       toast.error('❌ Erro ao excluir animal: ' + err.message);
     }
+  });
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir este animal?')) return;
+    deleteAnimalMutation.mutate(id);
   };
 
   const filteredAnimals = (animals || []).filter(a => {
@@ -650,7 +666,7 @@ export const AnimalManagement: React.FC = () => {
         activeTenantId={activeTenantId || ''}
         activeFarmId={activeFarmId || ''}
         insertPayload={insertPayload}
-        onSuccess={() => { refresh(); }}
+        onSuccess={() => { queryClient.invalidateQueries({ queryKey: ['report'] }); }}
       />
 
       <RomaneioEmbarqueModal
@@ -659,7 +675,7 @@ export const AnimalManagement: React.FC = () => {
         onGerarNF={(romaneioData) => {
           setShowRomaneio(false);
           toast.success(`✅ Romaneio de Embarque criado para ${romaneioData.comprador}! Nota Fiscal de Saída emitida com sucesso.`);
-          refresh();
+          queryClient.invalidateQueries({ queryKey: ['report'] });
         }}
       />
       <style>{`

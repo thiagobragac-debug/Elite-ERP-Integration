@@ -43,6 +43,7 @@ import {
 import { motion } from 'framer-motion';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { supabase } from '../../lib/supabase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTenant } from '../../contexts/TenantContext';
 import { PurchaseRequestForm } from '../../components/Forms/PurchaseRequestForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
@@ -51,6 +52,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { PurchaseRequestFilterModal } from './components/PurchaseRequestFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
+import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
@@ -58,9 +60,8 @@ export const PurchaseRequest: React.FC = () => {
   const { activeTenantId } = useTenant();
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [requests, setRequests] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = usePersistentState('PurchaseRequest_isModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'PENDING' | 'QUOTING') || 'PENDING';
@@ -80,93 +81,69 @@ export const PurchaseRequest: React.FC = () => {
     dateStart: '',
     dateEnd: ''
   });
-  const [stats, setStats] = useState<any[]>([]);
   const [showOnlyUrgent, setShowOnlyUrgent] = useState(false);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchRequests();
-    } else {
-      setLoading(false);
-      // Initialize default stats while waiting for farm selection
-      setStats([
-        { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Aguardando',
-          sparkline: buildSparkline(requests || [], 'created_at', null) },
-        { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Aguardando',
-          sparkline: buildSparkline(requests || [], 'created_at', null) },
-        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA',
-          sparkline: buildSparkline(requests || [], 'created_at', null) },
-        { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade',
-          sparkline: buildSparkline(requests || [], 'created_at', null) },
-      ]);
-    }
-  }, [activeFarmId, isGlobalMode, activeTenantId]);
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
-  const fetchRequests = async () => {
-    setLoading(true);
-    try {
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
+
+  // React Query Fetch
+  const { data: requests = [], isLoading: loading } = useQuery({
+    queryKey: ['purchasing_requests', activeFarmId, activeTenantId, isGlobalMode, debouncedSearch, filterValues, activeTab],
+    queryFn: async () => {
       let query = supabase.from('solicitacoes_compra').select('id, titulo, departamento, prioridade, status, descricao, valor_estimado, solicitante, fazenda_id, tenant_id, created_at').limit(500).order('created_at', { ascending: false });
       query = applyFarmFilter(query);
-      const { data } = await query;
-      
-      if (data) {
-        setRequests(data);
-        const abertas = data.filter(r => r.status === 'pending').length;
-        const urgentes = data.filter(r => r.prioridade === 'high' || r.prioridade === 'Urgente').length;
-        const valorTotal = data.reduce((acc, curr) => acc + Number(curr.valor_estimado || 0), 0);
-        const totalRequests = data.length || 1;
-        const avgValue = valorTotal / totalRequests;
-        
-        setStats([
-          { label: 'Requisições Ativas', value: abertas > 0 ? abertas : '---', icon: ShoppingCart, color: '#10b981', progress: abertas > 0 ? 100 : 0, change: abertas > 0 ? 'Volume de Entrada' : 'Sem requisições',
-            sparkline: buildSparkline(requests || [], 'created_at', null)
-          },
-          { label: 'Ticket Médio (Est.)', value: avgValue > 0 ? avgValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: Zap, color: '#3b82f6', progress: avgValue > 0 ? 100 : 0, change: avgValue > 0 ? 'Impacto Financeiro' : 'Sem valores',
-            sparkline: buildSparkline(requests || [], 'created_at', null)
-          },
-          { label: 'SLA Médio (dias)', 
-            value: (() => {
-              const pendentes = data.filter((r: any) => r.status === 'pending');
-              if (pendentes.length === 0) return '---';
-              const mediaMs = pendentes.reduce((acc: number, r: any) => acc + (Date.now() - new Date(r.created_at).getTime()), 0) / pendentes.length;
-              const mediaDias = mediaMs / (1000 * 3600 * 24);
-              return `${mediaDias.toFixed(1)} dias`;
-            })(),
-            icon: Clock, color: '#f59e0b', 
-            progress: (() => {
-              const pendentes = data.filter((r: any) => r.status === 'pending');
-              if (pendentes.length === 0) return 0;
-              const mediaMs = pendentes.reduce((acc: number, r: any) => acc + (Date.now() - new Date(r.created_at).getTime()), 0) / pendentes.length;
-              const mediaDias = mediaMs / (1000 * 3600 * 24);
-              // Progresso inverso: quanto menor o SLA, mais perto de 100%
-              return Math.max(0, Math.min(100, 100 - (mediaDias * 10)));
-            })(),
-            trend: 'up' as const, 
-            change: 'Tempo Médio de Espera',
-            sparkline: buildSparkline(requests || [], 'created_at', null)
-          },
-          { label: 'Nível de Urgência', value: urgentes > 0 ? urgentes : '---', icon: AlertTriangle, color: '#ef4444', progress: totalRequests > 1 ? (urgentes / totalRequests) * 100 : 0, trend: urgentes > 0 ? 'up' as const : 'neutral' as const, change: urgentes > 0 ? 'Prioridade Alta' : 'Sem urgêntes',
-            sparkline: buildSparkline(requests || [], 'created_at', null)
-          },
-        ]);
-      }
-    } catch (err) {
-      console.error('[PurchaseRequest] Error:', err);
-      setStats([
-        { label: 'Requisições Ativas', value: 0, icon: ShoppingCart, color: '#10b981', progress: 0, change: 'Sem dados',
-          sparkline: buildSparkline(requests || [], 'created_at', null) },
-        { label: 'Ticket Médio (Est.)', value: 'R$ 0,00', icon: Zap, color: '#3b82f6', progress: 0, change: 'Sem dados',
-          sparkline: buildSparkline(requests || [], 'created_at', null) },
-        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA',
-          sparkline: buildSparkline(requests || [], 'created_at', null) },
-        { label: 'Nível de Urgência', value: 0, icon: AlertTriangle, color: '#ef4444', progress: 0, change: 'Prioridade',
-          sparkline: buildSparkline(requests || [], 'created_at', null) },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isReady
+  });
+
+  // Dynamic stats calculation
+  const abertas = requests.filter(r => r.status === 'pending').length;
+  const urgentes = requests.filter(r => r.prioridade === 'high' || r.prioridade === 'Urgente').length;
+  const valorTotal = requests.reduce((acc, curr) => acc + Number(curr.valor_estimado || 0), 0);
+  const totalRequests = requests.length || 1;
+  const avgValue = valorTotal / totalRequests;
+
+  const stats = [
+    { label: 'Requisições Ativas', value: abertas > 0 ? abertas : '---', icon: ShoppingCart, color: '#10b981', progress: abertas > 0 ? 100 : 0, change: abertas > 0 ? 'Volume de Entrada' : 'Sem requisições',
+      sparkline: buildSparkline(requests || [], 'created_at', null),
+      trend: undefined,
+      periodLabel: 'Mês Atual'
+    },
+    { label: 'Ticket Médio (Est.)', value: avgValue > 0 ? avgValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: Zap, color: '#3b82f6', progress: avgValue > 0 ? 100 : 0, change: avgValue > 0 ? 'Impacto Financeiro' : 'Sem valores',
+      sparkline: buildSparkline(requests || [], 'created_at', null),
+      trend: undefined,
+      periodLabel: 'Mês Atual'
+    },
+    { label: 'SLA Médio (dias)', 
+      value: (() => {
+        const pendentes = requests.filter((r: any) => r.status === 'pending');
+        if (pendentes.length === 0) return '---';
+        const mediaMs = pendentes.reduce((acc: number, r: any) => acc + (Date.now() - new Date(r.created_at).getTime()), 0) / pendentes.length;
+        const mediaDias = mediaMs / (1000 * 3600 * 24);
+        return `${mediaDias.toFixed(1)} dias`;
+      })(),
+      icon: Clock, color: '#f59e0b', 
+      progress: (() => {
+        const pendentes = requests.filter((r: any) => r.status === 'pending');
+        if (pendentes.length === 0) return 0;
+        const mediaMs = pendentes.reduce((acc: number, r: any) => acc + (Date.now() - new Date(r.created_at).getTime()), 0) / pendentes.length;
+        const mediaDias = mediaMs / (1000 * 3600 * 24);
+        return Math.max(0, Math.min(100, 100 - (mediaDias * 10)));
+      })(),
+      trend: 'up' as const, 
+      change: 'Tempo Médio de Espera',
+      sparkline: buildSparkline(requests || [], 'created_at', null),
+      periodLabel: 'Mês Atual'
+    },
+    { label: 'Nível de Urgência', value: urgentes > 0 ? urgentes : '---', icon: AlertTriangle, color: '#ef4444', progress: totalRequests > 1 ? (urgentes / totalRequests) * 100 : 0, trend: urgentes > 0 ? 'up' as const : undefined, change: urgentes > 0 ? 'Prioridade Alta' : 'Sem urgêntes',
+      sparkline: buildSparkline(requests || [], 'created_at', null),
+      periodLabel: 'Mês Atual'
+    },
+  ];
 
   const handleOpenCreate = () => {
     setSelectedRequest(null);
@@ -178,34 +155,61 @@ export const PurchaseRequest: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const saveRequestMutation = useMutation({
+    mutationFn: async (formData: any) => {
+      const payload = {
+        titulo: formData.title || formData.titulo,
+        departamento: formData.department || formData.departamento,
+        prioridade: formData.priority || formData.prioridade,
+        valor_estimado: parseFloat(formData.estimatedValue || formData.valor_estimado),
+        descricao: formData.description || formData.descricao,
+        status: selectedRequest?.status || 'pending',
+        solicitante: formData.solicitante || 'Usuário Atual'
+      };
+
+      if (selectedRequest) {
+        const { error } = await supabase.from('solicitacoes_compra').update(payload).eq('id', selectedRequest.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('solicitacoes_compra').insert([{ ...payload, ...insertPayload }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_requests'] });
+      setIsModalOpen(false);
+      toast.success(selectedRequest ? 'Solicitação atualizada!' : 'Solicitação criada!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao salvar solicitação: ' + err.message);
+    }
+  });
+
   const handleSubmit = async (formData: any) => {
     if (!canCreate) {
       toast.error('⚠️ Selecione uma unidade específica para criar uma nova solicitação. No modo Visão Global, o cadastro requer uma fazenda definida.');
       return;
     }
-    const payload = {
-      titulo: formData.title || formData.titulo,
-      departamento: formData.department || formData.departamento,
-      prioridade: formData.priority || formData.prioridade,
-      valor_estimado: parseFloat(formData.estimatedValue || formData.valor_estimado),
-      descricao: formData.description || formData.descricao,
-      status: selectedRequest?.status || 'pending',
-      solicitante: formData.solicitante || 'Usuário Atual'
-    };
-
-    if (selectedRequest) {
-      const { error } = await supabase.from('solicitacoes_compra').update(payload).eq('id', selectedRequest.id);
-      if (!error) { setIsModalOpen(false); fetchRequests(); }
-    } else {
-      const { error } = await supabase.from('solicitacoes_compra').insert([{ ...payload, ...insertPayload }]);
-      if (!error) { setIsModalOpen(false); fetchRequests(); }
-    }
+    saveRequestMutation.mutate(formData);
   };
+
+  const deleteRequestMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('solicitacoes_compra').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_requests'] });
+      toast.success('Solicitação excluída!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao excluir solicitação: ' + err.message);
+    }
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir esta solicitação?')) return;
-    const { error } = await supabase.from('solicitacoes_compra').delete().eq('id', id);
-    if (!error) fetchRequests();
+    deleteRequestMutation.mutate(id);
   };
 
   const handleViewDetails = (req: any) => {

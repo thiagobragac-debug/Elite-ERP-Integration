@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -43,237 +44,221 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const SalesDashboard: React.FC = () => {
   const { activeFarmId, activeTenantId, isGlobalMode } = useTenant();
   const { applyFarmFilter } = useFarmFilter();
-  const [loading, setLoading] = useState(true);
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
-  const [marketInsight, setMarketInsight] = useState<{cepeaValue: number | null, delta: string, isAbove: boolean} | null>(null);
-  const [triggeredAlerts, setTriggeredAlerts] = useState<any[]>([]);
 
-  const [stats, setStats] = useState<any[]>([
-    { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up' as const, periodLabel: '...', sparkline: [] },
-    { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...', sparkline: [] },
-    { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...', sparkline: [] },
-    { label: 'Margem Operacional', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up' as const, periodLabel: '...', sparkline: [] }
-  ]);
-  const [funnelData, setFunnelData] = useState<any>({ opps: 0, orders: 0, revenue: 0 });
-
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchDashboardData();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode]);
-
-  const fetchDashboardData = async () => {
-    if (!activeFarmId && !isGlobalMode) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
-    setLoading(true);
-    try {
-      const fetchPromise = (async () => {
-        let ordersQuery = supabase.from('pedidos_venda').select('id, cliente_id, valor_total, created_at, status, numero_pedido');
-        ordersQuery = applyFarmFilter(ordersQuery);
-        
-        let clientsQuery = supabase.from('parceiros').select('id, nome, status');
-        clientsQuery = applyFarmFilter(clientsQuery);
-
-        const [ordersRes, clientsRes] = await Promise.all([
-          ordersQuery.order('created_at', { ascending: false }).limit(5),
-          clientsQuery
-        ]);
-
-        const today = new Date();
-        const sixtyDaysAgo = new Date(today);
-        sixtyDaysAgo.setDate(today.getDate() - 60);
-
-        let allOrdersQuery = supabase.from('pedidos_venda')
-          .select('valor_total, status, created_at')
-          .gte('created_at', new Date(today.getFullYear(), 0, 1).toISOString())
-          .limit(5000);
-        allOrdersQuery = applyFarmFilter(allOrdersQuery);
-        const allOrdersRes = await allOrdersQuery;
-
-        const cepeaRes = await supabase.from('market_quotes').select('indicator, value').order('date', { ascending: false }).limit(20);
-        const alertsRes = await supabase.from('market_alerts').select('*').eq('is_active', true);
-
-        return { 
-          orders: ordersRes.data, 
-          clients: clientsRes.data, 
-          allOrders: allOrdersRes.data, 
-          cepea: cepeaRes.data,
-          alerts: alertsRes.data 
-        };
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const result: any = await Promise.race([fetchPromise, timeoutPromise]);
-      const { orders, clients, allOrders, cepea, alerts } = result;
+  const { data: dashboardData, isLoading: loading } = useQuery({
+    queryKey: ['sales_dashboard', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let ordersQuery = supabase.from('pedidos_venda').select('id, cliente_id, valor_total, created_at, status, numero_pedido');
+      ordersQuery = applyFarmFilter(ordersQuery);
       
-      const boiGordo = cepea?.find((c: any) => c.indicator === 'boi_gordo_cepea');
-      const currentCepea = boiGordo ? Number(boiGordo.value) : null;
-      const userAvgPrice = 345.50;
-      const cepeaDelta = currentCepea ? ((userAvgPrice / currentCepea) - 1) * 100 : 0;
-      const isAboveCepea = cepeaDelta > 0;
-      setMarketInsight({
-        cepeaValue: currentCepea,
-        delta: Math.abs(cepeaDelta).toFixed(1),
-        isAbove: isAboveCepea
-      });
+      let clientsQuery = supabase.from('parceiros').select('id, nome, status');
+      clientsQuery = applyFarmFilter(clientsQuery);
 
-      if (alerts && alerts.length > 0 && cepea) {
-        const triggered = alerts.filter((alert: any) => {
-          const quote = cepea.find((c: any) => c.indicator === alert.indicator);
-          if (!quote) return false;
-          const val = Number(quote.value);
-          if (alert.direction === 'UP' && val >= alert.target_price) return true;
-          if (alert.direction === 'DOWN' && val <= alert.target_price) return true;
-          return false;
-        }).map((alert: any) => {
-          const quote = cepea.find((c: any) => c.indicator === alert.indicator);
-          return { ...alert, current_value: Number(quote.value) };
-        });
-        setTriggeredAlerts(triggered);
-      }
-      
-      if (allOrders) {
-        const now = new Date();
-        const thirtyDaysAgo = new Date(now);
-        thirtyDaysAgo.setDate(now.getDate() - 30);
-        const sixtyDaysAgo = new Date(now);
-        sixtyDaysAgo.setDate(now.getDate() - 60);
-
-        const totalRevenue = allOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-        
-        const last30Revenue = allOrders
-          .filter((o: any) => new Date(o.created_at) >= thirtyDaysAgo)
-          .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-          
-        const prev30Revenue = allOrders
-          .filter((o: any) => new Date(o.created_at) >= sixtyDaysAgo && new Date(o.created_at) < thirtyDaysAgo)
-          .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-
-        const revChange = prev30Revenue > 0 ? ((last30Revenue / prev30Revenue) - 1) * 100 : 0;
-        
-        const sparklineData = Array.from({ length: 30 }).map((_, i) => {
-          const d = new Date(thirtyDaysAgo);
-          d.setDate(d.getDate() + i + 1);
-          const dayStr = d.toISOString().split('T')[0];
-          const dayTotal = allOrders
-            .filter((o: any) => o.created_at?.startsWith(dayStr))
-            .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-          return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
-        });
-
-        const pendingOrders = allOrders.filter((o: any) => o.status === 'pending' || o.status === 'OPEN');
-        const pendingValue = pendingOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-        
-        const last30Pending = pendingOrders
-          .filter((o: any) => new Date(o.created_at) >= thirtyDaysAgo)
-          .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-          
-        const prev30Pending = pendingOrders
-          .filter((o: any) => new Date(o.created_at) >= sixtyDaysAgo && new Date(o.created_at) < thirtyDaysAgo)
-          .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-          
-        const pendChange = prev30Pending > 0 ? ((last30Pending / prev30Pending) - 1) * 100 : 0;
-
-        const sparklinePipeline = Array.from({ length: 30 }).map((_, i) => {
-          const d = new Date(thirtyDaysAgo);
-          d.setDate(d.getDate() + i + 1);
-          const dayStr = d.toISOString().split('T')[0];
-          const dayTotal = pendingOrders
-            .filter((o: any) => o.created_at?.startsWith(dayStr))
-            .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-          return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
-        });
-
-        const activeClients = clients?.filter((c: any) => String(c.status || '').toUpperCase() === 'ATIVO').length || 0;
-        
-        setStats([
-          { 
-            label: 'Faturamento Bruto', 
-            value: totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: DollarSign, 
-            color: '#10b981', 
-            progress: totalRevenue > 0 ? 100 : 0,
-            change: totalRevenue > 0 ? `${revChange > 0 ? '+' : ''}${revChange.toFixed(1)}%` : '---',
-            trend: revChange >= 0 ? 'up' : 'down',
-            periodLabel: 'Acumulado Safra',
-            sparkline: totalRevenue > 0 ? sparklineData : []
-          },
-          { 
-            label: 'Pipeline Ativo', 
-            value: pendingValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
-            icon: Target, 
-            color: '#3b82f6', 
-            progress: totalRevenue > 0 ? Math.min((pendingValue / totalRevenue) * 100, 100) : 0,
-            change: pendingValue > 0 ? `${pendChange > 0 ? '+' : ''}${pendChange.toFixed(1)}% novas` : '---',
-            trend: pendChange >= 0 ? 'up' : 'down',
-            periodLabel: 'Volume a Faturar',
-            sparkline: pendingValue > 0 ? sparklinePipeline : []
-          },
-          { 
-            label: 'Carteira de Parceiros', 
-            value: clients?.length || 0, 
-            icon: Users, 
-            color: '#8b5cf6', 
-            progress: clients?.length ? (activeClients / clients.length) * 100 : 0,
-            change: `Ativos: ${activeClients}`,
-            trend: 'up' as const,
-            periodLabel: 'Base CRM',
-            sparkline: clients?.length > 0 ? (() => {
-              const total = clients?.length || 0;
-              return [
-                Math.max(total - 6, 0), Math.max(total - 5, 0), Math.max(total - 4, 0),
-                Math.max(total - 3, 0), Math.max(total - 2, 0), Math.max(total - 1, 0), total
-              ].map((v, i) => ({ value: v, label: i < 6 ? `Sem ${i+1}` : `Hoje: ${v}` }));
-            })() : []
-          },
-          { 
-            label: 'Margem Operacional', 
-            value: '---', 
-            icon: TrendingUp, 
-            color: '#f59e0b', 
-            progress: 0,
-            change: '---',
-            trend: 'up' as const,
-            periodLabel: 'vs Safra Anterior',
-            sparkline: []
-          }
-        ]);
-        
-        setFunnelData({
-          opps: totalRevenue + pendingValue + (pendingValue * 0.3),
-          orders: pendingValue + totalRevenue,
-          revenue: totalRevenue
-        });
-      }
-
-      if (orders) {
-        const enrichedOrders = orders.map((order: any) => {
-          const client = clients?.find((c: any) => c.id === order.cliente_id);
-          return {
-            ...order,
-            client_name: client?.nome || 'Parceiro N/A'
-          };
-        });
-        setRecentOrders(enrichedOrders);
-      }
-    } catch (err) {
-      console.warn("SalesDashboard: Error fetching data.", err);
-      setStats([
-        { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Erro de Conexão', trend: 'up' as const, periodLabel: 'Indisponível', sparkline: [] },
-        { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
-        { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] },
-        { label: 'Margem Operacional', value: '---', icon: TrendingUp, color: '#ef4444', progress: 0, change: 'Erro de Conexão', periodLabel: 'Indisponível', sparkline: [] }
+      const [ordersRes, clientsRes] = await Promise.all([
+        ordersQuery.order('created_at', { ascending: false }).limit(5),
+        clientsQuery
       ]);
-      setRecentOrders([]);
-    } finally {
-      setLoading(false);
+
+      const today = new Date();
+      let allOrdersQuery = supabase.from('pedidos_venda')
+        .select('valor_total, status, created_at')
+        .gte('created_at', new Date(today.getFullYear(), 0, 1).toISOString())
+        .limit(5000);
+      allOrdersQuery = applyFarmFilter(allOrdersQuery);
+      const allOrdersRes = await allOrdersQuery;
+
+      const cepeaRes = await supabase.from('market_quotes').select('indicator, value').order('date', { ascending: false }).limit(20);
+      const alertsRes = await supabase.from('market_alerts').select('*').eq('is_active', true);
+
+      if (ordersRes.error) throw ordersRes.error;
+      if (clientsRes.error) throw clientsRes.error;
+      if (allOrdersRes.error) throw allOrdersRes.error;
+
+      return { 
+        orders: ordersRes.data || [], 
+        clients: clientsRes.data || [], 
+        allOrders: allOrdersRes.data || [], 
+        cepea: cepeaRes.data || [],
+        alerts: alertsRes.data || [] 
+      };
+    },
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+  });
+
+  const recentOrders = useMemo(() => {
+    if (!dashboardData) return [];
+    const { orders, clients } = dashboardData;
+    return orders.map((order: any) => {
+      const client = clients?.find((c: any) => c.id === order.cliente_id);
+      return {
+        ...order,
+        client_name: client?.nome || 'Parceiro N/A'
+      };
+    });
+  }, [dashboardData]);
+
+  const marketInsight = useMemo(() => {
+    if (!dashboardData) return null;
+    const { cepea } = dashboardData;
+    const boiGordo = cepea?.find((c: any) => c.indicator === 'boi_gordo_cepea');
+    const currentCepea = boiGordo ? Number(boiGordo.value) : null;
+    const userAvgPrice = 345.50;
+    const cepeaDelta = currentCepea ? ((userAvgPrice / currentCepea) - 1) * 100 : 0;
+    const isAboveCepea = cepeaDelta > 0;
+    return {
+      cepeaValue: currentCepea,
+      delta: Math.abs(cepeaDelta).toFixed(1),
+      isAbove: isAboveCepea
+    };
+  }, [dashboardData]);
+
+  const triggeredAlerts = useMemo(() => {
+    if (!dashboardData) return [];
+    const { alerts, cepea } = dashboardData;
+    if (!alerts || alerts.length === 0 || !cepea) return [];
+    return alerts.filter((alert: any) => {
+      const quote = cepea.find((c: any) => c.indicator === alert.indicator);
+      if (!quote) return false;
+      const val = Number(quote.value);
+      if (alert.direction === 'UP' && val >= alert.target_price) return true;
+      if (alert.direction === 'DOWN' && val <= alert.target_price) return true;
+      return false;
+    }).map((alert: any) => {
+      const quote = cepea.find((c: any) => c.indicator === alert.indicator);
+      return { ...alert, current_value: quote ? Number(quote.value) : 0 };
+    });
+  }, [dashboardData]);
+
+  const stats = useMemo(() => {
+    if (!dashboardData) {
+      return [
+        { label: 'Faturamento Bruto', value: 'R$ 0,00', icon: DollarSign, color: '#10b981', progress: 0, change: 'Processando...', trend: 'up' as const, periodLabel: '...', sparkline: [] },
+        { label: 'Pipeline Ativo', value: 'R$ 0,00', icon: Target, color: '#3b82f6', progress: 0, change: 'Analisando...', periodLabel: '...', sparkline: [] },
+        { label: 'Carteira de Parceiros', value: '0', icon: Users, color: '#8b5cf6', progress: 0, change: 'Ativos: 0', periodLabel: '...', sparkline: [] },
+        { label: 'Margem Operacional', value: '---', icon: TrendingUp, color: '#f59e0b', progress: 0, change: '...', trend: 'up' as const, periodLabel: '...', sparkline: [] }
+      ];
     }
-  };
+    const { allOrders, clients } = dashboardData;
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(now.getDate() - 30);
+    const sixtyDaysAgo = new Date(now);
+    sixtyDaysAgo.setDate(now.getDate() - 60);
+
+    const totalRevenue = allOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+    
+    const last30Revenue = allOrders
+      .filter((o: any) => new Date(o.created_at) >= thirtyDaysAgo)
+      .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+      
+    const prev30Revenue = allOrders
+      .filter((o: any) => new Date(o.created_at) >= sixtyDaysAgo && new Date(o.created_at) < thirtyDaysAgo)
+      .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+
+    const revChange = prev30Revenue > 0 ? ((last30Revenue / prev30Revenue) - 1) * 100 : 0;
+    
+    const sparklineData = Array.from({ length: 30 }).map((_, i) => {
+      const d = new Date(thirtyDaysAgo);
+      d.setDate(d.getDate() + i + 1);
+      const dayStr = d.toISOString().split('T')[0];
+      const dayTotal = allOrders
+        .filter((o: any) => o.created_at?.startsWith(dayStr))
+        .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+      return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    });
+
+    const pendingOrders = allOrders.filter((o: any) => o.status === 'pending' || o.status === 'OPEN');
+    const pendingValue = pendingOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+    
+    const last30Pending = pendingOrders
+      .filter((o: any) => new Date(o.created_at) >= thirtyDaysAgo)
+      .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+      
+    const prev30Pending = pendingOrders
+      .filter((o: any) => new Date(o.created_at) >= sixtyDaysAgo && new Date(o.created_at) < thirtyDaysAgo)
+      .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+      
+    const pendChange = prev30Pending > 0 ? ((last30Pending / prev30Pending) - 1) * 100 : 0;
+
+    const sparklinePipeline = Array.from({ length: 30 }).map((_, i) => {
+      const d = new Date(thirtyDaysAgo);
+      d.setDate(d.getDate() + i + 1);
+      const dayStr = d.toISOString().split('T')[0];
+      const dayTotal = pendingOrders
+        .filter((o: any) => o.created_at?.startsWith(dayStr))
+        .reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+      return { value: dayTotal || 0, label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) };
+    });
+
+    const activeClients = clients?.filter((c: any) => String(c.status || '').toUpperCase() === 'ATIVO').length || 0;
+
+    return [
+      { 
+        label: 'Faturamento Bruto', 
+        value: totalRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
+        icon: DollarSign, 
+        color: '#10b981', 
+        progress: totalRevenue > 0 ? 100 : 0,
+        change: totalRevenue > 0 ? `${revChange > 0 ? '+' : ''}${revChange.toFixed(1)}%` : '---',
+        trend: revChange >= 0 ? 'up' : 'down',
+        periodLabel: 'Acumulado Safra',
+        sparkline: totalRevenue > 0 ? sparklineData : []
+      },
+      { 
+        label: 'Pipeline Ativo', 
+        value: pendingValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), 
+        icon: Target, 
+        color: '#3b82f6', 
+        progress: totalRevenue > 0 ? Math.min((pendingValue / totalRevenue) * 100, 100) : 0,
+        change: pendingValue > 0 ? `${pendChange > 0 ? '+' : ''}${pendChange.toFixed(1)}% novas` : '---',
+        trend: pendChange >= 0 ? 'up' : 'down',
+        periodLabel: 'Volume a Faturar',
+        sparkline: pendingValue > 0 ? sparklinePipeline : []
+      },
+      { 
+        label: 'Carteira de Parceiros', 
+        value: clients?.length || 0, 
+        icon: Users, 
+        color: '#8b5cf6', 
+        progress: clients?.length ? (activeClients / clients.length) * 100 : 0,
+        change: `Ativos: ${activeClients}`,
+        trend: 'up' as const,
+        periodLabel: 'Base CRM',
+        sparkline: clients?.length > 0 ? (() => {
+          const total = clients?.length || 0;
+          return [
+            Math.max(total - 6, 0), Math.max(total - 5, 0), Math.max(total - 4, 0),
+            Math.max(total - 3, 0), Math.max(total - 2, 0), Math.max(total - 1, 0), total
+          ].map((v, i) => ({ value: v, label: i < 6 ? `Sem ${i+1}` : `Hoje: ${v}` }));
+        })() : []
+      },
+      { 
+        label: 'Margem Operacional', 
+        value: '---', 
+        icon: TrendingUp, 
+        color: '#f59e0b', 
+        progress: 0,
+        change: '---',
+        trend: 'up' as const,
+        periodLabel: 'vs Safra Anterior',
+        sparkline: []
+      }
+    ];
+  }, [dashboardData]);
+
+  const funnelData = useMemo(() => {
+    if (!dashboardData) return { opps: 0, orders: 0, revenue: 0 };
+    const { allOrders } = dashboardData;
+    const totalRevenue = allOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+    const pendingOrders = allOrders.filter((o: any) => o.status === 'pending' || o.status === 'OPEN');
+    const pendingValue = pendingOrders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+
+    return {
+      opps: totalRevenue + pendingValue + (pendingValue * 0.3),
+      orders: pendingValue + totalRevenue,
+      revenue: totalRevenue
+    };
+  }, [dashboardData]);
 
   return (
     <div className="sales-intelligence-hub animate-slide-up">
@@ -320,7 +305,7 @@ export const SalesDashboard: React.FC = () => {
               color={stat.color}
               progress={stat.progress}
               change={stat.change}
-              trend={stat.trend}
+              trend={stat.trend === 'up' || stat.trend === 'down' ? stat.trend : undefined}
               periodLabel={stat.periodLabel}
               sparkline={stat.sparkline}
             />

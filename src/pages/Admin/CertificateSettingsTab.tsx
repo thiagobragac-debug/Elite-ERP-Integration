@@ -3,6 +3,7 @@ import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { Edit3, Shield, Key, FilePlus, Eye, Search, AlertTriangle, X, UploadCloud } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -18,9 +19,7 @@ const FORM_SESSION_KEY = 'cert_form_draft';
 
 export const CertificateSettingsTab: React.FC<CertificateSettingsTabProps> = ({ searchTerm, triggerCreate }) => {
   const { tenant, activeTenantId } = useTenant();
-  const [certificados, setCertificados] = useState<any[]>([]);
-  const [empresas, setEmpresas] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   
   const [isModalOpen, setIsModalOpen] = useState(() => {
     // Restaura o modal aberto caso o usuário tenha trocado de janela com ele aberto
@@ -48,12 +47,6 @@ export const CertificateSettingsTab: React.FC<CertificateSettingsTabProps> = ({ 
   };
 
   useEffect(() => {
-    if (activeTenantId) {
-      fetchData();
-    }
-  }, [activeTenantId]);
-
-  useEffect(() => {
     if (triggerCreate > 0) {
       setEditingCert(null);
       setFormData({ company_id: '', titular: '', cnpj_cpf: '', senha: '', pfx_base64: '' });
@@ -61,25 +54,73 @@ export const CertificateSettingsTab: React.FC<CertificateSettingsTabProps> = ({ 
     }
   }, [triggerCreate]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      // Usamos RPC SECURITY DEFINER para garantir que SAAS_ADMIN consiga
-      // ler dados de qualquer tenant que esteja impersonando.
-      const [certsResult, compsResult] = await Promise.all([
-        supabase.rpc('get_certificados_digitais', { p_tenant_id: activeTenantId }),
-        supabase.from('fazendas').select('id, nome, ie_produtor, nirf').eq('tenant_id', activeTenantId)
-      ]);
+  // Query: Certificados Digitais
+  const { data: certificados = [], isLoading: loadingCerts } = useQuery({
+    queryKey: ['certificados_digitais', activeTenantId],
+    queryFn: async () => {
+      if (!activeTenantId) return [];
+      const { data, error } = await supabase.rpc('get_certificados_digitais', { p_tenant_id: activeTenantId });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!activeTenantId
+  });
 
-      if (certsResult.data) setCertificados(certsResult.data);
-      if (compsResult.data) setEmpresas(compsResult.data);
-    } catch (error: any) {
-      console.error('Erro ao buscar certificados:', error);
-      toast.error('Erro ao carregar certificados');
-    } finally {
-      setLoading(false);
+  // Query: Fazendas/Empresas
+  const { data: empresas = [], isLoading: loadingEmpresas } = useQuery({
+    queryKey: ['empresas_certificados', activeTenantId],
+    queryFn: async () => {
+      if (!activeTenantId) return [];
+      const { data, error } = await supabase.from('fazendas').select('id, nome, ie_produtor, nirf').eq('tenant_id', activeTenantId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!activeTenantId
+  });
+
+  const loading = loadingCerts || loadingEmpresas;
+
+  // Mutation: Upsert Certificado
+  const upsertMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.rpc('upsert_certificado_digital', {
+        p_tenant_id: activeTenantId,
+        p_company_id: payload.company_id,
+        p_titular: payload.titular,
+        p_cnpj_cpf: payload.cnpj_cpf,
+        p_senha: payload.senha,
+        p_pfx_base64: payload.pfx_base64,
+        p_data_vencimento: payload.data_vencimento,
+        p_existing_id: editingCert ? editingCert.id : null
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(editingCert ? 'Certificado atualizado com sucesso!' : 'Certificado importado com sucesso!');
+      clearDraft();
+      setIsModalOpen(false);
+      setFormData({ company_id: '', titular: '', cnpj_cpf: '', senha: '', pfx_base64: '' });
+      queryClient.invalidateQueries({ queryKey: ['certificados_digitais', activeTenantId] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Erro ao salvar certificado');
     }
-  };
+  });
+
+  // Mutation: Delete Certificado
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('certificados_digitais').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success('Certificado excluído');
+      queryClient.invalidateQueries({ queryKey: ['certificados_digitais', activeTenantId] });
+    },
+    onError: () => {
+      toast.error('Erro ao excluir');
+    }
+  });
 
   const handleFileDrop = (files: File[]) => {
     if (files.length === 0) return;
@@ -100,7 +141,7 @@ export const CertificateSettingsTab: React.FC<CertificateSettingsTabProps> = ({ 
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTenantId) return;
 
@@ -113,46 +154,22 @@ export const CertificateSettingsTab: React.FC<CertificateSettingsTabProps> = ({ 
     const validade = new Date();
     validade.setFullYear(validade.getFullYear() + 1);
 
-    try {
-      // Usamos uma RPC SECURITY DEFINER para bypasear o RLS de INSERT de forma segura.
-      // Isso é necessário porque o INSERT via client pode falhar quando o usuário é
-      // SAAS_ADMIN impersonando outro tenant (o auth.uid() não bate com o tenant_id).
-      const { data, error } = await supabase.rpc('upsert_certificado_digital', {
-        p_tenant_id: activeTenantId,
-        p_company_id: formData.company_id,
-        p_titular: formData.titular,
-        p_cnpj_cpf: formData.cnpj_cpf,
-        p_senha: formData.senha,
-        p_pfx_base64: formData.pfx_base64,
-        p_data_vencimento: validade.toISOString(),
-        p_existing_id: editingCert ? editingCert.id : null
-      });
-
-      if (error) throw error;
-
-      toast.success(editingCert ? 'Certificado atualizado com sucesso!' : 'Certificado importado com sucesso!');
-      clearDraft();
-      setIsModalOpen(false);
-      setFormData({ company_id: '', titular: '', cnpj_cpf: '', senha: '', pfx_base64: '' });
-      fetchData();
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao salvar certificado');
-    }
+    upsertMutation.mutate({
+      company_id: formData.company_id,
+      titular: formData.titular,
+      cnpj_cpf: formData.cnpj_cpf,
+      senha: formData.senha,
+      pfx_base64: formData.pfx_base64,
+      data_vencimento: validade.toISOString()
+    });
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     if (!confirm('Deseja realmente excluir este certificado? Ele não poderá mais assinar NF-e ou realizar buscas.')) return;
-    try {
-      const { error } = await supabase.from('certificados_digitais').delete().eq('id', id);
-      if (error) throw error;
-      toast.success('Certificado excluído');
-      fetchData();
-    } catch (err: any) {
-      toast.error('Erro ao excluir');
-    }
+    deleteMutation.mutate(id);
   };
 
-  const filteredCerts = certificados.filter(c => 
+  const filteredCerts = certificados.filter((c: any) => 
     c.titular.toLowerCase().includes(searchTerm.toLowerCase()) || 
     c.cnpj_cpf.includes(searchTerm)
   );

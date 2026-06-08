@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useSearchParams } from 'react-router-dom';
 
@@ -54,8 +55,6 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const MovementManagement: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, activeFarm } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [movements, setMovements] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = usePersistentState('MovementManagement_isModalOpen', false);
   const [modalType, setModalType] = useState<'in' | 'out' | 'transfer'>('in');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,10 +67,10 @@ export const MovementManagement: React.FC = () => {
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([
-    { label: 'Movimentações', value: '---', icon: ArrowDownLeft, color: '#10b981', progress: 0, change: 'Volume de Log', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
-    { label: 'Entradas (Pag.)', value: '---', icon: ArrowUpRight, color: '#3b82f6', progress: 0, change: 'Entradas', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
-    { label: 'Saídas (Pag.)', value: '---', icon: Activity, color: '#166534', progress: 0, change: 'Saídas', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
-    { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
+    { label: 'Movimentações', value: '---', icon: ArrowDownLeft, color: '#10b981', progress: 0, change: 'Volume de Log', sparkline: [] },
+    { label: 'Entradas (Pag.)', value: '---', icon: ArrowUpRight, color: '#3b82f6', progress: 0, change: 'Entradas', sparkline: [] },
+    { label: 'Saídas (Pag.)', value: '---', icon: Activity, color: '#166534', progress: 0, change: 'Saídas', sparkline: [] },
+    { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real', sparkline: [] },
   ]);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -85,26 +84,15 @@ export const MovementManagement: React.FC = () => {
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(15);
-  const [totalCount, setTotalCount] = useState(0);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchMovements();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode, page, searchTerm, activeTab]);
+  const queryClient = useQueryClient();
 
-   const fetchMovements = async () => {
-    if (!activeFarmId && !isGlobalMode) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      console.log(`[Movements] Sincronizando logs (Página ${page})...`);
-      
+  const { data: movementsData, isLoading: queryLoading, refetch: refetchMovements } = useQuery({
+    queryKey: ['movements', activeTenantId, activeFarmId, isGlobalMode, page, searchTerm],
+    queryFn: async () => {
+      if (!activeFarmId && !isGlobalMode) {
+        return { data: [], count: 0 };
+      }
       let query = supabase.from('movimentacoes_estoque').select(`
         *,
         produtos (nome, unidade, categoria)
@@ -112,14 +100,10 @@ export const MovementManagement: React.FC = () => {
       
       query = applyFarmFilter(query);
 
-      // Server-side Search
       if (searchTerm) {
-        // Since we can't easily join-search in simple query without complex logic, 
-        // we'll search by responsavel or origem_destino for now
         query = query.or(`responsavel.ilike.%${searchTerm}%,origem_destino.ilike.%${searchTerm}%`);
       }
 
-      // Range
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
@@ -128,41 +112,145 @@ export const MovementManagement: React.FC = () => {
         .range(from, to);
       
       if (error) throw error;
-      
-      if (data) {
-        setMovements(data);
-        setTotalCount(count || 0);
-            setStats([
-          { label: 'Movimentações', 
-            value: (count ?? 0) > 0 ? String(count) : '---', 
-            icon: ArrowDownLeft, color: '#10b981', 
-            progress: (count ?? 0) > 0 ? 100 : 0, 
-            change: (count ?? 0) > 0 ? 'Volume de Log' : 'Sem movimentações',
-            sparkline: buildSparkline(movements || [], 'data', 'quantidade')
-          },
-          { label: 'Entradas (Pág.)', 
-            value: (() => { const n = data.filter((m: any) => m.tipo === 'in').length; return n > 0 ? n : '---'; })(), 
-            icon: ArrowUpRight, color: '#10b981', 
-            progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'in').length / data.length) * 100 : 0, 
-            change: 'Entradas desta página',
-            sparkline: buildSparkline(movements || [], 'data', 'quantidade')
-          },
-          { label: 'Saídas (Pág.)', 
-            value: (() => { const n = data.filter((m: any) => m.tipo === 'out').length; return n > 0 ? n : '---'; })(), 
-            icon: Activity, color: '#ef4444', 
-            progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'out').length / data.length) * 100 : 0, 
-            change: 'Saídas desta página',
-            sparkline: buildSparkline(movements || [], 'data', 'quantidade')
-          },
-          { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real', sparkline: buildSparkline(movements || [], 'data', 'quantidade') },
-        ]);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
+      return { data: data || [], count: count || 0 };
+    },
+    enabled: !!activeTenantId && (isGlobalMode || !!activeFarmId)
+  });
+
+  const movements = movementsData?.data || [];
+  const totalCount = movementsData?.count || 0;
+  const loading = queryLoading;
+
+  useEffect(() => {
+    if (movementsData) {
+      const count = movementsData.count;
+      const data = movementsData.data;
+      setStats([
+        { label: 'Movimentações', 
+          value: count > 0 ? String(count) : '---', 
+          icon: ArrowDownLeft, color: '#10b981', 
+          progress: count > 0 ? 100 : 0, 
+          change: count > 0 ? 'Volume de Log' : 'Sem movimentações',
+          sparkline: buildSparkline(data || [], 'data', 'quantidade')
+        },
+        { label: 'Entradas (Pág.)', 
+          value: (() => { const n = data.filter((m: any) => m.tipo === 'in').length; return n > 0 ? n : '---'; })(), 
+          icon: ArrowUpRight, color: '#10b981', 
+          progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'in').length / data.length) * 100 : 0, 
+          change: 'Entradas desta página',
+          sparkline: buildSparkline(data || [], 'data', 'quantidade')
+        },
+        { label: 'Saídas (Pág.)', 
+          value: (() => { const n = data.filter((m: any) => m.tipo === 'out').length; return n > 0 ? n : '---'; })(), 
+          icon: Activity, color: '#ef4444', 
+          progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'out').length / data.length) * 100 : 0, 
+          change: 'Saídas desta página',
+          sparkline: buildSparkline(data || [], 'data', 'quantidade')
+        },
+        { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real', sparkline: buildSparkline(data || [], 'data', 'quantidade') },
+      ]);
     }
-  };
+  }, [movementsData]);
+
+  const movementMutation = useMutation({
+    mutationFn: async ({ payloads, isEdit, id }: { payloads: any[]; isEdit: boolean; id?: string }) => {
+      if (isEdit && id) {
+        const { data, error } = await supabase
+          .from('movimentacoes_estoque')
+          .update(payloads[0])
+          .eq('id', id)
+          .select();
+        if (error) throw error;
+        return { data: data?.[0], isEdit: true, id };
+      } else {
+        const { data, error } = await supabase
+          .from('movimentacoes_estoque')
+          .insert(payloads)
+          .select();
+        if (error) throw error;
+        return { data: data || [], isEdit: false };
+      }
+    },
+    onMutate: async ({ payloads, isEdit, id }) => {
+      const queryKey = ['movements', activeTenantId, activeFarmId, isGlobalMode, page, searchTerm];
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousData = queryClient.getQueryData<any>(queryKey);
+
+      if (previousData) {
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old) return old;
+          let newDataList = [...old.data];
+          if (isEdit && id) {
+            newDataList = newDataList.map((item: any) => 
+              item.id === id ? { ...item, ...payloads[0] } : item
+            );
+          } else {
+            const optimisticItems = payloads.map((payload, idx) => ({
+              id: `optimistic-${Date.now()}-${idx}`,
+              ...payload,
+              produtos: { nome: 'Insumo (Atualizando...)', unidade: '', categoria: '' }
+            }));
+            newDataList = [...optimisticItems, ...newDataList];
+          }
+          return {
+            ...old,
+            data: newDataList,
+            count: isEdit ? old.count : old.count + payloads.length
+          };
+        });
+      }
+
+      return { previousData, queryKey };
+    },
+    onError: (err: any, variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(context.queryKey, context.previousData);
+      }
+      toast.error('❌ Erro ao salvar movimentação: ' + err.message);
+    },
+    onSettled: (data, error, variables, context) => {
+      queryClient.invalidateQueries({ queryKey: context?.queryKey });
+      refetchMovements();
+    }
+  });
+
+  const deleteMovementMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('movimentacoes_estoque').delete().eq('id', id);
+      if (error) throw error;
+      return id;
+    },
+    onMutate: async (id) => {
+      const queryKey = ['movements', activeTenantId, activeFarmId, isGlobalMode, page, searchTerm];
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousData = queryClient.getQueryData<any>(queryKey);
+
+      if (previousData) {
+        queryClient.setQueryData(queryKey, (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            data: old.data.filter((item: any) => item.id !== id),
+            count: Math.max(0, old.count - 1)
+          };
+        });
+      }
+
+      return { previousData, queryKey };
+    },
+    onError: (err: any, id, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(context.queryKey, context.previousData);
+      }
+      toast.error('❌ Erro ao excluir movimentação: ' + err.message);
+    },
+    onSettled: (data, error, id, context) => {
+      queryClient.invalidateQueries({ queryKey: context?.queryKey });
+      refetchMovements();
+    }
+  });
 
   const handleOpenCreate = (type: 'in' | 'out' | 'transfer') => {
     if (!activeFarmId || isGlobalMode) {
@@ -185,7 +273,7 @@ export const MovementManagement: React.FC = () => {
   };
 
   const handleSubmit = async (formData: any) => {
-    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
+    if (!activeFarm) return;
 
     const isEdit = !!selectedMovement;
     const items = formData.items || [];
@@ -231,30 +319,20 @@ export const MovementManagement: React.FC = () => {
           });
         }
 
-        const { error: errorOut } = await supabase.from('movimentacoes_estoque').insert(outPayloads);
-        if (errorOut) throw errorOut;
-
-        const { error: errorIn } = await supabase.from('movimentacoes_estoque').insert(inPayloads);
-        if (errorIn) throw errorIn;
-
+        await movementMutation.mutateAsync({ payloads: [...outPayloads, ...inPayloads], isEdit: false });
         setIsModalOpen(false);
-        fetchMovements();
-        return;
       } catch (err) {
         console.error('Error in transfer:', err);
-        toast.error('Erro ao processar transferência');
-        return;
       }
+      return;
     }
 
     // Normal IN / OUT
     try {
       if (isEdit && items.length === 1) {
-        // Edit single item
         const item = items[0];
         let costToUse = parseFloat(item.valor_unitario || 0);
 
-        // If it's an OUT movement, fetch the current average cost of the product
         if (formData.tipo === 'out') {
           const { data: product } = await supabase
             .from('produtos')
@@ -279,21 +357,10 @@ export const MovementManagement: React.FC = () => {
           tenant_id: activeFarm.tenantId
         };
 
-        const { error } = await supabase
-          .from('movimentacoes_estoque')
-          .update(payload)
-          .eq('id', selectedMovement.id);
-        
-        if (!error) {
-          setIsModalOpen(false);
-          fetchMovements();
-        } else {
-          throw error;
-        }
+        await movementMutation.mutateAsync({ payloads: [payload], isEdit: true, id: selectedMovement.id });
+        setIsModalOpen(false);
       } else {
-        // Insert multiple items
         const payloads = [];
-        
         for (const item of items) {
           let costToUse = parseFloat(item.valor_unitario || 0);
 
@@ -322,31 +389,20 @@ export const MovementManagement: React.FC = () => {
           });
         }
 
-        const { error } = await supabase.from('movimentacoes_estoque').insert(payloads);
-
-        if (!error) {
-          setIsModalOpen(false);
-          fetchMovements();
-        } else {
-          throw error;
-        }
+        await movementMutation.mutateAsync({ payloads, isEdit: false });
+        setIsModalOpen(false);
       }
     } catch (err) {
       console.error('Insert error:', err);
-      toast.error('Erro ao inserir movimentações.');
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta movimentação?')) return;
-
-    const { error } = await supabase
-      .from('movimentacoes_estoque')
-      .delete()
-      .eq('id', id);
-
-    if (!error) {
-      fetchMovements();
+    try {
+      await deleteMovementMutation.mutateAsync(id);
+    } catch (err) {
+      console.error('Delete error:', err);
     }
   };
 

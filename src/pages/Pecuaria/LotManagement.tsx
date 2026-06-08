@@ -4,6 +4,7 @@ import { usePersistentState } from '../../hooks/usePersistentState';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   ClipboardList, 
   Plus, 
@@ -51,6 +52,7 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const LotManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -104,7 +106,7 @@ export const LotManagement: React.FC = () => {
   
   const [page, setPage] = useState(1);
   const pageSize = 12;
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
 
   const { 
     data: fetchedLots = [], 
@@ -133,13 +135,43 @@ export const LotManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const toggleArchiveMutation = useMutation({
+    mutationFn: async ({ lot, newStatus, isArchived }: { lot: any; newStatus: string; isArchived: boolean }) => {
+      const { error } = await supabase
+        .from('lotes')
+        .update({ status: newStatus })
+        .eq('id', lot.id);
+      if (error) throw error;
+
+      if (activeTenantId) {
+        await logAudit({
+          tenant_id: activeTenantId,
+          user_id: user?.id,
+          action: isArchived ? 'RESTORE' : 'ARCHIVE',
+          entity: 'Lote',
+          entity_id: lot.id,
+          description: `Lote "${lot.nome}" foi ${isArchived ? 'reativado' : 'arquivado'}`,
+          old_data: { status: lot.status || 'ATIVO' },
+          new_data: { status: newStatus }
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Lote atualizado com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao arquivar/reativar lote: ' + err.message);
+      refresh();
+    }
+  });
+
   const handleToggleArchive = async (lot: any) => {
     const isArchived = lot.status?.toUpperCase() === 'ARQUIVADO';
     const newStatus = isArchived ? 'ATIVO' : 'ARQUIVADO';
     const actionText = isArchived ? 'reativar' : 'arquivar';
     
     if (!isArchived) {
-      // operational safety check: DO NOT allow archiving a lot with active animals
       try {
         const { count, error: countError } = await supabase
           .from('animais')
@@ -155,8 +187,6 @@ export const LotManagement: React.FC = () => {
         }
       } catch (err: any) {
         console.warn('Falha na consulta ao banco de animais, aplicando validação padrão:', err.message);
-        // Fallback resilience: If database count check fails or we are in mock mode,
-        // let's check if the lot name suggests there are active animals (like the default mock lot).
         if (lot.nome?.includes('01') || lot.nome?.includes('Recria') || lot.nome === '1') {
           toast.error(`❌ Não é possível arquivar o lote "${lot.nome}" porque ele possui animais ativos vinculados (Simulação Resiliente: 2 Cabeças). Por favor, remaneje os animais antes de arquivar.`);
           return;
@@ -171,33 +201,23 @@ export const LotManagement: React.FC = () => {
       prev.map(l => l.id === lot.id ? { ...l, status: newStatus } : l)
     );
 
-    try {
-      const { error } = await supabase
-        .from('lotes')
-        .update({ status: newStatus })
-        .eq('id', lot.id);
-
-      if (error) throw error;
-      
-      // Log the event to audit logs
-      if (activeTenantId) {
-        await logAudit({
-          tenant_id: activeTenantId,
-          user_id: user?.id,
-          action: isArchived ? 'RESTORE' : 'ARCHIVE',
-          entity: 'Lote',
-          entity_id: lot.id,
-          description: `Lote "${lot.nome}" foi ${isArchived ? 'reativado' : 'arquivado'}`,
-          old_data: { status: lot.status || 'ATIVO' },
-          new_data: { status: newStatus }
-        });
-      }
-      
-      refresh();
-    } catch (err: any) {
-      console.warn('DB update failed, using local fallback state:', err.message);
-    }
+    toggleArchiveMutation.mutate({ lot, newStatus, isArchived });
   };
+
+  const deleteLotMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('lotes').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      toast.success('✅ Lote excluído!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir lote: ' + err.message);
+      refresh();
+    }
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este lote?')) return;
@@ -205,13 +225,7 @@ export const LotManagement: React.FC = () => {
     // Optimistic update
     setLocalLots(prev => prev.filter(l => l.id !== id));
 
-    try {
-      const { error } = await supabase.from('lotes').delete().eq('id', id);
-      if (error) throw error;
-      refresh();
-    } catch (err: any) {
-      console.warn('DB delete failed, using local fallback state:', err.message);
-    }
+    deleteLotMutation.mutate(id);
   };
 
   const handleViewDetails = (lot: any) => {
@@ -219,9 +233,34 @@ export const LotManagement: React.FC = () => {
     setIsDetailsModalOpen(true);
   };
 
+  const saveLotMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (selectedLot) {
+        const { error } = await supabase
+          .from('lotes')
+          .update(payload)
+          .eq('id', selectedLot.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('lotes').insert([{
+          ...insertPayload,
+          ...payload
+        }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      setIsModalOpen(false);
+      toast.success(selectedLot ? '✅ Lote atualizado!' : '✅ Lote cadastrado!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao salvar lote: ' + err.message);
+      refresh();
+    }
+  });
+
   const handleSubmit = async (data: any) => {
-    setIsSubmitting(true);
-    
     const payload = {
       nome: data.nome,
       finalidade: data.finalidade || '',
@@ -239,16 +278,6 @@ export const LotManagement: React.FC = () => {
     if (selectedLot) {
       // Optimistic update
       setLocalLots(prev => prev.map(l => l.id === selectedLot.id ? { ...l, ...payload } : l));
-      
-      try {
-        const { error } = await supabase
-          .from('lotes')
-          .update(payload)
-          .eq('id', selectedLot.id);
-        if (error) throw error;
-      } catch (err: any) {
-        console.warn('DB update failed, using local fallback state:', err.message);
-      }
     } else {
       const mockNewId = crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11);
       const newLot = {
@@ -259,21 +288,9 @@ export const LotManagement: React.FC = () => {
       };
       // Optimistic insert
       setLocalLots(prev => [newLot, ...prev]);
-
-      try {
-        const { error } = await supabase.from('lotes').insert([{
-          ...insertPayload,
-          ...payload
-        }]);
-        if (error) throw error;
-      } catch (err: any) {
-        console.warn('DB insert failed, using local fallback state:', err.message);
-      }
     }
 
-    setIsModalOpen(false);
-    refresh();
-    setIsSubmitting(false);
+    saveLotMutation.mutate(payload);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -856,7 +873,7 @@ export const LotManagement: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleSubmit}
         initialData={selectedLot}
-        loading={isSubmitting}
+        loading={saveLotMutation.isPending}
       />
 
       <RelocateForm 

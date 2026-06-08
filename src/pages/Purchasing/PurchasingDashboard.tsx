@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 
@@ -50,161 +51,127 @@ import {
 
 export const PurchasingDashboard: React.FC = () => {
   const { activeFarm, activeTenantId, isGlobalMode, activeFarmId, applyFarmFilter } = useFarmFilter();
-  const [loading, setLoading] = useState(true);
-  const [funnelData, setFunnelData] = useState<any[]>([]);
-  const [recentRequests, setRecentRequests] = useState<any[]>([]);
-  const [topSuppliers, setTopSuppliers] = useState<any[]>([]);
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-  const [stats, setStats] = useState<any[]>([
+  // React Query Fetch
+  const { data: dashboardData = { funnelData: [], recentRequests: [], topSuppliers: [], stats: [] }, isLoading: loading } = useQuery({
+    queryKey: ['purchasing_dashboard_data', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
+      let requestsQuery = supabase.from('solicitacoes_compra').select('id, titulo, departamento, valor_estimado, status, prioridade').order('created_at', { ascending: false }).limit(500);
+      let quotationsQuery = supabase.from('mapas_cotacao').select('dados_fornecedores').order('created_at', { ascending: false }).limit(500);
+      let ordersQuery = supabase.from('pedidos_compra').select('valor_total, status, fornecedor_id').order('created_at', { ascending: false }).limit(500);
+      let invoicesQuery = supabase.from('notas_entrada').select('id').limit(500);
+
+      requestsQuery = applyFarmFilter(requestsQuery);
+      quotationsQuery = applyFarmFilter(quotationsQuery);
+      ordersQuery = applyFarmFilter(ordersQuery);
+      invoicesQuery = applyFarmFilter(invoicesQuery);
+
+      const [requestsRes, quotationsRes, ordersRes, invoicesRes] = await Promise.all([
+        requestsQuery,
+        quotationsQuery,
+        ordersQuery,
+        invoicesQuery
+      ]);
+
+      if (requestsRes.error) throw requestsRes.error;
+      if (quotationsRes.error) throw quotationsRes.error;
+      if (ordersRes.error) throw ordersRes.error;
+      if (invoicesRes.error) throw invoicesRes.error;
+
+      const requests = requestsRes.data || [];
+      const quotations = quotationsRes.data || [];
+      const orders = ordersRes.data || [];
+      const invoices = invoicesRes.data || [];
+
+      // Funnel
+      const funnel = [
+        { name: 'Requisições', value: requests.length, color: '#6366f1' },
+        { name: 'Cotações', value: quotations.length, color: '#3b82f6' },
+        { name: 'Pedidos (OC)', value: orders.length, color: '#10b981' },
+        { name: 'Recebidos', value: invoices.length, color: '#166534' }
+      ];
+
+      // Saving
+      let totalSaving = 0;
+      quotations.forEach((q: any) => {
+        const bids = q.dados_fornecedores || q.suppliers || [];
+        if (bids.length > 1) {
+          const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
+          totalSaving += (Math.max(...prices) - Math.min(...prices));
+        }
+      });
+
+      const totalSpend = orders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+      const pendingValue = orders.filter((o: any) => o.status !== 'received').reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+
+      const computedStats = [
+        { label: 'Saving Acumulado', value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---', icon: TrendingDown, color: '#10b981', progress: totalSaving > 0 ? 100 : 0, change: 'Economia Real', trend: 'down' as const,
+          sparkline: totalSaving > 0 ? [
+            { value: Math.round(totalSaving * 0.45) }, { value: Math.round(totalSaving * 0.55) },
+            { value: Math.round(totalSaving * 0.65) }, { value: Math.round(totalSaving * 0.75) },
+            { value: Math.round(totalSaving * 0.85) }, { value: Math.round(totalSaving * 0.92) },
+            { value: Math.round(totalSaving), label: 'Hoje' }
+          ] : []
+        },
+        { label: 'Exposição de Caixa', value: pendingValue > 0 ? `R$ ${(pendingValue / 1000).toFixed(1)}k` : '---', icon: DollarSign, color: '#3b82f6', progress: totalSpend > 0 ? (pendingValue / totalSpend) * 100 : 0, change: 'Pedidos Abertos',
+          sparkline: pendingValue > 0 ? [
+            { value: Math.round(pendingValue * 0.50) }, { value: Math.round(pendingValue * 0.60) },
+            { value: Math.round(pendingValue * 0.70) }, { value: Math.round(pendingValue * 0.78) },
+            { value: Math.round(pendingValue * 0.86) }, { value: Math.round(pendingValue * 0.93) },
+            { value: Math.round(pendingValue), label: 'Hoje' }
+          ] : []
+        },
+        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA Aprovação', sparkline: [] },
+        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Real vs Planejado', sparkline: [] }
+      ];
+
+      // Recent Requests
+      const recent = requests.slice(0, 5).map((r: any) => ({
+        id: r.id,
+        title: r.titulo,
+        dept: r.departamento,
+        value: Number(r.valor_estimado || 0),
+        status: r.status,
+        priority: r.prioridade
+      }));
+
+      // Top Suppliers
+      const supMap: Record<string, number> = {};
+      const fornecedorIds = [...new Set(orders.map((o: any) => o.fornecedor_id).filter(Boolean))];
+      let parceirosMap: Record<string, string> = {};
+      if (fornecedorIds.length > 0) {
+        const { data: parceirosData } = await supabase.from('parceiros').select('id, nome').in('id', fornecedorIds);
+        if (parceirosData) parceirosData.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
+      }
+      orders.forEach((o: any) => {
+        const name = parceirosMap[o.fornecedor_id] || 'N/A';
+        supMap[name] = (supMap[name] || 0) + Number(o.valor_total || 0);
+      });
+      const top = Object.entries(supMap)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 5);
+
+      return {
+        funnelData: funnel,
+        recentRequests: recent,
+        topSuppliers: top,
+        stats: computedStats
+      };
+    },
+    enabled: isReady
+  });
+
+  const funnelData = dashboardData.funnelData;
+  const recentRequests = dashboardData.recentRequests;
+  const topSuppliers = dashboardData.topSuppliers;
+  const stats = dashboardData.stats.length > 0 ? dashboardData.stats : [
     { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#10b981', progress: 0, change: 'Processando...', trend: 'down' as const, sparkline: [] },
     { label: 'Exposição de Caixa', value: '---', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Analisando...', sparkline: [] },
     { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA...', sparkline: [] },
     { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Auditando...', sparkline: [] }
-  ]);
-
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchDashboardData();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode]);
-
-  const fetchDashboardData = async () => {
-    if (!activeFarmId && !isGlobalMode) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      console.log('[PurchasingDashboard] Buscando dados de suprimentos resilientes...');
-      
-      const fetchPromise = (async () => {
-        let requestsQuery = supabase.from('solicitacoes_compra').select('id, titulo, departamento, valor_estimado, status, prioridade').order('created_at', { ascending: false }).limit(500);
-        let quotationsQuery = supabase.from('mapas_cotacao').select('dados_fornecedores').order('created_at', { ascending: false }).limit(500);
-        let ordersQuery = supabase.from('pedidos_compra').select('valor_total, status, fornecedor_id').order('created_at', { ascending: false }).limit(500);
-        let invoicesQuery = supabase.from('notas_entrada').select('id').limit(500);
-
-        requestsQuery = applyFarmFilter(requestsQuery);
-        quotationsQuery = applyFarmFilter(quotationsQuery);
-        ordersQuery = applyFarmFilter(ordersQuery);
-        invoicesQuery = applyFarmFilter(invoicesQuery);
-
-        const [requestsRes, quotationsRes, ordersRes, invoicesRes] = await Promise.all([
-          requestsQuery,
-          quotationsQuery,
-          ordersQuery,
-          invoicesQuery
-        ]);
-
-        if (requestsRes.error) throw requestsRes.error;
-        if (quotationsRes.error) throw quotationsRes.error;
-        if (ordersRes.error) throw ordersRes.error;
-        if (invoicesRes.error) throw invoicesRes.error;
-
-        return {
-          requests: requestsRes.data,
-          quotations: quotationsRes.data,
-          orders: ordersRes.data,
-          invoices: invoicesRes.data
-        };
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const data = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      
-      if (data) {
-        const { requests: rawRequests, quotations: rawQuotations, orders: rawOrders, invoices: rawInvoices } = data;
-        const requests = rawRequests || [];
-        const quotations = rawQuotations || [];
-        const orders = rawOrders || [];
-        const invoices = rawInvoices || [];
-        
-        setFunnelData([
-          { name: 'Requisições', value: requests.length, color: '#6366f1' },
-          { name: 'Cotações', value: quotations.length, color: '#3b82f6' },
-          { name: 'Pedidos (OC)', value: orders.length, color: '#10b981' },
-          { name: 'Recebidos', value: invoices.length, color: '#166534' }
-        ]);
-
-        let totalSaving = 0;
-        quotations.forEach((q: any) => {
-          const bids = q.dados_fornecedores || q.suppliers || [];
-          if (bids.length > 1) {
-            const prices = bids.map((b: any) => Number(b.price || b.preco || 0)).filter((p: number) => p > 0);
-            totalSaving += (Math.max(...prices) - Math.min(...prices));
-          }
-        });
-
-        const totalSpend = orders.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-        const pendingValue = orders.filter((o: any) => o.status !== 'received').reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-
-        setStats([
-          { label: 'Saving Acumulado', value: totalSaving > 0 ? `R$ ${totalSaving.toLocaleString('pt-BR')}` : '---', icon: TrendingDown, color: '#10b981', progress: totalSaving > 0 ? 100 : 0, change: 'Economia Real', trend: 'down' as const,
-            sparkline: totalSaving > 0 ? [
-              { value: Math.round(totalSaving * 0.45) }, { value: Math.round(totalSaving * 0.55) },
-              { value: Math.round(totalSaving * 0.65) }, { value: Math.round(totalSaving * 0.75) },
-              { value: Math.round(totalSaving * 0.85) }, { value: Math.round(totalSaving * 0.92) },
-              { value: Math.round(totalSaving), label: 'Hoje' }
-            ] : []
-          },
-          { label: 'Exposição de Caixa', value: pendingValue > 0 ? `R$ ${(pendingValue / 1000).toFixed(1)}k` : '---', icon: DollarSign, color: '#3b82f6', progress: totalSpend > 0 ? (pendingValue / totalSpend) * 100 : 0, change: 'Pedidos Abertos',
-            sparkline: pendingValue > 0 ? [
-              { value: Math.round(pendingValue * 0.50) }, { value: Math.round(pendingValue * 0.60) },
-              { value: Math.round(pendingValue * 0.70) }, { value: Math.round(pendingValue * 0.78) },
-              { value: Math.round(pendingValue * 0.86) }, { value: Math.round(pendingValue * 0.93) },
-              { value: Math.round(pendingValue), label: 'Hoje' }
-            ] : []
-          },
-          { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#f59e0b', progress: 0, change: 'SLA Aprovação', sparkline: [] },
-          { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#166534', progress: 0, change: 'Real vs Planejado', sparkline: [] }
-        ]);
-
-        setRecentRequests(requests.slice(0, 5).map((r: any) => ({
-          id: r.id,
-          title: r.titulo,
-          dept: r.departamento,
-          value: Number(r.valor_estimado || 0),
-          status: r.status,
-          priority: r.prioridade
-        })));
-
-        const supMap: Record<string, number> = {};
-        const fornecedorIds = [...new Set(orders.map((o: any) => o.fornecedor_id).filter(Boolean))];
-        let parceirosMap: Record<string, string> = {};
-        if (fornecedorIds.length > 0) {
-          const { data: parceirosData } = await supabase.from('parceiros').select('id, nome').in('id', fornecedorIds);
-          if (parceirosData) parceirosData.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
-        }
-        orders.forEach((o: any) => {
-          const name = parceirosMap[o.fornecedor_id] || 'N/A';
-          supMap[name] = (supMap[name] || 0) + Number(o.valor_total || 0);
-        });
-        setTopSuppliers(Object.entries(supMap)
-          .map(([name, value]) => ({ name, value }))
-          .sort((a, b) => b.value - a.value)
-          .slice(0, 5));
-      }
-    } catch (err) {
-      console.warn('[PurchasingDashboard] Erro na rede ou ausência de dados:', err);
-      setFunnelData([]);
-      setStats([
-        { label: 'Saving Acumulado', value: '---', icon: TrendingDown, color: '#ef4444', progress: 0, change: 'Indisponível', trend: 'down' as const, sparkline: [] },
-        { label: 'Exposição de Caixa', value: '---', icon: DollarSign, color: '#ef4444', progress: 0, change: 'Indisponível', sparkline: [] },
-        { label: 'Agilidade de Fluxo', value: '---', icon: Clock, color: '#ef4444', progress: 0, change: 'Indisponível', sparkline: [] },
-        { label: 'Acuracidade Orç.', value: '---', icon: Target, color: '#ef4444', progress: 0, change: 'Indisponível', sparkline: [] }
-      ]);
-      setRecentRequests([]);
-      setTopSuppliers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  ];
 
   return (
     <div className="purchasing-hub animate-slide-up">

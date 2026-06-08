@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import toast from 'react-hot-toast';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -38,6 +39,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useDebounce } from '../../hooks/useDebounce';
 import { EntryInvoiceForm } from '../../components/Forms/EntryInvoiceForm';
@@ -52,9 +54,8 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 export const EntryInvoice: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
-  const [invoices, setInvoices] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = usePersistentState('EntryInvoice_isModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'INVOICES' | 'FISCAL') || 'INVOICES';
@@ -65,7 +66,6 @@ export const EntryInvoice: React.FC = () => {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
   const [showDivergences, setShowDivergences] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [filterValues, setFilterValues] = useState({
@@ -81,22 +81,15 @@ export const EntryInvoice: React.FC = () => {
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
-  const [totalCount, setTotalCount] = useState(0);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchInvoices();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues, activeTab]);
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-  const fetchInvoices = async () => {
-    setLoading(true);
-    try {
+  // React Query Fetch
+  const { data: queryData = { invoices: [], totalCount: 0 }, isLoading: loading } = useQuery({
+    queryKey: ['purchasing_invoices', activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues, activeTab],
+    queryFn: async () => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
@@ -108,8 +101,8 @@ export const EntryInvoice: React.FC = () => {
       
       query = applyFarmFilter(query);
 
-      if (searchTerm) {
-        query = query.ilike('numero_nota', `%${searchTerm}%`);
+      if (debouncedSearch) {
+        query = query.ilike('numero_nota', `%${debouncedSearch}%`);
       }
 
       if (filterValues.minAmount > 0) {
@@ -128,74 +121,63 @@ export const EntryInvoice: React.FC = () => {
       const { data, count, error } = await query;
       if (error) throw error;
       
-      if (data) {
-        // Buscar parceiros (fornecedores) separadamente
-        const fornecedorIds = [...new Set(data.map((d: any) => d.fornecedor_id).filter(Boolean))];
-        let parceirosMap: Record<string, string> = {};
-        if (fornecedorIds.length > 0) {
-          const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', fornecedorIds);
-          if (parceiros) parceiros.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
-        }
+      if (!data) return { invoices: [], totalCount: 0 };
 
-        const enriched = data.map((d: any) => ({
-          ...d,
-          parceiros: { nome: parceirosMap[d.fornecedor_id] || 'N/A' }
-        }));
-
-        setInvoices(enriched);
-        setTotalCount(count || 0);
-        const totalValor = data.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-        const matchedWithOC = data.filter((n: any) => n.valor_total > 1000).length;
-        const fiscalCredits = totalValor * 0.12;
-        
-        setStats([
-          { label: 'Notas Processadas', value: (count ?? 0) > 0 ? count : '---', icon: FileText, color: '#10b981', 
-            progress: (count ?? 0) > 0 ? 100 : 0, 
-            change: (count ?? 0) > 0 ? 'Total Localizado' : 'Sem notas',
-            sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
-          },
-          { label: 'Créditos Fiscais (Est.)', 
-            value: fiscalCredits > 0 ? fiscalCredits.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
-            icon: DollarSign, color: '#3b82f6', 
-            progress: fiscalCredits > 0 ? Math.min(100, (fiscalCredits / totalValor) * 100) : 0, 
-            trend: fiscalCredits > 0 ? 'up' as const : 'neutral' as const, 
-            change: fiscalCredits > 0 ? 'Estimativa 12% s/Valor' : 'Sem notas para calcular',
-            sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
-          },
-          { label: 'Aderência ao Pedido', 
-            value: data.length > 0 ? `${((matchedWithOC / (data.length || 1)) * 100).toFixed(0)}%` : '---', 
-            icon: CheckCircle2, color: '#166634', 
-            progress: data.length > 0 ? (matchedWithOC / (data.length || 1)) * 100 : 0, 
-            change: data.length > 0 ? 'Compliance OC' : 'Sem notas',
-            sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
-          },
-          { label: 'Ticket Médio NF', 
-            value: data.length > 0 && totalValor > 0 ? (totalValor / data.length).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
-            icon: Barcode, color: '#f59e0b', 
-            progress: 0, 
-            change: data.length > 0 ? 'Valor médio por nota' : 'Sem notas',
-            sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
-          },
-        ]);
+      // Buscar parceiros (fornecedores) separadamente
+      const fornecedorIds = [...new Set(data.map((d: any) => d.fornecedor_id).filter(Boolean))];
+      let parceirosMap: Record<string, string> = {};
+      if (fornecedorIds.length > 0) {
+        const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', fornecedorIds);
+        if (parceiros) parceiros.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
       }
-    } catch (err) {
-      console.error('[EntryInvoice]', err);
-      setInvoices([]);
-      setStats([
-        { label: 'Notas Processadas', value: 0, icon: FileText, color: '#10b981', progress: 0, change: 'Erro',
-          sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total') },
-        { label: 'Créditos Fiscais (Est.)', value: 'R$ 0,00', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Erro',
-          sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total') },
-        { label: 'Aderência ao Pedido', value: '0%', icon: CheckCircle2, color: '#166634', progress: 0, change: 'Erro',
-          sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total') },
-        { label: 'Ajuste de Custo Médio', value: '0%', icon: Barcode, color: '#f59e0b', progress: 0, change: 'Erro',
-          sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total') },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
+      const enriched = data.map((d: any) => ({
+        ...d,
+        parceiros: { nome: parceirosMap[d.fornecedor_id] || 'N/A' }
+      }));
+
+      return { invoices: enriched, totalCount: count || 0 };
+    },
+    enabled: isReady
+  });
+
+  const invoices = queryData.invoices;
+  const totalCount = queryData.totalCount;
+
+  // Compute stats dynamically
+  const totalValor = invoices.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+  const matchedWithOC = invoices.filter((n: any) => n.valor_total > 1000).length;
+  const fiscalCredits = totalValor * 0.12;
+
+  const stats = [
+    { label: 'Notas Processadas', value: totalCount > 0 ? totalCount : '---', icon: FileText, color: '#10b981', 
+      progress: totalCount > 0 ? 100 : 0, 
+      change: totalCount > 0 ? 'Total Localizado' : 'Sem notas',
+      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+    },
+    { label: 'Créditos Fiscais (Est.)', 
+      value: fiscalCredits > 0 ? fiscalCredits.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+      icon: DollarSign, color: '#3b82f6', 
+      progress: fiscalCredits > 0 ? Math.min(100, (fiscalCredits / totalValor) * 100) : 0, 
+      trend: fiscalCredits > 0 ? 'up' as const : 'neutral' as const, 
+      change: fiscalCredits > 0 ? 'Estimativa 12% s/Valor' : 'Sem notas para calcular',
+      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+    },
+    { label: 'Aderência ao Pedido', 
+      value: invoices.length > 0 ? `${((matchedWithOC / (invoices.length || 1)) * 100).toFixed(0)}%` : '---', 
+      icon: CheckCircle2, color: '#166634', 
+      progress: invoices.length > 0 ? (matchedWithOC / (invoices.length || 1)) * 100 : 0, 
+      change: invoices.length > 0 ? 'Compliance OC' : 'Sem notas',
+      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+    },
+    { label: 'Ticket Médio NF', 
+      value: invoices.length > 0 && totalValor > 0 ? (totalValor / invoices.length).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', 
+      icon: Barcode, color: '#f59e0b', 
+      progress: 0, 
+      change: invoices.length > 0 ? 'Valor médio por nota' : 'Sem notas',
+      sparkline: buildSparkline(invoices || [], 'data_emissao', 'valor_total')
+    },
+  ];
 
   const handleOpenCreate = () => {
     setSelectedInvoice(null);
@@ -207,57 +189,73 @@ export const EntryInvoice: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (data: any) => {
-    if (!activeFarm) { if (typeof setLoading !== 'undefined') setLoading(false); return; }
-    const payload = {
-      numero_nota: data.invoice_number,
-      serie: data.series,
-      fornecedor_id: data.supplier_id,
-      data_emissao: data.issue_date,
-      data_entrada: data.entry_date,
-      valor_total: parseFloat(data.total_value),
-      chave_xml: data.xml_key,
-      observacoes: data.description
-    };
+  const saveInvoiceMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const payload = {
+        numero_nota: data.invoice_number,
+        serie: data.series,
+        fornecedor_id: data.supplier_id,
+        data_emissao: data.issue_date,
+        data_entrada: data.entry_date,
+        valor_total: parseFloat(data.total_value),
+        chave_xml: data.xml_key,
+        observacoes: data.description
+      };
 
-    if (selectedInvoice) {
-      const { error } = await supabase.from('notas_entrada').update(payload).eq('id', selectedInvoice.id);
-      if (!error) { setIsModalOpen(false); fetchInvoices(); }
-    } else {
-      const { error } = await supabase.from('notas_entrada').insert([{ ...payload, fazenda_id: activeFarm.id, tenant_id: activeFarm.tenantId }]);
-      if (!error) { setIsModalOpen(false); fetchInvoices(); }
+      if (selectedInvoice) {
+        const { error } = await supabase.from('notas_entrada').update(payload).eq('id', selectedInvoice.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('notas_entrada').insert([{ ...payload, fazenda_id: activeFarm?.id || activeFarmId, tenant_id: activeFarm?.tenantId || activeTenantId }]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_invoices'] });
+      setIsModalOpen(false);
+      toast.success(selectedInvoice ? 'Nota fiscal atualizada!' : 'Nota fiscal lançada!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao salvar nota fiscal: ' + err.message);
     }
+  });
+
+  const handleSubmit = async (data: any) => {
+    if (!activeFarm) return;
+    saveInvoiceMutation.mutate(data);
+  };
+
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('notas_entrada').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_invoices'] });
+      toast.success('Nota fiscal excluída!');
+    },
+    onError: (err: any) => {
+      toast.error('Erro ao excluir nota fiscal: ' + err.message);
+    }
+  });
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Deseja excluir esta nota fiscal?')) return;
+    deleteInvoiceMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
-    const filteredData = invoices.filter(inv => {
-      const matchesSearch = inv.numero_nota.toLowerCase().includes(searchTerm.toLowerCase()) || (inv.fornecedores?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesAmount = Number(inv.valor_total) <= filterValues.maxAmount;
-      const matchesDate = (!filterValues.dateStart || new Date(inv.data_emissao) >= new Date(filterValues.dateStart)) &&
-                         (!filterValues.dateEnd || new Date(inv.data_emissao) <= new Date(filterValues.dateEnd));
-      return matchesSearch && matchesAmount && matchesDate;
-    });
-
-    const exportData = filteredData.map(item => ({
-      ID: item.id?.slice(0, 8).toUpperCase(),
+    const exportData = invoices.map(item => ({
       Numero_Nota: item.numero_nota,
-      Serie: item.serie,
-      Parceiro: item.fornecedores?.nome || '-',
-      Emissao: new Date(item.data_emissao).toLocaleDateString(),
-      Entrada: item.data_entrada ? new Date(item.data_entrada).toLocaleDateString() : '-',
+      Fornecedor: item.fornecedor || '-',
+      Data_Emissao: item.data_emissao ? new Date(item.data_emissao).toLocaleDateString('pt-BR') : '-',
       Valor_Total: item.valor_total || 0,
-      Chave_XML: item.chave_xml || '-'
+      Status: item.status || '-'
     }));
 
     if (format === 'csv') exportToCSV(exportData, 'notas_entrada');
     else if (format === 'excel') exportToExcel(exportData, 'notas_entrada');
     else if (format === 'pdf') exportToPDF(exportData, 'notas_entrada', 'Relatório de Notas Fiscais de Entrada');
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta nota fiscal?')) return;
-    const { error } = await supabase.from('notas_entrada').delete().eq('id', id);
-    if (!error) fetchInvoices();
   };
 
   const handleViewDetails = (inv: any) => {
@@ -389,7 +387,7 @@ export const EntryInvoice: React.FC = () => {
             color={stat.color}
             progress={stat.progress}
             change={stat.change || '---'}
-            trend={stat.trend}
+            trend={stat.trend === 'neutral' ? undefined : stat.trend}
             sparkline={stat.sparkline}
           
             periodLabel="Mes Atual"

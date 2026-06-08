@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
@@ -59,8 +60,7 @@ export const Contracts: React.FC = () => {
   const { submitForApproval } = useApprovalQueue();
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
-  const [contracts, setContracts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('Contracts_isModalOpen', false);
   const [isHedgeModalOpen, setIsHedgeModalOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -77,102 +77,78 @@ export const Contracts: React.FC = () => {
     dateStart: '',
     dateEnd: ''
   });
-  const [stats, setStats] = useState<any[]>([]);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchContracts();
-      // Ponte 1: Auto-open form if coming from B3 Calculator
-      if (location.state?.createHedge) {
-        setSelectedContract({
-          contract_number: `HEDGE-${location.state.b3Ticker}`,
-          type: 'venda',
-          description: `Contrato de Hedge derivado da B3 - Ticker: ${location.state.b3Ticker} | Preço Alvo: R$ ${location.state.futurePrice.toFixed(2)}`,
-          status: 'active'
-        });
-        setIsModalOpen(true);
-        // Clear state to avoid reopening on refresh
-        window.history.replaceState({}, document.title);
-      }
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, isGlobalMode, activeTenantId, location.state]);
-
-  const fetchContracts = async () => {
-    setLoading(true);
-    try {
+  const { data: contracts = [], isLoading: loading, error } = useQuery({
+    queryKey: ['contracts', activeFarmId, activeTenantId, isGlobalMode],
+    queryFn: async () => {
       let query = supabase.from('contratos').select('*').order('created_at', { ascending: false }).limit(500);
       query = applyFarmFilter(query);
       const { data, error } = await query;
+      if (error) throw error;
+      if (!data || data.length === 0) return [];
 
-      if (error) { console.error('[Contracts]', error); setLoading(false); return; }
-      
-      if (data && data.length > 0) {
-        // Buscar parceiros separadamente (cliente_id ou fornecedor_id)
-        const parceiroIds = [...new Set([
-          ...data.map((c: any) => c.cliente_id),
-          ...data.map((c: any) => c.fornecedor_id)
-        ].filter(Boolean))];
-        let parceirosMap: Record<string, string> = {};
-        if (parceiroIds.length > 0) {
-          const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', parceiroIds);
-          if (parceiros) parceiros.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
-        }
-
-        const enrichedContracts = data.map((c: any) => {
-          const isFixed = c.valor_total > 0;
-          const physicalProgress = c.totalVolume ? ((c.deliveredVolume || 0) / c.totalVolume) * 100 : 0;
-          const parceiroNome = parceirosMap[c.cliente_id] || parceirosMap[c.fornecedor_id] || 'N/A';
-          return {
-            ...c,
-            parceiros: { nome: parceiroNome },
-            isFixed,
-            physicalProgress,
-            priceType: isFixed ? 'PREÇO FIXO' : 'A FIXAR',
-            marketDelta: '---' // delta real requer integração com B3/cotação de mercado
-          };
-        });
-
-        setContracts(enrichedContracts);
-        const totalValor = data.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
-        const fixedCount = enrichedContracts.filter((c: any) => c.isFixed).length;
-        
-        const totalAtivos = enrichedContracts.filter((c: any) => c.status === 'active').length;
-        const pctAtivos = data.length > 0 ? ((totalAtivos / data.length) * 100).toFixed(1) + '%' : '---';
-        
-        setStats([
-          { label: 'Contratos Ativos', value: pctAtivos, icon: TrendingUp, color: '#10b981', progress: totalAtivos > 0 ? (totalAtivos / data.length) * 100 : 0, change: `${totalAtivos} de ${data.length} total`, trend: 'up' as const, sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-          { label: 'Valor em Hedge', value: totalValor > 0 ? totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#3b82f6', progress: totalValor > 0 ? 100 : 0, change: totalValor > 0 ? 'Volume bloqueado' : 'Sem contratos',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-          { label: 'Fixação de Preço', value: `${fixedCount}/${data.length}`, icon: ShieldCheck, color: '#166534', progress: data.length > 0 ? (fixedCount / data.length) * 100 : 0, change: fixedCount > 0 ? 'Preço fixado' : 'A fixar',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-          { label: 'Eficiência Hedge', value: '---', icon: BarChart2, color: '#f59e0b', progress: 0, change: 'Requer integração B3',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total')
-          },
-        ]);
-      } else {
-        setContracts([]);
-        setStats([
-          { label: 'Exposição Safra', value: '---', icon: TrendingUp, color: '#10b981', progress: 0, change: 'Sem dados',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-          { label: 'Valor em Hedge', value: 'R$ 0,00', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Sem dados',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-          { label: 'Fixação de Preço', value: '0/0', icon: ShieldCheck, color: '#166534', progress: 0, change: 'Sem dados',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-          { label: 'Eficiência Hedge', value: '---', icon: BarChart2, color: '#f59e0b', progress: 0, change: 'Sem dados',
-            sparkline: buildSparkline(data || [], 'created_at', 'valor_total') },
-        ]);
+      const parceiroIds = [...new Set([
+        ...data.map((c: any) => c.cliente_id),
+        ...data.map((c: any) => c.fornecedor_id)
+      ].filter(Boolean))];
+      let parceirosMap: Record<string, string> = {};
+      if (parceiroIds.length > 0) {
+        const { data: parceiros } = await supabase.from('parceiros').select('id, nome').in('id', parceiroIds);
+        if (parceiros) parceiros.forEach((p: any) => { parceirosMap[p.id] = p.nome; });
       }
-    } catch (err) {
-      console.error('[Contracts]', err);
-    } finally {
-      setLoading(false);
+
+      return data.map((c: any) => {
+        const isFixed = c.valor_total > 0;
+        const physicalProgress = c.totalVolume ? ((c.deliveredVolume || 0) / c.totalVolume) * 100 : 0;
+        const parceiroNome = parceirosMap[c.cliente_id] || parceirosMap[c.fornecedor_id] || 'N/A';
+        return {
+          ...c,
+          parceiros: { nome: parceiroNome },
+          isFixed,
+          physicalProgress,
+          priceType: isFixed ? 'PREÇO FIXO' : 'A FIXAR',
+          marketDelta: '---'
+        };
+      });
+    },
+    enabled: isGlobalMode ? !!activeTenantId : !!activeFarmId
+  });
+
+  const stats = useMemo(() => {
+    if (!contracts || contracts.length === 0) {
+      return [
+        { label: 'Exposição Safra', value: '---', icon: TrendingUp, color: '#10b981', progress: 0, change: 'Sem dados', sparkline: [] },
+        { label: 'Valor em Hedge', value: 'R$ 0,00', icon: DollarSign, color: '#3b82f6', progress: 0, change: 'Sem dados', sparkline: [] },
+        { label: 'Fixação de Preço', value: '0/0', icon: ShieldCheck, color: '#166534', progress: 0, change: 'Sem dados', sparkline: [] },
+        { label: 'Eficiência Hedge', value: '---', icon: BarChart2, color: '#f59e0b', progress: 0, change: 'Sem dados', sparkline: [] },
+      ];
     }
-  };
+    const totalValor = contracts.reduce((acc: number, curr: any) => acc + Number(curr.valor_total || 0), 0);
+    const fixedCount = contracts.filter((c: any) => c.isFixed).length;
+    const totalAtivos = contracts.filter((c: any) => c.status === 'active').length;
+    const pctAtivos = contracts.length > 0 ? ((totalAtivos / contracts.length) * 100).toFixed(1) + '%' : '---';
+
+    return [
+      { label: 'Contratos Ativos', value: pctAtivos, icon: TrendingUp, color: '#10b981', progress: totalAtivos > 0 ? (totalAtivos / contracts.length) * 100 : 0, change: `${totalAtivos} de ${contracts.length} total`, trend: 'up' as const, sparkline: buildSparkline(contracts || [], 'created_at', 'valor_total') },
+      { label: 'Valor em Hedge', value: totalValor > 0 ? totalValor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '---', icon: DollarSign, color: '#3b82f6', progress: totalValor > 0 ? 100 : 0, change: totalValor > 0 ? 'Volume bloqueado' : 'Sem contratos', sparkline: buildSparkline(contracts || [], 'created_at', 'valor_total') },
+      { label: 'Fixação de Preço', value: `${fixedCount}/${contracts.length}`, icon: ShieldCheck, color: '#166534', progress: contracts.length > 0 ? (fixedCount / contracts.length) * 100 : 0, change: fixedCount > 0 ? 'Preço fixado' : 'A fixar', sparkline: buildSparkline(contracts || [], 'created_at', 'valor_total') },
+      { label: 'Eficiência Hedge', value: '---', icon: BarChart2, color: '#f59e0b', progress: 0, change: 'Requer integração B3', sparkline: buildSparkline(contracts || [], 'created_at', 'valor_total') },
+    ];
+  }, [contracts]);
+
+  useEffect(() => {
+    // Ponte 1: Auto-open form if coming from B3 Calculator
+    if (location.state?.createHedge) {
+      setSelectedContract({
+        contract_number: `HEDGE-${location.state.b3Ticker}`,
+        type: 'venda',
+        description: `Contrato de Hedge derivado da B3 - Ticker: ${location.state.b3Ticker} | Preço Alvo: R$ ${location.state.futurePrice.toFixed(2)}`,
+        status: 'active'
+      });
+      setIsModalOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
 
   const handleOpenCreate = () => {
@@ -185,29 +161,27 @@ export const Contracts: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (data: any) => {
-    if (!canCreate) {
-      toast.error('âš ï¸ Selecione uma unidade específica para registrar um novo contrato. No modo Visão Global, a fazenda contratante deve ser definida.');
-      return;
-    }
-    const payload: any = {
-      numero_contrato: data.contract_number,
-      tipo: data.type,
-      data_inicio: data.start_date,
-      data_fim: data.end_date,
-      valor_total: parseFloat(data.total_value),
-      status: data.status,
-      descricao: data.description
-    };
-    if (data.party_type === 'client') payload.cliente_id = data.party_id;
-    else payload.fornecedor_id = data.party_id;
+  const saveMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const payload: any = {
+        numero_contrato: data.contract_number,
+        tipo: data.type,
+        data_inicio: data.start_date,
+        data_fim: data.end_date,
+        valor_total: parseFloat(data.total_value),
+        status: data.status,
+        descricao: data.description
+      };
+      if (data.party_type === 'client') payload.cliente_id = data.party_id;
+      else payload.fornecedor_id = data.party_id;
 
-    if (selectedContract) {
-      const { error } = await supabase.from('contratos').update(payload).eq('id', selectedContract.id);
-      if (!error) { setIsModalOpen(false); fetchContracts(); }
-    } else {
-      const { data: newRecord, error } = await supabase.from('contratos').insert([{ ...payload, ...insertPayload }]).select().single();
-      if (!error) { 
+      if (selectedContract) {
+        const { error } = await supabase.from('contratos').update(payload).eq('id', selectedContract.id);
+        if (error) throw error;
+      } else {
+        const { data: newRecord, error } = await supabase.from('contratos').insert([{ ...payload, ...insertPayload }]).select().single();
+        if (error) throw error;
+        
         const { data: userData } = await supabase.auth.getUser();
         await submitForApproval(
           'Contratos de Venda',
@@ -217,16 +191,43 @@ export const Contracts: React.FC = () => {
           `Contrato ${payload.numero_contrato}`,
           userData.user?.email || 'Usuário'
         );
-        setIsModalOpen(false); 
-        fetchContracts(); 
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts', activeFarmId, activeTenantId, isGlobalMode] });
+      setIsModalOpen(false);
+      toast.success(selectedContract ? 'Contrato atualizado com sucesso!' : 'Contrato registrado para aprovação!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao salvar contrato: ' + err.message);
     }
+  });
+
+  const handleSubmit = async (data: any) => {
+    if (!canCreate) {
+      toast.error('⚠️ Selecione uma unidade específica para registrar um novo contrato. No modo Visão Global, a fazenda contratante deve ser definida.');
+      return;
+    }
+    saveMutation.mutate(data);
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('contratos').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contracts', activeFarmId, activeTenantId, isGlobalMode] });
+      toast.success('Contrato excluído com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir contrato: ' + err.message);
+    }
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este contrato?')) return;
-    const { error } = await supabase.from('contratos').delete().eq('id', id);
-    if (!error) fetchContracts();
+    deleteMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {

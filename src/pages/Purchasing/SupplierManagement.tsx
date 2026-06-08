@@ -47,6 +47,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { SupplierForm } from '../../components/Forms/SupplierForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useDebounce } from '../../hooks/useDebounce';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
@@ -61,20 +62,17 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const SupplierManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('SupplierManagement_isModalOpen', false);
   const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'HOMOLOGADO' | 'PENDENTE') || 'HOMOLOGADO';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [loading, setLoading] = useState(true);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [historyItems, setHistoryItems] = useState<any[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [stats, setStats] = useState<any[]>([]);
+  const [historySupplierId, setHistorySupplierId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useViewMode('purchasing-supplier-management', 'grid');
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -85,157 +83,141 @@ export const SupplierManagement: React.FC = () => {
     minSpend: 0,
     maxSpend: 1000000,
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Server-side pagination
   const [page, setPage] = useState(1);
   const [pageSize] = useState(12);
-  const [totalCount, setTotalCount] = useState(0);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 
-  useEffect(() => {
-    const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
-    if (isReady) {
-      fetchSuppliers();
-    } else {
-      setLoading(false);
-    }
-  }, [activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues, activeTab]);
+  const isReady = isGlobalMode ? !!activeTenantId : !!activeFarmId;
 
-  const fetchSuppliers = async () => {
-    setLoading(true);
-    try {
-      const fetchPromise = (async () => {
-        const from = (page - 1) * pageSize;
-        const to = from + pageSize - 1;
+  // React Query Fetch
+  const { data: queryData = { suppliers: [], totalCount: 0, stats: [] }, isLoading: loading } = useQuery({
+    queryKey: ['purchasing_suppliers', activeFarmId, activeTenantId, isGlobalMode, page, debouncedSearch, filterValues, activeTab],
+    queryFn: async () => {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
 
-        let query = supabase
-          .from('parceiros')
-          .select('*', { count: 'exact' })
-          .eq('is_supplier', true)
-          .order('nome', { ascending: true })
-          .range(from, to);
-        
-        query = query.eq('tenant_id', activeTenantId);
-
-        if (debouncedSearch) {
-          query = query.or(`nome.ilike.%${debouncedSearch}%,categoria.ilike.%${debouncedSearch}%`);
-        }
-
-        if (activeTab === 'HOMOLOGADO') {
-          query = query.eq('status', 'ATIVO');
-        } else {
-          query = query.neq('status', 'ATIVO');
-        }
-
-        if (filterValues.status !== 'all') {
-          query = query.eq('status', filterValues.status);
-        }
-
-        if (filterValues.categories.length > 0) {
-          query = query.in('categoria', filterValues.categories);
-        }
-
-        const { data: supplierData, count, error } = await query;
-        if (error) throw error;
-
-        const supplierIds = supplierData?.map(s => s.id) || [];
-        let purchaseData: any[] = [];
-        if (supplierIds.length > 0) {
-          const { data: pd } = await supabase
-            .from('notas_entrada')
-            .select('fornecedor_id, valor_total')
-            .in('fornecedor_id', supplierIds);
-          purchaseData = pd || [];
-        }
-
-        return { supplierData, purchaseData, count };
-      })();
-
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 3000)
-      );
-
-      const result = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      const { supplierData, purchaseData, count } = result;
+      let query = supabase
+        .from('parceiros')
+        .select('*', { count: 'exact' })
+        .eq('is_supplier', true)
+        .order('nome', { ascending: true })
+        .range(from, to);
       
-      if (supplierData) {
-        const spendMap: Record<string, number> = {};
-        let totalSpend = 0;
-        purchaseData?.forEach((n: any) => {
-          const fid = n.fornecedor_id;
-          spendMap[fid] = (spendMap[fid] || 0) + Number(n.valor_total);
-          totalSpend += Number(n.valor_total);
-        });
+      query = query.eq('tenant_id', activeTenantId);
 
-        const processedSuppliers = supplierData.map((s: any) => ({
-          ...s,
-          totalSpend: spendMap[s.id] || 0,
-          rating: spendMap[s.id] ? Math.min(5, 3 + (spendMap[s.id] / 100000)) : 0
-        }));
-
-        setSuppliers(processedSuppliers);
-        setTotalCount(count || 0);
-
-        setStats([
-          { 
-            label: 'Fornecedores Ativos', value: count || 0, icon: Building2, color: '#10b981', 
-            progress: 100, change: 'Homologados',
-            sparkline: buildSparkline(supplierData || [], 'created_at', null)
-          },
-          { 
-            label: 'Volume Procurement', value: totalSpend > 0 ? `R$ ${(totalSpend / 1000).toFixed(1)}k` : '---', 
-            icon: TrendingUp, color: '#3b82f6', 
-            progress: totalSpend > 0 ? 100 : 0, 
-            trend: 'up', change: 'Total Compras',
-            sparkline: buildSparkline(supplierData || [], 'created_at', null)
-          },
-          { 
-            label: 'Risco Concentração', 
-            value: (() => {
-              if (totalSpend <= 0 || processedSuppliers.length === 0) return '---';
-              const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
-              const pct = (topSpend / totalSpend) * 100;
-              return `${pct.toFixed(1)}%`;
-            })(),
-            icon: AlertCircle, color: '#f59e0b', 
-            progress: (() => {
-              if (totalSpend <= 0 || processedSuppliers.length === 0) return 0;
-              const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
-              return Math.min(100, (topSpend / totalSpend) * 100);
-            })(),
-            change: 'Concentração Lead',
-            sparkline: buildSparkline(supplierData || [], 'created_at', null)
-          },
-          { 
-            label: 'Rating Médio Rede', 
-            value: (() => {
-              const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
-              if (withRating.length === 0) return '---';
-              const avg = withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
-              return avg.toFixed(1);
-            })(),
-            icon: Star, color: '#166534', 
-            progress: (() => {
-              const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
-              if (withRating.length === 0) return 0;
-              const avg = withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
-              return Math.min(100, avg * 20);
-            })(),
-            change: 'Rating Eficiência',
-            sparkline: buildSparkline(supplierData || [], 'created_at', null)
-          },
-        ]);
+      if (debouncedSearch) {
+        query = query.or(`nome.ilike.%${debouncedSearch}%,categoria.ilike.%${debouncedSearch}%`);
       }
-    } catch (err) {
-      console.error('[SupplierManagement] Error fetching suppliers:', err);
-      setSuppliers([]);
-      setTotalCount(0);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      if (activeTab === 'HOMOLOGADO') {
+        query = query.eq('status', 'ATIVO');
+      } else {
+        query = query.neq('status', 'ATIVO');
+      }
+
+      if (filterValues.status !== 'all') {
+        query = query.eq('status', filterValues.status);
+      }
+
+      if (filterValues.categories.length > 0) {
+        query = query.in('categoria', filterValues.categories);
+      }
+
+      const { data: supplierData, count, error } = await query;
+      if (error) throw error;
+
+      if (!supplierData) return { suppliers: [], totalCount: 0, stats: [] };
+
+      const supplierIds = supplierData.map(s => s.id) || [];
+      let purchaseData: any[] = [];
+      if (supplierIds.length > 0) {
+        const { data: pd } = await supabase
+          .from('notas_entrada')
+          .select('fornecedor_id, valor_total')
+          .in('fornecedor_id', supplierIds);
+        purchaseData = pd || [];
+      }
+
+      const spendMap: Record<string, number> = {};
+      let totalSpend = 0;
+      purchaseData.forEach((n: any) => {
+        const fid = n.fornecedor_id;
+        spendMap[fid] = (spendMap[fid] || 0) + Number(n.valor_total);
+        totalSpend += Number(n.valor_total);
+      });
+
+      const processedSuppliers = supplierData.map((s: any) => ({
+        ...s,
+        totalSpend: spendMap[s.id] || 0,
+        rating: spendMap[s.id] ? Math.min(5, 3 + (spendMap[s.id] / 100000)) : 0
+      }));
+
+      const computedStats = [
+        { 
+          label: 'Fornecedores Ativos', value: count || 0, icon: Building2, color: '#10b981', 
+          progress: 100, change: 'Homologados',
+          sparkline: buildSparkline(supplierData || [], 'created_at', null)
+        },
+        { 
+          label: 'Volume Procurement', value: totalSpend > 0 ? `R$ ${(totalSpend / 1000).toFixed(1)}k` : '---', 
+          icon: TrendingUp, color: '#3b82f6', 
+          progress: totalSpend > 0 ? 100 : 0, 
+          trend: 'up' as const, change: 'Total Compras',
+          sparkline: buildSparkline(supplierData || [], 'created_at', null)
+        },
+        { 
+          label: 'Risco Concentração', 
+          value: (() => {
+            if (totalSpend <= 0 || processedSuppliers.length === 0) return '---';
+            const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
+            const pct = (topSpend / totalSpend) * 100;
+            return `${pct.toFixed(1)}%`;
+          })(),
+          icon: AlertCircle, color: '#f59e0b', 
+          progress: (() => {
+            if (totalSpend <= 0 || processedSuppliers.length === 0) return 0;
+            const topSpend = Math.max(...processedSuppliers.map((s: any) => s.totalSpend));
+            return Math.min(100, (topSpend / totalSpend) * 100);
+          })(),
+          change: 'Concentração Lead',
+          sparkline: buildSparkline(supplierData || [], 'created_at', null)
+        },
+        { 
+          label: 'Rating Médio Rede', 
+          value: (() => {
+            const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
+            if (withRating.length === 0) return '---';
+            const avg = withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
+            return avg.toFixed(1);
+          })(),
+          icon: Star, color: '#166534', 
+          progress: (() => {
+            const withRating = processedSuppliers.filter((s: any) => s.rating > 0);
+            if (withRating.length === 0) return 0;
+            const avg = withRating.reduce((a: number, s: any) => a + s.rating, 0) / withRating.length;
+            return Math.min(100, avg * 20);
+          })(),
+          change: 'Rating Eficiência',
+          sparkline: buildSparkline(supplierData || [], 'created_at', null)
+        },
+      ];
+
+      return { suppliers: processedSuppliers, totalCount: count || 0, stats: computedStats };
+    },
+    enabled: isReady
+  });
+
+  const suppliers = queryData.suppliers;
+  const totalCount = queryData.totalCount;
+  const stats = queryData.stats.length > 0 ? queryData.stats : [
+    { label: 'Fornecedores Ativos', value: 0, icon: Building2, color: '#10b981', progress: 0, change: 'Processando...', sparkline: [] },
+    { label: 'Volume Procurement', value: '---', icon: TrendingUp, color: '#3b82f6', progress: 0, change: 'Processando...', sparkline: [] },
+    { label: 'Risco Concentração', value: '---', icon: AlertCircle, color: '#f59e0b', progress: 0, change: 'Processando...', sparkline: [] },
+    { label: 'Rating Médio Rede', value: '---', icon: Star, color: '#166534', progress: 0, change: 'Processando...', sparkline: [] }
+  ];
 
   const handleOpenCreate = () => {
     setSelectedSupplier(null);
@@ -247,11 +229,8 @@ export const SupplierManagement: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (formData: any) => {
-    if (!activeTenantId && !activeFarm && !selectedSupplier) return;
-    
-    setIsSubmitting(true);
-    try {
+  const saveSupplierMutation = useMutation({
+    mutationFn: async (formData: any) => {
       const payload = {
         nome: formData.nome,
         cnpj_cpf: formData.cnpj,
@@ -279,10 +258,8 @@ export const SupplierManagement: React.FC = () => {
           fazendas_vinculadas: formData.fazendas_vinculadas
         }).eq('id', selectedSupplier.id);
         if (error) throw error;
-        setIsModalOpen(false); 
-        fetchSuppliers();
       } else {
-        // Verificar se já existe um parceiro com esse CNPJ/CPF (unificação Opção B)
+        // Verificar se já existe um parceiro com esse CNPJ/CPF
         let cleanCnpj = formData.cnpj?.replace(/\D/g, '');
         if (cleanCnpj && cleanCnpj.length > 0) {
             const { data: existing } = await supabase
@@ -293,12 +270,9 @@ export const SupplierManagement: React.FC = () => {
 
             if (existing) {
                 if (existing.is_supplier) {
-                    toast.error('❌ Este CPF/CNPJ já está cadastrado como fornecedor!');
-                    setIsSubmitting(false);
-                    return;
+                    throw new Error('Este CPF/CNPJ já está cadastrado como fornecedor!');
                 }
                 
-                // Já existe, vamos apenas atualizar e "ativar" a flag de fornecedor
                 const { error } = await supabase.from('parceiros').update({
                     ...payload,
                     is_supplier: true,
@@ -307,12 +281,7 @@ export const SupplierManagement: React.FC = () => {
                     fazendas_vinculadas: formData.fazendas_vinculadas
                 }).eq('id', existing.id);
                 if (error) throw error;
-                
-                toast.error(`Parceiro unificado! Um cadastro com este CNPJ/CPF já existia (Cliente). Ele agora também é um Fornecedor.`);
-                setIsModalOpen(false); 
-                fetchSuppliers();
-                setIsSubmitting(false);
-                return;
+                return { type: 'unified' };
             }
         }
 
@@ -324,26 +293,48 @@ export const SupplierManagement: React.FC = () => {
           fazendas_vinculadas: formData.fazendas_vinculadas
         }]);
         if (error) throw error;
-        setIsModalOpen(false); 
-        fetchSuppliers();
       }
-    } catch (err: any) {
+      return { type: 'normal' };
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_suppliers'] });
+      setIsModalOpen(false);
+      if (res?.type === 'unified') {
+        toast.success('Parceiro unificado! Ele agora também é um Fornecedor.');
+      } else {
+        toast.success(selectedSupplier ? 'Fornecedor atualizado!' : 'Fornecedor cadastrado!');
+      }
+    },
+    onError: (err: any) => {
       console.error('[SupplierManagement] Erro ao salvar parceiro:', err);
       toast.error('❌ Erro ao salvar parceiro: ' + (err.message || 'Erro desconhecido'));
-    } finally {
-      setIsSubmitting(false);
     }
+  });
+
+  const handleSubmit = async (formData: any) => {
+    if (!activeTenantId && !activeFarm && !selectedSupplier) return;
+    saveSupplierMutation.mutate(formData);
   };
+
+  const isSubmitting = saveSupplierMutation.isPending;
+
+  const deleteSupplierMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('parceiros').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchasing_suppliers'] });
+      toast.success('Fornecedor excluído!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir parceiro: ' + err.message);
+    }
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este parceiro?')) return;
-    try {
-      const { error } = await supabase.from('parceiros').delete().eq('id', id);
-      if (error) throw error;
-      fetchSuppliers();
-    } catch (err: any) {
-      toast.error('❌ Erro ao excluir parceiro: ' + err.message);
-    }
+    deleteSupplierMutation.mutate(id);
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -378,21 +369,40 @@ export const SupplierManagement: React.FC = () => {
     else if (format === 'pdf') exportToPDF(exportData, 'fornecedores', 'Relatório de Parceiroes Homologados');
   };
 
-  const handleViewHistory = async (sup: any) => {
+  const { data: historyItems = [], isLoading: historyLoading } = useQuery({
+    queryKey: ['purchasing_supplier_history', historySupplierId, activeTenantId, activeFarm?.id],
+    queryFn: async () => {
+      if (!historySupplierId) return [];
+      const { data, error } = await supabase
+        .from('notas_entrada')
+        .select('*')
+        .eq('fornecedor_id', historySupplierId)
+        .eq('tenant_id', activeTenantId || activeFarm?.tenantId)
+        .order('data_entrada', { ascending: false })
+        .limit(500);
+
+      if (error) throw error;
+      if (data && data.length > 0) {
+        return data.map(n => ({
+          id: n.id,
+          date: n.data_entrada,
+          title: 'Nota Fiscal: ' + n.numero_nota,
+          subtitle: n.observacoes || 'Compra de Insumos',
+          value: Number(n.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+          status: 'success' as const
+        }));
+      }
+
+      const sup = suppliers.find((s: any) => s.id === historySupplierId);
+      const createdAt = sup?.created_at || new Date().toISOString();
+      return [{ id: '1', date: createdAt, title: 'Cadastro Inicial', subtitle: 'Parceiro homologado', value: 'OK', status: 'info' as const }];
+    },
+    enabled: !!historySupplierId && isReady
+  });
+
+  const handleViewHistory = (sup: any) => {
+    setHistorySupplierId(sup.id);
     setIsHistoryModalOpen(true);
-    setHistoryLoading(true);
-    const { data } = await supabase
-      .from('notas_entrada')
-      .select('*').limit(500)
-      .eq('fornecedor_id', sup.id)
-      .eq('tenant_id', activeTenantId || activeFarm?.tenantId)
-      .order('data_entrada', { ascending: false });
-    if (data && data.length > 0) {
-      setHistoryItems(data.map(n => ({ id: n.id, date: n.data_entrada, title: 'Nota Fiscal: ' + n.numero_nota, subtitle: n.observacoes || 'Compra de Insumos', value: Number(n.valor_total).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }), status: 'success' })));
-    } else {
-      setHistoryItems([{ id: '1', date: sup.created_at, title: 'Cadastro Inicial', subtitle: 'Parceiro homologado', value: 'OK', status: 'info' }]);
-    }
-    setHistoryLoading(false);
   };
 
   const columns = [

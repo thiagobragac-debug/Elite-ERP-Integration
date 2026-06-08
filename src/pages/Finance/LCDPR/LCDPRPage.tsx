@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../../hooks/usePersistentState';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useSearchParams } from 'react-router-dom';
 import { Search,
@@ -31,15 +32,11 @@ export const LCDPRPage: React.FC = () => {
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [lancamentos, setLancamentos] = useState<any[]>([]);
-  const [fazendas, setFazendas] = useState<any[]>([]);
-  const [contas, setContas] = useState<any[]>([]);
-  const [unidadeMatriz, setUnidadeMatriz] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('LCDPRPage_isModalOpen', false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [filterTipo, setFilterTipo] = useState<'TODOS'|'R'|'D'>('TODOS');
-  const [generating, setGenerating] = useState(false);
+  const [generatingFile, setGeneratingFile] = useState(false);
 
   // Form state
   const [form, setForm] = useState({
@@ -57,35 +54,71 @@ export const LCDPRPage: React.FC = () => {
     valor: ''
   });
 
-  useEffect(() => {
-    if (tenant?.id) fetchAll();
-  }, [tenant?.id, anoCalendario, activeFarm?.id]);
+  const { data: lancamentos = [], isLoading: loadingLancamentos, error: errorLancamentos } = useQuery({
+    queryKey: ['lcdpr_lancamentos', tenant?.id, anoCalendario],
+    queryFn: async () => {
+      if (!tenant?.id) return [];
+      const { data, error } = await supabase
+        .from('lcdpr_lancamentos')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('ano_calendario', anoCalendario)
+        .order('data_lancamento', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!tenant?.id,
+  });
 
-  const fetchAll = async () => {
-    if (!tenant?.id) return;
-    setLoading(true);
-    try {
-      const [{ data: lancs }, { data: fazs }, { data: units }, { data: bankAccs }] = await Promise.all([
-        supabase.from('lcdpr_lancamentos')
-          .select('*')
-          .eq('tenant_id', tenant.id)
-          .eq('ano_calendario', anoCalendario)
-          .order('data_lancamento', { ascending: true }),
-        supabase.from('fazendas').select('*').eq('tenant_id', tenant.id),
-        supabase.from('unidades').select('*').eq('tenant_id', tenant.id)
-          .ilike('tipo', 'matriz').limit(1),
-        supabase.from('contas_bancarias').select('*').eq('tenant_id', tenant.id)
-      ]);
-      setLancamentos(lancs || []);
-      setFazendas(fazs || []);
-      setUnidadeMatriz(units?.[0] || null);
-      setContas(bankAccs || []);
-    } catch (e) {
-      console.error('[LCDPR] fetch error:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: fazendas = [], isLoading: loadingFazendas } = useQuery({
+    queryKey: ['fazendas', tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return [];
+      const { data, error } = await supabase
+        .from('fazendas')
+        .select('*')
+        .eq('tenant_id', tenant.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!tenant?.id,
+  });
+
+  const { data: unidadeMatriz = null, isLoading: loadingUnidade } = useQuery({
+    queryKey: ['unidade_matriz', tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return null;
+      const { data, error } = await supabase
+        .from('unidades')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .ilike('tipo', 'matriz')
+        .limit(1);
+      if (error) throw error;
+      return data?.[0] || null;
+    },
+    enabled: !!tenant?.id,
+  });
+
+  const { data: contas = [], isLoading: loadingContas } = useQuery({
+    queryKey: ['contas_bancarias', tenant?.id],
+    queryFn: async () => {
+      if (!tenant?.id) return [];
+      const { data, error } = await supabase
+        .from('contas_bancarias')
+        .select('*')
+        .eq('tenant_id', tenant.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!tenant?.id,
+  });
+
+  const loading = loadingLancamentos || loadingFazendas || loadingUnidade || loadingContas;
+
+  if (errorLancamentos) {
+    console.error("[LCDPR] Error loading data:", errorLancamentos);
+  }
 
   // ─── KPIs Resumo ──────────────────────────────────────────────────────────
   const kpis = useMemo(() => {
@@ -142,6 +175,26 @@ export const LCDPRPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const saveMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      if (editingItem) {
+        const { error } = await supabase.from('lcdpr_lancamentos').update(payload).eq('id', editingItem.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('lcdpr_lancamentos').insert([payload]);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lcdpr_lancamentos', tenant?.id, anoCalendario] });
+      setIsModalOpen(false);
+      toast.success(editingItem ? 'Lançamento atualizado com sucesso!' : 'Lançamento adicionado com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao salvar lançamento: ' + err.message);
+    }
+  });
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!tenant?.id) return;
@@ -164,29 +217,31 @@ export const LCDPRPage: React.FC = () => {
       valor: parseFloat(form.valor) || 0,
       origem: 'MANUAL'
     };
-    try {
-      if (editingItem) {
-        await supabase.from('lcdpr_lancamentos').update(payload).eq('id', editingItem.id);
-      } else {
-        await supabase.from('lcdpr_lancamentos').insert([payload]);
-      }
-      setIsModalOpen(false);
-      fetchAll();
-    } catch (err) { console.error(err); }
+    saveMutation.mutate(payload);
   };
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('lcdpr_lancamentos').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lcdpr_lancamentos', tenant?.id, anoCalendario] });
+      toast.success('Lançamento excluído com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao excluir lançamento: ' + err.message);
+    }
+  });
 
   const handleDelete = async (id: string) => {
     if (!confirm('Excluir este lançamento?')) return;
-    await supabase.from('lcdpr_lancamentos').delete().eq('id', id);
-    fetchAll();
+    deleteMutation.mutate(id);
   };
 
-  // ─── Importar de Financeiro ───────────────────────────────────────────────
-  const handleImportFinanceiro = async () => {
-    if (!tenant?.id) return;
-    if (!confirm(`Importar contas PAGAS de ${anoCalendario} do módulo Financeiro para o LCDPR?`)) return;
-    setGenerating(true);
-    try {
+  const importFinanceiroMutation = useMutation({
+    mutationFn: async () => {
+      if (!tenant?.id) return 0;
       const startDate = `${anoCalendario}-01-01`;
       const endDate = `${anoCalendario}-12-31`;
       const [{ data: receber }, { data: pagar }] = await Promise.all([
@@ -207,7 +262,7 @@ export const LCDPRPage: React.FC = () => {
           tipo: 'R', cod_natureza: '01',
           descricao: r.descricao || r.categoria || 'Receita Importada',
           cpf_cnpj_participante: (r.cpf_cnpj || '').replace(/\D/g,'') || null,
-          nome_participante: r.parceiro || r.parceiro || null,
+          nome_participante: r.parceiro || null,
           num_documento: r.numero_documento || null,
           valor: Number(r.valor_total) || 0,
           origem: 'CONTAS_RECEBER', origem_id: r.id
@@ -229,14 +284,26 @@ export const LCDPRPage: React.FC = () => {
         });
       });
       if (toInsert.length > 0) {
-        await supabase.from('lcdpr_lancamentos').insert(toInsert);
+        const { error } = await supabase.from('lcdpr_lancamentos').insert(toInsert);
+        if (error) throw error;
       }
-      toast.success(`✅ ${toInsert.length} lançamentos importados do Financeiro!`);
-      fetchAll();
-    } catch (err) {
+      return toInsert.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['lcdpr_lancamentos', tenant?.id, anoCalendario] });
+      toast.success(`✅ ${count} lançamentos importados do Financeiro!`);
+    },
+    onError: (err: any) => {
       console.error(err);
-      toast.error('Erro ao importar. Tente novamente.');
-    } finally { setGenerating(false); }
+      toast.error('Erro ao importar. Tente novamente: ' + err.message);
+    }
+  });
+
+  // ─── Importar de Financeiro ───────────────────────────────────────────────
+  const handleImportFinanceiro = async () => {
+    if (!tenant?.id) return;
+    if (!confirm(`Importar contas PAGAS de ${anoCalendario} do módulo Financeiro para o LCDPR?`)) return;
+    importFinanceiroMutation.mutate();
   };
 
   // ─── Gerar Arquivo ────────────────────────────────────────────────────────
@@ -249,7 +316,7 @@ export const LCDPRPage: React.FC = () => {
       toast.error('Não há lançamentos para o ano selecionado.');
       return;
     }
-    setGenerating(true);
+    setGeneratingFile(true);
     try {
       // Determinar CPF do produtor (sócio se CNPJ, próprio documento se CPF)
       const docDigits = (unidadeMatriz.cnpj || unidadeMatriz.documento || '').replace(/\D/g,'');
@@ -310,7 +377,7 @@ export const LCDPRPage: React.FC = () => {
     } catch (err) {
       console.error(err);
       toast.error('Erro ao gerar arquivo.');
-    } finally { setGenerating(false); }
+    } finally { setGeneratingFile(false); }
   };
 
   const filteredLancs = lancamentos.filter(l =>
@@ -401,7 +468,7 @@ export const LCDPRPage: React.FC = () => {
           <p className="page-subtitle">Escrituração fiscal da atividade rural · Geração do arquivo para entrega à Receita Federal</p>
         </div>
         <div className="page-actions" style={{ gap: 10 }}>
-          <button className="glass-btn secondary sm" onClick={handleImportFinanceiro} disabled={generating}>
+          <button className="glass-btn secondary sm" onClick={handleImportFinanceiro} disabled={generatingFile}>
             <RefreshCw size={15} /> Importar Financeiro
           </button>
           <button className="primary-btn" onClick={openNew}>
@@ -555,10 +622,10 @@ export const LCDPRPage: React.FC = () => {
                 className="primary-btn"
                 style={{ flex: 1, justifyContent: 'center', fontSize: 15, padding: '14px 0' }}
                 onClick={handleGerarArquivo}
-                disabled={generating || lancamentos.length === 0}
+                disabled={generatingFile || lancamentos.length === 0}
               >
-                {generating ? <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={18} />}
-                {generating ? 'Gerando...' : `Baixar LCDPR_${anoCalendario}.txt`}
+                {generatingFile ? <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={18} />}
+                {generatingFile ? 'Gerando...' : `Baixar LCDPR_${anoCalendario}.txt`}
               </button>
             </div>
             <p style={{ marginTop: 12, fontSize: 11, color: 'hsl(var(--text-muted))', textAlign: 'center' }}>
