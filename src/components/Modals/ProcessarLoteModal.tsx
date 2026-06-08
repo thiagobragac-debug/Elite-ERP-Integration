@@ -95,8 +95,7 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
   const progressColor =
     processados >= quantidadeNota ? '#10b981' : processados > 0 ? 'hsl(var(--brand))' : '#64748b';
 
-  const canFinalize =
-    processados >= quantidadeNota || (divergenciaConfirmada && processados > 0);
+  const canFinalize = processados > 0;
 
   /* ── Handlers ── */
   const handleKeyEnter = useCallback(
@@ -136,13 +135,13 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
     setShowDivergenciaWarning(false);
   };
 
-  const handleFinalizarLote = () => {
+  const handleFinalizarLote = (overrideDivergence = false) => {
     if (processados === 0) {
       toast.error('Adicione pelo menos 1 animal antes de finalizar.');
       return;
     }
 
-    if (processados !== quantidadeNota && !divergenciaConfirmada) {
+    if (processados !== quantidadeNota && !divergenciaConfirmada && overrideDivergence !== true) {
       setShowDivergenciaWarning(true);
       return;
     }
@@ -529,7 +528,7 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
               type="button"
               style={styles.footer.finalizeBtn(canFinalize)}
               disabled={!canFinalize}
-              onClick={handleFinalizarLote}
+              onClick={() => handleFinalizarLote()}
             >
               <CheckCircle2 size={16} />
               Finalizar Lote
@@ -764,7 +763,7 @@ export const ProcessarLoteModal: React.FC<ProcessarLoteModalProps> = ({
                   onClick={() => {
                     setDivergenciaConfirmada(true);
                     setShowDivergenciaWarning(false);
-                    handleFinalizarLote();
+                    handleFinalizarLote(true);
                   }}
                 >
                   <CheckCircle2 size={14} />
