@@ -29,7 +29,7 @@ export const QueryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <TanstackQueryProvider client={queryClient}>
       {children}
       {/* Devtools are automatically excluded in production builds */}
-      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+      {/* <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" /> */}
     </TanstackQueryProvider>
   );
 };

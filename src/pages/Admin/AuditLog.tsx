@@ -34,6 +34,7 @@ import { PurchaseOrderForm } from '../../components/Forms/PurchaseOrderForm';
 import { SalesOrderForm } from '../../components/Forms/SalesOrderForm';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 /* ─── Mapa de ícones e rótulos por tabela ─── */
 const MODULE_ICONS: Record<string, React.ElementType> = {
@@ -100,7 +101,7 @@ export const AuditLog: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'INSERT' | 'UPDATE' | 'DELETE'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = usePersistentState('AuditLog_showFilters', false);
   const [filterValues, setFilterValues] = useState({
     action: 'ALL',
     module: 'ALL',
@@ -111,24 +112,24 @@ export const AuditLog: React.FC = () => {
   });
   const [selectedLog, setSelectedLog] = useState<LogEntry | null>(null);
   const [dossierViewMode, setDossierViewMode] = useState<'visual' | 'json'>('visual');
-  const [showOnlyChanges, setShowOnlyChanges] = useState(true);
+  const [showOnlyChanges, setShowOnlyChanges] = usePersistentState('AuditLog_showOnlyChanges', true);
 
   // Estados para exibição dos formulários de registro originais na mesma página
-  const [isSupplierFormOpen, setIsSupplierFormOpen] = useState(false);
-  const [isAnimalFormOpen, setIsAnimalFormOpen] = useState(false);
-  const [isTransactionFormOpen, setIsTransactionFormOpen] = useState(false);
-  const [isClientFormOpen, setIsClientFormOpen] = useState(false);
-  const [isMachineFormOpen, setIsMachineFormOpen] = useState(false);
-  const [isPastureFormOpen, setIsPastureFormOpen] = useState(false);
-  const [isLotFormOpen, setIsLotFormOpen] = useState(false);
-  const [isWeightFormOpen, setIsWeightFormOpen] = useState(false);
-  const [isHealthFormOpen, setIsHealthFormOpen] = useState(false);
-  const [isPurchaseOrderFormOpen, setIsPurchaseOrderFormOpen] = useState(false);
-  const [isSalesOrderFormOpen, setIsSalesOrderFormOpen] = useState(false);
+  const [isSupplierFormOpen, setIsSupplierFormOpen] = usePersistentState('AuditLog_isSupplierFormOpen', false);
+  const [isAnimalFormOpen, setIsAnimalFormOpen] = usePersistentState('AuditLog_isAnimalFormOpen', false);
+  const [isTransactionFormOpen, setIsTransactionFormOpen] = usePersistentState('AuditLog_isTransactionFormOpen', false);
+  const [isClientFormOpen, setIsClientFormOpen] = usePersistentState('AuditLog_isClientFormOpen', false);
+  const [isMachineFormOpen, setIsMachineFormOpen] = usePersistentState('AuditLog_isMachineFormOpen', false);
+  const [isPastureFormOpen, setIsPastureFormOpen] = usePersistentState('AuditLog_isPastureFormOpen', false);
+  const [isLotFormOpen, setIsLotFormOpen] = usePersistentState('AuditLog_isLotFormOpen', false);
+  const [isWeightFormOpen, setIsWeightFormOpen] = usePersistentState('AuditLog_isWeightFormOpen', false);
+  const [isHealthFormOpen, setIsHealthFormOpen] = usePersistentState('AuditLog_isHealthFormOpen', false);
+  const [isPurchaseOrderFormOpen, setIsPurchaseOrderFormOpen] = usePersistentState('AuditLog_isPurchaseOrderFormOpen', false);
+  const [isSalesOrderFormOpen, setIsSalesOrderFormOpen] = usePersistentState('AuditLog_isSalesOrderFormOpen', false);
   const [transactionFormType, setTransactionFormType] = useState<'payable' | 'receivable'>('payable');
   const [formInitialData, setFormInitialData] = useState<any>(null);
   const [isFetchingRecord, setIsFetchingRecord] = useState(false);
-  const [isDynamicFormOpen, setIsDynamicFormOpen] = useState(false);
+  const [isDynamicFormOpen, setIsDynamicFormOpen] = usePersistentState('AuditLog_isDynamicFormOpen', false);
   const [dynamicFormTableName, setDynamicFormTableName] = useState('');
   const [isSavingDynamic, setIsSavingDynamic] = useState(false);
 

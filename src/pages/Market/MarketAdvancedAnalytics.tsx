@@ -31,6 +31,7 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 interface QuoteData {
   date: string;
@@ -52,9 +53,9 @@ export const MarketAdvancedAnalytics: React.FC = () => {
   const [endDate, setEndDate] = useState('');
 
   // Toggles
-  const [showMMA7, setShowMMA7] = useState(false);
-  const [showMMA30, setShowMMA30] = useState(false);
-  const [showBollinger, setShowBollinger] = useState(false);
+  const [showMMA7, setShowMMA7] = usePersistentState('MarketAdvancedAnalytics_showMMA7', false);
+  const [showMMA30, setShowMMA30] = usePersistentState('MarketAdvancedAnalytics_showMMA30', false);
+  const [showBollinger, setShowBollinger] = usePersistentState('MarketAdvancedAnalytics_showBollinger', false);
 
   // Extremes
   const [extremePoints, setExtremePoints] = useState<{max: any, min: any} | null>(null);

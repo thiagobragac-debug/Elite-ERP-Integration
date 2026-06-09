@@ -78,7 +78,7 @@ export const TenantRegistration: React.FC = () => {
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
+  const [showPass, setShowPass] = usePersistentState('TenantRegistration_showPass', false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -162,6 +162,7 @@ export const TenantRegistration: React.FC = () => {
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+import { usePersistentState } from '../../hooks/usePersistentState';
         * { box-sizing: border-box; }
 
         @keyframes glow-pulse { 0%,100%{opacity:.35} 50%{opacity:.65} }

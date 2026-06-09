@@ -55,13 +55,14 @@ export const AccountsPayable: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
   const { submitForApproval } = useApprovalQueue();
   const [isModalOpen, setIsModalOpen] = usePersistentState('AccountsPayable_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'TODAS' | 'PENDENTE' | 'PAGO'>('TODAS');
   const [selectedBill, setSelectedBill] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('AccountsPayable_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('AccountsPayable_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({ 
     status: 'all', 
     minAmount: 0,
@@ -70,8 +71,8 @@ export const AccountsPayable: React.FC = () => {
     dateEnd: '' 
   });
   const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
-  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = usePersistentState('AccountsPayable_isBatchModalOpen', false);
+  const [isCalendarOpen, setIsCalendarOpen] = usePersistentState('AccountsPayable_isCalendarOpen', false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [page, setPage] = useState(1);
@@ -106,11 +107,13 @@ export const AccountsPayable: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedBill(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (bill: any) => {
     setSelectedBill(bill);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -511,6 +514,7 @@ export const AccountsPayable: React.FC = () => {
       <TransactionForm 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        actionId={formActionId}
         type="payable"
         initialData={selectedBill}
         onSubmit={handleSubmit}

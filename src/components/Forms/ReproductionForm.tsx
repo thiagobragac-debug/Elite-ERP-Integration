@@ -25,9 +25,10 @@ interface ReproductionFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   loading?: boolean;
+  actionId?: number;
 }
 
-export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = usePersistentState('ReproductionForm_formData', {
     animal_id: '',
     tipo_evento: 'IATF',
@@ -44,8 +45,9 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
   });
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         animal_id: initialData.animal_id || '',
         tipo_evento: initialData.tipo_evento || 'IATF',
         data_evento: initialData.data_evento || new Date().toISOString().split('T')[0],
@@ -75,7 +77,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({ isOpen, onCl
         status: 'pending'
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const [loading, setLoading] = useState(false);
 

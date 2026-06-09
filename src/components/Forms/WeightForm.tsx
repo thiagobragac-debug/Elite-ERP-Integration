@@ -28,6 +28,7 @@ interface WeightFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   loading?: boolean;
+  actionId?: number;
 }
 
 // ECC Labels
@@ -89,7 +90,7 @@ const SparklineChart = ({ weightHistory }: { weightHistory: any[] }) => {
   );
 };
 
-export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
   const [animals, setAnimals] = useState<any[]>([]);
   const [lastWeighing, setLastWeighing] = useState<any>(null);
@@ -185,6 +186,8 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
   };
 
   useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+
     if (isOpen && activeTenantId) {
       fetchAnimals();
       fetchTodayCount();
@@ -193,8 +196,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
 
   // reset or populate form
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (initialData) { setFormData({
         animal_id: initialData.animal_id || '',
         data_pesagem: initialData.data_pesagem || new Date().toISOString().split('T')[0],
         peso: initialData.peso?.toString() || '',
@@ -208,7 +210,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({ isOpen, onClose, onSubmi
     } else {
       resetForm();
     }
-  }, [initialData, isOpen, animals]);
+  }, [initialData, isOpen, animals, actionId]);
 
   // #8 — Ctrl+Enter shortcut
   useEffect(() => {

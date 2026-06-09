@@ -24,9 +24,10 @@ interface TenantFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   availablePlans?: any[];
+  actionId?: number;
 }
 
-export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmit, initialData, availablePlans = [] }) => {
+export const TenantForm: React.FC<TenantFormProps> = ({isOpen, onClose, onSubmit, initialData, availablePlans = [], actionId }) => {
   const [formData, setFormData] = usePersistentState('TenantForm_formData', {
     name: '',
     cnpj: '',
@@ -83,7 +84,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({ isOpen, onClose, onSubmi
         modules: []
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const toggleModule = (modId: string) => {
     if (formData.modules.includes(modId)) {

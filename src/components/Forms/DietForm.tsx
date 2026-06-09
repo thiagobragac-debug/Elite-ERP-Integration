@@ -25,9 +25,10 @@ interface DietFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   loading?: boolean;
+  actionId?: number;
 }
 
-export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = usePersistentState('DietForm_formData', {
     nome: '',
     tipo: 'Concentrado',
@@ -44,8 +45,9 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
   const [newIngredient, setNewIngredient] = useState('');
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         nome: initialData.nome || '',
         tipo: initialData.tipo || 'Concentrado',
         descricao: initialData.descricao || '',
@@ -70,7 +72,7 @@ export const DietForm: React.FC<DietFormProps> = ({ isOpen, onClose, onSubmit, i
         status: 'active'
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const [loading, setLoading] = useState(false);
 

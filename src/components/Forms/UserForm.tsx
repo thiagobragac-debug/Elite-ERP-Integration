@@ -25,9 +25,10 @@ interface UserFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const UserForm: React.FC<UserFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm, farms, activeTenantId } = useTenant();
   const [formData, setFormData] = usePersistentState('UserForm_formData', {
     name: '',
@@ -74,7 +75,7 @@ export const UserForm: React.FC<UserFormProps> = ({ isOpen, onClose, onSubmit, i
         cargo_id: ''
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   useEffect(() => {
     if (isOpen) {

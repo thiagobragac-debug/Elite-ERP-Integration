@@ -49,7 +49,7 @@ export const WarehouseManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = usePersistentState('WarehouseManagement_isModalOpen', false);
   const [selectedWarehouse, setSelectedWarehouse] = useState<any>(null);
   const [viewMode, setViewMode] = useViewMode('inventory-warehouse-management', 'grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('WarehouseManagement_showAdvancedFilters', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = searchParams.get('tab') || 'Todos';
   const setActiveTab = (tab: string) => {
@@ -61,7 +61,7 @@ export const WarehouseManagement: React.FC = () => {
     types: [] as string[]
   });
 
-  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [isStockModalOpen, setIsStockModalOpen] = usePersistentState('WarehouseManagement_isStockModalOpen', false);
   const [stockModalWarehouseId, setStockModalWarehouseId] = useState<string | null>(null);
   const [stockModalWarehouseName, setStockModalWarehouseName] = useState<string | null>(null);
 

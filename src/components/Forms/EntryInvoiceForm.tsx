@@ -38,14 +38,13 @@ interface EntryInvoiceFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({
-  isOpen,
+export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
   onClose,
   onSubmit,
-  initialData
-}) => {
+  initialData, actionId }) => {
   const { activeTenantId, activeCompany, companies } = useTenant();
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);

@@ -32,11 +32,12 @@ interface LotFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   loading?: boolean;
+  actionId?: number;
 }
 
 
 
-export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const LotForm: React.FC<LotFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = usePersistentState('LotForm_formData', {
     nome: '',
     finalidade: '',
@@ -69,6 +70,8 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
   const [loadingPastos, setLoadingPastos] = useState(false);
 
   useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+
     if (isOpen && activeTenantId) {
       fetchFazendas();
     }
@@ -101,8 +104,7 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
   };
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (initialData) { setFormData({
         nome: initialData.nome || '',
         finalidade: initialData.finalidade || '',
         descricao: initialData.descricao || '',
@@ -150,7 +152,7 @@ export const LotForm: React.FC<LotFormProps> = ({ isOpen, onClose, onSubmit, ini
         peso_carcaca_alvo: ''
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const fetchPastos = async (fazendaId: string) => {
     setLoadingPastos(true);

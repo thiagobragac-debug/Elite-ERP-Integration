@@ -49,6 +49,7 @@ import { ReconFilterModal } from './components/ReconFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Filter } from 'lucide-react';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const BankReconciliation: React.FC = () => {
   const { activeFarm, activeTenantId } = useTenant();
@@ -61,16 +62,16 @@ export const BankReconciliation: React.FC = () => {
   const [stats, setStats] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('BankReconciliation_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
-  const [isManualReconOpen, setIsManualReconOpen] = useState(false);
+  const [isManualReconOpen, setIsManualReconOpen] = usePersistentState('BankReconciliation_isManualReconOpen', false);
   const [selectedBankRecord, setSelectedBankRecord] = useState<any>(null);
   const [selectedInternalIds, setSelectedInternalIds] = useState<string[]>([]);
-  const [isManualBankRecordModalOpen, setIsManualBankRecordModalOpen] = useState(false);
+  const [isManualBankRecordModalOpen, setIsManualBankRecordModalOpen] = usePersistentState('BankReconciliation_isManualBankRecordModalOpen', false);
   const [manualRows, setManualRows] = useState<any[]>([
     { id: Date.now(), date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }
   ]);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('BankReconciliation_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     minAmount: 0,

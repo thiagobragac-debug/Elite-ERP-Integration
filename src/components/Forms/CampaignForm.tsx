@@ -12,9 +12,10 @@ interface CampaignFormProps {
   initialData?: any;
   availablePlans?: any[];
   isSubmitting?: boolean;
+  actionId?: number;
 }
 
-export const CampaignForm: React.FC<CampaignFormProps> = ({ isOpen, onClose, onSubmit, initialData, availablePlans = [], isSubmitting = false }) => {
+export const CampaignForm: React.FC<CampaignFormProps> = ({isOpen, onClose, onSubmit, initialData, availablePlans = [], isSubmitting = false, actionId }) => {
   const [formData, setFormData] = usePersistentState('CampaignForm_formData', {
     name: '',
     discount_percentage: '',
@@ -32,8 +33,9 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({ isOpen, onClose, onS
   });
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         name: initialData.name || '',
         discount_percentage: initialData.discount_percentage ? initialData.discount_percentage.toString() : '',
         start_date: initialData.start_date ? new Date(initialData.start_date).toISOString().slice(0, 16) : '',
@@ -69,7 +71,7 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({ isOpen, onClose, onS
         maxRedemptions: ''
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const togglePlan = (planId: string) => {
     const isActive = formData.target_plan_ids.includes(planId);

@@ -28,9 +28,10 @@ interface MachineFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const MachineForm: React.FC<MachineFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = usePersistentState('MachineForm_formData', {
     nome: '',
     marca: '',
@@ -65,6 +66,8 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
   const [obsOpen, setObsOpen] = useState(false);
 
   useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+
     if (isOpen && activeTenantId) {
       fetchCategories();
     }
@@ -108,8 +111,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
   };
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (initialData) { setFormData({
         nome: initialData.nome || '',
         marca: initialData.marca || '',
         modelo: initialData.modelo || '',
@@ -157,7 +159,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({ isOpen, onClose, onSub
         unidade_id: ''
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

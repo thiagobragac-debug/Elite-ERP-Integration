@@ -43,6 +43,7 @@ import { generateHistoricalSparkline } from '../../lib/tauze_historical_engine';
 
 import './ExecutiveDashboard.css';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -69,10 +70,10 @@ export const ExecutiveDashboard: React.FC = () => {
   
   
   
-  const [isTVMode, setIsTVMode] = useState(false);
-  const [isCopilotOpen, setIsCopilotOpen] = useState(false);
+  const [isTVMode, setIsTVMode] = usePersistentState('ExecutiveDashboard_isTVMode', false);
+  const [isCopilotOpen, setIsCopilotOpen] = usePersistentState('ExecutiveDashboard_isCopilotOpen', false);
   const [copilotInput, setCopilotInput] = useState('');
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('ExecutiveDashboard_isHistoryModalOpen', false);
   
   const [activeChartMetric, setActiveChartMetric] = useState<'gmd' | 'peso' | 'arroba'>('gmd');
   const [chartMode, setChartMode] = useState<'line' | 'bar'>('line');

@@ -26,16 +26,15 @@ interface ChargeFormProps {
   tenantsList: any[];
   plansList: any[];
   isSubmitting?: boolean;
+  actionId?: number;
 }
 
-export const ChargeForm: React.FC<ChargeFormProps> = ({ 
-  isOpen, 
+export const ChargeForm: React.FC<ChargeFormProps> = ({isOpen, 
   onClose, 
   onSubmit, 
   tenantsList = [], 
   plansList = [], 
-  isSubmitting = false 
-}) => {
+  isSubmitting = false, actionId }) => {
   const [formData, setFormData] = usePersistentState('ChargeForm_formData', {
     tenant_id: '',
     plan_name: '',

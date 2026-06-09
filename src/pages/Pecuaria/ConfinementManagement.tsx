@@ -54,13 +54,14 @@ export const ConfinementManagement: React.FC = () => {
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('ConfinementManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useViewMode('pecuaria-confinamento', 'grid');
   const [isModalOpen, setIsModalOpen] = usePersistentState('ConfinementManagement_isModalOpen', false);
-  const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [formActionId, setFormActionId] = useState<number>(0);
+  const [isCheckOutModalOpen, setIsCheckOutModalOpen] = usePersistentState('ConfinementManagement_isCheckOutModalOpen', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('ConfinementManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     minDOF: 0,
@@ -185,7 +186,7 @@ export const ConfinementManagement: React.FC = () => {
     const matchesDOF = p.dof >= filterValues.minDOF && p.dof <= filterValues.maxDOF;
     const matchesWeight = (p.projectedWeight || 0) >= filterValues.minWeight && (p.projectedWeight || 0) <= filterValues.maxWeight;
     const matchesCPD = (p.cpd || 0) <= filterValues.maxCPD;
-    const matchesActive = !filterValues.onlyActive || p.status !== 'archived';
+    const matchesActive = activeTab === 'HISTORICO' ? true : (!filterValues.onlyActive || p.status !== 'archived');
     
     const lote = (p.lotes?.nome || '').toLowerCase();
     const matchesLote = lote.includes(searchTerm.toLowerCase());
@@ -962,6 +963,7 @@ export const ConfinementManagement: React.FC = () => {
       <ConfinementForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleAddPen} 
         loading={(addPenMutation.isPending || checkOutMutation.isPending)}
       />

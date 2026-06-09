@@ -26,9 +26,10 @@ interface ConfinementFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   loading?: boolean;
+  actionId?: number;
 }
 
-export const ConfinementForm: React.FC<ConfinementFormProps> = ({ isOpen, onClose, onSubmit }) => {
+export const ConfinementForm: React.FC<ConfinementFormProps> = ({isOpen, onClose, onSubmit, actionId }) => {
   const { activeFarm } = useTenant();
   const [lots, setLots] = useState<any[]>([]);
   const [formData, setFormData] = usePersistentState('ConfinementForm_formData', {

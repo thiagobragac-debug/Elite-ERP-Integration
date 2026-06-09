@@ -30,6 +30,7 @@ interface PastureRelocateFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialSourcePastureId?: string;
+  actionId?: number;
 }
 
 const MOTIVOS = [
@@ -202,12 +203,10 @@ function Row({ label, value, color }: { label: string; value: string; color?: st
   );
 }
 
-export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({
-  isOpen,
+export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
   onClose,
   onSubmit,
-  initialSourcePastureId
-}) => {
+  initialSourcePastureId, actionId }) => {
   const { activeTenantId } = useTenant();
   const { applyFarmFilter, activeFarmId, isGlobalMode } = useFarmFilter();
   const { user } = useAuth();

@@ -62,14 +62,15 @@ export const Contracts: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('Contracts_isModalOpen', false);
-  const [isHedgeModalOpen, setIsHedgeModalOpen] = useState(false);
+  const [formActionId, setFormActionId] = useState<number>(0);
+  const [isHedgeModalOpen, setIsHedgeModalOpen] = usePersistentState('Contracts_isHedgeModalOpen', false);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ACTIVE' | 'COMPLETED') || 'ACTIVE';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedContract, setSelectedContract] = useState<any>(null);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('Contracts_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     priceType: 'all',
@@ -153,11 +154,13 @@ export const Contracts: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedContract(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (contract: any) => {
     setSelectedContract(contract);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -513,6 +516,7 @@ export const Contracts: React.FC = () => {
       <ContractForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedContract}
       />

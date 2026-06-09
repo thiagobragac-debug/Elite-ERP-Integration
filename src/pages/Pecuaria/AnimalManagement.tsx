@@ -47,11 +47,12 @@ export const AnimalManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('AnimalManagement_isModalOpen', false);
   const [selectedAnimal, setSelectedAnimal] = useState<any>(null);
-  const [isManejoModalOpen, setIsManejoModalOpen] = useState(false);
+  const [formActionId, setFormActionId] = useState<number>(0);
+  const [isManejoModalOpen, setIsManejoModalOpen] = usePersistentState('AnimalManagement_isManejoModalOpen', false);
   const [manejoAnimal, setManejoAnimal] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'TODOS' | 'ATIVO' | 'ABATIDO'>('TODOS');
-  const [showRomaneio, setShowRomaneio] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showRomaneio, setShowRomaneio] = usePersistentState('AnimalManagement_showRomaneio', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('AnimalManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     sexo: 'all',
@@ -90,11 +91,13 @@ export const AnimalManagement: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedAnimal(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (animal: any) => {
     setSelectedAnimal(animal);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -114,17 +117,26 @@ export const AnimalManagement: React.FC = () => {
       toast.success(selectedAnimal ? '✅ Animal atualizado!' : '✅ Animal cadastrado!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao salvar animal: ' + err.message);
+      console.error('ERRO AO SALVAR ANIMAL:', err);
+      let msg = err.message;
+      if (msg?.includes('violates row-level security policy')) {
+        msg = 'Permissão negada. O sistema tentou salvar mas o banco de dados rejeitou. (A fazenda selecionada pertence ao seu tenant?)';
+      }
+      toast.error('Erro ao salvar animal: ' + msg);
     }
   });
 
   const handleSubmit = async (formData: any) => {
     const payload = {
+      ...insertPayload,
+      tenant_id: activeTenantId,
+      fazenda_id: formData.fazenda_id || insertPayload.fazenda_id || activeFarmId || null,
+      lote_id: formData.lote_id || null,
+      pasto_id: formData.pasto_id || null,
       brinco: formData.brinco,
       raca: formData.raca,
       sexo: formData.sexo,
       data_nascimento: formData.data_nascimento,
-      fazenda_id: formData.fazenda_id || null,
       status: formData.status || 'Ativo',
       peso_inicial: parseFloat(formData.peso_inicial) || 0,
       pelagem: formData.pelagem,
@@ -654,9 +666,11 @@ export const AnimalManagement: React.FC = () => {
       <AnimalForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedAnimal}
         loading={isSubmitting}
+        actionId={formActionId}
       />
 
       <QuickManejoModal

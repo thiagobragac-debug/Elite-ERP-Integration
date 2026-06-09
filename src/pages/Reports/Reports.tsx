@@ -47,6 +47,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 
 export const Reports: React.FC = () => {
@@ -56,14 +57,14 @@ export const Reports: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<'all' | 'finance' | 'livestock' | 'fleet' | 'supply' | 'sales' | 'gov'>('all');
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [isViewerOpen, setIsViewerOpen] = usePersistentState('Reports_isViewerOpen', false);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [viewMode, setViewMode] = useViewMode('reports-overview', 'grid');
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = usePersistentState('Reports_isScheduleModalOpen', false);
   const [reportToSchedule, setReportToSchedule] = useState<any>(null);
-  const [isPeriodModalOpen, setIsPeriodModalOpen] = useState(false);
+  const [isPeriodModalOpen, setIsPeriodModalOpen] = usePersistentState('Reports_isPeriodModalOpen', false);
   const [selectedPeriod, setSelectedPeriod] = useState('safra_atual');
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = usePersistentState('Reports_isFilterModalOpen', false);
   const [advancedFilters, setAdvancedFilters] = useState({
     tags: [] as string[],
     complexity: 'all',

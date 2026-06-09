@@ -35,9 +35,10 @@ interface MovementFormProps {
   onSubmit: (data: any) => void;
   defaultType?: 'in' | 'out' | 'transfer';
   initialData?: any;
+  actionId?: number;
 }
 
-export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onSubmit, defaultType = 'in', initialData }) => {
+export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSubmit, defaultType = 'in', initialData, actionId }) => {
   const { activeFarm } = useTenant();
   const { applyFarmFilter, applyTenantFilter } = useFarmFilter();
   
@@ -75,8 +76,9 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (initialData) {
-      setFormData(prev => ({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData(prev => ({
         ...prev,
         destino_deposito_id: initialData.destino_deposito_id || '',
         tipo: initialData.tipo || defaultType,
@@ -94,7 +96,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
         lote: initialData.lote || '',
         data_validade: initialData.data_validade || '',
         deposito_id: initialData.deposito_id || ''
-      }]);
+      }, actionId]);
     } else {
       setFormData({
         destino_deposito_id: '',
@@ -120,7 +122,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({ isOpen, onClose, onS
         deposito_id: ''
       });
     }
-  }, [initialData, isOpen, defaultType]);
+  }, [initialData, isOpen, defaultType, actionId]);
 
   useEffect(() => {
     if (isOpen && activeFarm) {

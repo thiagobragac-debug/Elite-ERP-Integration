@@ -12,6 +12,7 @@ import {
   FileJson
 } from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
+import { usePersistentState } from '../../../hooks/usePersistentState';
 
 interface SystemAuditDrawerProps {
   isOpen: boolean;
@@ -26,7 +27,7 @@ export const SystemAuditDrawer: React.FC<SystemAuditDrawerProps> = ({
 }) => {
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('SystemAuditDrawer_showAdvancedFilters', false);
   const [filterRisk, setFilterRisk] = useState('Todos');
 
   // Enriching logs with fake IP and payload data for the "Auditor" feel

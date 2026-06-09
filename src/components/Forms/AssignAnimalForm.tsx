@@ -34,6 +34,7 @@ interface AssignAnimalFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   mode: AssignMode;
+  actionId?: number;
 }
 
 const MOTIVOS = [
@@ -173,7 +174,7 @@ function CapacityBar({ current, max, adding, unit }: { current: number; max: num
   );
 }
 
-export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({ isOpen, onClose, onSubmit, mode }) => {
+export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClose, onSubmit, mode, actionId }) => {
   const { activeTenantId } = useTenant();
   const { applyFarmFilter, activeFarmId, isGlobalMode } = useFarmFilter();
   const { user } = useAuth();

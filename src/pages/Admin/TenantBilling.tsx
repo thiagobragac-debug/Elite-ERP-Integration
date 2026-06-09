@@ -26,6 +26,7 @@ import { BillingFilterModal } from './components/BillingFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const TenantBilling: React.FC = () => {
   const { tenant } = useTenant();
@@ -33,8 +34,8 @@ export const TenantBilling: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [invoicesLoading, setInvoicesLoading] = useState(true);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = usePersistentState('TenantBilling_isPaymentModalOpen', false);
+  const [isFilterOpen, setIsFilterOpen] = usePersistentState('TenantBilling_isFilterOpen', false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [filterValues, setFilterValues] = useState({
     status: 'all',

@@ -61,16 +61,17 @@ export const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('Invoices_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ISSUED' | 'CANCELED') || 'ISSUED';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('Invoices_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('Invoices_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     minAmount: 0,
@@ -173,11 +174,13 @@ export const Invoices: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedInvoice(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (inv: any) => {
     setSelectedInvoice(inv);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -516,6 +519,7 @@ export const Invoices: React.FC = () => {
       <OutputInvoiceForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedInvoice}
       />

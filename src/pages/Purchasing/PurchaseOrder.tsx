@@ -69,10 +69,10 @@ export const PurchaseOrder: React.FC = () => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('PurchaseOrder_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('PurchaseOrder_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     suppliers: [],

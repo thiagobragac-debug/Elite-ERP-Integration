@@ -40,9 +40,10 @@ interface OutputInvoiceFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm, companies, activeCompany } = useTenant();
   const [formData, setFormData] = usePersistentState('OutputInvoiceForm_formData', {
     company_id: initialData?.company_id || activeCompany?.id || '',

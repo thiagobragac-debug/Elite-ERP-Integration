@@ -23,6 +23,7 @@ interface ProfileFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
 const MODULES = [
@@ -43,7 +44,7 @@ const TEMPLATES = [
   { value: 'operador', label: 'Operador / Lançador' },
 ];
 
-export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const ProfileForm: React.FC<ProfileFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = usePersistentState('ProfileForm_formData', {
     nome: '',
     descricao: '',
@@ -77,7 +78,7 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({ isOpen, onClose, onSub
       });
       setSelectedTemplate('none');
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const applyTemplate = (templateId: string) => {
     setSelectedTemplate(templateId);

@@ -64,6 +64,7 @@ interface PendingItem {
 }
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const ApprovalCenter: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
@@ -76,7 +77,7 @@ export const ApprovalCenter: React.FC = () => {
   const [viewMode, setViewMode] = useViewMode('admin-approval-center', 'grid');
   const [searchTerm, setSearchTerm] = useState('');
   
-  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [isFilterModalOpen, setIsFilterModalOpen] = usePersistentState('ApprovalCenter_isFilterModalOpen', false);
   const [filters, setFilters] = useState({
     status: 'all',
     type: 'all',
@@ -86,7 +87,7 @@ export const ApprovalCenter: React.FC = () => {
     maxAmount: ''
   });
 
-  const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
+  const [isRuleModalOpen, setIsRuleModalOpen] = usePersistentState('ApprovalCenter_isRuleModalOpen', false);
   const [selectedRule, setSelectedRule] = useState<ApprovalRule | null>(null);
 
   const queryClient = useQueryClient();

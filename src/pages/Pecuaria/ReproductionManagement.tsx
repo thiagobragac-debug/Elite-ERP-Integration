@@ -49,12 +49,13 @@ export const ReproductionManagement: React.FC = () => {
   };
   
   const [isModalOpen, setIsModalOpen] = usePersistentState('ReproductionManagement_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('ReproductionManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = usePersistentState('ReproductionManagement_isBatchModalOpen', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('ReproductionManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     tipo_evento: 'all',
     results: [] as string[],
@@ -81,11 +82,13 @@ export const ReproductionManagement: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedEvent(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (event: any) => {
     setSelectedEvent(event);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -461,6 +464,7 @@ export const ReproductionManagement: React.FC = () => {
       <ReproductionForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedEvent}
         loading={(saveReproMutation.isPending || batchSaveReproMutation.isPending)}

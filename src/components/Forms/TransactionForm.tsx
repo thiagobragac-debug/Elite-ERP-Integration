@@ -26,9 +26,10 @@ interface TransactionFormProps {
   type: 'payable' | 'receivable';
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClose, type, onSubmit, initialData }) => {
+export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose, type, onSubmit, initialData, actionId }) => {
   const { activeFarm, activeTenantId } = useTenant();
   const [formData, setFormData] = usePersistentState('TransactionForm_formData', {
     description: '',
@@ -48,6 +49,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+
     if (isOpen && activeTenantId) {
       fetchEntities();
       fetchCategories();
@@ -95,8 +98,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
   };
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (initialData) { setFormData({
         description: initialData.descricao || '',
         value: initialData.valor_total?.toString() || '',
         dueDate: initialData.data_vencimento || '',
@@ -122,7 +124,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ isOpen, onClos
         status: 'PENDENTE'
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const title = initialData 
     ? (type === 'payable' ? 'Editar Conta a Pagar' : 'Editar Conta a Receber')

@@ -13,6 +13,7 @@ import { PriceAlertModal } from './components/PriceAlertModal';
 import './MarketIntelligenceDashboard.css';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 interface QuoteData {
   date: string;
@@ -27,7 +28,7 @@ export const MarketIntelligenceDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'30D' | '90D' | '6M' | '1Y' | 'ALL'>('1Y');
   const [indicator, setIndicator] = useState('boi_gordo_cepea');
-  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [isAlertModalOpen, setIsAlertModalOpen] = usePersistentState('MarketIntelligenceDashboard_isAlertModalOpen', false);
   const { live: cepeaLive } = useCepea(); // cotação ao vivo da CEPEA
 
   useEffect(() => {

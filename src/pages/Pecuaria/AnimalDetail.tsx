@@ -32,15 +32,16 @@ import toast from 'react-hot-toast';
 import './AnimalDetail.css';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const AnimalDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { activeFarmId, activeTenantId, insertPayload } = useFarmFilter();
-  const [showRastreabilidade, setShowRastreabilidade] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isManejoModalOpen, setIsManejoModalOpen] = useState(false);
+  const [showRastreabilidade, setShowRastreabilidade] = usePersistentState('AnimalDetail_showRastreabilidade', false);
+  const [isEditModalOpen, setIsEditModalOpen] = usePersistentState('AnimalDetail_isEditModalOpen', false);
+  const [isManejoModalOpen, setIsManejoModalOpen] = usePersistentState('AnimalDetail_isManejoModalOpen', false);
 
   // Fetch animal info
   const { data: animal, isLoading: animalLoading } = useQuery({

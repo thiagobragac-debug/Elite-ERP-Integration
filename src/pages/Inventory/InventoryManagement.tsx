@@ -72,11 +72,11 @@ export const InventoryManagement: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = usePersistentState('InventoryManagement_isModalOpen', false);
   const [isMovementModalOpen, setIsMovementModalOpen] = usePersistentState('InventoryManagement_isMovementModalOpen', false);
   const [selectedProduct, setSelectedProduct] = usePersistentState<any>('InventoryManagement_selectedProduct', null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('InventoryManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useViewMode('inventory-management', 'grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('InventoryManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     categoria: 'all', // Corrected singular field
     categorias: [] as string[],

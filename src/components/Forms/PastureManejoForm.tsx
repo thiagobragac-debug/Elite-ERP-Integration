@@ -22,9 +22,10 @@ interface PastureManejoFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialPastureId?: string;
+  actionId?: number;
 }
 
-export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({ isOpen, onClose, onSubmit, initialPastureId }) => {
+export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({isOpen, onClose, onSubmit, initialPastureId, actionId }) => {
   const { activeFarm, activeTenantId } = useTenant();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);

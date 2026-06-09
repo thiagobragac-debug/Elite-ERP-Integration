@@ -34,9 +34,10 @@ interface ClientFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const ClientForm: React.FC<ClientFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = usePersistentState('ClientForm_formData', {
     name: '',
     cnpj: '',
@@ -78,6 +79,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
   const [categories, setCategories] = useState<any[]>([]);
 
   React.useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+
     if (isOpen && activeTenantId) {
       fetchCategories();
     }
@@ -122,8 +125,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
   };
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (initialData) { setFormData({
         name: initialData.nome || '',
         cnpj: initialData.cnpj_cpf || initialData.documento || '',
         categoria_id: initialData.categoria_id || '',
@@ -175,7 +177,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ isOpen, onClose, onSubmi
         longitude: null
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const handleCNPJSearch = async () => {
     const cleanCNPJ = formData.cnpj.replace(/\D/g, '');

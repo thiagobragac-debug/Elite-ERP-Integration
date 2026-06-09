@@ -25,7 +25,7 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
   const [isModalOpen, setIsModalOpen] = usePersistentState('InventorySettings_isModalOpen', false);
   const [editItem, setEditItem] = useState<NCM | null>(null);
   
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = usePersistentState('InventorySettings_isImportModalOpen', false);
   const [importSearch, setImportSearch] = useState('');
   const [importResults, setImportResults] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);

@@ -63,11 +63,11 @@ export const EntryInvoice: React.FC = () => {
     setSearchParams((prev: URLSearchParams) => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedInvoice, setSelectedInvoice] = usePersistentState<any>('EntryInvoice_selectedInvoice', null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('EntryInvoice_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [showDivergences, setShowDivergences] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showDivergences, setShowDivergences] = usePersistentState('EntryInvoice_showDivergences', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('EntryInvoice_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     suppliers: [],

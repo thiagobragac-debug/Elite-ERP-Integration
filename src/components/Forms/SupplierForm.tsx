@@ -34,9 +34,10 @@ interface SupplierFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   loading?: boolean;
+  actionId?: number;
 }
 
-export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const SupplierForm: React.FC<SupplierFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = usePersistentState('SupplierForm_formData', {
     nome: '',
     cnpj: '',
@@ -80,6 +81,8 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
   const [categories, setCategories] = useState<any[]>([]);
 
   React.useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+
     if (isOpen && activeTenantId) {
       fetchCategories();
     }
@@ -115,8 +118,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
   };
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (initialData) { setFormData({
         nome: initialData.nome || '',
         cnpj: initialData.cnpj || initialData.cnpj_cpf || '',
         contato: initialData.contato || '',
@@ -172,7 +174,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ isOpen, onClose, onS
         longitude: null
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const handleCNPJSearch = async () => {
     const cleanCNPJ = formData.cnpj.replace(/\D/g, '');

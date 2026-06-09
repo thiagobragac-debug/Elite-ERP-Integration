@@ -69,8 +69,8 @@ export const QuotationMap: React.FC = () => {
   };
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [selectedMatrixQuotation, setSelectedMatrixQuotation] = useState<any>(null);
-  const [isMatrixOpen, setIsMatrixOpen] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isMatrixOpen, setIsMatrixOpen] = usePersistentState('QuotationMap_isMatrixOpen', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('QuotationMap_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     minSaving: 0,

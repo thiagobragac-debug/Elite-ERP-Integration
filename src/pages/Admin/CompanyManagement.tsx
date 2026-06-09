@@ -54,6 +54,7 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const CompanyManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
@@ -67,15 +68,15 @@ export const CompanyManagement: React.FC = () => {
   const [companies, setCompanies] = useState<any[]>([]);
   const [farms, setFarms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCompanyModalOpen, setIsCompanyModalOpen] = useState(false);
-  const [isFarmModalOpen, setIsFarmModalOpen] = useState(false);
+  const [isCompanyModalOpen, setIsCompanyModalOpen] = usePersistentState('CompanyManagement_isCompanyModalOpen', false);
+  const [isFarmModalOpen, setIsFarmModalOpen] = usePersistentState('CompanyManagement_isFarmModalOpen', false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('CompanyManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useViewMode('company-management', 'grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('CompanyManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     type: 'all',
     state: 'all',

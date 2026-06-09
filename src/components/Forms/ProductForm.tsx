@@ -24,9 +24,10 @@ interface ProductFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   hasHistory?: boolean;
+  actionId?: number;
 }
 
-export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSubmit, initialData, hasHistory = false }) => {
+export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubmit, initialData, hasHistory = false, actionId }) => {
   const { tenant } = useTenant();
   const [categories, setCategories] = useState<{value: string, label: string}[]>([]);
   const [ncms, setNcms] = useState<{value: string, label: string}[]>([]);
@@ -135,6 +136,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
   };
 
   React.useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+
 
     const fetchNcms = async () => {
       if (!tenant) return;
@@ -177,8 +180,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
   }, [tenant, isOpen]);
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (initialData) { setFormData({
         nome: initialData.nome || '',
         categoria_id: initialData.categoria_id || '',
         categoria: initialData.categoria || '',
@@ -216,7 +218,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ isOpen, onClose, onSub
         is_active: true
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

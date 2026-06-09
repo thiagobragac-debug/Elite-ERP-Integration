@@ -20,9 +20,10 @@ interface BankAccountFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const BankAccountForm: React.FC<BankAccountFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { companies, activeCompany } = useTenant();
   
   const [formData, setFormData] = usePersistentState('BankAccountForm_formData', {
@@ -42,8 +43,9 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         banco: initialData.banco || '',
         agencia: initialData.agencia || '',
         conta: initialData.conta || '',
@@ -71,7 +73,7 @@ export const BankAccountForm: React.FC<BankAccountFormProps> = ({ isOpen, onClos
         is_global: false
       });
     }
-  }, [initialData, isOpen, activeCompany]);
+  }, [initialData, isOpen, activeCompany, actionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

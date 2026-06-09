@@ -11,9 +11,10 @@ interface PlanFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   isSubmitting?: boolean;
+  actionId?: number;
 }
 
-export const PlanForm: React.FC<PlanFormProps> = ({ isOpen, onClose, onSubmit, initialData, isSubmitting = false }) => {
+export const PlanForm: React.FC<PlanFormProps> = ({isOpen, onClose, onSubmit, initialData, isSubmitting = false, actionId }) => {
   const [formData, setFormData] = usePersistentState('PlanForm_formData', {
     name: '',
     price: '',
@@ -36,8 +37,9 @@ export const PlanForm: React.FC<PlanFormProps> = ({ isOpen, onClose, onSubmit, i
   });
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         name: initialData.name || '',
         price: initialData.price || '',
         pricePerUserExtra: initialData.pricePerUserExtra || '',
@@ -77,7 +79,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({ isOpen, onClose, onSubmit, i
         setupFee: ''
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   return (
     <SidePanel

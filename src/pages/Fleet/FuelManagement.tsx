@@ -64,14 +64,15 @@ export const FuelManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('FuelManagement_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'LOG' | 'ANALYSIS') || 'LOG';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedLog, setSelectedLog] = useState<any>(null);
-  const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isAnalysisOpen, setIsAnalysisOpen] = usePersistentState('FuelManagement_isAnalysisOpen', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('FuelManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     fuelTypes: [] as string[],
@@ -152,11 +153,13 @@ export const FuelManagement: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedLog(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (log: any) => {
     setSelectedLog(log);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -548,6 +551,7 @@ export const FuelManagement: React.FC = () => {
       <FuelForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedLog}
       />

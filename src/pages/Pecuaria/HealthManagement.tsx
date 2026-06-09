@@ -50,10 +50,11 @@ export const HealthManagement: React.FC = () => {
   };
   
   const [isModalOpen, setIsModalOpen] = usePersistentState('HealthManagement_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('HealthManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('HealthManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     tipo: 'all',
@@ -62,7 +63,7 @@ export const HealthManagement: React.FC = () => {
     dateStart: '',
     dateEnd: ''
   });
-  const [isProtocolsModalOpen, setIsProtocolsModalOpen] = useState(false);
+  const [isProtocolsModalOpen, setIsProtocolsModalOpen] = usePersistentState('HealthManagement_isProtocolsModalOpen', false);
   const [page, setPage] = useState(1);
   const pageSize = 12;
 
@@ -77,11 +78,13 @@ export const HealthManagement: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedEvent(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (event: any) => {
     setSelectedEvent(event);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -428,6 +431,7 @@ export const HealthManagement: React.FC = () => {
       <HealthForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedEvent}
         loading={(saveHealthMutation.isPending || applyProtocolMutation.isPending)}

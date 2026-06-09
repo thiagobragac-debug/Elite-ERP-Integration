@@ -70,13 +70,14 @@ export const FleetManagement: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All');
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('FleetManagement_isModalOpen', false);
-  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [formActionId, setFormActionId] = useState<number>(0);
+  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = usePersistentState('FleetManagement_isMaintenanceModalOpen', false);
   const [selectedMachine, setSelectedMachine] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('FleetManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyTitle, setHistoryTitle] = useState('');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('FleetManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     marcas: [] as string[],
@@ -190,11 +191,13 @@ export const FleetManagement: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedMachine(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (machine: any) => {
     setSelectedMachine(machine);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -987,6 +990,7 @@ export const FleetManagement: React.FC = () => {
       <MachineForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedMachine}
       />
@@ -994,6 +998,7 @@ export const FleetManagement: React.FC = () => {
       <MaintenanceForm 
         isOpen={isMaintenanceModalOpen}
         onClose={() => setIsMaintenanceModalOpen(false)}
+        actionId={formActionId}
         onSubmit={handleMaintenanceSubmit}
       />
 

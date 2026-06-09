@@ -22,9 +22,10 @@ interface ReconciliationFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm } = useTenant();
   const [formData, setFormData] = usePersistentState('ReconciliationForm_formData', {
     account_id: '',
@@ -41,8 +42,9 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         account_id: initialData.conta_id || '',
         period: initialData.periodo || 'Mês Atual',
         file: null,
@@ -64,7 +66,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({ isOpen, 
         observacoes: ''
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   useEffect(() => {
     if (isOpen && activeFarm) {

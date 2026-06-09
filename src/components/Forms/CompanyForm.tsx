@@ -27,6 +27,7 @@ interface CompanyFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
 const maskCPF = (v: string) => {
@@ -37,7 +38,7 @@ const maskCPF = (v: string) => {
     .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
 };
 
-export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const CompanyForm: React.FC<CompanyFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = React.useState({
     name: '',
     document: '',
@@ -75,8 +76,9 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
   const isMatriz = formData.type === 'matriz';
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         name: initialData.razao_social || initialData.nome || initialData.name || '',
         document: initialData.cnpj || initialData.documento || initialData.document || '',
         tipo_documento: initialData.tipo_documento || ((initialData.cnpj || initialData.documento || '').replace(/\D/g, '').length === 14 ? 'CNPJ' : 'CPF'),
@@ -112,7 +114,7 @@ export const CompanyForm: React.FC<CompanyFormProps> = ({ isOpen, onClose, onSub
         contador_cpf: '', contador_nome: '', contador_crc: '',
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const handleCNPJSearch = async () => {
     const cleanCNPJ = formData.document.replace(/\D/g, '');

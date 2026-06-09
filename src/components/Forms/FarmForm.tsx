@@ -25,9 +25,10 @@ interface FarmFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const FarmForm: React.FC<FarmFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { companies } = useTenant();
   const [formData, setFormData] = usePersistentState('FarmForm_formData', {
     name: '',
@@ -50,8 +51,9 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
   const [obsOpen, setObsOpen] = useState(false);
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         name: initialData.nome || initialData.name || '',
         registrationNumber: initialData.ie_produtor || initialData.registrationNumber || '',
         nirf: initialData.nirf || '',
@@ -73,7 +75,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({ isOpen, onClose, onSubmit, i
         location: '', municipio: '', uf: '', companyId: '', description: ''
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   // --- MOTOR MATEMÁTICO DE APROVEITAMENTO ---
   const aproveitamento = useMemo(() => {

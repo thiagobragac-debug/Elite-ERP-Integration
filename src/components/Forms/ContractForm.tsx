@@ -32,9 +32,10 @@ interface ContractFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const ContractForm: React.FC<ContractFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm, activeTenantId, activeCompany, companies } = useTenant();
   
   const [formData, setFormData] = usePersistentState('ContractForm_formData', {
@@ -67,8 +68,9 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         company_id: initialData.company_id || activeCompany?.id || '',
         contract_number: initialData.numero_contrato || '',
         type: initialData.tipo || 'Venda de Gado (Futuro)',
@@ -92,7 +94,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({ isOpen, onClose, onS
         generate_financial: initialData.generate_financial ?? true,
       });
     }
-  }, [initialData, isOpen, activeCompany]);
+  }, [initialData, isOpen, activeCompany, actionId]);
 
   useEffect(() => {
     if (isOpen && activeTenantId) {

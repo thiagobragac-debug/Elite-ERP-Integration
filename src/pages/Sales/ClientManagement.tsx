@@ -61,14 +61,15 @@ export const ClientManagement: React.FC = () => {
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('ClientManagement_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedClient, setSelectedClient] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'ATIVO' | 'LEAD'>('ATIVO');
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('ClientManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useViewMode('sales-client-management', 'grid');
   const [selectedSegment, setSelectedSegment] = useState('TODOS');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('ClientManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     segments: [] as string[],
@@ -204,11 +205,13 @@ export const ClientManagement: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedClient(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (client: any) => {
     setSelectedClient(client);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -1033,6 +1036,7 @@ export const ClientManagement: React.FC = () => {
       <ClientForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedClient}
       />

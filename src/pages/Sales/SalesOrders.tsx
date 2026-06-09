@@ -62,13 +62,14 @@ export const SalesOrders: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('SalesOrders_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'OPEN' | 'CLOSED') || 'OPEN';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('SalesOrders_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     clientTypes: [],
@@ -80,7 +81,7 @@ export const SalesOrders: React.FC = () => {
     missingGta: false
   });
   const [isLogisticsAuditActive, setIsLogisticsAuditActive] = useState(false);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('SalesOrders_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('kanban');
@@ -215,11 +216,13 @@ export const SalesOrders: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedOrder(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (order: any) => {
     setSelectedOrder(order);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -880,6 +883,7 @@ export const SalesOrders: React.FC = () => {
       <SalesOrderForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedOrder}
       />

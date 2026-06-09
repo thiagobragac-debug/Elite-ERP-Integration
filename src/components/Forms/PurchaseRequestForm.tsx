@@ -24,14 +24,13 @@ interface PurchaseRequestFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({
-  isOpen,
+export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
   onClose,
   onSubmit,
-  initialData
-}) => {
+  initialData, actionId }) => {
   const { activeCompany, companies } = useTenant();
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<any[]>(initialData?.items || []);

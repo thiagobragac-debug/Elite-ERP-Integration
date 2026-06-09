@@ -28,9 +28,10 @@ interface FuelFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm } = useTenant();
   const [formData, setFormData] = usePersistentState('FuelForm_formData', {
     machine_id: '',
@@ -50,8 +51,9 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         machine_id: initialData.maquina_id || '',
         estoque_id: initialData.estoque_id || '',
         date: initialData.data || new Date().toISOString().split('T')[0],
@@ -75,7 +77,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({ isOpen, onClose, onSubmit, i
         responsible: ''
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   // Calculadora Inteligente de Bomba
   useEffect(() => {

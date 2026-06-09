@@ -63,7 +63,7 @@ export const MovementManagement: React.FC = () => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedMovement, setSelectedMovement] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('MovementManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [stats, setStats] = useState<any[]>([
@@ -72,7 +72,7 @@ export const MovementManagement: React.FC = () => {
     { label: 'Saídas (Pag.)', value: '---', icon: Activity, color: '#166534', progress: 0, change: 'Saídas', sparkline: [] },
     { label: 'Sincronismo', value: 'Ativo', icon: Zap, color: '#f59e0b', progress: 100, change: 'Tempo Real', sparkline: [] },
   ]);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('MovementManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     type: 'all',
     minAmount: 0,

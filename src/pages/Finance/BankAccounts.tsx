@@ -69,17 +69,18 @@ export const BankAccounts: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('BankAccounts_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'BALANCES' | 'CASHFLOW') || 'BALANCES';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('BankAccounts_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [viewMode, setViewMode] = useViewMode('finance-bank-accounts', 'grid');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('BankAccounts_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     type: 'all',
     balanceStatus: 'all',
@@ -171,11 +172,13 @@ export const BankAccounts: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedAccount(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (acc: any) => {
     setSelectedAccount(acc);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -1002,6 +1005,7 @@ export const BankAccounts: React.FC = () => {
       <BankAccountForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedAccount}
       />

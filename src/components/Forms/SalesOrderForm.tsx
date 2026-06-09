@@ -29,14 +29,13 @@ interface SalesOrderFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({
-  isOpen,
+export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({isOpen,
   onClose,
   onSubmit,
-  initialData
-}) => {
+  initialData, actionId }) => {
   const { activeTenantId, activeCompany, companies } = useTenant();
   const [loading, setLoading] = useState(false);
   const [clients, setClients] = useState<any[]>([]);

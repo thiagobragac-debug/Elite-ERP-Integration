@@ -63,6 +63,7 @@ import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 type SaaSAdminTab = 'overview' | 'tenants' | 'plans' | 'campaigns' | 'billing' | 'health' | 'settings';
 
@@ -76,13 +77,13 @@ export const SaaSAdminPanel: React.FC = () => {
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [isAuditDrawerOpen, setIsAuditDrawerOpen] = useState(false);
+  const [isAuditDrawerOpen, setIsAuditDrawerOpen] = usePersistentState('SaaSAdminPanel_isAuditDrawerOpen', false);
   const [searchQuery, setSearchQuery] = useState('');
   const [tenantsViewMode, setTenantsViewMode] = useViewMode('saas-admin-tenants', 'grid');
   const [plansViewMode, setPlansViewMode] = useViewMode('saas-admin-plans', 'grid');
   const [campaignsViewMode, setCampaignsViewMode] = useViewMode('saas-admin-campaigns', 'grid');
 
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('SaaSAdminPanel_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     plan: 'all',
@@ -305,18 +306,18 @@ export const SaaSAdminPanel: React.FC = () => {
   };
 
 
-  const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
+  const [isTenantModalOpen, setIsTenantModalOpen] = usePersistentState('SaaSAdminPanel_isTenantModalOpen', false);
   const [selectedTenant, setSelectedTenant] = useState<any>(null);
   
-  const [isCreateDemoModalOpen, setIsCreateDemoModalOpen] = useState(false);
-  const [isDeleteDemoModalOpen, setIsDeleteDemoModalOpen] = useState(false);
+  const [isCreateDemoModalOpen, setIsCreateDemoModalOpen] = usePersistentState('SaaSAdminPanel_isCreateDemoModalOpen', false);
+  const [isDeleteDemoModalOpen, setIsDeleteDemoModalOpen] = usePersistentState('SaaSAdminPanel_isDeleteDemoModalOpen', false);
   const [demoTenantName, setDemoTenantName] = useState('');
   const [tenantToDelete, setTenantToDelete] = useState<any>(null);
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
-  const [isChargeModalOpen, setIsChargeModalOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = usePersistentState('SaaSAdminPanel_isPlanModalOpen', false);
+  const [isChargeModalOpen, setIsChargeModalOpen] = usePersistentState('SaaSAdminPanel_isChargeModalOpen', false);
   const [isSaving, setIsSaving] = useState(false);
   const [kpis, setKpis] = useState({ mrr: 0, totalTenants: 0, totalUsers: 0, health: 99.9 });
 
@@ -569,12 +570,12 @@ export const SaaSAdminPanel: React.FC = () => {
 
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
 
-  const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
+  const [isCampaignModalOpen, setIsCampaignModalOpen] = usePersistentState('SaaSAdminPanel_isCampaignModalOpen', false);
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null);
 
   const [billingSubTab, setBillingSubTab] = useState('monitor');
   
-  const [isAuditLogModalOpen, setIsAuditLogModalOpen] = useState(false);
+  const [isAuditLogModalOpen, setIsAuditLogModalOpen] = usePersistentState('SaaSAdminPanel_isAuditLogModalOpen', false);
   const [selectedAuditTenant, setSelectedAuditTenant] = useState<any>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -959,7 +960,7 @@ export const SaaSAdminPanel: React.FC = () => {
   });
 
   const [isLoadingSettings, setIsLoadingSettings] = useState(false);
-  const [isRetentionModalOpen, setIsRetentionModalOpen] = useState(false);
+  const [isRetentionModalOpen, setIsRetentionModalOpen] = usePersistentState('SaaSAdminPanel_isRetentionModalOpen', false);
   const [retentionSettings, setRetentionSettings] = useState({
     alertDays: 5,
     readOnlyDays: 10,

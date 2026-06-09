@@ -52,12 +52,13 @@ export const AccountsReceivable: React.FC = () => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [isModalOpen, setIsModalOpen] = usePersistentState('AccountsReceivable_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('AccountsReceivable_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('AccountsReceivable_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     minAmount: 0,
@@ -66,8 +67,8 @@ export const AccountsReceivable: React.FC = () => {
     dateEnd: ''
   });
   const [selectedItems, setSelectedItems] = useState<(string | number)[]>([]);
-  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
-  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = usePersistentState('AccountsReceivable_isBatchModalOpen', false);
+  const [isCalendarOpen, setIsCalendarOpen] = usePersistentState('AccountsReceivable_isCalendarOpen', false);
 
   const [page, setPage] = useState(1);
   const pageSize = 25;
@@ -92,11 +93,13 @@ export const AccountsReceivable: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedInvoice(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (invoice: any) => {
     setSelectedInvoice(invoice);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -485,6 +488,7 @@ export const AccountsReceivable: React.FC = () => {
       <TransactionForm 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        actionId={formActionId}
         type="receivable"
         initialData={selectedInvoice}
         onSubmit={handleSubmit}

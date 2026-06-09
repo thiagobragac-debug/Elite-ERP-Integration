@@ -65,6 +65,7 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 export const UserManagement: React.FC = () => {
   const { activeFarm, userProfile, refreshProfile } = useTenant();
@@ -73,8 +74,8 @@ export const UserManagement: React.FC = () => {
   const [usersList, setUsersList] = useState<any[]>([]);
   const [profilesList, setProfilesList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = usePersistentState('UserManagement_isUserModalOpen', false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = usePersistentState('UserManagement_isProfileModalOpen', false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -88,7 +89,7 @@ export const UserManagement: React.FC = () => {
   };
 
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('UserManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
@@ -107,7 +108,7 @@ export const UserManagement: React.FC = () => {
     mfaRequired: false,
     maintenanceMode: false
   });
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('UserManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     profileId: 'all',

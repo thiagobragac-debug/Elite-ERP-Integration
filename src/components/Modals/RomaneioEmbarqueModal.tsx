@@ -16,7 +16,9 @@ import {
   X,
   CheckCircle2,
   Hash,
-  AlertCircle
+  AlertCircle,
+  Filter,
+  ShieldAlert
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 
@@ -30,6 +32,14 @@ interface Animal {
   sexo: string;
   categoria: string;
   status: string;
+  lote_id?: string;
+  em_carencia?: boolean;
+}
+
+interface Lote {
+  id: string;
+  nome: string;
+  status: string;
 }
 
 interface RomaneioEmbarqueModalProps {
@@ -41,11 +51,17 @@ interface RomaneioEmbarqueModalProps {
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 
 const mockAnimais: Animal[] = [
-  { id: 'a1', brinco: '101', raca: 'Nelore', peso_atual: 520, sexo: 'M', categoria: 'Boi Gordo', status: 'Ativo' },
-  { id: 'a2', brinco: '102', raca: 'Nelore', peso_atual: 498, sexo: 'M', categoria: 'Boi Gordo', status: 'Ativo' },
-  { id: 'a3', brinco: '203', raca: 'Angus', peso_atual: 545, sexo: 'M', categoria: 'Boi Gordo', status: 'Ativo' },
-  { id: 'a4', brinco: '305', raca: 'Brahman', peso_atual: 380, sexo: 'F', categoria: 'Novilha', status: 'Ativo' },
-  { id: 'a5', brinco: '410', raca: 'Nelore', peso_atual: 280, sexo: 'M', categoria: 'Garrote', status: 'Ativo' },
+  { id: 'a1', brinco: '101', raca: 'Nelore', peso_atual: 520, sexo: 'M', categoria: 'Boi Gordo', status: 'Ativo', lote_id: 'l1', em_carencia: false },
+  { id: 'a2', brinco: '102', raca: 'Nelore', peso_atual: 498, sexo: 'M', categoria: 'Boi Gordo', status: 'Ativo', lote_id: 'l1', em_carencia: true },
+  { id: 'a3', brinco: '203', raca: 'Angus', peso_atual: 545, sexo: 'M', categoria: 'Boi Gordo', status: 'Ativo', lote_id: 'l2', em_carencia: false },
+  { id: 'a4', brinco: '305', raca: 'Brahman', peso_atual: 380, sexo: 'F', categoria: 'Novilha', status: 'Ativo', lote_id: 'l2', em_carencia: false },
+  { id: 'a5', brinco: '410', raca: 'Nelore', peso_atual: 280, sexo: 'M', categoria: 'Garrote', status: 'Ativo', lote_id: 'l3', em_carencia: false },
+];
+
+const mockLotes: Lote[] = [
+  { id: 'l1', nome: 'Lote Confinamento A', status: 'Ativo' },
+  { id: 'l2', nome: 'Lote Pasto 02', status: 'Ativo' },
+  { id: 'l3', nome: 'Lote Recria 01', status: 'Ativo' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -61,6 +77,21 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [animaisSelecionados, setAnimaisSelecionados] = useState<Animal[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const [lotSearchQuery, setLotSearchQuery] = useState('');
+  const [lotSearchResults, setLotSearchResults] = useState<Lote[]>([]);
+  const [showLotDropdown, setShowLotDropdown] = useState(false);
+  const [selectedLote, setSelectedLote] = useState<Lote | null>(null);
+  const lotSearchRef = useRef<HTMLDivElement>(null);
+
+  // Advanced Filters
+  const [pesoMin, setPesoMin] = useState('');
+  const [pesoMax, setPesoMax] = useState('');
+  const [filtroSexo, setFiltroSexo] = useState('');
+  const [filtroCategoria, setFiltroCategoria] = useState('');
+  const [ocultarCarencia, setOcultarCarencia] = useState(false);
+  
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false);
 
   // Step 2 - Embarque data
   const [formData, setFormData] = usePersistentState('RomaneioEmbarqueModal_formData', {
@@ -91,6 +122,15 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
         motorista: '',
         observacoes: ''
       });
+      setLotSearchQuery('');
+      setLotSearchResults([]);
+      setShowLotDropdown(false);
+      setSelectedLote(null);
+      setPesoMin('');
+      setPesoMax('');
+      setFiltroSexo('');
+      setFiltroCategoria('');
+      setOcultarCarencia(false);
     }
   }, [isOpen]);
 
@@ -99,6 +139,9 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowDropdown(false);
+      }
+      if (lotSearchRef.current && !lotSearchRef.current.contains(e.target as Node)) {
+        setShowLotDropdown(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -111,33 +154,81 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
     ? (pesoTotal / animaisSelecionados.length).toFixed(1)
     : '0';
 
+  const isFilterActive = !!(selectedLote || pesoMin || pesoMax || filtroSexo || filtroCategoria || ocultarCarencia);
+
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
+  const applyFilters = () => {
+    const selectedIds = new Set(animaisSelecionados.map(a => a.id));
+    const filtered = mockAnimais.filter(a => {
+      if (selectedIds.has(a.id)) return false;
+      if (selectedLote && a.lote_id !== selectedLote.id) return false;
+      if (ocultarCarencia && a.em_carencia) return false;
+      if (filtroSexo && a.sexo !== filtroSexo) return false;
+      if (filtroCategoria && a.categoria !== filtroCategoria) return false;
+      if (pesoMin && a.peso_atual < Number(pesoMin)) return false;
+      if (pesoMax && a.peso_atual > Number(pesoMax)) return false;
+      
+      const q = searchQuery.toLowerCase();
+      if (q) {
+        return a.brinco.toLowerCase().includes(q) ||
+               a.raca.toLowerCase().includes(q) ||
+               a.categoria.toLowerCase().includes(q);
+      }
+      return true;
+    });
+    setSearchResults(filtered);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      applyFilters();
+    }
+  }, [searchQuery, selectedLote, ocultarCarencia, filtroSexo, filtroCategoria, pesoMin, pesoMax, animaisSelecionados, isOpen]);
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setShowDropdown(true);
+  };
+
+  const handleLotSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const q = e.target.value;
-    setSearchQuery(q);
+    setLotSearchQuery(q);
+    setSelectedLote(null);
+    setSearchQuery('');
+    
     if (q.trim().length === 0) {
-      setSearchResults([]);
-      setShowDropdown(false);
+      setLotSearchResults([]);
+      setShowLotDropdown(false);
       return;
     }
-    const selectedIds = new Set(animaisSelecionados.map(a => a.id));
-    const filtered = mockAnimais.filter(
-      a =>
-        !selectedIds.has(a.id) &&
-        (a.brinco.toLowerCase().includes(q.toLowerCase()) ||
-          a.raca.toLowerCase().includes(q.toLowerCase()) ||
-          a.categoria.toLowerCase().includes(q.toLowerCase()))
+    const filtered = mockLotes.filter(
+      l => l.nome.toLowerCase().includes(q.toLowerCase()) && l.status === 'Ativo'
     );
-    setSearchResults(filtered);
+    setLotSearchResults(filtered);
+    setShowLotDropdown(true);
+  };
+
+  const handleSelectLote = (lote: Lote) => {
+    setSelectedLote(lote);
+    setLotSearchQuery(lote.nome);
+    setShowLotDropdown(false);
     setShowDropdown(true);
+  };
+
+  const handleAddAllFiltered = () => {
+    setAnimaisSelecionados(prev => [...prev, ...searchResults]);
+    setSearchQuery('');
+    setShowDropdown(false);
   };
 
   const handleAddAnimal = (animal: Animal) => {
     setAnimaisSelecionados(prev => [...prev, animal]);
-    setSearchQuery('');
-    setSearchResults([]);
-    setShowDropdown(false);
+    // Focus automatically shifts to the search input so the user can keep typing/interacting
+    if (searchRef.current) {
+      const input = searchRef.current.querySelector('input');
+      if (input) input.focus();
+    }
   };
 
   const handleRemoveAnimal = (id: string) => {
@@ -323,9 +414,10 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           <h4 className="tauze-section-title">Seleção de Animais para Embarque</h4>
         </div>
 
-        {/* Search Field */}
-        <div style={{ marginBottom: '16px' }} ref={searchRef}>
-          <div style={{ position: 'relative' }}>
+                        {/* Main Toolbar */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', position: 'relative' }}>
+          {/* Main Animal Search Field */}
+          <div style={{ position: 'relative', flex: 1 }} ref={searchRef}>
             <Search
               size={16}
               style={{
@@ -338,15 +430,38 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
             <input
               className="tauze-input"
               type="text"
-              placeholder="Buscar por brinco, raça ou categoria..."
+              placeholder={selectedLote ? `Buscar animal no lote ${selectedLote.nome}...` : "Buscar por brinco, raça ou categoria..."}
               value={searchQuery}
               onChange={handleSearchChange}
               onFocus={() => {
                 if (searchResults.length > 0) setShowDropdown(true);
+                else if (selectedLote) {
+                  const selectedIds = new Set(animaisSelecionados.map(a => a.id));
+                  const lotAnimals = mockAnimais.filter(a => a.lote_id === selectedLote.id && !selectedIds.has(a.id));
+                  if (lotAnimals.length > 0) {
+                    setSearchResults(lotAnimals);
+                    setShowDropdown(true);
+                  }
+                }
               }}
-              style={{ paddingLeft: '42px' }}
+              style={{ paddingLeft: '42px', paddingRight: '40px' }}
               autoComplete="off"
             />
+            
+            {/* Clear Button */}
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                style={{
+                  position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                  background: 'none', border: 'none', color: 'hsl(var(--text-muted))', cursor: 'pointer',
+                  padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
 
             {/* Dropdown */}
             {showDropdown && searchResults.length > 0 && (
@@ -360,9 +475,26 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                 boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
                 zIndex: 1000,
                 overflow: 'hidden',
-                maxHeight: '280px',
-                overflowY: 'auto'
+                maxHeight: '340px',
+                display: 'flex',
+                flexDirection: 'column'
               }}>
+                <div style={{ padding: '12px', borderBottom: '1px solid hsl(var(--border) / 0.5)', background: 'hsl(var(--bg-main))' }}>
+                  <button
+                    type="button"
+                    onClick={handleAddAllFiltered}
+                    style={{
+                      width: '100%', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 800,
+                      background: 'hsl(var(--brand) / 0.1)', color: 'hsl(var(--brand))', border: '1px solid hsl(var(--brand) / 0.2)',
+                      cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'hsl(var(--brand) / 0.15)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'hsl(var(--brand) / 0.1)')}
+                  >
+                    <Plus size={16} /> Adicionar Todos os {searchResults.length} Resultados
+                  </button>
+                </div>
+                <div style={{ overflowY: 'auto' }}>
                 {searchResults.map((animal, idx) => (
                   <div
                     key={animal.id}
@@ -398,8 +530,11 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                             {animal.sexo === 'M' ? 'Macho' : 'Fêmea'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>
+                        <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           {animal.raca} · {animal.categoria}
+                          {animal.em_carencia && (
+                            <span style={{ fontSize: '9px', fontWeight: 800, color: '#ef4444', background: '#ef444420', padding: '2px 6px', borderRadius: '4px' }}>EM CARÊNCIA</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -420,6 +555,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                     </div>
                   </div>
                 ))}
+                </div>
               </div>
             )}
 
@@ -443,7 +579,170 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Filters Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowFiltersPanel(!showFiltersPanel)}
+            style={{
+              height: '46px',
+              padding: '0 20px',
+              borderRadius: '12px',
+              border: `1px solid ${isFilterActive || showFiltersPanel ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
+              background: showFiltersPanel ? 'hsl(var(--brand) / 0.05)' : 'hsl(var(--bg-card))',
+              color: isFilterActive || showFiltersPanel ? 'hsl(var(--brand))' : 'hsl(var(--text-main))',
+              fontSize: '13px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              position: 'relative'
+            }}
+          >
+            <Filter size={16} />
+            Filtros
+            {isFilterActive && (
+              <div style={{
+                position: 'absolute', top: '-4px', right: '-4px',
+                width: '10px', height: '10px', borderRadius: '50%',
+                background: '#10b981', border: '2px solid hsl(var(--bg-card))'
+              }} />
+            )}
+          </button>
         </div>
+
+        {/* Collapsible Filters Panel */}
+        {showFiltersPanel && (
+          <div style={{ 
+            marginBottom: '24px', 
+            background: 'hsl(var(--bg-main) / 0.5)', 
+            padding: '20px', 
+            borderRadius: '12px', 
+            border: '1px solid hsl(var(--border) / 0.6)',
+            animation: 'slideDown 0.2s ease-out'
+          }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px' }}>
+              
+              {/* Lot Filter (Moved here) */}
+              <div style={{ flex: '1 1 300px', position: 'relative' }} ref={lotSearchRef}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>Filtrar por Lote</label>
+                <div style={{ position: 'relative' }}>
+                  <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))' }} />
+                  <input
+                    className="tauze-input"
+                    type="text"
+                    placeholder="Buscar lote ativo..."
+                    value={lotSearchQuery}
+                    onChange={handleLotSearchChange}
+                    onFocus={() => { if (lotSearchResults.length > 0) setShowLotDropdown(true); }}
+                    style={{ paddingLeft: '36px', height: '38px', fontSize: '13px', borderColor: selectedLote ? 'hsl(var(--brand))' : undefined }}
+                    autoComplete="off"
+                  />
+                  {selectedLote && (
+                    <button type="button" onClick={() => { setSelectedLote(null); setLotSearchQuery(''); setSearchQuery(''); setSearchResults([]); }}
+                      style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'hsl(var(--text-muted))', cursor: 'pointer' }}>
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+                {/* Lot Dropdown Inside Panel */}
+                {showLotDropdown && lotSearchResults.length > 0 && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'hsl(var(--bg-card))',
+                    border: '1px solid hsl(var(--border))', borderRadius: '10px', boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+                    zIndex: 1001, maxHeight: '200px', overflowY: 'auto'
+                  }}>
+                    {lotSearchResults.map((lote) => (
+                      <div key={lote.id} onClick={() => handleSelectLote(lote)}
+                        style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid hsl(var(--border)/0.5)', fontSize: '12px', fontWeight: 700 }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = 'hsl(var(--brand)/0.06)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                        {lote.nome}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Peso Filters */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>Peso Mínimo (kg)</label>
+                  <input type="number" className="tauze-input" style={{ width: '100px', height: '38px', fontSize: '13px' }} placeholder="Ex: 400" value={pesoMin} onChange={(e) => setPesoMin(e.target.value)} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>Peso Máximo (kg)</label>
+                  <input type="number" className="tauze-input" style={{ width: '100px', height: '38px', fontSize: '13px' }} placeholder="Ex: 600" value={pesoMax} onChange={(e) => setPesoMax(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Sexo Chips */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>Sexo</label>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {['M', 'F'].map(sex => (
+                    <button key={sex} type="button" onClick={() => setFiltroSexo(filtroSexo === sex ? '' : sex)}
+                      style={{ height: '38px', padding: '0 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+                        background: filtroSexo === sex ? 'hsl(var(--brand))' : 'hsl(var(--bg-card))',
+                        color: filtroSexo === sex ? '#fff' : 'hsl(var(--text-main))',
+                        border: `1px solid ${filtroSexo === sex ? 'transparent' : 'hsl(var(--border))'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
+                      {sex === 'M' ? 'Machos' : 'Fêmeas'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Categoria Chips */}
+              <div>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: '6px' }}>Categoria</label>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {['Boi Gordo', 'Vaca', 'Novilha', 'Garrote'].map(cat => (
+                    <button key={cat} type="button" onClick={() => setFiltroCategoria(filtroCategoria === cat ? '' : cat)}
+                      style={{ height: '38px', padding: '0 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 700,
+                        background: filtroCategoria === cat ? 'hsl(var(--brand))' : 'hsl(var(--bg-card))',
+                        color: filtroCategoria === cat ? '#fff' : 'hsl(var(--text-main))',
+                        border: `1px solid ${filtroCategoria === cat ? 'transparent' : 'hsl(var(--border))'}`, cursor: 'pointer', transition: 'all 0.15s' }}>
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Carencia Toggle */}
+              <div style={{ flex: '1 1 100%', borderTop: '1px dashed hsl(var(--border)/0.8)', marginTop: '4px', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', height: '36px', background: ocultarCarencia ? 'hsl(142 71% 45% / 0.1)' : 'transparent', padding: '0 12px', borderRadius: '8px', border: ocultarCarencia ? '1px solid hsl(142 71% 45% / 0.3)' : '1px solid transparent', transition: 'all 0.2s' }}>
+                  <ShieldAlert size={16} style={{ color: ocultarCarencia ? '#10b981' : 'hsl(var(--text-muted))' }} />
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: ocultarCarencia ? '#10b981' : 'hsl(var(--text-main))', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input type="checkbox" checked={ocultarCarencia} onChange={(e) => setOcultarCarencia(e.target.checked)}
+                      style={{ accentColor: '#10b981', width: '14px', height: '14px', cursor: 'pointer' }} />
+                    Ocultar animais em Carência Sanitária
+                  </label>
+                </div>
+
+                {isFilterActive && (
+                  <button
+                    type="button"
+                    onClick={() => { setShowDropdown(true); setShowFiltersPanel(false); }}
+                    style={{
+                      padding: '10px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 800,
+                      background: 'hsl(var(--brand))', color: '#fff', border: 'none', cursor: 'pointer', transition: 'all 0.15s',
+                      boxShadow: '0 4px 14px hsl(var(--brand)/0.3)'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'none')}
+                  >
+                    Exibir {searchResults.length} Resultados
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+        )}
+        
+        {/* Selected Animals Table */}
 
         {/* Selected Animals Table */}
         {animaisSelecionados.length === 0 ? (
@@ -459,39 +758,39 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
               Nenhum animal selecionado
             </p>
             <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'hsl(var(--text-muted) / 0.7)' }}>
-              Use o campo de busca acima para adicionar animais ao embarque
+              Use a busca e os filtros acima para adicionar animais ao embarque
             </p>
           </div>
         ) : (
           <>
-            {/* Table Header */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: '2fr 1.5fr 1.2fr 1.5fr auto',
-              gap: '0',
-              padding: '10px 16px',
-              background: 'hsl(var(--bg-main))',
-              borderRadius: '12px 12px 0 0',
               border: '1px solid hsl(var(--border))',
-              borderBottom: 'none'
+              borderRadius: '12px',
+              overflow: 'hidden',
+              background: 'hsl(var(--bg-card))'
             }}>
-              {['# Brinco', 'Raça', 'Peso Atual', 'Categoria', ''].map((h, i) => (
-                <div key={i} style={{
-                  fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))',
-                  textTransform: 'uppercase', letterSpacing: '0.06em',
-                  textAlign: i === 4 ? 'center' : 'left'
-                }}>
-                  {h}
-                </div>
-              ))}
-            </div>
+              {/* Table Header */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '2fr 1.5fr 1.2fr 1.5fr auto',
+                gap: '0',
+                padding: '10px 16px',
+                background: 'hsl(var(--bg-main))',
+                borderBottom: '1px solid hsl(var(--border))'
+              }}>
+                {['# Brinco', 'Raça', 'Peso Atual', 'Categoria', ''].map((h, i) => (
+                  <div key={i} style={{
+                    fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))',
+                    textTransform: 'uppercase', letterSpacing: '0.06em',
+                    textAlign: i === 4 ? 'center' : 'left'
+                  }}>
+                    {h}
+                  </div>
+                ))}
+              </div>
 
-            {/* Table Rows */}
-            <div style={{
-              border: '1px solid hsl(var(--border))',
-              borderRadius: '0 0 12px 12px',
-              overflow: 'hidden'
-            }}>
+              {/* Table Rows */}
+              <div>
               {animaisSelecionados.map((animal, idx) => (
                 <div
                   key={animal.id}
@@ -581,6 +880,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                   </div>
                 </div>
               ))}
+              </div>
             </div>
 
             {/* Summary Footer */}
@@ -618,8 +918,8 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           <h4 className="tauze-section-title">Dados do Embarque e Documentação</h4>
         </div>
 
-        {/* Row 1: Comprador + Data */}
-        <div className="tauze-input-grid" style={{ gridTemplateColumns: '2fr 1fr', marginBottom: '16px' }}>
+        {/* Row 1: Comprador, Destino, Data */}
+        <div className="tauze-input-grid grid-col-3" style={{ marginBottom: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label">
               <User size={14} /> Comprador / Destinatário
@@ -631,6 +931,19 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
               value={formData.comprador}
               onChange={(e) => setFormData({ ...formData, comprador: e.target.value })}
               required
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <MapPin size={14} /> Destino
+            </label>
+            <input
+              className="tauze-input"
+              type="text"
+              placeholder="Ex: Frigorífico X, Fazenda ABC"
+              value={formData.destino}
+              onChange={(e) => setFormData({ ...formData, destino: e.target.value })}
             />
           </div>
 
@@ -648,21 +961,8 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
           </div>
         </div>
 
-        {/* Row 2: Destino + GTA */}
-        <div className="tauze-input-grid grid-col-2" style={{ marginBottom: '16px' }}>
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              <MapPin size={14} /> Destino
-            </label>
-            <input
-              className="tauze-input"
-              type="text"
-              placeholder="Ex: Frigorífico X, Fazenda ABC"
-              value={formData.destino}
-              onChange={(e) => setFormData({ ...formData, destino: e.target.value })}
-            />
-          </div>
-
+        {/* Row 2: GTA, Placa, Motorista */}
+        <div className="tauze-input-grid grid-col-3" style={{ marginBottom: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label">
               <Hash size={14} /> GTA Saída — Número
@@ -675,10 +975,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
               onChange={(e) => setFormData({ ...formData, gta_numero: e.target.value })}
             />
           </div>
-        </div>
 
-        {/* Row 3: Placa + Motorista */}
-        <div className="tauze-input-grid grid-col-2" style={{ marginBottom: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label">
               <Truck size={14} /> Placa do Veículo

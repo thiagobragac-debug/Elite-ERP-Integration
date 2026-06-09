@@ -35,11 +35,12 @@ import { supabase } from '../../lib/supabase';
 import { PastureRelocateForm } from '../../components/Forms/PastureRelocateForm';
 import { AssignAnimalForm } from '../../components/Forms/AssignAnimalForm';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { usePersistentState } from '../../hooks/usePersistentState';
 
 const PastureManagement: React.FC = () => {
   const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } = useFarmFilter();
   const queryClient = useQueryClient();
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = usePersistentState('PastureManagement_isFormOpen', false);
   const [selectedPasture, setSelectedPasture] = useState<any | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -50,7 +51,7 @@ const PastureManagement: React.FC = () => {
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('PastureManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     capins: [] as string[],
@@ -61,13 +62,13 @@ const PastureManagement: React.FC = () => {
     needsFertilization: false
   });
 
-  const [isManejoOpen, setIsManejoOpen] = useState(false);
+  const [isManejoOpen, setIsManejoOpen] = usePersistentState('PastureManagement_isManejoOpen', false);
   const [manejoPastureId, setManejoPastureId] = useState<string | undefined>(undefined);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = usePersistentState('PastureManagement_isHistoryOpen', false);
   const [selectedPastureId, setSelectedPastureId] = useState<string | null>(null);
   const [selectedPastureName, setSelectedPastureName] = useState('');
-  const [isRelocateOpen, setIsRelocateOpen] = useState(false);
-  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [isRelocateOpen, setIsRelocateOpen] = usePersistentState('PastureManagement_isRelocateOpen', false);
+  const [isAssignOpen, setIsAssignOpen] = usePersistentState('PastureManagement_isAssignOpen', false);
 
   const handleOpenManejo = (pasture: any) => {
     setManejoPastureId(pasture.id);

@@ -25,9 +25,10 @@ interface QuotationFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const QuotationForm: React.FC<QuotationFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm } = useTenant();
   const [formData, setFormData] = usePersistentState('QuotationForm_formData', {
     request_id: '',
@@ -42,8 +43,9 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         request_id: initialData.request_id || '',
         item_id: initialData.produto_id || '',
         quantity: initialData.quantidade?.toString() || '',
@@ -59,7 +61,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({ isOpen, onClose, o
         suppliers: [{ supplier_id: '', price: '', freight: '', delivery_days: '', payment_terms: '', validity: '' }]
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   useEffect(() => {
     if (isOpen && activeFarm) {

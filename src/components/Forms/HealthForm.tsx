@@ -26,9 +26,10 @@ interface HealthFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   loading?: boolean;
+  actionId?: number;
 }
 
-export const HealthForm: React.FC<HealthFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = usePersistentState('HealthForm_formData', {
     tipo: 'vacina',
     titulo: '',
@@ -49,8 +50,9 @@ export const HealthForm: React.FC<HealthFormProps> = ({ isOpen, onClose, onSubmi
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         tipo: initialData.tipo || 'vacina',
         titulo: initialData.titulo || '',
         animal_id: initialData.animal_id || '',
@@ -84,7 +86,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({ isOpen, onClose, onSubmi
         status: 'REALIZADO'
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

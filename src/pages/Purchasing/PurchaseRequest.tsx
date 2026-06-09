@@ -69,10 +69,10 @@ export const PurchaseRequest: React.FC = () => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('PurchaseRequest_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('PurchaseRequest_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     priorities: [] as string[],
@@ -81,7 +81,7 @@ export const PurchaseRequest: React.FC = () => {
     dateStart: '',
     dateEnd: ''
   });
-  const [showOnlyUrgent, setShowOnlyUrgent] = useState(false);
+  const [showOnlyUrgent, setShowOnlyUrgent] = usePersistentState('PurchaseRequest_showOnlyUrgent', false);
 
   const debouncedSearch = useDebounce(searchTerm, 500);
 

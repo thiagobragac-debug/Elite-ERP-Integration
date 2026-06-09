@@ -33,6 +33,7 @@ interface RelocateFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialSourceLotId?: string;
+  actionId?: number;
 }
 
 const MOTIVOS = [
@@ -235,7 +236,7 @@ function LotSearch({ lots, value, onChange, placeholder, exclude, label, animalC
 }
 
 // ── Main Component ──────────────────────────────────────────────────────────
-export const RelocateForm: React.FC<RelocateFormProps> = ({ isOpen, onClose, onSubmit, initialSourceLotId }) => {
+export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSubmit, initialSourceLotId, actionId }) => {
   const { activeTenantId } = useTenant();
   const { applyFarmFilter, activeFarmId, isGlobalMode } = useFarmFilter();
   const { user } = useAuth();

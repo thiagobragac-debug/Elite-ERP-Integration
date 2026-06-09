@@ -47,12 +47,13 @@ export const NutritionManagement: React.FC = () => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [isModalOpen, setIsModalOpen] = usePersistentState('NutritionManagement_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedDiet, setSelectedDiet] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('NutritionManagement_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isSimulatorOpen, setIsSimulatorOpen] = usePersistentState('NutritionManagement_isSimulatorOpen', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('NutritionManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     tipo: 'all',
@@ -75,11 +76,13 @@ export const NutritionManagement: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedDiet(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (diet: any) => {
     setSelectedDiet(diet);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -400,6 +403,7 @@ export const NutritionManagement: React.FC = () => {
       <DietForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedDiet}
         loading={saveDietMutation.isPending}

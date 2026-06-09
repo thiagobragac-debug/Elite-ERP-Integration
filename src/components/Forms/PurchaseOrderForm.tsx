@@ -28,14 +28,13 @@ interface PurchaseOrderFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   loading?: boolean;
+  actionId?: number;
 }
 
-export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({
-  isOpen,
+export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
   onClose,
   onSubmit,
-  initialData
-}) => {
+  initialData, actionId }) => {
   const { activeTenantId, activeCompany, companies } = useTenant();
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);

@@ -29,9 +29,10 @@ interface AnimalFormProps {
   onSubmit: (data: any) => void;
   initialData?: any;
   loading?: boolean;
+  actionId?: number;
 }
 
-export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmit, initialData, loading: externalLoading, actionId }) => {
   const [formData, setFormData] = usePersistentState('AnimalForm_formData', {
     brinco: '',
     brinco_eletronico: '',
@@ -69,6 +70,11 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
       fetchRacas();
       fetchCategorias();
     }
+  }, [isOpen, activeTenantId]);
+
+  React.useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+    
     if (initialData) {
       setFormData({
         brinco: initialData.brinco || '',
@@ -112,7 +118,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         finalidade: 'Corte'
       });
     }
-  }, [initialData, isOpen, activeTenantId]);
+  }, [initialData, actionId]);
 
   React.useEffect(() => {
     if (formData.fazenda_id) {
@@ -307,7 +313,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
       title={initialData ? "Editar Animal" : "Cadastrar Novo Animal"}
       subtitle="Insira as informações básicas para rastreabilidade."
       icon={Beef}
-      loading={loading}
+      loading={loading || externalLoading}
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Animal"}
       size="large"
     >

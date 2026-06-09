@@ -57,17 +57,18 @@ export const LotManagement: React.FC = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('LotManagement_isModalOpen', false);
-  const [isRelocateModalOpen, setIsRelocateModalOpen] = useState(false);
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [formActionId, setFormActionId] = useState<number>(0);
+  const [isRelocateModalOpen, setIsRelocateModalOpen] = usePersistentState('LotManagement_isRelocateModalOpen', false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = usePersistentState('LotManagement_isAssignModalOpen', false);
   const [selectedLot, setSelectedLot] = useState<any>(null);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = usePersistentState('LotManagement_isDetailsModalOpen', false);
   const [lotToView, setLotToView] = useState<any>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ATIVO' | 'PENDENTE' | 'ARQUIVADO') || 'ATIVO';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [isProcessModalOpen, setIsProcessModalOpen] = useState(false);
+  const [isProcessModalOpen, setIsProcessModalOpen] = usePersistentState('LotManagement_isProcessModalOpen', false);
   const [lotToProcess, setLotToProcess] = useState<any>(null);
   const [mockPendingLots, setMockPendingLots] = useState<any[]>([
     {
@@ -93,7 +94,7 @@ export const LotManagement: React.FC = () => {
       status: 'PENDENTE'
     }
   ]);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('LotManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     dateStart: '',
@@ -127,11 +128,13 @@ export const LotManagement: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedLot(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (lot: any) => {
     setSelectedLot(lot);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -871,6 +874,7 @@ export const LotManagement: React.FC = () => {
       <LotForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit}
         initialData={selectedLot}
         loading={saveLotMutation.isPending}
@@ -879,6 +883,7 @@ export const LotManagement: React.FC = () => {
       <RelocateForm 
         isOpen={isRelocateModalOpen}
         onClose={() => setIsRelocateModalOpen(false)}
+        actionId={formActionId}
         onSubmit={() => {
           refresh();
           setIsRelocateModalOpen(false);
@@ -888,6 +893,7 @@ export const LotManagement: React.FC = () => {
       <AssignAnimalForm
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
+        actionId={formActionId}
         onSubmit={() => {
           refresh();
           setIsAssignModalOpen(false);

@@ -68,19 +68,20 @@ export const MaintenanceManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = usePersistentState('MaintenanceManagement_isModalOpen', false);
+  const [formActionId, setFormActionId] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'ACTIVE' | 'HISTORY' | 'PLANS') || 'ACTIVE';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-  const [isChecklistOpen, setIsChecklistOpen] = useState(false);
-  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('MaintenanceManagement_isHistoryModalOpen', false);
+  const [isChecklistOpen, setIsChecklistOpen] = usePersistentState('MaintenanceManagement_isChecklistOpen', false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = usePersistentState('MaintenanceManagement_isPlanModalOpen', false);
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('MaintenanceManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState<any>({
     status: 'all',
     types: [],
@@ -268,11 +269,13 @@ export const MaintenanceManagement: React.FC = () => {
 
   const handleOpenCreate = () => {
     setSelectedOrder(null);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (order: any) => {
     setSelectedOrder(order);
+    setFormActionId(Date.now());
     setIsModalOpen(true);
   };
 
@@ -1050,6 +1053,7 @@ export const MaintenanceManagement: React.FC = () => {
       <MaintenanceForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
+        actionId={formActionId}
         onSubmit={handleSubmit} 
         initialData={selectedOrder}
       />

@@ -26,9 +26,10 @@ interface AuditFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm } = useTenant();
   const { applyFarmFilter } = useFarmFilter();
   
@@ -49,6 +50,8 @@ export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit,
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+
     if (isOpen && activeFarm) {
       fetchWarehouses();
     }
@@ -65,8 +68,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit,
   };
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (initialData) { setFormData({
         title: initialData.titulo || '',
         date: initialData.data_contagem || new Date().toISOString().split('T')[0],
         responsible: initialData.responsavel || '',
@@ -90,7 +92,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({ isOpen, onClose, onSubmit,
         contagem_cega: false
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

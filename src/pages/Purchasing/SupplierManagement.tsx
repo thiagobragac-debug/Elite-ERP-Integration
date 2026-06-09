@@ -71,11 +71,11 @@ export const SupplierManagement: React.FC = () => {
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('SupplierManagement_isHistoryModalOpen', false);
   const [historySupplierId, setHistorySupplierId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useViewMode('purchasing-supplier-management', 'grid');
-  const [isMapOpen, setIsMapOpen] = useState(false);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [isMapOpen, setIsMapOpen] = usePersistentState('SupplierManagement_isMapOpen', false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('SupplierManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     status: 'all',
     categories: [] as string[],

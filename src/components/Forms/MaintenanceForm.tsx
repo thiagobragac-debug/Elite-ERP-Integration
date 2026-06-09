@@ -27,9 +27,10 @@ interface MaintenanceFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm } = useTenant();
   const [formData, setFormData] = usePersistentState('MaintenanceForm_formData', {
     maquina_id: '',
@@ -56,8 +57,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClos
   });
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (!actionId) return; // Ignore on initial mount / refresh
+
+    if (initialData) { setFormData({
         maquina_id: initialData.maquina_id || '',
         tipo: initialData.tipo || 'preventive',
         descricao: initialData.descricao || '',
@@ -83,7 +85,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClos
         materiais: []
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   useEffect(() => {
     if (formData.maquina_id) {

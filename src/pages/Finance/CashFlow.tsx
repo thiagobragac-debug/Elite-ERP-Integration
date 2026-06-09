@@ -87,10 +87,10 @@ export const CashFlow: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = usePersistentState('CashFlow_isModalOpen', false);
   const [transactionType, setTransactionType] = useState<'payable' | 'receivable'>('payable');
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('CashFlow_isHistoryModalOpen', false);
   const [historyItems, setHistoryItems] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('CashFlow_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     type: 'all',
     dateStart: '',

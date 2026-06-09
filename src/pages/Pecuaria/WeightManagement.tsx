@@ -301,7 +301,7 @@ export const WeightManagement: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isModalOpen, setIsModalOpen] = usePersistentState('WeightManagement_isModalOpen', false);
   const [selectedWeight, setSelectedWeight] = useState<any>(null);
-  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('WeightManagement_isHistoryModalOpen', false);
   const [selectedAnimalId, setSelectedAnimalId] = useState<string | null>(null);
   const [selectedAnimalBrinco, setSelectedAnimalBrinco] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -309,7 +309,7 @@ export const WeightManagement: React.FC = () => {
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('WeightManagement_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
     minWeight: 0,
     maxWeight: 1000,
@@ -320,8 +320,8 @@ export const WeightManagement: React.FC = () => {
     performanceLevel: 'all',
     daysSinceLastWeighing: 0
   });
-  const [isScaleModalOpen, setIsScaleModalOpen] = useState(false);
-  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isScaleModalOpen, setIsScaleModalOpen] = usePersistentState('WeightManagement_isScaleModalOpen', false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = usePersistentState('WeightManagement_isBatchModalOpen', false);
 
   const [selectedLotId, setSelectedLotId] = useState<string>('all');
 

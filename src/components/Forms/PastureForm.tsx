@@ -24,9 +24,10 @@ interface PastureFormProps {
   onClose: () => void;
   onSubmit: (data: any) => void;
   initialData?: any;
+  actionId?: number;
 }
 
-export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSubmit, initialData }) => {
+export const PastureForm: React.FC<PastureFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const [formData, setFormData] = usePersistentState('PastureForm_formData', {
     nome: '',
     area: '',
@@ -49,6 +50,8 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
   const [farms, setFarms] = useState<any[]>([]);
 
   useEffect(() => {
+    if (!actionId) return; // Ignore on initial mount / refresh
+
     if (isOpen) {
       fetchFarms();
     }
@@ -66,8 +69,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
   };
 
   useEffect(() => {
-    if (initialData) {
-      setFormData({
+    if (initialData) { setFormData({
         nome: initialData.nome || '',
         area: initialData.area ? initialData.area.toString().replace(/[^\d.-]/g, '') : '',
         capacidade_ua: initialData.capacidade_ua?.toString() || '2.5',
@@ -105,7 +107,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({ isOpen, onClose, onSub
         coordenadas: ''
       });
     }
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, actionId]);
 
   const [loading, setLoading] = useState(false);
 
