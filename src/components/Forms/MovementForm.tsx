@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -75,8 +75,37 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Product Autocomplete Search State
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const productSearchRef = useRef<HTMLDivElement>(null);
+
+  // Click Outside detector to close search dropdown
   useEffect(() => {
-    if (!actionId) return; // Ignore on initial mount / refresh
+    const handleClickOutside = (e: MouseEvent) => {
+      if (productSearchRef.current && !productSearchRef.current.contains(e.target as Node)) {
+        setShowProductDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filtered Products for Autocomplete
+  const filteredProducts = useMemo(() => {
+    if (!productSearchQuery) return products;
+    return products.filter(p => 
+      p.nome?.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+      (p.categoria && p.categoria.toLowerCase().includes(productSearchQuery.toLowerCase()))
+    );
+  }, [products, productSearchQuery]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Reset search query
+    setProductSearchQuery('');
+    setShowProductDropdown(false);
 
     if (initialData) { setFormData(prev => ({
         ...prev,
@@ -96,7 +125,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
         lote: initialData.lote || '',
         data_validade: initialData.data_validade || '',
         deposito_id: initialData.deposito_id || ''
-      }, actionId]);
+      }]);
     } else {
       setFormData({
         destino_deposito_id: '',
@@ -134,12 +163,23 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
   const fetchProducts = async () => {
     let query = supabase
       .from('produtos')
-      .select('id, nome, unidade, categoria, custo_medio');
+      .select(`
+        id, nome, unidade, custo_medio, categoria_id,
+        categorias_sistema (
+          nome
+        )
+      `);
     query = applyTenantFilter(query);
     const { data, error } = await query;
       
     if (error) console.error('fetchProducts ERROR:', error);
-    if (data) setProducts(data);
+    if (data) {
+      const mapped = data.map((p: any) => ({
+        ...p,
+        categoria: p.categorias_sistema?.nome || 'Geral'
+      }));
+      setProducts(mapped);
+    }
   };
 
   const fetchWarehouses = async () => {
@@ -454,14 +494,118 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
 
         {!initialData && (
           <div className="tauze-input-grid" style={{ gridTemplateColumns: formData.tipo === 'transfer' ? '2fr 1fr auto' : '2fr 1.5fr 1fr 1fr auto', alignItems: 'end' }}>
-            <div className="tauze-field-group">
+            <div className="tauze-field-group" style={{ position: 'relative' }}>
               <label className="tauze-label"><Package size={14} /> Selecionar Produto</label>
-              <SearchableSelect
-                value={currentItem.produto_id}
-                onChange={(val) => setCurrentItem({...currentItem, produto_id: val})}
-                options={products.map(p => ({ value: p.id, label: `${p.nome} (${p.unidade})` }))}
-                placeholder={products.length === 0 ? (loading ? "Carregando..." : "Nenhum produto...") : "Selecione um item..."}
-              />
+              {currentItem.produto_id ? (
+                /* CHIP */
+                <div className="product-chip animate-fade-in" style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  background: 'hsl(var(--brand) / 0.08)',
+                  border: '1.5px solid hsl(var(--brand) / 0.3)',
+                  borderRadius: '12px', padding: '8px 12px',
+                  height: '38px', boxSizing: 'border-box'
+                }}>
+                  <div style={{
+                    width: '24px', height: '24px', borderRadius: '6px',
+                    background: 'hsl(var(--brand))', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '11px', flexShrink: 0
+                  }}>
+                    <Package size={12} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {selectedProductObj?.nome}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentItem(prev => ({ ...prev, produto_id: '', valor_unitario: '' }));
+                      setProductSearchQuery('');
+                    }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'hsl(var(--text-muted))', padding: '2px', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', flexShrink: 0
+                    }}
+                    title="Remover produto"
+                  >
+                    <Trash2 size={14} style={{ color: '#ef4444' }} />
+                  </button>
+                </div>
+              ) : (
+                /* SEARCH INPUT */
+                <div className="autocomplete-wrapper" style={{ position: 'relative', width: '100%' }} ref={productSearchRef}>
+                  <div className="search-input-container" style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      className="tauze-input"
+                      type="text"
+                      placeholder="Buscar por nome ou categoria..."
+                      value={productSearchQuery}
+                      onChange={(e) => { setProductSearchQuery(e.target.value); setShowProductDropdown(true); }}
+                      onFocus={() => setShowProductDropdown(true)}
+                      style={{ paddingRight: '30px', width: '100%', boxSizing: 'border-box', height: '38px' }}
+                      autoComplete="off"
+                    />
+                  </div>
+
+                  {showProductDropdown && (
+                    <div className="autocomplete-dropdown animate-fade-in" style={{
+                      position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%',
+                      maxHeight: '220px', overflowY: 'auto',
+                      background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))',
+                      borderRadius: '12px', zIndex: 999, boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
+                      display: 'flex', flexDirection: 'column'
+                    }}>
+                      {filteredProducts.length === 0 ? (
+                        <div style={{ padding: '12px', color: 'hsl(var(--text-muted))', fontSize: '13px', fontWeight: 600, textAlign: 'center' }}>
+                          Nenhum insumo encontrado
+                        </div>
+                      ) : (
+                        filteredProducts.map((p: any, idx: number) => (
+                          <div
+                            key={p.id}
+                            onClick={() => {
+                              setCurrentItem(prev => ({ 
+                                ...prev, 
+                                produto_id: p.id,
+                                valor_unitario: formData.tipo === 'out' ? (p.custo_medio || 0).toString() : prev.valor_unitario
+                              }));
+                              setProductSearchQuery(p.nome);
+                              setShowProductDropdown(false);
+                            }}
+                            style={{
+                              padding: '10px 12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              borderBottom: idx < filteredProducts.length - 1 ? '1px solid hsl(var(--border) / 0.5)' : 'none',
+                              transition: 'background 0.15s'
+                            }}
+                            className="autocomplete-option"
+                          >
+                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                              <span style={{ fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-main))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {p.nome}
+                              </span>
+                              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+                                {p.categoria || 'Sem Categoria'} · {p.unidade}
+                              </span>
+                            </div>
+                            {formData.tipo === 'out' && (
+                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
+                                Custo: R$ {parseFloat(p.custo_medio || '0').toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {formData.tipo !== 'transfer' && (

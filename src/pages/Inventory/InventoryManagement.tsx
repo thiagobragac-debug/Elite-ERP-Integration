@@ -105,14 +105,20 @@ export const InventoryManagement: React.FC = () => {
 
       let query = supabase
         .from('produtos')
-        .select('id, nome, categoria, unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao', { count: 'exact' })
+        .select(`
+          id, nome, categoria_id,
+          categorias_sistema (
+            nome
+          ),
+          unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao
+        `, { count: 'exact' })
         .order('nome', { ascending: true })
         .range(from, to);
       
       query = applyTenantFilter(query);
 
       if (filterValues.categoria !== 'all') {
-        query = query.eq('categoria', filterValues.categoria);
+        query = query.eq('categorias_sistema.nome', filterValues.categoria);
       }
 
       if (debouncedSearch) {
@@ -121,7 +127,11 @@ export const InventoryManagement: React.FC = () => {
 
       const { data, count, error } = await query;
       if (error) throw error;
-      return { products: data || [], totalCount: count || 0 };
+      const mapped = (data || []).map((p: any) => ({
+        ...p,
+        categoria: p.categorias_sistema?.nome || 'Geral'
+      }));
+      return { products: mapped, totalCount: count || 0 };
     },
     enabled: isReady
   });
@@ -148,7 +158,7 @@ export const InventoryManagement: React.FC = () => {
     mutationFn: async (data: any) => {
       const payload = {
         nome: data.nome,
-        categoria: data.categoria,
+        categoria_id: data.categoria_id || null,
         unidade: data.unidade,
         estoque_minimo: Number(data.estoque_minimo),
         estoque_atual: Number(data.estoque_atual),
@@ -542,8 +552,8 @@ export const InventoryManagement: React.FC = () => {
     <div className="inventory-page animate-slide-up">
       <header className="page-header">
         <div className="header-brand-group">
-          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Gestão de Insumos' }]} />
-          <h1 className="page-title">Gestão de Insumos</h1>
+          <Breadcrumb paths={[{ label: 'Estoque & Insumos', href: '/estoque/dashboard' }, { label: 'Insumos & Serviços' }]} />
+          <h1 className="page-title">Insumos & Serviços</h1>
           <p className="page-subtitle">Rastreabilidade de estoque, custo médio e predição de suprimentos em tempo real.</p>
         </div>
         <div className="page-actions">

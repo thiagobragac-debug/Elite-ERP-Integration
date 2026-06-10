@@ -29,6 +29,7 @@ interface DietFormProps {
 }
 
 export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = usePersistentState('DietForm_formData', {
     nome: '',
     tipo: 'Concentrado',
@@ -46,6 +47,7 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
 
   React.useEffect(() => {
     if (!actionId) return; // Ignore on initial mount / refresh
+    setCurrentStep(1);
 
     if (initialData) { setFormData({
         nome: initialData.nome || '',
@@ -71,6 +73,7 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
         consumo_esperado: '',
         status: 'active'
       });
+      setIngredients([]);
     }
   }, [initialData, isOpen, actionId]);
 
@@ -119,6 +122,21 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
     return { custoMS, badges };
   }, [formData.custo_por_kg, formData.percentual_ms, formData.pb, formData.ndt]);
 
+  const steps = [
+    { number: 1, label: 'Identificação' },
+    { number: 2, label: 'Composição & Custos' },
+    { number: 3, label: 'Parâmetros & Notas' },
+  ];
+
+  const handleNext = () => {
+    if (currentStep === 1 && !formData.nome.trim()) return;
+    setCurrentStep(prev => Math.min(prev + 1, 3));
+  };
+
+  const handlePrev = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
   return (
     <SidePanel size="medium"
       isOpen={isOpen}
@@ -128,213 +146,290 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
       subtitle={initialData ? "Atualize as informações da dieta." : "Defina os ingredientes e custos da nutrição."}
       icon={Utensils}
       loading={loading}
-      submitLabel={initialData ? "Atualizar Dieta" : "Salvar Dieta"}
-    >
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 01</div>
-          <h4 className="tauze-section-title">Dados da Dieta</h4>
-        </div>
-        
-        <div className="tauze-input-grid grid-col-1">
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Utensils size={14} /> Nome da Dieta</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="Ex: Ração Engorda 18%, Suplemento Seca..." 
-              value={formData.nome}
-              onChange={(e) => setFormData({...formData, nome: e.target.value})}
-              required 
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Wheat size={14} /> Tipo de Formulação</label>
-            <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-              <div 
-                className={`tauze-form-radio-item ${formData.tipo === 'Concentrado' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, tipo: 'Concentrado'})}
-              >
-                <Layers size={16} />
-                <span>Concentrado</span>
-              </div>
-              <div 
-                className={`tauze-form-radio-item ${formData.tipo === 'Sal Mineral' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, tipo: 'Sal Mineral'})}
-              >
-                <Activity size={16} />
-                <span>Sal Mineral</span>
-              </div>
-              <div 
-                className={`tauze-form-radio-item ${formData.tipo === 'Total Mix' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, tipo: 'Total Mix'})}
-              >
-                <Utensils size={16} />
-                <span>Total Mix</span>
-              </div>
-              <div 
-                className={`tauze-form-radio-item ${formData.tipo === 'Volumoso' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, tipo: 'Volumoso'})}
-              >
-                <Wheat size={16} />
-                <span>Volumoso</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 02</div>
-          <h4 className="tauze-section-title">Composição & Custos</h4>
-        </div>
-        
-        {/* DASHBOARD FINANCEIRO NUTRICIONAL */}
-        <div style={{ marginBottom: '20px', padding: '16px', background: 'linear-gradient(135deg, hsl(var(--brand)/0.1) 0%, hsl(var(--brand)/0.02) 100%)', borderRadius: '14px', border: '1px solid hsl(var(--brand)/0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      customFooter={
+        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--brand))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Custo Real (Por Kg de MS)</div>
-            <div style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
-              R$ {dietStats.custoMS.toFixed(2)}
-            </div>
-            <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>Este é o valor financeiro do que o boi realmente aproveita.</div>
+            {currentStep > 1 && (
+              <button type="button" className="glass-btn secondary" onClick={handlePrev}>
+                Voltar
+              </button>
+            )}
           </div>
-          <div style={{ background: 'white', padding: '12px', borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-            <BarChart size={24} style={{ color: 'hsl(var(--brand))' }} />
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button type="button" className="glass-btn secondary" onClick={onClose}>
+              Cancelar
+            </button>
+            {currentStep < 3 ? (
+              <button 
+                type="button" 
+                className="primary-btn" 
+                onClick={handleNext}
+                disabled={currentStep === 1 && !formData.nome.trim()}
+                style={{ opacity: (currentStep === 1 && !formData.nome.trim()) ? 0.5 : 1 }}
+              >
+                Avançar
+              </button>
+            ) : (
+              <button 
+                type="submit" 
+                className="primary-btn" 
+                disabled={loading}
+              >
+                {loading ? 'Processando...' : initialData ? 'Atualizar Dieta' : 'Salvar Dieta'}
+              </button>
+            )}
           </div>
         </div>
-
-        <div className="tauze-input-grid grid-col-2">
-          {formData.tipo === 'Sal Mineral' ? (
-             <div className="tauze-field-group">
-               <label className="tauze-label"><DollarSign size={14} /> Custo por Kg (R$)</label>
-               <input 
-                 className="tauze-input"
-                 type="number" step="0.01" placeholder="0.00" 
-                 value={formData.custo_por_kg}
-                 onChange={(e) => setFormData({...formData, custo_por_kg: e.target.value})}
-                 required
-               />
-             </div>
-          ) : (
-            <>
-              <div className="tauze-field-group">
-                <label className="tauze-label"><DollarSign size={14} /> Custo Matéria Natural (R$/Kg)</label>
-                <input 
-                  className="tauze-input"
-                  type="number" step="0.01" placeholder="0.00" 
-                  value={formData.custo_por_kg}
-                  onChange={(e) => setFormData({...formData, custo_por_kg: e.target.value})}
-                  required
-                />
+      }
+    >
+      {/* Wizard Step Progress Indicator */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', padding: '0 4px' }}>
+        {steps.map((s, idx) => (
+          <React.Fragment key={s.number}>
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: s.number < currentStep ? 'pointer' : 'default' }}
+              onClick={() => s.number < currentStep && setCurrentStep(s.number)}
+            >
+              <div style={{
+                width: '26px',
+                height: '26px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '11px',
+                fontWeight: 900,
+                background: currentStep === s.number ? 'hsl(var(--brand))' : currentStep > s.number ? '#10b981' : '#f1f5f9',
+                color: currentStep >= s.number ? 'white' : '#64748b',
+                border: `2px solid ${currentStep === s.number ? 'hsl(var(--brand))' : currentStep > s.number ? '#10b981' : '#cbd5e1'}`,
+                transition: 'all 0.3s'
+              }}>
+                {currentStep > s.number ? '✓' : s.number}
               </div>
+              <span style={{ fontSize: '12px', fontWeight: currentStep === s.number ? 800 : 600, color: currentStep === s.number ? 'hsl(var(--text-main))' : '#94a3b8' }}>
+                {s.label}
+              </span>
+            </div>
+            {idx < steps.length - 1 && (
+              <div style={{ flex: 1, height: '2px', background: currentStep > s.number ? '#10b981' : '#e2e8f0', margin: '0 12px' }} />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
 
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Activity size={14} /> Matéria Seca (% MS)</label>
-                <input 
-                  className="tauze-input"
-                  type="number" step="1" placeholder="88" 
-                  value={formData.percentual_ms}
-                  onChange={(e) => setFormData({...formData, percentual_ms: e.target.value})}
-                  required
-                />
-              </div>
-            </>
-          )}
-
-          {/* PARÂMETROS BROMATOLÓGICOS (OPCIONAIS MAS RECOMENDADOS) */}
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Flame size={14} /> Proteína Bruta (PB %)</label>
-            <input 
-              className="tauze-input"
-              type="number" step="0.1" placeholder="Ex: 18" 
-              value={formData.pb}
-              onChange={(e) => setFormData({...formData, pb: e.target.value})}
-            />
+      {currentStep === 1 && (
+        <section className="tauze-form-section animate-slide-up" style={{ margin: 0 }}>
+          <div className="tauze-section-header">
+            <div className="tauze-section-badge">PASSO 01</div>
+            <h4 className="tauze-section-title">Dados da Dieta</h4>
           </div>
-
-          {formData.tipo !== 'Sal Mineral' && (
+          
+          <div className="tauze-input-grid grid-col-1">
             <div className="tauze-field-group">
-              <label className="tauze-label"><Zap size={14} /> NDT (Energia %)</label>
-              <input 
-                className="tauze-input"
-                type="number" step="0.1" placeholder="Ex: 78" 
-                value={formData.ndt}
-                onChange={(e) => setFormData({...formData, ndt: e.target.value})}
-              />
-            </div>
-          )}
-
-          <div className="tauze-field-group" style={{ gridColumn: formData.tipo === 'Sal Mineral' ? 'span 1' : 'span 2' }}>
-            <label className="tauze-label"><Scale size={14} /> Consumo Esperado ({formData.tipo === 'Sal Mineral' ? 'g/dia' : '% do Peso Vivo'})</label>
-            <input 
-              className="tauze-input"
-              type="number" step="0.1" placeholder={formData.tipo === 'Sal Mineral' ? "Ex: 120" : "Ex: 2.2"} 
-              value={formData.consumo_esperado}
-              onChange={(e) => setFormData({...formData, consumo_esperado: e.target.value})}
-            />
-          </div>
-        </div>
-
-        {/* RENDER DAS SMART BADGES */}
-        {dietStats.badges.length > 0 && (
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '16px' }}>
-            {dietStats.badges.map((b, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: b.bg, color: b.color, borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>
-                <b.icon size={14} />
-                {b.text}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Layers size={14} /> Ingredientes</label>
-            <div style={{ display: 'flex', gap: '8px' }}>
+              <label className="tauze-label"><Utensils size={14} /> Nome da Dieta</label>
               <input 
                 className="tauze-input"
                 type="text" 
-                placeholder="Adicionar ingrediente..." 
-                value={newIngredient}
-                onChange={(e) => setNewIngredient(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addIngredient())}
+                placeholder="Ex: Ração Engorda 18%, Suplemento Seca..." 
+                value={formData.nome}
+                onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                required 
               />
-              <button type="button" className="secondary-btn" onClick={addIngredient} style={{ padding: '0 12px' }}>
-                <Plus size={18} />
-              </button>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-              {ingredients.map((ing, idx) => (
-                <span key={idx} className="tag" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {ing}
-                  <Trash2 size={12} style={{ cursor: 'pointer' }} onClick={() => removeIngredient(idx)} />
-                </span>
+
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Wheat size={14} /> Tipo de Formulação</label>
+              <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+                <div 
+                  className={`tauze-form-radio-item ${formData.tipo === 'Concentrado' ? 'active' : ''}`}
+                  onClick={() => setFormData({...formData, tipo: 'Concentrado'})}
+                >
+                  <Layers size={16} />
+                  <span>Concentrado</span>
+                </div>
+                <div 
+                  className={`tauze-form-radio-item ${formData.tipo === 'Sal Mineral' ? 'active' : ''}`}
+                  onClick={() => setFormData({...formData, tipo: 'Sal Mineral'})}
+                >
+                  <Activity size={16} />
+                  <span>Sal Mineral</span>
+                </div>
+                <div 
+                  className={`tauze-form-radio-item ${formData.tipo === 'Total Mix' ? 'active' : ''}`}
+                  onClick={() => setFormData({...formData, tipo: 'Total Mix'})}
+                >
+                  <Utensils size={16} />
+                  <span>Total Mix</span>
+                </div>
+                <div 
+                  className={`tauze-form-radio-item ${formData.tipo === 'Volumoso' ? 'active' : ''}`}
+                  onClick={() => setFormData({...formData, tipo: 'Volumoso'})}
+                >
+                  <Wheat size={16} />
+                  <span>Volumoso</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {currentStep === 2 && (
+        <section className="tauze-form-section animate-slide-up" style={{ margin: 0 }}>
+          <div className="tauze-section-header">
+            <div className="tauze-section-badge">PASSO 02</div>
+            <h4 className="tauze-section-title">Composição & Custos</h4>
+          </div>
+          
+          {/* DASHBOARD FINANCEIRO NUTRICIONAL */}
+          <div style={{ marginBottom: '20px', padding: '16px', background: 'linear-gradient(135deg, hsl(var(--brand)/0.1) 0%, hsl(var(--brand)/0.02) 100%)', borderRadius: '14px', border: '1px solid hsl(var(--brand)/0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--brand))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Custo Real (Por Kg de MS)</div>
+              <div style={{ fontSize: '24px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+                R$ {dietStats.custoMS.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>Este é o valor financeiro do que o boi realmente aproveita.</div>
+            </div>
+            <div style={{ background: 'white', padding: '12px', borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <BarChart size={24} style={{ color: 'hsl(var(--brand))' }} />
+            </div>
+          </div>
+
+          <div className="tauze-input-grid grid-col-2">
+            {formData.tipo === 'Sal Mineral' ? (
+               <div className="tauze-field-group">
+                 <label className="tauze-label"><DollarSign size={14} /> Custo por Kg (R$)</label>
+                 <input 
+                   className="tauze-input"
+                   type="number" step="0.01" placeholder="0.00" 
+                   value={formData.custo_por_kg}
+                   onChange={(e) => setFormData({...formData, custo_por_kg: e.target.value})}
+                   required
+                 />
+               </div>
+            ) : (
+              <>
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><DollarSign size={14} /> Custo Matéria Natural (R$/Kg)</label>
+                  <input 
+                    className="tauze-input"
+                    type="number" step="0.01" placeholder="0.00" 
+                    value={formData.custo_por_kg}
+                    onChange={(e) => setFormData({...formData, custo_por_kg: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Activity size={14} /> Matéria Seca (% MS)</label>
+                  <input 
+                    className="tauze-input"
+                    type="number" step="1" placeholder="88" 
+                    value={formData.percentual_ms}
+                    onChange={(e) => setFormData({...formData, percentual_ms: e.target.value})}
+                    required
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Layers size={14} /> Ingredientes</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input 
+                  className="tauze-input"
+                  type="text" 
+                  placeholder="Adicionar ingrediente..." 
+                  value={newIngredient}
+                  onChange={(e) => setNewIngredient(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addIngredient())}
+                />
+                <button type="button" className="secondary-btn" onClick={addIngredient} style={{ padding: '0 12px' }}>
+                  <Plus size={18} />
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                {ingredients.map((ing, idx) => (
+                  <span key={idx} className="tag" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    {ing}
+                    <Trash2 size={12} style={{ cursor: 'pointer' }} onClick={() => removeIngredient(idx)} />
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {currentStep === 3 && (
+        <section className="tauze-form-section animate-slide-up" style={{ margin: 0 }}>
+          <div className="tauze-section-header">
+            <div className="tauze-section-badge">PASSO 03</div>
+            <h4 className="tauze-section-title">Parâmetros Bromatológicos & Notas</h4>
+          </div>
+
+          <div className="tauze-input-grid grid-col-2">
+            {/* PARÂMETROS BROMATOLÓGICOS (OPCIONAIS MAS RECOMENDADOS) */}
+            <div className="tauze-field-group">
+              <label className="tauze-label"><Flame size={14} /> Proteína Bruta (PB %)</label>
+              <input 
+                className="tauze-input"
+                type="number" step="0.1" placeholder="Ex: 18" 
+                value={formData.pb}
+                onChange={(e) => setFormData({...formData, pb: e.target.value})}
+              />
+            </div>
+
+            {formData.tipo !== 'Sal Mineral' && (
+              <div className="tauze-field-group">
+                <label className="tauze-label"><Zap size={14} /> NDT (Energia %)</label>
+                <input 
+                  className="tauze-input"
+                  type="number" step="0.1" placeholder="Ex: 78" 
+                  value={formData.ndt}
+                  onChange={(e) => setFormData({...formData, ndt: e.target.value})}
+                />
+              </div>
+            )}
+
+            <div className="tauze-field-group" style={{ gridColumn: formData.tipo === 'Sal Mineral' ? 'span 1' : 'span 2' }}>
+              <label className="tauze-label"><Scale size={14} /> Consumo Esperado ({formData.tipo === 'Sal Mineral' ? 'g/dia' : '% do Peso Vivo'})</label>
+              <input 
+                className="tauze-input"
+                type="number" step="0.1" placeholder={formData.tipo === 'Sal Mineral' ? "Ex: 120" : "Ex: 2.2"} 
+                value={formData.consumo_esperado}
+                onChange={(e) => setFormData({...formData, consumo_esperado: e.target.value})}
+              />
+            </div>
+          </div>
+
+          {/* RENDER DAS SMART BADGES */}
+          {dietStats.badges.length > 0 && (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '16px', marginBottom: '20px' }}>
+              {dietStats.badges.map((b, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: b.bg, color: b.color, borderRadius: '8px', fontSize: '11px', fontWeight: 800 }}>
+                  <b.icon size={14} />
+                  {b.text}
+                </div>
               ))}
             </div>
-          </div>
-        </div>
-      </section>
+          )}
 
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 03</div>
-          <h4 className="tauze-section-title">Informações Adicionais</h4>
-        </div>
-        
-        <div className="tauze-input-grid grid-col-1">
-          <div className="tauze-field-group">
-            <label className="tauze-label"><FileText size={14} /> Descrição / Observações</label>
-            <textarea className="tauze-input tauze-textarea"
-              placeholder="Notas sobre a formulação..." 
-              value={formData.descricao}
-              onChange={(e) => setFormData({...formData, descricao: e.target.value})}
-              rows={3}
-            />
+          <div className="tauze-input-grid grid-col-1" style={{ marginTop: '8px' }}>
+            <div className="tauze-field-group">
+              <label className="tauze-label"><FileText size={14} /> Descrição / Observações</label>
+              <textarea className="tauze-input tauze-textarea"
+                placeholder="Notas sobre a formulação..." 
+                value={formData.descricao}
+                onChange={(e) => setFormData({...formData, descricao: e.target.value})}
+                rows={3}
+              />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </SidePanel>
   );
 };

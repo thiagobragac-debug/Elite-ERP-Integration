@@ -24,7 +24,11 @@ CROSS JOIN (
     
     -- Infraestrutura da Fazenda
     ('7313.00.00', 'Arame farpado, de ferro ou aço (Cercas e Currais)'),
-    ('2710.19.21', 'Óleo Diesel (Combustível para maquinário agrícola)')
+    ('2710.19.21', 'Óleo Diesel (Combustível para maquinário agrícola)'),
+
+    -- Animais Vivos
+    ('0102.21.10', 'Bovinos reprodutores de raça pura (Reprodutores com registro)'),
+    ('0102.29.90', 'Outros bovinos vivos (Gado comercial / Corte e recria)')
 ) as ncm(codigo, descricao)
 WHERE NOT EXISTS (
   SELECT 1 FROM public.estoque_ncms en 

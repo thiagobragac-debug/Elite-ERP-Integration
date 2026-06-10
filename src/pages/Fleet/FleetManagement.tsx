@@ -205,6 +205,7 @@ export const FleetManagement: React.FC = () => {
     mutationFn: async (formData: any) => {
       const payload = {
         nome: formData.nome,
+        patrimonio: formData.patrimonio,
         tipo: formData.categoria,
         marca: formData.marca,
         modelo: formData.modelo,
@@ -475,8 +476,8 @@ export const FleetManagement: React.FC = () => {
       header: 'Status Operacional',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span className={`status-pill ${item.status === 'active' ? 'active' : item.status === 'maintenance' ? 'warning' : 'stopped'}`}>
-            {item.status === 'active' ? 'Operacional' : item.status === 'maintenance' ? 'Manutenção' : 'Parado'}
+          <span className={`status-pill ${item.status === 'active' ? 'active' : item.status === 'maintenance' ? 'warning' : item.status === 'stopped' ? 'stopped' : 'inactive'}`}>
+            {item.status === 'active' ? 'Operacional' : item.status === 'maintenance' ? 'Manutenção' : item.status === 'stopped' ? 'Parado' : 'Baixado (Inativo)'}
           </span>
         </div>
       ),
@@ -722,7 +723,7 @@ export const FleetManagement: React.FC = () => {
               return filteredMachines.map(m => (
                 <div 
                   key={m.id} 
-                  className={`user-card-premium ${m.status === 'active' ? 'active' : m.status === 'maintenance' ? 'warning-badge' : 'danger-badge'}`}
+                  className={`user-card-premium ${m.status === 'active' ? 'active' : m.status === 'maintenance' ? 'warning-badge' : m.status === 'stopped' ? 'danger-badge' : 'inactive-badge'}`}
                 >
                   <div className="card-left-section">
                     <div className="card-avatar">

@@ -237,7 +237,10 @@ export const HealthManagement: React.FC = () => {
         const { error } = await supabase.from('sanidade').update(payload).eq('id', selectedEvent.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('sanidade').insert([{ ...payload, ...insertPayload }]);
+        const insertions = Array.isArray(payload)
+          ? payload.map(item => ({ ...item, ...insertPayload }))
+          : [{ ...payload, ...insertPayload }];
+        const { error } = await supabase.from('sanidade').insert(insertions);
         if (error) throw error;
       }
     },
@@ -257,22 +260,39 @@ export const HealthManagement: React.FC = () => {
       return;
     }
 
-    const payload = {
-      tipo: data.tipo,
-      titulo: data.titulo,
-      animal_id: data.animal_id || null,
-      lote_id: data.lote_id || null,
-      data_manejo: data.data_manejo,
-      produto: data.produto,
-      dose: data.dose,
-      via_aplicacao: data.via_aplicacao,
-      local_aplicacao: data.local_aplicacao,
-      carencia_dias: parseInt(data.carencia_dias) || 0,
-      observacao: data.observacao,
-      status: data.status
-    };
-
-    saveHealthMutation.mutate(payload);
+    if (Array.isArray(data.produtos) && data.produtos.length > 0) {
+      const payload = data.produtos.map((p: any) => ({
+        tipo: data.tipo,
+        titulo: data.titulo,
+        animal_id: data.animal_id || null,
+        lote_id: data.lote_id || null,
+        data_manejo: data.data_manejo,
+        produto: p.produto,
+        dose: p.dose,
+        via_aplicacao: p.via_aplicacao,
+        local_aplicacao: p.local_aplicacao,
+        carencia_dias: parseInt(p.carencia_dias) || 0,
+        observacao: data.observacao,
+        status: data.status
+      }));
+      saveHealthMutation.mutate(payload);
+    } else {
+      const payload = {
+        tipo: data.tipo,
+        titulo: data.titulo,
+        animal_id: data.animal_id || null,
+        lote_id: data.lote_id || null,
+        data_manejo: data.data_manejo,
+        produto: data.produto,
+        dose: data.dose,
+        via_aplicacao: data.via_aplicacao,
+        local_aplicacao: data.local_aplicacao,
+        carencia_dias: parseInt(data.carencia_dias) || 0,
+        observacao: data.observacao,
+        status: data.status
+      };
+      saveHealthMutation.mutate(payload);
+    }
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {

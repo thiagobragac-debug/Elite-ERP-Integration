@@ -95,7 +95,14 @@ export const MovementManagement: React.FC = () => {
       }
       let query = supabase.from('movimentacoes_estoque').select(`
         *,
-        produtos (nome, unidade, categoria)
+        produtos (
+          nome,
+          unidade,
+          categoria_id,
+          categorias_sistema (
+            nome
+          )
+        )
       `, { count: 'exact' });
       
       query = applyFarmFilter(query);
@@ -112,7 +119,14 @@ export const MovementManagement: React.FC = () => {
         .range(from, to);
       
       if (error) throw error;
-      return { data: data || [], count: count || 0 };
+      const mapped = (data || []).map((m: any) => ({
+        ...m,
+        produtos: m.produtos ? {
+          ...m.produtos,
+          categoria: m.produtos.categorias_sistema?.nome || 'Geral'
+        } : null
+      }));
+      return { data: mapped, count: count || 0 };
     },
     enabled: !!activeTenantId && (isGlobalMode || !!activeFarmId)
   });

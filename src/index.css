@@ -97,6 +97,16 @@
   color: hsl(0 84% 70%);
 }
 
+[data-theme='dark'] .status-pill.warning {
+  background: hsl(38 92% 50% / 0.2);
+  color: hsl(38 92% 70%);
+}
+
+[data-theme='dark'] .status-pill.inactive {
+  background: hsl(215 16% 47% / 0.2);
+  color: hsl(215 16% 70%);
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -784,7 +794,9 @@ select {
 }
 
 .status-pill.active { background: #dcfce7; color: #15803d; }
+.status-pill.warning { background: #fef3c7; color: #d97706; }
 .status-pill.stopped { background: #fee2e2; color: #ef4444; }
+.status-pill.inactive { background: #f1f5f9; color: #475569; }
 
 .machine-footer-tauze {
   margin-top: auto;
@@ -2176,6 +2188,10 @@ textarea.tauze-input { height: auto; padding: 16px; min-height: 80px; line-heigh
 .tauze-form-radio-item.active-femea { background: rgba(236, 72, 153, 0.1); border-color: #ec4899; color: #ec4899; }
 .tauze-form-radio-item.active-comprado { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #f59e0b; }
 .tauze-form-radio-item.active-doacao { background: rgba(139, 92, 246, 0.1); border-color: #8b5cf6; color: #8b5cf6; }
+.tauze-form-radio-item.active-operacional { background: rgba(16, 185, 129, 0.1); border-color: #10b981; color: #10b981; }
+.tauze-form-radio-item.active-manutencao { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #f59e0b; }
+.tauze-form-radio-item.active-parado { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #ef4444; }
+.tauze-form-radio-item.active-inativa { background: rgba(100, 116, 139, 0.1); border-color: #64748b; color: #64748b; }
 
 /* Status de Pasto */
 .tauze-form-radio-item.active-grazing { background: rgba(16, 185, 129, 0.1); border-color: #10b981; color: #10b981; }
@@ -2277,6 +2293,21 @@ textarea.tauze-input { height: auto; padding: 16px; min-height: 80px; line-heigh
 .user-card-premium.active::before {
   background: #10b981;
   box-shadow: 4px 0 15px rgba(16, 185, 129, 0.3);
+}
+
+.user-card-premium.warning-badge::before {
+  background: #f59e0b;
+  box-shadow: 4px 0 15px rgba(245, 158, 11, 0.3);
+}
+
+.user-card-premium.danger-badge::before {
+  background: #ef4444;
+  box-shadow: 4px 0 15px rgba(239, 68, 68, 0.3);
+}
+
+.user-card-premium.inactive-badge::before {
+  background: #64748b;
+  box-shadow: 4px 0 15px rgba(100, 116, 139, 0.3);
 }
 
 .user-card-premium.info-badge::before {
