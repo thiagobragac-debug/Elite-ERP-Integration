@@ -31,6 +31,7 @@ const COMMANDS = [
   // Pecuária
   { id: 'pec-dashboard', title: 'Dashboard de Pecuária', icon: Activity, path: '/pecuaria/dashboard', category: 'Pecuária' },
   { id: 'pec-animal', title: 'Gestão de Animais', icon: Activity, path: '/pecuaria/animal', category: 'Pecuária' },
+  { id: 'pec-romaneio', title: 'Embarques & Romaneios', icon: Activity, path: '/pecuaria/romaneios', category: 'Pecuária' },
   { id: 'pec-lote', title: 'Gestão de Lotes', icon: Activity, path: '/pecuaria/lote', category: 'Pecuária' },
   { id: 'pec-pasto', title: 'Gestão de Pastos', icon: Activity, path: '/pecuaria/pasto', category: 'Pecuária' },
   { id: 'pec-pesagem', title: 'Gestão de Pesagens & GMD', icon: Activity, path: '/pecuaria/pesagem', category: 'Pecuária' },

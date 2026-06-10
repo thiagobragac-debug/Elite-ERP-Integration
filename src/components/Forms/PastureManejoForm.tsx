@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -34,7 +34,7 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({isOpen, onC
   const [formData, setFormData] = usePersistentState('PastureManejoForm_formData', {
     pasto_id: initialPastureId || '',
     tipo_manejo: 'Adubação',
-    data_manejo: new Date().toISOString().split('T')[0],
+    data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     novo_status: 'resting',
     observacoes: ''
   });
@@ -51,7 +51,7 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({isOpen, onC
         ...prev,
         pasto_id: initialPastureId || '',
         tipo_manejo: 'Adubação',
-        data_manejo: new Date().toISOString().split('T')[0],
+        data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         novo_status: 'resting',
         observacoes: ''
       }));

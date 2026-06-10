@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -69,7 +69,7 @@ export const BankReconciliation: React.FC = () => {
   const [selectedInternalIds, setSelectedInternalIds] = useState<string[]>([]);
   const [isManualBankRecordModalOpen, setIsManualBankRecordModalOpen] = usePersistentState('BankReconciliation_isManualBankRecordModalOpen', false);
   const [manualRows, setManualRows] = useState<any[]>([
-    { id: Date.now(), date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }
+    { id: Date.now(), date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }
   ]);
   const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState('BankReconciliation_showAdvancedFilters', false);
   const [filterValues, setFilterValues] = useState({
@@ -255,7 +255,7 @@ export const BankReconciliation: React.FC = () => {
   const difference = selectedBankRecord ? Math.abs(selectedBankRecord.amount) - totalSelectedAmount : 0;
 
   const handleAddRow = () => {
-    setManualRows([...manualRows, { id: Date.now(), date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }]);
+    setManualRows([...manualRows, { id: Date.now(), date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }]);
   };
 
   const handleRemoveRow = (id: number) => {
@@ -285,7 +285,7 @@ export const BankReconciliation: React.FC = () => {
     if (newRecords.length > 0) {
       setBankRecords(prev => [...newRecords, ...prev]);
       setIsManualBankRecordModalOpen(false);
-      setManualRows([{ id: Date.now(), date: new Date().toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }]);
+      setManualRows([{ id: Date.now(), date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0], description: '', amount: '', type: 'outflow' }]);
     }
   };
 
@@ -394,7 +394,7 @@ export const BankReconciliation: React.FC = () => {
           </button>
           <button className="glass-btn secondary" onClick={() => setIsManualBankRecordModalOpen(true)}>
             <Plus size={18} />
-            <span>LANÇAMENTO MANUAL</span>
+            <span>LANÃ‡AMENTO MANUAL</span>
           </button>
           <label className="glass-btn primary cursor-pointer">
             <Upload size={18} />

@@ -90,6 +90,14 @@ const SparklineChart = ({ weightHistory }: { weightHistory: any[] }) => {
   );
 };
 
+const getTodayStr = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
   const [animals, setAnimals] = useState<any[]>([]);
@@ -99,7 +107,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit
   const [animalSelected, setAnimalSelected] = useState<any>(null);
   const [formData, setFormData] = usePersistentState('WeightForm_formData', {
     animal_id: '',
-    data_pesagem: new Date().toISOString().split('T')[0],
+    data_pesagem: getTodayStr(),
     peso: '',
     ecc: 0,
     observacao: ''
@@ -109,11 +117,23 @@ export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
   const pesoInputRef = useRef<HTMLInputElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const resetForm = (keepDate = false) => {
     setFormData({
       animal_id: '',
-      data_pesagem: keepDate ? formData.data_pesagem : new Date().toISOString().split('T')[0],
+      data_pesagem: keepDate ? formData.data_pesagem : getTodayStr(),
       peso: '',
       ecc: 0,
       observacao: ''
@@ -151,7 +171,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit
   const fetchTodayCount = async () => {
     try {
       if (!activeTenantId) return;
-      const today = new Date().toISOString().split('T')[0];
+      const today = getTodayStr();
       const { count } = await supabase
         .from('pesagens')
         .select('id', { count: 'exact', head: true })
@@ -186,8 +206,6 @@ export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit
   };
 
   useEffect(() => {
-    if (!actionId) return; // Ignore on initial mount / refresh
-
     if (isOpen && activeTenantId) {
       fetchAnimals();
       fetchTodayCount();
@@ -198,7 +216,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit
   useEffect(() => {
     if (initialData) { setFormData({
         animal_id: initialData.animal_id || '',
-        data_pesagem: initialData.data_pesagem || new Date().toISOString().split('T')[0],
+        data_pesagem: initialData.data_pesagem || getTodayStr(),
         peso: initialData.peso?.toString() || '',
         ecc: initialData.ecc || 0,
         observacao: initialData.observacao || ''
@@ -399,7 +417,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit
                 </div>
               ) : (
                 /* SEARCH */
-                <div className="autocomplete-wrapper" style={{ position: 'relative', width: '100%' }}>
+                <div className="autocomplete-wrapper" style={{ position: 'relative', width: '100%' }} ref={searchRef}>
                   <div className="search-input-container" style={{ position: 'relative', width: '100%' }}>
                     <input
                       className="tauze-input"
@@ -409,40 +427,77 @@ export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit
                       value={searchQuery}
                       onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }}
                       onFocus={() => setShowDropdown(true)}
-                      onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
                       required={!formData.animal_id}
                       style={{ paddingRight: '36px', width: '100%', boxSizing: 'border-box' }}
                       autoComplete="off"
                     />
-                    <Search size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                    <Search size={16} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }} />
                   </div>
 
                   {showDropdown && (
                     <div className="autocomplete-dropdown animate-fade-in" style={{
                       position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%',
-                      maxHeight: '200px', overflowY: 'auto',
+                      maxHeight: '280px', overflowY: 'auto',
                       background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))',
-                      borderRadius: '12px', zIndex: 999, boxShadow: 'var(--shadow-lg)'
+                      borderRadius: '14px', zIndex: 999, boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+                      display: 'flex', flexDirection: 'column'
                     }}>
                       {filteredAnimals.length === 0 ? (
-                        <div style={{ padding: '12px', color: 'hsl(var(--text-muted))', fontSize: '12px', fontWeight: 600, textAlign: 'center' }}>
+                        <div style={{ padding: '16px', color: 'hsl(var(--text-muted))', fontSize: '13px', fontWeight: 600, textAlign: 'center' }}>
                           Nenhum animal ativo com este brinco
                         </div>
                       ) : (
-                        filteredAnimals.map(a => (
+                        filteredAnimals.map((a: any, idx: number) => (
                           <div
                             key={a.id}
+                            onClick={() => { setSearchQuery(a.brinco); handleAnimalChange(a); setShowDropdown(false); }}
+                            style={{
+                              padding: '12px 16px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              borderBottom: idx < filteredAnimals.length - 1 ? '1px solid hsl(var(--border) / 0.5)' : 'none',
+                              transition: 'background 0.15s'
+                            }}
                             className="autocomplete-option"
-                            onMouseDown={() => { setSearchQuery(a.brinco); handleAnimalChange(a); setShowDropdown(false); }}
-                            style={{ padding: '10px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px', fontWeight: 600, color: 'hsl(var(--text-main))', borderBottom: '1px solid hsl(var(--border))' }}
                           >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <Hash size={12} color="hsl(var(--brand))" />
-                              Brinco {a.brinco}
-                              {a.raca && <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 500 }}>· {a.raca}</span>}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <div style={{
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '8px',
+                                background: 'hsl(var(--brand) / 0.1)',
+                                color: 'hsl(var(--brand))',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '11px',
+                                fontWeight: 900
+                              }}>
+                                #{a.brinco?.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  #{a.brinco}
+                                  {a.sexo && (
+                                    <span style={{
+                                      fontSize: '9px', fontWeight: 800,
+                                      background: a.sexo === 'M' || a.sexo === 'MACHO' || a.sexo === 'm' ? 'hsl(217 91% 60% / 0.12)' : 'hsl(316 73% 69% / 0.12)',
+                                      color: a.sexo === 'M' || a.sexo === 'MACHO' || a.sexo === 'm' ? 'hsl(217 91% 60%)' : 'hsl(316 73% 60%)',
+                                      padding: '1px 5px', borderRadius: '4px'
+                                    }}>
+                                      {a.sexo === 'M' || a.sexo === 'MACHO' || a.sexo === 'm' ? '♂ Macho' : '♀ Fêmea'}
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px' }}>
+                                  {a.raca || 'Nelore'}{a.categoria ? ` · ${a.categoria}` : ''}
+                                </div>
+                              </div>
+                            </div>
                             {a.peso_inicial && (
-                              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+                              <span style={{ fontSize: '13px', fontWeight: 900, color: '#10b981' }}>
                                 {Number(a.peso_inicial).toFixed(0)} kg
                               </span>
                             )}
@@ -512,7 +567,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit
                 value={formData.data_pesagem}
                 onChange={(e) => setFormData({ ...formData, data_pesagem: e.target.value })}
                 min={minDate}
-                max={new Date().toISOString().split('T')[0]}
+                max={getTodayStr()}
                 required
               />
             </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import {
   UserPlus,
@@ -49,7 +49,7 @@ const MOTIVOS = [
 ];
 
 function calcAge(birthDate: string | null): string {
-  if (!birthDate) return '—';
+  if (!birthDate) return 'â€”';
   const diff = Date.now() - new Date(birthDate).getTime();
   const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30.44));
   if (months < 12) return `${months}m`;
@@ -58,7 +58,7 @@ function calcAge(birthDate: string | null): string {
   return rem > 0 ? `${years}a ${rem}m` : `${years}a`;
 }
 
-// ── Smart Search Component (reusable for Lote or Pasto) ────────────────────
+// â”€â”€ Smart Search Component (reusable for Lote or Pasto) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface DestSearchProps {
   items: any[];
   value: string;
@@ -161,7 +161,7 @@ function CapacityBar({ current, max, adding, unit }: { current: number; max: num
           Capacidade do Destino
         </span>
         <span style={{ fontSize: '11px', fontWeight: 800, color }}>
-          {formatNumber(current + adding)} / {formatNumber(max)} {unit} — {label}
+          {formatNumber(current + adding)} / {formatNumber(max)} {unit} â€” {label}
         </span>
       </div>
       <div style={{ background: 'hsl(var(--border))', borderRadius: '99px', height: '8px', overflow: 'hidden', position: 'relative' }}>
@@ -190,7 +190,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
   const [filterCategoria, setFilterCategoria] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [destCapacity, setDestCapacity] = useState<{ current: number; max: number } | null>(null);
-  const [movDate, setMovDate] = useState(new Date().toISOString().split('T')[0]);
+  const [movDate, setMovDate] = useState(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
   const [motivo, setMotivo] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -199,7 +199,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
   const entityIcon = isLoteMode ? Layers : Trees;
   const tableName = isLoteMode ? 'lotes' : 'pastos';
   const fieldName = isLoteMode ? 'lote_id' : 'pasto_id';
-  const destName = selectedDestName || destinations.find(d => d.id === selectedDestination)?.nome || '—';
+  const destName = selectedDestName || destinations.find(d => d.id === selectedDestination)?.nome || 'â€”';
 
   // Whether we have enough context to fetch
   const canFetch = activeFarmId || (isGlobalMode && activeTenantId);
@@ -219,7 +219,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
       setDestCapacity(null);
       setShowConfirm(false);
       setShowFilters(false);
-      setMovDate(new Date().toISOString().split('T')[0]);
+      setMovDate(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
       setMotivo('');
     }
   }, [isOpen, activeFarmId, isGlobalMode, activeTenantId]);
@@ -431,7 +431,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
     }
   };
 
-  // — Confirmation overlay (portal → covers entire screen) —
+  // â€” Confirmation overlay (portal â†’ covers entire screen) â€”
   const confirmOverlay = showConfirm ? ReactDOM.createPortal(
     (() => {
       const selAnimals = unassignedAnimals.filter(a => selectedAnimals.includes(a.id));
@@ -554,7 +554,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
                 <div style={{ marginTop: '8px' }}>
                   {isLoteMode && dest.pastos?.nome && (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px' }}>
-                      📍 Indo para: {dest.pastos.nome}
+                      ðŸ“ Indo para: {dest.pastos.nome}
                     </div>
                   )}
                   {isLoteMode && dest.sexo_permitido && dest.sexo_permitido !== 'MISTO' && (
@@ -576,7 +576,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
             <label className="tauze-label">
               <Calendar size={14} /> Data da Movimentação
             </label>
-            <input type="date" className="tauze-input" value={movDate} onChange={e => setMovDate(e.target.value)} required max={new Date().toISOString().split('T')[0]} />
+            <input type="date" className="tauze-input" value={movDate} onChange={e => setMovDate(e.target.value)} required max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]} />
           </div>
 
           <div className="tauze-field-group">
@@ -602,7 +602,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
           <h4 className="tauze-section-title">Seleção de Animais</h4>
         </div>
         <div className="tauze-field-group full-width">
-        {/* Header — always visible */}
+        {/* Header â€” always visible */}
         <div className="tauze-selection-header">
           <label>
             <Users size={14} /> Animais Sem {entityLabel}
@@ -620,7 +620,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
               style={{ opacity: unassignedAnimals.length === 0 ? 0.35 : 1 }}
             >
               <Filter size={12} style={{ display: 'inline', marginRight: '3px' }} />
-              FILTROS{(filterSexo || filterCategoria) ? ' ●' : ''}
+              FILTROS{(filterSexo || filterCategoria) ? ' â—' : ''}
             </button>
             <button
               type="button" className="text-btn-sm"
@@ -705,13 +705,13 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
                         </div>
                         <div className="p-info-row">
                           <span className="p-brinco-adv" style={{ minWidth: '70px', fontSize: '13px' }}>#{animal.brinco}</span>
-                          <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>{animal.raca || '—'}</span>
+                          <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>{animal.raca || 'â€”'}</span>
                           {animal.categoria && <span className="p-tag">{animal.categoria}</span>}
                           {animal.sexo && <span className="p-tag" style={{ background: animal.sexo === 'MACHO' ? '#eff6ff' : '#fdf2f8', color: animal.sexo === 'MACHO' ? '#3b82f6' : '#ec4899' }}>{animal.sexo === 'MACHO' ? 'M' : 'F'}</span>}
                         </div>
                         <div className="p-stats-row">
                           {animal.peso_atual && <span><Weight size={12} /> {animal.peso_atual}kg</span>}
-                          {animal.data_nascimento && <span style={{ minWidth: '70px' }}>🎂 {calcAge(animal.data_nascimento)}</span>}
+                          {animal.data_nascimento && <span style={{ minWidth: '70px' }}>ðŸŽ‚ {calcAge(animal.data_nascimento)}</span>}
                         </div>
                       </div>
                   )})}

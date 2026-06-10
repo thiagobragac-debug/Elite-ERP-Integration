@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -152,7 +152,7 @@ export const UserManagement: React.FC = () => {
           
           if (act.includes('DELETE') || act.includes('ALERT') || act.includes('FAIL') || act.includes('SECURITY') || details.includes('BLOQUE') || details.includes('ERR')) {
             type = 'CRITICAL';
-          } else if (act.includes('UPDATE') || act.includes('WARN') || details.includes('SESSÃO') || details.includes('ALTERAÇÃO')) {
+          } else if (act.includes('UPDATE') || act.includes('WARN') || details.includes('SESSÃƒO') || details.includes('ALTERAÃ‡ÃƒO')) {
             type = 'WARN';
           }
           
@@ -337,7 +337,7 @@ export const UserManagement: React.FC = () => {
       ] = await Promise.all([
         supabase.from('profiles_view').select('*').eq('tenant_id', activeTenantId),
         supabase.from('perfis_usuario').select('*').limit(500).eq('tenant_id', activeTenantId),
-        supabase.from('audit_logs').select('user_email').eq('tenant_id', activeTenantId).gte('created_at', new Date().toISOString().split('T')[0]),
+        supabase.from('audit_logs').select('user_email').eq('tenant_id', activeTenantId).gte('created_at', new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]),
         supabase.from('tenants').select('settings').eq('id', activeTenantId).maybeSingle()
       ]);
 
@@ -473,7 +473,7 @@ export const UserManagement: React.FC = () => {
       Perfil: item.profile,
       Unidade: item.farm || '-',
       Membro_Desde: item.memberSince,
-      MFA: item.mfa_enabled ? 'SIM' : 'NÃO',
+      MFA: item.mfa_enabled ? 'SIM' : 'NÃƒO',
       Status: item.status
     })) : filteredData.map(item => ({
       Perfil: item.nome,
@@ -988,7 +988,7 @@ export const UserManagement: React.FC = () => {
                         );
                       })()}
                       <span className={`status-pill ${user.status === 'active' ? 'active' : 'stopped'}`} style={{ marginTop: '8px', fontSize: '9px' }}>
-                        {user.status === 'active' ? '● Online' : '○ Offline'}
+                        {user.status === 'active' ? 'â— Online' : 'â—‹ Offline'}
                       </span>
                     </div>
                     <div className="card-main-content">
@@ -1157,11 +1157,11 @@ export const UserManagement: React.FC = () => {
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
                             {(profile.permissions || []).includes('all') ? (
                               <span style={{ fontSize: '9px', fontWeight: 900, background: '#fef2f2', color: '#ef4444', padding: '4px 8px', borderRadius: '6px' }}>
-                                🔴 ACESSO CRÍTICO (TOTAL)
+                                ðŸ”´ ACESSO CRÍTICO (TOTAL)
                               </span>
                             ) : (
                               <span style={{ fontSize: '9px', fontWeight: 900, background: '#f0fdf4', color: '#16a34a', padding: '4px 8px', borderRadius: '6px' }}>
-                                🟢 CONTROLE PARCIAL
+                                ðŸŸ¢ CONTROLE PARCIAL
                               </span>
                             )}
                           </div>
@@ -1253,7 +1253,7 @@ export const UserManagement: React.FC = () => {
                     onClick={handleToggleMaintenanceMode}
                   >
                     <ShieldAlert size={16} className={securitySettings.maintenanceMode ? 'animate-pulse text-white' : ''} />
-                    <span>{securitySettings.maintenanceMode ? 'DESATIVAR MANUTENÇÃO (ATIVO)' : 'MODO DE MANUTENÇÃO'}</span>
+                    <span>{securitySettings.maintenanceMode ? 'DESATIVAR MANUTENÃ‡ÃƒO (ATIVO)' : 'MODO DE MANUTENÃ‡ÃƒO'}</span>
                   </button>
                   {anomalies.length > 0 ? (
                     <div className="guard-status-alert alert-active" style={{ background: '#fef2f2', color: '#ef4444' }}>
@@ -1350,7 +1350,7 @@ export const UserManagement: React.FC = () => {
                             <span className="log-time">[{new Date(log.date).toLocaleTimeString('pt-BR')}]</span>
                             <span style={{ color: sevColor, fontWeight: 900, minWidth: '70px', display: 'inline-block' }}>[{log.type}]</span>
                             <span className="log-msg" style={{ flex: 1 }}>{log.msg}</span>
-                            <span className="log-meta">({log.user} • {log.ip})</span>
+                            <span className="log-meta">({log.user} â€¢ {log.ip})</span>
                           </motion.div>
                         );
                       })}

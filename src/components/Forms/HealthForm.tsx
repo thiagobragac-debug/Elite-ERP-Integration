@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -35,7 +35,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
     titulo: '',
     animal_id: '',
     lote_id: '',
-    data_manejo: new Date().toISOString().split('T')[0],
+    data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     produto: '',
     dose: '',
     via_aplicacao: 'IM',
@@ -57,7 +57,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
         titulo: initialData.titulo || '',
         animal_id: initialData.animal_id || '',
         lote_id: initialData.lote_id || '',
-        data_manejo: initialData.data_manejo || new Date().toISOString().split('T')[0],
+        data_manejo: initialData.data_manejo || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         produto: initialData.produto || '',
         dose: initialData.dose || '',
         via_aplicacao: initialData.via_aplicacao || 'IM',
@@ -74,7 +74,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
         titulo: '',
         animal_id: '',
         lote_id: '',
-        data_manejo: new Date().toISOString().split('T')[0],
+        data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         produto: '',
         dose: '',
         via_aplicacao: 'IM',
@@ -334,7 +334,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
             />
           </div>
 
-          {/* PAINÉIS ORÁCULOS DE SANIDADE (RISCO E PREDIÇÃO) */}
+          {/* PAINÃ‰IS ORÁCULOS DE SANIDADE (RISCO E PREDIÃ‡ÃƒO) */}
           {healthStats.bloqueioAbate && (
             <div style={{ gridColumn: 'span 2', marginTop: '12px', padding: '16px', background: 'hsl(0 84% 60% / 0.1)', border: '1.5px dashed hsl(0 84% 60% / 0.4)', borderRadius: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(0 84% 45%)', fontWeight: 800, fontSize: '13px', marginBottom: '4px' }}>
@@ -349,7 +349,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
           {healthStats.dataReforco && (
             <div style={{ gridColumn: 'span 2', marginTop: '12px', padding: '16px', background: 'hsl(217 91% 60% / 0.1)', border: '1.5px dashed hsl(217 91% 60% / 0.4)', borderRadius: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(217 91% 50%)', fontWeight: 800, fontSize: '13px', marginBottom: '4px' }}>
-                <Calendar size={18} /> REFORÇO VACINAL AGENDADO
+                <Calendar size={18} /> REFORÃ‡O VACINAL AGENDADO
               </div>
               <div style={{ fontSize: '13px', color: 'hsl(var(--text-main))', lineHeight: '1.5', marginTop: '8px' }}>
                 Uma revacinação será cobrada na agenda sanitária da fazenda para o dia <strong style={{ color: 'hsl(217 91% 50%)', fontWeight: 900 }}>{healthStats.dataReforco}</strong>.

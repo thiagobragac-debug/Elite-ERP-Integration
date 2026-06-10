@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
@@ -59,8 +59,8 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
     invoice_number: initialData?.invoice_number || '',
     series: initialData?.series || '1',
     supplier_id: initialData?.supplier_id || '',
-    issue_date: initialData?.issue_date || new Date().toISOString().split('T')[0],
-    entry_date: initialData?.entry_date || new Date().toISOString().split('T')[0],
+    issue_date: initialData?.issue_date || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+    entry_date: initialData?.entry_date || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     total_value: initialData?.total_value || '',
     modelo_fiscal: initialData?.modelo_fiscal || '55',
     nature_of_operation: initialData?.nature_of_operation || 'Compra para Industrialização',
@@ -90,7 +90,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
     }
     // 2. Fallback de texto se a unidade de medida remeter a animal
     const unitStr = String(item.unidade || '').toUpperCase();
-    if ((unitStr === 'CB' || unitStr === 'CABEÇA' || unitStr === 'KG') && animalRegex.test(item.nome || '')) {
+    if ((unitStr === 'CB' || unitStr === 'CABEÃ‡A' || unitStr === 'KG') && animalRegex.test(item.nome || '')) {
       return true;
     }
     return false;
@@ -120,8 +120,8 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         invoice_number: '',
         series: '1',
         supplier_id: '',
-        issue_date: new Date().toISOString().split('T')[0],
-        entry_date: new Date().toISOString().split('T')[0],
+        issue_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+        entry_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         total_value: '',
         modelo_fiscal: '55',
         nature_of_operation: 'Compra para Industrialização',
@@ -197,7 +197,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
 
   const isFinancialDisabledByOrder = useMemo(() => {
     if (!formData.purchase_order_id) return false;
-    // Mock simples: OC-001 gerou financeiro, OC-002 NÃO gerou
+    // Mock simples: OC-001 gerou financeiro, OC-002 NÃƒO gerou
     const mockOrdersDB: any = {
       'OC-001': { generate_financial: true },
       'OC-002': { generate_financial: false }
@@ -217,7 +217,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
   }, [formData.purchase_order_id, isFinancialDisabledByOrder]);
 
   // ----------------------------------------------------------------
-  // IMPORTAÇÃO REAL DE XML NF-e (browser-side via DOMParser)
+  // IMPORTAÃ‡ÃƒO REAL DE XML NF-e (browser-side via DOMParser)
   // ----------------------------------------------------------------
   const handleXMLDoubleClick = () => {
     if (formData.is_xml_imported) return;
@@ -241,7 +241,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
 
         // Avisa sobre warnings não-fatais
         if (nfe.warnings?.length) {
-          nfe.warnings.forEach(w => toast(w, { icon: '⚠️' }));
+          nfe.warnings.forEach(w => toast(w, { icon: 'âš ï¸' }));
         }
 
         // Preenche os campos do formulário com dados reais da NF-e
@@ -341,7 +341,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         const nfe = parseNFeXML(xmlString);
 
         if (nfe.warnings?.length) {
-          nfe.warnings.forEach(w => toast(w, { icon: '⚠️' }));
+          nfe.warnings.forEach(w => toast(w, { icon: 'âš ï¸' }));
         }
 
         setFormData(prev => ({
@@ -452,7 +452,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
       submitDisabled={pendingMatches > 0}
       size="xxlarge"
     >
-      {/* IMPORTAÇÃO E METADADOS FUNDIDOS NO PASSO 01 */}
+      {/* IMPORTAÃ‡ÃƒO E METADADOS FUNDIDOS NO PASSO 01 */}
       <section className="tauze-form-section">
         <div className="tauze-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -465,19 +465,19 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
             </div>
           ) : (
             <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--warning))', display: 'flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--warning)/0.1)', padding: '4px 8px', borderRadius: '4px' }}>
-              <AlertTriangle size={12}/> DIGITAÇÃO MANUAL
+              <AlertTriangle size={12}/> DIGITAÃ‡ÃƒO MANUAL
             </div>
           )}
         </div>
         
-        {/* BANNER DE DETECÇÃO DE GADO */}
+        {/* BANNER DE DETECÃ‡ÃƒO DE GADO */}
         {hasLivestockItems && !loteModalDismissed && (
           <div style={{ background: 'hsl(var(--warning)/0.08)', border: '1px solid hsl(var(--warning)/0.3)', borderRadius: '12px', padding: '14px 18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'hsl(var(--warning)/0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--warning))', flexShrink: 0 }}>
               <Beef size={18} />
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>🐄 Detectamos animais nesta nota!</p>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>ðŸ„ Detectamos animais nesta nota!</p>
               <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Deseja criar um Lote de Recebimento no Módulo Pecuária para rastrear estes animais individualmente?</p>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -530,7 +530,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               />
             </div>
 
-            {/* BOTÃO E CAMPO XML JUNTOS NO GRID */}
+            {/* BOTÃƒO E CAMPO XML JUNTOS NO GRID */}
             <div className="tauze-field-group">
               <label className="tauze-label" style={{ color: 'hsl(var(--brand))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} title="Dê um duplo clique no campo para importar o arquivo XML">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><UploadCloud size={14} /> Importar XML</span>
@@ -654,7 +654,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
             <div style={{ margin: '12px 0 0', padding: '10px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <AlertCircle size={14} color="#dc2626" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626' }}>
-                {pendingMatches} {pendingMatches === 1 ? 'item sem vínculo' : 'itens sem vínculo'} com o catálogo — resolva antes de processar a entrada.
+                {pendingMatches} {pendingMatches === 1 ? 'item sem vínculo' : 'itens sem vínculo'} com o catálogo â€” resolva antes de processar a entrada.
               </span>
             </div>
           )}
@@ -692,7 +692,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               value={formData.payment_condition}
               onChange={(val: any) => setFormData({...formData, payment_condition: val})}
               options={[
-                { value: 'vista', label: 'À Vista' },
+                { value: 'vista', label: 'Ã€ Vista' },
                 { value: 'prazo', label: 'Parcelado / A Prazo' },
               ]}
             />
@@ -822,8 +822,8 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         setShowLoteModal(false);
         setLoteModalDismissed(true);
         toast.success(tipo === 'pendente' 
-          ? '✅ Lote pendente criado! Acesse Pecuária > Lotes para processar os animais quando chegarem.'
-          : '✅ Lote vinculado com sucesso! Custo por cabeça calculado automaticamente.'
+          ? 'âœ… Lote pendente criado! Acesse Pecuária > Lotes para processar os animais quando chegarem.'
+          : 'âœ… Lote vinculado com sucesso! Custo por cabeça calculado automaticamente.'
         );
       }}
     />

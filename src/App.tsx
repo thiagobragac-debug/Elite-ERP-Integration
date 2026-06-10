@@ -26,6 +26,7 @@ import { OfflineSyncProvider } from './contexts/OfflineSyncContext';
 
 // Lazy Loads
 const AnimalManagement = React.lazy(() => import('./pages/Pecuaria/AnimalManagement'));
+const RomaneioManagement = React.lazy(() => import('./pages/Pecuaria/RomaneioManagement'));
 const LotManagement = React.lazy(() => import('./pages/Pecuaria/LotManagement'));
 const WeightManagement = React.lazy(() => import('./pages/Pecuaria/WeightManagement').then(m => ({ default: m.WeightManagement })));
 const HealthManagement = React.lazy(() => import('./pages/Pecuaria/HealthManagement').then(m => ({ default: m.HealthManagement })));
@@ -230,6 +231,7 @@ function AppContent() {
               <Route path="pecuaria" element={<PermissionGuard permission="pecuaria"><Outlet/></PermissionGuard>}>
                 <Route path="dashboard" element={<PermissionGuard permission="pecuaria_dashboard"><LivestockDashboard /></PermissionGuard>} />
                 <Route path="animal" element={<PermissionGuard permission="pecuaria_animais"><AnimalManagement /></PermissionGuard>} />
+                <Route path="romaneios" element={<PermissionGuard permission="pecuaria_animais"><RomaneioManagement /></PermissionGuard>} />
                 <Route path="animal/:id" element={<PermissionGuard permission="pecuaria_animais"><AnimalDetail /></PermissionGuard>} />
                 <Route path="lote" element={<PermissionGuard permission="pecuaria_animais"><LotManagement /></PermissionGuard>} />
                 <Route path="pasto" element={<PermissionGuard permission="pecuaria_animais"><PastureManagement /></PermissionGuard>} />

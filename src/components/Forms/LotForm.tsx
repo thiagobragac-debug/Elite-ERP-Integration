@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -44,7 +44,7 @@ export const LotForm: React.FC<LotFormProps> = ({isOpen, onClose, onSubmit, init
     descricao: '',
     status: 'ATIVO',
     capacidade: '',
-    data_inicio: new Date().toISOString().split('T')[0],
+    data_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     data_fim_prevista: '',
     dias_ciclo: '',
     peso_entrada: '',
@@ -110,7 +110,7 @@ export const LotForm: React.FC<LotFormProps> = ({isOpen, onClose, onSubmit, init
         descricao: initialData.descricao || '',
         status: initialData.status || 'ATIVO',
         capacidade: initialData.capacidade ? initialData.capacidade.toString().replace(/[^\d.-]/g, '') : '',
-        data_inicio: initialData.data_inicio || new Date().toISOString().split('T')[0],
+        data_inicio: initialData.data_inicio || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         data_fim_prevista: initialData.data_fim_prevista || '',
         dias_ciclo: initialData.dias_ciclo ? initialData.dias_ciclo.toString().replace(/[^\d.-]/g, '') : '',
         peso_entrada: initialData.peso_entrada ? initialData.peso_entrada.toString().replace(/[^\d.-]/g, '') : '',
@@ -134,7 +134,7 @@ export const LotForm: React.FC<LotFormProps> = ({isOpen, onClose, onSubmit, init
         descricao: '',
         status: 'ATIVO',
         capacidade: '',
-        data_inicio: new Date().toISOString().split('T')[0],
+        data_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         data_fim_prevista: '',
         dias_ciclo: '',
         peso_entrada: '',

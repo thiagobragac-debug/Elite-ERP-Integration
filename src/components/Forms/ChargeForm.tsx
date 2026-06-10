@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -61,7 +61,7 @@ export const ChargeForm: React.FC<ChargeFormProps> = ({isOpen,
         discount_amount: '',
         payment_method: 'pix',
         status: 'pendente',
-        due_date: new Date().toISOString().split('T')[0],
+        due_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         payment_link: '',
         auto_send_email: true,
         description: ''

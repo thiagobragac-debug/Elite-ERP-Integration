@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -36,7 +36,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
   const [formData, setFormData] = usePersistentState('FuelForm_formData', {
     machine_id: '',
     estoque_id: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     liters: '',
     unit_price: '',
     total_cost: '',
@@ -56,7 +56,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
     if (initialData) { setFormData({
         machine_id: initialData.maquina_id || '',
         estoque_id: initialData.estoque_id || '',
-        date: initialData.data || new Date().toISOString().split('T')[0],
+        date: initialData.data || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         liters: initialData.litros?.toString() || '',
         unit_price: initialData.preco_unitario?.toString() || '',
         total_cost: initialData.valor_total?.toString() || '',
@@ -68,7 +68,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
       setFormData({
         machine_id: '',
         estoque_id: '',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         liters: '',
         unit_price: '',
         total_cost: '',
@@ -190,7 +190,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
             />
             {selectedMachine && (
               <div className="tauze-field-hint" style={{ color: 'hsl(var(--brand))', fontSize: '11px', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Activity size={12} /> Último Reg: {selectedMachine.horimetro_atual}{selectedMachine.unidade_medida === 'horas' ? 'h' : 'km'} | Cap. Tanque: {selectedMachine.capacidade_tanque}L
+                <Activity size={12} /> Ãšltimo Reg: {selectedMachine.horimetro_atual}{selectedMachine.unidade_medida === 'horas' ? 'h' : 'km'} | Cap. Tanque: {selectedMachine.capacidade_tanque}L
               </div>
             )}
           </div>

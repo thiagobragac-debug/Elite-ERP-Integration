@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import {
   ArrowRightLeft,
@@ -45,7 +45,7 @@ const MOTIVOS = [
 ];
 
 function calcAge(birthDate: string | null): string {
-  if (!birthDate) return '—';
+  if (!birthDate) return 'â€”';
   const diff = Date.now() - new Date(birthDate).getTime();
   const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30.44));
   if (months < 12) return `${months}m`;
@@ -60,7 +60,7 @@ interface PastureCapacity {
   area: number;
 }
 
-// ── Smart Pasture Search ─────────────────────────────────────────────────────
+// â”€â”€ Smart Pasture Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PastureSearch({
   items, value, onChange, placeholder, label, exclude
 }: {
@@ -158,7 +158,7 @@ function PastureSearch({
 
 function PressureMeter({ cap, adding }: { cap: PastureCapacity; adding: number }) {
   const total = cap.current + adding;
-  const uaHa = cap.area > 0 ? (total / cap.area).toFixed(2) : '—';
+  const uaHa = cap.area > 0 ? (total / cap.area).toFixed(2) : 'â€”';
   const pct = cap.max > 0 ? Math.min((total / cap.max) * 100, 100) : 0;
   const beforePct = cap.max > 0 ? Math.min((cap.current / cap.max) * 100, 100) : 0;
   const color = pct > 100 ? '#ef4444' : pct > 85 ? '#f59e0b' : '#10b981';
@@ -171,7 +171,7 @@ function PressureMeter({ cap, adding }: { cap: PastureCapacity; adding: number }
           <Activity size={11} /> Pressão de Pastejo
         </span>
         <span style={{ fontSize: '11px', fontWeight: 800, color }}>
-          {uaHa} UA/ha — {status}
+          {uaHa} UA/ha â€” {status}
         </span>
       </div>
       <div style={{ background: 'hsl(var(--border))', borderRadius: '99px', height: '8px', overflow: 'hidden', position: 'relative' }}>
@@ -226,7 +226,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
   const [sourcePastureName, setSourcePastureName] = useState('');
   const [targetPastureId, setTargetPastureId] = useState('');
   const [targetPastureName, setTargetPastureName] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
   const [motivo, setMotivo] = useState('');
 
   const canFetch = activeFarmId || (isGlobalMode && activeTenantId);
@@ -245,7 +245,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
       setSourcePastureName('');
       setTargetPastureId('');
       setTargetPastureName('');
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
       setMotivo('');
     }
   }, [isOpen, activeFarmId, isGlobalMode, activeTenantId]);
@@ -365,7 +365,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
         if (activeTenantId) {
           const afterUaHa = destCap && destCap.area > 0
             ? ((destCap.current + selectedUaTotal) / destCap.area).toFixed(2)
-            : '—';
+            : 'â€”';
 
           await logAudit({
             tenant_id: activeTenantId,
@@ -406,7 +406,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
   };
 
 
-  // Confirmation overlay (portal → covers entire screen)
+  // Confirmation overlay (portal â†’ covers entire screen)
   const confirmOverlay = showConfirm ? ReactDOM.createPortal(
     (() => {
       const afterUa = (destCap?.current || 0) + selectedUaTotal;
@@ -528,7 +528,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
               value={date} 
               onChange={e => setDate(e.target.value)} 
               required 
-              max={new Date().toISOString().split('T')[0]} 
+              max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]} 
             />
           </div>
 
@@ -553,7 +553,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
         </div>
         
         <div className="tauze-field-group">
-          {/* Header — always visible */}
+          {/* Header â€” always visible */}
           <div className="tauze-selection-header">
             <label>
               <Users size={14} /> Selecionar Animais
@@ -571,7 +571,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
                 style={{ opacity: animals.length === 0 ? 0.35 : 1 }}
               >
                 <Filter size={12} style={{ display: 'inline', marginRight: '3px' }} />
-                FILTROS{searchTerm ? ' ●' : ''}
+                FILTROS{searchTerm ? ' â—' : ''}
               </button>
               <button
                 type="button" className="text-btn-sm"
@@ -649,13 +649,13 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
                     </div>
                     <div className="p-info-row">
                       <span className="p-brinco-adv" style={{ minWidth: '70px', fontSize: '13px' }}>#{animal.brinco}</span>
-                      <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>{animal.raca || '—'}</span>
+                      <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>{animal.raca || 'â€”'}</span>
                       {animal.categoria && <span className="p-tag">{animal.categoria}</span>}
                       {animal.sexo && <span className="p-tag" style={{ background: animal.sexo === 'MACHO' ? '#eff6ff' : '#fdf2f8', color: animal.sexo === 'MACHO' ? '#3b82f6' : '#ec4899' }}>{animal.sexo === 'MACHO' ? 'M' : 'F'}</span>}
                     </div>
                     <div className="p-stats-row">
                       {animal.peso_atual && <span><Weight size={12} /> {animal.peso_atual}kg</span>}
-                      {animal.data_nascimento && <span style={{ minWidth: '70px' }}>🎂 {calcAge(animal.data_nascimento)}</span>}
+                      {animal.data_nascimento && <span style={{ minWidth: '70px' }}>ðŸŽ‚ {calcAge(animal.data_nascimento)}</span>}
                     </div>
                   </div>
                 ))}

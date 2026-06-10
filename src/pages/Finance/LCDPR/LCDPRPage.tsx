@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../../hooks/usePersistentState';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -41,7 +41,7 @@ export const LCDPRPage: React.FC = () => {
   // Form state
   const [form, setForm] = useState({
     fazenda_id: '',
-    data_lancamento: new Date().toISOString().split('T')[0],
+    data_lancamento: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     cod_imovel: '',
     cod_conta_bancaria: '',
     tipo: 'R',
@@ -120,7 +120,7 @@ export const LCDPRPage: React.FC = () => {
     console.error("[LCDPR] Error loading data:", errorLancamentos);
   }
 
-  // ─── KPIs Resumo ──────────────────────────────────────────────────────────
+  // â”€â”€â”€ KPIs Resumo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const kpis = useMemo(() => {
     const filtered = activeFarm?.id
       ? lancamentos.filter(l => l.fazenda_id === activeFarm.id)
@@ -130,7 +130,7 @@ export const LCDPRPage: React.FC = () => {
     return { receitas, despesas, saldo: receitas - despesas, total: filtered.length };
   }, [lancamentos, activeFarm]);
 
-  // ─── Resumo Mensal ────────────────────────────────────────────────────────
+  // â”€â”€â”€ Resumo Mensal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const resumoMensal = useMemo(() => {
     let saldoAcum = 0;
     return MESES.map((mes, idx) => {
@@ -144,12 +144,12 @@ export const LCDPRPage: React.FC = () => {
     });
   }, [lancamentos]);
 
-  // ─── CRUD ─────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const openNew = () => {
     setEditingItem(null);
     setForm({
       fazenda_id: activeFarm?.id || fazendas[0]?.id || '',
-      data_lancamento: new Date().toISOString().split('T')[0],
+      data_lancamento: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
       cod_imovel: '', cod_conta_bancaria: contas[0]?.id || '999', tipo: 'R', cod_natureza: '01',
       descricao: '', cpf_cnpj_participante: '', nome_participante: '', tipo_documento: '1', num_documento: '', valor: ''
     });
@@ -191,7 +191,7 @@ export const LCDPRPage: React.FC = () => {
       toast.success(editingItem ? 'Lançamento atualizado com sucesso!' : 'Lançamento adicionado com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao salvar lançamento: ' + err.message);
+      toast.error('âŒ Erro ao salvar lançamento: ' + err.message);
     }
   });
 
@@ -230,7 +230,7 @@ export const LCDPRPage: React.FC = () => {
       toast.success('Lançamento excluído com sucesso!');
     },
     onError: (err: any) => {
-      toast.error('❌ Erro ao excluir lançamento: ' + err.message);
+      toast.error('âŒ Erro ao excluir lançamento: ' + err.message);
     }
   });
 
@@ -291,7 +291,7 @@ export const LCDPRPage: React.FC = () => {
     },
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: ['lcdpr_lancamentos', tenant?.id, anoCalendario] });
-      toast.success(`✅ ${count} lançamentos importados do Financeiro!`);
+      toast.success(`âœ… ${count} lançamentos importados do Financeiro!`);
     },
     onError: (err: any) => {
       console.error(err);
@@ -299,14 +299,14 @@ export const LCDPRPage: React.FC = () => {
     }
   });
 
-  // ─── Importar de Financeiro ───────────────────────────────────────────────
+  // â”€â”€â”€ Importar de Financeiro â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleImportFinanceiro = async () => {
     if (!tenant?.id) return;
     if (!confirm(`Importar contas PAGAS de ${anoCalendario} do módulo Financeiro para o LCDPR?`)) return;
     importFinanceiroMutation.mutate();
   };
 
-  // ─── Gerar Arquivo ────────────────────────────────────────────────────────
+  // â”€â”€â”€ Gerar Arquivo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleGerarArquivo = async () => {
     if (!unidadeMatriz) {
       toast.error('Configure uma empresa Matriz com CPF/Sócio antes de gerar o arquivo.');
@@ -400,7 +400,7 @@ export const LCDPRPage: React.FC = () => {
       header: 'Fazenda',
       accessor: (l: any) => {
         const faz = fazendas.find(f => f.id === l.fazenda_id);
-        return <div style={{ fontSize: 12, color: 'hsl(var(--text-muted))' }}>{faz?.nome || '—'}</div>;
+        return <div style={{ fontSize: 12, color: 'hsl(var(--text-muted))' }}>{faz?.nome || 'â€”'}</div>;
       },
       align: 'left' as const
     },
@@ -409,7 +409,7 @@ export const LCDPRPage: React.FC = () => {
       accessor: (l: any) => (
         <div style={{ display: 'flex' }}>
           <span style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11, fontWeight: 800, background: l.tipo==='R'?'#10b98118':'#ef444418', color: l.tipo==='R'?'#10b981':'#ef4444' }}>
-            {l.tipo==='R' ? '↑ RECEITA' : '↓ DESPESA'}
+            {l.tipo==='R' ? 'â†‘ RECEITA' : 'â†“ DESPESA'}
           </span>
         </div>
       ),
@@ -432,7 +432,7 @@ export const LCDPRPage: React.FC = () => {
       header: 'Descrição',
       accessor: (l: any) => (
         <div style={{ fontSize: 13, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'hsl(var(--text-main))' }}>
-          {l.descricao || '—'}
+          {l.descricao || 'â€”'}
         </div>
       ),
       align: 'left' as const
@@ -441,7 +441,7 @@ export const LCDPRPage: React.FC = () => {
       header: 'Participante',
       accessor: (l: any) => (
         <div style={{ fontSize: 12, color: 'hsl(var(--text-muted))' }}>
-          {l.nome_participante || '—'}
+          {l.nome_participante || 'â€”'}
         </div>
       ),
       align: 'left' as const
@@ -520,7 +520,7 @@ export const LCDPRPage: React.FC = () => {
               <button key={t}
                 onClick={() => setFilterTipo(t)}
                 style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${filterTipo===t ? (t==='R'?'#10b981':t==='D'?'#ef4444':'hsl(var(--brand))'):'hsl(var(--border))'}`, background: filterTipo===t ? (t==='R'?'#10b98115':t==='D'?'#ef444415':'hsl(var(--brand)/0.1)'):'transparent', color: filterTipo===t ? (t==='R'?'#10b981':t==='D'?'#ef4444':'hsl(var(--brand))'):'hsl(var(--text-muted))', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
-              >{t === 'R' ? '📈 Receitas' : t === 'D' ? '📉 Despesas' : 'Todos'}</button>
+              >{t === 'R' ? 'ðŸ“ˆ Receitas' : t === 'D' ? 'ðŸ“‰ Despesas' : 'Todos'}</button>
             ))}
           </div>
         )}
@@ -629,7 +629,7 @@ export const LCDPRPage: React.FC = () => {
               </button>
             </div>
             <p style={{ marginTop: 12, fontSize: 11, color: 'hsl(var(--text-muted))', textAlign: 'center' }}>
-              ⚠️ O arquivo gerado não possui assinatura digital. Assine com certificado ICP-Brasil antes de enviar à Receita Federal.
+              âš ï¸ O arquivo gerado não possui assinatura digital. Assine com certificado ICP-Brasil antes de enviar à Receita Federal.
             </p>
           </div>
         </div>
@@ -653,7 +653,7 @@ export const LCDPRPage: React.FC = () => {
             {(['R','D'] as const).map(t => (
               <button type="button" key={t} onClick={() => setForm(f => ({...f, tipo: t, cod_natureza: t==='R'?'01':'11'}))}
                 style={{ flex: 1, padding: '12px 0', borderRadius: 12, border: `2px solid ${form.tipo===t?(t==='R'?'#10b981':'#ef4444'):'hsl(var(--border))'}`, background: form.tipo===t?(t==='R'?'#10b98112':'#ef444412'):'transparent', fontWeight: 800, fontSize: 14, cursor: 'pointer', color: form.tipo===t?(t==='R'?'#10b981':'#ef4444'):'hsl(var(--text-muted))' }}>
-                {t==='R' ? '↑ RECEITA' : '↓ DESPESA'}
+                {t==='R' ? 'â†‘ RECEITA' : 'â†“ DESPESA'}
               </button>
             ))}
           </div>
@@ -677,8 +677,8 @@ export const LCDPRPage: React.FC = () => {
                 <label>Conta Bancária (Cód. Q050) *Obrigatório</label>
                 <select required value={form.cod_conta_bancaria} onChange={e => setForm(f=>({...f,cod_conta_bancaria:e.target.value}))}>
                   <option value="">Selecione a conta...</option>
-                  <option value="999">999 — Numerário em Trânsito / Espécie</option>
-                  {contas.map(c => <option key={c.id} value={c.id}>{c.nome_banco} — Ag {c.agencia} / CC {c.conta}</option>)}
+                  <option value="999">999 â€” Numerário em Trânsito / Espécie</option>
+                  {contas.map(c => <option key={c.id} value={c.id}>{c.nome_banco} â€” Ag {c.agencia} / CC {c.conta}</option>)}
                 </select>
               </div>
             </div>
@@ -691,7 +691,7 @@ export const LCDPRPage: React.FC = () => {
               <div className="form-group" style={{ gridColumn: '1/-1' }}>
                 <label>Código da Natureza da {form.tipo === 'R' ? 'Receita' : 'Despesa'}</label>
                 <select required value={form.cod_natureza} onChange={e => setForm(f=>({...f,cod_natureza:e.target.value}))}>
-                  {(form.tipo==='R' ? NATUREZAS_RECEITA : NATUREZAS_DESPESA).map(n => <option key={n.codigo} value={n.codigo}>{n.codigo} — {n.descricao}</option>)}
+                  {(form.tipo==='R' ? NATUREZAS_RECEITA : NATUREZAS_DESPESA).map(n => <option key={n.codigo} value={n.codigo}>{n.codigo} â€” {n.descricao}</option>)}
                 </select>
               </div>
               <div className="form-group" style={{ gridColumn: '1/-1' }}>

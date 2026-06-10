@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import ReactDOM from 'react-dom';
@@ -53,7 +53,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
     series: initialData?.serie || '1',
     modelo_fiscal: initialData?.modelo_fiscal || '55',
     client_id: initialData?.cliente_id || '',
-    date: initialData?.data_emissao || new Date().toISOString().split('T')[0],
+    date: initialData?.data_emissao || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     total_value: initialData?.valor_total?.toString() || '0',
     nature_of_operation: initialData?.natureza_operacao || 'Venda de Produção Própria',
     
@@ -107,7 +107,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
         series: '1',
         modelo_fiscal: '55',
         client_id: '',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         total_value: '0',
         nature_of_operation: 'Venda de Produção Própria',
         transport_company: '',
@@ -148,7 +148,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
 
   const isFinancialDisabledByOrder = useMemo(() => {
     if (!formData.sales_order_id) return false;
-    // Mock simples: PV-001 gerou financeiro, PV-002 NÃO gerou
+    // Mock simples: PV-001 gerou financeiro, PV-002 NÃƒO gerou
     const mockOrdersDB: any = {
       'PV-001': { generate_financial: true },
       'PV-002': { generate_financial: false }
@@ -249,7 +249,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
             deposito_id: '',
             total: 1000.00,
             xml_product_code: 'XML-OUT-001',
-            xml_product_name: 'PRODUTO IMPORTADO XML DESCRIÇÃO ORIGINAL',
+            xml_product_name: 'PRODUTO IMPORTADO XML DESCRIÃ‡ÃƒO ORIGINAL',
             match_status: 'unmatched',
           }];
           setItems(xmlItems);
@@ -289,7 +289,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
         deposito_id: '',
         total: 1500.00,
         xml_product_code: 'SEFAZ-OUT-002',
-        xml_product_name: 'PRODUTO BUSCADO SEFAZ DESCRIÇÃO ORIGINAL',
+        xml_product_name: 'PRODUTO BUSCADO SEFAZ DESCRIÃ‡ÃƒO ORIGINAL',
         match_status: 'unmatched',
       }];
       setItems(xmlItems);
@@ -601,7 +601,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
             <div style={{ margin: '12px 0 0', padding: '10px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <AlertCircle size={14} color="#dc2626" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626' }}>
-                {pendingMatches} {pendingMatches === 1 ? 'item sem vínculo' : 'itens sem vínculo'} com o catálogo — resolva antes de transmitir a NF-e.
+                {pendingMatches} {pendingMatches === 1 ? 'item sem vínculo' : 'itens sem vínculo'} com o catálogo â€” resolva antes de transmitir a NF-e.
               </span>
             </div>
           )}
@@ -634,7 +634,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
               value={formData.payment_condition}
               onChange={(val: any) => setFormData({...formData, payment_condition: val})}
               options={[
-                { value: 'vista', label: 'À Vista' },
+                { value: 'vista', label: 'Ã€ Vista' },
                 { value: 'prazo', label: 'Parcelado / A Prazo' },
               ]}
             />

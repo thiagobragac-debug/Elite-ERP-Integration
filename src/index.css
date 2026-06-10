@@ -248,29 +248,55 @@ a {
 
 /* Premium Layout Elements */
 .page-header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
   margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 20px;
+  gap: 8px 20px;
 }
 
 .header-brand-group {
-  flex: 1 1 300px;
+  display: contents;
+}
+
+.tauze-breadcrumb {
+  grid-column: 1 / -1;
+  order: 1;
 }
 
 .page-title {
+  grid-column: 1;
   font-size: 2.5rem;
   font-weight: 800;
   color: hsl(var(--text-main));
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  order: 2;
 }
 
 .page-subtitle {
+  grid-column: 1 / -1;
   color: hsl(var(--text-muted));
   font-size: 1rem;
   max-width: 100%;
+  order: 4;
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .page-title {
+    grid-column: 1;
+  }
+  .page-actions {
+    grid-column: 1 !important;
+    justify-content: flex-start !important;
+    order: 3 !important;
+  }
+  .page-subtitle {
+    order: 4 !important;
+  }
 }
 
 /* Ultra-Premium Card */
@@ -402,6 +428,8 @@ a {
 }
 
 .page-actions {
+  grid-column: 2;
+  order: 3;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -570,7 +598,7 @@ input:focus, select:focus, textarea:focus {
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  height: 44px;
+  min-height: 44px;
   flex-shrink: 0;
 }
 
@@ -1459,11 +1487,6 @@ select {
   padding-bottom: 40px;
 }
 
-.header-brand-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 
 .brand-badge {
   display: flex;
@@ -1991,7 +2014,7 @@ input:focus, textarea:focus, select:focus {
   align-items: flex-end;
   justify-content: space-between;
   gap: 16px;
-  height: 44px;
+  min-height: 44px;
   flex-shrink: 0;
 }
 

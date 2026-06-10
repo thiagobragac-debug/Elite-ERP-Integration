@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -36,7 +36,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose
     maquina_id: '',
     tipo: 'preventive',
     descricao: '',
-    data_inicio: new Date().toISOString().split('T')[0],
+    data_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     custo_pecas: '0',
     custo_mao_obra: '0',
     responsavel: '',
@@ -63,7 +63,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose
         maquina_id: initialData.maquina_id || '',
         tipo: initialData.tipo || 'preventive',
         descricao: initialData.descricao || '',
-        data_inicio: initialData.data_inicio || new Date().toISOString().split('T')[0],
+        data_inicio: initialData.data_inicio || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         custo_pecas: initialData.custo_pecas?.toString() || '0',
         custo_mao_obra: initialData.custo_mao_obra?.toString() || '0',
         responsavel: initialData.responsavel || '',
@@ -76,7 +76,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose
         maquina_id: '',
         tipo: 'preventive',
         descricao: '',
-        data_inicio: new Date().toISOString().split('T')[0],
+        data_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         custo_pecas: '0',
         custo_mao_obra: '0',
         responsavel: '',

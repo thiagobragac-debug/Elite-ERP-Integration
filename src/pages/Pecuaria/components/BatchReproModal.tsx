@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ClipboardCheck, 
   Layers, 
@@ -34,7 +34,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
   const [lots, setLots] = useState<any[]>([]);
   const [selectedLotId, setSelectedLotId] = useState('');
   const [eventType, setEventType] = useState('IATF');
-  const [eventDate, setEventDate] = useState(new Date().toISOString().split('T')[0]);
+  const [eventDate, setEventDate] = useState(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
   
   // Mutantes
   const [result, setResult] = useState('Pendente');
@@ -181,7 +181,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                 <Users size={18} />
                 <div>
                   <div style={{ fontSize: '10px', fontWeight: 700, opacity: 0.7 }}>LOTE SELECIONADO</div>
-                  <div style={{ fontSize: '13px', fontWeight: 800 }}>{lots.find(l => l.id === selectedLotId)?.nome} • {lotAnimalCount} Matrizes</div>
+                  <div style={{ fontSize: '13px', fontWeight: 800 }}>{lots.find(l => l.id === selectedLotId)?.nome} â€¢ {lotAnimalCount} Matrizes</div>
                 </div>
               </div>
 
@@ -264,10 +264,10 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                 )}
               </div>
 
-              {/* CARD DE SEGURANÇA E PREDIÇÃO */}
+              {/* CARD DE SEGURANÃ‡A E PREDIÃ‡ÃƒO */}
               <div style={{ marginTop: '24px', padding: '16px', background: 'hsl(38 92% 50% / 0.1)', border: '1.5px dashed hsl(38 92% 50% / 0.4)', borderRadius: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(38 92% 40%)', fontWeight: 800, fontSize: '13px', marginBottom: '8px' }}>
-                  <AlertTriangle size={18} /> CONFIRMAÇÃO DE IMPACTO EM MASSA
+                  <AlertTriangle size={18} /> CONFIRMAÃ‡ÃƒO DE IMPACTO EM MASSA
                 </div>
                 <div style={{ fontSize: '14px', color: 'hsl(var(--text-main))', lineHeight: '1.5' }}>
                   {batchStats.summary}

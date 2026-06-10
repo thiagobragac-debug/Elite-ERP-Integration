@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Scale, HeartPulse, Calendar, FileText, Hash, Stethoscope, Activity, AlertCircle, Sparkles } from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
@@ -30,14 +30,14 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
   // States for Weighing (Pesagem)
   const [weightData, setWeightData] = useState({
     peso: '',
-    data_pesagem: new Date().toISOString().split('T')[0],
+    data_pesagem: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     observacao: ''
   });
 
   // States for Sanitary (Sanidade)
   const [healthData, setHealthData] = useState({
     tipo: 'VACINA',
-    data_manejo: new Date().toISOString().split('T')[0],
+    data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     titulo: '',
     produto: '',
     dose: '',
@@ -54,12 +54,12 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       setErrorMsg(null);
       setWeightData({
         peso: animal.peso_atual?.toString() || '',
-        data_pesagem: new Date().toISOString().split('T')[0],
+        data_pesagem: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         observacao: ''
       });
       setHealthData({
         tipo: 'VACINA',
-        data_manejo: new Date().toISOString().split('T')[0],
+        data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         titulo: '',
         produto: '',
         dose: '',

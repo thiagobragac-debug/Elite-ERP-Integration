@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { SidePanel } from '../Layout/SidePanel';
 import { 
   Scale, 
@@ -46,7 +46,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
   const [lots, setLots] = useState<any[]>([]);
   const [selectedLoteId, setSelectedLoteId] = useState<string>('');
-  const [defaultDate, setDefaultDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [defaultDate, setDefaultDate] = useState<string>(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
   const [defaultObservation, setDefaultObservation] = useState<string>('');
   
   const [rows, setRows] = useState<WeightRow[]>([]);
@@ -63,7 +63,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   const [activeFocusedIndex, setActiveFocusedIndex] = useState<number | null>(null);
   const [rfidSearch, setRfidSearch] = useState('');
 
-  // #3 — track which row is being typed (for visual state)
+  // #3 â€” track which row is being typed (for visual state)
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -247,7 +247,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     setRows(newRows);
   };
 
-  // #3 — Keyboard navigation with auto-advance
+  // #3 â€” Keyboard navigation with auto-advance
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
     if (e.key === 'Enter' || e.key === 'ArrowDown') {
       e.preventDefault();
@@ -274,7 +274,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       localStorage.removeItem('tauze_scale_connected');
       localStorage.removeItem('tauze_scale_brand');
       localStorage.removeItem('tauze_scale_type');
-      alert('🔌 Balança desconectada com sucesso.');
+      alert('ðŸ”Œ Balança desconectada com sucesso.');
       return;
     }
 
@@ -283,9 +283,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       const activeType = localStorage.getItem('tauze_scale_type') || 'BLUETOOTH';
 
       if ((navigator as any).bluetooth && activeType === 'BLUETOOTH') {
-        alert(`🌐 Conectando via Web Bluetooth à balança ${activeBrand}...`);
+        alert(`ðŸŒ Conectando via Web Bluetooth à balança ${activeBrand}...`);
       } else {
-        alert(`💡 Modo Homologação Ativo: Ativando Simulador de Balança ${activeBrand} (${activeType})!`);
+        alert(`ðŸ’¡ Modo Homologação Ativo: Ativando Simulador de Balança ${activeBrand} (${activeType})!`);
       }
       
       setScaleConnected(true);
@@ -295,18 +295,18 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       localStorage.setItem('tauze_scale_brand', activeBrand);
       localStorage.setItem('tauze_scale_type', activeType);
     } catch (err: any) {
-      alert('❌ Falha ao conectar balança: ' + err.message);
+      alert('âŒ Falha ao conectar balança: ' + err.message);
     }
   };
 
   const handleScaleTriggerWeight = () => {
     if (!scaleConnected) {
-      alert('⚠️ Conecte a Balança Eletrônica primeiro!');
+      alert('âš ï¸ Conecte a Balança Eletrônica primeiro!');
       return;
     }
     
     if (activeFocusedIndex === null) {
-      alert('⚠️ Por favor, selecione (clique) no campo de peso de um animal na grade abaixo para receber a pesagem!');
+      alert('âš ï¸ Por favor, selecione (clique) no campo de peso de um animal na grade abaixo para receber a pesagem!');
       return;
     }
 
@@ -347,13 +347,13 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       }, 100);
       setRfidSearch('');
     } else {
-      alert(`⚠️ Brinco RFID "${rfidSearch}" não encontrado neste lote.`);
+      alert(`âš ï¸ Brinco RFID "${rfidSearch}" não encontrado neste lote.`);
     }
   };
 
   const handleClearWeights = () => {
     if (filledCount === 0) return;
-    const confirmClear = confirm('⚠️ Tem certeza que deseja limpar todos os novos pesos digitados nesta sessão?');
+    const confirmClear = confirm('âš ï¸ Tem certeza que deseja limpar todos os novos pesos digitados nesta sessão?');
     if (!confirmClear) return;
     
     const cleared = rows.map(r => ({
@@ -368,7 +368,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
   const handleCsvExport = () => {
     if (rows.length === 0) {
-      alert('⚠️ Não há animais listados para exportação.');
+      alert('âš ï¸ Não há animais listados para exportação.');
       return;
     }
 
@@ -457,16 +457,16 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
         });
 
         setRows(newRows);
-        alert(`✅ Planilha carregada com sucesso! ${Object.keys(parsedMap).length} pesos carregados na grade para revisão.`);
+        alert(`âœ… Planilha carregada com sucesso! ${Object.keys(parsedMap).length} pesos carregados na grade para revisão.`);
       } catch (err: any) {
-        alert('❌ Erro ao ler planilha CSV: ' + err.message);
+        alert('âŒ Erro ao ler planilha CSV: ' + err.message);
       }
     };
     reader.readAsText(file);
     e.target.value = '';
   };
 
-  // #8 — Smart save with confirmation for partial saves & business rules
+  // #8 â€” Smart save with confirmation for partial saves & business rules
   const handleSaveClick = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -475,14 +475,14 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     // Check Time Travel
     const hasTimeTravel = typedRows.some(r => r.isTimeTravelWarning);
     if (hasTimeTravel) {
-      alert('❌ Erro Zootécnico: Existem animais com Data de Pesagem inferior à última pesagem registrada. Corrija a data padrão ou remova a pesagem desses animais.');
+      alert('âŒ Erro Zootécnico: Existem animais com Data de Pesagem inferior à última pesagem registrada. Corrija a data padrão ou remova a pesagem desses animais.');
       return;
     }
 
     // Check Nutrition Warning (Safra)
     const loosingWeightCount = typedRows.filter(r => r.gmd < 0).length;
     if (typedRows.length > 0 && loosingWeightCount / typedRows.length >= 0.3) {
-      const confirmNutrition = confirm(`⚠️ ALERTA AGRONÔMICO: ${(loosingWeightCount / typedRows.length * 100).toFixed(0)}% deste lote apresentou perda de peso. Recomenda-se avaliar o pasto ou suplementação. Deseja registrar as pesagens mesmo assim?`);
+      const confirmNutrition = confirm(`âš ï¸ ALERTA AGRONÃ”MICO: ${(loosingWeightCount / typedRows.length * 100).toFixed(0)}% deste lote apresentou perda de peso. Recomenda-se avaliar o pasto ou suplementação. Deseja registrar as pesagens mesmo assim?`);
       if (!confirmNutrition) return;
     }
 
@@ -499,13 +499,13 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     const rowsToInsert = rows.filter(r => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight)));
     
     if (rowsToInsert.length === 0) {
-      alert('⚠️ Digite o peso de pelo menos 1 animal.');
+      alert('âš ï¸ Digite o peso de pelo menos 1 animal.');
       return;
     }
 
     const hasWarnings = rowsToInsert.some(r => r.isTypoWarning);
     if (hasWarnings) {
-      const confirmSave = confirm('⚠️ Existem animais com variações de peso muito acentuadas (>15%). Deseja salvar as pesagens mesmo assim?');
+      const confirmSave = confirm('âš ï¸ Existem animais com variações de peso muito acentuadas (>15%). Deseja salvar as pesagens mesmo assim?');
       if (!confirmSave) return;
     }
 
@@ -539,7 +539,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       onSaveSuccess();
       onClose();
     } catch (err: any) {
-      alert('❌ Erro ao salvar pesagens em lote: ' + err.message);
+      alert('âŒ Erro ao salvar pesagens em lote: ' + err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -558,7 +558,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   const warningCount = typedRows.filter(r => r.isTypoWarning).length;
   const abateCount = typedRows.filter(r => parseFloat(r.newWeight) >= (activeFarm?.pesoAbateKg || 450)).length;
 
-  // #1 — progress bar color
+  // #1 â€” progress bar color
   const progressColor = progressPct === 100 ? '#10b981' : progressPct >= 50 ? 'hsl(var(--brand))' : 'hsl(38 92% 50%)';
 
   return (
@@ -600,12 +600,12 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                 </span>
                 {warningCount > 0 && (
                   <span style={{ fontSize: '9.5px', fontWeight: 800, color: 'hsl(38 92% 50%)', background: 'hsl(38 92% 50% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(38 92% 50% / 0.2)', whiteSpace: 'nowrap' }}>
-                    ⚠️ {warningCount}
+                    âš ï¸ {warningCount}
                   </span>
                 )}
                 {abateCount > 0 && (
                   <span style={{ fontSize: '9.5px', fontWeight: 800, color: '#10b981', background: 'hsl(142 71% 45% / 0.1)', padding: '1px 5px', borderRadius: '6px', border: '1px solid hsl(142 71% 45% / 0.2)', whiteSpace: 'nowrap' }}>
-                    🏆 {abateCount}
+                    ðŸ† {abateCount}
                   </span>
                 )}
                 <span style={{ width: '1.5px', height: '12px', background: 'hsl(var(--border) / 0.6)', marginLeft: '4px' }} />
@@ -664,7 +664,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
       }
     >
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-        {/* ── Filters Row ── */}
+        {/* â”€â”€ Filters Row â”€â”€ */}
         <div style={{
           padding: '20px',
           background: 'hsl(var(--bg-main) / 0.2)',
@@ -707,9 +707,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                 onChange={(e) => setActiveTab(e.target.value as any)}
                 style={{ width: '100%', padding: '10px 14px', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '12px', color: 'hsl(var(--text-main))', fontSize: '13px', fontWeight: 700, appearance: 'none', cursor: 'pointer' }}
               >
-                <option value="manual">⌨️ Digitação Manual (Teclado)</option>
-                <option value="planilha">📊 Planilha de Manejo (CSV)</option>
-                <option value="smart">🔌 Curral Smart (Balança / RFID)</option>
+                <option value="manual">âŒ¨ï¸ Digitação Manual (Teclado)</option>
+                <option value="planilha">ðŸ“Š Planilha de Manejo (CSV)</option>
+                <option value="smart">ðŸ”Œ Curral Smart (Balança / RFID)</option>
               </select>
               <ChevronDown size={14} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }} />
             </div>
@@ -760,7 +760,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                 color: scaleConnected ? '#10b981' : 'hsl(var(--text-main))',
                 display: 'inline-flex', alignItems: 'center', gap: '6px'
               }}>
-                {scaleConnected ? `🟢 Balança ${scaleBrand} - ${scaleType} Ativa` : '🔌 Conectar Balança Bluetooth'}
+                {scaleConnected ? `ðŸŸ¢ Balança ${scaleBrand} - ${scaleType} Ativa` : 'ðŸ”Œ Conectar Balança Bluetooth'}
               </button>
               {scaleConnected && (
                 <button type="button" onClick={handleScaleTriggerWeight} className="primary-btn animate-pulse" style={{
@@ -769,7 +769,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                   color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '6px',
                   boxShadow: '0 0 10px hsl(var(--brand) / 0.3)'
                 }}>
-                  ⚖️ Pesar Animal {activeFocusedIndex !== null ? `#${rows[activeFocusedIndex].brinco}` : 'Ativo'}
+                  âš–ï¸ Pesar Animal {activeFocusedIndex !== null ? `#${rows[activeFocusedIndex].brinco}` : 'Ativo'}
                 </button>
               )}
             </div>
@@ -816,7 +816,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
           </div>
         )}
 
-        {/* #3 — keyboard hint bar */}
+        {/* #3 â€” keyboard hint bar */}
         {activeTab === 'manual' && rows.length > 0 && !loadingAnimals && (
           <div style={{
             padding: '6px 20px',
@@ -828,17 +828,17 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
               <ArrowDown size={10} />
               <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '3px', padding: '0px 4px', fontFamily: 'monospace', fontSize: '10px' }}>Enter</span>
               ou
-              <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '3px', padding: '0px 4px', fontFamily: 'monospace', fontSize: '10px' }}>↓</span>
+              <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '3px', padding: '0px 4px', fontFamily: 'monospace', fontSize: '10px' }}>â†“</span>
               avança para o próximo animal
             </span>
             <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '3px', padding: '0px 4px', fontFamily: 'monospace', fontSize: '10px' }}>↑</span>
+              <span style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '3px', padding: '0px 4px', fontFamily: 'monospace', fontSize: '10px' }}>â†‘</span>
               volta ao anterior
             </span>
           </div>
         )}
 
-        {/* ── Animals Grid ── */}
+        {/* â”€â”€ Animals Grid â”€â”€ */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0', minHeight: '300px' }}>
           {loadingAnimals ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '240px', gap: '12px' }}>
@@ -1005,11 +1005,11 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
                           </div>
                         ) : row.isAbate ? (
                           <span style={{ fontSize: '11px', fontWeight: 800, color: '#10b981', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-                            🏆 Ponto de Abate
+                            ðŸ† Ponto de Abate
                           </span>
                         ) : row.diasParaAbate !== null ? (
                           <span style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--brand))', padding: '4px 10px', background: 'hsl(var(--brand) / 0.1)', borderRadius: '12px' }}>
-                            ⏳ Faltam {row.diasParaAbate}d
+                            â³ Faltam {row.diasParaAbate}d
                           </span>
                         ) : (
                           <span style={{ fontSize: '11px', fontWeight: 700, color: '#10b981', padding: '4px 10px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '12px' }}>
@@ -1025,7 +1025,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
           )}
         </div>
 
-        {/* #7 — Summary panel before save */}
+        {/* #7 â€” Summary panel before save */}
         {showSummary && filledCount > 0 && (
           <div style={{
             padding: '16px 20px',
@@ -1036,7 +1036,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
               <BarChart2 size={16} style={{ color: 'hsl(var(--brand))' }} />
               <span style={{ fontSize: '12px', fontWeight: 900, color: 'hsl(var(--brand))', textTransform: 'uppercase' }}>
-                Resumo da Sessão — Confirme antes de salvar
+                Resumo da Sessão â€” Confirme antes de salvar
               </span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '12px' }}>

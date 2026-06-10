@@ -70,10 +70,11 @@ const menuItems: NavItem[] = [
       { title: 'Lotes', href: '/pecuaria/lote', permission: 'pecuaria_animais' },
       { title: 'Pastos', href: '/pecuaria/pasto', permission: 'pecuaria_animais' },
       { title: 'Pesagens & GMD', href: '/pecuaria/pesagem', permission: 'pecuaria_animais' },
-      { title: 'Confinamento', href: '/pecuaria/confinamento', permission: 'pecuaria_animais' },
-      { title: 'Reprodução', href: '/pecuaria/reproducao', permission: 'pecuaria_saude' },
       { title: 'Nutrição', href: '/pecuaria/nutricao', permission: 'pecuaria_saude' },
       { title: 'Sanidade', href: '/pecuaria/sanidade', permission: 'pecuaria_saude' },
+      { title: 'Reprodução', href: '/pecuaria/reproducao', permission: 'pecuaria_saude' },
+      { title: 'Confinamento', href: '/pecuaria/confinamento', permission: 'pecuaria_animais' },
+      { title: 'Embarques & Romaneios', href: '/pecuaria/romaneios', permission: 'pecuaria_animais' },
     ]
   },
   { 

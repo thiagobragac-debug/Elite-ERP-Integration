@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -47,7 +47,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({isOpen,
     clientId: initialData?.client_id || '',
     seller_id: initialData?.seller_id || '',
     orderNumber: initialData?.order_number || '',
-    date: initialData?.date || new Date().toISOString().split('T')[0],
+    date: initialData?.date || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     status: initialData?.status || 'pending',
     totalValue: initialData?.total_value || 0,
     items: initialData?.itens || [],
@@ -80,7 +80,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({isOpen,
         clientId: '',
         seller_id: '',
         orderNumber: '',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         status: 'pending',
         totalValue: 0,
         items: [],
@@ -381,7 +381,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({isOpen,
               value={formData.payment_condition}
               onChange={(val: any) => setFormData({...formData, payment_condition: val})}
               options={[
-                { value: 'vista', label: 'À Vista' },
+                { value: 'vista', label: 'Ã€ Vista' },
                 { value: 'prazo', label: 'Parcelado / A Prazo' },
               ]}
             />

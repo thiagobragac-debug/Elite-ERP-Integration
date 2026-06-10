@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -46,7 +46,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
   const [formData, setFormData] = usePersistentState('MovementForm_formData', {
     destino_deposito_id: '',
     tipo: defaultType as 'in' | 'out' | 'transfer' | 'adjust',
-    data_movimentacao: new Date().toISOString().split('T')[0],
+    data_movimentacao: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     origem_destino: '', // Text for In/Transfer
     centro_custo: '',   // Select for Out
     responsavel: '',
@@ -82,7 +82,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
         ...prev,
         destino_deposito_id: initialData.destino_deposito_id || '',
         tipo: initialData.tipo || defaultType,
-        data_movimentacao: initialData.data_movimentacao ? new Date(initialData.data_movimentacao).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        data_movimentacao: initialData.data_movimentacao ? new Date(initialData.data_movimentacao).toISOString().split('T')[0] : new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         origem_destino: initialData.origem_destino || '',
         responsavel: initialData.responsavel || '',
         deposito_origem_id: initialData.deposito_id || ''
@@ -101,7 +101,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
       setFormData({
         destino_deposito_id: '',
         tipo: defaultType as any,
-        data_movimentacao: new Date().toISOString().split('T')[0],
+        data_movimentacao: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         origem_destino: '',
         centro_custo: '',
         responsavel: '',

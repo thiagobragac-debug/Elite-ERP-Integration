@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -37,7 +37,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
 
   const [formData, setFormData] = usePersistentState('AuditForm_formData', {
     title: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     responsible: '',
     category: 'Insumos (Sementes/Adubos)',
     description: '',
@@ -70,7 +70,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
   useEffect(() => {
     if (initialData) { setFormData({
         title: initialData.titulo || '',
-        date: initialData.data_contagem || new Date().toISOString().split('T')[0],
+        date: initialData.data_contagem || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         responsible: initialData.responsavel || '',
         category: initialData.categoria || 'Insumos (Sementes/Adubos)',
         description: initialData.descricao || '',
@@ -82,7 +82,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
     } else {
       setFormData({
         title: '',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         responsible: '',
         category: 'Insumos (Sementes/Adubos)',
         description: '',

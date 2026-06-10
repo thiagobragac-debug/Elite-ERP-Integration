@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -50,7 +50,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({isOpen, onClose, onSu
     product_unit: 'SC',
     product_price: 0,
     price_mechanism: 'fixed',
-    start_date: new Date().toISOString().split('T')[0],
+    start_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     end_date: '',
     total_value: 0,
     status: 'active',
@@ -82,7 +82,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({isOpen, onClose, onSu
         product_unit: initialData.product_unit || 'SC',
         product_price: initialData.product_price || 0,
         price_mechanism: initialData.price_mechanism || 'fixed',
-        start_date: initialData.data_inicio || new Date().toISOString().split('T')[0],
+        start_date: initialData.data_inicio || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         end_date: initialData.data_fim || '',
         total_value: parseFloat(initialData.valor_total) || 0,
         status: initialData.status || 'active',
@@ -434,7 +434,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({isOpen, onClose, onSu
                   value={formData.payment_condition}
                   onChange={(val: any) => setFormData({...formData, payment_condition: val})}
                   options={[
-                    { value: 'vista', label: 'Pagamento Único' },
+                    { value: 'vista', label: 'Pagamento Ãšnico' },
                     { value: 'prazo', label: 'Parcelado / Fluxo Contínuo' },
                   ]}
                 />

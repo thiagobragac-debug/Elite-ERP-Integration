@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import {
   FileText,
@@ -60,7 +60,7 @@ const mockTimeline = [
     icon: 'Heart',
     color: '#ec4899',
     date: '2026-02-05',
-    title: 'Vacinação — Aftosa',
+    title: 'Vacinação â€” Aftosa',
     desc: 'Vacina Bovicel | Dose: 2ml | Aplicada por: João Vaqueiro | Carência: 21 dias',
   },
   {
@@ -144,18 +144,18 @@ const QRCodeBlock: React.FC<{ link: string }> = ({ link }) => {
 };
 
 const formatDate = (dateStr: string) => {
-  if (!dateStr) return '—';
+  if (!dateStr) return 'â€”';
   const [year, month, day] = dateStr.split('-');
   return `${day}/${month}/${year}`;
 };
 
 const formatCurrency = (value?: number) => {
-  if (value === undefined || value === null) return '—';
+  if (value === undefined || value === null) return 'â€”';
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
 const formatWeight = (value?: number) => {
-  if (value === undefined || value === null) return '—';
+  if (value === undefined || value === null) return 'â€”';
   return `${value} kg`;
 };
 
@@ -177,7 +177,7 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
           {
             icon: 'Truck',
             color: '#ef4444',
-            date: new Date().toISOString().split('T')[0],
+            date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
             title: 'Saída via Romaneio de Embarque',
             desc: `Animal registrado como ${animal.status} | Brinco #${animal.brinco}`,
           },
@@ -207,7 +207,7 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
     },
     {
       label: 'Ganho de Peso',
-      value: ganho !== undefined ? `+${ganho} kg` : '—',
+      value: ganho !== undefined ? `+${ganho} kg` : 'â€”',
       color: '#f59e0b',
       bg: 'rgba(245,158,11,0.08)',
     },
@@ -268,7 +268,7 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
           animation: 'rast-slide-up 0.28s cubic-bezier(0.16,1,0.3,1)',
         }}
       >
-        {/* ── Header ── */}
+        {/* â”€â”€ Header â”€â”€ */}
         <div
           style={{
             padding: '20px 24px 18px',
@@ -377,10 +377,10 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
           </div>
         </div>
 
-        {/* ── Body ── */}
+        {/* â”€â”€ Body â”€â”€ */}
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-          {/* ── KPI Cards ── */}
+          {/* â”€â”€ KPI Cards â”€â”€ */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
             {kpiCards.map((kpi) => (
               <div
@@ -425,7 +425,7 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
             ))}
           </div>
 
-          {/* ── Timeline Section ── */}
+          {/* â”€â”€ Timeline Section â”€â”€ */}
           <div>
             <div
               style={{
@@ -578,7 +578,7 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
             </div>
           </div>
 
-          {/* ── QR Code Section ── */}
+          {/* â”€â”€ QR Code Section â”€â”€ */}
           <div
             style={{
               borderRadius: 16,
@@ -687,7 +687,7 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
           </div>
         </div>
 
-        {/* ── Footer ── */}
+        {/* â”€â”€ Footer â”€â”€ */}
         <div
           style={{
             padding: '16px 24px',

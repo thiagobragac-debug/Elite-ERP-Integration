@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -38,7 +38,7 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = usePersistentState('BatchLiquidationModal_formData', {
     bank_account_id: '',
-    payment_date: new Date().toISOString().split('T')[0]
+    payment_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
   });
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [fetchingTotal, setFetchingTotal] = useState(false);
@@ -166,7 +166,7 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
       <div style={{ gridColumn: 'span 2', padding: '16px', borderRadius: '12px', background: 'hsl(var(--warning)/0.1)', border: '1px solid hsl(var(--warning)/0.2)', marginTop: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(var(--warning))', fontSize: '12px', fontWeight: 800, marginBottom: '4px' }}>
           <AlertCircle size={14} />
-          ATENÇÃO
+          ATENÃ‡ÃƒO
         </div>
         <p style={{ margin: 0, fontSize: '11px', lineHeight: '1.4', color: 'hsl(var(--text-muted))' }}>
           Esta ação irá marcar todos os títulos selecionados como pagos/recebidos e não pode ser desfeita em lote.

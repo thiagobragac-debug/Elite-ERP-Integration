@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -47,7 +47,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
     company_id: initialData?.company_id || activeCompany?.id || '',
     order_number: initialData?.order_number || '',
     supplier_id: initialData?.supplier_id || '',
-    date: initialData?.date || new Date().toISOString().split('T')[0],
+    date: initialData?.date || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     delivery_date: initialData?.delivery_date || '',
     freight_type: initialData?.freight_type || 'CIF',
     freight_value: initialData?.freight_value || '',
@@ -79,7 +79,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
         company_id: activeCompany?.id || '',
         order_number: '',
         supplier_id: '',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         delivery_date: '',
         freight_type: 'CIF',
         freight_value: '',
@@ -385,7 +385,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
               value={formData.payment_condition}
               onChange={(val: any) => setFormData({...formData, payment_condition: val})}
               options={[
-                { value: 'vista', label: 'À Vista' },
+                { value: 'vista', label: 'Ã€ Vista' },
                 { value: 'prazo', label: 'Parcelado / A Prazo' },
               ]}
             />

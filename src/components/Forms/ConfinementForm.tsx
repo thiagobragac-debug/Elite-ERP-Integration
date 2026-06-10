@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -36,7 +36,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({isOpen, onClose
     nome_curral: '',
     capacidade_animais: '100',
     dof_alvo: '90',
-    data_inicio: new Date().toISOString().split('T')[0],
+    data_inicio: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     peso_entrada: '420',
     gmd_projetado: '1.5',
     lote_id: '',
@@ -228,7 +228,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({isOpen, onClose
         </div>
       </section>
 
-      {/* DASHBOARD ZOOTÉCNICO (SIMULADOR DE VIABILIDADE) */}
+      {/* DASHBOARD ZOOTÃ‰CNICO (SIMULADOR DE VIABILIDADE) */}
       <section style={{ 
         marginTop: '8px', 
         padding: '24px', 

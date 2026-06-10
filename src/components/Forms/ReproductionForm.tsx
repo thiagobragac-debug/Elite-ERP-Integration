@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -32,7 +32,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
   const [formData, setFormData] = usePersistentState('ReproductionForm_formData', {
     animal_id: '',
     tipo_evento: 'IATF',
-    data_evento: new Date().toISOString().split('T')[0],
+    data_evento: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     resultado: '',
     resultado_diagnostico: 'Prenha',
     dias_gestacao: '',
@@ -50,7 +50,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
     if (initialData) { setFormData({
         animal_id: initialData.animal_id || '',
         tipo_evento: initialData.tipo_evento || 'IATF',
-        data_evento: initialData.data_evento || new Date().toISOString().split('T')[0],
+        data_evento: initialData.data_evento || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         resultado: initialData.resultado || '',
         resultado_diagnostico: initialData.resultado_diagnostico || 'Prenha',
         dias_gestacao: initialData.dias_gestacao || '',
@@ -65,7 +65,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
       setFormData({
         animal_id: '',
         tipo_evento: 'IATF',
-        data_evento: new Date().toISOString().split('T')[0],
+        data_evento: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         resultado: '',
         resultado_diagnostico: 'Prenha',
         dias_gestacao: '',
@@ -213,7 +213,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
           <h4 className="tauze-section-title">Resultados e Informações</h4>
         </div>
 
-        {/* ALERTA ZOOTÉCNICO (ECC) */}
+        {/* ALERTA ZOOTÃ‰CNICO (ECC) */}
         {reproductionStats.warningMsg && (
           <div style={{ marginBottom: '16px', padding: '12px 14px', background: 'hsl(38 92% 50% / 0.1)', border: '1px solid hsl(38 92% 50% / 0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', color: 'hsl(38 92% 40%)' }}>
             <AlertTriangle size={18} style={{ flexShrink: 0 }} />
@@ -252,7 +252,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
             </>
           )}
 
-          {/* ----- FORMULÁRIO MUTANTE: TOQUE / PALPAÇÃO ----- */}
+          {/* ----- FORMULÁRIO MUTANTE: TOQUE / PALPAÃ‡ÃƒO ----- */}
           {formData.tipo_evento === 'Palpação' && (
             <>
               <div className="tauze-field-group">

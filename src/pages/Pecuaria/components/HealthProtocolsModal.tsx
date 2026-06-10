@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShieldCheck, 
   Plus, 
@@ -33,11 +33,11 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
   const [isApplying, setIsApplying] = useState(false);
   const [targetType, setTargetType] = useState<'ANIMAL' | 'LOTE'>('ANIMAL');
   const [targetId, setTargetId] = useState('');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
 
   const [newProtocol, setNewProtocol] = useState({
     name: '',
-    category: 'VACINAÇÃO',
+    category: 'VACINAÃ‡ÃƒO',
     description: '',
     steps: [{ day: 0, product: '', dose: '', via: 'Subcutânea' }]
   });
@@ -60,7 +60,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
       
       const defaults = [
         { id: 'def-1', name: 'Vermifugação Estratégica', category: 'SANIDADE', steps: [{ day: 0, product: 'Ivermectina 3.5%', dose: '1ml/50kg', via: 'Subcutânea' }] },
-        { id: 'def-2', name: 'Protocolo Reclamatória', category: 'VACINAÇÃO', steps: [{ day: 0, product: 'Clostridiose 10v', dose: '2ml', via: 'Subcutânea' }, { day: 30, product: 'Reforço Clostridiose', dose: '2ml', via: 'Subcutânea' }] },
+        { id: 'def-2', name: 'Protocolo Reclamatória', category: 'VACINAÃ‡ÃƒO', steps: [{ day: 0, product: 'Clostridiose 10v', dose: '2ml', via: 'Subcutânea' }, { day: 30, product: 'Reforço Clostridiose', dose: '2ml', via: 'Subcutânea' }] },
       ];
 
       const allProtocols = data && data.length > 0 
@@ -125,7 +125,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
       setIsCreating(false);
       setNewProtocol({
         name: '',
-        category: 'VACINAÇÃO',
+        category: 'VACINAÃ‡ÃƒO',
         description: '',
         steps: [{ day: 0, product: '', dose: '', via: 'Subcutânea' }]
       });
@@ -200,7 +200,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                   onClick={() => { setSelectedProtocol(p); setIsCreating(false); setIsApplying(false); }}
                 >
                   <div style={{ color: selectedProtocol?.id === p.id ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}>
-                    {p.category === 'VACINAÇÃO' ? <Zap size={14} /> : <FlaskConical size={14} />}
+                    {p.category === 'VACINAÃ‡ÃƒO' ? <Zap size={14} /> : <FlaskConical size={14} />}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '12px', fontWeight: 800 }}>{p.name || p.nome}</div>
@@ -229,7 +229,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
             {isApplying ? (
               <motion.div key="apply" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
                 <div style={{ marginBottom: '24px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', marginBottom: '4px' }}>APLICAÇÃO</div>
+                  <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', marginBottom: '4px' }}>APLICAÃ‡ÃƒO</div>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>Destino do Manejo</h3>
                   <p style={{ fontSize: '13px', color: 'hsl(var(--text-muted))' }}>Protocolo: <strong>{selectedProtocol?.name}</strong></p>
                 </div>
@@ -276,7 +276,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                                   <span style={{ fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>{step.scheduledDateStr}</span>
                                 </div>
                                 <div style={{ fontSize: '13px', fontWeight: 700 }}>{step.product}</div>
-                                <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>{step.dose} • {step.via}</div>
+                                <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>{step.dose} â€¢ {step.via}</div>
                               </div>
                             </div>
                           ))}
@@ -317,9 +317,9 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                         value={newProtocol.category}
                         onChange={val => setNewProtocol({...newProtocol, category: val})}
                         options={[
-                          { value: 'VACINAÇÃO', label: 'Vacinação' },
+                          { value: 'VACINAÃ‡ÃƒO', label: 'Vacinação' },
                           { value: 'SANIDADE', label: 'Sanidade/Vermifugação' },
-                          { value: 'NUTRIÇÃO', label: 'Nutrição/Suplementação' }
+                          { value: 'NUTRIÃ‡ÃƒO', label: 'Nutrição/Suplementação' }
                         ]}
                       />
                     </div>
@@ -395,7 +395,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                           </div>
                           <div style={{ flex: 1, padding: '12px 16px', borderRadius: '12px', background: 'hsl(var(--bg-main)/0.3)', border: '1px solid hsl(var(--border))' }}>
                             <div style={{ fontSize: '14px', fontWeight: 800 }}>{step.product}</div>
-                            <div style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 600, marginTop: '2px' }}>{step.dose} • {step.via || 'N/A'}</div>
+                            <div style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 600, marginTop: '2px' }}>{step.dose} â€¢ {step.via || 'N/A'}</div>
                           </div>
                         </div>
                       ))

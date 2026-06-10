@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import ReactDOM from 'react-dom';
@@ -48,7 +48,7 @@ const MOTIVOS = [
 ];
 
 function calcAge(birthDate: string | null): string {
-  if (!birthDate) return '—';
+  if (!birthDate) return 'â€”';
   const diff = Date.now() - new Date(birthDate).getTime();
   const months = Math.floor(diff / (1000 * 60 * 60 * 24 * 30.44));
   if (months < 12) return `${months}m`;
@@ -68,7 +68,7 @@ function CapacityBar({ current, max, adding }: { current: number; max: number; a
     <div style={{ marginTop: '8px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
         <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>Capacidade</span>
-        <span style={{ fontSize: '10px', fontWeight: 800, color }}>{current + adding}/{max} — {label}</span>
+        <span style={{ fontSize: '10px', fontWeight: 800, color }}>{current + adding}/{max} â€” {label}</span>
       </div>
       <div style={{ background: 'hsl(var(--border))', borderRadius: '99px', height: '6px', overflow: 'hidden', position: 'relative' }}>
         <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${beforePct}%`, background: '#10b981', borderRadius: '99px' }} />
@@ -95,7 +95,7 @@ function Row({ label, value, color }: { label: string; value: string; color?: st
   );
 }
 
-// ── Smart Lot Search Component ──────────────────────────────────────────────
+// â”€â”€ Smart Lot Search Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface LotSearchProps {
   lots: any[];
   value: string;
@@ -235,7 +235,7 @@ function LotSearch({ lots, value, onChange, placeholder, exclude, label, animalC
   );
 }
 
-// ── Main Component ──────────────────────────────────────────────────────────
+// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSubmit, initialSourceLotId, actionId }) => {
   const { activeTenantId } = useTenant();
   const { applyFarmFilter, activeFarmId, isGlobalMode } = useFarmFilter();
@@ -257,7 +257,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
     sourceLotName: '',
     targetLotId: '',
     targetLotName: '',
-    date: new Date().toISOString().split('T')[0],
+    date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     motivo: ''
   });
 
@@ -280,7 +280,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
         sourceLotName: '',
         targetLotId: '',
         targetLotName: '',
-        date: new Date().toISOString().split('T')[0],
+        date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         motivo: ''
       });
     }
@@ -432,7 +432,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
             action: 'TRANSFER_BATCH',
             entity: 'Lote',
             entity_id: formData.sourceLotId,
-            description: `${selectedAnimals.length} animais transferidos de "${formData.sourceLotName}" → "${formData.targetLotName}" | ${formData.motivo} | ${formData.date}`,
+            description: `${selectedAnimals.length} animais transferidos de "${formData.sourceLotName}" â†’ "${formData.targetLotName}" | ${formData.motivo} | ${formData.date}`,
             old_data: { lote_id: formData.sourceLotId },
             new_data: { lote_id: formData.targetLotId, motivo: formData.motivo }
           });
@@ -448,7 +448,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
     }
   };
 
-  // ── Confirmation overlay (portal) ───────────────────────────────────────
+  // â”€â”€ Confirmation overlay (portal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const confirmOverlay = showConfirm ? ReactDOM.createPortal(
     (() => {
       const afterCount = (destCapacity?.current || 0) + selectedAnimals.length;
@@ -515,7 +515,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
     })()
   , document.body) : null;
 
-  // ── Form ───────────────────────────────────────────────────────────────
+  // â”€â”€ Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <>
     <SidePanel size="xlarge"
@@ -581,7 +581,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
                 <div style={{ marginTop: '8px' }}>
                   {tl.pastos?.nome && (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px' }}>
-                      📍 Indo para: {tl.pastos.nome}
+                      ðŸ“ Indo para: {tl.pastos.nome}
                     </div>
                   )}
                   {tl.sexo_permitido && tl.sexo_permitido !== 'MISTO' && (
@@ -602,7 +602,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
               value={formData.date} 
               onChange={e => setFormData(f => ({ ...f, date: e.target.value }))} 
               required 
-              max={new Date().toISOString().split('T')[0]} 
+              max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]} 
             />
           </div>
 
@@ -647,7 +647,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
               style={{ opacity: animals.length === 0 ? 0.35 : 1 }}
             >
               <Filter size={11} style={{ marginRight: '3px' }} />
-              FILTROS{(filterSexo || filterCategoria) ? ' ●' : ''}
+              FILTROS{(filterSexo || filterCategoria) ? ' â—' : ''}
             </button>
             <span style={{ color: 'hsl(var(--border))', fontSize: '12px' }}>|</span>
             <button
@@ -713,7 +713,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
         <div style={{ maxHeight: '400px', overflowY: 'auto', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '12px' }}>
           {loading ? (
             <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
-              ⏳ Buscando animais no lote...
+              â³ Buscando animais no lote...
             </div>
           ) : !formData.sourceLotId ? (
             <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
@@ -752,7 +752,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
                         #{animal.brinco}
                       </span>
                       <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>
-                        {animal.raca || '—'}
+                        {animal.raca || 'â€”'}
                       </span>
                       {animal.categoria && (
                         <span className="p-tag">
@@ -773,7 +773,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
                       )}
                       {animal.data_nascimento && (
                         <span style={{ minWidth: '70px' }}>
-                          🎂 {calcAge(animal.data_nascimento)}
+                          ðŸŽ‚ {calcAge(animal.data_nascimento)}
                         </span>
                       )}
                     </div>
@@ -788,7 +788,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
         {selectedAnimals.length > 0 && (
           <div style={{ marginTop: '8px', padding: '8px 12px', background: 'hsl(var(--brand) / 0.08)', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: 700, color: 'hsl(var(--brand))' }}>
-              ✓ {selectedAnimals.length} animal{selectedAnimals.length !== 1 ? 'is' : ''} selecionado{selectedAnimals.length !== 1 ? 's' : ''}
+              âœ“ {selectedAnimals.length} animal{selectedAnimals.length !== 1 ? 'is' : ''} selecionado{selectedAnimals.length !== 1 ? 's' : ''}
               {selectedAnimals.length === animals.length && ' (lote completo)'}
             </span>
             <button type="button" onClick={() => setSelectedAnimals([])} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>

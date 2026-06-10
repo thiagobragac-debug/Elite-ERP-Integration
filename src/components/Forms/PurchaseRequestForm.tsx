@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -41,7 +41,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
     requester: initialData?.requester || '',
     cost_center: initialData?.cost_center || '',
     project: initialData?.project || '',
-    deadline: initialData?.deadline || new Date().toISOString().split('T')[0],
+    deadline: initialData?.deadline || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     priority: initialData?.priority || 'medium',
     justification: initialData?.justification || ''
   });
@@ -56,7 +56,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
         requester: '',
         cost_center: '',
         project: '',
-        deadline: new Date().toISOString().split('T')[0],
+        deadline: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         priority: 'medium',
         justification: ''
       });
@@ -116,7 +116,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
       submitLabel={initialData ? "Salvar Alterações" : "Enviar Solicitação"}
       size="large"
     >
-      {/* PASSO 01: CLASSIFICAÇÃO E JUSTIFICATIVA */}
+      {/* PASSO 01: CLASSIFICAÃ‡ÃƒO E JUSTIFICATIVA */}
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 01</div>
@@ -200,7 +200,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
               type="date" 
               title="Até quando o Suprimentos precisa entregar este pedido na fazenda?"
               value={formData.deadline}
-              min={new Date().toISOString().split('T')[0]} // Não permite retroativo
+              min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]} // Não permite retroativo
               onChange={(e) => setFormData({...formData, deadline: e.target.value})}
               required
             />
@@ -226,7 +226,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
             <label className="tauze-label">
               <FileText size={14} /> Justificativa do Pedido
               {(formData.priority === 'high' || formData.priority === 'urgent') && (
-                <span style={{color: '#ef4444', fontSize: '10px', marginLeft: '6px', fontWeight: 800}}>* OBRIGATÓRIO PARA ESTA PRIORIDADE</span>
+                <span style={{color: '#ef4444', fontSize: '10px', marginLeft: '6px', fontWeight: 800}}>* OBRIGATÃ“RIO PARA ESTA PRIORIDADE</span>
               )}
             </label>
             <textarea className="tauze-input tauze-textarea"
@@ -240,7 +240,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
         </div>
       </section>
 
-      {/* PASSO 02: ITENS DA SOLICITAÇÃO (CARRINHO) */}
+      {/* PASSO 02: ITENS DA SOLICITAÃ‡ÃƒO (CARRINHO) */}
       <section className="tauze-form-section">
         <div className="tauze-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -267,7 +267,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
         </div>
       </section>
 
-      {/* PASSO 03: EVIDÊNCIAS E ANEXOS */}
+      {/* PASSO 03: EVIDÃŠNCIAS E ANEXOS */}
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 03</div>
