@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
+import { FormSection } from './UI/FormSection';
 import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
 
@@ -279,7 +280,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
       }
     >
       {/* Wizard Step Progress Indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', padding: '0 4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', padding: '0 4px' }}>
         {steps.map((s, idx) => (
           <React.Fragment key={s.number}>
             <div 
@@ -316,10 +317,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
       {currentStep === 1 && (
         <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <section className="tauze-form-section" style={{ margin: 0 }}>
-            <div className="tauze-section-header">
-              <div className="tauze-section-badge">PASSO 01</div>
-              <h4 className="tauze-section-title">Identificação Básica</h4>
-            </div>
+            <FormSection title="Identificação Básica" badge="PASSO 01" marginTop={0} />
             <div className="tauze-input-grid grid-col-3">
               <div className="tauze-field-group">
                 <label className="tauze-label"><Package size={14} /> Nome do Item</label>
@@ -358,10 +356,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
           </section>
 
           <section className="tauze-form-section" style={{ margin: 0 }}>
-            <div className="tauze-section-header">
-              <div className="tauze-section-badge">PASSO 02</div>
-              <h4 className="tauze-section-title">Logística e Fiscal</h4>
-            </div>
+            <FormSection title="Logística e Fiscal" badge="PASSO 02" marginTop={0} />
             <div className="tauze-input-grid grid-col-3">
               <div className="tauze-field-group">
                 <label className="tauze-label"><Layers size={14} /> Localização (Almoxarifado)</label>
@@ -402,10 +397,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
       {currentStep === 2 && (
         <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <section className="tauze-form-section" style={{ margin: 0 }}>
-            <div className="tauze-section-header">
-              <div className="tauze-section-badge">PASSO 01</div>
-              <h4 className="tauze-section-title">Controle de Estoque</h4>
-            </div>
+            <FormSection title="Controle de Estoque" badge="PASSO 01" marginTop={0} />
             <div className="tauze-input-grid grid-col-3">
               <div className="tauze-field-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -457,10 +449,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
           </section>
 
           <section className="tauze-form-section" style={{ margin: 0 }}>
-            <div className="tauze-section-header">
-              <div className="tauze-section-badge">PASSO 02</div>
-              <h4 className="tauze-section-title">Valores e Custos</h4>
-            </div>
+            <FormSection title="Valores e Custos" badge="PASSO 02" marginTop={0} />
 
             <div className="tauze-input-grid grid-col-3">
               <div className="tauze-field-group">
@@ -524,10 +513,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
           )}
 
           <section className="tauze-form-section" style={{ margin: 0 }}>
-            <div className="tauze-section-header">
-              <div className="tauze-section-badge">PASSO 01</div>
-              <h4 className="tauze-section-title">Regras de ERP (Comportamento do Item)</h4>
-            </div>
+            <FormSection title="Regras de ERP (Comportamento do Item)" badge="PASSO 01" marginTop={0} />
             <div className="tauze-input-grid grid-col-3">
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '12px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
                 <input 
@@ -572,10 +558,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
           </section>
 
           <section className="tauze-form-section" style={{ margin: 0 }}>
-            <div className="tauze-section-header">
-              <div className="tauze-section-badge">PASSO 02</div>
-              <h4 className="tauze-section-title">Informações Adicionais</h4>
-            </div>
+            <FormSection title="Informações Adicionais" badge="PASSO 02" marginTop={0} />
             <div className="tauze-input-grid grid-col-1">
               <div className="tauze-field-group">
                 <label className="tauze-label"><FileText size={14} /> Descrição / Notas</label>

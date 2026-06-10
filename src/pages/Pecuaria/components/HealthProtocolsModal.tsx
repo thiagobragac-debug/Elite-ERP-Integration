@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ShieldCheck, 
   Plus, 
@@ -26,27 +26,81 @@ interface HealthProtocolsModalProps {
 }
 
 export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOpen, onClose, onApply }) => {
-  const { activeFarm } = useTenant();
+  const { activeFarm, activeTenantId } = useTenant();
   const [protocols, setProtocols] = useState<any[]>([]);
   const [selectedProtocol, setSelectedProtocol] = useState<any>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
+  const [isEditingId, setIsEditingId] = useState<string | null>(null);
   const [targetType, setTargetType] = useState<'ANIMAL' | 'LOTE'>('ANIMAL');
   const [targetId, setTargetId] = useState('');
   const [startDate, setStartDate] = useState(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
 
   const [newProtocol, setNewProtocol] = useState({
     name: '',
-    category: 'VACINAÃ‡ÃƒO',
+    category: 'VACINAÇÃO',
     description: '',
     steps: [{ day: 0, product: '', dose: '', via: 'Subcutânea' }]
   });
 
+  const [availableProducts, setAvailableProducts] = useState<{ value: string; label: string }[]>([]);
+
+  const fetchProducts = async () => {
+    try {
+      const tenantId = activeTenantId || activeFarm?.tenantId;
+      if (!tenantId) return;
+
+      const { data: catData } = await supabase
+        .from('categorias_sistema')
+        .select('id, nome')
+        .eq('modulo', 'estoque');
+
+      const targetCatIds = catData
+        ? catData
+            .filter((c: any) => {
+              const name = c.nome?.toLowerCase() || '';
+              return name.includes('medicamento');
+            })
+            .map((c: any) => c.id)
+        : [];
+
+      let query = supabase
+        .from('produtos')
+        .select('nome')
+        .eq('tenant_id', tenantId)
+        .eq('is_active', true);
+
+      if (targetCatIds.length > 0) {
+        query = query.in('categoria_id', targetCatIds);
+      }
+
+      if (activeFarm?.id) {
+        query = query.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
+      }
+
+      const { data: prodData } = await query;
+
+      if (prodData && prodData.length > 0) {
+        const uniqueNames = Array.from(new Set(prodData.map((p: any) => p.nome).filter(Boolean)));
+        const mapped = uniqueNames.map((name: any) => ({ value: name, label: name }));
+
+        console.log('[HealthProtocolsModal] Insumos de Medicamentos carregados:', mapped);
+        setAvailableProducts(mapped);
+      } else {
+        console.log('[HealthProtocolsModal] Nenhum produto do banco retornado. Lista de insumos vazia.');
+        setAvailableProducts([]);
+      }
+    } catch (err) {
+      console.error('Error fetching products for protocols:', err);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchProtocols();
+      fetchProducts();
     }
-  }, [isOpen]);
+  }, [isOpen, activeFarm, activeTenantId]);
 
   const fetchProtocols = async () => {
     try {
@@ -60,7 +114,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
       
       const defaults = [
         { id: 'def-1', name: 'Vermifugação Estratégica', category: 'SANIDADE', steps: [{ day: 0, product: 'Ivermectina 3.5%', dose: '1ml/50kg', via: 'Subcutânea' }] },
-        { id: 'def-2', name: 'Protocolo Reclamatória', category: 'VACINAÃ‡ÃƒO', steps: [{ day: 0, product: 'Clostridiose 10v', dose: '2ml', via: 'Subcutânea' }, { day: 30, product: 'Reforço Clostridiose', dose: '2ml', via: 'Subcutânea' }] },
+        { id: 'def-2', name: 'Protocolo Reclamatória', category: 'VACINAÇÃO', steps: [{ day: 0, product: 'Clostridiose 10v', dose: '2ml', via: 'Subcutânea' }, { day: 30, product: 'Reforço Clostridiose', dose: '2ml', via: 'Subcutânea' }] },
       ];
 
       const allProtocols = data && data.length > 0 
@@ -103,29 +157,54 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
 
   const handleSaveProtocol = async () => {
     if (!newProtocol.name) return toast.error('Dê um nome ao protocolo');
-    
+
     try {
-      const { data, error } = await supabase
-        .from('protocolos')
-        .insert([{
-          nome: newProtocol.name,
-          categoria: newProtocol.category,
-          passos: newProtocol.steps,
-          fazenda_id: activeFarm?.id,
-          tenant_id: activeFarm?.tenantId
-        }])
-        .select()
-        .single();
+      const isDefault = isEditingId && isEditingId.startsWith('def-');
+      if (isEditingId && !isDefault) {
+        // Update existing protocol
+        const { data, error } = await supabase
+          .from('protocolos')
+          .update({
+            nome: newProtocol.name,
+            categoria: newProtocol.category,
+            passos: newProtocol.steps,
+          })
+          .eq('id', isEditingId)
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const savedProtocol = { ...data, name: data.nome, category: data.categoria, steps: data.passos };
-      setProtocols([savedProtocol, ...protocols]);
-      setSelectedProtocol(savedProtocol);
+        const updatedProtocol = { ...data, name: data.nome, category: data.categoria, steps: data.passos };
+        setProtocols(prev => prev.map(p => p.id === isEditingId ? updatedProtocol : p));
+        setSelectedProtocol(updatedProtocol);
+        toast.success('Protocolo atualizado com sucesso!');
+      } else {
+        // Insert new protocol
+        const { data, error } = await supabase
+          .from('protocolos')
+          .insert([{
+            nome: newProtocol.name,
+            categoria: newProtocol.category,
+            passos: newProtocol.steps,
+            fazenda_id: activeFarm?.id,
+            tenant_id: activeFarm?.tenantId
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const savedProtocol = { ...data, name: data.nome, category: data.categoria, steps: data.passos };
+        setProtocols([savedProtocol, ...protocols]);
+        setSelectedProtocol(savedProtocol);
+        toast.success('Protocolo criado com sucesso!');
+      }
       setIsCreating(false);
+      setIsEditingId(null);
       setNewProtocol({
         name: '',
-        category: 'VACINAÃ‡ÃƒO',
+        category: 'VACINAÇÃO',
         description: '',
         steps: [{ day: 0, product: '', dose: '', via: 'Subcutânea' }]
       });
@@ -179,7 +258,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
               type="button"
               className="primary-btn" 
               style={{ width: '100%', padding: '10px', fontSize: '11px', justifyContent: 'center' }}
-              onClick={() => { setIsCreating(true); setSelectedProtocol(null); setIsApplying(false); }}
+              onClick={() => { setIsCreating(true); setSelectedProtocol(null); setIsApplying(false); setIsEditingId(null); }}
             >
               <Plus size={14} /> NOVO PROTOCOLO
             </button>
@@ -200,7 +279,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                   onClick={() => { setSelectedProtocol(p); setIsCreating(false); setIsApplying(false); }}
                 >
                   <div style={{ color: selectedProtocol?.id === p.id ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}>
-                    {p.category === 'VACINAÃ‡ÃƒO' ? <Zap size={14} /> : <FlaskConical size={14} />}
+                    {p.category === 'VACINAÇÃO' ? <Zap size={14} /> : <FlaskConical size={14} />}
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '12px', fontWeight: 800 }}>{p.name || p.nome}</div>
@@ -229,7 +308,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
             {isApplying ? (
               <motion.div key="apply" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -10 }}>
                 <div style={{ marginBottom: '24px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', marginBottom: '4px' }}>APLICAÃ‡ÃƒO</div>
+                  <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', marginBottom: '4px' }}>APLICAÇÃO</div>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 900 }}>Destino do Manejo</h3>
                   <p style={{ fontSize: '13px', color: 'hsl(var(--text-muted))' }}>Protocolo: <strong>{selectedProtocol?.name}</strong></p>
                 </div>
@@ -276,7 +355,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                                   <span style={{ fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>{step.scheduledDateStr}</span>
                                 </div>
                                 <div style={{ fontSize: '13px', fontWeight: 700 }}>{step.product}</div>
-                                <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>{step.dose} â€¢ {step.via}</div>
+                                <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>{step.dose} • {step.via}</div>
                               </div>
                             </div>
                           ))}
@@ -317,9 +396,9 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                         value={newProtocol.category}
                         onChange={val => setNewProtocol({...newProtocol, category: val})}
                         options={[
-                          { value: 'VACINAÃ‡ÃƒO', label: 'Vacinação' },
+                          { value: 'VACINAÇÃO', label: 'Vacinação' },
                           { value: 'SANIDADE', label: 'Sanidade/Vermifugação' },
-                          { value: 'NUTRIÃ‡ÃƒO', label: 'Nutrição/Suplementação' }
+                          { value: 'NUTRIÇÃO', label: 'Nutrição/Suplementação' }
                         ]}
                       />
                     </div>
@@ -330,20 +409,36 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                       <span style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--text-muted))' }}>ETAPAS DO CRONOGRAMA</span>
                       <button type="button" onClick={handleAddStep} style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', background: 'transparent', border: 'none', cursor: 'pointer' }}>+ ADICIONAR DIA</button>
                     </div>
+
+                    {newProtocol.steps.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 80px 110px', gap: '8px', padding: '0 12px 6px 12px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>
+                        <div>Dia</div>
+                        <div>Medicamento</div>
+                        <div>Dose</div>
+                        <div>Via</div>
+                      </div>
+                    )}
+
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {newProtocol.steps.map((step, idx) => (
-                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 120px 140px', gap: '8px', padding: '12px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
+                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 80px 110px', gap: '8px', padding: '12px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
                           <input type="number" className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} value={step.day} onChange={e => {
                             const steps = [...newProtocol.steps];
                             steps[idx].day = parseInt(e.target.value);
                             setNewProtocol({...newProtocol, steps});
                           }} />
-                          <input type="text" className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} placeholder="Produto" value={step.product} onChange={e => {
-                            const steps = [...newProtocol.steps];
-                            steps[idx].product = e.target.value;
-                            setNewProtocol({...newProtocol, steps});
-                          }} />
-                          <input type="text" className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} placeholder="Dose (Ex: 2ml)" value={step.dose} onChange={e => {
+                          <SearchableSelect
+                            value={step.product}
+                            onChange={val => {
+                              const steps = [...newProtocol.steps];
+                              steps[idx].product = val;
+                              setNewProtocol({...newProtocol, steps});
+                            }}
+                            options={availableProducts}
+                            creatable={true}
+                            placeholder="Produto"
+                          />
+                          <input type="text" className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} placeholder="Ex: 2ml" value={step.dose} onChange={e => {
                             const steps = [...newProtocol.steps];
                             steps[idx].dose = e.target.value;
                             setNewProtocol({...newProtocol, steps});
@@ -371,6 +466,23 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                   <div>
                     <div style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', marginBottom: '4px' }}>{selectedProtocol.category}</div>
                     <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 900 }}>{selectedProtocol.name}</h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewProtocol({
+                          name: selectedProtocol.name || selectedProtocol.nome,
+                          category: selectedProtocol.category || selectedProtocol.categoria,
+                          description: selectedProtocol.description || '',
+                          steps: selectedProtocol.steps || []
+                        });
+                        setIsEditingId(selectedProtocol.id);
+                        setIsCreating(true);
+                      }}
+                      className="glass-btn secondary"
+                      style={{ padding: '6px 12px', fontSize: '11px', marginTop: '8px', cursor: 'pointer' }}
+                    >
+                      {selectedProtocol.id.startsWith('def-') ? 'Copiar & Customizar' : 'Editar Protocolo'}
+                    </button>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>
                     <Clock size={12} />
@@ -395,7 +507,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                           </div>
                           <div style={{ flex: 1, padding: '12px 16px', borderRadius: '12px', background: 'hsl(var(--bg-main)/0.3)', border: '1px solid hsl(var(--border))' }}>
                             <div style={{ fontSize: '14px', fontWeight: 800 }}>{step.product}</div>
-                            <div style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 600, marginTop: '2px' }}>{step.dose} â€¢ {step.via || 'N/A'}</div>
+                            <div style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', fontWeight: 600, marginTop: '2px' }}>{step.dose} • {step.via || 'N/A'}</div>
                           </div>
                         </div>
                       ))

@@ -584,7 +584,7 @@ export const SalesOrders: React.FC = () => {
                 {item.transportadora || 'Remessa Própria'}
               </span>
               <span className="sub-meta" style={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '9px', letterSpacing: '0.05em', color: '#64748b' }}>
-                Placa: {item.placa_veiculo || 'N/A'} â€¢ GTA: {item.numero_gta || 'N/A'}
+                Placa: {item.placa_veiculo || 'N/A'} • GTA: {item.numero_gta || 'N/A'}
               </span>
             </>
           ) : (

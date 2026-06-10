@@ -9,6 +9,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { SidePanel } from '../../components/Layout/SidePanel';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 interface Cargo {
   id: string;
@@ -19,6 +20,7 @@ interface Cargo {
 
 export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: number }> = ({ searchTerm, triggerCreate }) => {
   const { tenant } = useTenant();
+  const { confirm } = useConfirm();
   const [cargos, setCargos] = useState<Cargo[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -117,7 +119,15 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numb
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este cargo? Usuários vinculados perderão a referência.')) return;
+    const isConfirmed = await confirm({
+      title: 'Excluir Cargo',
+      description: 'Tem certeza que deseja excluir este cargo? Usuários vinculados perderão a referência.',
+      confirmText: 'Excluir',
+      cancelText: 'Cancelar',
+      variant: 'danger'
+    });
+    
+    if (!isConfirmed) return;
     
     const { error } = await supabase
       .from('cargos')
@@ -125,9 +135,10 @@ export const RoleSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numb
       .eq('id', id);
       
     if (!error) {
+      toast.success('Cargo excluído com sucesso!');
       fetchCargos();
     } else {
-      alert('Erro ao deletar: ' + error.message);
+      toast.error('Erro ao deletar: ' + error.message);
     }
   };
 

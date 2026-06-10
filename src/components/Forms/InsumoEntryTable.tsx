@@ -464,6 +464,28 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                               }}
                             />
                             <Search size={14} className="s-icon-mini" />
+
+                            {isSearching === item.id && (
+                              <div className="insumo-dropdown-portal">
+                                {filteredProducts.length > 0 ? (
+                                  filteredProducts.slice(0, 8).map(p => (
+                                    <div 
+                                      key={p.id} 
+                                      className="insumo-option"
+                                      onClick={() => handleSelectProduct(item.id, p)}
+                                    >
+                                      <Package size={14} />
+                                      <div className="opt-info">
+                                        <span className="opt-name">{p.nome}</span>
+                                        <span className="opt-meta">{p.unidade_medida} • {p.ncm ? `NCM ${p.ncm}` : `Ref: ${p.id.slice(0,6)}`}</span>
+                                      </div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <div className="no-results">Nenhum produto encontrado</div>
+                                )}
+                              </div>
+                            )}
                           </div>
 
                           {/* Botão Confirmar para sugestões */}
@@ -510,28 +532,6 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                         {isXmlItem && item.match_status === 'confirmed' && item.match_source && (
                           <div style={{ marginTop: '4px', fontSize: '9px', fontWeight: 700, color: '#059669', paddingLeft: '26px' }}>
                             {item.match_source === 'de_para' ? '🗄 Vínculo salvo (De-Para)' : `✓ Vínculo confirmado`}
-                          </div>
-                        )}
-
-                        {isSearching === item.id && (
-                          <div className="insumo-dropdown-portal">
-                            {filteredProducts.length > 0 ? (
-                              filteredProducts.slice(0, 8).map(p => (
-                                <div 
-                                  key={p.id} 
-                                  className="insumo-option"
-                                  onClick={() => handleSelectProduct(item.id, p)}
-                                >
-                                  <Package size={14} />
-                                  <div className="opt-info">
-                                    <span className="opt-name">{p.nome}</span>
-                                    <span className="opt-meta">{p.unidade_medida} • {p.ncm ? `NCM ${p.ncm}` : `Ref: ${p.id.slice(0,6)}`}</span>
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="no-results">Nenhum produto encontrado</div>
-                            )}
                           </div>
                         )}
                       </>

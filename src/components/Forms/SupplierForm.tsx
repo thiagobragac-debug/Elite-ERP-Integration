@@ -27,6 +27,7 @@ import { supabase } from '../../lib/supabase';
 import { geocodeAddress } from '../../utils/geocoding';
 import toast from 'react-hot-toast';
 import { SearchableSelect } from './SearchableSelect';
+import { FormSection } from './UI/FormSection';
 
 interface SupplierFormProps {
   isOpen: boolean;
@@ -273,10 +274,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({isOpen, onClose, onSu
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Parceiro"}
       size="large"
     >
-      <div className="form-section-title full-width" style={{ marginTop: 0 }}>
-        <Building size={16} />
-        <span>Identificação Fiscal</span>
-      </div>
+      <FormSection title="Identificação Fiscal" icon={Building} marginTop={0} />
 
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -352,10 +350,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({isOpen, onClose, onSu
         </div>
       </div>
 
-      <div className="form-section-title full-width" style={{ marginTop: '24px' }}>
-        <User size={16} />
-        <span>Contato Comercial</span>
-      </div>
+      <FormSection title="Contato Comercial" icon={User} />
 
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -388,10 +383,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({isOpen, onClose, onSu
         </div>
       </div>
 
-      <div className="form-section-title full-width">
-        <MapPin size={16} />
-        <span>Endereço Completo</span>
-      </div>
+      <FormSection title="Endereço Completo" icon={MapPin} marginTop={0} />
 
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 3fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -505,10 +497,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({isOpen, onClose, onSu
         </div>
       </div>
 
-      <div className="form-section-title full-width" style={{ marginTop: '24px' }}>
-        <Wallet size={16} />
-        <span>Dados Financeiros (Faturamento)</span>
-      </div>
+      <FormSection title="Dados Financeiros (Faturamento)" icon={Wallet} />
       
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -553,10 +542,7 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({isOpen, onClose, onSu
         </div>
       </div>
 
-      <div className="form-section-title full-width" style={{ marginTop: '24px' }}>
-        <Building2 size={16} />
-        <span>Abrangência e Visibilidade</span>
-      </div>
+      <FormSection title="Abrangência e Visibilidade" icon={Building2} />
 
       <div className="form-group full-width">
         <div 

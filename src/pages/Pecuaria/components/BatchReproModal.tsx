@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ClipboardCheck, 
   Layers, 
@@ -181,7 +181,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                 <Users size={18} />
                 <div>
                   <div style={{ fontSize: '10px', fontWeight: 700, opacity: 0.7 }}>LOTE SELECIONADO</div>
-                  <div style={{ fontSize: '13px', fontWeight: 800 }}>{lots.find(l => l.id === selectedLotId)?.nome} â€¢ {lotAnimalCount} Matrizes</div>
+                  <div style={{ fontSize: '13px', fontWeight: 800 }}>{lots.find(l => l.id === selectedLotId)?.nome} • {lotAnimalCount} Matrizes</div>
                 </div>
               </div>
 

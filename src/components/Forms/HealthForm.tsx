@@ -427,7 +427,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
       }
     >
       {/* Wizard Step Progress Indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', padding: '0 4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', padding: '0 4px' }}>
         {steps.map((s, idx) => (
           <React.Fragment key={s.number}>
             <div 

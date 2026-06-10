@@ -23,6 +23,7 @@ import { CommandPalette } from './components/Navigation/CommandPalette';
 import { useSuperAdmin } from './hooks/useSuperAdmin';
 import { CepeaProvider } from './contexts/CepeaContext';
 import { OfflineSyncProvider } from './contexts/OfflineSyncContext';
+import { ConfirmProvider } from './contexts/ConfirmContext';
 
 // Lazy Loads
 const AnimalManagement = React.lazy(() => import('./pages/Pecuaria/AnimalManagement'));
@@ -308,34 +309,36 @@ export function App() {
         <AuthProvider>
           <TenantProvider>
             <CepeaProvider>
-              <ErrorBoundary>
-                <Toaster 
-                  position="top-right"
-                  containerStyle={{ zIndex: 999999 }} 
-                  toastOptions={{
-                    className: '',
-                    style: {
-                      borderRadius: '12px',
-                      background: 'hsl(var(--bg-card))',
-                      color: 'hsl(var(--text-main))',
-                      border: '1px solid hsl(var(--border))',
-                      padding: '16px',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-                    },
-                    success: {
-                      iconTheme: { primary: '#10b981', secondary: 'white' },
-                      style: { borderLeft: '4px solid #10b981' }
-                    },
-                    error: {
-                      iconTheme: { primary: '#ef4444', secondary: 'white' },
-                      style: { borderLeft: '4px solid #ef4444' }
-                    },
-                  }}
-                />
-                <AppContent />
-              </ErrorBoundary>
+              <ConfirmProvider>
+                <ErrorBoundary>
+                  <Toaster 
+                    position="top-right"
+                    containerStyle={{ zIndex: 999999 }} 
+                    toastOptions={{
+                      className: '',
+                      style: {
+                        borderRadius: '12px',
+                        background: 'hsl(var(--bg-card))',
+                        color: 'hsl(var(--text-main))',
+                        border: '1px solid hsl(var(--border))',
+                        padding: '16px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+                      },
+                      success: {
+                        iconTheme: { primary: '#10b981', secondary: 'white' },
+                        style: { borderLeft: '4px solid #10b981' }
+                      },
+                      error: {
+                        iconTheme: { primary: '#ef4444', secondary: 'white' },
+                        style: { borderLeft: '4px solid #ef4444' }
+                      },
+                    }}
+                  />
+                  <AppContent />
+                </ErrorBoundary>
+              </ConfirmProvider>
             </CepeaProvider>
           </TenantProvider>
         </AuthProvider>

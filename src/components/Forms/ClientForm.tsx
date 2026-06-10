@@ -28,6 +28,7 @@ import { geocodeAddress } from '../../utils/geocoding';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
 import { SearchableSelect } from './SearchableSelect';
+import { FormSection } from './UI/FormSection';
 
 interface ClientFormProps {
   isOpen: boolean;
@@ -276,10 +277,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({isOpen, onClose, onSubmit
       submitLabel={initialData ? "Salvar Alterações" : "Salvar Parceiro"}
       size="large"
     >
-      <div className="form-section-title full-width" style={{ marginTop: 0 }}>
-        <Building size={16} />
-        <span>Identificação Fiscal</span>
-      </div>
+      <FormSection title="Identificação Fiscal" icon={Building} marginTop={0} />
 
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -355,10 +353,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({isOpen, onClose, onSubmit
         </div>
       </div>
 
-      <div className="form-section-title full-width" style={{ marginTop: '24px' }}>
-        <User size={16} />
-        <span>Contato Comercial</span>
-      </div>
+      <FormSection title="Contato Comercial" icon={User} />
 
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -392,10 +387,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({isOpen, onClose, onSubmit
         </div>
       </div>
 
-      <div className="form-section-title full-width">
-        <MapPin size={16} />
-        <span>Endereço Completo</span>
-      </div>
+      <FormSection title="Endereço Completo" icon={MapPin} marginTop={0} />
 
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 3fr', gap: '16px', border: 'none', padding: 0, background: 'transparent' }}>
         <div className="form-group" style={{ margin: 0, padding: 0, border: 'none', background: 'transparent', gridColumn: 'span 1' }}>
@@ -512,10 +504,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({isOpen, onClose, onSubmit
       <div className="form-group full-width" style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '24px', alignItems: 'start', border: 'none', padding: 0, background: 'transparent', marginTop: '12px' }}>
         {/* Left Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="form-section-title full-width" style={{ marginBottom: 0 }}>
-            <CreditCard size={16} />
-            <span>Parâmetros Financeiros</span>
-          </div>
+          <FormSection title="Parâmetros Financeiros" icon={CreditCard} marginTop={0} className="mb-0" />
 
           <div className="form-group full-width" style={{ marginBottom: 0 }}>
             <label><CreditCard size={14} /> Limite de Crédito Aprovado (R$)</label>
@@ -544,10 +533,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({isOpen, onClose, onSubmit
 
         {/* Right Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div className="form-section-title full-width" style={{ marginBottom: 0 }}>
-            <Building2 size={16} />
-            <span>Abrangência e Visibilidade</span>
-          </div>
+          <FormSection title="Abrangência e Visibilidade" icon={Building2} marginTop={0} className="mb-0" />
 
           <div className="form-group full-width" style={{ marginBottom: 0 }}>
             <div 

@@ -726,7 +726,7 @@ export const BankAccounts: React.FC = () => {
                     <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '6px', marginTop: '12px' }}>
                       <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 800, color: '#10b981', textTransform: 'uppercase' }}>
                         <Clock size={12} style={{ color: '#10b981' }} />
-                        <span>Sincronizado via API â€¢ Hoje 08:30</span>
+                        <span>Sincronizado via API • Hoje 08:30</span>
                       </div>
                     </div>
                   </div>

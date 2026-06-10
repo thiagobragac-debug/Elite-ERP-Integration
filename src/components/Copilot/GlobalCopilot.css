@@ -124,3 +124,9 @@
 .copilot-input { padding: 20px; border-top: 1px solid hsl(var(--border)); display: flex; gap: 12px; background: hsl(var(--bg-card)); }
 .copilot-input input { flex: 1; border: 1px solid hsl(var(--border)); background: hsl(var(--bg-main)); padding: 12px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; outline: none; color: hsl(var(--text-main)); }
 .send-btn { background: #16a34a; color: white; border: none; width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+
+/* Hide Copilot when standard forms, side panels, or modal overlays are open */
+body:has(.tauze-sidepanel-overlay, .tauze-modal-overlay) .copilot-floating-btn,
+body:has(.tauze-sidepanel-overlay, .tauze-modal-overlay) .tauze-copilot-overlay {
+  display: none !important;
+}

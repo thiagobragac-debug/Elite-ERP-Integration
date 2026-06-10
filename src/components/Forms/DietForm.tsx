@@ -183,7 +183,7 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
       }
     >
       {/* Wizard Step Progress Indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px', padding: '0 4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', padding: '0 4px' }}>
         {steps.map((s, idx) => (
           <React.Fragment key={s.number}>
             <div 

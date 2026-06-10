@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Beef, CheckCircle2, ArrowRightCircle, AlertTriangle,
   Target, Scale, Calendar, TrendingUp, DollarSign, Clock, XCircle
@@ -65,12 +65,12 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
   const canSubmitStep2 = fechamentoStats ? (fechamentoStats.isDateValid && fechamentoStats.isWeightValid && fechamentoStats.pesoSaida > 0) : false;
 
   const stats = selectedPen ? [
-    { Icon: Beef,       label: 'Cabeças',   value: `${selectedPen.capacidade_animais ?? 'â€”'}` },
+    { Icon: Beef,       label: 'Cabeças',   value: `${selectedPen.capacidade_animais ?? '—'}` },
     { Icon: Clock,      label: 'DOF',       value: `${getDOF(selectedPen)} dias` },
-    { Icon: Scale,      label: 'Peso Ent.', value: selectedPen.peso_medio_entrada ? `${selectedPen.peso_medio_entrada} kg` : 'â€”' },
-    { Icon: TrendingUp, label: 'GMD',       value: selectedPen.gmd_atual ? `${selectedPen.gmd_atual} kg/d` : 'â€”' },
+    { Icon: Scale,      label: 'Peso Ent.', value: selectedPen.peso_medio_entrada ? `${selectedPen.peso_medio_entrada} kg` : '—' },
+    { Icon: TrendingUp, label: 'GMD',       value: selectedPen.gmd_atual ? `${selectedPen.gmd_atual} kg/d` : '—' },
     { Icon: Calendar,   label: 'Entrada',   value: new Date(selectedPen.data_inicio).toLocaleDateString('pt-BR') },
-    { Icon: DollarSign, label: 'CPD',       value: selectedPen.custo_por_dia ? `R$ ${Number(selectedPen.custo_por_dia).toFixed(2)}` : 'â€”' },
+    { Icon: DollarSign, label: 'CPD',       value: selectedPen.custo_por_dia ? `R$ ${Number(selectedPen.custo_por_dia).toFixed(2)}` : '—' },
   ] : [];
 
   return (
@@ -128,7 +128,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
                           <span style={{ fontSize: 13, fontWeight: 800, color: 'hsl(var(--text-main))' }}>{pen.nome_curral}</span>
                           {sel && <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'hsl(var(--brand))' }} />}
                         </div>
-                        <div style={{ fontSize: 11, color: 'hsl(var(--text-muted))', fontWeight: 600 }}>{pen.lotes?.nome || 'â€”'}</div>
+                        <div style={{ fontSize: 11, color: 'hsl(var(--text-muted))', fontWeight: 600 }}>{pen.lotes?.nome || '—'}</div>
                         <div style={{ display: 'flex', gap: 5 }}>
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, padding: '2px 6px', background: 'hsl(var(--bg-main))', borderRadius: 5 }}>
                             <Beef size={9} /> {pen.capacidade_animais} cab.
@@ -177,7 +177,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
                     <div style={{ padding: '12px 16px', background: 'hsl(var(--brand))', color: 'white' }}>
                       <div style={{ fontSize: 9, fontWeight: 800, opacity: 0.75, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Curral Selecionado</div>
                       <div style={{ fontSize: 17, fontWeight: 900, marginTop: 2 }}>{selectedPen.nome_curral}</div>
-                      <div style={{ fontSize: 11, opacity: 0.8, marginTop: 1 }}>Lote: {selectedPen.lotes?.nome || 'â€”'}</div>
+                      <div style={{ fontSize: 11, opacity: 0.8, marginTop: 1 }}>Lote: {selectedPen.lotes?.nome || '—'}</div>
                     </div>
                     {/* Stats grid */}
                     <div style={{ padding: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -204,7 +204,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
                 <Target size={18} />
                 <div>
                   <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.65 }}>FINALIZANDO CICLO</div>
-                  <div style={{ fontSize: 13, fontWeight: 800 }}>{selectedPen?.nome_curral} â€¢ {selectedPen?.lotes?.nome}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800 }}>{selectedPen?.nome_curral} • {selectedPen?.lotes?.nome}</div>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>

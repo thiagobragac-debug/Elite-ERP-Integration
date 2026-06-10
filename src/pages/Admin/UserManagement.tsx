@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 
 function buildSparkline(records: any[], dateField: string, valueField: string | null, buckets = 7): { value: number; label: string }[] {
   if (!records || records.length === 0) return [];
@@ -988,7 +988,7 @@ export const UserManagement: React.FC = () => {
                         );
                       })()}
                       <span className={`status-pill ${user.status === 'active' ? 'active' : 'stopped'}`} style={{ marginTop: '8px', fontSize: '9px' }}>
-                        {user.status === 'active' ? 'â— Online' : 'â—‹ Offline'}
+                        {user.status === 'active' ? '● Online' : '○ Offline'}
                       </span>
                     </div>
                     <div className="card-main-content">
@@ -1350,7 +1350,7 @@ export const UserManagement: React.FC = () => {
                             <span className="log-time">[{new Date(log.date).toLocaleTimeString('pt-BR')}]</span>
                             <span style={{ color: sevColor, fontWeight: 900, minWidth: '70px', display: 'inline-block' }}>[{log.type}]</span>
                             <span className="log-msg" style={{ flex: 1 }}>{log.msg}</span>
-                            <span className="log-meta">({log.user} â€¢ {log.ip})</span>
+                            <span className="log-meta">({log.user} • {log.ip})</span>
                           </motion.div>
                         );
                       })}

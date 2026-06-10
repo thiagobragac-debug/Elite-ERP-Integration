@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 import ReactDOM from 'react-dom';
 import toast from 'react-hot-toast';
@@ -32,6 +32,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
 import { LoteRecebimentoModal } from '../Modals/LoteRecebimentoModal';
 import { readNFeFile, nfeDateToInputDate, parseNFeXML } from '../../utils/parseNFeXML';
+import { fetchCNPJData } from '../../utils/cnpj';
 
 interface EntryInvoiceFormProps {
   isOpen: boolean;
@@ -79,6 +80,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
   const [showLoteModal, setShowLoteModal] = useState(false);
   const [loteModalDismissed, setLoteModalDismissed] = useState(false);
   const [pendingMatches, setPendingMatches] = useState(0);
+  const [supplierConfirmData, setSupplierConfirmData] = useState<{ nfeEmit: any; formattedCnpj: string; fetchedData?: any } | null>(null);
 
   // Detecta se a nota contém animais/gado (usa NCM fiscal como fonte da verdade, e regex como fallback)
   const animalRegex = /\b(bovino|gado|nelore|angus|brahman|bezerro|novilho|boi|vaca|animal|rebanho|cabeça|cabeca)s?\b/i;
@@ -90,7 +92,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
     }
     // 2. Fallback de texto se a unidade de medida remeter a animal
     const unitStr = String(item.unidade || '').toUpperCase();
-    if ((unitStr === 'CB' || unitStr === 'CABEÃ‡A' || unitStr === 'KG') && animalRegex.test(item.nome || '')) {
+    if ((unitStr === 'CB' || unitStr === 'CABEÇA' || unitStr === 'KG') && animalRegex.test(item.nome || '')) {
       return true;
     }
     return false;
@@ -112,6 +114,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
       setShowLoteModal(false);
       setLoteModalDismissed(false);
       setPendingMatches(0);
+      setSupplierConfirmData(null);
       setFormData({
         purchase_order_id: '',
         storage_location_id: '',
@@ -188,6 +191,130 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
     if (data) setBankAccounts(data);
   };
 
+  const checkOrCreateSupplier = async (nfeEmit: any) => {
+    if (!nfeEmit) return;
+    try {
+      const cleanCnpj = (nfeEmit.CNPJ || nfeEmit.CPF || '').replace(/\D/g, '');
+      if (!cleanCnpj) return;
+
+      const formatCNPJ = (cnpj: string): string => {
+        const clean = cnpj.replace(/\D/g, '');
+        if (clean.length === 11) {
+          return clean.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+        }
+        if (clean.length !== 14) return clean;
+        return clean.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+      };
+
+      const formattedCnpj = formatCNPJ(cleanCnpj);
+
+      // Search database for any partner with this CNPJ/CPF (either clean or formatted)
+      const { data: matchedSupplier } = await supabase
+        .from('parceiros')
+        .select('id, nome, is_supplier')
+        .eq('tenant_id', activeTenantId)
+        .or(`cnpj_cpf.eq.${cleanCnpj},cnpj_cpf.eq.${formattedCnpj}`)
+        .maybeSingle();
+
+      if (matchedSupplier) {
+        if (matchedSupplier.is_supplier) {
+          setFormData(prev => ({ ...prev, supplier_id: matchedSupplier.id }));
+          toast.success(`Fornecedor vinculado: ${matchedSupplier.nome}`);
+        } else {
+          // Já existe cadastrado mas não é fornecedor (ex: cliente/parceiro comum). Marcamos como fornecedor para unificar.
+          const { error: updateError } = await supabase
+            .from('parceiros')
+            .update({ is_supplier: true })
+            .eq('id', matchedSupplier.id);
+
+          if (updateError) {
+            console.error('Error updating partner to supplier:', updateError);
+            toast.error('Erro ao unificar parceiro como fornecedor.');
+          } else {
+            toast.success(`Parceiro existente unificado como fornecedor: ${matchedSupplier.nome}`);
+            await fetchSuppliers();
+            setFormData(prev => ({ ...prev, supplier_id: matchedSupplier.id }));
+          }
+        }
+      } else {
+        let fetchedData: any = null;
+        if (cleanCnpj.length === 14) {
+          try {
+            fetchedData = await fetchCNPJData(cleanCnpj);
+          } catch (e) {
+            console.warn('Erro ao buscar dados do CNPJ na API externa:', e);
+          }
+        }
+
+        const finalName = fetchedData?.razao_social || nfeEmit.xNome || 'PRESTADOR DE SERVIÇO';
+        const finalFantasia = fetchedData?.nome_fantasia || nfeEmit.xFant || finalName;
+
+        setSupplierConfirmData({
+          nfeEmit: {
+            ...nfeEmit,
+            xNome: finalName,
+            xFant: finalFantasia
+          },
+          formattedCnpj,
+          fetchedData
+        });
+      }
+    } catch (err) {
+      console.error('Error checking or creating supplier:', err);
+    }
+  };
+
+  const handleConfirmRegisterSupplier = async () => {
+    if (!supplierConfirmData) return;
+    const { nfeEmit, formattedCnpj, fetchedData } = supplierConfirmData;
+    setSupplierConfirmData(null);
+
+    try {
+      const insertPayload = {
+        tenant_id: activeTenantId,
+        nome: nfeEmit.xNome,
+        fantasia: nfeEmit.xFant || nfeEmit.xNome,
+        cnpj_cpf: formattedCnpj,
+        inscricao_estadual: nfeEmit.IE || '',
+        is_supplier: true,
+        status: 'ATIVO',
+        cep: fetchedData?.cep || '',
+        tipo_logradouro: fetchedData?.tipo_logradouro || '',
+        logradouro: fetchedData?.logradouro || '',
+        numero: fetchedData?.numero || '',
+        complemento: fetchedData?.complemento || '',
+        bairro: fetchedData?.bairro || '',
+        cidade: fetchedData?.municipio || '',
+        estado: fetchedData?.uf || '',
+        email: fetchedData?.email || '',
+        telefone: fetchedData?.telefone || ''
+      };
+
+      const { data: newSupplier, error: insertError } = await supabase
+        .from('parceiros')
+        .insert([insertPayload])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error inserting supplier:', insertError);
+        toast.error('Erro ao cadastrar fornecedor automaticamente.');
+      } else if (newSupplier) {
+        toast.success(`Fornecedor ${newSupplier.nome} cadastrado com sucesso!`);
+        await fetchSuppliers();
+        setFormData(prev => ({ ...prev, supplier_id: newSupplier.id }));
+      }
+    } catch (err) {
+      console.error('Error registering supplier:', err);
+    }
+  };
+
+  const handleCancelRegisterSupplier = () => {
+    setSupplierConfirmData(null);
+    setFormData(prev => ({ ...prev, supplier_id: '' }));
+    toast.warn('Associe o XML a um fornecedor manualmente ou efetue o cadastro.');
+  };
+
   useEffect(() => {
     if (items.length > 0 && !formData.is_xml_imported) {
       const total = items.reduce((acc, item) => acc + (Number(item.total) || 0), 0);
@@ -197,7 +324,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
 
   const isFinancialDisabledByOrder = useMemo(() => {
     if (!formData.purchase_order_id) return false;
-    // Mock simples: OC-001 gerou financeiro, OC-002 NÃƒO gerou
+    // Mock simples: OC-001 gerou financeiro, OC-002 NÃO gerou
     const mockOrdersDB: any = {
       'OC-001': { generate_financial: true },
       'OC-002': { generate_financial: false }
@@ -217,7 +344,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
   }, [formData.purchase_order_id, isFinancialDisabledByOrder]);
 
   // ----------------------------------------------------------------
-  // IMPORTAÃ‡ÃƒO REAL DE XML NF-e (browser-side via DOMParser)
+  // IMPORTAÇÃO REAL DE XML NF-e (browser-side via DOMParser)
   // ----------------------------------------------------------------
   const handleXMLDoubleClick = () => {
     if (formData.is_xml_imported) return;
@@ -279,9 +406,10 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
 
         setItems(xmlItems);
         toast.success(
-          `NF-e importada com sucesso! ${nfe.itens.length} item(s) carregados. Fornecedor: ${nfe.emit.xNome}`,
-          { id: loadingToast, duration: 5000 }
+          `NF-e importada com sucesso! ${nfe.itens.length} item(s) carregados.`,
+          { id: loadingToast, duration: 3000 }
         );
+        await checkOrCreateSupplier(nfe.emit);
       } catch (err: any) {
         toast.error(
           `Erro ao ler o XML: ${err.message || 'Arquivo inválido ou não é uma NF-e.'}`,
@@ -375,6 +503,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         }));
 
         setItems(xmlItems);
+        await checkOrCreateSupplier(nfe.emit);
       }
 
     } catch (err: any) {
@@ -431,14 +560,40 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
     </div>
   , document.body) : null;
 
+  const supplierConfirmOverlay = supplierConfirmData ? ReactDOM.createPortal(
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(5, 8, 15, 0.75)', backdropFilter: 'blur(4px)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'hsl(var(--bg-card))', borderRadius: '16px', padding: '24px', maxWidth: '440px', width: '90%', boxShadow: '0 24px 80px rgba(0,0,0,0.5)', border: '1px solid hsl(var(--border))' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'hsl(var(--primary)/0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--primary))' }}>
+            <Building2 size={20} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>Fornecedor não cadastrado</h3>
+            <p style={{ margin: 0, fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Cadastro automático disponível</p>
+          </div>
+        </div>
+        <p style={{ margin: '0 0 24px 0', fontSize: '13px', color: 'hsl(var(--text-main))', lineHeight: 1.5 }}>
+          O fornecedor <strong style={{ color: 'hsl(var(--primary))' }}>"{supplierConfirmData.nfeEmit.xNome}"</strong> (CNPJ/CPF: {supplierConfirmData.formattedCnpj}) não foi encontrado no banco de dados. Deseja cadastrá-lo automaticamente?
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button type="button" onClick={handleCancelRegisterSupplier} style={{ padding: '10px 16px', borderRadius: '10px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))', color: 'hsl(var(--text-main))', cursor: 'pointer', fontWeight: 700, fontSize: '13px' }}>Ignorar</button>
+          <button type="button" onClick={handleConfirmRegisterSupplier} style={{ padding: '10px 16px', borderRadius: '10px', border: 'none', background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))', cursor: 'pointer', fontWeight: 700, fontSize: '13px' }}>Cadastrar Agora</button>
+        </div>
+      </div>
+    </div>
+  , document.body) : null;
+
   return (
     <>
     {financialConfirmOverlay}
+    {supplierConfirmOverlay}
     <SidePanel
       isOpen={isOpen}
       onClose={() => {
         if (showFinancialConfirm) {
           setShowFinancialConfirm(false);
+        } else if (supplierConfirmData) {
+          setSupplierConfirmData(null);
         } else {
           onClose();
         }
@@ -452,7 +607,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
       submitDisabled={pendingMatches > 0}
       size="xxlarge"
     >
-      {/* IMPORTAÃ‡ÃƒO E METADADOS FUNDIDOS NO PASSO 01 */}
+      {/* IMPORTAÇÃO E METADADOS FUNDIDOS NO PASSO 01 */}
       <section className="tauze-form-section">
         <div className="tauze-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -465,19 +620,19 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
             </div>
           ) : (
             <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--warning))', display: 'flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--warning)/0.1)', padding: '4px 8px', borderRadius: '4px' }}>
-              <AlertTriangle size={12}/> DIGITAÃ‡ÃƒO MANUAL
+              <AlertTriangle size={12}/> DIGITAÇÃO MANUAL
             </div>
           )}
         </div>
         
-        {/* BANNER DE DETECÃ‡ÃƒO DE GADO */}
+        {/* BANNER DE DETECÇÃO DE GADO */}
         {hasLivestockItems && !loteModalDismissed && (
           <div style={{ background: 'hsl(var(--warning)/0.08)', border: '1px solid hsl(var(--warning)/0.3)', borderRadius: '12px', padding: '14px 18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'hsl(var(--warning)/0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'hsl(var(--warning))', flexShrink: 0 }}>
               <Beef size={18} />
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>ðŸ„ Detectamos animais nesta nota!</p>
+              <p style={{ margin: 0, fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>🐂 Detectamos animais nesta nota!</p>
               <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Deseja criar um Lote de Recebimento no Módulo Pecuária para rastrear estes animais individualmente?</p>
             </div>
             <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
@@ -488,10 +643,10 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         )}
 
         {/* CARD BLINDADO OU ABERTO */}
-        <div style={{ background: formData.is_xml_imported ? 'hsl(var(--bg-card))' : 'transparent', border: formData.is_xml_imported ? '1px solid hsl(var(--border))' : 'none', borderRadius: '12px', padding: formData.is_xml_imported ? '20px' : '0', opacity: formData.is_xml_imported ? 0.8 : 1 }}>
+        <div style={{ opacity: formData.is_xml_imported ? 0.85 : 1 }}>
           
           {/* PRIMEIRA LINHA */}
-          <div className="tauze-input-grid grid-col-4" style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 0.8fr 1.8fr', gap: '16px', marginBottom: '16px' }}>
             <div className="tauze-field-group">
               <label className="tauze-label"><Building2 size={14} /> Empresa Destino</label>
               <SearchableSelect 
@@ -530,7 +685,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               />
             </div>
 
-            {/* BOTÃƒO E CAMPO XML JUNTOS NO GRID */}
+            {/* BOTÃO E CAMPO XML JUNTOS NO GRID */}
             <div className="tauze-field-group">
               <label className="tauze-label" style={{ color: 'hsl(var(--brand))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} title="Dê um duplo clique no campo para importar o arquivo XML">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><UploadCloud size={14} /> Importar XML</span>
@@ -654,7 +809,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
             <div style={{ margin: '12px 0 0', padding: '10px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <AlertCircle size={14} color="#dc2626" style={{ flexShrink: 0 }} />
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#dc2626' }}>
-                {pendingMatches} {pendingMatches === 1 ? 'item sem vínculo' : 'itens sem vínculo'} com o catálogo â€” resolva antes de processar a entrada.
+                {pendingMatches} {pendingMatches === 1 ? 'item sem vínculo' : 'itens sem vínculo'} com o catálogo — resolva antes de processar a entrada.
               </span>
             </div>
           )}
@@ -692,7 +847,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               value={formData.payment_condition}
               onChange={(val: any) => setFormData({...formData, payment_condition: val})}
               options={[
-                { value: 'vista', label: 'Ã€ Vista' },
+                { value: 'vista', label: 'À Vista' },
                 { value: 'prazo', label: 'Parcelado / A Prazo' },
               ]}
             />
@@ -822,8 +977,8 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         setShowLoteModal(false);
         setLoteModalDismissed(true);
         toast.success(tipo === 'pendente' 
-          ? 'âœ… Lote pendente criado! Acesse Pecuária > Lotes para processar os animais quando chegarem.'
-          : 'âœ… Lote vinculado com sucesso! Custo por cabeça calculado automaticamente.'
+          ? '✅ Lote pendente criado! Acesse Pecuária > Lotes para processar os animais quando chegarem.'
+          : '✅ Lote vinculado com sucesso! Custo por cabeça calculado automaticamente.'
         );
       }}
     />

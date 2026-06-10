@@ -378,7 +378,7 @@ export const TenantBilling: React.FC = () => {
                       <span style={{ padding: '6px 14px', background: 'rgba(16, 185, 129, 0.2)', color: '#10b981', borderRadius: '20px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>ATIVA EM DIA</span>
                     </div>
                     <p style={{ margin: 0, fontSize: '15px', color: '#94a3b8', fontWeight: 500 }}>
-                      Faturamento Mensal â€¢ <span style={{ color: '#10b981', fontWeight: 700 }}>Licença Vitalícia Administrativa</span>
+                      Faturamento Mensal • <span style={{ color: '#10b981', fontWeight: 700 }}>Licença Vitalícia Administrativa</span>
                     </p>
                   </div>
                 </div>

@@ -19,6 +19,7 @@ import {
 import { SidePanel } from '../Layout/SidePanel';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
+import { FormSection } from './UI/FormSection';
 
 interface FarmFormProps {
   isOpen: boolean;
@@ -112,10 +113,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({isOpen, onClose, onSubmit, in
       submitLabel={initialData ? 'Salvar Alterações' : 'Salvar Fazenda'}
     >
       <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 01</div>
-          <h4 className="tauze-section-title">Identificação Básica</h4>
-        </div>
+        <FormSection title="Identificação Básica" badge="PASSO 01" marginTop={0} />
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
             <label className="tauze-label"><Map size={14} /> Nome da Fazenda / Unidade</label>
@@ -139,10 +137,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({isOpen, onClose, onSubmit, in
       </section>
 
       <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 02</div>
-          <h4 className="tauze-section-title">Compliance e Registros Oficiais</h4>
-        </div>
+        <FormSection title="Compliance e Registros Oficiais" badge="PASSO 02" marginTop={0} />
         <div className="tauze-input-grid grid-col-3">
           <div className="tauze-field-group">
             <label className="tauze-label"><FileText size={14} /> Inscrição Estadual (IE)</label>
@@ -192,10 +187,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({isOpen, onClose, onSubmit, in
       </section>
 
       <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 03</div>
-          <h4 className="tauze-section-title">Gestão Fundiária (LCDPR)</h4>
-        </div>
+        <FormSection title="Gestão Fundiária (LCDPR)" badge="PASSO 03" marginTop={0} />
         <div className="tauze-field-group full-width">
           <label className="tauze-label"><Landmark size={14} /> Tipo de Exploração</label>
           <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
@@ -210,10 +202,7 @@ export const FarmForm: React.FC<FarmFormProps> = ({isOpen, onClose, onSubmit, in
       </section>
 
       <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 04</div>
-          <h4 className="tauze-section-title">Inteligência Agronômica</h4>
-        </div>
+        <FormSection title="Inteligência Agronômica" badge="PASSO 04" marginTop={0} />
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
             <label className="tauze-label"><Maximize size={14} /> Área Total (ha)</label>
@@ -250,17 +239,14 @@ export const FarmForm: React.FC<FarmFormProps> = ({isOpen, onClose, onSubmit, in
       </section>
 
       <section className="tauze-form-section" style={{ padding: 0 }}>
-        <div 
-          className="tauze-section-header" 
-          style={{ padding: '24px', cursor: 'pointer', borderBottom: locOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: locOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+        <FormSection 
+          title="Localização Padrão IBGE" 
+          badge="PASSO 05" 
+          marginTop={0} 
           onClick={() => setLocOpen(!locOpen)}
-        >
-          <div className="tauze-section-badge">PASSO 05</div>
-          <h4 className="tauze-section-title" style={{ flex: 1 }}>Localização Padrão IBGE</h4>
-          <div style={{ color: 'hsl(var(--text-muted))' }}>
-            {locOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </div>
-        </div>
+          rightElement={<div style={{ color: 'hsl(var(--text-muted))' }}>{locOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</div>}
+          className="interactive-header"
+        />
         
         {locOpen && (
           <div style={{ padding: '24px' }}>
@@ -288,17 +274,14 @@ export const FarmForm: React.FC<FarmFormProps> = ({isOpen, onClose, onSubmit, in
       </section>
 
       <section className="tauze-form-section" style={{ padding: 0 }}>
-        <div 
-          className="tauze-section-header" 
-          style={{ padding: '24px', cursor: 'pointer', borderBottom: obsOpen ? '1px solid hsl(var(--border))' : 'none', margin: 0, background: obsOpen ? 'hsl(var(--bg-main)/0.2)' : 'transparent' }}
+        <FormSection 
+          title="Detalhes Finais" 
+          badge="PASSO 06" 
+          marginTop={0} 
           onClick={() => setObsOpen(!obsOpen)}
-        >
-          <div className="tauze-section-badge">PASSO 06</div>
-          <h4 className="tauze-section-title" style={{ flex: 1 }}>Detalhes Finais</h4>
-          <div style={{ color: 'hsl(var(--text-muted))' }}>
-            {obsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </div>
-        </div>
+          rightElement={<div style={{ color: 'hsl(var(--text-muted))' }}>{obsOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}</div>}
+          className="interactive-header"
+        />
         
         {obsOpen && (
           <div style={{ padding: '24px' }}>
