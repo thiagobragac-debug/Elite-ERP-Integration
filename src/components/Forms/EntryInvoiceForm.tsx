@@ -71,7 +71,13 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
     payment_method: initialData?.payment_method || 'Boleto',
     installments: initialData?.installments || 1,
     bank_account_id: initialData?.bank_account_id || '',
-    generate_financial: initialData ? initialData.generate_financial : true
+    generate_financial: initialData ? initialData.generate_financial : true,
+    iss_retido: initialData?.iss_retido?.toString() || '0',
+    irrf_retido: initialData?.irrf_retido?.toString() || '0',
+    csll_retido: initialData?.csll_retido?.toString() || '0',
+    pis_retido: initialData?.pis_retido?.toString() || '0',
+    cofins_retido: initialData?.cofins_retido?.toString() || '0',
+    inss_retido: initialData?.inss_retido?.toString() || '0',
   });
 
   const [bankAccounts, setBankAccounts] = useState<any[]>([]);
@@ -135,9 +141,27 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         installments: 1,
         bank_account_id: '',
         generate_financial: true,
+        iss_retido: '0',
+        irrf_retido: '0',
+        csll_retido: '0',
+        pis_retido: '0',
+        cofins_retido: '0',
+        inss_retido: '0',
       });
     }
   }, [isOpen]);
+
+  const isServiceInvoice = formData.modelo_fiscal === '00' || items.some(item => item.tipo === 'servico');
+
+  const totalWithholdings = 
+    (parseFloat(formData.iss_retido) || 0) +
+    (parseFloat(formData.irrf_retido) || 0) +
+    (parseFloat(formData.csll_retido) || 0) +
+    (parseFloat(formData.pis_retido) || 0) +
+    (parseFloat(formData.cofins_retido) || 0) +
+    (parseFloat(formData.inss_retido) || 0);
+
+  const valorLiquido = Math.max(0, (parseFloat(formData.total_value) || 0) - totalWithholdings);
 
   // Handle installment generation
   useEffect(() => {
@@ -146,12 +170,24 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
     } else {
       setInstallmentsList([]);
     }
-  }, [formData.payment_condition, formData.installments, formData.total_value]);
+  }, [
+    formData.payment_condition, 
+    formData.installments, 
+    formData.total_value,
+    formData.iss_retido,
+    formData.irrf_retido,
+    formData.csll_retido,
+    formData.pis_retido,
+    formData.cofins_retido,
+    formData.inss_retido,
+    isServiceInvoice,
+    valorLiquido
+  ]);
 
   const generateInstallments = () => {
     const count = formData.installments;
-    const total = parseFloat(formData.total_value) || 0;
-    const valuePerInstallment = parseFloat((total / count).toFixed(2));
+    const baseValue = isServiceInvoice ? valorLiquido : (parseFloat(formData.total_value) || 0);
+    const valuePerInstallment = parseFloat((baseValue / count).toFixed(2));
     const newList = [];
 
     for (let i = 1; i <= count; i++) {
@@ -160,7 +196,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
       newList.push({
         id: i,
         dueDate: date.toISOString().split('T')[0],
-        value: i === count ? parseFloat((total - (valuePerInstallment * (count - 1))).toFixed(2)) : valuePerInstallment
+        value: i === count ? parseFloat((baseValue - (valuePerInstallment * (count - 1))).toFixed(2)) : valuePerInstallment
       });
     }
     setInstallmentsList(newList);
@@ -528,7 +564,18 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit({ ...formData, itens: items, installmentsList });
+      await onSubmit({ 
+        ...formData, 
+        itens: items, 
+        installmentsList,
+        iss_retido: isServiceInvoice ? parseFloat(formData.iss_retido) || 0 : 0,
+        irrf_retido: isServiceInvoice ? parseFloat(formData.irrf_retido) || 0 : 0,
+        csll_retido: isServiceInvoice ? parseFloat(formData.csll_retido) || 0 : 0,
+        pis_retido: isServiceInvoice ? parseFloat(formData.pis_retido) || 0 : 0,
+        cofins_retido: isServiceInvoice ? parseFloat(formData.cofins_retido) || 0 : 0,
+        inss_retido: isServiceInvoice ? parseFloat(formData.inss_retido) || 0 : 0,
+        valor_liquido: isServiceInvoice ? valorLiquido : parseFloat(formData.total_value) || 0,
+      });
       onClose();
     } catch (error) {
       console.error('Error submitting invoice:', error);
@@ -645,9 +692,9 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         {/* CARD BLINDADO OU ABERTO */}
         <div style={{ opacity: formData.is_xml_imported ? 0.85 : 1 }}>
           
-          {/* PRIMEIRA LINHA */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 0.8fr 1.8fr', gap: '16px', marginBottom: '16px' }}>
-            <div className="tauze-field-group">
+          <div className="tauze-input-grid" style={{ gridTemplateColumns: '1.2fr 1.2fr 0.8fr 1.2fr 1.2fr', gap: '16px', marginBottom: '16px' }}>
+            {/* Row 1 */}
+            <div className="tauze-field-group" style={{ minWidth: 0 }}>
               <label className="tauze-label"><Building2 size={14} /> Empresa Destino</label>
               <SearchableSelect 
                 value={formData.company_id}
@@ -659,7 +706,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               />
             </div>
 
-            <div className="tauze-field-group">
+            <div className="tauze-field-group" style={{ minWidth: 0 }}>
               <label className="tauze-label"><Settings size={14} /> Natureza da Operação</label>
               <SearchableSelect 
                 value={formData.nature_of_operation}
@@ -673,7 +720,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               />
             </div>
 
-            <div className="tauze-field-group">
+            <div className="tauze-field-group" style={{ minWidth: 0 }}>
               <label className="tauze-label"><Calendar size={14} /> Emissão</label>
               <input 
                 className="tauze-input"
@@ -685,8 +732,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               />
             </div>
 
-            {/* BOTÃO E CAMPO XML JUNTOS NO GRID */}
-            <div className="tauze-field-group">
+            <div className="tauze-field-group" style={{ gridColumn: 'span 2', minWidth: 0 }}>
               <label className="tauze-label" style={{ color: 'hsl(var(--brand))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} title="Dê um duplo clique no campo para importar o arquivo XML">
                 <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><UploadCloud size={14} /> Importar XML</span>
                 {formData.xml_key?.length === 44 && <span style={{ fontSize: '10px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 6px', borderRadius: '4px', fontWeight: 800 }}>NF-e</span>}
@@ -711,13 +757,25 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
                 )}
               </div>
             </div>
-          </div>
-          <div className="tauze-input-grid" style={{ gridTemplateColumns: '1fr 0.8fr 0.4fr 0.8fr 1fr', marginBottom: '16px' }}>
-            <div className="tauze-field-group">
+
+            {/* Row 2 */}
+            <div className="tauze-field-group" style={{ minWidth: 0 }}>
               <label className="tauze-label"><Building2 size={14} /> Fornecedor Emissor</label>
               {formData.is_xml_imported ? (
-                <div className="tauze-input" style={{ display: 'flex', alignItems: 'center', background: 'hsl(var(--bg-main))' }}>
-                  {suppliers.find(s => String(s.id) === String(formData.supplier_id))?.nome || 'Fornecedor XML...'}
+                <div 
+                  className="tauze-input" 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    background: 'hsl(var(--bg-main))',
+                    overflow: 'hidden',
+                    minWidth: 0
+                  }}
+                  title={suppliers.find(s => String(s.id) === String(formData.supplier_id))?.nome || 'Fornecedor XML...'}
+                >
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', minWidth: 0 }}>
+                    {suppliers.find(s => String(s.id) === String(formData.supplier_id))?.nome || 'Fornecedor XML...'}
+                  </span>
                 </div>
               ) : (
                 <SearchableSelect 
@@ -731,7 +789,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               )}
             </div>
 
-            <div className="tauze-field-group">
+            <div className="tauze-field-group" style={{ minWidth: 0 }}>
               <label className="tauze-label"><Hash size={14} /> Número da Nota</label>
               <input 
                 className="tauze-input"
@@ -744,7 +802,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               />
             </div>
 
-            <div className="tauze-field-group">
+            <div className="tauze-field-group" style={{ minWidth: 0 }}>
               <label className="tauze-label"><Layers size={14} /> Série</label>
               <input 
                 className="tauze-input"
@@ -757,7 +815,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               />
             </div>
 
-            <div className="tauze-field-group">
+            <div className="tauze-field-group" style={{ minWidth: 0 }}>
               <label className="tauze-label"><FileDigit size={14} /> Modelo Fiscal</label>
               <SearchableSelect 
                 value={formData.modelo_fiscal}
@@ -766,11 +824,12 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
                   { value: '55', label: '55 - NF-e (Normal)' },
                   { value: '65', label: '65 - NFC-e (Consumidor)' },
                   { value: '11', label: '11 - Produtor Rural' },
+                  { value: '00', label: '00 - NFS-e (Serviço)' },
                 ]}
               />
             </div>
 
-            <div className="tauze-field-group">
+            <div className="tauze-field-group" style={{ minWidth: 0 }}>
               <label className="tauze-label" style={{ color: 'hsl(var(--warning))' }}>
                 <ClipboardList size={14} /> Vincular Ordem de Compra
               </label>
@@ -785,8 +844,6 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
               />
             </div>
           </div>
-
-          {/* TERCEIRA LINHA REMOVIDA (TOTAL MOVIDO) */}
         </div>
       </section>
 
@@ -816,6 +873,127 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         </div>
       </section>
 
+      {isServiceInvoice && (
+        <section className="tauze-form-section">
+          <div className="tauze-section-header" style={{ borderColor: 'rgba(99,102,241,0.3)' }}>
+            <div className="tauze-section-badge" style={{ background: 'rgba(99,102,241,0.1)', color: 'rgb(99,102,241)' }}>IMPOSTOS</div>
+            <h4 className="tauze-section-title">Retenções Tributárias na Fonte</h4>
+          </div>
+          <div className="tauze-input-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '12px' }}>
+            <div className="tauze-field-group">
+              <label className="tauze-label" style={{ fontWeight: '800', color: 'hsl(var(--text-muted))' }}>ISS</label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', fontWeight: '700', color: 'hsl(var(--text-muted))' }}>R$</span>
+                <input 
+                  className="tauze-input"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.iss_retido}
+                  onChange={(e) => setFormData({...formData, iss_retido: e.target.value})}
+                  style={{ paddingLeft: '28px' }}
+                />
+              </div>
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label" style={{ fontWeight: '800', color: 'hsl(var(--text-muted))' }}>IRRF</label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', fontWeight: '700', color: 'hsl(var(--text-muted))' }}>R$</span>
+                <input 
+                  className="tauze-input"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.irrf_retido}
+                  onChange={(e) => setFormData({...formData, irrf_retido: e.target.value})}
+                  style={{ paddingLeft: '28px' }}
+                />
+              </div>
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label" style={{ fontWeight: '800', color: 'hsl(var(--text-muted))' }}>CSLL</label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', fontWeight: '700', color: 'hsl(var(--text-muted))' }}>R$</span>
+                <input 
+                  className="tauze-input"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.csll_retido}
+                  onChange={(e) => setFormData({...formData, csll_retido: e.target.value})}
+                  style={{ paddingLeft: '28px' }}
+                />
+              </div>
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label" style={{ fontWeight: '800', color: 'hsl(var(--text-muted))' }}>PIS</label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', fontWeight: '700', color: 'hsl(var(--text-muted))' }}>R$</span>
+                <input 
+                  className="tauze-input"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.pis_retido}
+                  onChange={(e) => setFormData({...formData, pis_retido: e.target.value})}
+                  style={{ paddingLeft: '28px' }}
+                />
+              </div>
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label" style={{ fontWeight: '800', color: 'hsl(var(--text-muted))' }}>COFINS</label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', fontWeight: '700', color: 'hsl(var(--text-muted))' }}>R$</span>
+                <input 
+                  className="tauze-input"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.cofins_retido}
+                  onChange={(e) => setFormData({...formData, cofins_retido: e.target.value})}
+                  style={{ paddingLeft: '28px' }}
+                />
+              </div>
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label" style={{ fontWeight: '800', color: 'hsl(var(--text-muted))' }}>INSS</label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', fontWeight: '700', color: 'hsl(var(--text-muted))' }}>R$</span>
+                <input 
+                  className="tauze-input"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={formData.inss_retido}
+                  onChange={(e) => setFormData({...formData, inss_retido: e.target.value})}
+                  style={{ paddingLeft: '28px' }}
+                />
+              </div>
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label" style={{ fontWeight: '800', color: 'hsl(var(--danger))', textTransform: 'uppercase' }}>Total Retido</label>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '11px', fontWeight: '700', color: '#ef4444' }}>-R$</span>
+                <input 
+                  className="tauze-input"
+                  type="text"
+                  readOnly
+                  disabled
+                  value={totalWithholdings.toFixed(2)}
+                  style={{ 
+                    paddingLeft: '32px', 
+                    color: '#ef4444', 
+                    fontWeight: '800', 
+                    background: 'rgba(239, 68, 68, 0.05)', 
+                    borderColor: 'rgba(239, 68, 68, 0.2)' 
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 03</div>
@@ -824,7 +1002,9 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
         <div className="tauze-input-grid" style={{ gridTemplateColumns: formData.payment_condition === 'prazo' ? '1.5fr 1.5fr 1.5fr 1fr 2fr 1.2fr' : '1.5fr 1fr 1fr 1.5fr 1.2fr' }}>
           
           <div className="tauze-field-group">
-            <label className="tauze-label"><DollarSign size={14} /> Total da Nota</label>
+            <label className="tauze-label" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <DollarSign size={14} /> {isServiceInvoice ? "Valor Líquido da Nota" : "Total da Nota"}
+            </label>
             <div style={{ position: 'relative' }}>
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontWeight: '900', color: 'hsl(var(--success))', fontSize: '18px', letterSpacing: '-0.5px' }}>R$</span>
               <input 
@@ -832,11 +1012,11 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
                 type="number" 
                 step="0.01"
                 placeholder="0.00" 
-                value={formData.total_value}
+                value={isServiceInvoice ? valorLiquido : formData.total_value}
                 onChange={(e) => setFormData({...formData, total_value: e.target.value})}
-                readOnly={formData.is_xml_imported}
+                readOnly={formData.is_xml_imported || isServiceInvoice}
                 required
-                style={{ fontWeight: '900', color: 'hsl(var(--success))', fontSize: '18px', height: '42px', paddingLeft: '44px', letterSpacing: '-0.5px', background: formData.is_xml_imported ? 'hsl(var(--bg-main))' : 'transparent' }}
+                style={{ fontWeight: '900', color: 'hsl(var(--success))', fontSize: '18px', height: '42px', paddingLeft: '44px', letterSpacing: '-0.5px', background: (formData.is_xml_imported || isServiceInvoice) ? 'hsl(var(--bg-main))' : 'transparent' }}
               />
             </div>
           </div>
@@ -912,7 +1092,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
 
         {formData.payment_condition === 'prazo' && installmentsList.length > 0 && (
           <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-            <div className="tauze-field-group" style={{ background: 'hsl(var(--bg-main)/0.3)', borderRadius: '12px', border: '1px solid hsl(var(--border))', padding: '16px' }}>
+            <div className="tauze-field-group" style={{ padding: '8px 0' }}>
               <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--text-muted))', marginBottom: '12px', textTransform: 'uppercase' }}>
                 Faturas (Espelho do XML)
               </div>
@@ -940,12 +1120,19 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: '16px', textAlign: 'right', fontSize: '11px', fontWeight: '700', color: installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) === parseFloat(formData.total_value).toFixed(2) ? 'hsl(var(--success))' : 'hsl(var(--danger))' }}>
-                Soma das Parcelas: {installmentsList.reduce((acc, i) => acc + i.value, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                {installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) !== parseFloat(formData.total_value).toFixed(2) && (
-                  <span style={{ display: 'block', fontSize: '10px', marginTop: '4px' }}>(Divergente do total da nota)</span>
-                )}
-              </div>
+              {(() => {
+                const targetComparisonValue = isServiceInvoice ? valorLiquido : (parseFloat(formData.total_value) || 0);
+                const isMatch = installmentsList.reduce((acc, i) => acc + i.value, 0).toFixed(2) === targetComparisonValue.toFixed(2);
+                if (isMatch) return null;
+                return (
+                  <div style={{ marginTop: '16px', textAlign: 'right', fontSize: '11px', fontWeight: '700', color: 'hsl(var(--danger))' }}>
+                    Soma das Parcelas: {installmentsList.reduce((acc, i) => acc + i.value, 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    <span style={{ display: 'block', fontSize: '10px', marginTop: '4px' }}>
+                      (Divergente do valor {isServiceInvoice ? 'líquido' : 'total'} da nota)
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}

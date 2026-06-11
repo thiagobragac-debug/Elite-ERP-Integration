@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -14,7 +14,8 @@ import {
   Wallet,
   ClipboardList,
   MapPin,
-  TrendingDown
+  TrendingDown,
+  Settings
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { InsumoEntryTable } from './InsumoEntryTable';
@@ -45,6 +46,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
   const [formData, setFormData] = usePersistentState('PurchaseOrderForm_formData', {
     quotation_id: initialData?.quotation_id || '',
     company_id: initialData?.company_id || activeCompany?.id || '',
+    nature_of_operation: initialData?.nature_of_operation || 'Compra para Industrialização',
     order_number: initialData?.order_number || '',
     supplier_id: initialData?.supplier_id || '',
     date: initialData?.date || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
@@ -77,6 +79,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
       setFormData({
         quotation_id: '',
         company_id: activeCompany?.id || '',
+        nature_of_operation: 'Compra para Industrialização',
         order_number: '',
         supplier_id: '',
         date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
@@ -191,7 +194,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
       icon={ShoppingCart}
       loading={loading}
       submitLabel={initialData ? "Salvar Alterações" : "Gerar Pedido"}
-      size="xlarge"
+      size="xxlarge"
     >
       <section className="tauze-form-section">
         <div className="tauze-section-header">
@@ -199,32 +202,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
           <h4 className="tauze-section-title">Identificação do Pedido</h4>
         </div>
 
-        <div className="tauze-input-grid grid-col-2" style={{ marginBottom: '16px' }}>
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Hash size={14} /> Número do Pedido (OC)</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="Ex: OC-2024-001..." 
-              value={formData.order_number}
-              onChange={(e) => setFormData({...formData, order_number: e.target.value})}
-              required 
-            />
-          </div>
-          <div className="tauze-field-group">
-            <label className="tauze-label"><ClipboardList size={14} /> Origem (Cotação Vencedora)</label>
-            <SearchableSelect 
-              value={formData.quotation_id}
-              onChange={(val: any) => setFormData({...formData, quotation_id: val})}
-              options={[
-                { value: '', label: 'Criação Manual (Sem origem)' },
-                { value: 'COT-001', label: 'COT-001 - Fertilizantes Safra (Vencedor: Bayer)' },
-              ]}
-            />
-          </div>
-        </div>
-
-        <div className="tauze-input-grid grid-col-2">
+        <div className="tauze-input-grid" style={{ gridTemplateColumns: '1.4fr 0.9fr 0.8fr 0.9fr 1fr', gap: '16px', marginBottom: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><Building2 size={14} /> Empresa / Unidade Compradora</label>
             <SearchableSelect 
@@ -238,19 +216,19 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Building2 size={14} /> Parceiro</label>
+            <label className="tauze-label"><Settings size={14} /> Natureza da Operação</label>
             <SearchableSelect 
-              value={formData.supplier_id}
-              onChange={(val: any) => setFormData({...formData, supplier_id: val})}
+              value={formData.nature_of_operation}
+              onChange={(val: any) => setFormData({...formData, nature_of_operation: val})}
               options={[
-                { value: '', label: 'Selecione o parceiro...' },
-                ...(suppliers || []).map(s => ({ value: String(s.id), label: String(s.nome) })),
+                { value: 'Compra para Industrialização', label: 'Compra para Industrialização' },
+                { value: 'Compra para Comercialização', label: 'Compra para Comercialização' },
+                { value: 'Compra para Ativo Imobilizado', label: 'Compra para Ativo Imobilizado' },
+                { value: 'Devolução de Venda', label: 'Devolução de Venda' },
               ]}
             />
           </div>
-        </div>
-        
-        <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
+
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data de Emissão</label>
             <input 
@@ -263,13 +241,63 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Truck size={14} /> Previsão de Entrega (SLA)</label>
+            <label className="tauze-label"><Truck size={14} /> Previsão de Entrega</label>
             <input 
               className="tauze-input"
               type="date" 
               value={formData.delivery_date}
               onChange={(e) => setFormData({...formData, delivery_date: e.target.value})}
               required
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Hash size={14} /> Número do Pedido (OC)</label>
+            <input 
+              className="tauze-input"
+              type="text" 
+              placeholder="Ex: OC-2024-001..." 
+              value={formData.order_number}
+              onChange={(e) => setFormData({...formData, order_number: e.target.value})}
+              required 
+            />
+          </div>
+        </div>
+
+        <div className="tauze-input-grid grid-col-3" style={{ marginBottom: '16px' }}>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Building2 size={14} /> Parceiro</label>
+            <SearchableSelect 
+              value={formData.supplier_id}
+              onChange={(val: any) => setFormData({...formData, supplier_id: val})}
+              options={[
+                { value: '', label: 'Selecione o parceiro...' },
+                ...(suppliers || []).map(s => ({ value: String(s.id), label: String(s.nome) })),
+              ]}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><Truck size={14} /> Tipo de Frete</label>
+            <SearchableSelect 
+              value={formData.freight_type}
+              onChange={(val: any) => setFormData({...formData, freight_type: val})}
+              options={[
+                { value: 'CIF', label: 'CIF (Por conta do Fornecedor)' },
+                { value: 'FOB', label: 'FOB (Por conta do Comprador)' },
+              ]}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label"><ClipboardList size={14} /> Origem (Cotação)</label>
+            <SearchableSelect 
+              value={formData.quotation_id}
+              onChange={(val: any) => setFormData({...formData, quotation_id: val})}
+              options={[
+                { value: '', label: 'Criação Manual (Sem origem)' },
+                { value: 'COT-001', label: 'COT-001 - Fertilizantes Safra (Vencedor: Bayer)' },
+              ]}
             />
           </div>
         </div>
@@ -346,36 +374,6 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 03</div>
-          <h4 className="tauze-section-title">Logística</h4>
-        </div>
-        <div className="tauze-input-grid" style={{ gridTemplateColumns: '1fr 2.5fr' }}>
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Truck size={14} /> Tipo de Frete</label>
-            <SearchableSelect 
-              value={formData.freight_type}
-              onChange={(val: any) => setFormData({...formData, freight_type: val})}
-              options={[
-                { value: 'CIF', label: 'CIF (Por conta do Fornecedor)' },
-                { value: 'FOB', label: 'FOB (Por conta do Comprador)' },
-              ]}
-            />
-          </div>
-          
-          <div className="tauze-field-group">
-            <label className="tauze-label"><MapPin size={14} /> Instruções e Local de Entrega</label>
-            <textarea className="tauze-input tauze-textarea"
-              placeholder="Ex: Entregar na Fazenda Santa Cruz, Barracão 3. Horário de descarga até as 16h." 
-              value={formData.delivery_instructions}
-              onChange={(e) => setFormData({...formData, delivery_instructions: e.target.value})}
-              style={{ minHeight: '60px' }}
-            />
-          </div>
-        </div>
-      </section>
-
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 04</div>
           <h4 className="tauze-section-title">Faturamento e Contas a Pagar</h4>
         </div>
         <div className="tauze-input-grid" style={{ gridTemplateColumns: formData.payment_condition === 'prazo' ? '1.5fr 1.5fr 1fr 2fr 1.2fr' : '1fr 1fr 1.5fr 1.2fr' }}>
@@ -385,7 +383,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
               value={formData.payment_condition}
               onChange={(val: any) => setFormData({...formData, payment_condition: val})}
               options={[
-                { value: 'vista', label: 'Ã€ Vista' },
+                { value: 'vista', label: 'À Vista' },
                 { value: 'prazo', label: 'Parcelado / A Prazo' },
               ]}
             />
@@ -450,7 +448,7 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
 
         {formData.payment_condition === 'prazo' && installmentsList.length > 0 && (
           <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-            <div className="tauze-field-group" style={{ background: 'hsl(var(--bg-main)/0.3)', borderRadius: '12px', border: '1px solid hsl(var(--border))', padding: '16px' }}>
+            <div className="tauze-field-group" style={{ padding: '8px 0' }}>
               <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--text-muted))', marginBottom: '12px', textTransform: 'uppercase' }}>
                 Cronograma de Pagamento
               </div>
@@ -491,10 +489,20 @@ export const PurchaseOrderForm: React.FC<PurchaseOrderFormProps> = ({isOpen,
 
       <section className="tauze-form-section">
         <div className="tauze-section-header">
-          <h4 className="tauze-section-title" style={{ fontSize: '13px' }}>Observações Adicionais</h4>
+          <h4 className="tauze-section-title" style={{ fontSize: '13px' }}>Observações e Instruções</h4>
         </div>
-        <div className="tauze-input-grid grid-col-1">
+        <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
+            <label className="tauze-label"><MapPin size={14} /> Instruções e Local de Entrega</label>
+            <textarea className="tauze-input tauze-textarea"
+              placeholder="Ex: Entregar na Fazenda Santa Cruz, Barracão 3. Horário de descarga até as 16h." 
+              value={formData.delivery_instructions}
+              onChange={(e) => setFormData({...formData, delivery_instructions: e.target.value})}
+              style={{ minHeight: '60px' }}
+            />
+          </div>
+          <div className="tauze-field-group">
+            <label className="tauze-label"><FileText size={14} /> Observações Adicionais</label>
             <textarea className="tauze-input tauze-textarea"
               placeholder="Anotações gerais..." 
               value={formData.description}

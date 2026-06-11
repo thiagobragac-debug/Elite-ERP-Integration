@@ -110,7 +110,7 @@ export const InventoryManagement: React.FC = () => {
           categorias_sistema (
             nome
           ),
-          unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao
+          unidade, estoque_atual, estoque_minimo, custo_medio, is_purchasable, is_sellable, is_storable, descricao, ean, ncm, marca, localizacao, tipo, codigo_servico_lc116, codigo_tributacao_nacional, cnae_associado
         `, { count: 'exact' })
         .order('nome', { ascending: true })
         .range(from, to);
@@ -160,18 +160,22 @@ export const InventoryManagement: React.FC = () => {
         nome: data.nome,
         categoria_id: data.categoria_id || null,
         unidade: data.unidade,
-        estoque_minimo: Number(data.estoque_minimo),
-        estoque_atual: Number(data.estoque_atual),
+        estoque_minimo: data.tipo === 'servico' ? 0 : Number(data.estoque_minimo),
+        estoque_atual: data.tipo === 'servico' ? 0 : Number(data.estoque_atual),
         custo_medio: Number(data.custo_medio),
         is_purchasable: data.is_purchasable,
         is_sellable: data.is_sellable,
-        is_storable: data.is_storable,
+        is_storable: data.tipo === 'servico' ? false : data.is_storable,
         descricao: data.descricao,
-        marca: data.marca,
-        localizacao: data.localizacao,
-        ean: data.ean,
-        ncm: data.ncm,
+        marca: data.tipo === 'servico' ? null : data.marca,
+        localizacao: data.tipo === 'servico' ? null : data.localizacao,
+        ean: data.tipo === 'servico' ? null : data.ean,
+        ncm: data.tipo === 'servico' ? null : data.ncm,
         is_active: data.is_active,
+        tipo: data.tipo || 'produto',
+        codigo_servico_lc116: data.tipo === 'servico' ? data.codigo_servico_lc116 : null,
+        codigo_tributacao_nacional: data.tipo === 'servico' ? data.codigo_tributacao_nacional : null,
+        cnae_associado: data.tipo === 'servico' ? data.cnae_associado : null,
         ...insertPayload
       };
 
@@ -191,11 +195,11 @@ export const InventoryManagement: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory_products'] });
       setIsModalOpen(false);
-      toast.success(selectedProduct ? 'Produto atualizado!' : 'Produto cadastrado!');
+      toast.success(selectedProduct ? 'Item atualizado!' : 'Item cadastrado!');
     },
     onError: (err: any) => {
-      console.error('[Inventory] Erro ao salvar produto:', err);
-      toast.error('❌ Erro ao salvar produto: ' + (err.message || 'Erro desconhecido'));
+      console.error('[Inventory] Erro ao salvar item:', err);
+      toast.error('❌ Erro ao salvar item: ' + (err.message || 'Erro desconhecido'));
     }
   });
 
@@ -449,7 +453,14 @@ export const InventoryManagement: React.FC = () => {
       header: 'Insumo / Código',
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
-          <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="main-text" style={{ fontWeight: 800, color: '#1e293b' }}>{item.nome}</span>
+            {item.tipo === 'servico' && (
+              <span style={{ fontSize: '9px', fontWeight: 800, color: 'white', background: 'hsl(var(--brand))', padding: '1px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                Serviço
+              </span>
+            )}
+          </div>
           <span className="sub-meta" style={{ color: '#64748b', fontSize: '10px', fontWeight: 600 }}>
             ID: {item.id?.slice(0, 8).toUpperCase()}
           </span>
@@ -465,7 +476,7 @@ export const InventoryManagement: React.FC = () => {
             {item.categoria}
           </span>
           <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
-            {item.marca || 'Sem Marca'}
+            {item.tipo === 'servico' ? 'Serviço' : item.marca || 'Sem Marca'}
           </span>
         </div>
       ),
@@ -476,10 +487,10 @@ export const InventoryManagement: React.FC = () => {
       accessor: (item: any) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', textAlign: 'left' }}>
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#334155' }}>
-            {item.localizacao || 'Almoxarifado Geral'}
+            {item.tipo === 'servico' ? 'Sem Almoxarifado' : item.localizacao || 'Almoxarifado Geral'}
           </span>
           <span className="sub-meta" style={{ color: '#94a3b8', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase' }}>
-            Estoque Físico
+            {item.tipo === 'servico' ? 'Mão de Obra / Execução' : 'Estoque Físico'}
           </span>
         </div>
       ),
@@ -488,6 +499,14 @@ export const InventoryManagement: React.FC = () => {
     {
       header: 'Saldo & Nível de Estoque',
       accessor: (item: any) => {
+        if (item.tipo === 'servico') {
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#64748b', fontSize: '11.5px', fontWeight: 700 }}>
+              <Zap size={13} style={{ color: 'hsl(var(--brand))' }} />
+              <span>Não Estocável</span>
+            </div>
+          );
+        }
         const atual = Number(item.estoque_atual || 0);
         const max = Number(item.estoque_maximo || atual * 2 || 1);
         const min = Number(item.estoque_minimo || 0);
@@ -521,6 +540,18 @@ export const InventoryManagement: React.FC = () => {
     {
       header: 'Custo Médio & Total',
       accessor: (item: any) => {
+        if (item.tipo === 'servico') {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+              <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669' }}>
+                {Number(item.custo_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              </span>
+              <span className="sub-meta" style={{ fontSize: '9px', textTransform: 'uppercase', color: '#94a3b8' }}>
+                Por {item.unidade || 'un'}
+              </span>
+            </div>
+          );
+        }
         const totalValue = Number(item.estoque_atual || 0) * Number(item.custo_medio || 0);
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
@@ -537,13 +568,22 @@ export const InventoryManagement: React.FC = () => {
     },
     {
       header: 'Status Reposição',
-      accessor: (item: any) => (
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span className={`status-pill ${Number(item.estoque_atual || 0) < Number(item.estoque_minimo || 0) ? 'danger' : 'success'}`}>
-            {Number(item.estoque_atual || 0) < Number(item.estoque_minimo || 0) ? 'Reposição' : 'Disponível'}
-          </span>
-        </div>
-      ),
+      accessor: (item: any) => {
+        if (item.tipo === 'servico') {
+          return (
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <span className="status-pill success">Ativo</span>
+            </div>
+          );
+        }
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <span className={`status-pill ${Number(item.estoque_atual || 0) < Number(item.estoque_minimo || 0) ? 'danger' : 'success'}`}>
+              {Number(item.estoque_atual || 0) < Number(item.estoque_minimo || 0) ? 'Reposição' : 'Disponível'}
+            </span>
+          </div>
+        );
+      },
       align: 'center' as const
     }
   ];
@@ -569,7 +609,7 @@ export const InventoryManagement: React.FC = () => {
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
-            NOVA ITEM
+            NOVO ITEM
           </button>
         </div>
       </header>
@@ -678,9 +718,9 @@ export const InventoryManagement: React.FC = () => {
             emptyState={
               (!searchTerm && filterValues.categoria === 'all') ? (
                 <EmptyState
-                  title="Nenhum insumo cadastrado"
-                  description="A frota desta unidade ainda não possui insumos registrados. Cadastre o primeiro insumo para iniciar o monitoramento."
-                  actionLabel="Novo Insumo"
+                  title="Nenhum item cadastrado"
+                  description="Esta unidade ainda não possui insumos ou serviços cadastrados. Cadastre o primeiro item para iniciar o monitoramento."
+                  actionLabel="Novo Item"
                   onAction={handleOpenCreate}
                   icon={Package}
                 />
@@ -791,10 +831,10 @@ export const InventoryManagement: React.FC = () => {
                   {(!searchTerm && filterValues.categoria === 'all') ? <Package size={22} /> : <Search size={22} />}
                 </div>
                 <h3 style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>
-                  {(!searchTerm && filterValues.categoria === 'all') ? 'Nenhum insumo cadastrado' : 'Nenhum registro encontrado'}
+                  {(!searchTerm && filterValues.categoria === 'all') ? 'Nenhum item cadastrado' : 'Nenhum registro encontrado'}
                 </h3>
                 <p style={{ fontSize: '10.5px', color: '#64748b', margin: 0, lineHeight: '1.3', maxWidth: '260px' }}>
-                  {(!searchTerm && filterValues.categoria === 'all') ? 'Não há insumos cadastrados nesta unidade.' : 'Sua busca não retornou resultados.'}
+                  {(!searchTerm && filterValues.categoria === 'all') ? 'Não há insumos ou serviços cadastrados nesta unidade.' : 'Sua busca não retornou resultados.'}
                 </p>
                 {(!searchTerm && filterValues.categoria === 'all') && (
                   <button 
@@ -803,15 +843,17 @@ export const InventoryManagement: React.FC = () => {
                     style={{ fontSize: '10.5px', padding: '6px 12px', height: '30px', marginTop: '4px', minHeight: 'auto' }}
                   >
                     <Plus size={12} />
-                    <span>NOVO INSUMO</span>
+                    <span>NOVO ITEM</span>
                   </button>
                 )}
               </div>
             ) : (
               products.map(p => {
-                const isCritical = Number(p.estoque_atual) <= Number(p.estoque_minimo);
+                const isService = p.tipo === 'servico';
+                const isCritical = !isService && Number(p.estoque_atual) <= Number(p.estoque_minimo);
                 
                 const getIcon = (cat: string) => {
+                  if (isService) return <Zap size={32} style={{ color: 'hsl(var(--brand))' }} />;
                   if (cat?.includes('Semente')) return <Wheat size={32} />;
                   if (cat?.includes('Vacina') || cat?.includes('Medicamento')) return <FlaskConical size={32} />;
                   if (cat?.includes('Combustível')) return <Zap size={32} />;
@@ -872,50 +914,64 @@ export const InventoryManagement: React.FC = () => {
                       <div className="card-header-info">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'hsl(var(--text-main))', margin: 0 }}>{p.nome}</h3>
-                          <span className="card-role-badge" style={{ marginTop: '4px' }}>{p.categoria || 'INSUMO'}</span>
+                          <span className="card-role-badge" style={{ marginTop: '4px' }}>
+                            {isService ? 'SERVIÇO' : p.categoria || 'INSUMO'}
+                          </span>
                         </div>
                         <span className={`status-pill mini ${isCritical ? 'stopped' : 'active'}`} style={{ fontSize: '8px', padding: '4px 8px', borderRadius: '6px' }}>
-                          {isCritical ? '⚠️ Reposição' : '✓ Disponível'}
+                          {isService ? '✓ Ativo' : isCritical ? '⚠️ Reposição' : '✓ Disponível'}
                         </span>
                       </div>
 
                       <div className="card-meta-grid" style={{ gap: '6px', marginTop: '8px' }}>
-                        <div className="meta-item">
-                          <Package size={12} className="meta-icon" />
-                          <span style={{ fontWeight: 800, color: isCritical ? '#ef4444' : '#16a34a' }}>
-                            Saldo: {p.estoque_atual || 0} {p.unidade} (Min: {p.estoque_minimo || 0})
-                          </span>
-                        </div>
-                        
-                        {/* Dynamic Stock Level Progress Bar */}
-                        <div style={{ marginTop: '4px', marginBottom: '4px' }}>
-                          <div style={{ height: '6px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
-                            <div 
-                              style={{ 
-                                height: '100%', 
-                                transition: 'width 0.5s', 
-                                backgroundColor: isCritical ? '#ef4444' : '#10b981',
-                                width: `${Math.min(100, ((p.estoque_atual || 0) / (p.estoque_minimo * 2 || 1)) * 100)}%` 
-                              }}
-                            />
+                        {isService ? (
+                          <div className="meta-item">
+                            <Zap size={12} className="meta-icon" style={{ color: 'hsl(var(--brand))' }} />
+                            <span style={{ fontWeight: 800, color: '#475569' }}>
+                              Serviço Não Estocável
+                            </span>
                           </div>
-                        </div>
+                        ) : (
+                          <>
+                            <div className="meta-item">
+                              <Package size={12} className="meta-icon" />
+                              <span style={{ fontWeight: 800, color: isCritical ? '#ef4444' : '#16a34a' }}>
+                                Saldo: {p.estoque_atual || 0} {p.unidade} (Min: {p.estoque_minimo || 0})
+                              </span>
+                            </div>
+                            
+                            <div style={{ marginTop: '4px', marginBottom: '4px' }}>
+                              <div style={{ height: '6px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '99px', overflow: 'hidden' }}>
+                                <div 
+                                  style={{ 
+                                    height: '100%', 
+                                    transition: 'width 0.5s', 
+                                    backgroundColor: isCritical ? '#ef4444' : '#10b981',
+                                    width: `${Math.min(100, ((p.estoque_atual || 0) / (p.estoque_minimo * 2 || 1)) * 100)}%` 
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          </>
+                        )}
 
                         <div className="meta-item">
                           <DollarSign size={12} className="meta-icon" />
-                          <span>Custo Médio: {Number(p.custo_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                          <span>{isService ? 'Valor / Custo' : 'Custo Médio'}: {Number(p.custo_medio || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}{isService ? ` por ${p.unidade}` : ''}</span>
                         </div>
                         
-                        <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                          <span style={{ fontSize: '9px', fontWeight: 900, background: '#ecfdf5', color: '#059669', padding: '4px 8px', borderRadius: '6px' }}>
-                            Ativo: {(Number(p.estoque_atual || 0) * Number(p.custo_medio || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                          </span>
-                        </div>
+                        {!isService && (
+                          <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 900, background: '#ecfdf5', color: '#059669', padding: '4px 8px', borderRadius: '6px' }}>
+                              Ativo: {(Number(p.estoque_atual || 0) * Number(p.custo_medio || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="card-footer-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', borderTop: '1px dashed rgba(148, 163, 184, 0.15)', paddingTop: '6px', marginTop: '12px' }}>
                         <div className="meta-item" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', fontWeight: 700, color: '#64748b' }}>
                           <Boxes size={12} style={{ color: 'hsl(var(--brand))' }} />
-                          <span>Loc: {p.localizacao || 'Almoxarifado Geral'}</span>
+                          <span>{isService ? 'Mão de Obra' : `Loc: ${p.localizacao || 'Almoxarifado Geral'}`}</span>
                         </div>
                       </div>
                     </div>
@@ -925,7 +981,7 @@ export const InventoryManagement: React.FC = () => {
             )}
             <button className="add-product-card-premium" onClick={handleOpenCreate}>
               <Plus size={32} />
-              <span>NOVO INSUMO</span>
+              <span>NOVO ITEM</span>
             </button>
           </motion.div>
         )}

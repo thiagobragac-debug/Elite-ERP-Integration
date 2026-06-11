@@ -20,6 +20,7 @@ interface Categoria {
   modulo_vinculado?: string;
   is_system?: boolean;
   categoria_financeira_id?: string;
+  tipo_item?: string;
 }
 
 export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string, triggerCreate: number }> = ({ modulo, searchTerm, triggerCreate }) => {
@@ -35,7 +36,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
     cor: '#94a3b8',
     is_active: true,
     modulo_vinculado: '',
-    categoria_financeira_id: ''
+    categoria_financeira_id: '',
+    tipo_item: 'ambos'
   });
 
   // Removed local modules list
@@ -175,7 +177,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
 
   const handleOpenCreate = () => {
     setEditItem(null);
-    setFormData({ nome: '', cor: '#94a3b8', is_active: true, modulo_vinculado: '', categoria_financeira_id: '' });
+    setFormData({ nome: '', cor: '#94a3b8', is_active: true, modulo_vinculado: '', categoria_financeira_id: '', tipo_item: 'ambos' });
     setIsModalOpen(true);
   };
 
@@ -186,7 +188,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
       cor: cat.cor || '#94a3b8', 
       is_active: cat.is_active,
       modulo_vinculado: cat.modulo_vinculado || '',
-      categoria_financeira_id: cat.categoria_financeira_id || ''
+      categoria_financeira_id: cat.categoria_financeira_id || '',
+      tipo_item: cat.tipo_item || 'ambos'
     });
     setIsModalOpen(true);
   };
@@ -204,6 +207,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           is_active: formData.is_active,
           modulo_vinculado: formData.modulo_vinculado || null,
           categoria_financeira_id: formData.categoria_financeira_id || null,
+          tipo_item: modulo === 'estoque' ? formData.tipo_item : 'ambos',
           updated_at: new Date().toISOString()
         })
         .eq('id', editItem.id);
@@ -224,7 +228,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           cor: formData.cor,
           is_active: formData.is_active,
           modulo_vinculado: formData.modulo_vinculado || null,
-          categoria_financeira_id: formData.categoria_financeira_id || null
+          categoria_financeira_id: formData.categoria_financeira_id || null,
+          tipo_item: modulo === 'estoque' ? formData.tipo_item : 'ambos'
         });
 
       if (!error) {
@@ -272,6 +277,35 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
       ),
       align: 'left' as const
     },
+    ...(modulo === 'estoque' ? [{
+      header: 'Aplicável a',
+      accessor: (cat: Categoria) => {
+        const labels: Record<string, string> = {
+          'produto': 'Produto / Insumo',
+          'servico': 'Serviço',
+          'ambos': 'Ambos'
+        };
+        const label = labels[cat.tipo_item || 'ambos'] || 'Ambos';
+        const isProd = (cat.tipo_item || 'ambos') === 'produto';
+        const isServ = (cat.tipo_item || 'ambos') === 'servico';
+        
+        return (
+          <span style={{ 
+            fontSize: '11px', 
+            fontWeight: 750, 
+            padding: '4px 8px', 
+            borderRadius: '6px',
+            background: isProd ? 'rgba(16, 185, 129, 0.08)' : isServ ? 'rgba(99, 102, 241, 0.08)' : 'hsl(var(--bg-main))',
+            color: isProd ? '#10b981' : isServ ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))',
+            border: `1px solid ${isProd ? 'rgba(16, 185, 129, 0.2)' : isServ ? 'rgba(99, 102, 241, 0.2)' : 'hsl(var(--border))'}`,
+            textTransform: 'uppercase' as const
+          }}>
+            {label}
+          </span>
+        );
+      },
+      align: 'left' as const
+    }] : []),
     {
       header: modulo === 'estoque' ? 'Vínculo Financeiro' : 'Vínculo Operacional',
       accessor: (cat: Categoria) => {
@@ -352,7 +386,7 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           subtitle={`Adicionar nova categoria para o módulo: ${modulo.toUpperCase()}`}
           icon={Tag}
           submitLabel="Salvar Categoria"
-          size="small"
+          size="medium"
         >
           <div className="form-grid">
             <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
@@ -387,22 +421,37 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
             )}
 
             {modulo === 'estoque' && (
-              <div className="tauze-field-group">
-                <label className="tauze-label">Categoria Financeira Padrão (Opcional)</label>
-                <select 
-                  className="tauze-input"
-                  value={formData.categoria_financeira_id}
-                  onChange={e => setFormData({...formData, categoria_financeira_id: e.target.value})}
-                >
-                  <option value="">-- Não vincular nenhuma --</option>
-                  {categorias.filter(c => c.modulo === 'financeiro').map(c => (
-                    <option key={c.id} value={c.id}>{c.nome}</option>
-                  ))}
-                </select>
-                <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
-                  Automatiza o lançamento no Contas a Pagar/Receber
-                </span>
-              </div>
+              <>
+                <div className="tauze-field-group">
+                  <label className="tauze-label">Aplicável a</label>
+                  <select 
+                    className="tauze-input"
+                    value={formData.tipo_item}
+                    onChange={e => setFormData({...formData, tipo_item: e.target.value})}
+                  >
+                    <option value="ambos">Ambos (Produto e Serviço)</option>
+                    <option value="produto">Apenas Insumo / Produto</option>
+                    <option value="servico">Apenas Serviço</option>
+                  </select>
+                </div>
+
+                <div className="tauze-field-group">
+                  <label className="tauze-label">Categoria Financeira Padrão (Opcional)</label>
+                  <select 
+                    className="tauze-input"
+                    value={formData.categoria_financeira_id}
+                    onChange={e => setFormData({...formData, categoria_financeira_id: e.target.value})}
+                  >
+                    <option value="">-- Não vincular nenhuma --</option>
+                    {categorias.filter(c => c.modulo === 'financeiro').map(c => (
+                      <option key={c.id} value={c.id}>{c.nome}</option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
+                    Automatiza o lançamento no Contas a Pagar/Receber
+                  </span>
+                </div>
+              </>
             )}
 
             <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>

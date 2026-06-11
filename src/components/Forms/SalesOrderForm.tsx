@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -446,7 +446,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({isOpen,
 
         {formData.payment_condition === 'prazo' && installmentsList.length > 0 && (
           <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-            <div className="tauze-field-group" style={{ background: 'hsl(var(--bg-main)/0.3)', borderRadius: '12px', border: '1px solid hsl(var(--border))', padding: '16px' }}>
+            <div className="tauze-field-group" style={{ padding: '8px 0' }}>
               <div style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--text-muted))', marginBottom: '12px', textTransform: 'uppercase' }}>
                 Cronograma de Recebimento
               </div>

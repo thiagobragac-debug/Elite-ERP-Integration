@@ -195,7 +195,15 @@ export const Invoices: React.FC = () => {
         valor_total: parseFloat(data.total_value),
         transportadora: data.transport_company,
         observacoes: data.description,
-        status: selectedInvoice?.status || 'authorized'
+        status: selectedInvoice?.status || 'authorized',
+        iss_retido: data.iss_retido,
+        irrf_retido: data.irrf_retido,
+        csll_retido: data.csll_retido,
+        pis_retido: data.pis_retido,
+        cofins_retido: data.cofins_retido,
+        inss_retido: data.inss_retido,
+        valor_liquido: data.valor_liquido,
+        modelo_fiscal: data.modelo_fiscal,
       };
 
       if (selectedInvoice) {

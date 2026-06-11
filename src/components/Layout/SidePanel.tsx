@@ -108,7 +108,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           border-left: 1px solid hsl(var(--border));
         }
         .tauze-sidepanel-header {
-          padding: 24px 32px;
+          padding: 20px 24px;
           background: #0f172a;
           color: white;
           display: flex;
@@ -126,15 +126,15 @@ export const SidePanel: React.FC<SidePanelProps> = ({
           background: linear-gradient(90deg, transparent, hsl(var(--brand) / 0.5), transparent);
         }
         .tauze-sidepanel-content {
-          padding: ${contentPadding !== undefined ? (typeof contentPadding === 'number' ? `${contentPadding}px` : contentPadding) : '32px'};
+          padding: ${contentPadding !== undefined ? (typeof contentPadding === 'number' ? `${contentPadding}px` : contentPadding) : '24px'};
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: ${contentPadding !== undefined ? '0px' : '32px'};
+          gap: ${contentPadding !== undefined ? '0px' : '20px'};
           flex: 1;
         }
         .tauze-sidepanel-footer {
-          padding: 24px 32px;
+          padding: 20px 24px;
           background: hsl(var(--bg-main));
           border-top: 1px solid hsl(var(--border));
           display: flex;

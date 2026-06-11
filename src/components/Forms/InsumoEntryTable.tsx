@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Package, 
   Plus, 
@@ -43,6 +44,7 @@ export interface InsumoItem {
   match_status: MatchStatus;
   match_score?: number;
   match_source?: 'de_para' | 'fuzzy';
+  tipo?: 'produto' | 'servico';
 }
 
 interface InsumoEntryTableProps {
@@ -64,6 +66,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
   const [isSearching, setIsSearching] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [matchingItemIds, setMatchingItemIds] = useState<Set<string>>(new Set());
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
 
   // Rastreia quais IDs já passaram pelo auto-match para evitar loop infinito
   const processedIds = useRef<Set<string>>(new Set());
@@ -106,7 +109,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
   const fetchProducts = async () => {
     const { data } = await supabase
       .from('produtos')
-      .select('id, nome, unidade_medida, preco_custo, ean, ncm')
+      .select('id, nome, unidade_medida, preco_custo, ean, ncm, tipo')
       .eq('tenant_id', activeTenantId)
       .order('nome');
     if (data) setAvailableProducts(data);
@@ -153,6 +156,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
             produto_id: internalProduct.id,
             nome: internalProduct.nome,
             unidade: internalProduct.unidade_medida || updatedItems[itemIndex].unidade,
+            tipo: internalProduct.tipo,
             match_status: 'confirmed',
             match_score: 100,
             match_source: 'ncm' as any, // Cast temporário
@@ -179,6 +183,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
               produto_id: internalProduct.id,
               nome: internalProduct.nome,
               unidade: internalProduct.unidade_medida || updatedItems[itemIndex].unidade,
+              tipo: internalProduct.tipo,
               match_status: 'confirmed',
               match_score: 100,
               match_source: 'de_para',
@@ -199,6 +204,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
             produto_id: status !== 'unmatched' ? best.product.id : '',
             nome: status !== 'unmatched' ? best.product.nome : updatedItems[itemIndex].nome,
             unidade: status !== 'unmatched' ? (best.product.unidade_medida || updatedItems[itemIndex].unidade) : updatedItems[itemIndex].unidade,
+            tipo: status !== 'unmatched' ? best.product.tipo : undefined,
             match_status: status,
             match_score: best.score,
             match_source: 'fuzzy',
@@ -303,6 +309,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
       nome: product.nome,
       unidade: product.unidade_medida || 'UN',
       preco_unitario: product.preco_custo || 0,
+      tipo: product.tipo,
       // Se era XML, marca como suggested aguardando confirmação
       match_status: item?.xml_product_name ? 'suggested' : 'manual',
       match_score: undefined,
@@ -454,10 +461,26 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                               onChange={(e) => {
                                 setSearchTerm(e.target.value);
                                 setIsSearching(item.id);
+                                const rect = e.currentTarget.parentElement?.getBoundingClientRect();
+                                if (rect) {
+                                  setDropdownStyle({
+                                    top: rect.bottom + 4,
+                                    left: rect.left,
+                                    width: rect.width
+                                  });
+                                }
                               }}
-                              onFocus={() => {
+                              onFocus={(e) => {
                                 setSearchTerm(item.nome);
                                 setIsSearching(item.id);
+                                const rect = e.currentTarget.parentElement?.getBoundingClientRect();
+                                if (rect) {
+                                  setDropdownStyle({
+                                    top: rect.bottom + 4,
+                                    left: rect.left,
+                                    width: rect.width
+                                  });
+                                }
                               }}
                               onBlur={() => {
                                 setTimeout(() => setIsSearching(null), 200);
@@ -465,8 +488,8 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                             />
                             <Search size={14} className="s-icon-mini" />
 
-                            {isSearching === item.id && (
-                              <div className="insumo-dropdown-portal">
+                            {isSearching === item.id && createPortal(
+                              <div className="insumo-dropdown-portal" style={dropdownStyle}>
                                 {filteredProducts.length > 0 ? (
                                   filteredProducts.slice(0, 8).map(p => (
                                     <div 
@@ -484,7 +507,8 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                                 ) : (
                                   <div className="no-results">Nenhum produto encontrado</div>
                                 )}
-                              </div>
+                              </div>,
+                              document.body
                             )}
                           </div>
 
@@ -574,6 +598,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                         { value: '', label: 'Depósito...' },
                         ...(depositos || []).map(d => ({ value: String(d.id), label: String(d.nome) })),
                       ]}
+                      height="38px"
                     />
                   </td>
 
@@ -761,12 +786,13 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
         .insumo-batch-table td {
           padding: 10px 8px;
           border-bottom: 1px solid hsl(var(--border)/0.5);
-          vertical-align: top;
+          vertical-align: middle;
         }
         .insumo-search-input-wrapper {
           position: relative;
           display: flex;
           align-items: center;
+          height: 38px;
         }
         .s-icon-mini {
           position: absolute;
@@ -776,16 +802,18 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
         }
         .tauze-table-input {
           width: 100%;
+          height: 38px;
+          box-sizing: border-box;
           background: hsl(var(--bg-main));
           border: 1px solid hsl(var(--border));
-          padding: 8px 10px;
+          padding: 0 10px;
           border-radius: 10px;
           font-size: 13px;
           font-weight: 600;
           color: hsl(var(--text-main));
           transition: all 0.2s;
         }
-        .tauze-table-input.centered { text-align: center; padding: 8px 4px; }
+        .tauze-table-input.centered { text-align: center; padding: 0 4px; }
         .tauze-table-input:focus {
           border-color: hsl(var(--brand));
           outline: none;
@@ -835,19 +863,17 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
           transform: scale(1.1);
         }
         .insumo-dropdown-portal {
-          position: absolute;
-          top: 100%;
-          left: 0;
-          right: 0;
+          position: fixed;
           background: hsl(var(--bg-card));
           border: 1px solid hsl(var(--border));
           border-radius: 14px;
           box-shadow: 0 15px 35px -5px rgba(0,0,0,0.15);
-          z-index: 100;
+          z-index: 99999;
           max-height: 250px;
           overflow-y: auto;
           margin-top: 6px;
           padding: 6px;
+          box-sizing: border-box;
         }
         .insumo-option {
           display: flex;

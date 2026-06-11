@@ -28,7 +28,7 @@ interface ProductFormProps {
 
 export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubmit, initialData, hasHistory = false, actionId }) => {
   const { tenant } = useTenant();
-  const [categories, setCategories] = useState<{value: string, label: string}[]>([]);
+  const [categories, setCategories] = useState<{id: string, nome: string, tipo_item?: string}[]>([]);
   const [ncms, setNcms] = useState<{value: string, label: string}[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = usePersistentState('ProductForm_formData', {
@@ -47,7 +47,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
     is_purchasable: true,
     is_sellable: false,
     is_storable: true,
-    is_active: true
+    is_active: true,
+    tipo: 'produto',
+    codigo_servico_lc116: '',
+    codigo_tributacao_nacional: '',
+    cnae_associado: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -63,12 +67,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
     return term.includes('defensivo') || term.includes('agrotóxico') || term.includes('inseticida') || term.includes('herbicida') || term.includes('fungicida');
   }, [formData.categoria, formData.nome]);
 
+  // Filtered Categories based on item type
+  const filteredCategories = useMemo(() => {
+    return categories
+      .filter(c => !c.tipo_item || c.tipo_item === 'ambos' || c.tipo_item === formData.tipo)
+      .map(c => ({ value: c.id, label: c.nome }));
+  }, [categories, formData.tipo]);
+
   const fetchCategories = async () => {
     if (!tenant) return;
     try {
       const fetchPromise = supabase
         .from('categorias_sistema')
-        .select('id, nome')
+        .select('id, nome, tipo_item')
         .eq('tenant_id', tenant.id)
         .eq('modulo', 'estoque')
         .eq('is_active', true)
@@ -84,27 +95,29 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
       if (error) throw error;
       
       if (data && data.length > 0) {
-        setCategories(data.map((d: any) => ({ value: d.id, label: d.nome })));
+        setCategories(data);
       } else {
         throw new Error('No data');
       }
     } catch (error) {
       console.warn('[ProductForm] Category fetch fallback:', error);
       setCategories([
-        { value: "Semente", label: "Semente" },
-        { value: "Adubo", label: "Adubo" },
-        { value: "Medicamento", label: "Medicamento" },
-        { value: "Suplemento", label: "Suplemento / Sal" },
-        { value: "Combustível", label: "Combustível" },
-        { value: "Outros", label: "Outros" }
+        { id: "Semente", nome: "Semente", tipo_item: "produto" },
+        { id: "Adubo", nome: "Adubo", tipo_item: "produto" },
+        { id: "Medicamento", nome: "Medicamento", tipo_item: "produto" },
+        { id: "Suplemento", nome: "Suplemento / Sal", tipo_item: "produto" },
+        { id: "Combustível", nome: "Combustível", tipo_item: "produto" },
+        { id: "Serviços Gerais", nome: "Serviços Gerais", tipo_item: "servico" },
+        { id: "Mão de Obra", nome: "Mão de Obra", tipo_item: "servico" },
+        { id: "Outros", nome: "Outros", tipo_item: "ambos" }
       ]);
     }
   };
 
   const handleCategoriaChange = async (val: string) => {
-    const isKnown = categories.find(c => c.value === val);
+    const isKnown = categories.find(c => c.id === val || c.nome === val);
     if (isKnown) {
-      setFormData({...formData, categoria_id: val, categoria: isKnown.label});
+      setFormData({...formData, categoria_id: isKnown.id, categoria: isKnown.nome});
     } else if (val && val.trim().length > 0) {
       setFormData({...formData, categoria_id: '', categoria: val});
       if (tenant) {
@@ -113,7 +126,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
             tenant_id: tenant.id,
             modulo: 'estoque',
             nome: val.trim(),
-            is_active: true
+            is_active: true,
+            tipo_item: formData.tipo
           }).select().single();
           if (data) {
             fetchCategories();
@@ -187,7 +201,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
         is_purchasable: initialData.is_purchasable !== undefined ? initialData.is_purchasable : true,
         is_sellable: initialData.is_sellable !== undefined ? initialData.is_sellable : false,
         is_storable: initialData.is_storable !== undefined ? initialData.is_storable : true,
-        is_active: initialData.is_active !== undefined ? initialData.is_active : true
+        is_active: initialData.is_active !== undefined ? initialData.is_active : true,
+        tipo: initialData.tipo || 'produto',
+        codigo_servico_lc116: initialData.codigo_servico_lc116 || '',
+        codigo_tributacao_nacional: initialData.codigo_tributacao_nacional || '',
+        cnae_associado: initialData.cnae_associado || ''
       });
     } else if (!isOpen) {
       setFormData({
@@ -206,7 +224,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
         is_purchasable: true,
         is_sellable: false,
         is_storable: true,
-        is_active: true
+        is_active: true,
+        tipo: 'produto',
+        codigo_servico_lc116: '',
+        codigo_tributacao_nacional: '',
+        cnae_associado: ''
       });
     }
   }, [initialData, isOpen, actionId]);
@@ -318,13 +340,46 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
         <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <section className="tauze-form-section" style={{ margin: 0 }}>
             <FormSection title="Identificação Básica" badge="PASSO 01" marginTop={0} />
-            <div className="tauze-input-grid grid-col-3">
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label className="tauze-label" style={{ display: 'block', marginBottom: '8px', fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', color: 'hsl(var(--text-muted))' }}>Tipo do Item</label>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '12px 18px', background: formData.tipo === 'produto' ? 'rgba(16, 185, 129, 0.08)' : 'hsl(var(--bg-main)/0.5)', borderRadius: '12px', border: `1.5px solid ${formData.tipo === 'produto' ? '#10b981' : 'hsl(var(--border))'}`, transition: 'all 0.2s', flex: 1 }}>
+                  <input 
+                    type="radio" 
+                    name="tipo_item"
+                    checked={formData.tipo === 'produto'}
+                    onChange={() => setFormData({...formData, tipo: 'produto', is_storable: true})}
+                    style={{ accentColor: '#10b981', width: '16px', height: '16px' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>Insumo / Produto</span>
+                    <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))' }}>Itens físicos e estocáveis</span>
+                  </div>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '12px 18px', background: formData.tipo === 'servico' ? 'rgba(99, 102, 241, 0.08)' : 'hsl(var(--bg-main)/0.5)', borderRadius: '12px', border: `1.5px solid ${formData.tipo === 'servico' ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`, transition: 'all 0.2s', flex: 1 }}>
+                  <input 
+                    type="radio" 
+                    name="tipo_item"
+                    checked={formData.tipo === 'servico'}
+                    onChange={() => setFormData({...formData, tipo: 'servico', is_storable: false})}
+                    style={{ accentColor: 'hsl(var(--brand))', width: '16px', height: '16px' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 800, color: 'hsl(var(--text-main))' }}>Serviço</span>
+                    <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))' }}>Mão de obra, fretes, etc.</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className={`tauze-input-grid ${formData.tipo === 'produto' ? 'grid-col-3' : 'grid-col-2'}`}>
               <div className="tauze-field-group">
-                <label className="tauze-label"><Package size={14} /> Nome do Item</label>
+                <label className="tauze-label"><Package size={14} /> {formData.tipo === 'servico' ? 'Nome do Serviço' : 'Nome do Item'}</label>
                 <input 
                   className="tauze-input"
                   type="text" 
-                  placeholder="Ex: Milho, NPK, Ivermectina..." 
+                  placeholder={formData.tipo === 'servico' ? "Ex: Mão de Obra, Consultoria, Frete..." : "Ex: Milho, NPK, Ivermectina..."}
                   value={formData.nome}
                   onChange={(e) => setFormData({...formData, nome: e.target.value})}
                   required 
@@ -338,122 +393,188 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
                   onChange={handleCategoriaChange}
                   creatable={true}
                   placeholder="Selecione ou digite nova..."
-                  options={categories}
+                  options={filteredCategories}
                 />
               </div>
 
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Tag size={14} /> Marca / Fabricante</label>
-                <input 
-                  className="tauze-input"
-                  type="text" 
-                  placeholder="Ex: Bunge, Syngenta..." 
-                  value={formData.marca}
-                  onChange={(e) => setFormData({...formData, marca: e.target.value})}
-                />
-              </div>
+              {formData.tipo === 'produto' && (
+                <div className="tauze-field-group animate-slide-up">
+                  <label className="tauze-label"><Tag size={14} /> Marca / Fabricante</label>
+                  <input 
+                    className="tauze-input"
+                    type="text" 
+                    placeholder="Ex: Bunge, Syngenta..." 
+                    value={formData.marca}
+                    onChange={(e) => setFormData({...formData, marca: e.target.value})}
+                  />
+                </div>
+              )}
             </div>
           </section>
 
-          <section className="tauze-form-section" style={{ margin: 0 }}>
-            <FormSection title="Logística e Fiscal" badge="PASSO 02" marginTop={0} />
-            <div className="tauze-input-grid grid-col-3">
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Layers size={14} /> Localização (Almoxarifado)</label>
-                <input 
-                  className="tauze-input"
-                  type="text" 
-                  placeholder="Prateleira A, Galpão 01..." 
-                  value={formData.localizacao}
-                  onChange={(e) => setFormData({...formData, localizacao: e.target.value})}
-                />
-              </div>
+          {formData.tipo === 'produto' && (
+            <section className="tauze-form-section animate-slide-up" style={{ margin: 0 }}>
+              <FormSection title="Logística e Fiscal" badge="PASSO 02" marginTop={0} />
+              <div className="tauze-input-grid grid-col-3">
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Layers size={14} /> Localização (Almoxarifado)</label>
+                  <input 
+                    className="tauze-input"
+                    type="text" 
+                    placeholder="Prateleira A, Galpão 01..." 
+                    value={formData.localizacao}
+                    onChange={(e) => setFormData({...formData, localizacao: e.target.value})}
+                  />
+                </div>
 
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Hash size={14} /> Código de Barras</label>
-                <input 
-                  className="tauze-input"
-                  type="text" 
-                  placeholder="789..." 
-                  value={formData.ean}
-                  onChange={(e) => setFormData({...formData, ean: e.target.value})}
-                />
-              </div>
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Hash size={14} /> Código de Barras</label>
+                  <input 
+                    className="tauze-input"
+                    type="text" 
+                    placeholder="789..." 
+                    value={formData.ean}
+                    onChange={(e) => setFormData({...formData, ean: e.target.value})}
+                  />
+                </div>
 
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Hash size={14} /> NCM</label>
-                <SearchableSelect
-                  options={ncms}
-                  value={formData.ncm}
-                  onChange={(val: any) => setFormData({...formData, ncm: val})}
-                  placeholder="Selecione um NCM..."
-                />
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Hash size={14} /> NCM</label>
+                  <SearchableSelect
+                    options={ncms}
+                    value={formData.ncm}
+                    onChange={(val: any) => setFormData({...formData, ncm: val})}
+                    placeholder="Selecione um NCM..."
+                  />
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
+
+          {formData.tipo === 'servico' && (
+            <section className="tauze-form-section animate-slide-up" style={{ margin: 0 }}>
+              <FormSection title="Informações Fiscais" badge="PASSO 02" marginTop={0} />
+              <div className="tauze-input-grid grid-col-3">
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Hash size={14} /> Código de Serviço (LC 116)</label>
+                  <input 
+                    className="tauze-input"
+                    type="text" 
+                    placeholder="Ex: 07.02, 17.05..." 
+                    value={formData.codigo_servico_lc116}
+                    onChange={(e) => setFormData({...formData, codigo_servico_lc116: e.target.value})}
+                  />
+                </div>
+
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Hash size={14} /> Código de Tributação Nacional</label>
+                  <input 
+                    className="tauze-input"
+                    type="text" 
+                    placeholder="Ex: 07.02.01..." 
+                    value={formData.codigo_tributacao_nacional}
+                    onChange={(e) => setFormData({...formData, codigo_tributacao_nacional: e.target.value})}
+                  />
+                </div>
+
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Hash size={14} /> CNAE Associado</label>
+                  <input 
+                    className="tauze-input"
+                    type="text" 
+                    placeholder="Ex: 0161-0/03..." 
+                    value={formData.cnae_associado}
+                    onChange={(e) => setFormData({...formData, cnae_associado: e.target.value})}
+                  />
+                </div>
+              </div>
+            </section>
+          )}
         </div>
       )}
 
       {currentStep === 2 && (
         <div className="animate-slide-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <section className="tauze-form-section" style={{ margin: 0 }}>
-            <FormSection title="Controle de Estoque" badge="PASSO 01" marginTop={0} />
-            <div className="tauze-input-grid grid-col-3">
-              <div className="tauze-field-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label className="tauze-label"><Hash size={14} /> Est. Atual</label>
-                  {hasHistory && <span style={{ fontSize: '9px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 800 }}><Lock size={10}/> BLOQUEADO PELO KARDEX</span>}
+          {formData.tipo === 'produto' ? (
+            <section className="tauze-form-section" style={{ margin: 0 }}>
+              <FormSection title="Controle de Estoque" badge="PASSO 01" marginTop={0} />
+              <div className="tauze-input-grid grid-col-3">
+                <div className="tauze-field-group">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label className="tauze-label"><Hash size={14} /> Est. Atual</label>
+                    {hasHistory && <span style={{ fontSize: '9px', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 800 }}><Lock size={10}/> BLOQUEADO PELO KARDEX</span>}
+                  </div>
+                  <input 
+                    className="tauze-input"
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00" 
+                    value={formData.estoque_atual}
+                    onChange={(e) => setFormData({...formData, estoque_atual: e.target.value})}
+                    required
+                    disabled={hasHistory}
+                    style={{ cursor: hasHistory ? 'not-allowed' : 'text', opacity: hasHistory ? 0.7 : 1, background: hasHistory ? 'hsl(var(--bg-main))' : 'white' }}
+                  />
                 </div>
-                <input 
-                  className="tauze-input"
-                  type="number" 
-                  step="0.01"
-                  placeholder="0.00" 
-                  value={formData.estoque_atual}
-                  onChange={(e) => setFormData({...formData, estoque_atual: e.target.value})}
-                  required
-                  disabled={hasHistory}
-                  style={{ cursor: hasHistory ? 'not-allowed' : 'text', opacity: hasHistory ? 0.7 : 1, background: hasHistory ? 'hsl(var(--bg-main))' : 'white' }}
-                />
-              </div>
 
-              <div className="tauze-field-group">
-                <label className="tauze-label"><AlertTriangle size={14} /> Est. Mínimo</label>
-                <input 
-                  className="tauze-input"
-                  type="number" 
-                  step="0.01"
-                  placeholder="0.00" 
-                  value={formData.estoque_minimo}
-                  onChange={(e) => setFormData({...formData, estoque_minimo: e.target.value})}
-                  required
-                />
-              </div>
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><AlertTriangle size={14} /> Est. Mínimo</label>
+                  <input 
+                    className="tauze-input"
+                    type="number" 
+                    step="0.01"
+                    placeholder="0.00" 
+                    value={formData.estoque_minimo}
+                    onChange={(e) => setFormData({...formData, estoque_minimo: e.target.value})}
+                    required
+                  />
+                </div>
 
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Layers size={14} /> Unidade</label>
-                <SearchableSelect 
-                  value={formData.unidade}
-                  onChange={(val: any) => setFormData({...formData, unidade: val})}
-                  options={[
-                    { value: 'un', label: 'un' },
-                    { value: 'kg', label: 'kg' },
-                    { value: 'ton', label: 'ton' },
-                    { value: 'L', label: 'L' },
-                    { value: 'dose', label: 'dose' },
-                    { value: 'saco', label: 'saco' },
-                  ]}
-                />
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Layers size={14} /> Unidade</label>
+                  <SearchableSelect 
+                    value={formData.unidade}
+                    onChange={(val: any) => setFormData({...formData, unidade: val})}
+                    options={[
+                      { value: 'un', label: 'un' },
+                      { value: 'kg', label: 'kg' },
+                      { value: 'ton', label: 'ton' },
+                      { value: 'L', label: 'L' },
+                      { value: 'dose', label: 'dose' },
+                      { value: 'saco', label: 'saco' },
+                    ]}
+                  />
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          ) : (
+            <section className="tauze-form-section" style={{ margin: 0 }}>
+              <FormSection title="Configuração do Serviço" badge="PASSO 01" marginTop={0} />
+              <div className="tauze-input-grid grid-col-3">
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Layers size={14} /> Unidade de Cobrança</label>
+                  <SearchableSelect 
+                    value={formData.unidade}
+                    onChange={(val: any) => setFormData({...formData, unidade: val})}
+                    options={[
+                      { value: 'un', label: 'un (Unidade)' },
+                      { value: 'hr', label: 'hr (Hora)' },
+                      { value: 'dia', label: 'dia (Diária)' },
+                      { value: 'ha', label: 'ha (Hectare)' },
+                      { value: 'km', label: 'km (Quilômetro)' },
+                    ]}
+                  />
+                </div>
+              </div>
+            </section>
+          )}
 
           <section className="tauze-form-section" style={{ margin: 0 }}>
             <FormSection title="Valores e Custos" badge="PASSO 02" marginTop={0} />
 
-            <div className="tauze-input-grid grid-col-3">
+            <div className={`tauze-input-grid ${formData.tipo === 'produto' ? 'grid-col-3' : 'grid-col-2'}`}>
               <div className="tauze-field-group">
-                <label className="tauze-label"><DollarSign size={14} /> Preço de Custo (R$)</label>
+                <label className="tauze-label"><DollarSign size={14} /> {formData.tipo === 'servico' ? 'Valor / Custo do Serviço (R$)' : 'Preço de Custo (R$)'}</label>
                 <input 
                   className="tauze-input"
                   type="number" 
@@ -465,27 +586,29 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
                 />
               </div>
 
-              <div className="tauze-field-group">
-                <label className="tauze-label"><DollarSign size={14} /> Capital Imobilizado (R$)</label>
-                <div 
-                  className="tauze-input"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    background: 'rgba(16, 185, 129, 0.05)',
-                    color: '#10b981',
-                    fontWeight: 700,
-                    cursor: 'not-allowed',
-                    border: '1px solid rgba(16, 185, 129, 0.2)',
-                    height: '42px'
-                  }}
-                >
-                  {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+              {formData.tipo === 'produto' && (
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><DollarSign size={14} /> Capital Imobilizado (R$)</label>
+                  <div 
+                    className="tauze-input"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      background: 'rgba(16, 185, 129, 0.05)',
+                      color: '#10b981',
+                      fontWeight: 700,
+                      cursor: 'not-allowed',
+                      border: '1px solid rgba(16, 185, 129, 0.2)',
+                      height: '42px'
+                    }}
+                  >
+                    {totalValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="tauze-field-group">
-                <label className="tauze-label"><Tag size={14} /> Status do Insumo</label>
+                <label className="tauze-label"><Tag size={14} /> {formData.tipo === 'servico' ? 'Status do Serviço' : 'Status do Insumo'}</label>
                 <SearchableSelect 
                   value={formData.is_active ? 'ativo' : 'inativo'}
                   onChange={(val: any) => setFormData({...formData, is_active: val === 'ativo'})}
@@ -541,19 +664,29 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
                 </div>
               </label>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: hasHistory ? 'not-allowed' : 'pointer', padding: '12px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '12px', border: '1px solid hsl(var(--border))', opacity: hasHistory ? 0.6 : 1 }}>
-                <input 
-                  type="checkbox" 
-                  checked={formData.is_storable}
-                  onChange={(e) => setFormData({...formData, is_storable: e.target.checked})}
-                  disabled={hasHistory}
-                  style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: hasHistory ? 'not-allowed' : 'pointer' }}
-                />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>Estoque Físico</span>
-                  <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}>Gera Kardex</span>
+              {formData.tipo === 'produto' ? (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: hasHistory ? 'not-allowed' : 'pointer', padding: '12px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '12px', border: '1px solid hsl(var(--border))', opacity: hasHistory ? 0.6 : 1 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={formData.is_storable}
+                    onChange={(e) => setFormData({...formData, is_storable: e.target.checked})}
+                    disabled={hasHistory}
+                    style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: hasHistory ? 'not-allowed' : 'pointer' }}
+                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>Estoque Físico</span>
+                    <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}>Gera Kardex</span>
+                  </div>
+                </label>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'hsl(var(--bg-main)/0.3)', borderRadius: '12px', border: '1px dashed hsl(var(--border))', opacity: 0.6 }}>
+                  <Lock size={16} style={{ color: 'hsl(var(--text-muted))' }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-muted))' }}>Estoque Físico (Desabilitado)</span>
+                    <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}>Serviço não estocável</span>
+                  </div>
                 </div>
-              </label>
+              )}
             </div>
           </section>
 
@@ -564,7 +697,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
                 <label className="tauze-label"><FileText size={14} /> Descrição / Notas</label>
                 <textarea className="tauze-input tauze-textarea"
                   style={{ minHeight: '80px' }}
-                  placeholder="Informações adicionais sobre o produto..." 
+                  placeholder={formData.tipo === 'servico' ? "Informações adicionais sobre o serviço..." : "Informações adicionais sobre o produto..."} 
                   value={formData.descricao}
                   onChange={(e) => setFormData({...formData, descricao: e.target.value})}
                   rows={2}

@@ -15,6 +15,7 @@ interface SearchableSelectProps {
   icon?: React.ReactNode;
   creatable?: boolean;
   disabled?: boolean;
+  height?: string;
 }
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -24,7 +25,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   placeholder = 'Selecione...',
   icon,
   creatable = false,
-  disabled = false
+  disabled = false,
+  height
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -111,7 +113,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           justifyContent: 'space-between',
           padding: '0 14px',
           background: disabled ? 'hsl(var(--bg-main) / 0.5)' : 'var(--bg-main)',
-          minHeight: '42px',
+          minHeight: height || '42px',
+          height: height || 'auto',
           cursor: disabled ? 'not-allowed' : 'text',
           opacity: disabled ? 0.6 : 1,
           border: isOpen ? '1px solid hsl(var(--brand))' : undefined,
@@ -123,7 +126,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           inputRef.current?.focus();
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden', flex: 1, height: '100%' }}>
           {icon && <span style={{ color: '#94a3b8', display: 'flex' }}>{icon}</span>}
           <input
             ref={inputRef}
@@ -144,7 +147,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               background: 'transparent',
               outline: 'none',
               width: '100%',
-              padding: '10px 0',
+              padding: height ? '0' : '10px 0',
+              height: height ? '100%' : 'auto',
               fontSize: '13px',
               color: 'inherit',
               cursor: disabled ? 'not-allowed' : 'inherit'
