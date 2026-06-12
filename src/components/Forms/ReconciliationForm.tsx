@@ -16,6 +16,8 @@ import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface ReconciliationFormProps {
   isOpen: boolean;
@@ -136,7 +138,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
           <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
             <div className="tauze-field-group">
               <label className="tauze-label"><Calendar size={14} /> Data Início</label>
-              <input 
+              <DateInput 
                 className="tauze-input"
                 type="date" 
                 value={formData.data_inicio}
@@ -146,7 +148,7 @@ export const ReconciliationForm: React.FC<ReconciliationFormProps> = ({isOpen, o
             </div>
             <div className="tauze-field-group">
               <label className="tauze-label"><Calendar size={14} /> Data Fim</label>
-              <input 
+              <DateInput 
                 className="tauze-input"
                 type="date" 
                 value={formData.data_fim}

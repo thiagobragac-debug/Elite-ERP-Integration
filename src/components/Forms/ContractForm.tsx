@@ -26,6 +26,8 @@ import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface ContractFormProps {
   isOpen: boolean;
@@ -383,7 +385,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({isOpen, onClose, onSu
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data de Assinatura / Início</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={formData.start_date}
@@ -394,7 +396,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({isOpen, onClose, onSu
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data Limite de Entrega / Vencimento</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={formData.end_date}
@@ -507,7 +509,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({isOpen, onClose, onSu
                     {installmentsList.map((inst, index) => (
                       <div key={inst.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'hsl(var(--bg-card))', padding: '8px', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
                         <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--brand))', width: '30px' }}>{index + 1}ª</span>
-                        <input 
+                        <DateInput 
                           type="date" 
                           className="tauze-input" 
                           style={{ height: '32px', padding: '0 8px', fontSize: '12px', flex: 1 }}

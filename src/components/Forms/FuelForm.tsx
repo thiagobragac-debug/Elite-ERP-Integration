@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
+import { ConsumptionCart } from './ConsumptionCart';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 
@@ -35,16 +36,11 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
   const { activeFarm } = useTenant();
   const [formData, setFormData] = usePersistentState('FuelForm_formData', {
     machine_id: '',
-    estoque_id: '',
-    date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-    liters: '',
-    unit_price: '',
-    total_cost: '',
     meter_value: '', 
-    fuel_type: 'Diesel S10',
     responsible: ''
   });
 
+  const [items, setItems] = useState<any[]>([]);
   const [machines, setMachines] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [selectedMachine, setSelectedMachine] = useState<any>(null);
@@ -55,39 +51,20 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
 
     if (initialData) { setFormData({
         machine_id: initialData.maquina_id || '',
-        estoque_id: initialData.estoque_id || '',
-        date: initialData.data || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-        liters: initialData.litros?.toString() || '',
-        unit_price: initialData.preco_unitario?.toString() || '',
-        total_cost: initialData.valor_total?.toString() || '',
         meter_value: initialData.valor_medidor?.toString() || '',
-        fuel_type: initialData.tipo_combustivel || 'Diesel S10',
         responsible: initialData.responsavel || ''
       });
     } else {
       setFormData({
         machine_id: '',
-        estoque_id: '',
         date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
-        liters: '',
-        unit_price: '',
-        total_cost: '',
         meter_value: '',
-        fuel_type: 'Diesel S10',
         responsible: ''
       });
     }
   }, [initialData, isOpen, actionId]);
 
-  // Calculadora Inteligente de Bomba
-  useEffect(() => {
-    if (formData.liters && formData.unit_price) {
-      const total = parseFloat(formData.liters) * parseFloat(formData.unit_price);
-      if (!isNaN(total)) {
-        setFormData(prev => ({ ...prev, total_cost: total.toFixed(2) }));
-      }
-    }
-  }, [formData.liters, formData.unit_price]);
+
 
   useEffect(() => {
     if (isOpen && activeFarm) {
@@ -141,23 +118,24 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
 
   // Calcula consumo em tempo real
   const currentConsumption = React.useMemo(() => {
-    if (!selectedMachine || !formData.meter_value || !formData.liters) return null;
+    const totalLiters = items.reduce((acc, item) => acc + (parseFloat(item.quantidade) || 0), 0);
+    if (!selectedMachine || !formData.meter_value || totalLiters <= 0) return null;
     const diff = Number(formData.meter_value) - Number(selectedMachine.horimetro_atual);
     if (diff <= 0) return null;
     
     // (L/h) or (km/L)
     if (selectedMachine.unidade_medida === 'horas') {
-      return Number(formData.liters) / diff; // L/h (maior = pior)
+      return totalLiters / diff; // L/h (maior = pior)
     } else {
-      return diff / Number(formData.liters); // km/L (menor = pior)
+      return diff / totalLiters; // km/L (menor = pior)
     }
-  }, [selectedMachine, formData.meter_value, formData.liters]);
+  }, [selectedMachine, formData.meter_value, items]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, items });
     } finally {
       setLoading(false);
     }
@@ -196,13 +174,22 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
           </div>
 
           <div className="tauze-field-group">
-            <label className="tauze-label"><Package size={14} /> Local de Saída (Estoque)</label>
-            <SearchableSelect 
-              value={formData.estoque_id}
-              onChange={(val: any) => setFormData({...formData, estoque_id: val})}
-              placeholder="Selecione o tanque de diesel..."
-              options={locations.map(l => ({ value: l.id, label: l.nome }))}
+            <label className="tauze-label">
+              {selectedMachine?.unidade_medida === 'km' ? <><Gauge size={14} /> Hodômetro Atual (km)</> : <><Clock size={14} /> Horímetro Atual (h)</>}
+            </label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              placeholder="Ex: 4520" 
+              value={formData.meter_value}
+              onChange={(e) => setFormData({...formData, meter_value: e.target.value})}
+              required
             />
+            {selectedMachine && Number(formData.meter_value) <= selectedMachine.horimetro_atual && formData.meter_value !== '' && (
+              <div className="tauze-field-error" style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <AlertCircle size={12} /> Valor deve ser maior que {selectedMachine.horimetro_atual}!
+              </div>
+            )}
           </div>
 
           <div className="tauze-field-group">
@@ -233,87 +220,13 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 02</div>
-          <h4 className="tauze-section-title">Medição e Combustível</h4>
+          <h4 className="tauze-section-title">Combustível</h4>
         </div>
-        <div className="tauze-input-grid grid-col-2">
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Droplets size={14} /> Tipo de Combustível</label>
-            <SearchableSelect 
-              value={formData.fuel_type}
-              onChange={(val: any) => setFormData({...formData, fuel_type: val})}
-              options={[
-                { value: 'Diesel S10', label: 'Diesel S10' },
-                { value: 'Diesel S500', label: 'Diesel S500' },
-                { value: 'Gasolina', label: 'Gasolina' },
-                { value: 'Etanol', label: 'Etanol' },
-                { value: 'Arla 32', label: 'Arla 32' },
-              ]}
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label">
-              {selectedMachine?.unidade_medida === 'km' ? <><Gauge size={14} /> Hodômetro Atual (km)</> : <><Clock size={14} /> Horímetro Atual (h)</>}
-            </label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              placeholder="Ex: 4520" 
-              value={formData.meter_value}
-              onChange={(e) => setFormData({...formData, meter_value: e.target.value})}
-              required
-            />
-            {selectedMachine && Number(formData.meter_value) <= selectedMachine.horimetro_atual && formData.meter_value !== '' && (
-              <div className="tauze-field-error" style={{ color: '#ef4444', fontSize: '11px', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <AlertCircle size={12} /> Valor deve ser maior que {selectedMachine.horimetro_atual}!
-              </div>
-            )}
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Droplets size={14} /> Quantidade (Litros)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              step="0.01"
-              placeholder="0.00" 
-              value={formData.liters}
-              onChange={(e) => setFormData({...formData, liters: e.target.value})}
-              required
-            />
-            {selectedMachine && Number(formData.liters) > selectedMachine.capacidade_tanque && selectedMachine.capacidade_tanque > 0 && (
-              <div className="tauze-field-error" style={{ color: '#f59e0b', fontSize: '11px', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <AlertCircle size={12} /> Volume excede cap. do tanque ({selectedMachine.capacidade_tanque}L)
-              </div>
-            )}
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Calculator size={14} /> Preço Unitário (R$/L)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              step="0.01"
-              placeholder="0.00" 
-              value={formData.unit_price}
-              onChange={(e) => setFormData({...formData, unit_price: e.target.value})}
-              required
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><DollarSign size={14} /> Valor Total (R$)</label>
-            <input 
-              className="tauze-input"
-              type="number" 
-              step="0.01"
-              placeholder="0.00" 
-              value={formData.total_cost}
-              onChange={(e) => setFormData({...formData, total_cost: e.target.value})}
-              required
-            />
-          </div>
-        </div>
+        <ConsumptionCart 
+          items={items}
+          onChange={setItems}
+          mode="consumption"
+        />
         
         {/* Termômetro de Consumo */}
         {currentConsumption !== null && selectedMachine?.consumo_estimado > 0 && (

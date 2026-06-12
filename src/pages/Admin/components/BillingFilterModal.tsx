@@ -2,6 +2,8 @@ import React from 'react';
 import { X, Filter, Check, CreditCard, Calendar, Shield, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface BillingFilterModalProps {
   isOpen: boolean;
@@ -28,7 +30,7 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 10000 }}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)', zIndex: 10000 }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -99,7 +101,7 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>DE</span>
-                <input 
+                <DateInput 
                   type="date" 
                   style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: '13px', fontWeight: 600 }} 
                   value={filters.dateStart}
@@ -108,7 +110,7 @@ export const BillingFilterModal: React.FC<BillingFilterModalProps> = ({
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8' }}>ATÉ</span>
-                <input 
+                <DateInput 
                   type="date" 
                   style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid hsl(var(--border))', fontSize: '13px', fontWeight: 600 }} 
                   value={filters.dateEnd}

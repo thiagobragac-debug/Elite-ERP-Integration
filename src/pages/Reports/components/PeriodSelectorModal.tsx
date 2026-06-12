@@ -2,6 +2,8 @@
 import { createPortal } from 'react-dom';
 import { X, Calendar, ChevronRight, Check, ArrowLeft, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface PeriodSelectorModalProps {
   isOpen: boolean;
@@ -120,7 +122,7 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
                     <label>DATA INICIAL</label>
                     <div className="date-input-wrapper">
                       <Calendar size={14} className="input-icon" />
-                      <input 
+                      <DateInput 
                         type="date" 
                         value={startDate} 
                         onChange={(e) => setStartDate(e.target.value)}
@@ -131,7 +133,7 @@ export const PeriodSelectorModal: React.FC<PeriodSelectorModalProps> = ({
                     <label>DATA FINAL</label>
                     <div className="date-input-wrapper">
                       <Calendar size={14} className="input-icon" />
-                      <input 
+                      <DateInput 
                         type="date" 
                         value={endDate} 
                         onChange={(e) => setEndDate(e.target.value)}

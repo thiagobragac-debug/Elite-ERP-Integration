@@ -1,7 +1,9 @@
-Ôªøimport React from 'react';
+import React from 'react';
 import { X, Filter, Check, Building2, MapPin, Layout, Globe, Calendar, ShieldCheck, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface CompanyFilterModalProps {
   isOpen: boolean;
@@ -32,7 +34,7 @@ export const CompanyFilterModal: React.FC<CompanyFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -48,7 +50,7 @@ export const CompanyFilterModal: React.FC<CompanyFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Unidades</h3>
-              <p>Governan√ßa e estrutura√ß√£o global.</p>
+              <p>GovernanÁa e estruturaÁ„o global.</p>
             </div>
           </div>
           <button 
@@ -97,17 +99,17 @@ export const CompanyFilterModal: React.FC<CompanyFilterModalProps> = ({
               onChange={e => setFilters({ ...filters, state: e.target.value })}
               style={{ width: '100%', fontWeight: 700 }}
             >
-              <option value="all">Todas as Regi√µes</option>
+              <option value="all">Todas as Regiıes</option>
               {states.map(uf => <option key={uf} value={uf}>{uf}</option>)}
             </select>
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Extens√£o Territorial (ha) <Layout size={14} /></label>
+            <label className="tauze-filter-label">Extens„o Territorial (ha) <Layout size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.maxArea.toLocaleString()} ha</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto de √Årea</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto de ¡rea</span>
               </div>
               <input 
                 type="range" 
@@ -139,10 +141,10 @@ export const CompanyFilterModal: React.FC<CompanyFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Per√≠odo de Ativa√ß√£o <Calendar size={14} /></label>
+            <label className="tauze-filter-label">PerÌodo de AtivaÁ„o <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input type="date" className="tauze-input" placeholder="In√≠cio" />
-              <input type="date" className="tauze-input" placeholder="Fim" />
+              <DateInput type="date" className="tauze-input" placeholder="InÌcio" />
+              <DateInput type="date" className="tauze-input" placeholder="Fim" />
             </div>
           </div>
         </div>

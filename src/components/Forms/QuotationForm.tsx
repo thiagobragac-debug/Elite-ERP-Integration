@@ -19,6 +19,8 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
 import { motion } from 'framer-motion';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface QuotationFormProps {
   isOpen: boolean;
@@ -326,7 +328,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({isOpen, onClose, on
                     </div>
                     <div>
                       <label className="tauze-label" style={{ fontSize: '10px' }}>Validade (Proposta)</label>
-                      <input 
+                      <DateInput 
                         className="tauze-input"
                         type="date" 
                         value={sup.validity}

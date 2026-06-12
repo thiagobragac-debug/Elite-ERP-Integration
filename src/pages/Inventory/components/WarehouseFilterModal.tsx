@@ -1,4 +1,4 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Layout, Boxes, AlertTriangle, Activity, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -34,7 +34,7 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -49,8 +49,8 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
               <Layout size={20} />
             </div>
             <div>
-              <h3>Filtros de DepÃ³sito</h3>
-              <p>OtimizaÃ§Ã£o de espaÃ§o e estrutura.</p>
+              <h3>Filtros de Depósito</h3>
+              <p>Otimização de espaço e estrutura.</p>
             </div>
           </div>
           <button 
@@ -92,11 +92,11 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">NÃ­vel de OcupaÃ§Ã£o <Target size={14} /></label>
+            <label className="tauze-filter-label">Nível de Ocupação <Target size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {[
-                { id: 'all', label: 'Qualquer OcupaÃ§Ã£o' },
-                { id: 'critical', label: 'CrÃ­tica (> 90%)' },
+                { id: 'all', label: 'Qualquer Ocupação' },
+                { id: 'critical', label: 'Crítica (> 90%)' },
                 { id: 'high', label: 'Alta (> 70%)' },
                 { id: 'low', label: 'Baixa (< 20%)' }
               ].map(o => (
@@ -125,7 +125,7 @@ export const WarehouseFilterModal: React.FC<WarehouseFilterModalProps> = ({
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Tipo de Estrutura <Boxes size={14} /></label>
             <div className="tauze-tag-cloud">
-              {['GalpÃ£o', 'Silo', 'Tanque', 'CÃ¢mara Fria', 'Defensivos'].map(type => (
+              {['Galpão', 'Silo', 'Tanque', 'Câmara Fria', 'Defensivos'].map(type => (
                 <button 
                   key={type}
                   className={`tauze-tag-chip ${filters.types?.includes(type) ? 'active' : ''}`}

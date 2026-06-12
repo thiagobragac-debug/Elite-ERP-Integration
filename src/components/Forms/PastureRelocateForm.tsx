@@ -24,6 +24,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
 import toast from 'react-hot-toast';
 import { SearchableSelect } from './SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface PastureRelocateFormProps {
   isOpen: boolean;
@@ -522,7 +524,7 @@ export const PastureRelocateForm: React.FC<PastureRelocateFormProps> = ({isOpen,
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data do Remanejamento</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={date} 

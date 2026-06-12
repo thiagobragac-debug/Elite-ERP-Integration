@@ -1,7 +1,9 @@
-Ôªøimport React from 'react';
+import React from 'react';
 import { X, Filter, Check, ArrowRightLeft, Calendar, DollarSign, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface ReconFilterModalProps {
   isOpen: boolean;
@@ -19,7 +21,7 @@ export const ReconFilterModal: React.FC<ReconFilterModalProps> = ({
   if (!isOpen) return null;
 
   const statusOptions = [
-    { id: 'all', label: 'Todos os Lan√ßamentos', icon: Filter },
+    { id: 'all', label: 'Todos os LanÁamentos', icon: Filter },
     { id: 'pending', label: 'Apenas Pendentes', icon: Activity },
     { id: 'matched', label: 'Conciliados (AI)', icon: Check }
   ];
@@ -35,7 +37,7 @@ export const ReconFilterModal: React.FC<ReconFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -50,8 +52,8 @@ export const ReconFilterModal: React.FC<ReconFilterModalProps> = ({
               <ArrowRightLeft size={20} />
             </div>
             <div>
-              <h3>Filtros de Concilia√ß√£o</h3>
-              <p>Refine a auditoria de fluxos banc√°rios.</p>
+              <h3>Filtros de ConciliaÁ„o</h3>
+              <p>Refine a auditoria de fluxos banc·rios.</p>
             </div>
           </div>
           <button 
@@ -96,7 +98,7 @@ export const ReconFilterModal: React.FC<ReconFilterModalProps> = ({
             <label className="tauze-filter-label">Faixa de Valor (R$) <DollarSign size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Valor M√≠nimo</label>
+                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Valor MÌnimo</label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                   <span style={{ fontSize: '16px', fontWeight: 900, color: '#8b5cf6' }}>
                     {Number(filters.minAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -114,7 +116,7 @@ export const ReconFilterModal: React.FC<ReconFilterModalProps> = ({
               </div>
 
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Valor M√°ximo</label>
+                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Valor M·ximo</label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                   <span style={{ fontSize: '16px', fontWeight: 900, color: '#8b5cf6' }}>
                     {Number(filters.maxAmount).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
@@ -134,16 +136,16 @@ export const ReconFilterModal: React.FC<ReconFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Per√≠odo Fiscal <Calendar size={14} /></label>
+            <label className="tauze-filter-label">PerÌodo Fiscal <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
                 style={{ height: '40px', fontSize: '12px' }}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

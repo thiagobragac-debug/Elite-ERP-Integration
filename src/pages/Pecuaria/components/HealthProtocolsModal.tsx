@@ -18,6 +18,8 @@ import { supabase } from '../../../lib/supabase';
 import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
 import { useTenant } from '../../../contexts/TenantContext';
 import toast from 'react-hot-toast';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface HealthProtocolsModalProps {
   isOpen: boolean;
@@ -327,7 +329,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
 
                     <div className="tauze-field-group">
                       <label className="tauze-label">Data de Início (D0)</label>
-                      <input type="date" className="tauze-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                      <DateInput type="date" className="tauze-input" value={startDate} onChange={e => setStartDate(e.target.value)} />
                     </div>
                   </div>
 

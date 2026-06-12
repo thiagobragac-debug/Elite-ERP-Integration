@@ -1,4 +1,4 @@
-Ôªøimport React from 'react';
+import React from 'react';
 import { X, Filter, Check, Trees, Maximize, Activity, Calendar, Target, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -25,7 +25,7 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
     { id: 'free', label: 'Vazio', icon: Check }
   ];
 
-  const capins = ['Brachiaria brizantha', 'Brachiaria decumbens', 'Momba√ßa', 'Zuri', 'Qu√™nia', 'Tifton 85', 'Estrela'];
+  const capins = ['Brachiaria brizantha', 'Brachiaria decumbens', 'MombaÁa', 'Zuri', 'QuÍnia', 'Tifton 85', 'Estrela'];
 
   const toggleCapim = (capim: string) => {
     const newCapins = filters.capins?.includes(capim)
@@ -47,7 +47,7 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -63,7 +63,7 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Pastagem</h3>
-              <p>Otimize a oferta de forragem e rota√ß√£o.</p>
+              <p>Otimize a oferta de forragem e rotaÁ„o.</p>
             </div>
           </div>
           <button 
@@ -125,11 +125,11 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">√Årea da Divis√£o (ha) <Maximize size={14} /></label>
+            <label className="tauze-filter-label">¡rea da Divis„o (ha) <Maximize size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#16a34a' }}>{filters.maxArea}ha</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Extens√£o M√°xima</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Extens„o M·xima</span>
               </div>
               <input 
                 type="range" 
@@ -173,7 +173,7 @@ export const PastureFilterModal: React.FC<PastureFilterModalProps> = ({
                 <div style={{ color: '#f59e0b' }}>
                   <Calendar size={18} />
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Necessita Aduba√ß√£o</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Necessita AdubaÁ„o</span>
               </div>
               <input 
                 type="checkbox" 

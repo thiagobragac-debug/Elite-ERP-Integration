@@ -1,7 +1,9 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, ShoppingCart, Clock, AlertTriangle, User, DollarSign, Calendar, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface PurchaseRequestFilterModalProps {
   isOpen: boolean;
@@ -20,12 +22,12 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
 
   const priorities = [
     { id: 'low', label: 'Baixa', color: 'hsl(var(--text-muted))' },
-    { id: 'medium', label: 'MÃ©dia', color: '#3b82f6' },
+    { id: 'medium', label: 'Média', color: '#3b82f6' },
     { id: 'high', label: 'Alta', color: '#ed6c02' },
     { id: 'urgent', label: 'Urgente', color: '#ef4444' }
   ];
 
-  const departments = ['PecuÃ¡ria', 'Frota', 'Infraestrutura', 'Administrativo', 'AgrÃ­cola'];
+  const departments = ['Pecuária', 'Frota', 'Infraestrutura', 'Administrativo', 'Agrícola'];
 
   const toggleDept = (dept: string) => {
     const newDepts = filters.departments?.includes(dept)
@@ -46,7 +48,7 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -61,7 +63,7 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
               <ShoppingCart size={20} />
             </div>
             <div>
-              <h3>Filtros de RequisiÃ§Ã£o</h3>
+              <h3>Filtros de Requisição</h3>
               <p>Gerencie o fluxo interno de compras.</p>
             </div>
           </div>
@@ -75,7 +77,7 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">NÃ­vel de Prioridade <AlertTriangle size={14} /></label>
+            <label className="tauze-filter-label">Nível de Prioridade <AlertTriangle size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {priorities.map(p => (
                 <button 
@@ -149,15 +151,15 @@ export const PurchaseRequestFilterModal: React.FC<PurchaseRequestFilterModalProp
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Data da SolicitaÃ§Ã£o <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Data da Solicitação <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -20,6 +20,8 @@ import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
+import { ConsumptionCart } from './ConsumptionCart';
+import { DateInput } from '../../components/Form/DateInput';
 
 interface ConfinementFormProps {
   isOpen: boolean;
@@ -43,6 +45,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({isOpen, onClose
     status: 'active'
   });
 
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -66,7 +69,7 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({isOpen, onClose
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, items });
 
     } finally {
       setLoading(false);
@@ -286,6 +289,22 @@ export const ConfinementForm: React.FC<ConfinementFormProps> = ({isOpen, onClose
           </div>
         )}
       </section>
+
+      <section className="tauze-form-section" style={{ marginTop: '16px' }}>
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">OPCIONAL</div>
+          <h4 className="tauze-section-title">Protocolo de Entrada / Insumos Iniciais</h4>
+        </div>
+        <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', marginBottom: '16px' }}>
+          Registre os insumos que serão consumidos na entrada deste lote no confinamento (ex: vacinas, suplemento inicial).
+        </p>
+        <ConsumptionCart 
+          items={items}
+          onChange={setItems}
+          mode="consumption"
+        />
+      </section>
+
     </SidePanel>
   );
 };

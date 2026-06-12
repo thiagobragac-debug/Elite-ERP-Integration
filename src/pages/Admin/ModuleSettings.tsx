@@ -6,6 +6,7 @@ import { SystemSettingsTab } from './SystemSettingsTab';
 import { RoleSettingsTab } from './RoleManagement';
 import { NcmSettingsTab } from '../Inventory/InventorySettings';
 import { CertificateSettingsTab } from './CertificateSettingsTab';
+import { PeriodManagementTab } from './PeriodManagementTab';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 export const ModuleSettings: React.FC = () => {
@@ -71,6 +72,7 @@ export const ModuleSettings: React.FC = () => {
       case 'financeiro':
         return [
           { id: 'categorias', label: 'Categorias Financeiras' },
+          { id: 'periodos', label: 'Períodos Contábeis' },
           { id: 'planos', label: 'Plano de Contas (Em Breve)' }
         ];
       case 'pecuaria':
@@ -224,6 +226,7 @@ export const ModuleSettings: React.FC = () => {
           {activeSetting === 'cargos' && <RoleSettingsTab searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'certificados' && <CertificateSettingsTab searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'categorias' && <CategorySettingsTab modulo={activeModule} searchTerm={searchTerm} triggerCreate={triggerCreate} />}
+          {activeSetting === 'periodos' && <PeriodManagementTab searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'racas' && <CategorySettingsTab modulo="racas" searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'unidades' && <CategorySettingsTab modulo="unidades" searchTerm={searchTerm} triggerCreate={triggerCreate} />}
           {activeSetting === 'ncms' && <NcmSettingsTab searchTerm={searchTerm} triggerCreate={triggerCreate} triggerImport={triggerImport} />}

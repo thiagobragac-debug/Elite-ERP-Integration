@@ -1,7 +1,9 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Droplets, Truck, Clock, DollarSign, Calendar, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface FuelFilterModalProps {
   isOpen: boolean;
@@ -21,7 +23,7 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
   const fuelTypes = ['Diesel S10', 'Diesel S500', 'Gasolina', 'Etanol', 'Arla 32'];
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
-    { id: 'efficient', label: 'Alta EficiÃªncia', icon: Droplets },
+    { id: 'efficient', label: 'Alta Eficiência', icon: Droplets },
     { id: 'high-consumption', label: 'Alto Consumo', icon: AlertTriangle }
   ];
 
@@ -44,7 +46,7 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -60,7 +62,7 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Abastecimento</h3>
-              <p>Analise consumo e performance energÃ©tica.</p>
+              <p>Analise consumo e performance energética.</p>
             </div>
           </div>
           <button 
@@ -73,7 +75,7 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Perfil de EficiÃªncia <Clock size={14} /></label>
+            <label className="tauze-filter-label">Perfil de Eficiência <Clock size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {statusOptions.map(s => (
                 <button 
@@ -102,7 +104,7 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Tipos de CombustÃ­vel <Check size={14} /></label>
+            <label className="tauze-filter-label">Tipos de Combustível <Check size={14} /></label>
             <div className="tauze-tag-cloud">
               {fuelTypes.map(type => (
                 <button 
@@ -126,7 +128,7 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10b981' }}>{filters.maxLiters}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Capacidade MÃ¡x (L)</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Capacidade Máx (L)</span>
               </div>
               <input 
                 type="range" 
@@ -141,16 +143,16 @@ export const FuelFilterModal: React.FC<FuelFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PerÃ­odo de Telemetria <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Período de Telemetria <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
                 style={{ height: '40px', fontSize: '12px' }}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

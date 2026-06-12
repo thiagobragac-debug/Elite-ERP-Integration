@@ -15,7 +15,8 @@ import {
   Trash2,
   Activity,
   History,
-  AlertCircle
+  AlertCircle,
+  Sprout
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReportData } from '../../hooks/useReportData';
@@ -32,6 +33,7 @@ import { PastureForm } from '../../components/Forms/PastureForm';
 import { PastureManejoForm } from '../../components/Forms/PastureManejoForm';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
+import { PastureRenovationForm } from '../../components/Forms/PastureRenovationForm';
 import { PastureRelocateForm } from '../../components/Forms/PastureRelocateForm';
 import { AssignAnimalForm } from '../../components/Forms/AssignAnimalForm';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
@@ -69,6 +71,9 @@ const PastureManagement: React.FC = () => {
   const [selectedPastureName, setSelectedPastureName] = useState('');
   const [isRelocateOpen, setIsRelocateOpen] = usePersistentState('PastureManagement_isRelocateOpen', false);
   const [isAssignOpen, setIsAssignOpen] = usePersistentState('PastureManagement_isAssignOpen', false);
+  const [isRenovationOpen, setIsRenovationOpen] = usePersistentState('PastureManagement_isRenovationOpen', false);
+  const [selectedRenovationPastureId, setSelectedRenovationPastureId] = useState<string | null>(null);
+  const [selectedRenovationData, setSelectedRenovationData] = useState<any>(null);
 
   const handleOpenManejo = (pasture: any) => {
     setManejoPastureId(pasture.id);
@@ -177,6 +182,21 @@ const PastureManagement: React.FC = () => {
     setIsFormOpen(true);
   };
 
+  const handleOpenRenovation = async (pasture: any) => {
+    setSelectedRenovationPastureId(pasture.id);
+    const { data } = await supabase
+      .from('reformas_pasto')
+      .select('*, etapas:reforma_etapas(*)')
+      .eq('pasto_id', pasture.id)
+      .eq('status', 'em_andamento')
+      .order('created_at', { ascending: false, foreignTable: 'reforma_etapas' })
+      .limit(1)
+      .maybeSingle();
+      
+    setSelectedRenovationData(data || null);
+    setIsRenovationOpen(true);
+  };
+
   const deletePastureMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('pastos').delete().eq('id', id);
@@ -265,6 +285,98 @@ const PastureManagement: React.FC = () => {
     }
 
     savePastureMutation.mutate(payload);
+  };
+
+  const saveRenovationMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      let reformaId = payload.reforma.id;
+      
+      // 1. Insert/Update Reforma
+      if (reformaId) {
+        const { error } = await supabase.from('reformas_pasto').update({
+          status: payload.reforma.status,
+          objetivo: payload.reforma.objetivo,
+          analise_v_percent: payload.reforma.analise_v_percent,
+          analise_p_mgdm3: payload.reforma.analise_p_mgdm3,
+          analise_ca_cmolc: payload.reforma.analise_ca_cmolc,
+          foto_antes_url: payload.reforma.foto_antes_url,
+          foto_depois_url: payload.reforma.foto_depois_url,
+          observacoes: payload.reforma.observacoes
+        }).eq('id', reformaId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from('reformas_pasto').insert([{
+          pasto_id: payload.reforma.pasto_id,
+          tenant_id: activeTenantId,
+          fazenda_id: activeFarmId,
+          data_inicio: payload.reforma.data_inicio,
+          status: payload.reforma.status,
+          objetivo: payload.reforma.objetivo,
+          analise_v_percent: payload.reforma.analise_v_percent,
+          analise_p_mgdm3: payload.reforma.analise_p_mgdm3,
+          analise_ca_cmolc: payload.reforma.analise_ca_cmolc,
+          foto_antes_url: payload.reforma.foto_antes_url,
+          foto_depois_url: payload.reforma.foto_depois_url,
+          observacoes: payload.reforma.observacoes
+        }]).select().single();
+        if (error) throw error;
+        reformaId = data.id;
+      }
+
+      // 2. Insert Etapa
+      const { error: errEtapa } = await supabase.from('reforma_etapas').insert([{
+        tenant_id: activeTenantId,
+        reforma_id: reformaId,
+        tipo_etapa: payload.nova_etapa.tipo_etapa,
+        data_registro: payload.nova_etapa.data_registro,
+        maquina_id: payload.nova_etapa.maquina_id || null,
+        horas_trabalhadas: parseFloat(payload.nova_etapa.horas_trabalhadas) || 0,
+        custo_hora: parseFloat(payload.nova_etapa.custo_hora) || 0,
+        itens_consumidos: payload.nova_etapa.itens_consumidos,
+        custo_etapa: payload.nova_etapa.custo_etapa,
+        observacoes: payload.nova_etapa.observacoes
+      }]);
+      if (errEtapa) throw errEtapa;
+
+      // 3. Process Stock (ConsumptionCart items)
+      for (const item of payload.nova_etapa.itens_consumidos) {
+        if (item.produto_id && item.quantidade) {
+          const { error: stockErr } = await supabase.rpc('processar_saida_estoque', {
+            p_produto_id: item.produto_id,
+            p_deposito_id: item.deposito_id || null, // Assuming you might have a deposit selected in the cart
+            p_quantidade: parseFloat(item.quantidade),
+            p_valor_unitario: parseFloat(item.valor_unitario) || 0,
+            p_tenant_id: activeTenantId,
+            p_fazenda_id: activeFarmId,
+            p_origem: 'REFORMA_PASTO',
+            p_origem_id: reformaId,
+            p_usuario_id: null // Ideally use the current user UUID
+          });
+          if (stockErr) console.warn("Stock depletion error (ignoring if RPC not found/mocked):", stockErr);
+        }
+      }
+
+      // 4. Update Pasto Status
+      let finalPastoStatus = 'em_reforma';
+      if (payload.reforma.status === 'concluida') {
+        finalPastoStatus = 'resting'; // returns to resting after renovation
+      }
+      const { error: pastoErr } = await supabase.from('pastos').update({ status: finalPastoStatus }).eq('id', payload.reforma.pasto_id);
+      if (pastoErr) throw pastoErr;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['report'] });
+      setIsRenovationOpen(false);
+      toast.success('✅ Etapa de Reforma registrada com sucesso!');
+      refresh();
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao registrar etapa: ' + err.message);
+    }
+  });
+
+  const handleRenovationSubmit = (data: any) => {
+    saveRenovationMutation.mutate(data);
   };
 
   const vazioSanitarioMutation = useMutation({
@@ -504,7 +616,7 @@ const PastureManagement: React.FC = () => {
         } else if (explicitStatus === 'degraded' || explicitStatus === 'degradado') {
             status = 'Degradado';
             color = 'warning';
-        } else if (explicitStatus === 'renovation' || explicitStatus === 'reforma') {
+        } else if (explicitStatus === 'renovation' || explicitStatus === 'reforma' || explicitStatus === 'em_reforma') {
             status = 'Reforma';
             color = 'danger';
         } else {
@@ -680,6 +792,7 @@ const PastureManagement: React.FC = () => {
             actions={(item) => (
               <div className="modern-actions">
                 <button className="action-dot info" title="Manejo / Rotação" onClick={() => handleOpenManejo(item)}><Maximize2 size={18} /></button>
+                <button className="action-dot warning" title="Reforma Agronômica" onClick={() => handleOpenRenovation(item)}><Sprout size={18} /></button>
                 <button className="action-dot success" title="Histórico" onClick={() => handleOpenHistory(item)}><History size={18} /></button>
                 <button className="action-dot edit" title="Editar" onClick={() => handleOpenEdit(item)}><Edit3 size={18} /></button>
                 <button className="action-dot delete" title="Excluir" onClick={() => handleDelete(item.id)}><Trash2 size={18} /></button>
@@ -762,7 +875,7 @@ const PastureManagement: React.FC = () => {
                   badgeClass = 'warning-badge';
                   badgeText = 'DEGRADADO';
                   borderClass = 'warning-badge';
-                } else if (explicitStatus === 'renovation' || explicitStatus === 'reforma') {
+                } else if (explicitStatus === 'renovation' || explicitStatus === 'reforma' || explicitStatus === 'em_reforma') {
                   badgeClass = 'stopped';
                   badgeText = 'REFORMA';
                   borderClass = 'danger-badge';
@@ -793,6 +906,7 @@ const PastureManagement: React.FC = () => {
                       </div>
                       <div className="card-bottom-actions">
                         <button className="action-icon-btn info" title="Manejo / Rotação" onClick={() => handleOpenManejo(p)}><Maximize2 size={14} /></button>
+                        <button className="action-icon-btn warning" title="Reforma Agronômica" onClick={() => handleOpenRenovation(p)}><Sprout size={14} /></button>
                         <button className="action-icon-btn success" title="Histórico" onClick={() => handleOpenHistory(p)}><History size={14} /></button>
                         <button className="action-icon-btn" title="Editar" onClick={() => handleOpenEdit(p)}><Edit3 size={14} /></button>
                         <button className="action-icon-btn delete" title="Excluir" onClick={() => handleDelete(p.id)}><Trash2 size={14} /></button>
@@ -873,6 +987,16 @@ const PastureManagement: React.FC = () => {
         onSubmit={refresh}
         initialPastureId={manejoPastureId}
       />
+
+      {selectedRenovationPastureId && (
+        <PastureRenovationForm
+          isOpen={isRenovationOpen}
+          onClose={() => setIsRenovationOpen(false)}
+          onSubmit={handleRenovationSubmit}
+          pastoId={selectedRenovationPastureId}
+          initialData={selectedRenovationData}
+        />
+      )}
 
       <HistoryModal
         isOpen={isHistoryOpen}

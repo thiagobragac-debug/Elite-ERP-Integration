@@ -1,7 +1,9 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, CreditCard, DollarSign, Calendar, AlertTriangle, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface PayableFilterModalProps {
   isOpen: boolean;
@@ -29,7 +31,7 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -45,7 +47,7 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Pagamento</h3>
-              <p>GestÃ£o de obrigaÃ§Ãµes e fluxo de saÃ­da.</p>
+              <p>Gestão de obrigações e fluxo de saída.</p>
             </div>
           </div>
           <button 
@@ -89,7 +91,7 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Valor do TÃ­tulo (R$) <DollarSign size={14} /></label>
+            <label className="tauze-filter-label">Valor do Título (R$) <DollarSign size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#6366f1' }}>{filters.maxAmount.toLocaleString('pt-BR')}</span>
@@ -108,15 +110,15 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PerÃ­odo de Vencimento <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Período de Vencimento <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

@@ -18,6 +18,8 @@ import { InsumoEntryTable } from './InsumoEntryTable';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
 import toast from 'react-hot-toast';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface PurchaseRequestFormProps {
   isOpen: boolean;
@@ -195,7 +197,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
         <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data Limite (Necessidade / SLA)</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               title="Até quando o Suprimentos precisa entregar este pedido na fazenda?"

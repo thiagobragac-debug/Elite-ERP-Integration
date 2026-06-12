@@ -16,6 +16,8 @@ import toast from 'react-hot-toast';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from '../Forms/SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 interface LoteRecebimentoModalProps {
@@ -743,7 +745,7 @@ export const LoteRecebimentoModal: React.FC<LoteRecebimentoModalProps> = ({
               <label className="lrm-label">
                 <Calendar size={11} /> Data Limite (SLA)
               </label>
-              <input
+              <DateInput
                 type="date"
                 className="lrm-input"
                 value={dataLimite}

@@ -13,6 +13,8 @@ import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import toast from 'react-hot-toast';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface BatchLiquidationModalProps {
   isOpen: boolean;
@@ -145,7 +147,7 @@ export const BatchLiquidationModal: React.FC<BatchLiquidationModalProps> = ({
 
       <div className="form-group full-width">
         <label><Calendar size={14} /> Data da Liquidação</label>
-        <input 
+        <DateInput 
           type="date" 
           value={formData.payment_date}
           onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}

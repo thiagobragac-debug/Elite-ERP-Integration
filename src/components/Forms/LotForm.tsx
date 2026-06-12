@@ -25,6 +25,8 @@ import { SearchableSelect } from './SearchableSelect';
 import { ColorPicker } from './ColorPicker';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface LotFormProps {
   isOpen: boolean;
@@ -306,7 +308,7 @@ export const LotForm: React.FC<LotFormProps> = ({isOpen, onClose, onSubmit, init
             <label className="tauze-label">
               <Calendar size={14} /> Data de Início
             </label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={formData.data_inicio}
@@ -327,7 +329,7 @@ export const LotForm: React.FC<LotFormProps> = ({isOpen, onClose, onSubmit, init
                 value={formData.dias_ciclo}
                 onChange={(e) => handleDiasCicloChange(e.target.value)}
               />
-              <input 
+              <DateInput 
                 className="tauze-input"
                 type="date" 
                 title="Data de Término"

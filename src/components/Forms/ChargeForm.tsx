@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 import { SidePanel } from '../Layout/SidePanel';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface ChargeFormProps {
   isOpen: boolean;
@@ -242,7 +244,7 @@ export const ChargeForm: React.FC<ChargeFormProps> = ({isOpen,
         <div className="tauze-input-grid grid-col-2">
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data de Vencimento *</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={formData.due_date} 

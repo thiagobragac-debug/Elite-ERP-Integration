@@ -1,7 +1,9 @@
-Ôªøimport React from 'react';
+import React from 'react';
 import { X, Filter, Check, Wrench, Truck, Clock, DollarSign, Calendar, User, Settings, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface MaintenanceFilterModalProps {
   isOpen: boolean;
@@ -18,12 +20,12 @@ export const MaintenanceFilterModal: React.FC<MaintenanceFilterModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const maintenanceTypes = ['Preventiva', 'Corretiva', 'Preditiva', 'Revis√£o', 'Pneus', 'Lubrifica√ß√£o'];
+  const maintenanceTypes = ['Preventiva', 'Corretiva', 'Preditiva', 'Revis„o', 'Pneus', 'LubrificaÁ„o'];
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'open', label: 'Pendentes', icon: Clock },
     { id: 'in_progress', label: 'Em Oficina', icon: Settings },
-    { id: 'completed', label: 'Conclu√≠das', icon: Check }
+    { id: 'completed', label: 'ConcluÌdas', icon: Check }
   ];
 
   const toggleType = (type: string) => {
@@ -45,7 +47,7 @@ export const MaintenanceFilterModal: React.FC<MaintenanceFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -60,8 +62,8 @@ export const MaintenanceFilterModal: React.FC<MaintenanceFilterModalProps> = ({
               <Wrench size={20} />
             </div>
             <div>
-              <h3>Filtros de Manuten√ß√£o</h3>
-              <p>Rastreabilidade de interven√ß√µes t√©cnicas.</p>
+              <h3>Filtros de ManutenÁ„o</h3>
+              <p>Rastreabilidade de intervenÁıes tÈcnicas.</p>
             </div>
           </div>
           <button 
@@ -103,7 +105,7 @@ export const MaintenanceFilterModal: React.FC<MaintenanceFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Tipologia Mec√¢nica <Settings size={14} /></label>
+            <label className="tauze-filter-label">Tipologia Mec‚nica <Settings size={14} /></label>
             <div className="tauze-tag-cloud">
               {maintenanceTypes.map(type => (
                 <button 
@@ -127,7 +129,7 @@ export const MaintenanceFilterModal: React.FC<MaintenanceFilterModalProps> = ({
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#ed6c02' }}>{filters.maxCost.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto Or√ßament√°rio</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto OrÁament·rio</span>
               </div>
               <input 
                 type="range" 
@@ -142,16 +144,16 @@ export const MaintenanceFilterModal: React.FC<MaintenanceFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Per√≠odo de Interven√ß√£o <Calendar size={14} /></label>
+            <label className="tauze-filter-label">PerÌodo de IntervenÁ„o <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
                 style={{ height: '40px', fontSize: '12px' }}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

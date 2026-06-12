@@ -16,6 +16,8 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
 import { SearchableSelect } from './SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface PastureManejoFormProps {
   isOpen: boolean;
@@ -153,7 +155,7 @@ export const PastureManejoForm: React.FC<PastureManejoFormProps> = ({isOpen, onC
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data da Intervenção</label>
-            <input 
+            <DateInput 
               type="date" 
               className="tauze-input"
               value={formData.data_manejo}

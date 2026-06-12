@@ -2,6 +2,8 @@ import React from 'react';
 import { X, Filter, Check, ClipboardCheck, Target, Activity, Calendar, History, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface AuditFilterModalProps {
   isOpen: boolean;
@@ -28,7 +30,7 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -119,13 +121,13 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Data de Realização <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

@@ -1,7 +1,9 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Scale, TrendingUp, Calendar, AlertCircle, Target, History } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface WeightFilterModalProps {
   isOpen: boolean;
@@ -20,7 +22,7 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
 
   const performanceLevels = [
     { id: 'high', label: 'Alto Ganho (> 1.0kg)', color: '#10b981' },
-    { id: 'medium', label: 'MÃ©dio (0.5 - 1.0kg)', color: '#f59e0b' },
+    { id: 'medium', label: 'Médio (0.5 - 1.0kg)', color: '#f59e0b' },
     { id: 'low', label: 'Baixo Ganho (< 0.5kg)', color: '#ef4444' }
   ];
 
@@ -38,7 +40,7 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -67,7 +69,7 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">NÃ­vel de Performance (GMD) <TrendingUp size={14} /></label>
+            <label className="tauze-filter-label">Nível de Performance (GMD) <TrendingUp size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {performanceLevels.map(level => (
                 <button 
@@ -99,7 +101,7 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
             <label className="tauze-filter-label">Faixa de Peso (@ ou kg) <Target size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso MÃ­nimo</label>
+                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso Mínimo</label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                   <span style={{ fontSize: '18px', fontWeight: 900, color: '#3b82f6' }}>{filters.minWeight} kg</span>
                 </div>
@@ -115,7 +117,7 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
               </div>
 
               <div>
-                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso MÃ¡ximo</label>
+                <label style={{ fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Peso Máximo</label>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
                   <span style={{ fontSize: '18px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxWeight} kg</span>
                 </div>
@@ -133,15 +135,15 @@ export const WeightFilterModal: React.FC<WeightFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PerÃ­odo da Pesagem <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Período da Pesagem <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

@@ -50,6 +50,8 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Filter } from 'lucide-react';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 export const BankReconciliation: React.FC = () => {
   const { activeFarm, activeTenantId } = useTenant();
@@ -747,7 +749,7 @@ export const BankReconciliation: React.FC = () => {
                     </select>
                   </td>
                   <td>
-                    <input 
+                    <DateInput 
                       type="date" 
                       className="tauze-table-input"
                       value={row.date}

@@ -1,4 +1,4 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Shield, Zap, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -18,8 +18,8 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const tags = ['Financeiro', 'Operacional', 'ZootÃ©cnico', 'Auditoria', 'Fiscal', 'RH', 'LogÃ­stica'];
-  const complexities = ['Leve', 'MÃ©dio', 'Pesado'];
+  const tags = ['Financeiro', 'Operacional', 'Zootécnico', 'Auditoria', 'Fiscal', 'RH', 'Logística'];
+  const complexities = ['Leve', 'Médio', 'Pesado'];
 
   const toggleTag = (tag: string) => {
     const newTags = filters.tags.includes(tag)
@@ -38,7 +38,7 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -53,8 +53,8 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
               <Filter size={20} />
             </div>
             <div>
-              <h3>Filtros AvanÃ§ados</h3>
-              <p>Refine a listagem tÃ©cnica de relatÃ³rios.</p>
+              <h3>Filtros Avançados</h3>
+              <p>Refine a listagem técnica de relatórios.</p>
             </div>
           </div>
           <button 
@@ -67,7 +67,7 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PreferÃªncias <Star size={14} /></label>
+            <label className="tauze-filter-label">Preferências <Star size={14} /></label>
             <div className="filter-options">
               <label className="checkbox-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', padding: '16px', background: 'hsl(var(--bg-main))', borderRadius: '12px', border: '1.5px solid transparent' }}>
                 <input 
@@ -86,7 +86,7 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '28px', fontWeight: 900, color: '#10b981' }}>{filters.minIntegrity}%</span>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Acuracidade MÃ­nima</span>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Acuracidade Mínima</span>
               </div>
               <input 
                 type="range" 
@@ -106,7 +106,7 @@ export const ReportFilterModal: React.FC<ReportFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Tags TÃ©cnicas</label>
+            <label className="tauze-filter-label">Tags Técnicas</label>
             <div className="tauze-tag-cloud">
               {tags.map(tag => (
                 <button 

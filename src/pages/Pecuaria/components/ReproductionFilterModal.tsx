@@ -1,7 +1,9 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Heart, Baby, Thermometer, Calendar, TrendingUp, Zap, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface ReproductionFilterModalProps {
   isOpen: boolean;
@@ -22,8 +24,8 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'IATF', label: 'IATF', icon: Zap },
     { id: 'Monta Natural', label: 'Monta Natural', icon: Activity },
-    { id: 'InseminaÃ§Ã£o', label: 'InseminaÃ§Ã£o', icon: Heart },
-    { id: 'PalpaÃ§Ã£o', label: 'PalpaÃ§Ã£o/Toque', icon: Thermometer },
+    { id: 'Inseminação', label: 'Inseminação', icon: Heart },
+    { id: 'Palpação', label: 'Palpação/Toque', icon: Thermometer },
     { id: 'Parto', label: 'Parto', icon: Baby }
   ];
 
@@ -49,7 +51,7 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -64,8 +66,8 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
               <Heart size={20} />
             </div>
             <div>
-              <h3>Filtros de ReproduÃ§Ã£o</h3>
-              <p>Otimize a fertilidade e pariÃ§Ã£o.</p>
+              <h3>Filtros de Reprodução</h3>
+              <p>Otimize a fertilidade e parição.</p>
             </div>
           </div>
           <button 
@@ -78,7 +80,7 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">AÃ§Ã£o Reprodutiva <Zap size={14} /></label>
+            <label className="tauze-filter-label">Ação Reprodutiva <Zap size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {eventTypes.map(t => (
                 <button 
@@ -107,7 +109,7 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">DiagnÃ³stico de GestaÃ§Ã£o <Thermometer size={14} /></label>
+            <label className="tauze-filter-label">Diagnóstico de Gestação <Thermometer size={14} /></label>
             <div className="tauze-tag-cloud">
               {results.map(res => (
                 <button 
@@ -146,15 +148,15 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PerÃ­odo do Evento <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Período do Evento <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}
@@ -169,7 +171,7 @@ export const ReproductionFilterModal: React.FC<ReproductionFilterModalProps> = (
                 <div style={{ color: '#ec4899' }}>
                   <Baby size={18} />
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>PariÃ§Ã£o Iminente</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#1e293b' }}>Parição Iminente</span>
               </div>
               <input 
                 type="checkbox" 

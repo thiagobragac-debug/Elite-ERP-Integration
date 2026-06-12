@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import ReactDOM from 'react-dom';
@@ -27,6 +27,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { logAudit } from '../../utils/audit';
 import toast from 'react-hot-toast';
 import { SearchableSelect } from './SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface RelocateFormProps {
   isOpen: boolean;
@@ -306,7 +308,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
   const fetchLots = async () => {
     const baseQuery = supabase
       .from('lotes')
-      .select('id, nome, capacidade, descricao, status, sexo_permitido, pastos ( nome )')
+      .select('id, nome, capacidade, descricao, status, sexo_permitido, exige_rastreabilidade, pastos ( nome )')
       .order('nome');
     const { data, error } = await applyFarmFilter(baseQuery);
     if (error) console.error('[RelocateForm] fetchLots error:', error);
@@ -336,7 +338,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
     setSelectedAnimals([]);
     const { data, error } = await supabase
       .from('animais')
-      .select('id, brinco, raca, categoria, sexo, peso_atual, data_nascimento')
+      .select('id, brinco, brinco_eletronico, raca, categoria, sexo, peso_atual, data_nascimento')
       .eq('lote_id', lotId)
       .in('status', ['ATIVO', 'Ativo', 'ativo'])
       .order('brinco');
@@ -356,10 +358,14 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
     setDestCapacity({ current: count || 0, max });
   };
 
-  const toggleAnimal = (id: string, animalSexo?: string) => {
+  const toggleAnimal = (id: string, animalSexo?: string, hasRFID?: boolean) => {
     const targetLot = lots.find(l => l.id === formData.targetLotId);
     if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animalSexo && animalSexo !== targetLot.sexo_permitido) {
       toast.error(`O lote de destino permite apenas ${targetLot.sexo_permitido}S.`);
+      return;
+    }
+    if (targetLot?.exige_rastreabilidade && !hasRFID) {
+      toast.error(`O lote de destino exige que o animal tenha Brinco Eletrônico cadastrado.`);
       return;
     }
     setSelectedAnimals(prev =>
@@ -382,16 +388,26 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
   const selectAll = () => {
     const targetLot = lots.find(l => l.id === formData.targetLotId);
     let allowedFiltered = filteredAnimals;
-    if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
-      allowedFiltered = filteredAnimals.filter(a => !a.sexo || a.sexo === targetLot.sexo_permitido);
-    }
+    let blockedCount = 0;
+    
+    allowedFiltered = filteredAnimals.filter(a => {
+      let isAllowed = true;
+      if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
+        if (a.sexo && a.sexo !== targetLot.sexo_permitido) isAllowed = false;
+      }
+      if (targetLot?.exige_rastreabilidade && !a.brinco_eletronico) {
+        isAllowed = false;
+      }
+      if (!isAllowed) blockedCount++;
+      return isAllowed;
+    });
     
     if (selectedAnimals.length === allowedFiltered.length && allowedFiltered.length > 0) {
       setSelectedAnimals([]);
     } else {
       setSelectedAnimals(allowedFiltered.map(a => a.id));
-      if (allowedFiltered.length < filteredAnimals.length) {
-        toast.error(`${filteredAnimals.length - allowedFiltered.length} animais ignorados por incompatibilidade de sexo com o lote.`);
+      if (blockedCount > 0) {
+        toast.error(`${blockedCount} animais ignorados por restrições do lote (sexo ou falta de RFID).`);
       }
     }
   };
@@ -399,12 +415,23 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
   const selectEntireLot = () => {
     const targetLot = lots.find(l => l.id === formData.targetLotId);
     let allowedAnimals = animals;
-    if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
-      allowedAnimals = animals.filter(a => !a.sexo || a.sexo === targetLot.sexo_permitido);
-    }
+    let blockedCount = 0;
+    
+    allowedAnimals = animals.filter(a => {
+      let isAllowed = true;
+      if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
+        if (a.sexo && a.sexo !== targetLot.sexo_permitido) isAllowed = false;
+      }
+      if (targetLot?.exige_rastreabilidade && !a.brinco_eletronico) {
+        isAllowed = false;
+      }
+      if (!isAllowed) blockedCount++;
+      return isAllowed;
+    });
+
     setSelectedAnimals(allowedAnimals.map(a => a.id));
-    if (allowedAnimals.length < animals.length) {
-      toast.error(`${animals.length - allowedAnimals.length} animais ignorados por incompatibilidade de sexo com o lote.`);
+    if (blockedCount > 0) {
+      toast.error(`${blockedCount} animais ignorados por restrições do lote (sexo ou falta de RFID).`);
     }
   };
 
@@ -432,7 +459,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
             action: 'TRANSFER_BATCH',
             entity: 'Lote',
             entity_id: formData.sourceLotId,
-            description: `${selectedAnimals.length} animais transferidos de "${formData.sourceLotName}" â†’ "${formData.targetLotName}" | ${formData.motivo} | ${formData.date}`,
+            description: `${selectedAnimals.length} animais transferidos de "${formData.sourceLotName}" → "${formData.targetLotName}" | ${formData.motivo} | ${formData.date}`,
             old_data: { lote_id: formData.sourceLotId },
             new_data: { lote_id: formData.targetLotId, motivo: formData.motivo }
           });
@@ -448,7 +475,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
     }
   };
 
-  // â”€â”€ Confirmation overlay (portal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ──────────────────────────────────────────────────────────────────────────────────────────────────
   const confirmOverlay = showConfirm ? ReactDOM.createPortal(
     (() => {
       const afterCount = (destCapacity?.current || 0) + selectedAnimals.length;
@@ -515,7 +542,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
     })()
   , document.body) : null;
 
-  // â”€â”€ Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ──────────────────────────────────────────────────────────────────────────────────────────────────
   return (
     <>
     <SidePanel size="xlarge"
@@ -581,12 +608,17 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
                 <div style={{ marginTop: '8px' }}>
                   {tl.pastos?.nome && (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px' }}>
-                      ðŸ“ Indo para: {tl.pastos.nome}
+                      📍 Indo para: {tl.pastos.nome}
                     </div>
                   )}
                   {tl.sexo_permitido && tl.sexo_permitido !== 'MISTO' && (
                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#3b82f6', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px', marginLeft: '6px' }}>
                         Restrito: {tl.sexo_permitido}S
+                     </div>
+                  )}
+                  {tl.exige_rastreabilidade && (
+                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px', marginLeft: '6px' }}>
+                        Exige RFID
                      </div>
                   )}
                 </div>
@@ -596,7 +628,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data do Remanejamento</label>
-            <input 
+            <DateInput 
               type="date" 
               className="tauze-input"
               value={formData.date} 
@@ -647,7 +679,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
               style={{ opacity: animals.length === 0 ? 0.35 : 1 }}
             >
               <Filter size={11} style={{ marginRight: '3px' }} />
-              FILTROS{(filterSexo || filterCategoria) ? ' â—' : ''}
+              FILTROS{(filterSexo || filterCategoria) ? ' ● ' : ''}
             </button>
             <span style={{ color: 'hsl(var(--border))', fontSize: '12px' }}>|</span>
             <button
@@ -713,7 +745,7 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
         <div style={{ maxHeight: '400px', overflowY: 'auto', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px', padding: '12px' }}>
           {loading ? (
             <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
-              â³ Buscando animais no lote...
+              ⏳ Buscando animais no lote...
             </div>
           ) : !formData.sourceLotId ? (
             <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'hsl(var(--text-muted))' }}>
@@ -732,14 +764,17 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
               {filteredAnimals.map(animal => {
                 const selected = selectedAnimals.includes(animal.id);
                 const targetLot = lots.find(l => l.id === formData.targetLotId);
-                const isBlocked = targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animal.sexo && animal.sexo !== targetLot.sexo_permitido;
+                const isSexBlocked = targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animal.sexo && animal.sexo !== targetLot.sexo_permitido;
+                const isRFIDBlocked = targetLot?.exige_rastreabilidade && !animal.brinco_eletronico;
+                const isBlocked = isSexBlocked || isRFIDBlocked;
                 
                 return (
                   <div
                     key={animal.id}
-                    onClick={() => !isBlocked && toggleAnimal(animal.id, animal.sexo)}
+                    onClick={() => !isBlocked && toggleAnimal(animal.id, animal.sexo, !!animal.brinco_eletronico)}
                     className={`picker-list-item ${selected ? 'active' : ''}`}
                     style={isBlocked ? { opacity: 0.6, cursor: 'not-allowed', background: 'hsl(var(--danger) / 0.05)', borderColor: 'hsl(var(--danger) / 0.2)' } : {}}
+                    title={isSexBlocked ? `Lote permite apenas ${targetLot?.sexo_permitido}S` : isRFIDBlocked ? 'Lote exige brinco eletrônico (SISBOV)' : ''}
                   >
                     <div className="p-check-adv" style={{ marginTop: 0 }}>
                       {selected
@@ -752,8 +787,9 @@ export const RelocateForm: React.FC<RelocateFormProps> = ({isOpen, onClose, onSu
                         #{animal.brinco}
                       </span>
                       <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>
-                        {animal.raca || 'â€”'}
+                        {animal.raca || '—'}
                       </span>
+                      {animal.brinco_eletronico && <span className="p-tag" style={{ background: '#ecfdf5', color: '#10b981' }}>RFID</span>}
                       {animal.categoria && (
                         <span className="p-tag">
                           {animal.categoria}

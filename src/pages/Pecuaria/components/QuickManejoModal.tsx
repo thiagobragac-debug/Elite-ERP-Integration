@@ -3,6 +3,8 @@ import { Scale, HeartPulse, Calendar, FileText, Hash, Stethoscope, Activity, Ale
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface QuickManejoModalProps {
   isOpen: boolean;
@@ -251,7 +253,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data da Pesagem</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={weightData.data_pesagem}
@@ -292,7 +294,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data do Manejo</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={healthData.data_manejo}

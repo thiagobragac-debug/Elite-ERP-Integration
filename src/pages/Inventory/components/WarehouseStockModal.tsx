@@ -191,7 +191,7 @@ export const WarehouseStockModal: React.FC<WarehouseStockModalProps> = ({
   ];
 
   return createPortal(
-    <div className="tauze-modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
+    <div className="tauze-modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ zIndex: 9999 }}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}

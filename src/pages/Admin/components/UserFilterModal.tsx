@@ -1,7 +1,9 @@
-Ôªøimport React from 'react';
+import React from 'react';
 import { X, Filter, Check, Users, Shield, Lock, Monitor, Calendar, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface UserFilterModalProps {
   isOpen: boolean;
@@ -31,7 +33,7 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -46,8 +48,8 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
               <Users size={20} />
             </div>
             <div>
-              <h3>Filtros de Usu√°rios</h3>
-              <p>Gerencie acessos e governan√ßa.</p>
+              <h3>Filtros de Usu·rios</h3>
+              <p>Gerencie acessos e governanÁa.</p>
             </div>
           </div>
           <button 
@@ -149,13 +151,13 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Data de Cadastro <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

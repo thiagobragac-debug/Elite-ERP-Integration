@@ -21,6 +21,8 @@ import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import toast from 'react-hot-toast';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface WeightFormProps {
   isOpen: boolean;
@@ -561,7 +563,7 @@ export const WeightForm: React.FC<WeightFormProps> = ({isOpen, onClose, onSubmit
                   </span>
                 )}
               </label>
-              <input
+              <DateInput
                 className="tauze-input"
                 type="date"
                 value={formData.data_pesagem}

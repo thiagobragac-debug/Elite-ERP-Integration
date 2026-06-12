@@ -20,6 +20,8 @@ import { EmptyState } from '../../../components/Feedback/EmptyState';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../../components/Navigation/Breadcrumb';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 const ANO_ATUAL = new Date().getFullYear();
@@ -664,7 +666,7 @@ export const LCDPRPage: React.FC = () => {
             <div className="tauze-input-grid">
               <div className="form-group">
                 <label>Data da Operação</label>
-                <input type="date" required value={form.data_lancamento} onChange={e => setForm(f=>({...f,data_lancamento:e.target.value}))} />
+                <DateInput type="date" required value={form.data_lancamento} onChange={e => setForm(f=>({...f,data_lancamento:e.target.value}))} />
               </div>
               <div className="form-group">
                 <label>Fazenda Origem</label>

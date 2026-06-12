@@ -1,4 +1,4 @@
-Ôªøimport React from 'react';
+import React from 'react';
 import { X, Filter, Check, Package, AlertTriangle, FlaskConical, Wheat, Zap, Boxes, DollarSign } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -18,10 +18,10 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const categorias = ['Suplemento', 'Medicamento', 'Vacina', 'Combust√≠vel', 'Semente', 'Fertilizante', 'Pe√ßa', 'Defensivo'];
+  const categorias = ['Suplemento', 'Medicamento', 'Vacina', 'CombustÌvel', 'Semente', 'Fertilizante', 'PeÁa', 'Defensivo'];
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
-    { id: 'critico', label: 'Reposi√ß√£o', icon: AlertTriangle },
+    { id: 'critico', label: 'ReposiÁ„o', icon: AlertTriangle },
     { id: 'normal', label: 'Normal', icon: Check }
   ];
 
@@ -44,7 +44,7 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -59,8 +59,8 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
               <Package size={20} />
             </div>
             <div>
-              <h3>Filtros de Invent√°rio</h3>
-              <p>Refine a gest√£o de insumos e ativos.</p>
+              <h3>Filtros de Invent·rio</h3>
+              <p>Refine a gest„o de insumos e ativos.</p>
             </div>
           </div>
           <button 
@@ -127,7 +127,7 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10b981' }}>{filters.maxStock}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Limite M√°ximo</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Limite M·ximo</span>
               </div>
               <input 
                 type="range" 
@@ -142,7 +142,7 @@ export const InventoryFilterModal: React.FC<InventoryFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Faixa de Custo M√©dio <DollarSign size={14} /></label>
+            <label className="tauze-filter-label">Faixa de Custo MÈdio <DollarSign size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="filter-field">
                 <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Min (R$)</label>

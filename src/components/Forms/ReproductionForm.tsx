@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
+import { ConsumptionCart } from './ConsumptionCart';
+import { DateInput } from '../../components/Form/DateInput';
 
 interface ReproductionFormProps {
   isOpen: boolean;
@@ -44,6 +46,8 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
     status: 'pending'
   });
 
+  const [produtosAplicados, setProdutosAplicados] = usePersistentState<any[]>('ReproductionForm_produtosAplicados', []);
+
   React.useEffect(() => {
     if (!actionId) return; // Ignore on initial mount / refresh
 
@@ -61,6 +65,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
         observacoes: initialData.observacoes || '',
         status: initialData.status || 'pending'
       });
+      setProdutosAplicados(initialData.produtos || []);
     } else {
       setFormData({
         animal_id: '',
@@ -76,6 +81,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
         observacoes: '',
         status: 'pending'
       });
+      setProdutosAplicados([]);
     }
   }, [initialData, isOpen, actionId]);
 
@@ -85,7 +91,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, produtos: produtosAplicados });
     } finally {
       setLoading(false);
     }
@@ -361,6 +367,16 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
             />
           </div>
         </div>
+      </section>
+
+      <section className="tauze-form-section">
+        <ConsumptionCart 
+          items={produtosAplicados}
+          onChange={setProdutosAplicados}
+          title="Fármacos / Protocolo Hormonal"
+          subtitle="Informe os medicamentos, hormônios ou insumos aplicados neste manejo reprodutivo."
+          filterCategories={['medicamento', 'vacina', 'insumo']}
+        />
       </section>
 
       {/* DASHBOARD PREDITIVO (SMART BADGE) */}

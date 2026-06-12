@@ -6,6 +6,8 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface CheckOutModalProps {
   isOpen: boolean;
@@ -210,7 +212,7 @@ export const CheckOutModal: React.FC<CheckOutModalProps> = ({ isOpen, onClose, a
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18 }}>
                 <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
                   <label className="tauze-label">Data de Saída</label>
-                  <input type="date" className="tauze-input" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} />
+                  <DateInput type="date" className="tauze-input" value={checkOutDate} onChange={e => setCheckOutDate(e.target.value)} />
                 </div>
                 <div className="tauze-field-group">
                   <label className="tauze-label">Peso Médio Final (kg)</label>

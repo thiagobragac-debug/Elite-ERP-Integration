@@ -1,7 +1,9 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Calendar, Wallet, TrendingUp, TrendingDown, Clock, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface FinanceFilterModalProps {
   isOpen: boolean;
@@ -18,11 +20,11 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const categories = ['Custo Operacional', 'Insumos', 'Folha Pagto', 'ManutenÃ§Ã£o', 'Receita de Venda', 'Impostos'];
+  const categories = ['Custo Operacional', 'Insumos', 'Folha Pagto', 'Manutenção', 'Receita de Venda', 'Impostos'];
   const types = [
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'inflow', label: 'Entradas', icon: TrendingUp },
-    { id: 'outflow', label: 'SaÃ­das', icon: TrendingDown }
+    { id: 'outflow', label: 'Saídas', icon: TrendingDown }
   ];
 
   const toggleCategory = (cat: string) => {
@@ -43,7 +45,7 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -59,7 +61,7 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros Financeiros</h3>
-              <p>Refine o fluxo de caixa por perÃ­odo e tipo.</p>
+              <p>Refine o fluxo de caixa por período e tipo.</p>
             </div>
           </div>
           <button 
@@ -72,7 +74,7 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Tipo de LanÃ§amento <Activity size={14} /></label>
+            <label className="tauze-filter-label">Tipo de Lançamento <Activity size={14} /></label>
             <div style={{ display: 'flex', background: 'hsl(var(--bg-main))', padding: '4px', borderRadius: '14px', gap: '4px' }}>
               {types.map(t => (
                 <button 
@@ -88,11 +90,11 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PerÃ­odo <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Período <Calendar size={14} /></label>
             <div className="date-range-inputs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="filter-field">
-                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>InÃ­cio</label>
-                <input 
+                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Início</label>
+                <DateInput 
                   type="date" 
                   className="tauze-input" 
                   value={filters.dateStart}
@@ -101,8 +103,8 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
                 />
               </div>
               <div className="filter-field">
-                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>TÃ©rmino</label>
-                <input 
+                <label className="tauze-label" style={{ fontSize: '10px', marginBottom: '8px' }}>Término</label>
+                <DateInput 
                   type="date" 
                   className="tauze-input" 
                   value={filters.dateEnd}
@@ -135,7 +137,7 @@ export const FinanceFilterModal: React.FC<FinanceFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Status de LiquidaÃ§Ã£o <Clock size={14} /></label>
+            <label className="tauze-filter-label">Status de Liquidação <Clock size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <button 
                 className={`tauze-tag-chip ${filters.status === 'PAID' ? 'active' : ''}`}

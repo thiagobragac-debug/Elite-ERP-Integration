@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
+import { ConsumptionCart } from './ConsumptionCart';
 import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
 import toast from 'react-hot-toast';
@@ -884,194 +885,14 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Add Fármaco Inputs */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* Row 1: Fármaco */}
-                <div className="tauze-field-group" style={{ margin: 0 }} ref={productSearchRef}>
-                  <label className="tauze-label"><FlaskConical size={14} /> Fármaco / Insumo</label>
-                  <div style={{ position: 'relative' }}>
-                    <input 
-                      className="tauze-input"
-                      type="text" 
-                      placeholder="Busque ou digite o nome do medicamento/vacina..." 
-                      value={tempProductName}
-                      onChange={(e) => {
-                        setTempProductName(e.target.value);
-                        setShowProductDropdown(true);
-                      }}
-                      onFocus={() => setShowProductDropdown(true)}
-                    />
-                    {showProductDropdown && (
-                      <div className="autocomplete-dropdown animate-fade-in" style={{
-                        position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%',
-                        maxHeight: '180px', overflowY: 'auto',
-                        background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))',
-                        borderRadius: '14px', zIndex: 999, boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-                        display: 'flex', flexDirection: 'column'
-                      }}>
-                        {availableProducts.filter(p => p.nome?.toLowerCase().includes((tempProductName || '').toLowerCase())).length === 0 ? (
-                          <div style={{ padding: '12px', color: 'hsl(var(--text-muted))', fontSize: '12px', textAlign: 'center', fontWeight: 600 }}>
-                            Usar valor digitado (fármaco não cadastrado no estoque)
-                          </div>
-                        ) : (
-                          availableProducts.filter(p => p.nome?.toLowerCase().includes((tempProductName || '').toLowerCase())).map((p: any) => (
-                            <div
-                              key={p.id}
-                              onClick={() => {
-                                setTempProductName(p.nome);
-                                setTempProduct(p);
-                                setShowProductDropdown(false);
-                              }}
-                              className="autocomplete-option"
-                              style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid hsl(var(--border) / 0.5)', transition: 'background 0.15s' }}
-                            >
-                              <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))' }}>{p.nome}</div>
-                              {p.marca && <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginTop: '2px', fontWeight: 600 }}>Marca: {p.marca}</div>}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Row 2: Inline grid with Dose, Via, Local, Carência, and Add button */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.6fr 1.6fr 1fr auto', gap: '10px', alignItems: 'end' }}>
-                  <div className="tauze-field-group" style={{ margin: 0 }}>
-                    <label className="tauze-label"><Hash size={13} /> Dose</label>
-                    <input 
-                      className="tauze-input"
-                      type="text" 
-                      placeholder="Ex: 2ml" 
-                      value={tempDose}
-                      onChange={(e) => setTempDose(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="tauze-field-group" style={{ margin: 0 }}>
-                    <label className="tauze-label"><Activity size={13} /> Via</label>
-                    <SearchableSelect 
-                      value={tempVia}
-                      onChange={(val: any) => setTempVia(val)}
-                      options={[
-                        { value: `IM`, label: `Intramuscular (IM)` },
-                        { value: `SC`, label: `Subcutânea (SC)` },
-                        { value: `ORAL`, label: `Oral` },
-                        { value: `TOPICO`, label: `Tópico` },
-                        { value: `IV`, label: `Intravenosa (IV)` },
-                      ]}
-                    />
-                  </div>
-
-                  <div className="tauze-field-group" style={{ margin: 0 }}>
-                    <label className="tauze-label"><Hash size={13} /> Local</label>
-                    <input 
-                      className="tauze-input"
-                      type="text" 
-                      placeholder="Ex: Pescoço" 
-                      value={tempLocal}
-                      onChange={(e) => setTempLocal(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="tauze-field-group" style={{ margin: 0 }}>
-                    <label className="tauze-label"><AlertCircle size={13} /> Carência</label>
-                    <input 
-                      className="tauze-input"
-                      type="number" 
-                      placeholder="Dias" 
-                      value={tempCarencia}
-                      onChange={(e) => setTempCarencia(e.target.value)}
-                    />
-                  </div>
-
-                  <button 
-                    type="button" 
-                    onClick={handleAddProduto}
-                    disabled={!tempProductName.trim()}
-                    style={{
-                      height: '38px',
-                      width: '42px',
-                      borderRadius: '10px',
-                      background: tempProductName.trim() ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
-                      color: tempProductName.trim() ? 'white' : 'hsl(var(--text-muted))',
-                      border: 'none',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: tempProductName.trim() ? 'pointer' : 'not-allowed',
-                      transition: 'all 0.2s',
-                      alignSelf: 'end'
-                    }}
-                    title="Adicionar Fármaco"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Added Fármacos List */}
-              <div style={{ marginTop: '8px' }}>
-                {produtosAplicados.length > 0 && (
-                  <h5 style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.05em' }}>
-                    Fármacos Selecionados ({produtosAplicados.length})
-                  </h5>
-                )}
-
-                {produtosAplicados.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: 'hsl(var(--text-muted))', fontSize: '12px', padding: '16px', border: '1px dashed hsl(var(--border)/0.5)', borderRadius: '12px' }}>
-                    Nenhum fármaco adicionado ainda.
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {produtosAplicados.map((item, index) => (
-                      <div 
-                        key={index} 
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'space-between',
-                          padding: '10px 14px', 
-                          background: 'hsl(var(--bg-main)/0.4)', 
-                          border: '1px solid hsl(var(--border)/0.5)',
-                          borderRadius: '12px',
-                          fontSize: '12.5px'
-                        }}
-                      >
-                        <div style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
-                          <div style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}>
-                            {item.produto}
-                          </div>
-                          <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '2px', fontWeight: 600 }}>
-                            Dose: <strong style={{ color: 'hsl(var(--text-main))' }}>{item.dose || 'N/A'}</strong> · Via: <strong style={{ color: 'hsl(var(--text-main))' }}>{item.via_aplicacao}</strong>
-                            {item.local_aplicacao && <> · Local: <strong style={{ color: 'hsl(var(--text-main))' }}>{item.local_aplicacao}</strong></>}
-                          </div>
-                        </div>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                          {item.carencia_dias ? (
-                            <span style={{ background: '#fef2f2', color: '#dc2626', padding: '2px 6px', borderRadius: '6px', fontSize: '10px', fontWeight: 800 }}>
-                              Carência: {item.carencia_dias}d
-                            </span>
-                          ) : (
-                            <span style={{ background: 'hsl(142 72% 95%)', color: 'hsl(142 76% 36%)', padding: '2px 6px', borderRadius: '6px', fontSize: '10px', fontWeight: 800 }}>
-                              Sem carência
-                            </span>
-                          )}
-                          
-                          <button 
-                            type="button" 
-                            onClick={() => handleRemoveProduto(index)}
-                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <ConsumptionCart 
+                items={produtosAplicados}
+                onChange={setProdutosAplicados}
+                title="Fármacos / Insumos"
+                subtitle="Informe os medicamentos ou vacinas aplicados, com baixa automática de estoque."
+                showHealthFields={true}
+                filterCategories={['medicamento', 'vacina', 'insumo']}
+              />
             </div>
           )}
         </section>

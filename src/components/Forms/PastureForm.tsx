@@ -18,6 +18,8 @@ import {
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface PastureFormProps {
   isOpen: boolean;
@@ -260,7 +262,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({isOpen, onClose, onSubm
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data da Última Fertilização</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={formData.data_ultima_fertilizacao}

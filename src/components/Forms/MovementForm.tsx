@@ -25,6 +25,8 @@ import {
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
+import { DateInput } from '../../components/Form/DateInput';
+import { ConsumptionCart } from './ConsumptionCart';
 import { useTenant } from '../../contexts/TenantContext';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import toast from 'react-hot-toast';
@@ -61,51 +63,12 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
   // Cart of Items
   const [items, setItems] = useState<any[]>([]);
 
-  // Current Item Input State
-  const [currentItem, setCurrentItem] = useState({
-    produto_id: '',
-    quantidade: '',
-    valor_unitario: '',
-    lote: '',
-    data_validade: '',
-    deposito_id: ''
-  });
-
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Product Autocomplete Search State
-  const [productSearchQuery, setProductSearchQuery] = useState('');
-  const [showProductDropdown, setShowProductDropdown] = useState(false);
-  const productSearchRef = useRef<HTMLDivElement>(null);
-
-  // Click Outside detector to close search dropdown
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (productSearchRef.current && !productSearchRef.current.contains(e.target as Node)) {
-        setShowProductDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Filtered Products for Autocomplete
-  const filteredProducts = useMemo(() => {
-    if (!productSearchQuery) return products;
-    return products.filter(p => 
-      p.nome?.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
-      (p.categoria && p.categoria.toLowerCase().includes(productSearchQuery.toLowerCase()))
-    );
-  }, [products, productSearchQuery]);
-
   useEffect(() => {
     if (!isOpen) return;
-
-    // Reset search query
-    setProductSearchQuery('');
-    setShowProductDropdown(false);
 
     if (initialData) { setFormData(prev => ({
         ...prev,
@@ -142,14 +105,6 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
         sub_centro_custo: ''
       });
       setItems([]);
-      setCurrentItem({
-        produto_id: '',
-        quantidade: '',
-        valor_unitario: '',
-        lote: '',
-        data_validade: '',
-        deposito_id: ''
-      });
     }
   }, [initialData, isOpen, defaultType, actionId]);
 
@@ -217,67 +172,8 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
 
   const requiresReceipt = items.some(item => isAgroDefensive(item.produto_id));
   
-  // Expanded Lot Tracking for Agri (Medicines, Seeds, Fertilizers, Defensives)
-  const requiresLot = isMedicament(currentItem.produto_id) || isAgroDefensive(currentItem.produto_id) || isSeedOrFertilizer(currentItem.produto_id);
-  
-  const isOutOrTransfer = formData.tipo === 'out' || formData.tipo === 'transfer';
-  const activeDepotForStock = formData.tipo === 'transfer' ? formData.deposito_origem_id : currentItem.deposito_id;
-  
-  // Mocked available stock for UI demonstration. In production, this would fetch from 'estoque_saldos' table.
-  const availableStock = currentItem.produto_id && activeDepotForStock ? 150 : 0; 
-  
   const totalItemsValue = items.reduce((sum, item) => sum + (parseFloat(item.quantidade || '0') * parseFloat(item.valor_unitario || '0')), 0);
   const totalMovementValue = totalItemsValue + (formData.tipo === 'in' ? parseFloat(formData.despesas_acessorias || '0') : 0);
-
-  useEffect(() => {
-    if (formData.tipo === 'out' && currentItem.produto_id) {
-      const prod = products.find(p => p.id === currentItem.produto_id);
-      if (prod) {
-        setCurrentItem(prev => ({ ...prev, valor_unitario: (prod.custo_medio || 0).toString() }));
-      }
-    }
-  }, [currentItem.produto_id, formData.tipo, products]);
-
-  const handleAddItem = () => {
-    if (!currentItem.produto_id || !currentItem.quantidade) {
-      toast.error("Selecione o produto e informe a quantidade.");
-      return;
-    }
-    
-    // Validate if it's an IN operation
-    if (formData.tipo === 'in' && !currentItem.valor_unitario) {
-      toast.error("Preencha o Valor Unitário para entrada.");
-      return;
-    }
-
-    if (formData.tipo !== 'transfer' && !currentItem.deposito_id) {
-      toast.error("Selecione o Depósito para o item.");
-      return;
-    }
-
-    if (isOutOrTransfer && parseFloat(currentItem.quantidade) > availableStock) {
-      toast.error("Quantidade solicitada é maior que o saldo disponível em estoque!");
-      return;
-    }
-
-    setItems([...items, { ...currentItem }]);
-    
-    // Reset current item but keep the warehouse to save clicks!
-    setCurrentItem({
-      produto_id: '',
-      quantidade: '',
-      valor_unitario: '',
-      lote: '',
-      data_validade: '',
-      deposito_id: currentItem.deposito_id 
-    });
-  };
-
-  const handleRemoveItem = (index: number) => {
-    const newItems = [...items];
-    newItems.splice(index, 1);
-    setItems(newItems);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -293,6 +189,37 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
       toast.error("O Receituário Agronômico é obrigatório para defensivos.");
       return;
     }
+    
+    // Validate IN values
+    if (formData.tipo === 'in') {
+      const missingValue = items.some(item => !item.valor_unitario || parseFloat(item.valor_unitario) <= 0);
+      if (missingValue) {
+        toast.error("Preencha o Valor Unitário para entrada de todos os itens.");
+        return;
+      }
+    }
+    
+    // Validate Depots
+    if (formData.tipo !== 'transfer') {
+      const missingDepot = items.some(item => !item.deposito_id);
+      if (missingDepot) {
+        toast.error("Selecione o Depósito para todos os itens.");
+        return;
+      }
+    }
+    
+    // Validate stock for out/transfer
+    if (formData.tipo === 'out' || formData.tipo === 'transfer') {
+      // Assuming mock available stock = 150 for all items right now.
+      for (const item of items) {
+        if (parseFloat(item.quantidade || '0') > 150) {
+          const prodName = products.find(p => p.id === item.produto_id)?.nome || 'Produto';
+          toast.error(`Quantidade de "${prodName}" é maior que o saldo disponível em estoque!`);
+          return;
+        }
+      }
+    }
+
     setLoading(true);
     try {
       await onSubmit({ ...formData, items });
@@ -300,8 +227,6 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
       setLoading(false);
     }
   };
-
-  const selectedProductObj = products.find(p => p.id === currentItem.produto_id);
 
   return (
     <SidePanel
@@ -492,206 +417,17 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
           <h4 className="tauze-section-title">{initialData ? 'Item da Movimentação' : 'Adicionar Insumos'}</h4>
         </div>
 
-        {!initialData && (
-          <div className="tauze-input-grid" style={{ gridTemplateColumns: formData.tipo === 'transfer' ? '2fr 1fr auto' : '2fr 1.5fr 1fr 1fr auto', alignItems: 'end' }}>
-            <div className="tauze-field-group" style={{ position: 'relative' }}>
-              <label className="tauze-label"><Package size={14} /> Selecionar Produto</label>
-              {currentItem.produto_id ? (
-                /* CHIP */
-                <div className="product-chip animate-fade-in" style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  background: 'hsl(var(--brand) / 0.08)',
-                  border: '1.5px solid hsl(var(--brand) / 0.3)',
-                  borderRadius: '12px', padding: '8px 12px',
-                  height: '38px', boxSizing: 'border-box'
-                }}>
-                  <div style={{
-                    width: '24px', height: '24px', borderRadius: '6px',
-                    background: 'hsl(var(--brand))', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '11px', flexShrink: 0
-                  }}>
-                    <Package size={12} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {selectedProductObj?.nome}
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentItem(prev => ({ ...prev, produto_id: '', valor_unitario: '' }));
-                      setProductSearchQuery('');
-                    }}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer',
-                      color: 'hsl(var(--text-muted))', padding: '2px', display: 'flex',
-                      alignItems: 'center', justifyContent: 'center', flexShrink: 0
-                    }}
-                    title="Remover produto"
-                  >
-                    <Trash2 size={14} style={{ color: '#ef4444' }} />
-                  </button>
-                </div>
-              ) : (
-                /* SEARCH INPUT */
-                <div className="autocomplete-wrapper" style={{ position: 'relative', width: '100%' }} ref={productSearchRef}>
-                  <div className="search-input-container" style={{ position: 'relative', width: '100%' }}>
-                    <input
-                      className="tauze-input"
-                      type="text"
-                      placeholder="Buscar por nome ou categoria..."
-                      value={productSearchQuery}
-                      onChange={(e) => { setProductSearchQuery(e.target.value); setShowProductDropdown(true); }}
-                      onFocus={() => setShowProductDropdown(true)}
-                      style={{ paddingRight: '30px', width: '100%', boxSizing: 'border-box', height: '38px' }}
-                      autoComplete="off"
-                    />
-                  </div>
-
-                  {showProductDropdown && (
-                    <div className="autocomplete-dropdown animate-fade-in" style={{
-                      position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%',
-                      maxHeight: '220px', overflowY: 'auto',
-                      background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))',
-                      borderRadius: '12px', zIndex: 999, boxShadow: '0 8px 30px rgba(0,0,0,0.15)',
-                      display: 'flex', flexDirection: 'column'
-                    }}>
-                      {filteredProducts.length === 0 ? (
-                        <div style={{ padding: '12px', color: 'hsl(var(--text-muted))', fontSize: '13px', fontWeight: 600, textAlign: 'center' }}>
-                          Nenhum insumo encontrado
-                        </div>
-                      ) : (
-                        filteredProducts.map((p: any, idx: number) => (
-                          <div
-                            key={p.id}
-                            onClick={() => {
-                              setCurrentItem(prev => ({ 
-                                ...prev, 
-                                produto_id: p.id,
-                                valor_unitario: formData.tipo === 'out' ? (p.custo_medio || 0).toString() : prev.valor_unitario
-                              }));
-                              setProductSearchQuery(p.nome);
-                              setShowProductDropdown(false);
-                            }}
-                            style={{
-                              padding: '10px 12px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              borderBottom: idx < filteredProducts.length - 1 ? '1px solid hsl(var(--border) / 0.5)' : 'none',
-                              transition: 'background 0.15s'
-                            }}
-                            className="autocomplete-option"
-                          >
-                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                              <span style={{ fontSize: '13px', fontWeight: 700, color: 'hsl(var(--text-main))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {p.nome}
-                              </span>
-                              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
-                                {p.categoria || 'Sem Categoria'} · {p.unidade}
-                              </span>
-                            </div>
-                            {formData.tipo === 'out' && (
-                              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b' }}>
-                                Custo: R$ {parseFloat(p.custo_medio || '0').toFixed(2)}
-                              </span>
-                            )}
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {formData.tipo !== 'transfer' && (
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Building2 size={14} /> Depósito</label>
-                <SearchableSelect
-                  value={currentItem.deposito_id}
-                  onChange={(val) => setCurrentItem({...currentItem, deposito_id: val})}
-                  options={warehouses.map(w => ({ value: w.id, label: w.nome }))}
-                  placeholder={warehouses.length === 0 ? (loading ? "Carregando..." : "Nenhum depósito...") : "Selecione um depósito..."}
-                />
-              </div>
-            )}
-
-            <div className="tauze-field-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <label className="tauze-label"><Hash size={14} /> Qtd</label>
-                {isOutOrTransfer && currentItem.produto_id && activeDepotForStock && (
-                  <span style={{ fontSize: '10px', color: parseFloat(currentItem.quantidade || '0') > availableStock ? '#ef4444' : '#10b981', fontWeight: 800 }}>
-                    SALDO: {availableStock}
-                  </span>
-                )}
-              </div>
-              <input 
-                type="number" 
-                step="0.01"
-                placeholder="0.00" 
-                className="tauze-input"
-                value={currentItem.quantidade}
-                onChange={(e) => setCurrentItem({...currentItem, quantidade: e.target.value})}
-                style={{ borderColor: isOutOrTransfer && parseFloat(currentItem.quantidade || '0') > availableStock ? '#ef4444' : 'hsl(var(--border))' }}
-              />
-            </div>
-
-            {formData.tipo !== 'transfer' && (
-              <div className="tauze-field-group">
-                <label className="tauze-label"><DollarSign size={14} /> {formData.tipo === 'out' ? 'Custo (Un)' : 'Valor (Un)'}</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  placeholder="0.00" 
-                  className="tauze-input"
-                  value={currentItem.valor_unitario}
-                  onChange={(e) => setCurrentItem({...currentItem, valor_unitario: e.target.value})}
-                  disabled={formData.tipo === 'out'}
-                  style={{ background: formData.tipo === 'out' ? 'hsl(var(--bg-muted))' : 'white', cursor: formData.tipo === 'out' ? 'not-allowed' : 'text' }}
-                  title={formData.tipo === 'out' ? "Custo médio calculado automaticamente" : ""}
-                />
-              </div>
-            )}
-
-            <button type="button" className="primary-btn" style={{ height: '38px', padding: '0 16px', borderRadius: '8px' }} onClick={handleAddItem}>
-              <Plus size={16} />
-            </button>
-          </div>
-        )}
-
-        {/* Conditional Lot/Validity Input for Current Item (Medicaments, Defensives, Seeds, Fertilizers) */}
-        {!initialData && requiresLot && (formData.tipo === 'in' || formData.tipo === 'transfer') && (
-          <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px', background: 'hsl(38 92% 50% / 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid hsl(38 92% 50% / 0.3)' }}>
-            <div className="tauze-field-group">
-              <label className="tauze-label" style={{ color: 'hsl(38 92% 40%)' }}><Hash size={14} /> Lote do Produto</label>
-              <input 
-                type="text" 
-                placeholder="Ex: LOT-2024-01" 
-                className="tauze-input"
-                style={{ borderColor: 'hsl(38 92% 50% / 0.4)' }}
-                value={currentItem.lote}
-                onChange={(e) => setCurrentItem({...currentItem, lote: e.target.value})}
-              />
-            </div>
-            <div className="tauze-field-group">
-              <label className="tauze-label" style={{ color: 'hsl(38 92% 40%)' }}><Calendar size={14} /> Data de Validade</label>
-              <input 
-                type="date" 
-                className="tauze-input"
-                style={{ borderColor: 'hsl(38 92% 50% / 0.4)' }}
-                value={currentItem.data_validade}
-                onChange={(e) => setCurrentItem({...currentItem, data_validade: e.target.value})}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Edit mode: Render the single item editable fields directly instead of a cart */}
-        {initialData && (
+        {!initialData ? (
+          <ConsumptionCart 
+            items={items} 
+            onChange={setItems} 
+            mode="movement" 
+            isEntry={formData.tipo === 'in'}
+            hideDeposit={formData.tipo === 'transfer'}
+            title={formData.tipo === 'in' ? 'Insumos de Entrada' : formData.tipo === 'transfer' ? 'Insumos para Transferência' : 'Insumos de Saída'}
+            subtitle={formData.tipo === 'in' ? 'Lance os itens da NFe' : 'Selecione os produtos para movimentar'}
+          />
+        ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
              <div className="tauze-input-grid grid-col-2">
                 <div className="tauze-field-group">
@@ -733,7 +469,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
                     value={items[0]?.quantidade}
                     onChange={(e) => {
                       const newItems = [...items];
-                      newItems[0].quantidade = e.target.value;
+                      newItems[0].quantidade = parseFloat(e.target.value) || 0;
                       setItems(newItems);
                     }}
                     required
@@ -749,7 +485,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
                       value={items[0]?.valor_unitario}
                       onChange={(e) => {
                         const newItems = [...items];
-                        newItems[0].valor_unitario = e.target.value;
+                        newItems[0].valor_unitario = parseFloat(e.target.value) || 0;
                         setItems(newItems);
                       }}
                       disabled={formData.tipo === 'out'}
@@ -778,7 +514,7 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
                   </div>
                   <div className="tauze-field-group">
                     <label className="tauze-label" style={{ color: 'hsl(38 92% 40%)' }}><Calendar size={14} /> Data de Validade</label>
-                    <input 
+                    <DateInput 
                       type="date" 
                       className="tauze-input"
                       style={{ borderColor: 'hsl(38 92% 50% / 0.4)' }}
@@ -794,40 +530,8 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
               )}
           </div>
         )}
-
-        {/* Render Cart List for New Mode */}
-        {!initialData && items.length > 0 && (
-          <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <h5 style={{ fontSize: '12px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Itens Prontos para Lançamento ({items.length})</h5>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {items.map((item, idx) => {
-                const p = products.find(prod => prod.id === item.produto_id);
-                const w = warehouses.find(wh => wh.id === item.deposito_id);
-                return (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'hsl(var(--bg-card))', border: '1px solid #e2e8f0', padding: '12px 16px', borderRadius: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'hsl(var(--bg-main))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
-                        <Package size={16} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b' }}>{p?.nome || 'Insumo'}</span>
-                        <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#64748b', fontWeight: 600 }}>
-                          <span>Qtd: {item.quantidade} {p?.unidade}</span>
-                          {formData.tipo !== 'transfer' && <span>Depósito: {w?.nome || '-'}</span>}
-                          {formData.tipo !== 'transfer' && <span>Custo: R$ {item.valor_unitario}</span>}
-                          {item.lote && <span style={{ color: '#d97706' }}>Lote: {item.lote}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <button type="button" style={{ color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', padding: '8px' }} onClick={() => handleRemoveItem(idx)}>
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            
-            {/* Value and Compliance Footer */}
+        
+        {/* Value and Compliance Footer */}
             <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {requiresReceipt && formData.tipo === 'out' && (
                 <div style={{ padding: '16px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>

@@ -1,4 +1,4 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Star, Building2, Briefcase, DollarSign, MapPin, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -18,7 +18,7 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const categories = ['PeÃ§as', 'Insumos', 'CombustÃ­veis', 'ServiÃ§os', 'MaquinÃ¡rio', 'LogÃ­stica'];
+  const categories = ['Peças', 'Insumos', 'Combustíveis', 'Serviços', 'Maquinário', 'Logística'];
   const ratingOptions = [1, 2, 3, 4, 5];
 
   const toggleCategory = (cat: string) => {
@@ -39,7 +39,7 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -55,7 +55,7 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Parceiroes</h3>
-              <p>Auditoria de performance e homologaÃ§Ã£o.</p>
+              <p>Auditoria de performance e homologação.</p>
             </div>
           </div>
           <button 
@@ -68,7 +68,7 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Rating MÃ­nimo <Star size={14} /></label>
+            <label className="tauze-filter-label">Rating Mínimo <Star size={14} /></label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {ratingOptions.map(r => (
                 <button 
@@ -99,7 +99,7 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Categorias de ServiÃ§o <Briefcase size={14} /></label>
+            <label className="tauze-filter-label">Categorias de Serviço <Briefcase size={14} /></label>
             <div className="tauze-tag-cloud">
               {categories.map(cat => (
                 <button 
@@ -119,7 +119,7 @@ export const SupplierFilterModal: React.FC<SupplierFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Volume de TransaÃ§Ã£o (R$) <DollarSign size={14} /></label>
+            <label className="tauze-filter-label">Volume de Transação (R$) <DollarSign size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxSpend.toLocaleString('pt-BR')}</span>

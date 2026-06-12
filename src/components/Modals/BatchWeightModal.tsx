@@ -20,6 +20,8 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from '../Forms/SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface BatchWeightModalProps {
   isOpen: boolean;
@@ -720,7 +722,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
             <label style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>
               <Calendar size={11} style={{ marginRight: '4px' }} /> Data da Pesagem Padrão
             </label>
-            <input
+            <DateInput
               type="date"
               value={defaultDate}
               onChange={(e) => setDefaultDate(e.target.value)}

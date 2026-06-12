@@ -1,4 +1,4 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Building2, Clock, Target, Scale, DollarSign, TrendingUp, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -21,8 +21,8 @@ export const ConfinementFilterModal: React.FC<ConfinementFilterModalProps> = ({
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'ENGORDA', label: 'Engorda', icon: Activity },
-    { id: 'TERMINACAO', label: 'TerminaÃ§Ã£o (> 90% DOF)', icon: Target },
-    { id: 'CHECKOUT', label: 'Pronto para SaÃ­da', icon: Scale }
+    { id: 'TERMINACAO', label: 'Terminação (> 90% DOF)', icon: Target },
+    { id: 'CHECKOUT', label: 'Pronto para Saída', icon: Scale }
   ];
 
   const handleClear = () => {
@@ -38,7 +38,7 @@ export const ConfinementFilterModal: React.FC<ConfinementFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -54,7 +54,7 @@ export const ConfinementFilterModal: React.FC<ConfinementFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros Confinamento</h3>
-              <p>Otimize a terminaÃ§Ã£o e DOF.</p>
+              <p>Otimize a terminação e DOF.</p>
             </div>
           </div>
           <button 
@@ -118,7 +118,7 @@ export const ConfinementFilterModal: React.FC<ConfinementFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Custo / CabeÃ§a / Dia (CPD) <DollarSign size={14} /></label>
+            <label className="tauze-filter-label">Custo / Cabeça / Dia (CPD) <DollarSign size={14} /></label>
             <div style={{ padding: '16px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>Teto de Gasto Diario</span>

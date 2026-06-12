@@ -2,6 +2,8 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { X, Filter, Globe, CreditCard, Activity, Calendar, DollarSign, HardDrive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface SaaSFilterModalProps {
   isOpen: boolean;
@@ -255,7 +257,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>INÍCIO</span>
-                        <input 
+                        <DateInput 
                           type="date" 
                           value={filters.dateStart}
                           onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
@@ -264,7 +266,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>FIM</span>
-                        <input 
+                        <DateInput 
                           type="date" 
                           value={filters.dateEnd}
                           onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
@@ -419,7 +421,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>INÍCIO</span>
-                        <input 
+                        <DateInput 
                           type="date" 
                           value={filters.dateStart}
                           onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
@@ -428,7 +430,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>FIM</span>
-                        <input 
+                        <DateInput 
                           type="date" 
                           value={filters.dateEnd}
                           onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}
@@ -493,7 +495,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>INÍCIO</span>
-                        <input 
+                        <DateInput 
                           type="date" 
                           value={filters.dateStart}
                           onChange={(e) => setFilters({ ...filters, dateStart: e.target.value })}
@@ -502,7 +504,7 @@ export const SaaSFilterModal: React.FC<SaaSFilterModalProps> = ({
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8' }}>FIM</span>
-                        <input 
+                        <DateInput 
                           type="date" 
                           value={filters.dateEnd}
                           onChange={(e) => setFilters({ ...filters, dateEnd: e.target.value })}

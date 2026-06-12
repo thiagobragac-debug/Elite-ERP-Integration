@@ -18,6 +18,7 @@ import {
   Scale
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
+import { ConsumptionCart, ConsumptionItem } from './ConsumptionCart';
 
 interface DietFormProps {
   isOpen: boolean;
@@ -42,8 +43,7 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
     status: 'active'
   });
 
-  const [ingredients, setIngredients] = useState<string[]>([]);
-  const [newIngredient, setNewIngredient] = useState('');
+  const [ingredients, setIngredients] = useState<ConsumptionItem[]>([]);
 
   React.useEffect(() => {
     if (!actionId) return; // Ignore on initial mount / refresh
@@ -60,7 +60,15 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
         consumo_esperado: initialData.consumo_esperado?.toString() || '',
         status: initialData.status || 'active'
       });
-      setIngredients(initialData.ingredientes || []);
+      // Backward compatibility: Convert string array to objects if necessary
+      const rawIngredients = initialData.ingredientes || [];
+      const parsedIngredients = rawIngredients.map((ing: any) => {
+        if (typeof ing === 'string') {
+          return { id: Math.random().toString(36).substring(7), produto_id: '', nome: ing, quantidade: 0, unidade: 'UN', custo_medio: 0, deposito_id: '' };
+        }
+        return ing;
+      });
+      setIngredients(parsedIngredients);
     } else {
       setFormData({
         nome: '',
@@ -79,16 +87,15 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
 
   const [loading, setLoading] = useState(false);
 
-  const addIngredient = () => {
-    if (newIngredient.trim()) {
-      setIngredients([...ingredients, newIngredient.trim()]);
-      setNewIngredient('');
+  useEffect(() => {
+    if (ingredients.length > 0) {
+      const totalCost = ingredients.reduce((sum, item) => sum + ((item.custo_medio || 0) * (item.quantidade || 0)), 0);
+      const totalQty = ingredients.reduce((sum, item) => sum + (Number(item.quantidade) || 0), 0);
+      if (totalQty > 0) {
+        setFormData(prev => ({ ...prev, custo_por_kg: (totalCost / totalQty).toFixed(2) }));
+      }
     }
-  };
-
-  const removeIngredient = (index: number) => {
-    setIngredients(ingredients.filter((_, i) => i !== index));
-  };
+  }, [ingredients]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -298,25 +305,27 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
           <div className="tauze-input-grid grid-col-2">
             {formData.tipo === 'Sal Mineral' ? (
                <div className="tauze-field-group">
-                 <label className="tauze-label"><DollarSign size={14} /> Custo por Kg (R$)</label>
+                 <label className="tauze-label"><DollarSign size={14} /> Custo por Kg (R$) - Automático</label>
                  <input 
                    className="tauze-input"
                    type="number" step="0.01" placeholder="0.00" 
                    value={formData.custo_por_kg}
                    onChange={(e) => setFormData({...formData, custo_por_kg: e.target.value})}
                    required
+                   disabled={ingredients.length > 0}
                  />
                </div>
             ) : (
               <>
                 <div className="tauze-field-group">
-                  <label className="tauze-label"><DollarSign size={14} /> Custo Matéria Natural (R$/Kg)</label>
+                  <label className="tauze-label"><DollarSign size={14} /> Custo Matéria Natural (R$/Kg) - Auto</label>
                   <input 
                     className="tauze-input"
                     type="number" step="0.01" placeholder="0.00" 
                     value={formData.custo_por_kg}
                     onChange={(e) => setFormData({...formData, custo_por_kg: e.target.value})}
                     required
+                    disabled={ingredients.length > 0}
                   />
                 </div>
 
@@ -334,32 +343,13 @@ export const DietForm: React.FC<DietFormProps> = ({isOpen, onClose, onSubmit, in
             )}
           </div>
 
-          <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-            <div className="tauze-field-group">
-              <label className="tauze-label"><Layers size={14} /> Ingredientes</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input 
-                  className="tauze-input"
-                  type="text" 
-                  placeholder="Adicionar ingrediente..." 
-                  value={newIngredient}
-                  onChange={(e) => setNewIngredient(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addIngredient())}
-                />
-                <button type="button" className="secondary-btn" onClick={addIngredient} style={{ padding: '0 12px' }}>
-                  <Plus size={18} />
-                </button>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
-                {ingredients.map((ing, idx) => (
-                  <span key={idx} className="tag" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    {ing}
-                    <Trash2 size={12} style={{ cursor: 'pointer' }} onClick={() => removeIngredient(idx)} />
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
+          <ConsumptionCart 
+            items={ingredients} 
+            onChange={setIngredients} 
+            mode="formulation" 
+            title="Composição da Dieta" 
+            subtitle={`Adicione os ingredientes e suas proporções (${formData.tipo === 'Sal Mineral' ? 'kg' : '%'})`} 
+          />
         </section>
       )}
 

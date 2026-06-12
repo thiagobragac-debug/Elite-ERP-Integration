@@ -19,6 +19,8 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useEffect } from 'react';
 import { SearchableSelect } from './SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -188,7 +190,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Competência (Emissão)</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={formData.issueDate}
@@ -199,7 +201,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({isOpen, onClose
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data de Vencimento</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={formData.dueDate}

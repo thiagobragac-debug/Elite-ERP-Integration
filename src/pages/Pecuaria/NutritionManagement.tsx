@@ -164,7 +164,7 @@ export const NutritionManagement: React.FC = () => {
       Custo_kg_Natural: 'R$ ' + Number(item.custo_por_kg).toFixed(2),
       Percentual_MS: item.percMS + '%',
       Custo_kg_MS: 'R$ ' + (item.custoMS || 0).toFixed(2),
-      Ingredientes: item.ingredientes?.join(', ') || 'N/A',
+      Ingredientes: item.ingredientes ? item.ingredientes.map((ing: any) => typeof ing === 'string' ? ing : ing.nome).join(', ') : 'N/A',
       Status: item.status === 'active' ? 'Liberada' : 'Bloqueada'
     }));
 
@@ -181,7 +181,10 @@ export const NutritionManagement: React.FC = () => {
     const matchesTipo = filterValues.tipo === 'all' || d.tipo === filterValues.tipo;
     
     const matchesIngredients = filterValues.ingredients.length === 0 || 
-                               filterValues.ingredients.some(ing => d.ingredientes?.includes(ing));
+                               filterValues.ingredients.some(ing => {
+                                 if (!d.ingredientes) return false;
+                                 return d.ingredientes.some((i: any) => (typeof i === 'string' ? i : i.nome) === ing);
+                               });
     
     const matchesCost = (d.custoMS || 0) <= filterValues.maxCostMS;
     const matchesMS = (d.percMS || 0) >= filterValues.minMS;
@@ -248,10 +251,10 @@ export const NutritionManagement: React.FC = () => {
     {
       header: 'Composição',
       accessor: (item: any) => (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '200px', justifyContent: 'center' }}>
-          {item.ingredientes?.slice(0, 3).map((ing: string) => (
-            <span key={ing} style={{ padding: '2px 6px', backgroundColor: '#f1f5f9', color: '#475569', borderRadius: '4px', fontSize: '9px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.05em' }}>
-              {ing}
+        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', maxWidth: '200px', justifyContent: 'center' }}>
+          {item.ingredientes?.slice(0, 3).map((ing: any, i: number) => (
+            <span key={i} style={{ background: '#f1f5f9', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase' }}>
+              {typeof ing === 'string' ? ing : ing.nome}
             </span>
           ))}
           {item.ingredientes?.length > 3 && <span style={{ fontSize: '9px', fontWeight: 700, color: '#94a3b8' }}>+{item.ingredientes.length - 3}</span>}

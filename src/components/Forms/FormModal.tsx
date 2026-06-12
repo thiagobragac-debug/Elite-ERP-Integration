@@ -173,7 +173,7 @@ export const FormModal: React.FC<FormModalProps> = ({
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="tauze-modal-overlay" onClick={onClose}>
+    <div className="tauze-modal-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <style>{`
         .tauze-form-highlighted {
           border: 1.5px solid #f59e0b !important;

@@ -6,6 +6,8 @@ import { Truck, Scale, Beef, Plus, Trash2, Search, FileText, MapPin, User, Calen
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../lib/supabase';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -1086,7 +1088,7 @@ export const RomaneioEmbarqueModal: React.FC<RomaneioEmbarqueModalProps> = ({
                     <label className="tauze-label">
                       <Calendar size={14} /> Data do Embarque
                     </label>
-                    <input
+                    <DateInput
                       className="tauze-input"
                       type="date"
                       value={formData.data_embarque}

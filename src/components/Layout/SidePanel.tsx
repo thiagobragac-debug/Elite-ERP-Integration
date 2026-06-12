@@ -77,7 +77,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidepanel-overlay" onClick={onClose} style={{
+    <div className="tauze-sidepanel-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{
       position: 'fixed',
       top: 0,
       left: 0,

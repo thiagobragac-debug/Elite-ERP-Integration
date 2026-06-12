@@ -145,7 +145,8 @@ export const AnimalManagement: React.FC = () => {
       pai_brinco: formData.pai_brinco,
       valor_compra: parseFloat(formData.valor_compra) || 0,
       categoria: formData.categoria,
-      finalidade: formData.finalidade
+      finalidade: formData.finalidade,
+      brinco_eletronico: formData.brinco_eletronico || null
     };
 
     saveAnimalMutation.mutate(payload);

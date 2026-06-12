@@ -1,7 +1,9 @@
-Ôªøimport React from 'react';
+import React from 'react';
 import { X, Filter, Check, BarChart2, TrendingDown, Building2, Clock, DollarSign, Calendar, Zap, Target } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface QuotationFilterModalProps {
   isOpen: boolean;
@@ -20,7 +22,7 @@ export const QuotationFilterModal: React.FC<QuotationFilterModalProps> = ({
 
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
-    { id: 'analyzing', label: 'Em An√°lise', icon: BarChart2 },
+    { id: 'analyzing', label: 'Em An·lise', icon: BarChart2 },
     { id: 'closed', label: 'Contratados', icon: Check }
   ];
 
@@ -35,7 +37,7 @@ export const QuotationFilterModal: React.FC<QuotationFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -50,8 +52,8 @@ export const QuotationFilterModal: React.FC<QuotationFilterModalProps> = ({
               <Target size={20} />
             </div>
             <div>
-              <h3>Filtros de Cota√ß√£o</h3>
-              <p>An√°lise de saving e competitividade.</p>
+              <h3>Filtros de CotaÁ„o</h3>
+              <p>An·lise de saving e competitividade.</p>
             </div>
           </div>
           <button 
@@ -93,7 +95,7 @@ export const QuotationFilterModal: React.FC<QuotationFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Saving M√≠nimo Desejado (%) <TrendingDown size={14} /></label>
+            <label className="tauze-filter-label">Saving MÌnimo Desejado (%) <TrendingDown size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.minSaving}%</span>
@@ -112,7 +114,7 @@ export const QuotationFilterModal: React.FC<QuotationFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">M√≠nimo de Propostas <Building2 size={14} /></label>
+            <label className="tauze-filter-label">MÌnimo de Propostas <Building2 size={14} /></label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {[1, 2, 3, 5].map(n => (
                 <button 
@@ -138,15 +140,15 @@ export const QuotationFilterModal: React.FC<QuotationFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Per√≠odo de Abertura <Calendar size={14} /></label>
+            <label className="tauze-filter-label">PerÌodo de Abertura <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

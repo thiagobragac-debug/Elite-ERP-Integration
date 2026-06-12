@@ -1,7 +1,9 @@
-Ôªøimport React from 'react';
+import React from 'react';
 import { X, Filter, Check, FileText, ShieldCheck, DollarSign, Calendar, Activity, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface OutputInvoiceFilterModalProps {
   isOpen: boolean;
@@ -36,7 +38,7 @@ export const OutputInvoiceFilterModal: React.FC<OutputInvoiceFilterModalProps> =
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -51,7 +53,7 @@ export const OutputInvoiceFilterModal: React.FC<OutputInvoiceFilterModalProps> =
               <FileText size={20} />
             </div>
             <div>
-              <h3>Filtros Fiscais (Sa√≠da)</h3>
+              <h3>Filtros Fiscais (SaÌda)</h3>
               <p>Auditoria de faturamento e impostos.</p>
             </div>
           </div>
@@ -113,7 +115,7 @@ export const OutputInvoiceFilterModal: React.FC<OutputInvoiceFilterModalProps> =
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Concilia√ß√£o Financeira <Activity size={14} /></label>
+            <label className="tauze-filter-label">ConciliaÁ„o Financeira <Activity size={14} /></label>
             <button 
               className={`tauze-tag-chip ${filters.onlyConciliated ? 'active' : ''}`}
               onClick={() => setFilters({ ...filters, onlyConciliated: !filters.onlyConciliated })}
@@ -130,15 +132,15 @@ export const OutputInvoiceFilterModal: React.FC<OutputInvoiceFilterModalProps> =
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Per√≠odo de Emiss√£o <Calendar size={14} /></label>
+            <label className="tauze-filter-label">PerÌodo de Emiss„o <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}

@@ -22,6 +22,8 @@ import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface MachineFormProps {
   isOpen: boolean;
@@ -578,7 +580,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({isOpen, onClose, onSubm
 
               <div className="tauze-field-group">
                 <label className="tauze-label"><Calendar size={14} /> Data Próx. Revisão</label>
-                <input 
+                <DateInput 
                   className="tauze-input"
                   type="date" 
                   value={formData.data_proxima_revisao}

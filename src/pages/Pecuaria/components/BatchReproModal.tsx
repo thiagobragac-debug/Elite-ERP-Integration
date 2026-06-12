@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface BatchReproModalProps {
   isOpen: boolean;
@@ -209,7 +211,7 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
 
                 <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
                   <label className="tauze-label"><Calendar size={14} /> Data do Evento</label>
-                  <input type="date" className="tauze-input" value={eventDate} onChange={e => setEventDate(e.target.value)} />
+                  <DateInput type="date" className="tauze-input" value={eventDate} onChange={e => setEventDate(e.target.value)} />
                 </div>
 
                 {/* Mutantes IATF */}

@@ -1,7 +1,9 @@
-ï»¿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, ShieldCheck, AlertCircle, Calendar, FlaskConical, Clock, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface HealthFilterModalProps {
   isOpen: boolean;
@@ -20,7 +22,7 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
 
   const typeOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
-    { id: 'VACINA', label: 'VacinaÃ§Ã£o', icon: ShieldCheck },
+    { id: 'VACINA', label: 'Vacinação', icon: ShieldCheck },
     { id: 'CURATIVO', label: 'Curativo', icon: Activity },
     { id: 'PROTOCOLO', label: 'Protocolo', icon: FlaskConical },
     { id: 'OUTROS', label: 'Outros', icon: Clock }
@@ -38,7 +40,7 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -53,8 +55,8 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
               <ShieldCheck size={20} />
             </div>
             <div>
-              <h3>Filtros SanitÃ¡rios</h3>
-              <p>Rastreabilidade e controle de carÃªncia.</p>
+              <h3>Filtros Sanitários</h3>
+              <p>Rastreabilidade e controle de carência.</p>
             </div>
           </div>
           <button 
@@ -96,7 +98,7 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Status de ExecuÃ§Ã£o <Activity size={14} /></label>
+            <label className="tauze-filter-label">Status de Execução <Activity size={14} /></label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {['all', 'PENDENTE', 'REALIZADO'].map(status => (
                 <button 
@@ -131,19 +133,19 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
                 style={{ width: '20px', height: '20px', accentColor: '#ef4444' }}
               />
             </div>
-            <p style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>Filtra animais em perÃ­odo de carÃªncia ativa que nÃ£o podem ser destinados ao abate ou venda.</p>
+            <p style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 600 }}>Filtra animais em período de carência ativa que não podem ser destinados ao abate ou venda.</p>
           </div>
 
           <div className="tauze-filter-section">
             <label className="tauze-filter-label">Intervalo de Manejo <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateStart}
                 onChange={e => setFilters({ ...filters, dateStart: e.target.value })}
               />
-              <input 
+              <DateInput 
                 type="date" 
                 className="tauze-input" 
                 value={filters.dateEnd}
@@ -153,11 +155,11 @@ export const HealthFilterModal: React.FC<HealthFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">DuraÃ§Ã£o da CarÃªncia (Dias) <Clock size={14} /></label>
+            <label className="tauze-filter-label">Duração da Carência (Dias) <Clock size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.minCarencia} d</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>MÃ­nimo Esperado</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Mínimo Esperado</span>
               </div>
               <input 
                 type="range" 

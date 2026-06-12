@@ -32,6 +32,8 @@ import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface QuoteData {
   date: string;
@@ -358,14 +360,14 @@ export const MarketAdvancedAnalytics: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Período Customizado (De / Até)</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <input 
+                  <DateInput 
                     type="date" 
                     className="market-select-tauze" 
                     value={startDate} 
                     onChange={e => setStartDate(e.target.value)}
                     style={{ height: '42px', padding: '0 12px' }}
                   />
-                  <input 
+                  <DateInput 
                     type="date" 
                     className="market-select-tauze" 
                     value={endDate} 

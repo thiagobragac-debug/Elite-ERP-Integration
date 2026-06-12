@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -21,6 +21,7 @@ import { SidePanel } from '../Layout/SidePanel';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from './SearchableSelect';
+import { ConsumptionCart } from './ConsumptionCart';
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -41,9 +42,10 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose
     custo_mao_obra: '0',
     responsavel: '',
     status: 'open',
-    meter_value: '',
-    materiais: [] as any[] // itemized materials from inventory
+    meter_value: ''
   });
+
+  const [items, setItems] = useState<any[]>([]);
 
   const [machines, setMachines] = useState<any[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
@@ -68,9 +70,11 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose
         custo_mao_obra: initialData.custo_mao_obra?.toString() || '0',
         responsavel: initialData.responsavel || '',
         status: initialData.status || 'open',
-        meter_value: initialData.valor_medidor?.toString() || '',
-        materiais: initialData.materiais || []
+        meter_value: initialData.valor_medidor?.toString() || ''
       });
+      if (initialData.materiais) {
+        setItems(initialData.materiais);
+      }
     } else {
       setFormData({
         maquina_id: '',
@@ -81,9 +85,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose
         custo_mao_obra: '0',
         responsavel: '',
         status: 'open',
-        meter_value: '',
-        materiais: []
+        meter_value: ''
       });
+      setItems([]);
     }
   }, [initialData, isOpen, actionId]);
 
@@ -106,16 +110,13 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose
     total += parseFloat(formData.custo_pecas || '0');
     total += parseFloat(formData.custo_mao_obra || '0');
     
-    formData.materiais.forEach(mat => {
-      if (mat.id && mat.qtd) {
-        const item = inventory.find(inv => String(inv.id) === String(mat.id));
-        if (item && item.preco_venda) {
-          total += parseFloat(mat.qtd) * parseFloat(item.preco_venda);
-        }
-      }
+    items.forEach(mat => {
+      const qty = parseFloat(mat.quantidade) || 0;
+      const unitPrice = parseFloat(mat.valor_unitario) || 0;
+      total += qty * unitPrice;
     });
     return total;
-  }, [formData.custo_pecas, formData.custo_mao_obra, formData.materiais, inventory]);
+  }, [formData.custo_pecas, formData.custo_mao_obra, items]);
 
   useEffect(() => {
     if (isOpen && activeFarm) {
@@ -153,7 +154,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, items });
     } finally {
       setLoading(false);
     }
@@ -302,55 +303,13 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({isOpen, onClose
         </div>
         
         {openSections.materials && (
-        <div className="tauze-input-grid grid-col-1" style={{ marginTop: '16px' }}>
-          <div className="tauze-field-group">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'hsl(var(--bg-main)/0.5)', padding: '16px', borderRadius: '16px', border: '1px solid hsl(var(--border))' }}>
-              {formData.materiais.map((mat, i) => (
-                <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <SearchableSelect 
-                    value={mat.id}
-                    onChange={(val: any) => {
-                      const newMats = [...formData.materiais];
-                      newMats[i].id = val;
-                      setFormData({...formData, materiais: newMats});
-                    }}
-                    options={[
-                      { value: '', label: 'Selecione a peça...' },
-                      ...(inventory || []).map(p => ({ value: String(p.id), label: String(p.nome) })),
-                    ]}
-                  />
-                  <input 
-                    className="tauze-input"
-                    type="number" 
-                    placeholder="Qtd" 
-                    style={{ flex: 1, height: '40px' }}
-                    value={mat.qtd}
-                    onChange={(e) => {
-                      const newMats = [...formData.materiais];
-                      newMats[i].qtd = e.target.value;
-                      setFormData({...formData, materiais: newMats});
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    className="action-dot delete"
-                    onClick={() => setFormData({...formData, materiais: formData.materiais.filter((_, idx) => idx !== i)})}
-                  >
-                    <Plus size={14} style={{ transform: 'rotate(45deg)' }} />
-                  </button>
-                </div>
-              ))}
-              <button 
-                type="button" 
-                className="text-btn" 
-                style={{ alignSelf: 'flex-start', fontSize: '11px', marginTop: formData.materiais.length > 0 ? '8px' : '0' }}
-                onClick={() => setFormData({...formData, materiais: [...formData.materiais, { id: '', qtd: 1 }]})}
-              >
-                + ADICIONAR ITEM DO ESTOQUE
-              </button>
-            </div>
+          <div style={{ marginTop: '16px' }}>
+            <ConsumptionCart 
+              items={items}
+              onChange={setItems}
+              mode="consumption"
+            />
           </div>
-        </div>
         )}
       </section>
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
 import { 
@@ -20,6 +20,8 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { SearchableSelect } from './SearchableSelect';
+import { ConsumptionCart } from './ConsumptionCart';
+import { DateInput } from '../../components/Form/DateInput';
 
 interface AuditFormProps {
   isOpen: boolean;
@@ -47,6 +49,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
     contagem_cega: false
   });
 
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -98,7 +101,7 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(formData);
+      await onSubmit({ ...formData, items });
     } finally {
       setLoading(false);
     }
@@ -275,6 +278,23 @@ export const AuditForm: React.FC<AuditFormProps> = ({isOpen, onClose, onSubmit, 
           </div>
         </div>
       </section>
+
+      <section className="tauze-form-section">
+        <div className="tauze-section-header">
+          <div className="tauze-section-badge">PASSO 04</div>
+          <h4 className="tauze-section-title">Itens do Inventário (Ajuste Manual)</h4>
+        </div>
+        <p style={{ fontSize: '12px', color: 'hsl(var(--text-muted))', marginBottom: '16px' }}>
+          Se você quiser lançar os ajustes de quantidade diretamente na abertura da auditoria, adicione-os abaixo. Se a quantidade adicionada for diferente do saldo do sistema, será tratado como divergência.
+        </p>
+        <ConsumptionCart 
+          items={items}
+          onChange={setItems}
+          mode="consumption"
+          hideDeposit={true}
+        />
+      </section>
+
     </SidePanel>
   );
 };

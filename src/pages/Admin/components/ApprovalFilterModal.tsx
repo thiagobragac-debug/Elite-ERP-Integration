@@ -2,6 +2,8 @@ import React from 'react';
 import { X, Filter, Check, ShoppingCart, DollarSign, FileText, Calendar, Activity, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
+import { DateInput } from '../../../components/Form/DateInput';
+
 
 interface ApprovalFilters {
   status: string;
@@ -43,7 +45,7 @@ export const ApprovalFilterModal: React.FC<ApprovalFilterModalProps> = ({
   const isPendencies = activeTab === 'pendencies';
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
@@ -151,7 +153,7 @@ export const ApprovalFilterModal: React.FC<ApprovalFilterModalProps> = ({
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Data Inicial</span>
-                    <input 
+                    <DateInput 
                       type="date" 
                       className="tauze-input" 
                       value={filters.dateStart}
@@ -160,7 +162,7 @@ export const ApprovalFilterModal: React.FC<ApprovalFilterModalProps> = ({
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <span style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Data Final</span>
-                    <input 
+                    <DateInput 
                       type="date" 
                       className="tauze-input" 
                       value={filters.dateEnd}

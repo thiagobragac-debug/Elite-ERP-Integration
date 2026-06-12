@@ -34,6 +34,8 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { InsumoEntryTable, type InsumoItem } from './InsumoEntryTable';
 import { SearchableSelect } from './SearchableSelect';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 interface OutputInvoiceFormProps {
   isOpen: boolean;
@@ -486,7 +488,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data de Emissão</label>
-            <input 
+            <DateInput 
               className="tauze-input"
               type="date" 
               value={formData.date}
@@ -874,7 +876,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
                 {installmentsList.map((inst, index) => (
                   <div key={inst.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'hsl(var(--bg-card))', padding: '8px', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}>
                     <span style={{ fontSize: '11px', fontWeight: '800', color: 'hsl(var(--success))', width: '30px' }}>{index + 1}ª</span>
-                    <input 
+                    <DateInput 
                       type="date" 
                       className="tauze-input" 
                       style={{ height: '32px', padding: '0 8px', fontSize: '12px', flex: 1 }}

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import {
   UserPlus,
@@ -26,6 +26,8 @@ import { logAudit } from '../../utils/audit';
 import toast from 'react-hot-toast';
 import { SearchableSelect } from './SearchableSelect';
 import { Save } from 'lucide-react';
+import { DateInput } from '../../components/Form/DateInput';
+
 
 type AssignMode = 'lote' | 'pasto';
 
@@ -234,7 +236,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
 
   const fetchDestinations = async () => {
     const fields = isLoteMode
-      ? 'id, nome, capacidade, descricao, sexo_permitido, pastos(nome)'
+      ? 'id, nome, capacidade, descricao, sexo_permitido, exige_rastreabilidade, pastos(nome)'
       : 'id, nome, area, capacidade_ua, status';
     const baseQuery = supabase.from(tableName).select(fields).order('nome');
     const filtered = applyFarmFilter(baseQuery);
@@ -293,7 +295,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
     try {
       const baseQuery = supabase
         .from('animais')
-        .select('id, brinco, raca, categoria, sexo, peso_atual, data_nascimento, fazenda_id')
+        .select('id, brinco, brinco_eletronico, raca, categoria, sexo, peso_atual, data_nascimento, fazenda_id')
         .in('status', ['ATIVO', 'Ativo', 'ativo']);
 
       const { data, error } = isLoteMode
@@ -309,11 +311,15 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
     }
   };
 
-  const toggleAnimal = (id: string, animalSexo?: string) => {
+  const toggleAnimal = (id: string, animalSexo?: string, hasRFID?: boolean) => {
     if (isLoteMode) {
       const targetLot = destinations.find(d => d.id === selectedDestination);
       if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animalSexo && animalSexo !== targetLot.sexo_permitido) {
         toast.error(`O lote selecionado permite apenas ${targetLot.sexo_permitido}S.`);
+        return;
+      }
+      if (targetLot?.exige_rastreabilidade && !hasRFID) {
+        toast.error(`Este lote exige que o animal tenha um Brinco Eletrônico cadastrado.`);
         return;
       }
     }
@@ -351,17 +357,33 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
     let allowedFiltered = filteredAnimals;
     if (isLoteMode && selectedDestination) {
       const targetLot = destinations.find(d => d.id === selectedDestination);
-      if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
-        allowedFiltered = filteredAnimals.filter(a => !a.sexo || a.sexo === targetLot.sexo_permitido);
+      let blockedCount = 0;
+      
+      allowedFiltered = filteredAnimals.filter(a => {
+        let isAllowed = true;
+        if (targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO') {
+          if (a.sexo && a.sexo !== targetLot.sexo_permitido) isAllowed = false;
+        }
+        if (targetLot?.exige_rastreabilidade && !a.brinco_eletronico) {
+          isAllowed = false;
+        }
+        if (!isAllowed) blockedCount++;
+        return isAllowed;
+      });
+      
+      if (selectedAnimals.length === allowedFiltered.length && allowedFiltered.length > 0) {
+        setSelectedAnimals([]);
+      } else {
+        setSelectedAnimals(allowedFiltered.map(a => a.id));
+        if (blockedCount > 0) {
+          toast.error(`${blockedCount} animais ignorados por restrições do lote (sexo ou falta de RFID).`);
+        }
       }
-    }
-    
-    if (selectedAnimals.length === allowedFiltered.length && allowedFiltered.length > 0) {
-      setSelectedAnimals([]);
     } else {
-      setSelectedAnimals(allowedFiltered.map(a => a.id));
-      if (allowedFiltered.length < filteredAnimals.length) {
-        toast.error(`${filteredAnimals.length - allowedFiltered.length} animais ignorados por incompatibilidade de sexo com o lote.`);
+      if (selectedAnimals.length === allowedFiltered.length && allowedFiltered.length > 0) {
+        setSelectedAnimals([]);
+      } else {
+        setSelectedAnimals(allowedFiltered.map(a => a.id));
       }
     }
   };
@@ -431,7 +453,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
     }
   };
 
-  // â€” Confirmation overlay (portal â†’ covers entire screen) â€”
+  // — Confirmation overlay (portal → covers entire screen) —
   const confirmOverlay = showConfirm ? ReactDOM.createPortal(
     (() => {
       const selAnimals = unassignedAnimals.filter(a => selectedAnimals.includes(a.id));
@@ -554,12 +576,17 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
                 <div style={{ marginTop: '8px' }}>
                   {isLoteMode && dest.pastos?.nome && (
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'hsl(var(--brand)/0.1)', color: 'hsl(var(--brand))', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px' }}>
-                      ðŸ“ Indo para: {dest.pastos.nome}
+                      📍 Indo para: {dest.pastos.nome}
                     </div>
                   )}
                   {isLoteMode && dest.sexo_permitido && dest.sexo_permitido !== 'MISTO' && (
                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#eff6ff', color: '#3b82f6', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px', marginLeft: '6px' }}>
                         Restrito: {dest.sexo_permitido}S
+                     </div>
+                  )}
+                  {isLoteMode && dest.exige_rastreabilidade && (
+                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 700, marginBottom: '6px', marginLeft: '6px' }}>
+                        Exige RFID
                      </div>
                   )}
                   {!isLoteMode && (dest.status === 'resting' || dest.status === 'renovation') && (
@@ -576,7 +603,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
             <label className="tauze-label">
               <Calendar size={14} /> Data da Movimentação
             </label>
-            <input type="date" className="tauze-input" value={movDate} onChange={e => setMovDate(e.target.value)} required max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]} />
+            <DateInput type="date" className="tauze-input" value={movDate} onChange={e => setMovDate(e.target.value)} required max={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]} />
           </div>
 
           <div className="tauze-field-group">
@@ -602,7 +629,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
           <h4 className="tauze-section-title">Seleção de Animais</h4>
         </div>
         <div className="tauze-field-group full-width">
-        {/* Header â€” always visible */}
+        {/* Header — always visible */}
         <div className="tauze-selection-header">
           <label>
             <Users size={14} /> Animais Sem {entityLabel}
@@ -620,7 +647,7 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
               style={{ opacity: unassignedAnimals.length === 0 ? 0.35 : 1 }}
             >
               <Filter size={12} style={{ display: 'inline', marginRight: '3px' }} />
-              FILTROS{(filterSexo || filterCategoria) ? ' â—' : ''}
+              FILTROS{(filterSexo || filterCategoria) ? ' ● ' : ''}
             </button>
             <button
               type="button" className="text-btn-sm"
@@ -692,26 +719,31 @@ export const AssignAnimalForm: React.FC<AssignAnimalFormProps> = ({isOpen, onClo
               ) : (
                 <div className="picker-list-adv">
                   {filteredAnimals.map(animal => {
-                    const isBlocked = isLoteMode && destinations.find(d => d.id === selectedDestination)?.sexo_permitido && destinations.find(d => d.id === selectedDestination)?.sexo_permitido !== 'MISTO' && animal.sexo && animal.sexo !== destinations.find(d => d.id === selectedDestination)?.sexo_permitido;
+                    const targetLot = destinations.find(d => d.id === selectedDestination);
+                    const isSexBlocked = isLoteMode && targetLot?.sexo_permitido && targetLot.sexo_permitido !== 'MISTO' && animal.sexo && animal.sexo !== targetLot.sexo_permitido;
+                    const isRFIDBlocked = isLoteMode && targetLot?.exige_rastreabilidade && !animal.brinco_eletronico;
+                    const isBlocked = isSexBlocked || isRFIDBlocked;
                     return (
                       <div
                         key={animal.id}
                         className={`picker-list-item ${selectedAnimals.includes(animal.id) ? 'active' : ''}`}
-                        onClick={() => !isBlocked && toggleAnimal(animal.id, animal.sexo)}
+                        onClick={() => !isBlocked && toggleAnimal(animal.id, animal.sexo, !!animal.brinco_eletronico)}
                         style={isBlocked ? { opacity: 0.6, cursor: 'not-allowed', background: 'hsl(var(--danger)/0.05)', borderColor: 'hsl(var(--danger)/0.2)' } : {}}
+                        title={isSexBlocked ? `Lote permite apenas ${targetLot?.sexo_permitido}S` : isRFIDBlocked ? 'Lote exige brinco eletrônico (SISBOV)' : ''}
                       >
                         <div className="p-check-adv" style={{ marginTop: 0 }}>
                           {selectedAnimals.includes(animal.id) ? <CheckCircle2 size={18} /> : <div className="p-check-empty" style={{ width: '18px', height: '18px' }} />}
                         </div>
                         <div className="p-info-row">
                           <span className="p-brinco-adv" style={{ minWidth: '70px', fontSize: '13px' }}>#{animal.brinco}</span>
-                          <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>{animal.raca || 'â€”'}</span>
+                          <span className="p-raca-adv" style={{ minWidth: '90px', fontSize: '11px' }}>{animal.raca || '—'}</span>
+                          {animal.brinco_eletronico && <span className="p-tag" style={{ background: '#ecfdf5', color: '#10b981' }}>RFID</span>}
                           {animal.categoria && <span className="p-tag">{animal.categoria}</span>}
                           {animal.sexo && <span className="p-tag" style={{ background: animal.sexo === 'MACHO' ? '#eff6ff' : '#fdf2f8', color: animal.sexo === 'MACHO' ? '#3b82f6' : '#ec4899' }}>{animal.sexo === 'MACHO' ? 'M' : 'F'}</span>}
                         </div>
                         <div className="p-stats-row">
                           {animal.peso_atual && <span><Weight size={12} /> {animal.peso_atual}kg</span>}
-                          {animal.data_nascimento && <span style={{ minWidth: '70px' }}>ðŸŽ‚ {calcAge(animal.data_nascimento)}</span>}
+                          {animal.data_nascimento && <span style={{ minWidth: '70px' }}>🎂 {calcAge(animal.data_nascimento)}</span>}
                         </div>
                       </div>
                   )})}

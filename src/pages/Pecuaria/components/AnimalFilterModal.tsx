@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, Filter, Check, Tag, Scale, Activity, Beef } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -40,7 +40,7 @@ export const AnimalFilterModal: React.FC<AnimalFilterModalProps> = ({
   };
 
   return createPortal(
-    <div className="tauze-sidebar-overlay" onClick={onClose}>
+    <div className="tauze-sidebar-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <motion.div 
         initial={{ x: '100%' }}
         animate={{ x: 0 }}

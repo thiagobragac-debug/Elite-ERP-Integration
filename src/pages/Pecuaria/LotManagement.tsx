@@ -275,7 +275,17 @@ export const LotManagement: React.FC = () => {
       gmd_alvo: parseFloat(data.gmd_alvo) || 0,
       peso_alvo: parseFloat(data.peso_alvo) || 0,
       fazenda_id: data.fazenda_id || null,
-      cor: data.cor || '#6366f1'
+      cor: data.cor || '#6366f1',
+      dias_ciclo: parseInt(data.dias_ciclo) || null,
+      peso_entrada: parseFloat(data.peso_entrada) || null,
+      pasto_id: data.pasto_id || null,
+      sexo_permitido: data.sexo_permitido || 'MISTO',
+      regime_alimentar: data.regime_alimentar || null,
+      custo_diario: parseFloat(data.custo_diario) || null,
+      programa_bonificacao: data.programa_bonificacao || null,
+      meta_rendimento_carcaca: parseFloat(data.meta_rendimento_carcaca) || null,
+      peso_carcaca_alvo: parseFloat(data.peso_carcaca_alvo) || null,
+      exige_rastreabilidade: data.exige_rastreabilidade || false
     };
 
     if (selectedLot) {

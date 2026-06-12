@@ -22,6 +22,19 @@ import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
+import { DateInput } from '../../components/Form/DateInput';
+
+const formatRFID = (value: string) => {
+  if (!value) return '';
+  const digits = value.replace(/\D/g, '');
+  const limited = digits.slice(0, 15);
+  let formatted = '';
+  if (limited.length > 0) formatted += limited.substring(0, 3);
+  if (limited.length > 3) formatted += ' ' + limited.substring(3, 7);
+  if (limited.length > 7) formatted += ' ' + limited.substring(7, 11);
+  if (limited.length > 11) formatted += ' ' + limited.substring(11, 15);
+  return formatted;
+};
 
 interface AnimalFormProps {
   isOpen: boolean;
@@ -35,7 +48,7 @@ interface AnimalFormProps {
 export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmit, initialData, loading: externalLoading, actionId }) => {
   const [formData, setFormData] = usePersistentState('AnimalForm_formData', {
     brinco: '',
-    brinco_eletronico: '',
+    brinco_eletronico: '076',
     raca: '',
     sexo: 'M',
     data_nascimento: '',
@@ -78,7 +91,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     if (initialData) {
       setFormData({
         brinco: initialData.brinco || '',
-        brinco_eletronico: initialData.brinco_eletronico || '',
+        brinco_eletronico: initialData.brinco_eletronico ? formatRFID(initialData.brinco_eletronico) : '076',
         raca: initialData.raca || '',
         sexo: initialData.sexo || 'M',
         data_nascimento: initialData.data_nascimento || '',
@@ -99,7 +112,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     } else {
       setFormData({
         brinco: '',
-        brinco_eletronico: '',
+        brinco_eletronico: '076',
         raca: '',
         sexo: 'M',
         data_nascimento: '',
@@ -337,13 +350,53 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
 
           <div className="tauze-field-group">
             <label className="tauze-label"><CircleDot size={14} /> Brinco Eletrônico (RFID)</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="Ex: 076 0000 1234 5678" 
-              value={formData.brinco_eletronico}
-              onChange={(e) => setFormData({...formData, brinco_eletronico: e.target.value})}
-            />
+            <div className="tauze-input" style={{ display: 'flex', alignItems: 'center', padding: '0 14px', position: 'relative' }}>
+              {formData.brinco_eletronico.length <= 3 && (
+                <span style={{ 
+                  color: formData.brinco_eletronico.length > 0 ? 'inherit' : 'hsl(var(--text-muted))',
+                  opacity: formData.brinco_eletronico.length > 0 ? 1 : 0.6,
+                  marginRight: '4px',
+                  transition: 'all 0.2s'
+                }}>Ex:</span>
+              )}
+              <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                <input 
+                  type="text" 
+                  value={formData.brinco_eletronico}
+                  onChange={(e) => setFormData({...formData, brinco_eletronico: formatRFID(e.target.value)})}
+                  style={{ 
+                    background: 'transparent', 
+                    border: 'none', 
+                    outline: 'none', 
+                    width: '100%', 
+                    position: 'relative', 
+                    zIndex: 2, 
+                    color: 'inherit', 
+                    padding: '9px 0', 
+                    fontSize: 'inherit', 
+                    fontFamily: 'inherit',
+                    fontWeight: 'inherit'
+                  }}
+                />
+                <div 
+                  style={{ 
+                    position: 'absolute', 
+                    top: 0, left: 0, right: 0, bottom: 0, 
+                    zIndex: 1, 
+                    color: 'hsl(var(--text-muted))', 
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    whiteSpace: 'pre',
+                    opacity: 0.6,
+                    fontWeight: 'inherit'
+                  }}
+                >
+                  <span style={{ color: 'transparent' }}>{formData.brinco_eletronico}</span>
+                  <span>{'076 0000 1234 5678'.substring(formData.brinco_eletronico.length)}</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="tauze-field-group" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
@@ -371,7 +424,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Nascimento / Idade</label>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input 
+              <DateInput 
                 className="tauze-input"
                 style={{ flex: '2', minWidth: 0 }}
                 type="date" 
@@ -383,7 +436,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
                 className="tauze-input"
                 style={{ flex: '0.8', minWidth: 0 }}
                 type="number" 
-                placeholder="Idade (meses)" 
+                placeholder="Idade" 
                 title="Idade em Meses"
                 value={formData.idade_meses}
                 onChange={(e) => handleIdadeChange(e.target.value)}
