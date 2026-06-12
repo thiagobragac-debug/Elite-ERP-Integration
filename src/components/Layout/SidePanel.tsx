@@ -13,7 +13,7 @@ interface SidePanelProps {
   submitLabel?: string;
   cancelLabel?: string;
   loading?: boolean;
-  size?: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge' | 'full';
+  size?: 'small' | 'medium' | 'large' | 'xlarge' | 'xxlarge' | 'full' | string;
   iconSubmit?: LucideIcon;
   hideSubmit?: boolean;
   isReadOnly?: boolean;
@@ -67,7 +67,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
 
   if (!isOpen) return null;
 
-  const widthMap = {
+  const widthMap: Record<string, string> = {
     small: '400px',
     medium: '600px',
     large: '800px',
@@ -75,6 +75,8 @@ export const SidePanel: React.FC<SidePanelProps> = ({
     xxlarge: '1200px',
     full: '95vw'
   };
+
+  const actualWidth = widthMap[size] || size;
 
   return createPortal(
     <div className="tauze-sidepanel-overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{
@@ -171,7 +173,7 @@ export const SidePanel: React.FC<SidePanelProps> = ({
       <div 
         ref={panelRef}
         className="tauze-sidepanel-container"
-        style={{ width: widthMap[size] || widthMap.medium, maxWidth: '100vw' }}
+        style={{ width: actualWidth, maxWidth: '100vw' }}
         onClick={e => e.stopPropagation()}
       >
         <div className="tauze-sidepanel-header">

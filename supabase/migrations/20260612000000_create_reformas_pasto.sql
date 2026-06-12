@@ -11,7 +11,7 @@ CHECK (status IN ('resting', 'grazing', 'degraded', 'em_reforma'));
 -- Create reformas_pasto table
 CREATE TABLE IF NOT EXISTS public.reformas_pasto (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES public.tenant_master(id),
+    tenant_id UUID NOT NULL REFERENCES public.tenants(id),
     fazenda_id UUID NOT NULL REFERENCES public.fazendas(id),
     pasto_id UUID NOT NULL REFERENCES public.pastos(id),
     
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS public.reformas_pasto (
 -- Create reforma_etapas table
 CREATE TABLE IF NOT EXISTS public.reforma_etapas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES public.tenant_master(id),
+    tenant_id UUID NOT NULL REFERENCES public.tenants(id),
     reforma_id UUID NOT NULL REFERENCES public.reformas_pasto(id) ON DELETE CASCADE,
     
     tipo_etapa VARCHAR(50) NOT NULL, -- 'correcao', 'preparo', 'plantio', 'controle', 'estabelecimento'
@@ -77,6 +77,15 @@ CREATE POLICY "Tenant isolation for reforma_etapas"
 ON public.reforma_etapas 
 FOR ALL 
 USING (tenant_id = (SELECT auth.jwt() ->> 'user_tenant_id')::uuid);
+
+-- Create updated_at function if it doesn't exist
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Trigger for updated_at
 CREATE TRIGGER set_reformas_pasto_updated_at

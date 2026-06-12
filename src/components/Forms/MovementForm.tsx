@@ -579,8 +579,6 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
                 </span>
               </div>
             </div>
-          </div>
-        )}
       </section>
 
     </SidePanel>

@@ -169,39 +169,39 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
       </div>
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: showHealthFields ? '900px' : '600px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: showHealthFields ? '900px' : (mode === 'formulation' ? '100%' : '600px') }}>
           <thead>
             <tr>
-              <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: mode === 'formulation' ? 'auto' : '250px' }}>Insumo / Produto</th>
+              <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '250px' }}>Insumo / Produto</th>
               {!hideDeposit && (mode === 'consumption' || mode === 'movement') && (
-                <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '200px' }}>{mode === 'movement' && isEntry ? 'Depósito de Destino' : mode === 'movement' ? 'Depósito' : 'Depósito de Saída'}</th>
+                <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '200px' }}>{mode === 'movement' && isEntry ? 'Depósito de Destino' : mode === 'movement' ? 'Depósito' : 'Depósito de Saída'}</th>
               )}
-              <th style={{ textAlign: 'center', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '100px' }}>Qtd</th>
+              <th style={{ textAlign: 'center', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: mode === 'formulation' ? '80px' : '120px' }}>Qtd</th>
               
               {showHealthFields && (
                 <>
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Via</th>
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Local</th>
-                  <th style={{ textAlign: 'center', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '90px' }}>Carência</th>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Via</th>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Local</th>
+                  <th style={{ textAlign: 'center', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '90px' }}>Carência</th>
                 </>
               )}
               
               {mode === 'movement' && (
                 <>
-                  {isEntry && <th style={{ textAlign: 'center', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '100px' }}>V. Unitário</th>}
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Lote</th>
-                  <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Validade</th>
+                  {isEntry && <th style={{ textAlign: 'center', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '100px' }}>V. Unitário</th>}
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Lote</th>
+                  <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '120px' }}>Validade</th>
                 </>
               )}
 
-              {mode !== 'movement' && <th style={{ textAlign: 'right', padding: '12px 16px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '100px' }}>Custo (Est)</th>}
-              <th style={{ borderBottom: '1px solid hsl(var(--border))', width: '50px' }}></th>
+              {mode !== 'movement' && <th style={{ textAlign: 'right', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '100px' }}>Custo (Est)</th>}
+              <th style={{ borderBottom: '1px solid hsl(var(--border))', width: 'auto' }}></th>
             </tr>
           </thead>
           <tbody>
             {items.map(item => (
               <tr key={item.id}>
-                <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                   <SearchableSelect
                     value={item.produto_id}
                     onChange={(val: any) => handleSelectProduct(item.id, val)}
@@ -211,7 +211,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                   />
                 </td>
                 {!hideDeposit && (mode === 'consumption' || mode === 'movement') && (
-                  <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                  <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                     <SearchableSelect
                       value={item.deposito_id}
                       onChange={(val: any) => handleUpdateItem(item.id, { deposito_id: val })}
@@ -221,7 +221,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                     />
                   </td>
                 )}
-                <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input 
                       type="number"
@@ -240,7 +240,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                 
                 {showHealthFields && (
                   <>
-                    <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                       <select 
                         className="tauze-input" 
                         style={{ height: '36px' }}
@@ -254,7 +254,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                         <option value="TOPICO">Tópico/Pour-on</option>
                       </select>
                     </td>
-                    <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                       <input 
                         type="text"
                         className="tauze-input"
@@ -264,7 +264,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                         placeholder="Ex: Tábua pescoço"
                       />
                     </td>
-                    <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                        <input 
                         type="number"
                         className="tauze-input"
@@ -280,7 +280,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                 {mode === 'movement' && (
                   <>
                     {isEntry && (
-                      <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                      <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                           <span style={{ position: 'absolute', left: '8px', fontSize: '10px', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }}>R$</span>
                           <input 
@@ -295,7 +295,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                         </div>
                       </td>
                     )}
-                    <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                       <input 
                         type="text"
                         className="tauze-input"
@@ -305,7 +305,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                         placeholder="Ex: L123"
                       />
                     </td>
-                    <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                    <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
                        <input 
                         type="date"
                         className="tauze-input"
@@ -318,11 +318,11 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                 )}
 
                 {mode !== 'movement' && (
-                  <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)', textAlign: 'right', fontWeight: 700, fontSize: '12px', color: 'hsl(var(--text-main))' }}>
+                  <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)', textAlign: 'right', fontWeight: 700, fontSize: '12px', color: 'hsl(var(--text-main))' }}>
                     {((item.custo_medio || 0) * (item.quantidade || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </td>
                 )}
-                <td style={{ padding: '10px 16px', borderBottom: '1px solid hsl(var(--border) / 0.5)', textAlign: 'center' }}>
+                <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)', textAlign: 'center' }}>
                   <button 
                     type="button" 
                     onClick={() => handleRemoveItem(item.id)}
@@ -359,3 +359,4 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
     </div>
   );
 };
+

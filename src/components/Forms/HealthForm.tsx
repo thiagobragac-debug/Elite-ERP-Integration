@@ -18,7 +18,8 @@ import {
   UserCheck,
   X,
   Plus,
-  Trash2
+  Trash2,
+  ChevronRight
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
@@ -38,7 +39,7 @@ interface HealthFormProps {
 
 export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [activeEtapa, setActiveEtapa] = useState('contexto');
   const [formData, setFormData] = usePersistentState('HealthForm_formData', {
     tipo: 'vacina',
     titulo: '',
@@ -170,7 +171,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
 
   React.useEffect(() => {
     if (!actionId) return; // Ignore on initial mount / refresh
-    setCurrentStep(1);
+    setActiveEtapa('contexto');
     setAnimalSelected(null);
     setLoteSelected(null);
     setAnimalSearchQuery('');
@@ -355,27 +356,18 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
     l.nome?.toLowerCase().includes(loteSearchQuery.toLowerCase())
   );
 
-  const steps = [
-    { number: 1, label: 'Contexto' },
-    { number: 2, label: 'Aplicação' },
-    { number: 3, label: 'Carência & Alertas' },
+  const ETAPAS_CONFIG = [
+    { id: 'contexto', label: '1. Contexto & Alvos', icon: UserCheck, color: '#3b82f6' },
+    { id: 'aplicacao', label: '2. Fármacos / Procedimento', icon: FlaskConical, color: '#f59e0b' },
+    { id: 'regras', label: '3. Carência & Alertas', icon: AlertCircle, color: '#10b981' },
   ];
 
-  const handleNext = () => {
-    if (currentStep === 1 && !formData.titulo.trim()) return;
-    if (currentStep === 2 && !initialData && formData.tipo !== 'cirurgia' && produtosAplicados.length === 0) {
-      toast.error('⚠️ Adicione pelo menos um fármaco/insumo para prosseguir.');
-      return;
-    }
-    setCurrentStep(prev => Math.min(prev + 1, 3));
-  };
-
-  const handlePrev = () => {
-    setCurrentStep(prev => Math.max(prev - 1, 1));
-  };
+  const isContextoDone = !!formData.titulo.trim() && (!!formData.animal_id || !!formData.lote_id);
+  const isAplicacaoDone = initialData || formData.tipo === 'cirurgia' ? !!formData.produto : produtosAplicados.length > 0;
+  const isRegrasDone = !!formData.status;
 
   return (
-    <SidePanel size="medium"
+    <SidePanel size="large"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -383,91 +375,102 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
       subtitle="Registre vacinas, medicamentos ou tratamentos."
       icon={HeartPulse}
       loading={loading}
-      customFooter={
-        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+      submitLabel={initialData ? "Salvar Alterações" : "Salvar Registro"}
+    >
+      {/* Dashboard Top */}
+      <div style={{ marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: '250px', padding: '16px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            {currentStep > 1 && (
-              <button type="button" className="glass-btn secondary" onClick={handlePrev}>
-                Voltar
-              </button>
-            )}
+            <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '4px' }}>Status Atual</span>
+            <span style={{ fontSize: '18px', fontWeight: 900, color: formData.status === 'REALIZADO' ? '#10b981' : '#f59e0b' }}>
+              {formData.status === 'REALIZADO' ? 'Realizado' : 'Pendente'}
+            </span>
+            <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>Manejo dia {new Date(formData.data_manejo).toLocaleDateString('pt-BR')}</div>
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button type="button" className="glass-btn secondary" onClick={onClose}>
-              Cancelar
-            </button>
-            {currentStep < 3 ? (
-              <button 
-                type="button" 
-                className="primary-btn" 
-                onClick={handleNext}
-                disabled={
-                  (currentStep === 1 && !formData.titulo.trim()) ||
-                  (currentStep === 2 && !initialData && formData.tipo !== 'cirurgia' && produtosAplicados.length === 0)
-                }
-                style={{ 
-                  opacity: (
-                    (currentStep === 1 && !formData.titulo.trim()) ||
-                    (currentStep === 2 && !initialData && formData.tipo !== 'cirurgia' && produtosAplicados.length === 0)
-                  ) ? 0.5 : 1 
-                }}
-              >
-                Avançar
-              </button>
-            ) : (
-              <button 
-                type="submit" 
-                className="primary-btn" 
-                disabled={loading}
-              >
-                {loading ? 'Processando...' : initialData ? "Salvar Alterações" : "Salvar Registro"}
-              </button>
-            )}
+          <div style={{ background: 'hsl(var(--bg-card))', padding: '12px', borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <Activity size={24} style={{ color: 'hsl(var(--text-main))' }} />
           </div>
         </div>
-      }
-    >
-      {/* Wizard Step Progress Indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', padding: '0 4px' }}>
-        {steps.map((s, idx) => (
-          <React.Fragment key={s.number}>
-            <div 
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: s.number < currentStep ? 'pointer' : 'default' }}
-              onClick={() => s.number < currentStep && setCurrentStep(s.number)}
-            >
-              <div style={{
-                width: '26px',
-                height: '26px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '11px',
-                fontWeight: 900,
-                background: currentStep === s.number ? 'hsl(var(--brand))' : currentStep > s.number ? '#10b981' : '#f1f5f9',
-                color: currentStep >= s.number ? 'white' : '#64748b',
-                border: `2px solid ${currentStep === s.number ? 'hsl(var(--brand))' : currentStep > s.number ? '#10b981' : '#cbd5e1'}`,
-                transition: 'all 0.3s'
-              }}>
-                {currentStep > s.number ? '✓' : s.number}
+
+        {/* Alertas Rápidos no Dashboard */}
+        <div style={{ flex: 1, minWidth: '200px', padding: '16px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px' }}>
+          <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Previsões do Protocolo</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {healthStats.bloqueioAbate ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: 'hsl(0 84% 45%)' }}>
+                <ShieldAlert size={14} /> Liberado para Abate: {healthStats.bloqueioAbate}
               </div>
-              <span style={{ fontSize: '12px', fontWeight: currentStep === s.number ? 800 : 600, color: currentStep === s.number ? 'hsl(var(--text-main))' : '#94a3b8' }}>
-                {s.label}
-              </span>
-            </div>
-            {idx < steps.length - 1 && (
-              <div style={{ flex: 1, height: '2px', background: currentStep > s.number ? '#10b981' : '#e2e8f0', margin: '0 12px' }} />
+            ) : (
+              <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Sem carência de abate estipulada.</div>
             )}
-          </React.Fragment>
-        ))}
+            
+            {healthStats.dataReforco ? (
+               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: 'hsl(217 91% 50%)' }}>
+                 <BellRing size={14} /> Revacinar em: {healthStats.dataReforco}
+               </div>
+            ) : null}
+          </div>
+        </div>
       </div>
 
-      {currentStep === 1 && (
-        <section className="tauze-form-section animate-slide-up" style={{ margin: 0 }}>
-          <div className="tauze-section-header">
-            <div className="tauze-section-badge">PASSO 01</div>
-            <h4 className="tauze-section-title">Dados Gerais</h4>
+      <div style={{ display: 'flex', gap: '24px' }}>
+        {/* Left Sidebar - Phase Navigation */}
+        <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {ETAPAS_CONFIG.map((et) => {
+            let isCompleted = false;
+            if (et.id === 'contexto') isCompleted = isContextoDone;
+            if (et.id === 'aplicacao') isCompleted = isAplicacaoDone;
+            if (et.id === 'regras') isCompleted = isRegrasDone;
+
+            const isActive = activeEtapa === et.id;
+            const Icon = et.icon;
+            
+            return (
+              <button
+                key={et.id}
+                type="button"
+                onClick={() => setActiveEtapa(et.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
+                  borderRadius: '12px', border: 'none',
+                  background: isActive ? `${et.color}15` : 'transparent',
+                  color: isActive ? et.color : 'hsl(var(--text-secondary))',
+                  cursor: 'pointer', textAlign: 'left', fontWeight: isActive ? 700 : 500,
+                  transition: 'all 0.2s',
+                  boxShadow: isActive ? `inset 3px 0 0 ${et.color}` : 'none'
+                }}
+              >
+                <div style={{ 
+                  width: '32px', height: '32px', borderRadius: '8px', 
+                  background: isCompleted ? et.color : isActive ? `${et.color}30` : 'hsl(var(--bg-main))',
+                  color: isCompleted ? '#fff' : isActive ? et.color : 'hsl(var(--text-muted))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  {isCompleted ? <UserCheck size={16} /> : <Icon size={16} />}
+                </div>
+                <span style={{ fontSize: '13px', flex: 1 }}>{et.label}</span>
+                {isActive && <ChevronRight size={16} opacity={0.5} />}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Right Content - Form Fields */}
+        <div style={{ flex: 1, background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '16px', padding: '24px' }}>
+          
+          <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid hsl(var(--border))' }}>
+            <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {ETAPAS_CONFIG.find(e => e.id === activeEtapa)?.label}
+            </h3>
+            <p style={{ margin: 0, fontSize: '13px', color: 'hsl(var(--text-muted))' }}>
+              {activeEtapa === 'contexto' && "Defina os dados da operação e os animais/lotes alvo."}
+              {activeEtapa === 'aplicacao' && "Especifique os medicamentos, dosagens e via de aplicação."}
+              {activeEtapa === 'regras' && "Configure a carência de abate, retorno ao leite e revacinação."}
+            </p>
           </div>
+
+          {activeEtapa === 'contexto' && (
+            <div className="animate-slide-up">
           
           <div className="tauze-input-grid grid-col-2">
             <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
@@ -766,15 +769,11 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
               )}
             </div>
           </div>
-        </section>
-      )}
-
-      {currentStep === 2 && (
-        <section className="tauze-form-section animate-slide-up" style={{ margin: 0 }}>
-          <div className="tauze-section-header">
-            <div className="tauze-section-badge">PASSO 02</div>
-            <h4 className="tauze-section-title">Protocolo e Aplicação</h4>
           </div>
+          )}
+
+          {activeEtapa === 'aplicacao' && (
+            <div className="animate-slide-up">
           
           {(initialData || formData.tipo === 'cirurgia') ? (
             <div className="tauze-input-grid grid-col-2">
@@ -895,15 +894,11 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
               />
             </div>
           )}
-        </section>
-      )}
+            </div>
+          )}
 
-      {currentStep === 3 && (
-        <section className="tauze-form-section animate-slide-up" style={{ margin: 0 }}>
-          <div className="tauze-section-header">
-            <div className="tauze-section-badge">PASSO 03</div>
-            <h4 className="tauze-section-title">Carência & Regras de Controle</h4>
-          </div>
+          {activeEtapa === 'regras' && (
+            <div className="animate-slide-up">
           
           <div className="tauze-input-grid grid-col-2">
             {formData.tipo === 'vacina' && (
@@ -978,8 +973,10 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
               </div>
             )}
           </div>
-        </section>
-      )}
+          </div>
+          )}
+        </div>
+      </div>
       <style>{`
         .autocomplete-option:hover {
           background: hsl(var(--brand) / 0.1) !important;

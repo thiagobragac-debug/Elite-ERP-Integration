@@ -1,0 +1,1 @@
+ALTER TABLE public.dietas ADD COLUMN IF NOT EXISTS data_registro date DEFAULT CURRENT_DATE;
