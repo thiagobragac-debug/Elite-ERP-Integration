@@ -240,8 +240,60 @@ export const HealthManagement: React.FC = () => {
         const insertions = Array.isArray(payload)
           ? payload.map(item => ({ ...item, ...insertPayload }))
           : [{ ...payload, ...insertPayload }];
-        const { error } = await supabase.from('sanidade').insert(insertions);
+        const { data: sanidadeData, error } = await supabase.from('sanidade').insert(insertions).select();
         if (error) throw error;
+
+        // Efeito Cascata: Inserir em sanidade_animais para o taxímetro individual
+        if (sanidadeData && sanidadeData.length > 0) {
+          for (const sanidade of sanidadeData) {
+            // Obtem custo medio atual do produto, se houver
+            let custoMedio = 0;
+            if (sanidade.produto_id) {
+              const { data: prod } = await supabase.from('produtos').select('custo_medio').eq('id', sanidade.produto_id).maybeSingle();
+              if (prod) custoMedio = Number(prod.custo_medio || 0);
+            }
+
+            // Descobre animais alvo
+            let animaisAlvo: any[] = [];
+            if (sanidade.animal_id) {
+              animaisAlvo = [{ id: sanidade.animal_id }];
+            } else if (sanidade.lote_id) {
+              const { data: animaisNoLote } = await supabase.from('animais')
+                .select('id')
+                .eq('lote_id', sanidade.lote_id)
+                .eq('status', 'ATIVO');
+              animaisAlvo = animaisNoLote || [];
+            }
+
+            // Descobre se esta em confinamento (apenas para lotes)
+            let fase = 'RECRIA';
+            if (sanidade.lote_id) {
+               const { data: conf } = await supabase.from('confinamento').select('id').eq('lote_id', sanidade.lote_id).eq('status', 'ATIVO').maybeSingle();
+               if (conf) fase = 'CONFINAMENTO';
+            }
+
+            // Insere
+            if (animaisAlvo.length > 0) {
+               const parsedDose = Number(String(sanidade.dose || '0').replace(/[^0-9.]/g, '')) || 1;
+               const totalDoseCost = parsedDose * custoMedio;
+
+               const sanidadeAnimaisInserts = animaisAlvo.map(a => ({
+                 tenant_id: activeTenantId,
+                 fazenda_id: activeFarmId,
+                 sanidade_id: sanidade.id,
+                 animal_id: a.id,
+                 produto_id: sanidade.produto_id || null,
+                 quantidade_dose: parsedDose,
+                 valor_unitario_aplicado: custoMedio,
+                 valor_total_aplicado: totalDoseCost,
+                 data_aplicacao: sanidade.data_manejo,
+                 fase: fase
+               }));
+
+               await supabase.from('sanidade_animais').insert(sanidadeAnimaisInserts);
+            }
+          }
+        }
       }
     },
     onSuccess: () => {

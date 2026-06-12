@@ -63,6 +63,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
     mae_brinco: '',
     pai_brinco: '',
     valor_compra: '',
+    valor_venda: '',
     categoria: '',
     finalidade: 'Corte'
   });
@@ -106,6 +107,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         mae_brinco: initialData.mae_brinco || '',
         pai_brinco: initialData.pai_brinco || '',
         valor_compra: initialData.valor_compra ? initialData.valor_compra.toString().replace(/[^\d.-]/g, '') : '',
+        valor_venda: initialData.valor_venda ? initialData.valor_venda.toString().replace(/[^\d.-]/g, '') : '',
         categoria: initialData.categoria || '',
         finalidade: initialData.finalidade || 'Corte'
       });
@@ -127,6 +129,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
         mae_brinco: '',
         pai_brinco: '',
         valor_compra: '',
+        valor_venda: '',
         categoria: '',
         finalidade: 'Corte'
       });
@@ -588,6 +591,20 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
               value={formData.valor_compra}
               onChange={(e) => setFormData({...formData, valor_compra: e.target.value})}
               disabled={formData.origem !== 'Comprado'}
+            />
+          </div>
+
+          <div className="tauze-field-group">
+            <label className="tauze-label">
+              <DollarSign size={14} /> Valor de Venda Planejada/Real (R$)
+            </label>
+            <input 
+              className="tauze-input"
+              type="number" 
+              step="0.01"
+              placeholder="0.00" 
+              value={formData.valor_venda}
+              onChange={(e) => setFormData({...formData, valor_venda: e.target.value})}
             />
           </div>
         </div>

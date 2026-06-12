@@ -148,16 +148,16 @@ export const MovementManagement: React.FC = () => {
           sparkline: buildSparkline(data || [], 'data', 'quantidade')
         },
         { label: 'Entradas (Pág.)', 
-          value: (() => { const n = data.filter((m: any) => m.tipo === 'in').length; return n > 0 ? n : '---'; })(), 
+          value: (() => { const n = data.filter((m: any) => m.tipo === 'ENTRADA' || m.tipo === 'in').length; return n > 0 ? n : '---'; })(), 
           icon: ArrowUpRight, color: '#10b981', 
-          progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'in').length / data.length) * 100 : 0, 
+          progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'ENTRADA' || m.tipo === 'in').length / data.length) * 100 : 0, 
           change: 'Entradas desta página',
           sparkline: buildSparkline(data || [], 'data', 'quantidade')
         },
         { label: 'Saídas (Pág.)', 
-          value: (() => { const n = data.filter((m: any) => m.tipo === 'out').length; return n > 0 ? n : '---'; })(), 
+          value: (() => { const n = data.filter((m: any) => m.tipo === 'SAIDA' || m.tipo === 'out').length; return n > 0 ? n : '---'; })(), 
           icon: Activity, color: '#ef4444', 
-          progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'out').length / data.length) * 100 : 0, 
+          progress: data.length > 0 ? (data.filter((m: any) => m.tipo === 'SAIDA' || m.tipo === 'out').length / data.length) * 100 : 0, 
           change: 'Saídas desta página',
           sparkline: buildSparkline(data || [], 'data', 'quantidade')
         },
@@ -356,12 +356,14 @@ export const MovementManagement: React.FC = () => {
           costToUse = product?.custo_medio || 0;
         }
 
+        const dbTipo = formData.tipo === 'in' ? 'ENTRADA' : formData.tipo === 'out' ? 'SAIDA' : 'TRANSFERENCIA';
+
         const payload = {
           produto_id: item.produto_id,
-          tipo: formData.tipo,
+          tipo: dbTipo,
           quantidade: parseFloat(item.quantidade),
           deposito_id: item.deposito_id,
-          valor_unitario: costToUse,
+          custo_unitario: costToUse,
           data_movimentacao: formData.data_movimentacao,
           origem_destino: formData.origem_destino,
           responsavel: formData.responsavel,
@@ -387,12 +389,14 @@ export const MovementManagement: React.FC = () => {
             costToUse = product?.custo_medio || 0;
           }
 
+          const dbTipo = formData.tipo === 'in' ? 'ENTRADA' : formData.tipo === 'out' ? 'SAIDA' : 'TRANSFERENCIA';
+
           payloads.push({
             produto_id: item.produto_id,
-            tipo: formData.tipo,
+            tipo: dbTipo,
             quantidade: parseFloat(item.quantidade),
             deposito_id: item.deposito_id,
-            valor_unitario: costToUse,
+            custo_unitario: costToUse,
             data_movimentacao: formData.data_movimentacao,
             origem_destino: formData.origem_destino,
             responsavel: formData.responsavel,
@@ -423,10 +427,13 @@ export const MovementManagement: React.FC = () => {
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = movements.filter(m => {
       const matchesSearch = (m.produtos?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (m.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesTab = activeTab === 'LOG' ? true : m.tipo === 'out';
+      const matchesTab = activeTab === 'all' ? true : 
+                         activeTab === 'in' ? (m.tipo === 'ENTRADA') : 
+                         activeTab === 'out' ? (m.tipo === 'SAIDA') : 
+                         (m.tipo === 'TRANSFERENCIA');
       
       const matchesType = filterValues.type === 'all' || m.tipo === filterValues.type;
-      const amount = Number(m.quantidade) * Number(m.valor_unitario || 0);
+      const amount = Number(m.quantidade) * Number(m.custo_unitario || 0);
       const matchesAmount = amount >= filterValues.minAmount && amount <= filterValues.maxAmount;
       const matchesDate = (!filterValues.dateStart || new Date(m.data_movimentacao) >= new Date(filterValues.dateStart)) &&
                          (!filterValues.dateEnd || new Date(m.data_movimentacao) <= new Date(filterValues.dateEnd));
@@ -437,10 +444,10 @@ export const MovementManagement: React.FC = () => {
     const exportData = filteredData.map(item => ({
       Data: item.data_movimentacao ? new Date(item.data_movimentacao).toLocaleDateString() : 'N/A',
       Produto: item.produtos?.nome || 'Item Excluído',
-      Tipo: item.tipo === 'in' ? 'Entrada' : item.tipo === 'transfer' ? 'Transferência' : 'Saída',
+      Tipo: (item.tipo === 'ENTRADA' || item.tipo === 'in') ? 'Entrada' : (item.tipo === 'TRANSFERENCIA' || item.tipo === 'transfer') ? 'Transferência' : 'Saída',
       Quantidade: `${item.quantidade} ${item.produtos?.unidade || ''}`,
-      Valor_Unitario: item.valor_unitario,
-      Valor_Total: (Number(item.quantidade) * Number(item.valor_unitario || 0)),
+      Valor_Unitario: item.custo_unitario,
+      Valor_Total: (Number(item.quantidade) * Number(item.custo_unitario || 0)),
       Responsavel: item.responsavel,
       Origem_Destino: item.origem_destino
     }));
@@ -453,7 +460,7 @@ export const MovementManagement: React.FC = () => {
   const handleViewDetails = (move: any) => {
     setIsHistoryModalOpen(true);
     setHistoryItems([
-      { id: '1', date: move.data_movimentacao, title: move.tipo === 'in' ? 'Entrada de Mercadoria' : 'Saída de Mercadoria', subtitle: 'Produto: ' + (move.produtos?.nome || 'Item'), value: `${move.quantidade} ${move.produtos?.unidade || ''}`, status: move.tipo === 'in' ? 'success' : 'error' },
+      { id: '1', date: move.data_movimentacao, title: (move.tipo === 'ENTRADA' || move.tipo === 'in') ? 'Entrada de Mercadoria' : 'Saída de Mercadoria', subtitle: 'Produto: ' + (move.produtos?.nome || 'Item'), value: `${move.quantidade} ${move.produtos?.unidade || ''}`, status: (move.tipo === 'ENTRADA' || move.tipo === 'in') ? 'success' : 'error' },
       { id: '2', date: move.data_movimentacao, title: 'Documento de Origem', subtitle: move.origem_destino || 'N/A', value: 'Vinculado', status: 'info' },
       { id: '3', date: move.created_at, title: 'Operador', subtitle: move.responsavel, value: 'OK', status: 'success' },
     ]);
@@ -478,8 +485,8 @@ export const MovementManagement: React.FC = () => {
       header: 'Tipo de Operação',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <span className={`status-pill ${item.tipo === 'in' ? 'success' : item.tipo === 'transfer' ? 'warning' : 'danger'}`} style={{ textTransform: 'uppercase', fontWeight: 900 }}>
-            {item.tipo === 'in' ? 'Entrada' : item.tipo === 'transfer' ? 'Transf.' : 'Saída'}
+          <span className={`status-pill ${(item.tipo === 'ENTRADA' || item.tipo === 'in') ? 'success' : (item.tipo === 'TRANSFERENCIA' || item.tipo === 'transfer') ? 'warning' : 'danger'}`} style={{ textTransform: 'uppercase', fontWeight: 900 }}>
+            {(item.tipo === 'ENTRADA' || item.tipo === 'in') ? 'Entrada' : (item.tipo === 'TRANSFERENCIA' || item.tipo === 'transfer') ? 'Transf.' : 'Saída'}
           </span>
         </div>
       ),
@@ -523,11 +530,15 @@ export const MovementManagement: React.FC = () => {
       align: 'left' as const
     },
     {
+      header: 'Custo Unitário',
+      accessor: (item: any) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.custo_unitario || 0),
+    },
+    {
       header: 'Valor Total',
       accessor: (item: any) => (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <span style={{ fontSize: '12px', fontWeight: 900, color: '#059669' }}>
-            R$ {(Number(item.quantidade) * Number(item.valor_unitario || 0)).toLocaleString('pt-BR')}
+            R$ {(Number(item.quantidade) * Number(item.custo_unitario || 0)).toLocaleString('pt-BR')}
           </span>
         </div>
       ),

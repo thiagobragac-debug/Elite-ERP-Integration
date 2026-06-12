@@ -144,6 +144,7 @@ export const AnimalManagement: React.FC = () => {
       mae_brinco: formData.mae_brinco,
       pai_brinco: formData.pai_brinco,
       valor_compra: parseFloat(formData.valor_compra) || 0,
+      valor_venda: parseFloat(formData.valor_venda) || 0,
       categoria: formData.categoria,
       finalidade: formData.finalidade,
       brinco_eletronico: formData.brinco_eletronico || null

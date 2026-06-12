@@ -298,42 +298,17 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
           </div>
 
           {formData.tipo === 'in' && (
-            <>
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Building2 size={14} /> Origem (Fornecedor)</label>
-                <input 
-                  type="text" 
-                  className="tauze-input"
-                  placeholder="Ex: Fornecedor XYZ..."
-                  value={formData.origem_destino}
-                  onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="tauze-field-group">
-                <label className="tauze-label" style={{ color: '#0369a1' }}><Receipt size={14} /> Nota Fiscal (NF-e)</label>
-                <input 
-                  type="text" 
-                  className="tauze-input"
-                  placeholder="Nº da Nota..."
-                  style={{ borderColor: '#bae6fd' }}
-                  value={formData.numero_nfe}
-                  onChange={(e) => setFormData({...formData, numero_nfe: e.target.value})}
-                />
-              </div>
-              <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-                <label className="tauze-label" style={{ color: '#0369a1' }}><Barcode size={14} /> Chave de Acesso (NF-e)</label>
-                <input 
-                  type="text" 
-                  className="tauze-input"
-                  placeholder="0000 0000 0000 0000 0000 0000 0000 0000 0000 0000 0000"
-                  maxLength={44}
-                  style={{ borderColor: '#bae6fd' }}
-                  value={formData.chave_nfe}
-                  onChange={(e) => setFormData({...formData, chave_nfe: e.target.value})}
-                />
-              </div>
-            </>
+            <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+              <label className="tauze-label"><FileText size={14} /> Motivo / Observação</label>
+              <input 
+                type="text" 
+                className="tauze-input"
+                placeholder="Ex: Entrada manual de estoque, ajuste, doação..."
+                value={formData.origem_destino}
+                onChange={(e) => setFormData({...formData, origem_destino: e.target.value})}
+                required
+              />
+            </div>
           )}
 
           {formData.tipo === 'out' && (
@@ -552,25 +527,6 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
                 </div>
               )}
 
-              {formData.tipo === 'in' && (
-                <div style={{ padding: '16px', background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 800, color: '#475569' }}>Despesas Acessórias (Frete / Impostos)</span>
-                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Será rateado no Custo Médio dos produtos acima</span>
-                  </div>
-                  <div className="tauze-field-group" style={{ margin: 0, width: '150px' }}>
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      className="tauze-input"
-                      placeholder="0.00"
-                      value={formData.despesas_acessorias}
-                      onChange={(e) => setFormData({...formData, despesas_acessorias: e.target.value})}
-                      style={{ background: 'white' }}
-                    />
-                  </div>
-                </div>
-              )}
 
               <div style={{ background: 'hsl(var(--bg-main))', padding: '16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid hsl(var(--border))' }}>
                 <span style={{ fontSize: '14px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>Valor Total da {formData.tipo === 'out' ? 'Despesa' : 'Movimentação'}:</span>

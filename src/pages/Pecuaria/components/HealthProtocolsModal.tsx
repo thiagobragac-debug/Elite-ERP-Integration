@@ -251,7 +251,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
       icon={ShieldCheck}
       submitLabel={isApplying ? "Confirmar Aplicação" : isCreating ? "Salvar Protocolo" : "Aplicar Protocolo"}
       hideSubmit={!selectedProtocol && !isCreating}
-      size="large"
+      size="950px"
     >
       <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', height: '500px', gridColumn: 'span 4', overflow: 'hidden' }}>
         <div style={{ borderRight: '1px solid hsl(var(--border))', paddingRight: '20px', display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto' }}>
@@ -266,42 +266,48 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
             </button>
           </div>
           <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', color: 'hsl(var(--text-muted))', marginBottom: '8px' }}>Modelos Ativos</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
-            {protocols.map(p => (
-              <div key={p.id} style={{ position: 'relative' }} className="group">
-                <button 
-                  type="button"
-                  style={{ 
-                    width: '100%',
-                    padding: '12px', borderRadius: '12px', border: `1px solid ${selectedProtocol?.id === p.id ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`,
-                    background: selectedProtocol?.id === p.id ? 'hsl(var(--brand)/0.05)' : 'white',
-                    display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left', cursor: 'pointer',
-                    transition: '0.2s', paddingRight: p.id.startsWith('def-') ? '12px' : '40px'
-                  }}
-                  onClick={() => { setSelectedProtocol(p); setIsCreating(false); setIsApplying(false); }}
-                >
-                  <div style={{ color: selectedProtocol?.id === p.id ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}>
-                    {p.category === 'VACINAÇÃO' ? <Zap size={14} /> : <FlaskConical size={14} />}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '12px', fontWeight: 800 }}>{p.name || p.nome}</div>
-                    <div style={{ fontSize: '9px', fontWeight: 700, opacity: 0.6 }}>{p.category || p.categoria}</div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleDeleteProtocol(p.id); }}
-                  style={{
-                    position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
-                    background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer',
-                    padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                  }}
-                  title="Excluir Protocolo"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {protocols.map(p => {
+              const isActive = selectedProtocol?.id === p.id && !isCreating;
+              return (
+                <div key={p.id} style={{ position: 'relative' }} className="group">
+                  <button 
+                    type="button"
+                    style={{ 
+                      width: '100%',
+                      padding: '12px', borderRadius: '12px', border: 'none',
+                      background: isActive ? 'hsl(var(--brand)/0.15)' : 'transparent',
+                      color: isActive ? 'hsl(var(--brand))' : 'hsl(var(--text-secondary))',
+                      display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left', cursor: 'pointer',
+                      transition: 'all 0.2s', paddingRight: p.id.startsWith('def-') ? '12px' : '40px',
+                      boxShadow: isActive ? 'inset 3px 0 0 hsl(var(--brand))' : 'none'
+                    }}
+                    onClick={() => { setSelectedProtocol(p); setIsCreating(false); setIsApplying(false); setIsEditingId(null); }}
+                  >
+                    <div style={{ color: isActive ? 'hsl(var(--brand))' : 'hsl(var(--text-muted))' }}>
+                      {p.category === 'VACINAÇÃO' ? <Zap size={14} /> : <FlaskConical size={14} />}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '12px', fontWeight: isActive ? 800 : 600, color: isActive ? 'hsl(var(--brand))' : 'hsl(var(--text-main))' }}>{p.name || p.nome}</div>
+                      <div style={{ fontSize: '9px', fontWeight: 700, opacity: 0.6, color: 'hsl(var(--text-muted))' }}>{p.category || p.categoria}</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteProtocol(p.id); }}
+                    style={{
+                      position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)',
+                      background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer',
+                      padding: '8px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      opacity: isActive ? 1 : 0.4
+                    }}
+                    title="Excluir Protocolo"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -321,7 +327,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                     <button type="button" onClick={() => setTargetType('LOTE')} style={{ flex: 1, padding: '8px', fontSize: '11px', fontWeight: 800, borderRadius: '8px', background: targetType === 'LOTE' ? 'white' : 'transparent', border: 'none', cursor: 'pointer' }}>LOTE COLETIVO</button>
                   </div>
 
-                  <div className="form-grid">
+                  <div className="tauze-input-grid grid-col-1 animate-slide-up">
                     <div className="tauze-field-group">
                       <label className="tauze-label">{targetType === 'ANIMAL' ? 'Identificação do Animal' : 'Identificação do Lote'}</label>
                       <input type="text" className="tauze-input" value={targetId} onChange={e => setTargetId(e.target.value)} />
@@ -387,12 +393,12 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <div className="form-grid">
-                    <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <div className="tauze-input-grid grid-col-2 animate-slide-up">
+                    <div className="tauze-field-group">
                       <label className="tauze-label">Nome do Protocolo</label>
                       <input type="text" className="tauze-input" value={newProtocol.name} onChange={e => setNewProtocol({...newProtocol, name: e.target.value})} placeholder="Ex: Vermifugação de Entrada" />
                     </div>
-                    <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                    <div className="tauze-field-group">
                       <label className="tauze-label">Categoria</label>
                       <SearchableSelect
                         value={newProtocol.category}
@@ -412,52 +418,73 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                       <button type="button" onClick={handleAddStep} style={{ fontSize: '10px', fontWeight: 900, color: 'hsl(var(--brand))', background: 'transparent', border: 'none', cursor: 'pointer' }}>+ ADICIONAR DIA</button>
                     </div>
 
-                    {newProtocol.steps.length > 0 && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 80px 110px', gap: '8px', padding: '0 12px 6px 12px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase' }}>
-                        <div>Dia</div>
-                        <div>Medicamento</div>
-                        <div>Dose</div>
-                        <div>Via</div>
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {newProtocol.steps.map((step, idx) => (
-                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '60px 1fr 80px 110px', gap: '8px', padding: '12px', background: 'hsl(var(--bg-main)/0.4)', borderRadius: '12px', border: '1px solid hsl(var(--border))' }}>
-                          <input type="number" className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} value={step.day} onChange={e => {
-                            const steps = [...newProtocol.steps];
-                            steps[idx].day = parseInt(e.target.value);
-                            setNewProtocol({...newProtocol, steps});
-                          }} />
-                          <SearchableSelect
-                            value={step.product}
-                            onChange={val => {
-                              const steps = [...newProtocol.steps];
-                              steps[idx].product = val;
-                              setNewProtocol({...newProtocol, steps});
-                            }}
-                            options={availableProducts}
-                            creatable={true}
-                            placeholder="Produto"
-                          />
-                          <input type="text" className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} placeholder="Ex: 2ml" value={step.dose} onChange={e => {
-                            const steps = [...newProtocol.steps];
-                            steps[idx].dose = e.target.value;
-                            setNewProtocol({...newProtocol, steps});
-                          }} />
-                          <select className="tauze-input" style={{ padding: '8px', fontSize: '12px' }} value={step.via} onChange={e => {
-                            const steps = [...newProtocol.steps];
-                            steps[idx].via = e.target.value;
-                            setNewProtocol({...newProtocol, steps});
-                          }}>
-                            <option value="Subcutânea">Subcutânea</option>
-                            <option value="Intramuscular">Intramuscular</option>
-                            <option value="Oral">Oral</option>
-                            <option value="Intravenosa">Intravenosa</option>
-                            <option value="Tópico">Tópico</option>
-                          </select>
-                        </div>
-                      ))}
+                    <div style={{ overflowX: 'auto', background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '12px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: '550px' }}>
+                        <thead>
+                          <tr>
+                            <th style={{ textAlign: 'center', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '70px' }}>Dia</th>
+                            <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '220px' }}>Medicamento</th>
+                            <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '100px' }}>Dose</th>
+                            <th style={{ textAlign: 'left', padding: '12px 8px', fontSize: '10px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', borderBottom: '1px solid hsl(var(--border))', width: '130px' }}>Via</th>
+                            <th style={{ borderBottom: '1px solid hsl(var(--border))', width: 'auto' }}></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {newProtocol.steps.map((step, idx) => (
+                            <tr key={idx}>
+                              <td style={{ padding: '8px', borderBottom: '1px solid hsl(var(--border)/0.5)' }}>
+                                <input type="number" className="tauze-input" style={{ padding: '0 8px', height: '36px', textAlign: 'center' }} value={step.day} onChange={e => {
+                                  const steps = [...newProtocol.steps];
+                                  steps[idx].day = parseInt(e.target.value) || 0;
+                                  setNewProtocol({...newProtocol, steps});
+                                }} />
+                              </td>
+                              <td style={{ padding: '8px', borderBottom: '1px solid hsl(var(--border)/0.5)' }}>
+                                <SearchableSelect
+                                  value={step.product}
+                                  onChange={val => {
+                                    const steps = [...newProtocol.steps];
+                                    steps[idx].product = val;
+                                    setNewProtocol({...newProtocol, steps});
+                                  }}
+                                  options={availableProducts}
+                                  creatable={true}
+                                  placeholder="Produto"
+                                  height="36px"
+                                />
+                              </td>
+                              <td style={{ padding: '8px', borderBottom: '1px solid hsl(var(--border)/0.5)' }}>
+                                <input type="text" className="tauze-input" style={{ padding: '0 8px', height: '36px' }} placeholder="Ex: 2ml" value={step.dose} onChange={e => {
+                                  const steps = [...newProtocol.steps];
+                                  steps[idx].dose = e.target.value;
+                                  setNewProtocol({...newProtocol, steps});
+                                }} />
+                              </td>
+                              <td style={{ padding: '8px', borderBottom: '1px solid hsl(var(--border)/0.5)' }}>
+                                <select className="tauze-input" style={{ height: '36px' }} value={step.via} onChange={e => {
+                                  const steps = [...newProtocol.steps];
+                                  steps[idx].via = e.target.value;
+                                  setNewProtocol({...newProtocol, steps});
+                                }}>
+                                  <option value="Subcutânea">Subcutânea</option>
+                                  <option value="Intramuscular">Intramuscular</option>
+                                  <option value="Oral">Oral</option>
+                                  <option value="Intravenosa">Intravenosa</option>
+                                  <option value="Tópico">Tópico</option>
+                                </select>
+                              </td>
+                              <td style={{ padding: '8px', borderBottom: '1px solid hsl(var(--border)/0.5)', textAlign: 'center' }}>
+                                <button type="button" onClick={() => {
+                                  const steps = newProtocol.steps.filter((_, i) => i !== idx);
+                                  setNewProtocol({...newProtocol, steps});
+                                }} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}>
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>

@@ -13,18 +13,20 @@ import {
   Edit3,
   Trash2,
   FileText,
-  QrCode
+  QrCode,
+  DollarSign
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabase';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { TauzeMainChart } from '../../components/Charts/TauzeMainChart';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
-import { formatNumber } from '../../utils/format';
+import { formatNumber, formatCurrency } from '../../utils/format';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { RastreabilidadeModal } from '../../components/Modals/RastreabilidadeModal';
 import { AnimalForm } from '../../components/Forms/AnimalForm';
 import { QuickManejoModal } from './components/QuickManejoModal';
+import { CostStatementModal } from '../../components/Modals/CostStatementModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { exportToPDF } from '../../utils/export';
 import { jsPDF } from 'jspdf';
@@ -42,6 +44,7 @@ export const AnimalDetail: React.FC = () => {
   const [showRastreabilidade, setShowRastreabilidade] = usePersistentState('AnimalDetail_showRastreabilidade', false);
   const [isEditModalOpen, setIsEditModalOpen] = usePersistentState('AnimalDetail_isEditModalOpen', false);
   const [isManejoModalOpen, setIsManejoModalOpen] = usePersistentState('AnimalDetail_isManejoModalOpen', false);
+  const [isExtratoModalOpen, setIsExtratoModalOpen] = usePersistentState('AnimalDetail_isExtratoModalOpen', false);
 
   // Fetch animal info
   const { data: animal, isLoading: animalLoading } = useQuery({
@@ -73,7 +76,31 @@ export const AnimalDetail: React.FC = () => {
     enabled: !!id
   });
 
-  const loading = animalLoading || weightsLoading;
+  // Fetch financial costs
+  const { data: financialData, isLoading: financialLoading } = useQuery({
+    queryKey: ['animal_costs', id],
+    queryFn: async () => {
+      const { data: costsData, error: err1 } = await supabase
+        .from('custos_animal')
+        .select('valor_total_aplicado, produto_id, produtos(nome)')
+        .eq('animal_id', id);
+      
+      const { data: healthData, error: err2 } = await supabase
+        .from('sanidade_animais')
+        .select('valor_total_aplicado, produto_id, produtos(nome)')
+        .eq('animal_id', id);
+
+      if (err1 || err2) console.error('Erro ao buscar custos', err1, err2);
+
+      return {
+        costs: costsData || [],
+        health: healthData || []
+      };
+    },
+    enabled: !!id
+  });
+
+  const loading = animalLoading || weightsLoading || financialLoading;
 
   const weightHistory = React.useMemo(() => {
     return weights.map((w: any) => ({
@@ -636,6 +663,83 @@ export const AnimalDetail: React.FC = () => {
             ))}
           </div>
         </section>
+
+        <section className="info-panel" style={{ background: 'linear-gradient(145deg, #1e293b, #0f172a)' }}>
+          <div className="panel-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ color: '#fff' }}>Extrato Financeiro (Custeio Diário)</h3>
+            <DollarSign size={18} color="#10b981" />
+          </div>
+          <div className="info-list" style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px' }}>
+            <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Aquisição</label>
+              <span style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>
+                {formatCurrency(animal.valor_compra || 0)}
+              </span>
+            </div>
+            <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Nutrição</label>
+              <span style={{ color: '#fbbf24', fontSize: '15px', fontWeight: 700 }}>
+                {formatCurrency(financialData?.costs?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)}
+              </span>
+            </div>
+            <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Sanidade</label>
+              <span style={{ color: '#f87171', fontSize: '15px', fontWeight: 700 }}>
+                {formatCurrency(financialData?.health?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)}
+              </span>
+            </div>
+            
+            <div className="info-item" style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+              <label style={{ color: '#fca5a5', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Custo Total (Saída)</label>
+              <span style={{ color: '#ef4444', fontSize: '16px', fontWeight: 900, textShadow: '0 2px 10px rgba(239,68,68,0.2)' }}>
+                {formatCurrency(
+                  (animal.valor_compra || 0) + 
+                  (financialData?.costs?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0) + 
+                  (financialData?.health?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)
+                )}
+              </span>
+            </div>
+            
+            <div className="info-item" style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+              <label style={{ color: '#93c5fd', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Receita / Venda</label>
+              <span style={{ color: '#60a5fa', fontSize: '16px', fontWeight: 900 }}>
+                {formatCurrency(animal.valor_venda || 0)}
+              </span>
+            </div>
+
+            <div className="info-item" style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+              <label style={{ color: '#6ee7b7', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Resultado (Lucro)</label>
+              {(() => {
+                const custoTotal = (animal.valor_compra || 0) + 
+                  (financialData?.costs?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0) + 
+                  (financialData?.health?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0);
+                const receita = animal.valor_venda || 0;
+                const lucro = receita - custoTotal;
+                const isLucro = lucro >= 0;
+                return (
+                  <span style={{ 
+                    color: isLucro ? '#10b981' : '#ef4444', 
+                    fontSize: '18px', 
+                    fontWeight: 900, 
+                    textShadow: isLucro ? '0 2px 10px rgba(16,185,129,0.3)' : '0 2px 10px rgba(239,68,68,0.3)' 
+                  }}>
+                    {isLucro ? '+' : ''}{formatCurrency(lucro)}
+                  </span>
+                );
+              })()}
+            </div>
+            
+            <div style={{ gridColumn: 'span 6' }}>
+              <button 
+                className="glass-btn secondary" 
+                onClick={() => setIsExtratoModalOpen(true)} 
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+              >
+                <FileText size={16} /> Ver Detalhamento Completo
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
       <RastreabilidadeModal
         isOpen={showRastreabilidade}
@@ -660,6 +764,12 @@ export const AnimalDetail: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ['animal', id] });
           queryClient.invalidateQueries({ queryKey: ['animal_weights', id] });
         }}
+      />
+      <CostStatementModal
+        isOpen={isExtratoModalOpen}
+        onClose={() => setIsExtratoModalOpen(false)}
+        animal={animal}
+        financialData={financialData || null}
       />
     </div>
   );

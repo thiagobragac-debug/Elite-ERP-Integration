@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { motion } from 'framer-motion';
 
 import { 
   Heart, 
@@ -14,7 +15,10 @@ import {
   AlertTriangle,
   CalendarDays,
   Target,
-  ChevronDown
+  ChevronDown,
+  CheckCircle2,
+  Syringe,
+  ChevronRight
 } from 'lucide-react';
 import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
@@ -86,6 +90,17 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
   }, [initialData, isOpen, actionId]);
 
   const [loading, setLoading] = useState(false);
+  const [activeEtapa, setActiveEtapa] = useState('dados');
+
+  const ETAPAS_CONFIG = [
+    { id: 'dados', label: '1. Dados do Evento', icon: Calendar, color: '#3b82f6' },
+    { id: 'resultados', label: '2. Resultados', icon: Activity, color: '#10b981' },
+    { id: 'produtos', label: '3. Fármacos', icon: Syringe, color: '#f59e0b' }
+  ];
+
+  const isDadosDone = formData.animal_id.trim().length > 0;
+  const isResultadosDone = formData.resultado !== '' || formData.resultado_diagnostico !== '' || formData.touro !== '' || formData.ecc !== '3';
+  const isProdutosDone = produtosAplicados.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,7 +147,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
   }, [formData.data_evento, formData.tipo_evento, formData.resultado_diagnostico, formData.dias_gestacao, formData.ecc]);
 
   return (
-    <SidePanel size="medium"
+    <SidePanel size="850px"
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
@@ -142,268 +157,336 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
       loading={loading}
       submitLabel={initialData ? "Atualizar Evento" : "Salvar Evento"}
     >
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 01</div>
-          <h4 className="tauze-section-title">Dados do Evento</h4>
-        </div>
+      {/* Dashboard Top */}
+      <div style={{ marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
         
-        <div className="tauze-input-grid grid-col-2">
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><Beef size={14} /> Animal / Matriz</label>
-            <div style={{ position: 'relative' }}>
-              <Hash size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input 
-                className="tauze-input"
-                type="text" 
-                placeholder="Brinco ou ID da Matriz..." 
-                style={{ paddingLeft: '32px' }}
-                value={formData.animal_id}
-                onChange={(e) => setFormData({...formData, animal_id: e.target.value})}
-                required 
-              />
+        {/* Status Box */}
+        <div style={{ flex: 1, minWidth: '250px', padding: '16px', background: 'hsl(var(--brand) / 0.05)', border: '1px solid hsl(var(--brand) / 0.2)', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--brand))', textTransform: 'uppercase', marginBottom: '4px' }}>Status Atual</span>
+            <span style={{ fontSize: '18px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
+              Realizado
+            </span>
+            <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
+              Manejo dia {new Date(formData.data_evento).toLocaleDateString('pt-BR')}
             </div>
           </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Activity size={14} /> Tipo de Evento</label>
-            <SearchableSelect 
-              value={formData.tipo_evento}
-              onChange={(val: any) => setFormData({...formData, tipo_evento: val})}
-              options={[
-                { value: `IATF`, label: `IATF / Inseminação` },
-                { value: `Palpação`, label: `Toque / Palpação` },
-                { value: `Parto`, label: `Parto` },
-                { value: `Monta`, label: `Monta Natural` },
-                { value: `Secagem`, label: `Secagem` },
-              ]}
-            />
-          </div>
-
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Calendar size={14} /> Data do Evento</label>
-            <input 
-              className="tauze-input"
-              type="date" 
-              value={formData.data_evento}
-              onChange={(e) => setFormData({...formData, data_evento: e.target.value})}
-              required
-            />
-          </div>
-
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><Activity size={14} /> Status</label>
-            <div className="tauze-form-radio-group">
-              <div 
-                className={`tauze-form-radio-item ${formData.status === 'pending' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, status: 'pending'})}
-              >
-                <Calendar size={16} />
-                <span>Agendado</span>
-              </div>
-              <div 
-                className={`tauze-form-radio-item ${formData.status === 'completed' ? 'active' : ''}`}
-                onClick={() => setFormData({...formData, status: 'completed'})}
-              >
-                <Activity size={16} />
-                <span>Concluído</span>
-              </div>
-            </div>
+          <div style={{ background: 'white', padding: '12px', borderRadius: '50%', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <Activity size={24} style={{ color: 'hsl(var(--brand))' }} />
           </div>
         </div>
-      </section>
 
-      <section className="tauze-form-section">
-        <div className="tauze-section-header">
-          <div className="tauze-section-badge">PASSO 02</div>
-          <h4 className="tauze-section-title">Resultados e Informações</h4>
+        {/* Prediction Box */}
+        <div style={{ flex: 1, minWidth: '200px', padding: '16px', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: '12px' }}>
+          <span style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', marginBottom: '8px' }}>Previsões do Manejo</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {reproductionStats.prevDataStr ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 800, color: 'hsl(217 91% 50%)' }}>
+                <CalendarDays size={14} /> {reproductionStats.prevLabel}: {reproductionStats.prevDataStr}
+              </div>
+            ) : (
+              <div style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Nenhuma previsão estipulada para este tipo de evento.</div>
+            )}
+          </div>
         </div>
 
-        {/* ALERTA ZOOTÃ‰CNICO (ECC) */}
-        {reproductionStats.warningMsg && (
-          <div style={{ marginBottom: '16px', padding: '12px 14px', background: 'hsl(38 92% 50% / 0.1)', border: '1px solid hsl(38 92% 50% / 0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', color: 'hsl(38 92% 40%)' }}>
-            <AlertTriangle size={18} style={{ flexShrink: 0 }} />
-            <span style={{ fontSize: '13px', fontWeight: 700 }}>{reproductionStats.warningMsg}</span>
-          </div>
-        )}
+      </div>
 
-        <div className="tauze-input-grid grid-col-2">
-          
-          {/* ----- FORMULÁRIO MUTANTE: IATF / MONTA ----- */}
-          {(formData.tipo_evento === 'IATF' || formData.tipo_evento === 'Monta') && (
-            <>
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Activity size={14} /> Protocolo Hormonal</label>
-                <SearchableSelect 
-                  value={formData.resultado}
-                  onChange={(val: any) => setFormData({...formData, resultado: val})}
-                  options={[
-                    { value: `Ovsynch`, label: `Ovsynch` },
-                    { value: `J-Synch`, label: `J-Synch` },
-                    { value: `Presynch`, label: `Presynch` },
-                    { value: `Outro`, label: `Outro Protocolo` }
-                  ]}
-                />
-              </div>
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Hash size={14} /> Touro / Partida de Sêmen</label>
-                <input 
-                  className="tauze-input"
-                  type="text" 
-                  placeholder="Nome do Touro ou Lote..." 
-                  value={formData.touro}
-                  onChange={(e) => setFormData({...formData, touro: e.target.value})}
-                />
-              </div>
-            </>
-          )}
+      <div style={{ display: 'flex', gap: '24px' }}>
+        {/* Left Sidebar - Phase Navigation */}
+        <div style={{ width: '220px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {ETAPAS_CONFIG.map((et) => {
+            let isCompleted = false;
+            if (et.id === 'dados') isCompleted = isDadosDone;
+            if (et.id === 'resultados') isCompleted = isResultadosDone;
+            if (et.id === 'produtos') isCompleted = isProdutosDone;
 
-          {/* ----- FORMULÁRIO MUTANTE: TOQUE / PALPAÃ‡ÃƒO ----- */}
-          {formData.tipo_evento === 'Palpação' && (
-            <>
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Target size={14} /> Diagnóstico</label>
-                <SearchableSelect 
-                  value={formData.resultado_diagnostico}
-                  onChange={(val: any) => setFormData({...formData, resultado_diagnostico: val})}
-                  options={[
-                    { value: `Prenha`, label: `Prenha (Positivo)` },
-                    { value: `Vazia`, label: `Vazia (Negativo)` },
-                    { value: `Duvidosa`, label: `Duvidosa (Re-Toque)` }
-                  ]}
-                />
-              </div>
-              {formData.resultado_diagnostico === 'Prenha' && (
-                <div className="tauze-field-group">
-                  <label className="tauze-label"><CalendarDays size={14} /> Dias de Gestação</label>
-                  <input 
-                    className="tauze-input"
-                    type="number" 
-                    placeholder="Ex: 45" 
-                    value={formData.dias_gestacao}
-                    onChange={(e) => setFormData({...formData, dias_gestacao: e.target.value})}
-                  />
+            const isActive = activeEtapa === et.id;
+            const Icon = et.icon;
+            
+            return (
+              <button
+                key={et.id}
+                type="button"
+                onClick={() => setActiveEtapa(et.id)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
+                  borderRadius: '12px', border: 'none',
+                  background: isActive ? `${et.color}15` : 'transparent',
+                  color: isActive ? et.color : 'hsl(var(--text-secondary))',
+                  cursor: 'pointer', textAlign: 'left', fontWeight: isActive ? 700 : 500,
+                  transition: 'all 0.2s',
+                  boxShadow: isActive ? `inset 3px 0 0 ${et.color}` : 'none'
+                }}
+              >
+                <div style={{ 
+                  width: '32px', height: '32px', borderRadius: '8px', 
+                  background: isCompleted ? et.color : isActive ? `${et.color}30` : 'hsl(var(--bg-main))',
+                  color: isCompleted ? '#fff' : isActive ? et.color : 'hsl(var(--text-muted))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                  {isCompleted ? <CheckCircle2 size={16} /> : <Icon size={16} />}
                 </div>
-              )}
-            </>
-          )}
+                <span style={{ fontSize: '13px', flex: 1 }}>{et.label}</span>
+                {isActive && <ChevronRight size={16} opacity={0.5} />}
+              </button>
+            )
+          })}
+        </div>
 
-          {/* ----- FORMULÁRIO MUTANTE: PARTO ----- */}
-          {formData.tipo_evento === 'Parto' && (
-            <>
-              <div className="tauze-field-group">
-                <label className="tauze-label"><Activity size={14} /> Condição do Parto</label>
-                <SearchableSelect 
-                  value={formData.resultado}
-                  onChange={(val: any) => setFormData({...formData, resultado: val})}
-                  options={[
-                    { value: `Normal`, label: `Normal (Eutócico)` },
-                    { value: `Distocia`, label: `Complicado (Distocia)` },
-                    { value: `Aborto`, label: `Aborto / Natimorto` }
-                  ]}
-                />
-              </div>
-              {formData.resultado !== 'Aborto' && (
-                <>
-                  <div className="tauze-field-group">
-                    <label className="tauze-label"><Baby size={14} /> Sexo da Cria</label>
-                    <SearchableSelect 
-                      value={formData.sexo_cria}
-                      onChange={(val: any) => setFormData({...formData, sexo_cria: val})}
-                      options={[
-                        { value: `Macho`, label: `Macho` },
-                        { value: `Fêmea`, label: `Fêmea` }
-                      ]}
-                    />
-                  </div>
-                  <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="tauze-label"><Hash size={14} /> ID / Brinco da Cria (Opcional)</label>
+        {/* Right Content Area */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          <div style={{ background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: '16px', padding: '24px' }}>
+            <div style={{ marginBottom: '24px', paddingBottom: '16px', borderBottom: '1px solid hsl(var(--border))' }}>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {ETAPAS_CONFIG.find(e => e.id === activeEtapa)?.label}
+              </h3>
+              <p style={{ margin: 0, fontSize: '13px', color: 'hsl(var(--text-muted))' }}>
+                {activeEtapa === 'dados' && "Informações básicas do manejo reprodutivo."}
+                {activeEtapa === 'resultados' && "Preencha os resultados deste manejo."}
+                {activeEtapa === 'produtos' && "Informe os medicamentos ou hormônios aplicados neste manejo."}
+              </p>
+            </div>
+
+            {activeEtapa === 'dados' && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              
+              <div className="tauze-input-grid grid-col-2">
+                <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="tauze-label"><Beef size={14} /> Animal / Matriz</label>
+                  <div style={{ position: 'relative' }}>
+                    <Hash size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input 
                       className="tauze-input"
                       type="text" 
-                      placeholder="Identificação do novo bezerro..." 
-                      value={formData.id_cria}
-                      onChange={(e) => setFormData({...formData, id_cria: e.target.value})}
+                      placeholder="Brinco ou ID da Matriz..." 
+                      style={{ paddingLeft: '32px' }}
+                      value={formData.animal_id}
+                      onChange={(e) => setFormData({...formData, animal_id: e.target.value})}
+                      required 
                     />
                   </div>
-                </>
-              )}
-            </>
+                </div>
+
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Activity size={14} /> Tipo de Evento</label>
+                  <SearchableSelect 
+                    value={formData.tipo_evento}
+                    onChange={(val: any) => setFormData({...formData, tipo_evento: val})}
+                    options={[
+                      { value: `IATF`, label: `IATF / Inseminação` },
+                      { value: `Palpação`, label: `Toque / Palpação` },
+                      { value: `Parto`, label: `Parto` },
+                      { value: `Monta`, label: `Monta Natural` },
+                      { value: `Secagem`, label: `Secagem` },
+                    ]}
+                  />
+                </div>
+
+                <div className="tauze-field-group">
+                  <label className="tauze-label"><Calendar size={14} /> Data do Evento</label>
+                  <input 
+                    className="tauze-input"
+                    type="date" 
+                    value={formData.data_evento}
+                    onChange={(e) => setFormData({...formData, data_evento: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="tauze-label"><Activity size={14} /> Status</label>
+                  <div className="tauze-form-radio-group">
+                    <div 
+                      className={`tauze-form-radio-item ${formData.status === 'pending' ? 'active' : ''}`}
+                      onClick={() => setFormData({...formData, status: 'pending'})}
+                    >
+                      <Calendar size={16} />
+                      <span>Agendado</span>
+                    </div>
+                    <div 
+                      className={`tauze-form-radio-item ${formData.status === 'completed' ? 'active' : ''}`}
+                      onClick={() => setFormData({...formData, status: 'completed'})}
+                    >
+                      <Activity size={16} />
+                      <span>Concluído</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           )}
 
-          {/* ----- CAMPOS COMPARTILHADOS ----- */}
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span><Activity size={14} /> ECC (Escore de Condição Corporal)</span>
-              <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>1 (Muito Magra) a 5 (Obesa)</span>
-            </label>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              {[1, 2, 3, 4, 5].map(score => (
-                <button
-                  key={score}
-                  type="button"
-                  onClick={() => setFormData({...formData, ecc: score.toString()})}
-                  style={{
-                    flex: 1, padding: '12px 0', borderRadius: '10px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s',
-                    background: formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
-                    color: formData.ecc === score.toString() ? 'white' : 'hsl(var(--text-main))',
-                    border: `1.5px solid ${formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`
-                  }}
-                >
-                  {score}
-                </button>
-              ))}
-            </div>
-          </div>
+            {activeEtapa === 'resultados' && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
 
-          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
-            <label className="tauze-label"><FileText size={14} /> Observações</label>
-            <textarea 
-              className="tauze-input tauze-textarea"
-              placeholder="Notas adicionais sobre o procedimento..." 
-              value={formData.observacoes}
-              onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
-              rows={3}
-            />
+              {reproductionStats.warningMsg && (
+                <div style={{ marginBottom: '16px', padding: '12px 14px', background: 'hsl(38 92% 50% / 0.1)', border: '1px solid hsl(38 92% 50% / 0.3)', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', color: 'hsl(38 92% 40%)' }}>
+                  <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: '13px', fontWeight: 700 }}>{reproductionStats.warningMsg}</span>
+                </div>
+              )}
+
+              <div className="tauze-input-grid grid-col-2">
+                
+                {/* ----- FORMULÁRIO MUTANTE: IATF / MONTA ----- */}
+                {(formData.tipo_evento === 'IATF' || formData.tipo_evento === 'Monta') && (
+                  <>
+                    <div className="tauze-field-group">
+                      <label className="tauze-label"><Activity size={14} /> Protocolo Hormonal</label>
+                      <SearchableSelect 
+                        value={formData.resultado}
+                        onChange={(val: any) => setFormData({...formData, resultado: val})}
+                        options={[
+                          { value: `Ovsynch`, label: `Ovsynch` },
+                          { value: `J-Synch`, label: `J-Synch` },
+                          { value: `Presynch`, label: `Presynch` },
+                          { value: `Outro`, label: `Outro Protocolo` }
+                        ]}
+                      />
+                    </div>
+                    <div className="tauze-field-group">
+                      <label className="tauze-label"><Hash size={14} /> Touro / Partida de Sêmen</label>
+                      <input 
+                        className="tauze-input"
+                        type="text" 
+                        placeholder="Nome do Touro ou Lote..." 
+                        value={formData.touro}
+                        onChange={(e) => setFormData({...formData, touro: e.target.value})}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* ----- FORMULÁRIO MUTANTE: TOQUE / PALPAÇÃO ----- */}
+                {formData.tipo_evento === 'Palpação' && (
+                  <>
+                    <div className="tauze-field-group">
+                      <label className="tauze-label"><Target size={14} /> Diagnóstico</label>
+                      <SearchableSelect 
+                        value={formData.resultado_diagnostico}
+                        onChange={(val: any) => setFormData({...formData, resultado_diagnostico: val})}
+                        options={[
+                          { value: `Prenha`, label: `Prenha (Positivo)` },
+                          { value: `Vazia`, label: `Vazia (Negativo)` },
+                          { value: `Duvidosa`, label: `Duvidosa (Re-Toque)` }
+                        ]}
+                      />
+                    </div>
+                    {formData.resultado_diagnostico === 'Prenha' && (
+                      <div className="tauze-field-group">
+                        <label className="tauze-label"><CalendarDays size={14} /> Dias de Gestação</label>
+                        <input 
+                          className="tauze-input"
+                          type="number" 
+                          placeholder="Ex: 45" 
+                          value={formData.dias_gestacao}
+                          onChange={(e) => setFormData({...formData, dias_gestacao: e.target.value})}
+                        />
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ----- FORMULÁRIO MUTANTE: PARTO ----- */}
+                {formData.tipo_evento === 'Parto' && (
+                  <>
+                    <div className="tauze-field-group">
+                      <label className="tauze-label"><Activity size={14} /> Condição do Parto</label>
+                      <SearchableSelect 
+                        value={formData.resultado}
+                        onChange={(val: any) => setFormData({...formData, resultado: val})}
+                        options={[
+                          { value: `Normal`, label: `Normal (Eutócico)` },
+                          { value: `Distocia`, label: `Complicado (Distocia)` },
+                          { value: `Aborto`, label: `Aborto / Natimorto` }
+                        ]}
+                      />
+                    </div>
+                    {formData.resultado !== 'Aborto' && (
+                      <>
+                        <div className="tauze-field-group">
+                          <label className="tauze-label"><Baby size={14} /> Sexo da Cria</label>
+                          <SearchableSelect 
+                            value={formData.sexo_cria}
+                            onChange={(val: any) => setFormData({...formData, sexo_cria: val})}
+                            options={[
+                              { value: `Macho`, label: `Macho` },
+                              { value: `Fêmea`, label: `Fêmea` }
+                            ]}
+                          />
+                        </div>
+                        <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                          <label className="tauze-label"><Hash size={14} /> ID / Brinco da Cria (Opcional)</label>
+                          <input 
+                            className="tauze-input"
+                            type="text" 
+                            placeholder="Identificação do novo bezerro..." 
+                            value={formData.id_cria}
+                            onChange={(e) => setFormData({...formData, id_cria: e.target.value})}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* ----- CAMPOS COMPARTILHADOS ----- */}
+                <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="tauze-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span><Activity size={14} /> ECC (Escore de Condição Corporal)</span>
+                    <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>1 (Muito Magra) a 5 (Obesa)</span>
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                    {[1, 2, 3, 4, 5].map(score => (
+                      <button
+                        key={score}
+                        type="button"
+                        onClick={() => setFormData({...formData, ecc: score.toString()})}
+                        style={{
+                          flex: 1, padding: '12px 0', borderRadius: '10px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s',
+                          background: formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--bg-main))',
+                          color: formData.ecc === score.toString() ? 'white' : 'hsl(var(--text-main))',
+                          border: `1.5px solid ${formData.ecc === score.toString() ? 'hsl(var(--brand))' : 'hsl(var(--border))'}`
+                        }}
+                      >
+                        {score}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+                  <label className="tauze-label"><FileText size={14} /> Observações</label>
+                  <textarea 
+                    className="tauze-input tauze-textarea"
+                    placeholder="Notas adicionais sobre o procedimento..." 
+                    value={formData.observacoes}
+                    onChange={(e) => setFormData({...formData, observacoes: e.target.value})}
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+            {activeEtapa === 'produtos' && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <ConsumptionCart 
+                  items={produtosAplicados}
+                  onChange={setProdutosAplicados}
+                  title="Lista de Produtos"
+                  subtitle="Itens serão deduzidos do estoque selecionado."
+                  filterCategories={['medicamento', 'vacina', 'insumo']}
+                  hideDeposit={false}
+                />
+              </motion.div>
+            )}
+
           </div>
         </div>
-      </section>
-
-      <section className="tauze-form-section">
-        <ConsumptionCart 
-          items={produtosAplicados}
-          onChange={setProdutosAplicados}
-          title="Fármacos / Protocolo Hormonal"
-          subtitle="Informe os medicamentos, hormônios ou insumos aplicados neste manejo reprodutivo."
-          filterCategories={['medicamento', 'vacina', 'insumo']}
-        />
-      </section>
-
-      {/* DASHBOARD PREDITIVO (SMART BADGE) */}
-      {reproductionStats.prevDataStr && (
-        <section style={{ 
-          marginTop: '8px', 
-          padding: '18px 24px', 
-          borderRadius: '14px', 
-          background: 'linear-gradient(145deg, hsl(var(--brand) / 0.08) 0%, hsl(var(--brand) / 0.02) 100%)',
-          border: '1.5px dashed hsl(var(--brand) / 0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ background: 'hsl(var(--bg-card))', padding: '10px', borderRadius: '10px', color: 'hsl(var(--brand))', boxShadow: '0 4px 10px rgba(0,0,0,0.03)' }}>
-              <CalendarDays size={20} />
-            </div>
-            <div>
-              <div style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {reproductionStats.prevLabel}
-              </div>
-              <div style={{ fontSize: '16px', fontWeight: 900, color: 'hsl(var(--text-main))' }}>
-                {reproductionStats.prevDataStr}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
+      </div>
     </SidePanel>
   );
 };
