@@ -69,7 +69,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
         .from('depositos')
         .select('id, nome')
         .eq('tenant_id', activeTenantId)
-        .eq('fazenda_id', activeFarm.id)
+        .eq('fazenda_id',  activeFarm?.id,)
         .eq('status', 'ativo')
         .order('nome');
       if (depData) setDeposits(depData);

@@ -10,6 +10,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { SidePanel } from '../../components/Layout/SidePanel';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 interface Categoria {
   id: string;
@@ -25,6 +26,7 @@ interface Categoria {
 
 export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string, triggerCreate: number }> = ({ modulo, searchTerm, triggerCreate }) => {
   const { tenant } = useTenant();
+  const { confirm } = useConfirm();
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -242,7 +244,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("Atenção: Se esta categoria estiver em uso, não poderá ser excluída (você pode apenas Inativá-la). Deseja tentar excluir?")) {
+    const isConfirmed = await confirm({ title: 'Atenção', description: "Atenção: Se esta categoria estiver em uso, não poderá ser excluída (você pode apenas Inativá-la). Deseja tentar excluir?", confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (isConfirmed) {
       const { error } = await supabase
         .from('categorias_sistema')
         .delete()

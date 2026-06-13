@@ -38,8 +38,10 @@ import { PastureRelocateForm } from '../../components/Forms/PastureRelocateForm'
 import { AssignAnimalForm } from '../../components/Forms/AssignAnimalForm';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 const PastureManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeTenantId, activeFarmId, canCreate, insertPayload, activeFarm, isGlobalMode } = useFarmFilter();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = usePersistentState('PastureManagement_isFormOpen', false);
@@ -213,7 +215,8 @@ const PastureManagement: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este pasto?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este pasto?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     
     // Optimistic delete
     setLocalPastures(prev => prev.filter(p => p.id !== id));
@@ -401,7 +404,8 @@ const PastureManagement: React.FC = () => {
   });
 
   const handleVazioSanitario = async (pasture: any) => {
-    if (!confirm(`Deseja iniciar o Vazio Sanitário (descanso) para o pasto "${pasture.nome}"? Isso zerará a lotação atual.`)) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: `Deseja iniciar o Vazio Sanitário (descanso) para o pasto "${pasture.nome}"? Isso zerará a lotação atual.`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     
     // Optimistic update
     setLocalPastures(prev => prev.map(p => p.id === pasture.id ? { 

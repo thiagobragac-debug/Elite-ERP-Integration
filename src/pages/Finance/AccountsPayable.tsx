@@ -50,10 +50,12 @@ import { useDebounce } from '../../hooks/useDebounce';
 import { useApprovalQueue } from '../../hooks/useApprovalQueue';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const AccountsPayable: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, canCreate, insertPayload } = useFarmFilter();
   const { submitForApproval } = useApprovalQueue();
+  const { confirm } = useConfirm();
   const [isModalOpen, setIsModalOpen] = usePersistentState('AccountsPayable_isModalOpen', false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<'TODAS' | 'PENDENTE' | 'PAGO'>('TODAS');
@@ -217,7 +219,8 @@ export const AccountsPayable: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja excluir esta conta?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteMutation.mutate(id);
   };
 

@@ -41,8 +41,10 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
+import { useConfirm } from '../../contexts/ConfirmContext';
 export const WarehouseManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -231,7 +233,8 @@ export const WarehouseManagement: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este depósito?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja excluir este depósito?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteWarehouseMutation.mutate(id);
   };
 

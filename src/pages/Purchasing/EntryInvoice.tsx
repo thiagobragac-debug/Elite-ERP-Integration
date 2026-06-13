@@ -50,8 +50,10 @@ import { PurchasingFilterModal } from './components/PurchasingFilterModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const EntryInvoice: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -248,7 +250,8 @@ export const EntryInvoice: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta nota fiscal?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir esta nota fiscal?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteInvoiceMutation.mutate(id);
   };
 

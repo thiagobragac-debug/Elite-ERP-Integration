@@ -55,9 +55,11 @@ import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const ClientManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeTenantId } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('ClientManagement_isModalOpen', false);
@@ -355,7 +357,8 @@ export const ClientManagement: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este parceiro?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este parceiro?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteMutation.mutate(id);
   };
 

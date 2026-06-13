@@ -48,8 +48,8 @@ export const UserFilterModal: React.FC<UserFilterModalProps> = ({
               <Users size={20} />
             </div>
             <div>
-              <h3>Filtros de Usu·rios</h3>
-              <p>Gerencie acessos e governanÁa.</p>
+              <h3>Filtros de Usu√°rios</h3>
+              <p>Gerencie acessos e governan√ßa.</p>
             </div>
           </div>
           <button 

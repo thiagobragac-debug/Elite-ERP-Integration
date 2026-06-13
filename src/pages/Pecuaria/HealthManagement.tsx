@@ -234,22 +234,34 @@ export const HealthManagement: React.FC = () => {
   const saveHealthMutation = useMutation({
     mutationFn: async (payload: any) => {
       if (selectedEvent) {
-        const { error } = await supabase.from('sanidade').update(payload).eq('id', selectedEvent.id);
+        const updatePayload = Array.isArray(payload) ? { ...payload[0] } : { ...payload };
+        delete updatePayload.produto_id;
+        const { error } = await supabase.from('sanidade').update(updatePayload).eq('id', selectedEvent.id);
         if (error) throw error;
       } else {
         const insertions = Array.isArray(payload)
           ? payload.map(item => ({ ...item, ...insertPayload }))
           : [{ ...payload, ...insertPayload }];
-        const { data: sanidadeData, error } = await supabase.from('sanidade').insert(insertions).select();
+          
+        const recordsToInsert = insertions.map(p => {
+          const copy = { ...p };
+          delete copy.produto_id;
+          return copy;
+        });
+        
+        const { data: sanidadeData, error } = await supabase.from('sanidade').insert(recordsToInsert).select();
         if (error) throw error;
 
         // Efeito Cascata: Inserir em sanidade_animais para o taxímetro individual
         if (sanidadeData && sanidadeData.length > 0) {
-          for (const sanidade of sanidadeData) {
+          for (let i = 0; i < sanidadeData.length; i++) {
+            const sanidade = sanidadeData[i];
+            const originalPayload = insertions[i];
+            const prodId = originalPayload.produto_id;
             // Obtem custo medio atual do produto, se houver
             let custoMedio = 0;
-            if (sanidade.produto_id) {
-              const { data: prod } = await supabase.from('produtos').select('custo_medio').eq('id', sanidade.produto_id).maybeSingle();
+            if (prodId) {
+              const { data: prod } = await supabase.from('produtos').select('custo_medio').eq('id', prodId).maybeSingle();
               if (prod) custoMedio = Number(prod.custo_medio || 0);
             }
 
@@ -282,7 +294,7 @@ export const HealthManagement: React.FC = () => {
                  fazenda_id: activeFarmId,
                  sanidade_id: sanidade.id,
                  animal_id: a.id,
-                 produto_id: sanidade.produto_id || null,
+                 produto_id: prodId || null,
                  quantidade_dose: parsedDose,
                  valor_unitario_aplicado: custoMedio,
                  valor_total_aplicado: totalDoseCost,
@@ -290,7 +302,8 @@ export const HealthManagement: React.FC = () => {
                  fase: fase
                }));
 
-               await supabase.from('sanidade_animais').insert(sanidadeAnimaisInserts);
+               const { error: saError } = await supabase.from('sanidade_animais').insert(sanidadeAnimaisInserts);
+               if (saError) console.error('Erro na cascata sanidade_animais:', saError);
             }
           }
         }
@@ -298,6 +311,9 @@ export const HealthManagement: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
+      // Invalida o dossie de TODOS os animais afetados (por animal_id ou lote)
+      queryClient.invalidateQueries({ queryKey: ['animal_costs'] });
+      queryClient.invalidateQueries({ queryKey: ['animal_weights'] });
       setIsModalOpen(false);
       toast.success(selectedEvent ? '✅ Registro sanitário atualizado!' : '✅ Registro sanitário cadastrado!');
     },
@@ -313,20 +329,27 @@ export const HealthManagement: React.FC = () => {
     }
 
     if (Array.isArray(data.produtos) && data.produtos.length > 0) {
-      const payload = data.produtos.map((p: any) => ({
-        tipo: data.tipo,
-        titulo: data.titulo,
-        animal_id: data.animal_id || null,
-        lote_id: data.lote_id || null,
-        data_manejo: data.data_manejo,
-        produto: p.produto,
-        dose: p.dose,
-        via_aplicacao: p.via_aplicacao,
-        local_aplicacao: p.local_aplicacao,
-        carencia_dias: parseInt(p.carencia_dias) || 0,
-        observacao: data.observacao,
-        status: data.status
-      }));
+      const payload = data.produtos.map((p: any) => {
+        const custoTotal = (Number(p.custo_total || 0) > 0)
+          ? Number(p.custo_total)
+          : (Number(p.custo_medio || 0) * (Number(p.quantidade || 1)));
+        return {
+          tipo: data.tipo,
+          titulo: data.titulo,
+          animal_id: data.animal_id || null,
+          lote_id: data.lote_id || null,
+          data_manejo: data.data_manejo,
+          produto: p.produto || p.nome,
+          produto_id: p.produto_id || null,
+          dose: p.dose || String(p.quantidade || ''),
+          via_aplicacao: p.via_aplicacao || null,
+          local_aplicacao: p.local_aplicacao || null,
+          carencia_dias: parseInt(p.carencia_dias) || 0,
+          custo: custoTotal,
+          observacao: data.observacao,
+          status: data.status
+        };
+      });
       saveHealthMutation.mutate(payload);
     } else {
       const payload = {
@@ -336,10 +359,12 @@ export const HealthManagement: React.FC = () => {
         lote_id: data.lote_id || null,
         data_manejo: data.data_manejo,
         produto: data.produto,
+        produto_id: data.produto_id || null,
         dose: data.dose,
         via_aplicacao: data.via_aplicacao,
         local_aplicacao: data.local_aplicacao,
         carencia_dias: parseInt(data.carencia_dias) || 0,
+        custo: parseFloat(String(data.custo || 0)) || 0,
         observacao: data.observacao,
         status: data.status
       };

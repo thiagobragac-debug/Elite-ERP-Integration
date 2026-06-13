@@ -35,8 +35,10 @@ import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const NutritionManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,7 +142,8 @@ export const NutritionManagement: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta dieta?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir esta dieta?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteDietMutation.mutate(id);
   };
 

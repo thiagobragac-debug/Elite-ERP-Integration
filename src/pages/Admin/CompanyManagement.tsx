@@ -55,9 +55,11 @@ import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const CompanyManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
+  const { confirm } = useConfirm();
   const { activeFarm, tenant, activeTenantId } = useTenant();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'companies' | 'farms') || 'companies';
@@ -279,7 +281,8 @@ export const CompanyManagement: React.FC = () => {
       }
     }
 
-    if (!confirm(`Tem certeza que deseja excluir esta ${type === 'company' ? 'empresa' : 'fazenda'}?`)) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: `Tem certeza que deseja excluir esta ${type === 'company' ? 'empresa' : 'fazenda'}?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     try {
       await supabase.from(type === 'company' ? 'unidades' : 'fazendas').delete().eq('id', id);
       fetchData();

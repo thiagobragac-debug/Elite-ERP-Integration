@@ -66,8 +66,10 @@ import { ToggleSwitch } from '../../components/UI/ToggleSwitch';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const UserManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, userProfile, refreshProfile } = useTenant();
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -566,7 +568,8 @@ export const UserManagement: React.FC = () => {
   };
 
   const handleDeleteProfile = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este perfil? Usuários vinculados a ele podem perder acesso.')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja excluir este perfil? Usuários vinculados a ele podem perder acesso.', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     
     const { error } = await supabase
       .from('perfis_usuario')

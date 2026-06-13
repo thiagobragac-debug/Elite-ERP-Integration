@@ -49,8 +49,10 @@ import { useViewMode } from '../../hooks/useViewMode';
 import './LotManagement.css';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const LotManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -197,7 +199,8 @@ export const LotManagement: React.FC = () => {
       }
     }
 
-    if (!confirm(`Deseja realmente ${actionText} o lote "${lot.nome}"?`)) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: `Deseja realmente ${actionText} o lote "${lot.nome}"?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
 
     // Optimistic update
     setLocalLots(prev => 
@@ -223,7 +226,8 @@ export const LotManagement: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este lote?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este lote?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     
     // Optimistic update
     setLocalLots(prev => prev.filter(l => l.id !== id));

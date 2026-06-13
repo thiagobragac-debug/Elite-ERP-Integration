@@ -46,8 +46,8 @@ export const MovementFilterModal: React.FC<MovementFilterModalProps> = ({
               <ArrowRightLeft size={20} />
             </div>
             <div>
-              <h3>Filtros de MovimentaÁ„o</h3>
-              <p>Rastreabilidade e an·lise de custos.</p>
+              <h3>Filtros de Movimenta√ß√£o</h3>
+              <p>Rastreabilidade e an√°lise de custos.</p>
             </div>
           </div>
           <button 
@@ -65,8 +65,8 @@ export const MovementFilterModal: React.FC<MovementFilterModalProps> = ({
               {[
                 { id: 'all', label: 'Todos os Movimentos', icon: Filter, color: 'hsl(var(--text-muted))' },
                 { id: 'in', label: 'Apenas Entradas', icon: ArrowDownLeft, color: '#10b981' },
-                { id: 'out', label: 'Apenas SaÌdas', icon: ArrowUpRight, color: '#ef4444' },
-                { id: 'transfer', label: 'TransferÍncias', icon: ArrowRightLeft, color: '#3b82f6' }
+                { id: 'out', label: 'Apenas Sa√≠das', icon: ArrowUpRight, color: '#ef4444' },
+                { id: 'transfer', label: 'Transfer√™ncias', icon: ArrowRightLeft, color: '#3b82f6' }
               ].map(t => (
                 <button 
                   key={t.id}
@@ -113,7 +113,7 @@ export const MovementFilterModal: React.FC<MovementFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PerÌodo da MovimentaÁ„o <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Per√≠odo da Movimenta√ß√£o <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <DateInput 
                 type="date" 

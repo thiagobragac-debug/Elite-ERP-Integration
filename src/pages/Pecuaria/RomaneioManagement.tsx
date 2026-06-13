@@ -32,6 +32,7 @@ import { RomaneioEmbarqueModal } from '../../components/Modals/RomaneioEmbarqueM
 import { RomaneioFilterModal } from './components/RomaneioFilterModal';
 import { RomaneioDetailsModal } from './components/RomaneioDetailsModal';
 import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -44,6 +45,7 @@ const getStatusColor = (status: string) => {
 };
 
 export default function RomaneioManagement() {
+  const { confirm } = useConfirm();
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -311,13 +313,13 @@ export default function RomaneioManagement() {
     }
   });
 
-  const handleCancelRomaneio = (row: any) => {
+  const handleCancelRomaneio = async (row: any) => {
     if (row.status === 'Cancelado') {
       toast.error('Este romaneio já está cancelado.');
       return;
     }
-    const confirm = window.confirm(`Deseja realmente cancelar o Romaneio ${row.codigo || row.id}?`);
-    if (confirm) {
+    const isConfirmed = await confirm({ title: 'Atenção', description: `Deseja realmente cancelar o Romaneio ${row.codigo || row.id}?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (isConfirmed) {
       cancelMutation.mutate(row.id);
     }
   };
@@ -395,28 +397,28 @@ export default function RomaneioManagement() {
       {/* ─── KPIs ──────────────────────────────────────────────────────────── */}
       <div className="next-gen-kpi-grid">
         <TauzeStatCard
-          title="Total de Embarques"
+          label="Total de Embarques"
           value={loading ? '...' : stats.totalCount.toString()}
           subtitle="Romaneios gerados no total"
           icon={Truck}
           color="#3b82f6"
         />
         <TauzeStatCard
-          title="Animais Despachados"
+          label="Animais Despachados"
           value={loading ? '...' : `${stats.totalAnimals} cbç`}
           subtitle="Soma de todos os lotes"
           icon={Activity}
           color="hsl(var(--brand))"
         />
         <TauzeStatCard
-          title="Receita Estimada"
+          label="Custo Estimado (Frete)"
           value={loading ? '...' : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(stats.totalValue)}
           subtitle="Faturamento estimado de vendas"
           icon={TrendingUp}
           color="#10b981"
         />
         <TauzeStatCard
-          title="Romaneios Pendentes"
+          label="Aproveitamento Lotes"
           value={loading ? '...' : stats.pendentesCount.toString()}
           subtitle="Aguardando liberação / NF-e"
           icon={Calendar}

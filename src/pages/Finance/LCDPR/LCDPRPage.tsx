@@ -21,6 +21,7 @@ import { SidePanel } from '../../../components/Layout/SidePanel';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../../components/Navigation/Breadcrumb';
 import { DateInput } from '../../../components/Form/DateInput';
+import { useConfirm } from '../../../contexts/ConfirmContext';
 
 
 const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -28,6 +29,7 @@ const ANO_ATUAL = new Date().getFullYear();
 
 export const LCDPRPage: React.FC = () => {
   const { tenant, activeFarm } = useTenant();
+  const { confirm } = useConfirm();
   const [anoCalendario, setAnoCalendario] = useState(ANO_ATUAL);
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as 'lancamentos'|'resumo'|'gerar') || 'lancamentos';
@@ -237,7 +239,8 @@ export const LCDPRPage: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Excluir este lançamento?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Excluir este lançamento?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteMutation.mutate(id);
   };
 
@@ -304,7 +307,8 @@ export const LCDPRPage: React.FC = () => {
   // â”€â”€â”€ Importar de Financeiro â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleImportFinanceiro = async () => {
     if (!tenant?.id) return;
-    if (!confirm(`Importar contas PAGAS de ${anoCalendario} do módulo Financeiro para o LCDPR?`)) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: `Importar contas PAGAS de ${anoCalendario} do módulo Financeiro para o LCDPR?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     importFinanceiroMutation.mutate();
   };
 

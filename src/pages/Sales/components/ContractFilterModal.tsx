@@ -47,7 +47,7 @@ export const ContractFilterModal: React.FC<ContractFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Contrato</h3>
-              <p>Monitoramento de Hedge e Exposição.</p>
+              <p>Monitoramento de Hedge e ExposiÃ§Ã£o.</p>
             </div>
           </div>
           <button 
@@ -60,7 +60,7 @@ export const ContractFilterModal: React.FC<ContractFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Modalidade de Preço <DollarSign size={14} /></label>
+            <label className="tauze-filter-label">Modalidade de PreÃ§o <DollarSign size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {['all', 'FIXO', 'A FIXAR'].map(t => (
                 <button 
@@ -85,11 +85,11 @@ export const ContractFilterModal: React.FC<ContractFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Progresso Físico Mínimo (%) <Activity size={14} /></label>
+            <label className="tauze-filter-label">Progresso FÃ­sico MÃ­nimo (%) <Activity size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#166534' }}>{filters.minProgress}%</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Execução Física</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>ExecuÃ§Ã£o FÃ­sica</span>
               </div>
               <input 
                 type="range" 
@@ -134,7 +134,7 @@ export const ContractFilterModal: React.FC<ContractFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Período de Vigência <Calendar size={14} /></label>
+            <label className="tauze-filter-label">PerÃ­odo de VigÃªncia <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <DateInput 
                 type="date" 

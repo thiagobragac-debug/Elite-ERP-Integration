@@ -43,8 +43,10 @@ import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const ConfinementManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload, isGlobalMode } = useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -291,7 +293,8 @@ export const ConfinementManagement: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este curral?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este curral?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteConfinementMutation.mutate(id);
   };
 

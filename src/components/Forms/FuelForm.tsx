@@ -34,9 +34,10 @@ interface FuelFormProps {
 
 export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm } = useTenant();
-  const [formData, setFormData] = usePersistentState('FuelForm_formData', {
+  const [formData, setFormData] = useState({
     machine_id: '',
-    meter_value: '', 
+    date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
+    meter_value: '',
     responsible: ''
   });
 
@@ -51,6 +52,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
 
     if (initialData) { setFormData({
         machine_id: initialData.maquina_id || '',
+        date: initialData.data_abastecimento || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         meter_value: initialData.valor_medidor?.toString() || '',
         responsible: initialData.responsavel || ''
       });

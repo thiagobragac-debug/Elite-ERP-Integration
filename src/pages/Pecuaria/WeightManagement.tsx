@@ -35,6 +35,7 @@ import { WeightFilterModal } from './components/WeightFilterModal';
 import { BatchWeightModal } from '../../components/Modals/BatchWeightModal';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 
 // Brazilian Cattle Market Lot Performance Dashboard
@@ -296,6 +297,7 @@ const LotPerformanceView: React.FC<{ weighings: any[] }> = ({ weighings }) => {
 };
 
 export const WeightManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -553,7 +555,8 @@ export const WeightManagement: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta pesagem?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir esta pesagem?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     try {
       await deleteWeightMutation.mutateAsync(id);
     } catch (err: any) {

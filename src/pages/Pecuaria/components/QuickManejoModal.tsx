@@ -1,10 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Scale, HeartPulse, Calendar, FileText, Hash, Stethoscope, Activity, AlertCircle, Sparkles } from 'lucide-react';
 import { SidePanel } from '../../../components/Layout/SidePanel';
 import { supabase } from '../../../lib/supabase';
 import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
 import { DateInput } from '../../../components/Form/DateInput';
-
 
 interface QuickManejoModalProps {
   isOpen: boolean;
@@ -42,6 +41,8 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
     data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     titulo: '',
     produto: '',
+    produto_id: '' as string,
+    produto_custo_medio: 0 as number,
     dose: '',
     via_aplicacao: 'IM',
     local_aplicacao: '',
@@ -49,6 +50,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
     observacao: '',
     status: 'REALIZADO'
   });
+
+  // Products from inventory
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
 
   // Reset forms on open/change animal
   useEffect(() => {
@@ -64,6 +68,8 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         titulo: '',
         produto: '',
+        produto_id: '',
+        produto_custo_medio: 0,
         dose: '',
         via_aplicacao: 'IM',
         local_aplicacao: '',
@@ -71,8 +77,19 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         observacao: '',
         status: 'REALIZADO'
       });
+
+      // Fetch products from inventory (storable, with custo_medio)
+      supabase
+        .from('produtos')
+        .select('id, nome, unidade, custo_medio')
+        .eq('tenant_id', activeTenantId)
+        .eq('is_storable', true)
+        .order('nome')
+        .then(({ data }) => {
+          if (data) setAvailableProducts(data);
+        });
     }
-  }, [isOpen, animal]);
+  }, [isOpen, animal, activeTenantId]);
 
   if (!isOpen || !animal) return null;
 
@@ -106,7 +123,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       const { error } = await supabase.from('pesagens').insert([payload]);
       if (error) throw error;
 
-      // Update animal's current weight as well (best practice to keep animal record synchronized)
+      // Update animal's current weight
       await supabase.from('animais').update({
         peso_atual: parseFloat(weightData.peso)
       }).eq('id', animal.id);
@@ -126,8 +143,8 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       setErrorMsg('Por favor, informe o título/descrição do manejo.');
       return;
     }
-    if (!healthData.produto) {
-      setErrorMsg('Por favor, informe o produto utilizado.');
+    if (!healthData.produto_id) {
+      setErrorMsg('Por favor, selecione o produto do estoque.');
       return;
     }
 
@@ -135,7 +152,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const payload = {
+      const sanidadePayload = {
         animal_id: animal.id,
         lote_id: animal.lote_id || null,
         tipo: healthData.tipo,
@@ -151,8 +168,37 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
         ...insertPayload
       };
 
-      const { error } = await supabase.from('sanidade').insert([payload]);
+      const { data: sanidadeData, error } = await supabase.from('sanidade').insert([sanidadePayload]).select();
       if (error) throw error;
+
+      // Cascata: gravar em sanidade_animais com custo real do estoque
+      if (sanidadeData && sanidadeData.length > 0) {
+        // Busca custo_medio atualizado do produto
+        const { data: prod } = await supabase
+          .from('produtos')
+          .select('custo_medio')
+          .eq('id', healthData.produto_id)
+          .maybeSingle();
+
+        const custoMedio = Number(prod?.custo_medio || healthData.produto_custo_medio || 0);
+        const parsedDose = Number(String(healthData.dose || '1').replace(/[^0-9.]/g, '')) || 1;
+        const totalCost = parsedDose * custoMedio;
+
+        const { error: saError } = await supabase.from('sanidade_animais').insert([{
+          tenant_id: activeTenantId,
+          fazenda_id: activeFarmId,
+          sanidade_id: sanidadeData[0].id,
+          animal_id: animal.id,
+          produto_id: healthData.produto_id,
+          quantidade_dose: parsedDose,
+          valor_unitario_aplicado: custoMedio,
+          valor_total_aplicado: totalCost,
+          data_aplicacao: healthData.data_manejo,
+          fase: 'RECRIA'
+        }]);
+
+        if (saError) console.error('Erro na cascata sanidade_animais:', saError);
+      }
 
       onSuccess();
       onClose();
@@ -176,10 +222,10 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
       submitLabel={activeTab === 'PESO' ? 'Registrar Pesagem' : 'Registrar Manejo Sanitário'}
       size="medium"
     >
-      {/* Segmented Control wrapper that spans full width */}
+      {/* Segmented Control */}
       <div className="tauze-field-group" style={{ gridColumn: 'span 2', marginBottom: '8px' }}>
         <div className="tauze-segmented-control">
-          <button 
+          <button
             type="button"
             className={`segment-item ${activeTab === 'PESO' ? 'active' : ''}`}
             onClick={() => { setActiveTab('PESO'); setErrorMsg(null); }}
@@ -188,7 +234,7 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
             <Scale size={16} />
             Pesagem
           </button>
-          <button 
+          <button
             type="button"
             className={`segment-item ${activeTab === 'SANIDADE' ? 'active' : ''}`}
             onClick={() => { setActiveTab('SANIDADE'); setErrorMsg(null); }}
@@ -225,11 +271,11 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
           <div className="tauze-field-group">
             <label className="tauze-label"><Scale size={14} /> Peso Atual (kg)</label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input 
+              <input
                 className="tauze-input"
-                type="number" 
+                type="number"
                 step="0.01"
-                placeholder="0.00" 
+                placeholder="0.00"
                 value={weightData.peso}
                 onChange={e => setWeightData({ ...weightData, peso: e.target.value })}
                 required
@@ -253,9 +299,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data da Pesagem</label>
-            <DateInput 
+            <DateInput
               className="tauze-input"
-              type="date" 
+              type="date"
               value={weightData.data_pesagem}
               onChange={e => setWeightData({ ...weightData, data_pesagem: e.target.value })}
               required
@@ -265,9 +311,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
             <label className="tauze-label"><FileText size={14} /> Observação</label>
-            <textarea 
+            <textarea
               className="tauze-input"
-              placeholder="Ex: Animal calmo, pesagem de rotina..." 
+              placeholder="Ex: Animal calmo, pesagem de rotina..."
               value={weightData.observacao}
               onChange={e => setWeightData({ ...weightData, observacao: e.target.value })}
               disabled={isSubmitting}
@@ -294,9 +340,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Calendar size={14} /> Data do Manejo</label>
-            <DateInput 
+            <DateInput
               className="tauze-input"
-              type="date" 
+              type="date"
               value={healthData.data_manejo}
               onChange={e => setHealthData({ ...healthData, data_manejo: e.target.value })}
               required
@@ -306,10 +352,10 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
             <label className="tauze-label"><FileText size={14} /> Título / Descrição</label>
-            <input 
+            <input
               className="tauze-input"
-              type="text" 
-              placeholder="Ex: Vacinação contra Febre Aftosa" 
+              type="text"
+              placeholder="Ex: Vacinação contra Febre Aftosa"
               value={healthData.titulo}
               onChange={e => setHealthData({ ...healthData, titulo: e.target.value })}
               required
@@ -317,25 +363,41 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
             />
           </div>
 
-          <div className="tauze-field-group">
-            <label className="tauze-label"><Sparkles size={14} /> Fármaco / Produto</label>
-            <input 
-              className="tauze-input"
-              type="text" 
-              placeholder="Ex: Aftovax" 
-              value={healthData.produto}
-              onChange={e => setHealthData({ ...healthData, produto: e.target.value })}
-              required
+          <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
+            <label className="tauze-label"><Sparkles size={14} /> Fármaco / Produto (Estoque)</label>
+            <SearchableSelect
+              value={healthData.produto_id}
+              onChange={(val: string) => {
+                const prod = availableProducts.find(p => p.id === val);
+                if (prod) {
+                  setHealthData({
+                    ...healthData,
+                    produto_id: prod.id,
+                    produto: prod.nome,
+                    produto_custo_medio: Number(prod.custo_medio || 0)
+                  });
+                }
+              }}
+              options={availableProducts.map(p => ({
+                value: p.id,
+                label: `${p.nome} (${p.unidade || 'UN'}) — R$ ${Number(p.custo_medio || 0).toFixed(2)}/un`
+              }))}
+              placeholder="Selecione o produto do estoque..."
               disabled={isSubmitting}
             />
+            {healthData.produto_custo_medio > 0 && (
+              <div style={{ fontSize: '10px', color: '#10b981', fontWeight: 700, marginTop: '4px' }}>
+                ✅ Custo unitário: R$ {Number(healthData.produto_custo_medio).toFixed(2)}
+              </div>
+            )}
           </div>
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Hash size={14} /> Dose</label>
-            <input 
+            <input
               className="tauze-input"
-              type="text" 
-              placeholder="Ex: 2 ml" 
+              type="text"
+              placeholder="Ex: 2 ml"
               value={healthData.dose}
               onChange={e => setHealthData({ ...healthData, dose: e.target.value })}
               disabled={isSubmitting}
@@ -360,11 +422,11 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group">
             <label className="tauze-label"><AlertCircle size={14} /> Carência (Dias)</label>
-            <input 
+            <input
               className="tauze-input"
-              type="number" 
+              type="number"
               min="0"
-              placeholder="0" 
+              placeholder="0"
               value={healthData.carencia_dias}
               onChange={e => setHealthData({ ...healthData, carencia_dias: e.target.value })}
               disabled={isSubmitting}
@@ -373,10 +435,10 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group">
             <label className="tauze-label"><Hash size={14} /> Local de Aplicação</label>
-            <input 
+            <input
               className="tauze-input"
-              type="text" 
-              placeholder="Ex: Tábua do pescoço" 
+              type="text"
+              placeholder="Ex: Tábua do pescoço"
               value={healthData.local_aplicacao}
               onChange={e => setHealthData({ ...healthData, local_aplicacao: e.target.value })}
               disabled={isSubmitting}
@@ -398,9 +460,9 @@ export const QuickManejoModal: React.FC<QuickManejoModalProps> = ({
 
           <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
             <label className="tauze-label"><FileText size={14} /> Observações</label>
-            <textarea 
+            <textarea
               className="tauze-input"
-              placeholder="Ex: Aplicação tranquila..." 
+              placeholder="Ex: Aplicação tranquila..."
               value={healthData.observacao}
               onChange={e => setHealthData({ ...healthData, observacao: e.target.value })}
               disabled={isSubmitting}

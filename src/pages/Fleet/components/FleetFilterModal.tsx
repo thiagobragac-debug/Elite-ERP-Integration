@@ -22,8 +22,8 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'active', label: 'Em Campo', icon: Truck },
-    { id: 'maintenance', label: 'Em Revis„o', icon: Wrench },
-    { id: 'stopped', label: 'CrÌtico', icon: AlertCircle }
+    { id: 'maintenance', label: 'Em Revis√£o', icon: Wrench },
+    { id: 'stopped', label: 'Cr√≠tico', icon: AlertCircle }
   ];
 
   const toggleMarca = (marca: string) => {
@@ -60,7 +60,7 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Frota</h3>
-              <p>Refine a visualizaÁ„o do seu maquin·rio.</p>
+              <p>Refine a visualiza√ß√£o do seu maquin√°rio.</p>
             </div>
           </div>
           <button 
@@ -126,7 +126,7 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#0f172a' }}>{filters.maxUsage}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Limite M·ximo</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Limite M√°ximo</span>
               </div>
               <input 
                 type="range" 
@@ -141,7 +141,7 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Ano de FabricaÁ„o <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Ano de Fabrica√ß√£o <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <select 
                 className="tauze-input tauze-select"
@@ -159,7 +159,7 @@ export const FleetFilterModal: React.FC<FleetFilterModalProps> = ({
                 value={filters.maxYear || ''}
                 onChange={e => setFilters({ ...filters, maxYear: e.target.value })}
               >
-                <option value="">AtÈ (Ano)</option>
+                <option value="">At√© (Ano)</option>
                 {[...Array(30)].map((_, i) => {
                   const y = new Date().getFullYear() - i;
                   return <option key={y} value={y}>{y}</option>;

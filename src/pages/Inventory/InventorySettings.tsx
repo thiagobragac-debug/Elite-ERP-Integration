@@ -10,6 +10,7 @@ import { ModernTable } from '../../components/DataTable/ModernTable';
 import { SidePanel } from '../../components/Layout/SidePanel';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 interface NCM {
   id: string;
@@ -22,6 +23,7 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
   const { tenant } = useTenant();
   const queryClient = useQueryClient();
   
+  const { confirm } = useConfirm();
   const [isModalOpen, setIsModalOpen] = usePersistentState('InventorySettings_isModalOpen', false);
   const [editItem, setEditItem] = useState<NCM | null>(null);
   
@@ -118,8 +120,9 @@ export const NcmSettingsTab: React.FC<{ searchTerm: string, triggerCreate: numbe
     saveNcmMutation.mutate(formData);
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('Deseja realmente excluir este NCM?')) return;
+  const handleDelete = async (id: string) => {
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja realmente excluir este NCM?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteNcmMutation.mutate(id);
   };
 

@@ -9,6 +9,7 @@ import { Edit3, Shield, Key, FilePlus, Eye, Search, AlertTriangle, X, UploadClou
 import toast from 'react-hot-toast';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import { SidePanel } from '../../components/Layout/SidePanel';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 interface CertificateSettingsTabProps {
   searchTerm: string;
@@ -20,6 +21,7 @@ const FORM_SESSION_KEY = 'cert_form_draft';
 export const CertificateSettingsTab: React.FC<CertificateSettingsTabProps> = ({ searchTerm, triggerCreate }) => {
   const { tenant, activeTenantId } = useTenant();
   const queryClient = useQueryClient();
+  const { confirm } = useConfirm();
   
   const [isModalOpen, setIsModalOpen] = useState(() => {
     // Restaura o modal aberto caso o usuário tenha trocado de janela com ele aberto
@@ -164,8 +166,9 @@ export const CertificateSettingsTab: React.FC<CertificateSettingsTabProps> = ({ 
     });
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm('Deseja realmente excluir este certificado? Ele não poderá mais assinar NF-e ou realizar buscas.')) return;
+  const handleDelete = async (id: string) => {
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja realmente excluir este certificado? Ele não poderá mais assinar NF-e ou realizar buscas.', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteMutation.mutate(id);
   };
 

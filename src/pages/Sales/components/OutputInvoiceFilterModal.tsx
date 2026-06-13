@@ -53,7 +53,7 @@ export const OutputInvoiceFilterModal: React.FC<OutputInvoiceFilterModalProps> =
               <FileText size={20} />
             </div>
             <div>
-              <h3>Filtros Fiscais (SaÌda)</h3>
+              <h3>Filtros Fiscais (Sa√≠da)</h3>
               <p>Auditoria de faturamento e impostos.</p>
             </div>
           </div>
@@ -115,7 +115,7 @@ export const OutputInvoiceFilterModal: React.FC<OutputInvoiceFilterModalProps> =
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">ConciliaÁ„o Financeira <Activity size={14} /></label>
+            <label className="tauze-filter-label">Concilia√ß√£o Financeira <Activity size={14} /></label>
             <button 
               className={`tauze-tag-chip ${filters.onlyConciliated ? 'active' : ''}`}
               onClick={() => setFilters({ ...filters, onlyConciliated: !filters.onlyConciliated })}
@@ -132,7 +132,7 @@ export const OutputInvoiceFilterModal: React.FC<OutputInvoiceFilterModalProps> =
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PerÌodo de Emiss„o <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Per√≠odo de Emiss√£o <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <DateInput 
                 type="date" 

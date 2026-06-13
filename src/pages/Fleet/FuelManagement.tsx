@@ -58,8 +58,10 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { FuelFilterModal } from './components/FuelFilterModal';
 import './FuelManagement.css';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const FuelManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
@@ -251,7 +253,8 @@ export const FuelManagement: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este abastecimento?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este abastecimento?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteMutation.mutate(id);
   };
 

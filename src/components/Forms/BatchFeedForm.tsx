@@ -19,17 +19,6 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
   const { activeFarm } = useTenant();
   
   const [dataTrato, setDataTrato] = usePersistentState('BatchFeedForm_data', 
-
-interface BatchFeedFormProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (data: any[]) => void;
-}
-
-export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, onSubmit }) => {
-  const { activeFarm } = useTenant();
-  
-  const [dataTrato, setDataTrato] = usePersistentState('BatchFeedForm_data', 
     new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
   );
   const [dietaId, setDietaId] = usePersistentState('BatchFeedForm_dieta', '');

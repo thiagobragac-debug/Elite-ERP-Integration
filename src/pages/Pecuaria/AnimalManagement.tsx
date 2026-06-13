@@ -38,9 +38,11 @@ import { RomaneioEmbarqueModal } from '../../components/Modals/RomaneioEmbarqueM
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 
 export const AnimalManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -185,7 +187,8 @@ export const AnimalManagement: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir este animal?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja excluir este animal?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteAnimalMutation.mutate(id);
   };
 
@@ -672,7 +675,6 @@ export const AnimalManagement: React.FC = () => {
         onSubmit={handleSubmit}
         initialData={selectedAnimal}
         loading={isSubmitting}
-        actionId={formActionId}
       />
 
       <QuickManejoModal

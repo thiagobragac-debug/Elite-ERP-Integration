@@ -76,25 +76,64 @@ export const AnimalDetail: React.FC = () => {
     enabled: !!id
   });
 
-  // Fetch financial costs
+  // Fetch all historical data for the dossier
   const { data: financialData, isLoading: financialLoading } = useQuery({
     queryKey: ['animal_costs', id],
     queryFn: async () => {
-      const { data: costsData, error: err1 } = await supabase
+      // 1) Nutrição
+      const costsRes = await supabase
         .from('custos_animal')
-        .select('valor_total_aplicado, produto_id, produtos(nome)')
+        .select('valor_total_aplicado, produto_id, data_consumo, quantidade_consumida, produtos(nome)')
         .eq('animal_id', id);
-      
-      const { data: healthData, error: err2 } = await supabase
-        .from('sanidade_animais')
-        .select('valor_total_aplicado, produto_id, produtos(nome)')
-        .eq('animal_id', id);
+      if (costsRes.error) console.error('custos_animal erro:', costsRes.error);
 
-      if (err1 || err2) console.error('Erro ao buscar custos', err1, err2);
+      // 2) Sanidade - busca sanidade_animais e depois sanidade separadamente para evitar falha no join
+      const saRes = await supabase
+        .from('sanidade_animais')
+        .select('id, valor_total_aplicado, produto_id, data_aplicacao, quantidade_dose, sanidade_id, produtos(nome)')
+        .eq('animal_id', id);
+      if (saRes.error) console.error('sanidade_animais erro:', saRes.error);
+
+      // busca dados de sanidade (titulo, tipo, carencia, status) para cada sanidade_id único
+      let healthData: any[] = [];
+      if (saRes.data && saRes.data.length > 0) {
+        const sanidadeIds = [...new Set(saRes.data.map((r: any) => r.sanidade_id).filter(Boolean))];
+        const { data: sanidadeRows, error: sanErr } = await supabase
+          .from('sanidade')
+          .select('id, titulo, tipo, carencia_dias, status')
+          .in('id', sanidadeIds);
+        if (sanErr) console.error('sanidade erro:', sanErr);
+
+        const sanidadeMap: Record<string, any> = {};
+        (sanidadeRows || []).forEach((s: any) => { sanidadeMap[s.id] = s; });
+
+        healthData = saRes.data.map((sa: any) => ({
+          ...sa,
+          sanidade: sanidadeMap[sa.sanidade_id] || null
+        }));
+      }
+
+      // 3) Reprodução
+      const reproRes = await supabase
+        .from('eventos_reprodutivos')
+        .select('id, tipo_evento, data_evento, resultado, observacoes, status')
+        .eq('animal_id', id)
+        .order('data_evento', { ascending: false });
+      if (reproRes.error) console.error('eventos_reprodutivos erro:', reproRes.error);
+
+      // 4) Movimentações de lote
+      const moveRes = await supabase
+        .from('historico_movimentacao_animal')
+        .select('id, data_movimentacao, motivo, lote_origem_id, lote_destino_id, lotes_origem:lote_origem_id(nome), lotes_destino:lote_destino_id(nome)')
+        .eq('animal_id', id)
+        .order('data_movimentacao', { ascending: false });
+      if (moveRes.error) console.error('historico_movimentacao erro:', moveRes.error);
 
       return {
-        costs: costsData || [],
-        health: healthData || []
+        costs: costsRes.data || [],
+        health: healthData,
+        reproduction: reproRes.data || [],
+        lotMovements: moveRes.data || []
       };
     },
     enabled: !!id
@@ -129,15 +168,60 @@ export const AnimalDetail: React.FC = () => {
 
   const events = React.useMemo(() => {
     if (!animal) return [];
+
+    // Pesagens
+    const weightEvents = weights.map((w: any) => ({
+      date: w.data_pesagem,
+      type: 'PESAGEM',
+      category: 'weight',
+      desc: `Pesagem: ${w.peso}kg${w.observacao ? ` — ${w.observacao}` : ''}`
+    }));
+
+    // Sanidade (via sanidade_animais com join em sanidade)
+    const sanidadeEvents = (financialData?.health || []).map((sa: any) => ({
+      date: sa.data_aplicacao,
+      type: (sa.sanidade?.tipo || 'SANIDADE').toUpperCase(),
+      category: 'sanidade',
+      desc: `${sa.sanidade?.titulo || sa.produtos?.nome || 'Manejo Sanitário'}${
+        sa.quantidade_dose > 0 ? ` — Dose: ${sa.quantidade_dose}` : ''}${
+        sa.sanidade?.carencia_dias > 0 ? ` (Carência: ${sa.sanidade.carencia_dias}d)` : ''}`,
+      custo: Number(sa.valor_total_aplicado || 0)
+    }));
+
+    // Nutrição / Custeio
+    const nutricaoEvents = (financialData?.costs || []).map((c: any) => ({
+      date: c.data_consumo,
+      type: 'NUTRIÇÃO',
+      category: 'nutricao',
+      desc: `Trato: ${c.produtos?.nome || 'Insumo'} — ${c.quantidade_consumida || 0} un — ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(c.valor_total_aplicado || 0))}`,
+      custo: Number(c.valor_total_aplicado || 0)
+    }));
+
+    // Reprodução
+    const reproEvents = (financialData?.reproduction || []).map((r: any) => ({
+      date: r.data_evento,
+      type: r.tipo_evento?.toUpperCase() || 'REPROD.',
+      category: 'reproducao',
+      desc: `${r.tipo_evento || 'Evento Reprodutivo'}${r.resultado ? ` — Resultado: ${r.resultado}` : ''}${r.observacoes ? ` — ${r.observacoes}` : ''}`
+    }));
+
+    // Movimentações de lote
+    const moveEvents = (financialData?.lotMovements || []).map((m: any) => ({
+      date: m.data_movimentacao,
+      type: 'TRANSFERÊNCIA',
+      category: 'lote',
+      desc: `Movimentação de lote${m.lotes_origem?.nome ? ` de ${m.lotes_origem.nome}` : ''}${m.lotes_destino?.nome ? ` para ${m.lotes_destino.nome}` : ''}${m.motivo ? ` — ${m.motivo}` : ''}`
+    }));
+
     return [
-      { date: animal.created_at, type: 'ENTRADA', desc: 'Entrada na fazenda (Compra/Nascimento)' },
-      ...weights.map((w: any) => ({ 
-        date: w.data_pesagem, 
-        type: 'PESAGEM', 
-        desc: `Pesagem realizada: ${w.peso}kg` 
-      }))
+      { date: animal.created_at, type: 'ENTRADA', category: 'entrada', desc: 'Entrada na fazenda (Compra/Nascimento)' },
+      ...weightEvents,
+      ...sanidadeEvents,
+      ...nutricaoEvents,
+      ...reproEvents,
+      ...moveEvents
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [animal, weights]);
+  }, [animal, weights, financialData]);
 
   const editAnimalMutation = useMutation({
     mutationFn: async (payload: any) => {
@@ -585,161 +669,189 @@ export const AnimalDetail: React.FC = () => {
         />
       </div>
 
-      <div className="detail-grid">
-        <section className="analytics-canvas">
-          <div className="panel-header">
-            <h3>Histórico de Peso (Curva de Crescimento)</h3>
-            <div className="panel-actions">
-              <button className="text-btn">Ciclo Completo</button>
-            </div>
-          </div>
-          <div className="chart-container-tauze">
-            {weightHistory.length > 0 ? (
-              <TauzeMainChart 
-                data={weightHistory} 
-                color="#3b82f6" 
-                height="100%"
-                unit="kg"
-              />
-
-            ) : (
-              <div className="empty-chart-placeholder">
-                <p>Nenhuma pesagem registrada para este animal.</p>
+      <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '16px', alignItems: 'start', marginTop: '16px' }}>
+        
+        {/* COLUNA ESQUERDA: Gráfico e Extrato */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <section className="analytics-canvas" style={{ background: 'hsl(var(--bg-card))', borderRadius: '24px', border: '1px solid hsl(var(--border))', display: 'flex', flexDirection: 'column', height: '380px' }}>
+            <div className="panel-header">
+              <h3>Histórico de Peso (Curva de Crescimento)</h3>
+              <div className="panel-actions">
+                <button className="text-btn">Ciclo Completo</button>
               </div>
-            )}
-          </div>
-        </section>
+            </div>
+            <div className="chart-container-tauze">
+              {weightHistory.length > 0 ? (
+                <TauzeMainChart 
+                  data={weightHistory} 
+                  color="#3b82f6" 
+                  height="100%"
+                  unit="kg"
+                />
 
-        <section className="info-panel">
-          <div className="panel-header">
-            <h3>Dados Cadastrais</h3>
-            <Tag size={18} />
-          </div>
-          <div className="info-list">
-            <div className="info-item">
-              <label>Data de Nascimento</label>
-              <span>{new Date(animal.data_nascimento).toLocaleDateString()}</span>
-            </div>
-            <div className="info-item">
-              <label>Raça</label>
-              <span>{animal.raca}</span>
-            </div>
-            <div className="info-item">
-              <label>Pelagem</label>
-              <span>{animal.pelagem || 'Não informada'}</span>
-            </div>
-            <div className="info-item">
-              <label>Origem</label>
-              <span>{animal.origem || 'Própria'}</span>
-            </div>
-            <div className="info-item">
-              <label>Pai (Brinco)</label>
-              <span>{animal.pai_brinco || '-'}</span>
-            </div>
-            <div className="info-item">
-              <label>Mãe (Brinco)</label>
-              <span>{animal.mae_brinco || '-'}</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="timeline-panel">
-          <div className="panel-header">
-            <h3>Linha do Tempo (Manejos & Eventos)</h3>
-            <History size={18} />
-          </div>
-          <div className="timeline-list">
-            {events.map((event, i) => (
-              <div key={i} className="timeline-event">
-                <div className="event-dot"></div>
-                <div className="event-content">
-                  <div className="event-header">
-                    <span className="event-type">{event.type}</span>
-                    <span className="event-date">{new Date(event.date).toLocaleDateString()}</span>
-                  </div>
-                  <p className="event-desc">{event.desc}</p>
+              ) : (
+                <div className="empty-chart-placeholder">
+                  <p>Nenhuma pesagem registrada para este animal.</p>
                 </div>
+              )}
+            </div>
+          </section>
+
+          <section className="info-panel" style={{ background: 'linear-gradient(145deg, #1e293b, #0f172a)' }}>
+            <div className="panel-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+              <h3 style={{ color: '#fff' }}>Extrato Financeiro (Custeio Diário)</h3>
+              <DollarSign size={18} color="#10b981" />
+            </div>
+            <div className="info-list" style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+              <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Aquisição</label>
+                <span style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>
+                  {formatCurrency(animal.valor_compra || 0)}
+                </span>
               </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="info-panel" style={{ background: 'linear-gradient(145deg, #1e293b, #0f172a)' }}>
-          <div className="panel-header" style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-            <h3 style={{ color: '#fff' }}>Extrato Financeiro (Custeio Diário)</h3>
-            <DollarSign size={18} color="#10b981" />
-          </div>
-          <div className="info-list" style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px' }}>
-            <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Aquisição</label>
-              <span style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>
-                {formatCurrency(animal.valor_compra || 0)}
-              </span>
-            </div>
-            <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Nutrição</label>
-              <span style={{ color: '#fbbf24', fontSize: '15px', fontWeight: 700 }}>
-                {formatCurrency(financialData?.costs?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)}
-              </span>
-            </div>
-            <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Sanidade</label>
-              <span style={{ color: '#f87171', fontSize: '15px', fontWeight: 700 }}>
-                {formatCurrency(financialData?.health?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)}
-              </span>
-            </div>
-            
-            <div className="info-item" style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
-              <label style={{ color: '#fca5a5', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Custo Total (Saída)</label>
-              <span style={{ color: '#ef4444', fontSize: '16px', fontWeight: 900, textShadow: '0 2px 10px rgba(239,68,68,0.2)' }}>
-                {formatCurrency(
-                  (animal.valor_compra || 0) + 
-                  (financialData?.costs?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0) + 
-                  (financialData?.health?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)
+              <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Nutrição</label>
+                <span style={{ color: '#fbbf24', fontSize: '15px', fontWeight: 700 }}>
+                  {formatCurrency(financialData?.costs?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)}
+                </span>
+              </div>
+              <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Sanidade</label>
+                <span style={{ color: '#f87171', fontSize: '15px', fontWeight: 700 }}>
+                  {formatCurrency((financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0))}
+                </span>
+                {(financialData?.health || []).some((h: any) => Number(h.valor_total_aplicado || 0) === 0) && (
+                  <div style={{ fontSize: '9px', color: '#f59e0b', marginTop: '2px', fontWeight: 700 }}>⚠️ Custeio pendente</div>
                 )}
-              </span>
-            </div>
-            
-            <div className="info-item" style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
-              <label style={{ color: '#93c5fd', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Receita / Venda</label>
-              <span style={{ color: '#60a5fa', fontSize: '16px', fontWeight: 900 }}>
-                {formatCurrency(animal.valor_venda || 0)}
-              </span>
-            </div>
+              </div>
+              
+              <div className="info-item" style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
+                <label style={{ color: '#fca5a5', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Custo Total (Saída)</label>
+                <span style={{ color: '#ef4444', fontSize: '16px', fontWeight: 900, textShadow: '0 2px 10px rgba(239,68,68,0.2)' }}>
+                  {formatCurrency((() => {
+                    const custoNutricao = (financialData?.costs || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
+                    const custoSanidade = (financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
+                    return (animal.valor_compra || 0) + custoNutricao + custoSanidade;
+                  })())}
+                </span>
+              </div>
+              
+              <div className="info-item" style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
+                <label style={{ color: '#93c5fd', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Receita / Venda</label>
+                <span style={{ color: '#60a5fa', fontSize: '16px', fontWeight: 900 }}>
+                  {formatCurrency(animal.valor_venda || 0)}
+                </span>
+              </div>
 
-            <div className="info-item" style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
-              <label style={{ color: '#6ee7b7', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Resultado (Lucro)</label>
-              {(() => {
-                const custoTotal = (animal.valor_compra || 0) + 
-                  (financialData?.costs?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0) + 
-                  (financialData?.health?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0);
-                const receita = animal.valor_venda || 0;
-                const lucro = receita - custoTotal;
-                const isLucro = lucro >= 0;
+              <div className="info-item" style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
+                <label style={{ color: '#6ee7b7', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Resultado (Lucro)</label>
+                {(() => {
+                  const custoNutricao = (financialData?.costs || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
+                  const custoSanidade = (financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
+                  const custoTotal = (animal.valor_compra || 0) + custoNutricao + custoSanidade;
+                  const receita = animal.valor_venda || 0;
+                  const lucro = receita - custoTotal;
+                  const isLucro = lucro >= 0;
+                  return (
+                    <span style={{ 
+                      color: isLucro ? '#10b981' : '#ef4444', 
+                      fontSize: '18px', 
+                      fontWeight: 900, 
+                      textShadow: isLucro ? '0 2px 10px rgba(16,185,129,0.3)' : '0 2px 10px rgba(239,68,68,0.3)' 
+                    }}>
+                      {isLucro ? '+' : ''}{formatCurrency(lucro)}
+                    </span>
+                  );
+                })()}
+              </div>
+              
+              <div style={{ gridColumn: 'span 3' }}>
+                <button 
+                  className="glass-btn secondary" 
+                  onClick={() => setIsExtratoModalOpen(true)} 
+                  style={{ width: '100%', marginTop: '4px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}
+                >
+                  <FileText size={16} /> Ver Detalhamento Completo
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* COLUNA DIREITA: Dados e Timeline */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: 'calc(380px + 300px)' }}>
+          <section className="info-panel">
+            <div className="panel-header">
+              <h3>Dados Cadastrais</h3>
+              <Tag size={18} />
+            </div>
+            <div className="info-list">
+              <div className="info-item">
+                <label>Data de Nascimento</label>
+                <span>{new Date(animal.data_nascimento).toLocaleDateString()}</span>
+              </div>
+              <div className="info-item">
+                <label>Raça</label>
+                <span>{animal.raca}</span>
+              </div>
+              <div className="info-item">
+                <label>Origem</label>
+                <span>{animal.origem || 'Própria'}</span>
+              </div>
+              <div className="info-item">
+                <label>Pai (Brinco)</label>
+                <span>{animal.pai_brinco || '-'}</span>
+              </div>
+              <div className="info-item">
+                <label>Mãe (Brinco)</label>
+                <span>{animal.mae_brinco || '-'}</span>
+              </div>
+            </div>
+          </section>
+
+          <section className="timeline-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: '300px' }}>
+            <div className="panel-header" style={{ flexShrink: 0 }}>
+              <h3>Linha do Tempo (Manejos)</h3>
+              <History size={18} />
+            </div>
+            <div className="timeline-list" style={{ flex: 1, overflowY: 'auto', paddingRight: '12px', margin: '16px 0 0 0', paddingBottom: '16px', maxHeight: 'none' }}>
+              {events.length === 0 && (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'hsl(var(--text-muted))', fontSize: '13px' }}>
+                  Nenhum evento registrado.
+                </div>
+              )}
+              {events.map((event: any, i) => {
+                const categoryColors: Record<string, string> = {
+                  entrada: '#10b981', weight: '#3b82f6', sanidade: '#8b5cf6',
+                  nutricao: '#f59e0b', reproducao: '#ec4899', lote: '#64748b'
+                };
+                const color = categoryColors[event.category || 'entrada'] || '#64748b';
                 return (
-                  <span style={{ 
-                    color: isLucro ? '#10b981' : '#ef4444', 
-                    fontSize: '18px', 
-                    fontWeight: 900, 
-                    textShadow: isLucro ? '0 2px 10px rgba(16,185,129,0.3)' : '0 2px 10px rgba(239,68,68,0.3)' 
-                  }}>
-                    {isLucro ? '+' : ''}{formatCurrency(lucro)}
-                  </span>
+                  <div key={i} className="timeline-event">
+                    <div className="event-dot" style={{ background: color, boxShadow: `0 0 8px ${color}60` }}></div>
+                    <div className="event-content">
+                      <div className="event-header">
+                        <span className="event-type" style={{
+                          background: `${color}20`, color: color,
+                          border: `1px solid ${color}40`,
+                          borderRadius: '6px', padding: '2px 8px', fontSize: '10px', fontWeight: 800
+                        }}>{event.type}</span>
+                        <span className="event-date">{event.date ? new Date(event.date).toLocaleDateString('pt-BR') : '—'}</span>
+                      </div>
+                      <p className="event-desc">{event.desc}</p>
+                      {event.custo > 0 && (
+                        <span style={{ fontSize: '10px', color: color, fontWeight: 700, marginTop: '2px', display: 'inline-block' }}>
+                          Custo: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(event.custo)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 );
-              })()}
+              })}
             </div>
-            
-            <div style={{ gridColumn: 'span 6' }}>
-              <button 
-                className="glass-btn secondary" 
-                onClick={() => setIsExtratoModalOpen(true)} 
-                style={{ width: '100%', marginTop: '4px', background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }}
-              >
-                <FileText size={16} /> Ver Detalhamento Completo
-              </button>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
+
       </div>
       <RastreabilidadeModal
         isOpen={showRastreabilidade}
@@ -763,6 +875,7 @@ export const AnimalDetail: React.FC = () => {
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['animal', id] });
           queryClient.invalidateQueries({ queryKey: ['animal_weights', id] });
+          queryClient.invalidateQueries({ queryKey: ['animal_costs', id] });
         }}
       />
       <CostStatementModal

@@ -54,9 +54,11 @@ import { QuotationFilterModal } from './components/QuotationFilterModal';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const QuotationMap: React.FC = () => {
   const { activeTenantId } = useTenant();
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -207,7 +209,8 @@ export const QuotationMap: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este mapa de cotação?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este mapa de cotação?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteQuotationMutation.mutate(id);
   };
 

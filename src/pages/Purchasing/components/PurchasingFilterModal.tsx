@@ -23,11 +23,11 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'ordered', label: 'Emitidos', icon: Clock },
-    { id: 'shipped', label: 'Em Tr‚nsito', icon: Truck },
+    { id: 'shipped', label: 'Em Tr√¢nsito', icon: Truck },
     { id: 'received', label: 'Recebidos', icon: Check }
   ];
 
-  const suppliers = ['AgroLine', 'NutriPura', 'Fazenda Grande', 'Mec‚nica Sul', 'BioCeres', 'Cooperativa Central'];
+  const suppliers = ['AgroLine', 'NutriPura', 'Fazenda Grande', 'Mec√¢nica Sul', 'BioCeres', 'Cooperativa Central'];
 
   const toggleSupplier = (sup: string) => {
     const newSups = filters.suppliers?.includes(sup)
@@ -131,7 +131,7 @@ export const PurchasingFilterModal: React.FC<PurchasingFilterModalProps> = ({
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#3b82f6' }}>{filters.maxAmount.toLocaleString('pt-BR')}</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto OrÁament·rio</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Teto Or√ßament√°rio</span>
               </div>
               <input 
                 type="range" 

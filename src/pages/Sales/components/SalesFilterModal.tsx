@@ -23,7 +23,7 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
   const statusOptions = [
     { id: 'all', label: 'Todos', icon: Filter },
     { id: 'pending', label: 'Pendentes', icon: Clock },
-    { id: 'shipped', label: 'Em Tr‚nsito', icon: Truck },
+    { id: 'shipped', label: 'Em Tr√¢nsito', icon: Truck },
     { id: 'delivered', label: 'Entregues', icon: Check }
   ];
 
@@ -66,7 +66,7 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros Comerciais</h3>
-              <p>Analise convers„o e sa˙de das vendas.</p>
+              <p>Analise convers√£o e sa√∫de das vendas.</p>
             </div>
           </div>
           <button 
@@ -132,7 +132,7 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10a34a' }}>{filters.minMargin}%</span>
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Margem MÌnima</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'hsl(var(--text-muted))' }}>Margem M√≠nima</span>
               </div>
               <input 
                 type="range" 
@@ -147,7 +147,7 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PerÌodo de Venda <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Per√≠odo de Venda <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <DateInput 
                 type="date" 
@@ -183,7 +183,7 @@ export const SalesFilterModal: React.FC<SalesFilterModalProps> = ({
               }}
               onClick={() => setFilters({ ...filters, onlyHighRisk: !filters.onlyHighRisk })}
             >
-              <AlertTriangle size={14} /> EXPOSI«√O DE RISCO ATIVA
+              <AlertTriangle size={14} /> EXPOSI√á√ÉO DE RISCO ATIVA
             </button>
             <button 
               style={{ 

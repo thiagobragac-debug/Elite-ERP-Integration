@@ -204,7 +204,6 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
             produto_id: status !== 'unmatched' ? best.product.id : '',
             nome: status !== 'unmatched' ? best.product.nome : updatedItems[itemIndex].nome,
             unidade: status !== 'unmatched' ? (best.product.unidade_medida || updatedItems[itemIndex].unidade) : updatedItems[itemIndex].unidade,
-            tipo: status !== 'unmatched' ? best.product.tipo : undefined,
             match_status: status,
             match_score: best.score,
             match_source: 'fuzzy',

@@ -21,6 +21,7 @@ import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
 import { SearchableSelect } from '../Forms/SearchableSelect';
 import { DateInput } from '../../components/Form/DateInput';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 
 interface BatchWeightModalProps {
@@ -45,6 +46,7 @@ interface WeightRow {
 }
 
 export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onClose, onSaveSuccess }) => {
+  const { confirm } = useConfirm();
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
   const [lots, setLots] = useState<any[]>([]);
   const [selectedLoteId, setSelectedLoteId] = useState<string>('');
@@ -354,9 +356,9 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     }
   };
 
-  const handleClearWeights = () => {
+  const handleClearWeights = async () => {
     if (filledCount === 0) return;
-    const confirmClear = confirm('⚠️ Tem certeza que deseja limpar todos os novos pesos digitados nesta sessão?');
+    const confirmClear = await confirm({ title: 'Atenção', description: '⚠️ Tem certeza que deseja limpar todos os novos pesos digitados nesta sessão?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
     if (!confirmClear) return;
     
     const cleared = rows.map(r => ({
@@ -470,7 +472,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
   };
 
   // #8 — Smart save with confirmation for partial saves & business rules
-  const handleSaveClick = (e: React.FormEvent) => {
+  const handleSaveClick = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const typedRows = rows.filter(r => r.newWeight.trim() !== '' && !isNaN(parseFloat(r.newWeight)));
@@ -485,7 +487,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
     // Check Nutrition Warning (Safra)
     const loosingWeightCount = typedRows.filter(r => r.gmd < 0).length;
     if (typedRows.length > 0 && loosingWeightCount / typedRows.length >= 0.3) {
-      const confirmNutrition = confirm(`⚠️ ALERTA AGRONÔMICO: ${(loosingWeightCount / typedRows.length * 100).toFixed(0)}% deste lote apresentou perda de peso. Recomenda-se avaliar o pasto ou suplementação. Deseja registrar as pesagens mesmo assim?`);
+      const confirmNutrition = await confirm({ title: 'Atenção', description: `⚠️ ALERTA AGRONÔMICO: ${(loosingWeightCount / typedRows.length * 100).toFixed(0)}% deste lote apresentou perda de peso. Recomenda-se avaliar o pasto ou suplementação. Deseja registrar as pesagens mesmo assim?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
       if (!confirmNutrition) return;
     }
 
@@ -508,7 +510,7 @@ export const BatchWeightModal: React.FC<BatchWeightModalProps> = ({ isOpen, onCl
 
     const hasWarnings = rowsToInsert.some(r => r.isTypoWarning);
     if (hasWarnings) {
-      const confirmSave = confirm('⚠️ Existem animais com variações de peso muito acentuadas (>15%). Deseja salvar as pesagens mesmo assim?');
+      const confirmSave = await confirm({ title: 'Atenção', description: '⚠️ Existem animais com variações de peso muito acentuadas (>15%). Deseja salvar as pesagens mesmo assim?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
       if (!confirmSave) return;
     }
 

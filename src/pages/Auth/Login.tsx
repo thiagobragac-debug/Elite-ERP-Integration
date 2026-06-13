@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Lock, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePersistentState } from '../../hooks/usePersistentState';
 import { Link } from 'react-router-dom';
 
 // ─── Tauze SVG Logo ────────────────────────────────────────────────────────────
@@ -413,7 +414,7 @@ import { usePersistentState } from '../../hooks/usePersistentState';
                   required
                   autoComplete="current-password"
                 />
-                <button type="button" className="eye-btn" onClick={() => setShowPass(p => !p)} tabIndex={-1}>
+                <button type="button" className="eye-btn" onClick={() => setShowPass((p: boolean) => !p)} tabIndex={-1}>
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>

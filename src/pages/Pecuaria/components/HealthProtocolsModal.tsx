@@ -19,6 +19,7 @@ import { SearchableSelect } from '../../../components/Forms/SearchableSelect';
 import { useTenant } from '../../../contexts/TenantContext';
 import toast from 'react-hot-toast';
 import { DateInput } from '../../../components/Form/DateInput';
+import { useConfirm } from '../../../contexts/ConfirmContext';
 
 
 interface HealthProtocolsModalProps {
@@ -28,6 +29,7 @@ interface HealthProtocolsModalProps {
 }
 
 export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOpen, onClose, onApply }) => {
+  const { confirm } = useConfirm();
   const { activeFarm, activeTenantId } = useTenant();
   const [protocols, setProtocols] = useState<any[]>([]);
   const [selectedProtocol, setSelectedProtocol] = useState<any>(null);
@@ -130,7 +132,8 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
   };
 
   const handleDeleteProtocol = async (id: string) => {
-    if (!confirm('Deseja desativar este protocolo?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja desativar este protocolo?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     
     try {
       if (!id.startsWith('def-')) {

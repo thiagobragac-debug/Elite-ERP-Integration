@@ -51,9 +51,11 @@ import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const MovementManagement: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, activeFarm } = useFarmFilter();
+  const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('MovementManagement_isModalOpen', false);
   const [modalType, setModalType] = useState<'in' | 'out' | 'transfer'>('in');
@@ -416,7 +418,8 @@ export const MovementManagement: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta movimentação?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja excluir esta movimentação?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     try {
       await deleteMovementMutation.mutateAsync(id);
     } catch (err) {
@@ -427,9 +430,11 @@ export const MovementManagement: React.FC = () => {
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
     const filteredData = movements.filter(m => {
       const matchesSearch = (m.produtos?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (m.responsavel || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesTab = activeTab === 'all' ? true : 
-                         activeTab === 'in' ? (m.tipo === 'ENTRADA') : 
-                         activeTab === 'out' ? (m.tipo === 'SAIDA') : 
+      const _tab = String(activeTab);
+      const matchesTab = _tab === 'all' ? true : 
+                         _tab === 'in' ? (m.tipo === 'ENTRADA') : 
+                         _tab === 'out' ? (m.tipo === 'SAIDA') : 
+                         _tab === 'LOG' ? true :
                          (m.tipo === 'TRANSFERENCIA');
       
       const matchesType = filterValues.type === 'all' || m.tipo === filterValues.type;

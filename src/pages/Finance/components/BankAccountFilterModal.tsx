@@ -43,7 +43,7 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Tesouraria</h3>
-              <p>Gestão de liquidez e custódia.</p>
+              <p>GestÃ£o de liquidez e custÃ³dia.</p>
             </div>
           </div>
           <button 
@@ -61,7 +61,7 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
               {[
                 { id: 'all', label: 'Todas as Modalidades' },
                 { id: 'CONTA CORRENTE', label: 'Conta Corrente' },
-                { id: 'POUPANÇA', label: 'Poupança / Reserva' },
+                { id: 'POUPANÃ‡A', label: 'PoupanÃ§a / Reserva' },
                 { id: 'INVESTIMENTO', label: 'Investimento / CDB' }
               ].map(t => (
                 <button 
@@ -116,15 +116,15 @@ export const BankAccountFilterModal: React.FC<BankAccountFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Instituição <Building2 size={14} /></label>
+            <label className="tauze-filter-label">InstituiÃ§Ã£o <Building2 size={14} /></label>
             <select 
               className="tauze-input" 
               value={filters.institution}
               onChange={e => setFilters({ ...filters, institution: e.target.value })}
               style={{ width: '100%', height: '45px', borderRadius: '12px', border: '1px solid hsl(var(--border))', padding: '0 16px', fontWeight: 600, color: '#1e293b' }}
             >
-              <option value="all">Todas as Instituições</option>
-              <option value="itau">Itaú Unibanco</option>
+              <option value="all">Todas as InstituiÃ§Ãµes</option>
+              <option value="itau">ItaÃº Unibanco</option>
               <option value="bradesco">Bradesco</option>
               <option value="bb">Banco do Brasil</option>
               <option value="santander">Santander</option>

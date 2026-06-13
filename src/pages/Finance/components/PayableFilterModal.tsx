@@ -47,7 +47,7 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Pagamento</h3>
-              <p>Gestão de obrigações e fluxo de saída.</p>
+              <p>GestÃ£o de obrigaÃ§Ãµes e fluxo de saÃ­da.</p>
             </div>
           </div>
           <button 
@@ -91,7 +91,7 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Valor do Título (R$) <DollarSign size={14} /></label>
+            <label className="tauze-filter-label">Valor do TÃ­tulo (R$) <DollarSign size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#6366f1' }}>{filters.maxAmount.toLocaleString('pt-BR')}</span>
@@ -110,7 +110,7 @@ export const PayableFilterModal: React.FC<PayableFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Período de Vencimento <Calendar size={14} /></label>
+            <label className="tauze-filter-label">PerÃ­odo de Vencimento <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <DateInput 
                 type="date" 

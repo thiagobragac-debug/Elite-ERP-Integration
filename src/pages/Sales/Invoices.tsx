@@ -55,8 +55,10 @@ import { OutputInvoiceFilterModal } from './components/OutputInvoiceFilterModal'
 import { EmptyState } from '../../components/Feedback/EmptyState';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const Invoices: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
@@ -247,7 +249,8 @@ export const Invoices: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta nota fiscal?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir esta nota fiscal?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteMutation.mutate(id);
   };
 

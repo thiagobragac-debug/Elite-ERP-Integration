@@ -47,7 +47,7 @@ export const ReceivableFilterModal: React.FC<ReceivableFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Recebimento</h3>
-              <p>Gest„o de faturamento e aging.</p>
+              <p>Gest√£o de faturamento e aging.</p>
             </div>
           </div>
           <button 
@@ -60,10 +60,10 @@ export const ReceivableFilterModal: React.FC<ReceivableFilterModalProps> = ({
 
         <div className="tauze-sidebar-body">
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Status do RecebÌvel <Target size={14} /></label>
+            <label className="tauze-filter-label">Status do Receb√≠vel <Target size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px' }}>
               {[
-                { id: 'all', label: 'Todos os TÌtulos', color: 'hsl(var(--text-muted))' },
+                { id: 'all', label: 'Todos os T√≠tulos', color: 'hsl(var(--text-muted))' },
                 { id: 'PENDENTE', label: 'Pendentes (A Receber)', color: '#3b82f6' },
                 { id: 'RECEBIDO', label: 'Liquidados (Recebidos)', color: '#10b981' },
                 { id: 'ATRASADO', label: 'Inadimplentes (Aging)', color: '#ef4444' }
@@ -110,7 +110,7 @@ export const ReceivableFilterModal: React.FC<ReceivableFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">PerÌodo de Vencimento <Calendar size={14} /></label>
+            <label className="tauze-filter-label">Per√≠odo de Vencimento <Calendar size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <DateInput 
                 type="date" 

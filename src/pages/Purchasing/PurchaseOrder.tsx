@@ -56,8 +56,10 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useApprovalQueue } from '../../hooks/useApprovalQueue';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const PurchaseOrder: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const { submitForApproval } = useApprovalQueue();
   const queryClient = useQueryClient();
@@ -274,7 +276,8 @@ export const PurchaseOrder: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta ordem de compra?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir esta ordem de compra?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteOrderMutation.mutate(id);
   };
 

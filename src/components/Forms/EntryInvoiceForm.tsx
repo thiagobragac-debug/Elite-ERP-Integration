@@ -350,7 +350,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
   const handleCancelRegisterSupplier = () => {
     setSupplierConfirmData(null);
     setFormData(prev => ({ ...prev, supplier_id: '' }));
-    toast.warn('Associe o XML a um fornecedor manualmente ou efetue o cadastro.');
+    toast.error('Associe o XML a um fornecedor manualmente ou efetue o cadastro.');
   };
 
   useEffect(() => {

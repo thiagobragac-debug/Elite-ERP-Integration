@@ -65,9 +65,11 @@ interface PendingItem {
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePersistentState } from '../../hooks/usePersistentState';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const ApprovalCenter: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
+  const { confirm } = useConfirm();
   const { activeTenantId } = useTenant();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as TabType) || 'pendencies';
@@ -172,7 +174,8 @@ export const ApprovalCenter: React.FC = () => {
   });
 
   const handleDeleteRule = async (id: string) => {
-    if (confirm('Tem certeza que deseja excluir esta regra?')) {
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja excluir esta regra?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (isConfirmed) {
       deleteRuleMutation.mutate(id);
     }
   };
@@ -282,7 +285,8 @@ export const ApprovalCenter: React.FC = () => {
   });
 
   const handleRevert = async (item: PendingItem) => {
-    if (!confirm('Tem certeza que deseja reverter esta decisão? O status voltará para pendente.')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Tem certeza que deseja reverter esta decisão? O status voltará para pendente.', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     revertMutation.mutate(item);
   };
 

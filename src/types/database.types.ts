@@ -1,1 +1,3912 @@
-{"types":"export type Json =\n  | string\n  | number\n  | boolean\n  | null\n  | { [key: string]: Json | undefined }\n  | Json[]\n\nexport type Database = {\n  // Allows to automatically instantiate createClient with right options\n  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)\n  __InternalSupabase: {\n    PostgrestVersion: \"14.5\"\n  }\n  public: {\n    Tables: {\n      abastecimentos: {\n        Row: {\n          created_at: string | null\n          data: string\n          fazenda_id: string | null\n          id: string\n          litros: number\n          maquina_id: string | null\n          responsavel: string | null\n          tenant_id: string | null\n          tipo_combustivel: string | null\n          valor_medidor: number | null\n          valor_total: number | null\n        }\n        Insert: {\n          created_at?: string | null\n          data?: string\n          fazenda_id?: string | null\n          id?: string\n          litros: number\n          maquina_id?: string | null\n          responsavel?: string | null\n          tenant_id?: string | null\n          tipo_combustivel?: string | null\n          valor_medidor?: number | null\n          valor_total?: number | null\n        }\n        Update: {\n          created_at?: string | null\n          data?: string\n          fazenda_id?: string | null\n          id?: string\n          litros?: number\n          maquina_id?: string | null\n          responsavel?: string | null\n          tenant_id?: string | null\n          tipo_combustivel?: string | null\n          valor_medidor?: number | null\n          valor_total?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"abastecimentos_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"abastecimentos_maquina_id_fkey\"\n            columns: [\"maquina_id\"]\n            isOneToOne: false\n            referencedRelation: \"maquinas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"abastecimentos_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      animais: {\n        Row: {\n          brinco: string\n          brinco_eletronico: string | null\n          categoria: string | null\n          created_at: string | null\n          data_nascimento: string | null\n          fase_atual: string | null\n          fazenda_id: string | null\n          finalidade: string | null\n          id: string\n          lote_id: string | null\n          mae_brinco: string | null\n          origem: string | null\n          pai_brinco: string | null\n          pasto_id: string | null\n          pelagem: string | null\n          peso_atual: number | null\n          peso_inicial: number | null\n          peso_objetivo: number | null\n          raca: string | null\n          romaneio_id: string | null\n          sexo: string | null\n          status: string | null\n          tenant_id: string | null\n          valor_compra: number | null\n        }\n        Insert: {\n          brinco: string\n          brinco_eletronico?: string | null\n          categoria?: string | null\n          created_at?: string | null\n          data_nascimento?: string | null\n          fase_atual?: string | null\n          fazenda_id?: string | null\n          finalidade?: string | null\n          id?: string\n          lote_id?: string | null\n          mae_brinco?: string | null\n          origem?: string | null\n          pai_brinco?: string | null\n          pasto_id?: string | null\n          pelagem?: string | null\n          peso_atual?: number | null\n          peso_inicial?: number | null\n          peso_objetivo?: number | null\n          raca?: string | null\n          romaneio_id?: string | null\n          sexo?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          valor_compra?: number | null\n        }\n        Update: {\n          brinco?: string\n          brinco_eletronico?: string | null\n          categoria?: string | null\n          created_at?: string | null\n          data_nascimento?: string | null\n          fase_atual?: string | null\n          fazenda_id?: string | null\n          finalidade?: string | null\n          id?: string\n          lote_id?: string | null\n          mae_brinco?: string | null\n          origem?: string | null\n          pai_brinco?: string | null\n          pasto_id?: string | null\n          pelagem?: string | null\n          peso_atual?: number | null\n          peso_inicial?: number | null\n          peso_objetivo?: number | null\n          raca?: string | null\n          romaneio_id?: string | null\n          sexo?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          valor_compra?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"animais_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"animais_lote_id_fkey\"\n            columns: [\"lote_id\"]\n            isOneToOne: false\n            referencedRelation: \"lotes\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"animais_pasto_id_fkey\"\n            columns: [\"pasto_id\"]\n            isOneToOne: false\n            referencedRelation: \"pastos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"animais_romaneio_id_fkey\"\n            columns: [\"romaneio_id\"]\n            isOneToOne: false\n            referencedRelation: \"romaneios\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"animais_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      audit_logs: {\n        Row: {\n          action: string\n          created_at: string | null\n          description: string | null\n          entity: string | null\n          entity_id: string | null\n          id: string\n          new_data: Json | null\n          old_data: Json | null\n          record_id: string | null\n          table_name: string | null\n          tenant_id: string | null\n          user_email: string | null\n          user_id: string | null\n        }\n        Insert: {\n          action: string\n          created_at?: string | null\n          description?: string | null\n          entity?: string | null\n          entity_id?: string | null\n          id?: string\n          new_data?: Json | null\n          old_data?: Json | null\n          record_id?: string | null\n          table_name?: string | null\n          tenant_id?: string | null\n          user_email?: string | null\n          user_id?: string | null\n        }\n        Update: {\n          action?: string\n          created_at?: string | null\n          description?: string | null\n          entity?: string | null\n          entity_id?: string | null\n          id?: string\n          new_data?: Json | null\n          old_data?: Json | null\n          record_id?: string | null\n          table_name?: string | null\n          tenant_id?: string | null\n          user_email?: string | null\n          user_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"audit_logs_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      auditorias_estoque: {\n        Row: {\n          accuracy: number | null\n          categoria: string | null\n          created_at: string | null\n          data: string | null\n          fazenda_id: string | null\n          id: string\n          items_count: number | null\n          responsavel: string | null\n          status: string | null\n          tenant_id: string | null\n          titulo: string\n        }\n        Insert: {\n          accuracy?: number | null\n          categoria?: string | null\n          created_at?: string | null\n          data?: string | null\n          fazenda_id?: string | null\n          id?: string\n          items_count?: number | null\n          responsavel?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          titulo: string\n        }\n        Update: {\n          accuracy?: number | null\n          categoria?: string | null\n          created_at?: string | null\n          data?: string | null\n          fazenda_id?: string | null\n          id?: string\n          items_count?: number | null\n          responsavel?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          titulo?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"auditorias_estoque_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"auditorias_estoque_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      categorias_sistema: {\n        Row: {\n          categoria_financeira_id: string | null\n          cor: string | null\n          created_at: string | null\n          id: string\n          is_active: boolean | null\n          is_system: boolean | null\n          modulo: string\n          modulo_vinculado: string | null\n          nome: string\n          tenant_id: string\n          tipo_item: string | null\n          updated_at: string | null\n        }\n        Insert: {\n          categoria_financeira_id?: string | null\n          cor?: string | null\n          created_at?: string | null\n          id?: string\n          is_active?: boolean | null\n          is_system?: boolean | null\n          modulo: string\n          modulo_vinculado?: string | null\n          nome: string\n          tenant_id: string\n          tipo_item?: string | null\n          updated_at?: string | null\n        }\n        Update: {\n          categoria_financeira_id?: string | null\n          cor?: string | null\n          created_at?: string | null\n          id?: string\n          is_active?: boolean | null\n          is_system?: boolean | null\n          modulo?: string\n          modulo_vinculado?: string | null\n          nome?: string\n          tenant_id?: string\n          tipo_item?: string | null\n          updated_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"categorias_sistema_categoria_financeira_id_fkey\"\n            columns: [\"categoria_financeira_id\"]\n            isOneToOne: false\n            referencedRelation: \"categorias_sistema\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"categorias_sistema_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      certificados_digitais: {\n        Row: {\n          cnpj_cpf: string\n          company_id: string\n          created_at: string\n          data_vencimento: string\n          id: string\n          pfx_base64: string\n          senha: string\n          tenant_id: string\n          titular: string\n          updated_at: string\n        }\n        Insert: {\n          cnpj_cpf: string\n          company_id: string\n          created_at?: string\n          data_vencimento: string\n          id?: string\n          pfx_base64: string\n          senha: string\n          tenant_id: string\n          titular: string\n          updated_at?: string\n        }\n        Update: {\n          cnpj_cpf?: string\n          company_id?: string\n          created_at?: string\n          data_vencimento?: string\n          id?: string\n          pfx_base64?: string\n          senha?: string\n          tenant_id?: string\n          titular?: string\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"certificados_digitais_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"certificados_digitais_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      conciliacoes: {\n        Row: {\n          conta_bancaria_id: string | null\n          created_at: string | null\n          data_importacao: string | null\n          fazenda_id: string | null\n          id: string\n          periodo_fim: string | null\n          periodo_inicio: string | null\n          status: string | null\n          tenant_id: string | null\n        }\n        Insert: {\n          conta_bancaria_id?: string | null\n          created_at?: string | null\n          data_importacao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          periodo_fim?: string | null\n          periodo_inicio?: string | null\n          status?: string | null\n          tenant_id?: string | null\n        }\n        Update: {\n          conta_bancaria_id?: string | null\n          created_at?: string | null\n          data_importacao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          periodo_fim?: string | null\n          periodo_inicio?: string | null\n          status?: string | null\n          tenant_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"conciliacoes_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"conciliacoes_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      confinamento: {\n        Row: {\n          capacidade_animais: number | null\n          created_at: string | null\n          data_inicio: string\n          dof_alvo: number | null\n          fazenda_id: string | null\n          id: string\n          lote_id: string | null\n          nome_curral: string\n          tenant_id: string | null\n        }\n        Insert: {\n          capacidade_animais?: number | null\n          created_at?: string | null\n          data_inicio?: string\n          dof_alvo?: number | null\n          fazenda_id?: string | null\n          id?: string\n          lote_id?: string | null\n          nome_curral: string\n          tenant_id?: string | null\n        }\n        Update: {\n          capacidade_animais?: number | null\n          created_at?: string | null\n          data_inicio?: string\n          dof_alvo?: number | null\n          fazenda_id?: string | null\n          id?: string\n          lote_id?: string | null\n          nome_curral?: string\n          tenant_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"confinamento_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"confinamento_lote_id_fkey\"\n            columns: [\"lote_id\"]\n            isOneToOne: false\n            referencedRelation: \"lotes\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"confinamento_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      contas_bancarias: {\n        Row: {\n          agencia: string | null\n          banco: string\n          conta: string | null\n          created_at: string | null\n          descricao: string | null\n          fazenda_id: string | null\n          id: string\n          is_global: boolean | null\n          saldo_atual: number | null\n          tenant_id: string | null\n          tipo: string | null\n          unidade_id: string | null\n        }\n        Insert: {\n          agencia?: string | null\n          banco: string\n          conta?: string | null\n          created_at?: string | null\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          is_global?: boolean | null\n          saldo_atual?: number | null\n          tenant_id?: string | null\n          tipo?: string | null\n          unidade_id?: string | null\n        }\n        Update: {\n          agencia?: string | null\n          banco?: string\n          conta?: string | null\n          created_at?: string | null\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          is_global?: boolean | null\n          saldo_atual?: number | null\n          tenant_id?: string | null\n          tipo?: string | null\n          unidade_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"contas_bancarias_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"contas_bancarias_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"contas_bancarias_unidade_id_fkey\"\n            columns: [\"unidade_id\"]\n            isOneToOne: false\n            referencedRelation: \"unidades\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      contas_pagar: {\n        Row: {\n          categoria_id: string | null\n          created_at: string | null\n          data_pagamento: string | null\n          data_vencimento: string\n          descricao: string | null\n          fazenda_id: string | null\n          fornecedor_id: string | null\n          id: string\n          metodo_pagamento: string | null\n          status: string | null\n          tenant_id: string | null\n          valor_total: number\n        }\n        Insert: {\n          categoria_id?: string | null\n          created_at?: string | null\n          data_pagamento?: string | null\n          data_vencimento: string\n          descricao?: string | null\n          fazenda_id?: string | null\n          fornecedor_id?: string | null\n          id?: string\n          metodo_pagamento?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          valor_total: number\n        }\n        Update: {\n          categoria_id?: string | null\n          created_at?: string | null\n          data_pagamento?: string | null\n          data_vencimento?: string\n          descricao?: string | null\n          fazenda_id?: string | null\n          fornecedor_id?: string | null\n          id?: string\n          metodo_pagamento?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          valor_total?: number\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"contas_pagar_categoria_id_fkey\"\n            columns: [\"categoria_id\"]\n            isOneToOne: false\n            referencedRelation: \"categorias_sistema\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"fk_contas_pagar_fornecedor\"\n            columns: [\"fornecedor_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      contas_receber: {\n        Row: {\n          categoria_id: string | null\n          cliente_id: string | null\n          created_at: string | null\n          data_recebimento: string | null\n          data_vencimento: string\n          descricao: string | null\n          fazenda_id: string | null\n          id: string\n          metodo_recebimento: string | null\n          status: string | null\n          tenant_id: string | null\n          valor_total: number\n        }\n        Insert: {\n          categoria_id?: string | null\n          cliente_id?: string | null\n          created_at?: string | null\n          data_recebimento?: string | null\n          data_vencimento: string\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          metodo_recebimento?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          valor_total: number\n        }\n        Update: {\n          categoria_id?: string | null\n          cliente_id?: string | null\n          created_at?: string | null\n          data_recebimento?: string | null\n          data_vencimento?: string\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          metodo_recebimento?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          valor_total?: number\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"contas_receber_categoria_id_fkey\"\n            columns: [\"categoria_id\"]\n            isOneToOne: false\n            referencedRelation: \"categorias_sistema\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"fk_contas_receber_cliente\"\n            columns: [\"cliente_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      contratos: {\n        Row: {\n          cliente_id: string | null\n          created_at: string | null\n          data_fim: string | null\n          data_inicio: string | null\n          descricao: string | null\n          fazenda_id: string | null\n          fornecedor_id: string | null\n          id: string\n          numero_contrato: string\n          status: string | null\n          tenant_id: string | null\n          tipo: string | null\n          valor_total: number | null\n        }\n        Insert: {\n          cliente_id?: string | null\n          created_at?: string | null\n          data_fim?: string | null\n          data_inicio?: string | null\n          descricao?: string | null\n          fazenda_id?: string | null\n          fornecedor_id?: string | null\n          id?: string\n          numero_contrato: string\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n          valor_total?: number | null\n        }\n        Update: {\n          cliente_id?: string | null\n          created_at?: string | null\n          data_fim?: string | null\n          data_inicio?: string | null\n          descricao?: string | null\n          fazenda_id?: string | null\n          fornecedor_id?: string | null\n          id?: string\n          numero_contrato?: string\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n          valor_total?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"contratos_cliente_id_fkey\"\n            columns: [\"cliente_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"contratos_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"contratos_fornecedor_id_fkey\"\n            columns: [\"fornecedor_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"contratos_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      deposito_categorias_permitidas: {\n        Row: {\n          categoria_permitida: string\n          id: string\n          tenant_id: string\n          tipo_deposito: string\n        }\n        Insert: {\n          categoria_permitida: string\n          id?: string\n          tenant_id: string\n          tipo_deposito: string\n        }\n        Update: {\n          categoria_permitida?: string\n          id?: string\n          tenant_id?: string\n          tipo_deposito?: string\n        }\n        Relationships: []\n      }\n      depositos: {\n        Row: {\n          capacidade_maxima: number | null\n          created_at: string\n          descricao: string | null\n          fazenda_id: string\n          id: string\n          localizacao_tecnica: string | null\n          nome: string\n          status: string\n          tenant_id: string\n          tipo: string | null\n          unidade_capacidade: string | null\n        }\n        Insert: {\n          capacidade_maxima?: number | null\n          created_at?: string\n          descricao?: string | null\n          fazenda_id: string\n          id?: string\n          localizacao_tecnica?: string | null\n          nome: string\n          status?: string\n          tenant_id: string\n          tipo?: string | null\n          unidade_capacidade?: string | null\n        }\n        Update: {\n          capacidade_maxima?: number | null\n          created_at?: string\n          descricao?: string | null\n          fazenda_id?: string\n          id?: string\n          localizacao_tecnica?: string | null\n          nome?: string\n          status?: string\n          tenant_id?: string\n          tipo?: string | null\n          unidade_capacidade?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"depositos_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      dietas: {\n        Row: {\n          created_at: string | null\n          custo_por_kg: number | null\n          data_registro: string | null\n          descricao: string | null\n          fazenda_id: string | null\n          id: string\n          ingredientes: Json | null\n          nome: string\n          status: string | null\n          tenant_id: string | null\n          tipo: string | null\n        }\n        Insert: {\n          created_at?: string | null\n          custo_por_kg?: number | null\n          data_registro?: string | null\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          ingredientes?: Json | null\n          nome: string\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n        }\n        Update: {\n          created_at?: string | null\n          custo_por_kg?: number | null\n          data_registro?: string | null\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          ingredientes?: Json | null\n          nome?: string\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"dietas_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"dietas_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      estoque_ncms: {\n        Row: {\n          codigo: string\n          created_at: string | null\n          descricao: string\n          id: string\n          is_active: boolean | null\n          tenant_id: string\n          updated_at: string | null\n        }\n        Insert: {\n          codigo: string\n          created_at?: string | null\n          descricao: string\n          id?: string\n          is_active?: boolean | null\n          tenant_id: string\n          updated_at?: string | null\n        }\n        Update: {\n          codigo?: string\n          created_at?: string | null\n          descricao?: string\n          id?: string\n          is_active?: boolean | null\n          tenant_id?: string\n          updated_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"estoque_ncms_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      eventos_reprodutivos: {\n        Row: {\n          animal_id: string | null\n          created_at: string | null\n          data_evento: string\n          fazenda_id: string | null\n          id: string\n          observacoes: string | null\n          resultado: string | null\n          status: string | null\n          tenant_id: string | null\n          tipo_evento: string | null\n        }\n        Insert: {\n          animal_id?: string | null\n          created_at?: string | null\n          data_evento?: string\n          fazenda_id?: string | null\n          id?: string\n          observacoes?: string | null\n          resultado?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo_evento?: string | null\n        }\n        Update: {\n          animal_id?: string | null\n          created_at?: string | null\n          data_evento?: string\n          fazenda_id?: string | null\n          id?: string\n          observacoes?: string | null\n          resultado?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo_evento?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"eventos_reprodutivos_animal_id_fkey\"\n            columns: [\"animal_id\"]\n            isOneToOne: false\n            referencedRelation: \"animais\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"eventos_reprodutivos_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"eventos_reprodutivos_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      fazendas: {\n        Row: {\n          area_ha: number | null\n          area_total: number | null\n          created_at: string | null\n          id: string\n          ie_produtor: string | null\n          localizacao: string | null\n          municipio: string | null\n          nirf: string | null\n          nome: string\n          tenant_id: string | null\n          uf: string | null\n          unidade_id: string | null\n        }\n        Insert: {\n          area_ha?: number | null\n          area_total?: number | null\n          created_at?: string | null\n          id?: string\n          ie_produtor?: string | null\n          localizacao?: string | null\n          municipio?: string | null\n          nirf?: string | null\n          nome: string\n          tenant_id?: string | null\n          uf?: string | null\n          unidade_id?: string | null\n        }\n        Update: {\n          area_ha?: number | null\n          area_total?: number | null\n          created_at?: string | null\n          id?: string\n          ie_produtor?: string | null\n          localizacao?: string | null\n          municipio?: string | null\n          nirf?: string | null\n          nome?: string\n          tenant_id?: string | null\n          uf?: string | null\n          unidade_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"fazendas_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"fazendas_unidade_id_fkey\"\n            columns: [\"unidade_id\"]\n            isOneToOne: false\n            referencedRelation: \"unidades\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      lcdpr_lancamentos: {\n        Row: {\n          ano_calendario: number\n          cod_conta_bancaria: string | null\n          cod_imovel: string\n          cod_natureza: string\n          cpf_cnpj_participante: string | null\n          created_at: string | null\n          data_lancamento: string\n          descricao: string | null\n          fazenda_id: string | null\n          id: string\n          nome_participante: string | null\n          num_documento: string | null\n          origem: string | null\n          origem_id: string | null\n          tenant_id: string | null\n          tipo: string\n          unidade_id: string | null\n          valor: number\n        }\n        Insert: {\n          ano_calendario: number\n          cod_conta_bancaria?: string | null\n          cod_imovel: string\n          cod_natureza: string\n          cpf_cnpj_participante?: string | null\n          created_at?: string | null\n          data_lancamento: string\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          nome_participante?: string | null\n          num_documento?: string | null\n          origem?: string | null\n          origem_id?: string | null\n          tenant_id?: string | null\n          tipo: string\n          unidade_id?: string | null\n          valor?: number\n        }\n        Update: {\n          ano_calendario?: number\n          cod_conta_bancaria?: string | null\n          cod_imovel?: string\n          cod_natureza?: string\n          cpf_cnpj_participante?: string | null\n          created_at?: string | null\n          data_lancamento?: string\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          nome_participante?: string | null\n          num_documento?: string | null\n          origem?: string | null\n          origem_id?: string | null\n          tenant_id?: string | null\n          tipo?: string\n          unidade_id?: string | null\n          valor?: number\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"lcdpr_lancamentos_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"lcdpr_lancamentos_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"lcdpr_lancamentos_unidade_id_fkey\"\n            columns: [\"unidade_id\"]\n            isOneToOne: false\n            referencedRelation: \"unidades\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      lotes: {\n        Row: {\n          capacidade: number | null\n          cor: string | null\n          created_at: string | null\n          custo_diario: number | null\n          data_fim_prevista: string | null\n          data_inicio: string | null\n          descricao: string | null\n          dias_ciclo: number | null\n          exige_rastreabilidade: boolean | null\n          fazenda_id: string | null\n          finalidade: string | null\n          gmd_alvo: number | null\n          id: string\n          meta_rendimento_carcaca: number | null\n          nome: string\n          pasto_id: string | null\n          peso_alvo: number | null\n          peso_carcaca_alvo: number | null\n          peso_entrada: number | null\n          programa_bonificacao: string | null\n          regime_alimentar: string | null\n          sexo_permitido: string | null\n          status: string | null\n          tenant_id: string | null\n        }\n        Insert: {\n          capacidade?: number | null\n          cor?: string | null\n          created_at?: string | null\n          custo_diario?: number | null\n          data_fim_prevista?: string | null\n          data_inicio?: string | null\n          descricao?: string | null\n          dias_ciclo?: number | null\n          exige_rastreabilidade?: boolean | null\n          fazenda_id?: string | null\n          finalidade?: string | null\n          gmd_alvo?: number | null\n          id?: string\n          meta_rendimento_carcaca?: number | null\n          nome: string\n          pasto_id?: string | null\n          peso_alvo?: number | null\n          peso_carcaca_alvo?: number | null\n          peso_entrada?: number | null\n          programa_bonificacao?: string | null\n          regime_alimentar?: string | null\n          sexo_permitido?: string | null\n          status?: string | null\n          tenant_id?: string | null\n        }\n        Update: {\n          capacidade?: number | null\n          cor?: string | null\n          created_at?: string | null\n          custo_diario?: number | null\n          data_fim_prevista?: string | null\n          data_inicio?: string | null\n          descricao?: string | null\n          dias_ciclo?: number | null\n          exige_rastreabilidade?: boolean | null\n          fazenda_id?: string | null\n          finalidade?: string | null\n          gmd_alvo?: number | null\n          id?: string\n          meta_rendimento_carcaca?: number | null\n          nome?: string\n          pasto_id?: string | null\n          peso_alvo?: number | null\n          peso_carcaca_alvo?: number | null\n          peso_entrada?: number | null\n          programa_bonificacao?: string | null\n          regime_alimentar?: string | null\n          sexo_permitido?: string | null\n          status?: string | null\n          tenant_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"lotes_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"lotes_pasto_id_fkey\"\n            columns: [\"pasto_id\"]\n            isOneToOne: false\n            referencedRelation: \"pastos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"lotes_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      manutencao_frota: {\n        Row: {\n          created_at: string | null\n          custo: number | null\n          data_inicio: string\n          descricao: string | null\n          fazenda_id: string | null\n          id: string\n          maquina_id: string | null\n          responsavel: string | null\n          status: string | null\n          tenant_id: string | null\n          tipo: string | null\n        }\n        Insert: {\n          created_at?: string | null\n          custo?: number | null\n          data_inicio?: string\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          maquina_id?: string | null\n          responsavel?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n        }\n        Update: {\n          created_at?: string | null\n          custo?: number | null\n          data_inicio?: string\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          maquina_id?: string | null\n          responsavel?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"manutencao_frota_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"manutencao_frota_maquina_id_fkey\"\n            columns: [\"maquina_id\"]\n            isOneToOne: false\n            referencedRelation: \"maquinas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"manutencao_frota_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      mapas_cotacao: {\n        Row: {\n          created_at: string | null\n          dados_fornecedores: Json | null\n          fazenda_id: string | null\n          id: string\n          produto_id: string | null\n          quantidade: number | null\n          status: string | null\n          tenant_id: string | null\n          unidade: string | null\n        }\n        Insert: {\n          created_at?: string | null\n          dados_fornecedores?: Json | null\n          fazenda_id?: string | null\n          id?: string\n          produto_id?: string | null\n          quantidade?: number | null\n          status?: string | null\n          tenant_id?: string | null\n          unidade?: string | null\n        }\n        Update: {\n          created_at?: string | null\n          dados_fornecedores?: Json | null\n          fazenda_id?: string | null\n          id?: string\n          produto_id?: string | null\n          quantidade?: number | null\n          status?: string | null\n          tenant_id?: string | null\n          unidade?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"mapas_cotacao_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"mapas_cotacao_produto_id_fkey\"\n            columns: [\"produto_id\"]\n            isOneToOne: false\n            referencedRelation: \"produtos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"mapas_cotacao_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      maquinas: {\n        Row: {\n          ano: number | null\n          capacidade_tanque: number | null\n          chassi: string | null\n          combustivel: string | null\n          consumo_estimado: number | null\n          created_at: string | null\n          data_proxima_revisao: string | null\n          fazenda_id: string | null\n          horimetro_atual: number | null\n          id: string\n          intervalo_revisao: number | null\n          marca: string | null\n          modelo: string | null\n          nome: string\n          observacoes: string | null\n          patrimonio: string | null\n          peso_operacional: number | null\n          placa: string | null\n          potencia: number | null\n          quilometragem_atual: number | null\n          status: string | null\n          tenant_id: string | null\n          tipo: string | null\n          tipo_medidor: string | null\n          valor_compra: number | null\n        }\n        Insert: {\n          ano?: number | null\n          capacidade_tanque?: number | null\n          chassi?: string | null\n          combustivel?: string | null\n          consumo_estimado?: number | null\n          created_at?: string | null\n          data_proxima_revisao?: string | null\n          fazenda_id?: string | null\n          horimetro_atual?: number | null\n          id?: string\n          intervalo_revisao?: number | null\n          marca?: string | null\n          modelo?: string | null\n          nome: string\n          observacoes?: string | null\n          patrimonio?: string | null\n          peso_operacional?: number | null\n          placa?: string | null\n          potencia?: number | null\n          quilometragem_atual?: number | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n          tipo_medidor?: string | null\n          valor_compra?: number | null\n        }\n        Update: {\n          ano?: number | null\n          capacidade_tanque?: number | null\n          chassi?: string | null\n          combustivel?: string | null\n          consumo_estimado?: number | null\n          created_at?: string | null\n          data_proxima_revisao?: string | null\n          fazenda_id?: string | null\n          horimetro_atual?: number | null\n          id?: string\n          intervalo_revisao?: number | null\n          marca?: string | null\n          modelo?: string | null\n          nome?: string\n          observacoes?: string | null\n          patrimonio?: string | null\n          peso_operacional?: number | null\n          placa?: string | null\n          potencia?: number | null\n          quilometragem_atual?: number | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n          tipo_medidor?: string | null\n          valor_compra?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"maquinas_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"maquinas_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      market_alerts: {\n        Row: {\n          created_at: string | null\n          direction: string\n          id: string\n          indicator: string\n          is_active: boolean | null\n          target_price: number\n          tenant_id: string | null\n        }\n        Insert: {\n          created_at?: string | null\n          direction: string\n          id?: string\n          indicator: string\n          is_active?: boolean | null\n          target_price: number\n          tenant_id?: string | null\n        }\n        Update: {\n          created_at?: string | null\n          direction?: string\n          id?: string\n          indicator?: string\n          is_active?: boolean | null\n          target_price?: number\n          tenant_id?: string | null\n        }\n        Relationships: []\n      }\n      market_import_logs: {\n        Row: {\n          details: Json | null\n          error_message: string | null\n          executed_at: string | null\n          id: string\n          indicators_failed: number | null\n          indicators_ok: number | null\n          indicators_skipped: number | null\n          job_name: string\n          status: string\n        }\n        Insert: {\n          details?: Json | null\n          error_message?: string | null\n          executed_at?: string | null\n          id?: string\n          indicators_failed?: number | null\n          indicators_ok?: number | null\n          indicators_skipped?: number | null\n          job_name: string\n          status: string\n        }\n        Update: {\n          details?: Json | null\n          error_message?: string | null\n          executed_at?: string | null\n          id?: string\n          indicators_failed?: number | null\n          indicators_ok?: number | null\n          indicators_skipped?: number | null\n          job_name?: string\n          status?: string\n        }\n        Relationships: []\n      }\n      market_quotes: {\n        Row: {\n          created_at: string\n          date: string\n          id: string\n          indicator: string\n          value: number\n        }\n        Insert: {\n          created_at?: string\n          date: string\n          id?: string\n          indicator: string\n          value: number\n        }\n        Update: {\n          created_at?: string\n          date?: string\n          id?: string\n          indicator?: string\n          value?: number\n        }\n        Relationships: []\n      }\n      movimentacoes_estoque: {\n        Row: {\n          created_at: string | null\n          data_movimentacao: string\n          deposito_id: string | null\n          fazenda_id: string | null\n          id: string\n          origem_destino: string | null\n          produto_id: string | null\n          quantidade: number\n          responsavel: string | null\n          saldo_fifo: number | null\n          tenant_id: string | null\n          tipo: string | null\n          valor_unitario: number | null\n        }\n        Insert: {\n          created_at?: string | null\n          data_movimentacao?: string\n          deposito_id?: string | null\n          fazenda_id?: string | null\n          id?: string\n          origem_destino?: string | null\n          produto_id?: string | null\n          quantidade: number\n          responsavel?: string | null\n          saldo_fifo?: number | null\n          tenant_id?: string | null\n          tipo?: string | null\n          valor_unitario?: number | null\n        }\n        Update: {\n          created_at?: string | null\n          data_movimentacao?: string\n          deposito_id?: string | null\n          fazenda_id?: string | null\n          id?: string\n          origem_destino?: string | null\n          produto_id?: string | null\n          quantidade?: number\n          responsavel?: string | null\n          saldo_fifo?: number | null\n          tenant_id?: string | null\n          tipo?: string | null\n          valor_unitario?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"movimentacoes_estoque_deposito_id_fkey\"\n            columns: [\"deposito_id\"]\n            isOneToOne: false\n            referencedRelation: \"depositos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"movimentacoes_estoque_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"movimentacoes_estoque_produto_id_fkey\"\n            columns: [\"produto_id\"]\n            isOneToOne: false\n            referencedRelation: \"produtos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"movimentacoes_estoque_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      nota_fiscal_itens: {\n        Row: {\n          created_at: string | null\n          deposito_id: string | null\n          id: string\n          ncm: string | null\n          nota_fiscal_id: string\n          preco_unitario: number\n          produto_id: string | null\n          quantidade: number\n          tenant_id: string\n          total: number\n        }\n        Insert: {\n          created_at?: string | null\n          deposito_id?: string | null\n          id?: string\n          ncm?: string | null\n          nota_fiscal_id: string\n          preco_unitario?: number\n          produto_id?: string | null\n          quantidade?: number\n          tenant_id: string\n          total?: number\n        }\n        Update: {\n          created_at?: string | null\n          deposito_id?: string | null\n          id?: string\n          ncm?: string | null\n          nota_fiscal_id?: string\n          preco_unitario?: number\n          produto_id?: string | null\n          quantidade?: number\n          tenant_id?: string\n          total?: number\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"nota_fiscal_itens_deposito_id_fkey\"\n            columns: [\"deposito_id\"]\n            isOneToOne: false\n            referencedRelation: \"depositos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"nota_fiscal_itens_nota_fiscal_id_fkey\"\n            columns: [\"nota_fiscal_id\"]\n            isOneToOne: false\n            referencedRelation: \"notas_fiscais\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"nota_fiscal_itens_produto_id_fkey\"\n            columns: [\"produto_id\"]\n            isOneToOne: false\n            referencedRelation: \"produtos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"nota_fiscal_itens_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      notas_entrada: {\n        Row: {\n          chave_xml: string | null\n          cofins_retido: number | null\n          created_at: string | null\n          csll_retido: number | null\n          data_emissao: string | null\n          data_entrada: string | null\n          fazenda_id: string | null\n          fornecedor_id: string | null\n          id: string\n          inss_retido: number | null\n          irrf_retido: number | null\n          iss_retido: number | null\n          modelo_fiscal: string | null\n          numero_nota: string\n          observacoes: string | null\n          pis_retido: number | null\n          serie: string | null\n          tenant_id: string | null\n          valor_liquido: number | null\n          valor_total: number | null\n        }\n        Insert: {\n          chave_xml?: string | null\n          cofins_retido?: number | null\n          created_at?: string | null\n          csll_retido?: number | null\n          data_emissao?: string | null\n          data_entrada?: string | null\n          fazenda_id?: string | null\n          fornecedor_id?: string | null\n          id?: string\n          inss_retido?: number | null\n          irrf_retido?: number | null\n          iss_retido?: number | null\n          modelo_fiscal?: string | null\n          numero_nota: string\n          observacoes?: string | null\n          pis_retido?: number | null\n          serie?: string | null\n          tenant_id?: string | null\n          valor_liquido?: number | null\n          valor_total?: number | null\n        }\n        Update: {\n          chave_xml?: string | null\n          cofins_retido?: number | null\n          created_at?: string | null\n          csll_retido?: number | null\n          data_emissao?: string | null\n          data_entrada?: string | null\n          fazenda_id?: string | null\n          fornecedor_id?: string | null\n          id?: string\n          inss_retido?: number | null\n          irrf_retido?: number | null\n          iss_retido?: number | null\n          modelo_fiscal?: string | null\n          numero_nota?: string\n          observacoes?: string | null\n          pis_retido?: number | null\n          serie?: string | null\n          tenant_id?: string | null\n          valor_liquido?: number | null\n          valor_total?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"notas_entrada_fornecedor_id_fkey\"\n            columns: [\"fornecedor_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      notas_fiscais: {\n        Row: {\n          chave_acesso: string | null\n          company_id: string | null\n          created_at: string | null\n          data_emissao: string | null\n          data_entrada: string | null\n          id: string\n          numero_nota: string | null\n          parceiro_id: string | null\n          serie: string | null\n          status: string | null\n          tenant_id: string\n          tipo: string\n          updated_at: string | null\n          valor_total: number | null\n          xml_raw: string | null\n        }\n        Insert: {\n          chave_acesso?: string | null\n          company_id?: string | null\n          created_at?: string | null\n          data_emissao?: string | null\n          data_entrada?: string | null\n          id?: string\n          numero_nota?: string | null\n          parceiro_id?: string | null\n          serie?: string | null\n          status?: string | null\n          tenant_id: string\n          tipo: string\n          updated_at?: string | null\n          valor_total?: number | null\n          xml_raw?: string | null\n        }\n        Update: {\n          chave_acesso?: string | null\n          company_id?: string | null\n          created_at?: string | null\n          data_emissao?: string | null\n          data_entrada?: string | null\n          id?: string\n          numero_nota?: string | null\n          parceiro_id?: string | null\n          serie?: string | null\n          status?: string | null\n          tenant_id?: string\n          tipo?: string\n          updated_at?: string | null\n          valor_total?: number | null\n          xml_raw?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"notas_fiscais_company_id_fkey\"\n            columns: [\"company_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"notas_fiscais_parceiro_id_fkey\"\n            columns: [\"parceiro_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"notas_fiscais_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      notas_saida: {\n        Row: {\n          cliente_id: string | null\n          cofins_retido: number | null\n          created_at: string | null\n          csll_retido: number | null\n          data_emissao: string | null\n          fazenda_id: string | null\n          id: string\n          inss_retido: number | null\n          irrf_retido: number | null\n          iss_retido: number | null\n          modelo_fiscal: string | null\n          natureza_operacao: string | null\n          numero_nota: string\n          observacoes: string | null\n          pis_retido: number | null\n          serie: string | null\n          status: string | null\n          tenant_id: string | null\n          transportadora: string | null\n          valor_liquido: number | null\n          valor_total: number | null\n        }\n        Insert: {\n          cliente_id?: string | null\n          cofins_retido?: number | null\n          created_at?: string | null\n          csll_retido?: number | null\n          data_emissao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          inss_retido?: number | null\n          irrf_retido?: number | null\n          iss_retido?: number | null\n          modelo_fiscal?: string | null\n          natureza_operacao?: string | null\n          numero_nota: string\n          observacoes?: string | null\n          pis_retido?: number | null\n          serie?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          transportadora?: string | null\n          valor_liquido?: number | null\n          valor_total?: number | null\n        }\n        Update: {\n          cliente_id?: string | null\n          cofins_retido?: number | null\n          created_at?: string | null\n          csll_retido?: number | null\n          data_emissao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          inss_retido?: number | null\n          irrf_retido?: number | null\n          iss_retido?: number | null\n          modelo_fiscal?: string | null\n          natureza_operacao?: string | null\n          numero_nota?: string\n          observacoes?: string | null\n          pis_retido?: number | null\n          serie?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          transportadora?: string | null\n          valor_liquido?: number | null\n          valor_total?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"notas_saida_cliente_id_fkey\"\n            columns: [\"cliente_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"notas_saida_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"notas_saida_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      parceiros: {\n        Row: {\n          bairro: string | null\n          categoria_id: string | null\n          cep: string | null\n          cidade: string | null\n          cnpj_cpf: string | null\n          complemento: string | null\n          contato: string | null\n          created_at: string | null\n          email: string | null\n          estado: string | null\n          fantasia: string | null\n          fazendas_vinculadas: string[] | null\n          id: string\n          inscricao_estadual: string | null\n          inscricao_municipal: string | null\n          is_customer: boolean | null\n          is_global: boolean | null\n          is_supplier: boolean | null\n          logradouro: string | null\n          nome: string\n          numero: string | null\n          pais: string | null\n          status: string | null\n          telefone: string | null\n          tenant_id: string | null\n          tipo_logradouro: string | null\n          updated_at: string | null\n        }\n        Insert: {\n          bairro?: string | null\n          categoria_id?: string | null\n          cep?: string | null\n          cidade?: string | null\n          cnpj_cpf?: string | null\n          complemento?: string | null\n          contato?: string | null\n          created_at?: string | null\n          email?: string | null\n          estado?: string | null\n          fantasia?: string | null\n          fazendas_vinculadas?: string[] | null\n          id?: string\n          inscricao_estadual?: string | null\n          inscricao_municipal?: string | null\n          is_customer?: boolean | null\n          is_global?: boolean | null\n          is_supplier?: boolean | null\n          logradouro?: string | null\n          nome: string\n          numero?: string | null\n          pais?: string | null\n          status?: string | null\n          telefone?: string | null\n          tenant_id?: string | null\n          tipo_logradouro?: string | null\n          updated_at?: string | null\n        }\n        Update: {\n          bairro?: string | null\n          categoria_id?: string | null\n          cep?: string | null\n          cidade?: string | null\n          cnpj_cpf?: string | null\n          complemento?: string | null\n          contato?: string | null\n          created_at?: string | null\n          email?: string | null\n          estado?: string | null\n          fantasia?: string | null\n          fazendas_vinculadas?: string[] | null\n          id?: string\n          inscricao_estadual?: string | null\n          inscricao_municipal?: string | null\n          is_customer?: boolean | null\n          is_global?: boolean | null\n          is_supplier?: boolean | null\n          logradouro?: string | null\n          nome?: string\n          numero?: string | null\n          pais?: string | null\n          status?: string | null\n          telefone?: string | null\n          tenant_id?: string | null\n          tipo_logradouro?: string | null\n          updated_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"parceiros_categoria_id_fkey\"\n            columns: [\"categoria_id\"]\n            isOneToOne: false\n            referencedRelation: \"categorias_sistema\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"parceiros_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      pastos: {\n        Row: {\n          agua: string | null\n          area: number | null\n          capacidade_ua: number | null\n          created_at: string | null\n          data_ultima_fertilizacao: string | null\n          estado_cerca: string | null\n          fazenda_id: string | null\n          id: string\n          nome: string\n          observacoes: string | null\n          plantas_daninhas: string | null\n          sombreamento: string | null\n          status: string | null\n          tenant_id: string | null\n          tipo_capim: string | null\n          tipo_solo: string | null\n          topografia: string | null\n        }\n        Insert: {\n          agua?: string | null\n          area?: number | null\n          capacidade_ua?: number | null\n          created_at?: string | null\n          data_ultima_fertilizacao?: string | null\n          estado_cerca?: string | null\n          fazenda_id?: string | null\n          id?: string\n          nome: string\n          observacoes?: string | null\n          plantas_daninhas?: string | null\n          sombreamento?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo_capim?: string | null\n          tipo_solo?: string | null\n          topografia?: string | null\n        }\n        Update: {\n          agua?: string | null\n          area?: number | null\n          capacidade_ua?: number | null\n          created_at?: string | null\n          data_ultima_fertilizacao?: string | null\n          estado_cerca?: string | null\n          fazenda_id?: string | null\n          id?: string\n          nome?: string\n          observacoes?: string | null\n          plantas_daninhas?: string | null\n          sombreamento?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo_capim?: string | null\n          tipo_solo?: string | null\n          topografia?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"pastos_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"pastos_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      pedidos_compra: {\n        Row: {\n          created_at: string | null\n          data_pedido: string\n          fazenda_id: string | null\n          forma_pagamento: string | null\n          fornecedor_id: string | null\n          id: string\n          numero_pedido: string\n          observacoes: string | null\n          previsao_entrega: string | null\n          status: string | null\n          tenant_id: string | null\n          valor_total: number | null\n        }\n        Insert: {\n          created_at?: string | null\n          data_pedido?: string\n          fazenda_id?: string | null\n          forma_pagamento?: string | null\n          fornecedor_id?: string | null\n          id?: string\n          numero_pedido: string\n          observacoes?: string | null\n          previsao_entrega?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          valor_total?: number | null\n        }\n        Update: {\n          created_at?: string | null\n          data_pedido?: string\n          fazenda_id?: string | null\n          forma_pagamento?: string | null\n          fornecedor_id?: string | null\n          id?: string\n          numero_pedido?: string\n          observacoes?: string | null\n          previsao_entrega?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          valor_total?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"fk_pedidos_compra_fornecedor\"\n            columns: [\"fornecedor_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      pedidos_venda: {\n        Row: {\n          cliente_id: string | null\n          created_at: string | null\n          data_pedido: string\n          fazenda_id: string | null\n          id: string\n          numero_pedido: string\n          produto_id: string | null\n          quantidade: number | null\n          status: string | null\n          tenant_id: string | null\n          unidade: string | null\n          valor_total: number | null\n        }\n        Insert: {\n          cliente_id?: string | null\n          created_at?: string | null\n          data_pedido?: string\n          fazenda_id?: string | null\n          id?: string\n          numero_pedido: string\n          produto_id?: string | null\n          quantidade?: number | null\n          status?: string | null\n          tenant_id?: string | null\n          unidade?: string | null\n          valor_total?: number | null\n        }\n        Update: {\n          cliente_id?: string | null\n          created_at?: string | null\n          data_pedido?: string\n          fazenda_id?: string | null\n          id?: string\n          numero_pedido?: string\n          produto_id?: string | null\n          quantidade?: number | null\n          status?: string | null\n          tenant_id?: string | null\n          unidade?: string | null\n          valor_total?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"pedidos_venda_cliente_id_fkey\"\n            columns: [\"cliente_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"pedidos_venda_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"pedidos_venda_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      perfis_usuario: {\n        Row: {\n          created_at: string | null\n          descricao: string | null\n          id: string\n          nome: string\n          permissoes: Json | null\n          tenant_id: string | null\n        }\n        Insert: {\n          created_at?: string | null\n          descricao?: string | null\n          id?: string\n          nome: string\n          permissoes?: Json | null\n          tenant_id?: string | null\n        }\n        Update: {\n          created_at?: string | null\n          descricao?: string | null\n          id?: string\n          nome?: string\n          permissoes?: Json | null\n          tenant_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"perfis_usuario_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      periodos_contabeis: {\n        Row: {\n          ano: number\n          created_at: string | null\n          data_bloqueio_automatico: string | null\n          fazenda_id: string | null\n          fechado_em: string | null\n          fechado_por: string | null\n          id: string\n          mes: number\n          status: string\n          tenant_id: string\n          updated_at: string | null\n        }\n        Insert: {\n          ano: number\n          created_at?: string | null\n          data_bloqueio_automatico?: string | null\n          fazenda_id?: string | null\n          fechado_em?: string | null\n          fechado_por?: string | null\n          id?: string\n          mes: number\n          status: string\n          tenant_id: string\n          updated_at?: string | null\n        }\n        Update: {\n          ano?: number\n          created_at?: string | null\n          data_bloqueio_automatico?: string | null\n          fazenda_id?: string | null\n          fechado_em?: string | null\n          fechado_por?: string | null\n          id?: string\n          mes?: number\n          status?: string\n          tenant_id?: string\n          updated_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"periodos_contabeis_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"periodos_contabeis_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      pesagens: {\n        Row: {\n          animal_id: string | null\n          created_at: string | null\n          custo: number | null\n          data_pesagem: string\n          fazenda_id: string | null\n          id: string\n          observacao: string | null\n          peso: number\n          tenant_id: string | null\n        }\n        Insert: {\n          animal_id?: string | null\n          created_at?: string | null\n          custo?: number | null\n          data_pesagem?: string\n          fazenda_id?: string | null\n          id?: string\n          observacao?: string | null\n          peso: number\n          tenant_id?: string | null\n        }\n        Update: {\n          animal_id?: string | null\n          created_at?: string | null\n          custo?: number | null\n          data_pesagem?: string\n          fazenda_id?: string | null\n          id?: string\n          observacao?: string | null\n          peso?: number\n          tenant_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"pesagens_animal_id_fkey\"\n            columns: [\"animal_id\"]\n            isOneToOne: false\n            referencedRelation: \"animais\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"pesagens_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"pesagens_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      produto_fornecedor_de_para: {\n        Row: {\n          created_at: string\n          id: string\n          internal_product_id: string\n          match_count: number\n          supplier_id: string | null\n          supplier_product_code: string | null\n          supplier_product_name: string\n          tenant_id: string\n          updated_at: string\n        }\n        Insert: {\n          created_at?: string\n          id?: string\n          internal_product_id: string\n          match_count?: number\n          supplier_id?: string | null\n          supplier_product_code?: string | null\n          supplier_product_name: string\n          tenant_id: string\n          updated_at?: string\n        }\n        Update: {\n          created_at?: string\n          id?: string\n          internal_product_id?: string\n          match_count?: number\n          supplier_id?: string | null\n          supplier_product_code?: string | null\n          supplier_product_name?: string\n          tenant_id?: string\n          updated_at?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"produto_fornecedor_de_para_internal_product_id_fkey\"\n            columns: [\"internal_product_id\"]\n            isOneToOne: false\n            referencedRelation: \"produtos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"produto_fornecedor_de_para_supplier_id_fkey\"\n            columns: [\"supplier_id\"]\n            isOneToOne: false\n            referencedRelation: \"parceiros\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"produto_fornecedor_de_para_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      produtos: {\n        Row: {\n          carencia_dias: number | null\n          categoria_id: string | null\n          cnae_associado: string | null\n          codigo_servico_lc116: string | null\n          codigo_tributacao_nacional: string | null\n          created_at: string | null\n          custo_medio: number | null\n          descricao: string | null\n          ean: string | null\n          estoque_atual: number | null\n          estoque_minimo: number | null\n          fazenda_id: string | null\n          id: string\n          is_active: boolean | null\n          is_purchasable: boolean | null\n          is_sellable: boolean | null\n          is_storable: boolean | null\n          localizacao: string | null\n          marca: string | null\n          ncm: string | null\n          nome: string\n          preco_custo: number | null\n          tenant_id: string | null\n          tipo: string | null\n          unidade: string | null\n          unidade_medida: string | null\n        }\n        Insert: {\n          carencia_dias?: number | null\n          categoria_id?: string | null\n          cnae_associado?: string | null\n          codigo_servico_lc116?: string | null\n          codigo_tributacao_nacional?: string | null\n          created_at?: string | null\n          custo_medio?: number | null\n          descricao?: string | null\n          ean?: string | null\n          estoque_atual?: number | null\n          estoque_minimo?: number | null\n          fazenda_id?: string | null\n          id?: string\n          is_active?: boolean | null\n          is_purchasable?: boolean | null\n          is_sellable?: boolean | null\n          is_storable?: boolean | null\n          localizacao?: string | null\n          marca?: string | null\n          ncm?: string | null\n          nome: string\n          preco_custo?: number | null\n          tenant_id?: string | null\n          tipo?: string | null\n          unidade?: string | null\n          unidade_medida?: string | null\n        }\n        Update: {\n          carencia_dias?: number | null\n          categoria_id?: string | null\n          cnae_associado?: string | null\n          codigo_servico_lc116?: string | null\n          codigo_tributacao_nacional?: string | null\n          created_at?: string | null\n          custo_medio?: number | null\n          descricao?: string | null\n          ean?: string | null\n          estoque_atual?: number | null\n          estoque_minimo?: number | null\n          fazenda_id?: string | null\n          id?: string\n          is_active?: boolean | null\n          is_purchasable?: boolean | null\n          is_sellable?: boolean | null\n          is_storable?: boolean | null\n          localizacao?: string | null\n          marca?: string | null\n          ncm?: string | null\n          nome?: string\n          preco_custo?: number | null\n          tenant_id?: string | null\n          tipo?: string | null\n          unidade?: string | null\n          unidade_medida?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"produtos_categoria_id_fkey\"\n            columns: [\"categoria_id\"]\n            isOneToOne: false\n            referencedRelation: \"categorias_sistema\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"produtos_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"produtos_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      profiles: {\n        Row: {\n          avatar_url: string | null\n          created_at: string | null\n          email: string | null\n          full_name: string | null\n          id: string\n          perfil_id: string | null\n          role: string | null\n          settings: Json | null\n          tenant_id: string | null\n        }\n        Insert: {\n          avatar_url?: string | null\n          created_at?: string | null\n          email?: string | null\n          full_name?: string | null\n          id: string\n          perfil_id?: string | null\n          role?: string | null\n          settings?: Json | null\n          tenant_id?: string | null\n        }\n        Update: {\n          avatar_url?: string | null\n          created_at?: string | null\n          email?: string | null\n          full_name?: string | null\n          id?: string\n          perfil_id?: string | null\n          role?: string | null\n          settings?: Json | null\n          tenant_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"profiles_perfil_id_fkey\"\n            columns: [\"perfil_id\"]\n            isOneToOne: false\n            referencedRelation: \"perfis_usuario\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"profiles_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      protocolos: {\n        Row: {\n          categoria: string\n          created_at: string | null\n          fazenda_id: string | null\n          id: string\n          nome: string\n          passos: Json\n          status: string | null\n          tenant_id: string | null\n        }\n        Insert: {\n          categoria: string\n          created_at?: string | null\n          fazenda_id?: string | null\n          id?: string\n          nome: string\n          passos?: Json\n          status?: string | null\n          tenant_id?: string | null\n        }\n        Update: {\n          categoria?: string\n          created_at?: string | null\n          fazenda_id?: string | null\n          id?: string\n          nome?: string\n          passos?: Json\n          status?: string | null\n          tenant_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"protocolos_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      record_locks: {\n        Row: {\n          expires_at: string | null\n          id: string\n          locked_at: string | null\n          record_id: string | null\n          table_name: string | null\n          user_id: string | null\n          user_name: string | null\n        }\n        Insert: {\n          expires_at?: string | null\n          id?: string\n          locked_at?: string | null\n          record_id?: string | null\n          table_name?: string | null\n          user_id?: string | null\n          user_name?: string | null\n        }\n        Update: {\n          expires_at?: string | null\n          id?: string\n          locked_at?: string | null\n          record_id?: string | null\n          table_name?: string | null\n          user_id?: string | null\n          user_name?: string | null\n        }\n        Relationships: []\n      }\n      reforma_etapas: {\n        Row: {\n          created_at: string | null\n          created_by: string | null\n          custo_etapa: number | null\n          custo_hora: number | null\n          data_registro: string\n          horas_trabalhadas: number | null\n          id: string\n          itens_consumidos: Json | null\n          maquina_id: string | null\n          observacoes: string | null\n          reforma_id: string\n          tenant_id: string\n          tipo_etapa: string\n        }\n        Insert: {\n          created_at?: string | null\n          created_by?: string | null\n          custo_etapa?: number | null\n          custo_hora?: number | null\n          data_registro: string\n          horas_trabalhadas?: number | null\n          id?: string\n          itens_consumidos?: Json | null\n          maquina_id?: string | null\n          observacoes?: string | null\n          reforma_id: string\n          tenant_id: string\n          tipo_etapa: string\n        }\n        Update: {\n          created_at?: string | null\n          created_by?: string | null\n          custo_etapa?: number | null\n          custo_hora?: number | null\n          data_registro?: string\n          horas_trabalhadas?: number | null\n          id?: string\n          itens_consumidos?: Json | null\n          maquina_id?: string | null\n          observacoes?: string | null\n          reforma_id?: string\n          tenant_id?: string\n          tipo_etapa?: string\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"reforma_etapas_maquina_id_fkey\"\n            columns: [\"maquina_id\"]\n            isOneToOne: false\n            referencedRelation: \"maquinas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"reforma_etapas_reforma_id_fkey\"\n            columns: [\"reforma_id\"]\n            isOneToOne: false\n            referencedRelation: \"reformas_pasto\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"reforma_etapas_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      reformas_pasto: {\n        Row: {\n          analise_ca_cmolc: number | null\n          analise_p_mgdm3: number | null\n          analise_v_percent: number | null\n          created_at: string | null\n          created_by: string | null\n          custo_insumos: number | null\n          custo_maquinario: number | null\n          custo_total: number | null\n          data_fim: string | null\n          data_inicio: string\n          fazenda_id: string\n          foto_antes_url: string | null\n          foto_depois_url: string | null\n          id: string\n          objetivo: string | null\n          observacoes: string | null\n          pasto_id: string\n          status: string | null\n          tenant_id: string\n          updated_at: string | null\n        }\n        Insert: {\n          analise_ca_cmolc?: number | null\n          analise_p_mgdm3?: number | null\n          analise_v_percent?: number | null\n          created_at?: string | null\n          created_by?: string | null\n          custo_insumos?: number | null\n          custo_maquinario?: number | null\n          custo_total?: number | null\n          data_fim?: string | null\n          data_inicio: string\n          fazenda_id: string\n          foto_antes_url?: string | null\n          foto_depois_url?: string | null\n          id?: string\n          objetivo?: string | null\n          observacoes?: string | null\n          pasto_id: string\n          status?: string | null\n          tenant_id: string\n          updated_at?: string | null\n        }\n        Update: {\n          analise_ca_cmolc?: number | null\n          analise_p_mgdm3?: number | null\n          analise_v_percent?: number | null\n          created_at?: string | null\n          created_by?: string | null\n          custo_insumos?: number | null\n          custo_maquinario?: number | null\n          custo_total?: number | null\n          data_fim?: string | null\n          data_inicio?: string\n          fazenda_id?: string\n          foto_antes_url?: string | null\n          foto_depois_url?: string | null\n          id?: string\n          objetivo?: string | null\n          observacoes?: string | null\n          pasto_id?: string\n          status?: string | null\n          tenant_id?: string\n          updated_at?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"reformas_pasto_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"reformas_pasto_pasto_id_fkey\"\n            columns: [\"pasto_id\"]\n            isOneToOne: false\n            referencedRelation: \"pastos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"reformas_pasto_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      romaneios: {\n        Row: {\n          animais_qtd: number\n          codigo: string\n          comprador: string\n          created_at: string | null\n          data: string\n          destino: string\n          fazenda_id: string\n          id: string\n          motorista: string | null\n          nfe: string | null\n          observacoes: string | null\n          placa: string | null\n          status: string\n          tenant_id: string\n          updated_at: string | null\n          valor_estimado: number\n        }\n        Insert: {\n          animais_qtd?: number\n          codigo?: string\n          comprador: string\n          created_at?: string | null\n          data?: string\n          destino: string\n          fazenda_id: string\n          id?: string\n          motorista?: string | null\n          nfe?: string | null\n          observacoes?: string | null\n          placa?: string | null\n          status?: string\n          tenant_id: string\n          updated_at?: string | null\n          valor_estimado?: number\n        }\n        Update: {\n          animais_qtd?: number\n          codigo?: string\n          comprador?: string\n          created_at?: string | null\n          data?: string\n          destino?: string\n          fazenda_id?: string\n          id?: string\n          motorista?: string | null\n          nfe?: string | null\n          observacoes?: string | null\n          placa?: string | null\n          status?: string\n          tenant_id?: string\n          updated_at?: string | null\n          valor_estimado?: number\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"romaneios_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"romaneios_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      saas_audit_logs: {\n        Row: {\n          action_type: string\n          admin_id: string | null\n          created_at: string | null\n          details: Json | null\n          id: string\n          target_tenant_id: string | null\n        }\n        Insert: {\n          action_type: string\n          admin_id?: string | null\n          created_at?: string | null\n          details?: Json | null\n          id?: string\n          target_tenant_id?: string | null\n        }\n        Update: {\n          action_type?: string\n          admin_id?: string | null\n          created_at?: string | null\n          details?: Json | null\n          id?: string\n          target_tenant_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"saas_audit_logs_target_tenant_id_fkey\"\n            columns: [\"target_tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      saas_campaigns: {\n        Row: {\n          created_at: string\n          discount_percentage: number\n          end_date: string\n          id: string\n          is_active: boolean | null\n          name: string\n          start_date: string\n          target_plan_ids: string[] | null\n        }\n        Insert: {\n          created_at?: string\n          discount_percentage: number\n          end_date: string\n          id?: string\n          is_active?: boolean | null\n          name: string\n          start_date: string\n          target_plan_ids?: string[] | null\n        }\n        Update: {\n          created_at?: string\n          discount_percentage?: number\n          end_date?: string\n          id?: string\n          is_active?: boolean | null\n          name?: string\n          start_date?: string\n          target_plan_ids?: string[] | null\n        }\n        Relationships: []\n      }\n      saas_gateway_settings: {\n        Row: {\n          api_key: string | null\n          encryption_key: string | null\n          environment: string | null\n          gateway_name: string\n          id: string\n          is_active: boolean | null\n          secret_key: string | null\n          updated_at: string | null\n          updated_by: string | null\n        }\n        Insert: {\n          api_key?: string | null\n          encryption_key?: string | null\n          environment?: string | null\n          gateway_name: string\n          id?: string\n          is_active?: boolean | null\n          secret_key?: string | null\n          updated_at?: string | null\n          updated_by?: string | null\n        }\n        Update: {\n          api_key?: string | null\n          encryption_key?: string | null\n          environment?: string | null\n          gateway_name?: string\n          id?: string\n          is_active?: boolean | null\n          secret_key?: string | null\n          updated_at?: string | null\n          updated_by?: string | null\n        }\n        Relationships: []\n      }\n      saas_invoices: {\n        Row: {\n          amount: number\n          created_at: string | null\n          due_date: string\n          id: string\n          paid_at: string | null\n          payment_link: string | null\n          plan_name: string\n          status: string\n          tenant_id: string | null\n        }\n        Insert: {\n          amount: number\n          created_at?: string | null\n          due_date: string\n          id?: string\n          paid_at?: string | null\n          payment_link?: string | null\n          plan_name: string\n          status: string\n          tenant_id?: string | null\n        }\n        Update: {\n          amount?: number\n          created_at?: string | null\n          due_date?: string\n          id?: string\n          paid_at?: string | null\n          payment_link?: string | null\n          plan_name?: string\n          status?: string\n          tenant_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"saas_invoices_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      saas_plans: {\n        Row: {\n          created_at: string | null\n          features: string[] | null\n          id: string\n          name: string\n          price: number\n          storage_gb: number\n          users_limit: number\n        }\n        Insert: {\n          created_at?: string | null\n          features?: string[] | null\n          id?: string\n          name: string\n          price: number\n          storage_gb: number\n          users_limit: number\n        }\n        Update: {\n          created_at?: string | null\n          features?: string[] | null\n          id?: string\n          name?: string\n          price?: number\n          storage_gb?: number\n          users_limit?: number\n        }\n        Relationships: []\n      }\n      saldos_estoque: {\n        Row: {\n          created_at: string | null\n          custo_medio: number\n          deposito_id: string\n          fazenda_id: string | null\n          id: string\n          produto_id: string\n          quantidade: number\n          tenant_id: string\n          updated_at: string | null\n          valor_total: number\n        }\n        Insert: {\n          created_at?: string | null\n          custo_medio?: number\n          deposito_id: string\n          fazenda_id?: string | null\n          id?: string\n          produto_id: string\n          quantidade?: number\n          tenant_id: string\n          updated_at?: string | null\n          valor_total?: number\n        }\n        Update: {\n          created_at?: string | null\n          custo_medio?: number\n          deposito_id?: string\n          fazenda_id?: string | null\n          id?: string\n          produto_id?: string\n          quantidade?: number\n          tenant_id?: string\n          updated_at?: string | null\n          valor_total?: number\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"saldos_estoque_deposito_id_fkey\"\n            columns: [\"deposito_id\"]\n            isOneToOne: false\n            referencedRelation: \"depositos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"saldos_estoque_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"saldos_estoque_produto_id_fkey\"\n            columns: [\"produto_id\"]\n            isOneToOne: false\n            referencedRelation: \"produtos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"saldos_estoque_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      sanidade: {\n        Row: {\n          animal_id: string | null\n          carencia_dias: number | null\n          created_at: string | null\n          custo: number | null\n          data_manejo: string\n          dose: string | null\n          fazenda_id: string | null\n          id: string\n          local_aplicacao: string | null\n          lote_id: string | null\n          observacao: string | null\n          produto: string | null\n          status: string | null\n          tenant_id: string | null\n          tipo: string | null\n          titulo: string | null\n          via_aplicacao: string | null\n        }\n        Insert: {\n          animal_id?: string | null\n          carencia_dias?: number | null\n          created_at?: string | null\n          custo?: number | null\n          data_manejo?: string\n          dose?: string | null\n          fazenda_id?: string | null\n          id?: string\n          local_aplicacao?: string | null\n          lote_id?: string | null\n          observacao?: string | null\n          produto?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n          titulo?: string | null\n          via_aplicacao?: string | null\n        }\n        Update: {\n          animal_id?: string | null\n          carencia_dias?: number | null\n          created_at?: string | null\n          custo?: number | null\n          data_manejo?: string\n          dose?: string | null\n          fazenda_id?: string | null\n          id?: string\n          local_aplicacao?: string | null\n          lote_id?: string | null\n          observacao?: string | null\n          produto?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n          titulo?: string | null\n          via_aplicacao?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"sanidade_animal_id_fkey\"\n            columns: [\"animal_id\"]\n            isOneToOne: false\n            referencedRelation: \"animais\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"sanidade_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"sanidade_lote_id_fkey\"\n            columns: [\"lote_id\"]\n            isOneToOne: false\n            referencedRelation: \"lotes\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"sanidade_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      solicitacoes_compra: {\n        Row: {\n          created_at: string | null\n          departamento: string | null\n          descricao: string | null\n          fazenda_id: string | null\n          id: string\n          prioridade: string | null\n          solicitante: string | null\n          status: string | null\n          tenant_id: string | null\n          titulo: string\n          valor_estimado: number | null\n        }\n        Insert: {\n          created_at?: string | null\n          departamento?: string | null\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          prioridade?: string | null\n          solicitante?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          titulo: string\n          valor_estimado?: number | null\n        }\n        Update: {\n          created_at?: string | null\n          departamento?: string | null\n          descricao?: string | null\n          fazenda_id?: string | null\n          id?: string\n          prioridade?: string | null\n          solicitante?: string | null\n          status?: string | null\n          tenant_id?: string | null\n          titulo?: string\n          valor_estimado?: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"solicitacoes_compra_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"solicitacoes_compra_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      tenants: {\n        Row: {\n          created_at: string | null\n          document: string | null\n          email: string | null\n          id: string\n          is_demo: boolean | null\n          is_template: boolean | null\n          nome: string\n          plano: string | null\n          settings: Json | null\n          status: string | null\n          type: Database[\"public\"][\"Enums\"][\"tenantsType\"] | null\n          updated_at: string | null\n        }\n        Insert: {\n          created_at?: string | null\n          document?: string | null\n          email?: string | null\n          id?: string\n          is_demo?: boolean | null\n          is_template?: boolean | null\n          nome: string\n          plano?: string | null\n          settings?: Json | null\n          status?: string | null\n          type?: Database[\"public\"][\"Enums\"][\"tenantsType\"] | null\n          updated_at?: string | null\n        }\n        Update: {\n          created_at?: string | null\n          document?: string | null\n          email?: string | null\n          id?: string\n          is_demo?: boolean | null\n          is_template?: boolean | null\n          nome?: string\n          plano?: string | null\n          settings?: Json | null\n          status?: string | null\n          type?: Database[\"public\"][\"Enums\"][\"tenantsType\"] | null\n          updated_at?: string | null\n        }\n        Relationships: []\n      }\n      unidades: {\n        Row: {\n          ativo: boolean | null\n          bairro: string | null\n          cep: string | null\n          cidade: string | null\n          cnpj: string | null\n          complemento: string | null\n          contador_cpf: string | null\n          contador_crc: string | null\n          contador_nome: string | null\n          created_at: string | null\n          documento: string | null\n          email: string | null\n          endereco: string | null\n          estado: string | null\n          id: string\n          logradouro: string | null\n          nome: string\n          numero: string | null\n          pais: string | null\n          razao_social: string | null\n          socio_cpf: string | null\n          socio_ind_sit_esp: number | null\n          socio_nome: string | null\n          telefone: string | null\n          tenant_id: string | null\n          tipo: string | null\n          tipo_documento: string | null\n          tipo_logradouro: string | null\n        }\n        Insert: {\n          ativo?: boolean | null\n          bairro?: string | null\n          cep?: string | null\n          cidade?: string | null\n          cnpj?: string | null\n          complemento?: string | null\n          contador_cpf?: string | null\n          contador_crc?: string | null\n          contador_nome?: string | null\n          created_at?: string | null\n          documento?: string | null\n          email?: string | null\n          endereco?: string | null\n          estado?: string | null\n          id?: string\n          logradouro?: string | null\n          nome: string\n          numero?: string | null\n          pais?: string | null\n          razao_social?: string | null\n          socio_cpf?: string | null\n          socio_ind_sit_esp?: number | null\n          socio_nome?: string | null\n          telefone?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n          tipo_documento?: string | null\n          tipo_logradouro?: string | null\n        }\n        Update: {\n          ativo?: boolean | null\n          bairro?: string | null\n          cep?: string | null\n          cidade?: string | null\n          cnpj?: string | null\n          complemento?: string | null\n          contador_cpf?: string | null\n          contador_crc?: string | null\n          contador_nome?: string | null\n          created_at?: string | null\n          documento?: string | null\n          email?: string | null\n          endereco?: string | null\n          estado?: string | null\n          id?: string\n          logradouro?: string | null\n          nome?: string\n          numero?: string | null\n          pais?: string | null\n          razao_social?: string | null\n          socio_cpf?: string | null\n          socio_ind_sit_esp?: number | null\n          socio_nome?: string | null\n          telefone?: string | null\n          tenant_id?: string | null\n          tipo?: string | null\n          tipo_documento?: string | null\n          tipo_logradouro?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"unidades_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      user_drafts: {\n        Row: {\n          draft_key: string\n          id: string\n          payload: Json | null\n          updated_at: string | null\n          user_id: string | null\n        }\n        Insert: {\n          draft_key: string\n          id?: string\n          payload?: Json | null\n          updated_at?: string | null\n          user_id?: string | null\n        }\n        Update: {\n          draft_key?: string\n          id?: string\n          payload?: Json | null\n          updated_at?: string | null\n          user_id?: string | null\n        }\n        Relationships: []\n      }\n      user_views: {\n        Row: {\n          created_at: string | null\n          filters: Json\n          id: string\n          name: string\n          page_identifier: string\n          tenant_id: string\n          updated_at: string | null\n          user_id: string | null\n        }\n        Insert: {\n          created_at?: string | null\n          filters?: Json\n          id?: string\n          name: string\n          page_identifier: string\n          tenant_id: string\n          updated_at?: string | null\n          user_id?: string | null\n        }\n        Update: {\n          created_at?: string | null\n          filters?: Json\n          id?: string\n          name?: string\n          page_identifier?: string\n          tenant_id?: string\n          updated_at?: string | null\n          user_id?: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"user_views_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n    }\n    Views: {\n      profiles_view: {\n        Row: {\n          base_role: string | null\n          created_at: string | null\n          email: string | null\n          id: string | null\n          name: string | null\n          perfil_id: string | null\n          profile_name: string | null\n          tenant_id: string | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"profiles_perfil_id_fkey\"\n            columns: [\"perfil_id\"]\n            isOneToOne: false\n            referencedRelation: \"perfis_usuario\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"profiles_tenant_id_fkey\"\n            columns: [\"tenant_id\"]\n            isOneToOne: false\n            referencedRelation: \"tenants\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n      vw_estoque_deposito_saldo: {\n        Row: {\n          deposito_id: string | null\n          fazenda_id: string | null\n          produto_id: string | null\n          saldo: number | null\n        }\n        Relationships: [\n          {\n            foreignKeyName: \"movimentacoes_estoque_deposito_id_fkey\"\n            columns: [\"deposito_id\"]\n            isOneToOne: false\n            referencedRelation: \"depositos\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"movimentacoes_estoque_fazenda_id_fkey\"\n            columns: [\"fazenda_id\"]\n            isOneToOne: false\n            referencedRelation: \"fazendas\"\n            referencedColumns: [\"id\"]\n          },\n          {\n            foreignKeyName: \"movimentacoes_estoque_produto_id_fkey\"\n            columns: [\"produto_id\"]\n            isOneToOne: false\n            referencedRelation: \"produtos\"\n            referencedColumns: [\"id\"]\n          },\n        ]\n      }\n    }\n    Functions: {\n      calculate_cash_flow_summary: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      calculate_ebitda: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: number\n      }\n      calculate_fleet_consumption: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      calculate_herd_gmd: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: number\n      }\n      check_deposito_compatibilidade: {\n        Args: { p_deposito_id: string; p_produto_id: string }\n        Returns: boolean\n      }\n      clone_tenant_from_template:\n        | { Args: { p_new_tenant_id: string }; Returns: undefined }\n        | {\n            Args: {\n              p_documento: string\n              p_is_demo?: boolean\n              p_new_tenant_id: string\n              p_nome: string\n            }\n            Returns: undefined\n          }\n      delete_demo_tenant: {\n        Args: { target_tenant_id: string }\n        Returns: undefined\n      }\n      get_animal_stats: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_auth_tenant: { Args: never; Returns: string }\n      get_banking_consolidated_balance: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_certificados_digitais: {\n        Args: { p_tenant_id: string }\n        Returns: {\n          cnpj_cpf: string\n          company_id: string\n          created_at: string\n          data_vencimento: string\n          id: string\n          pfx_base64: string\n          senha: string\n          tenant_id: string\n          titular: string\n          updated_at: string\n        }[]\n        SetofOptions: {\n          from: \"*\"\n          to: \"certificados_digitais\"\n          isOneToOne: false\n          isSetofReturn: true\n        }\n      }\n      get_default_tenant: { Args: never; Returns: string }\n      get_esg_carbon_balance: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_finance_summary:\n        | {\n            Args: {\n              p_fazenda_id?: string\n              p_table_name: string\n              p_tenant_id: string\n            }\n            Returns: {\n              record_count: number\n              status: string\n              total_value: number\n            }[]\n          }\n        | {\n            Args: { p_fazenda_id?: string; p_tenant_id: string }\n            Returns: Json\n          }\n      get_herd_total_weight: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: number\n      }\n      get_ia_monte_carlo_projection: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_inventory_health: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_manutencao_stats: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_my_tenant_id: { Args: never; Returns: string }\n      get_paddock_lotation_summary: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_paddock_support_capacity: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_purchase_summary: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_reproductive_stats: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_sales_performance: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      get_sanitary_coverage: {\n        Args: { p_fazenda_id?: string; p_tenant_id: string }\n        Returns: Json\n      }\n      is_admin_check: { Args: never; Returns: boolean }\n      process_fifo_movement: {\n        Args: {\n          p_deposito_id: string\n          p_fazenda_id: string\n          p_origem_destino: string\n          p_produto_id: string\n          p_quantidade: number\n          p_responsavel: string\n          p_tenant_id: string\n          p_tipo: string\n          p_valor_unitario: number\n        }\n        Returns: undefined\n      }\n      processar_entrada_nfe: { Args: { payload: Json }; Returns: string }\n      rebuild_kardex_fn: {\n        Args: {\n          p_deposito_id: string\n          p_produto_id: string\n          p_tenant_id: string\n        }\n        Returns: undefined\n      }\n      upsert_certificado_digital: {\n        Args: {\n          p_cnpj_cpf: string\n          p_company_id: string\n          p_data_vencimento: string\n          p_existing_id?: string\n          p_pfx_base64: string\n          p_senha: string\n          p_tenant_id: string\n          p_titular: string\n        }\n        Returns: string\n      }\n    }\n    Enums: {\n      tenantsType: \"CPF\" | \"CNPJ\"\n    }\n    CompositeTypes: {\n      [_ in never]: never\n    }\n  }\n}\n\ntype DatabaseWithoutInternals = Omit<Database, \"__InternalSupabase\">\n\ntype DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, \"public\">]\n\nexport type Tables<\n  DefaultSchemaTableNameOrOptions extends\n    | keyof (DefaultSchema[\"Tables\"] & DefaultSchema[\"Views\"])\n    | { schema: keyof DatabaseWithoutInternals },\n  TableName extends DefaultSchemaTableNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"] &\n        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Views\"])\n    : never = never,\n> = DefaultSchemaTableNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"] &\n      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Views\"])[TableName] extends {\n      Row: infer R\n    }\n    ? R\n    : never\n  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema[\"Tables\"] &\n        DefaultSchema[\"Views\"])\n    ? (DefaultSchema[\"Tables\"] &\n        DefaultSchema[\"Views\"])[DefaultSchemaTableNameOrOptions] extends {\n        Row: infer R\n      }\n      ? R\n      : never\n    : never\n\nexport type TablesInsert<\n  DefaultSchemaTableNameOrOptions extends\n    | keyof DefaultSchema[\"Tables\"]\n    | { schema: keyof DatabaseWithoutInternals },\n  TableName extends DefaultSchemaTableNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"]\n    : never = never,\n> = DefaultSchemaTableNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"][TableName] extends {\n      Insert: infer I\n    }\n    ? I\n    : never\n  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema[\"Tables\"]\n    ? DefaultSchema[\"Tables\"][DefaultSchemaTableNameOrOptions] extends {\n        Insert: infer I\n      }\n      ? I\n      : never\n    : never\n\nexport type TablesUpdate<\n  DefaultSchemaTableNameOrOptions extends\n    | keyof DefaultSchema[\"Tables\"]\n    | { schema: keyof DatabaseWithoutInternals },\n  TableName extends DefaultSchemaTableNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"]\n    : never = never,\n> = DefaultSchemaTableNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions[\"schema\"]][\"Tables\"][TableName] extends {\n      Update: infer U\n    }\n    ? U\n    : never\n  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema[\"Tables\"]\n    ? DefaultSchema[\"Tables\"][DefaultSchemaTableNameOrOptions] extends {\n        Update: infer U\n      }\n      ? U\n      : never\n    : never\n\nexport type Enums<\n  DefaultSchemaEnumNameOrOptions extends\n    | keyof DefaultSchema[\"Enums\"]\n    | { schema: keyof DatabaseWithoutInternals },\n  EnumName extends DefaultSchemaEnumNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions[\"schema\"]][\"Enums\"]\n    : never = never,\n> = DefaultSchemaEnumNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions[\"schema\"]][\"Enums\"][EnumName]\n  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema[\"Enums\"]\n    ? DefaultSchema[\"Enums\"][DefaultSchemaEnumNameOrOptions]\n    : never\n\nexport type CompositeTypes<\n  PublicCompositeTypeNameOrOptions extends\n    | keyof DefaultSchema[\"CompositeTypes\"]\n    | { schema: keyof DatabaseWithoutInternals },\n  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {\n    schema: keyof DatabaseWithoutInternals\n  }\n    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions[\"schema\"]][\"CompositeTypes\"]\n    : never = never,\n> = PublicCompositeTypeNameOrOptions extends {\n  schema: keyof DatabaseWithoutInternals\n}\n  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions[\"schema\"]][\"CompositeTypes\"][CompositeTypeName]\n  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema[\"CompositeTypes\"]\n    ? DefaultSchema[\"CompositeTypes\"][PublicCompositeTypeNameOrOptions]\n    : never\n\nexport const Constants = {\n  public: {\n    Enums: {\n      tenantsType: [\"CPF\", \"CNPJ\"],\n    },\n  },\n} as const\n"}
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      abastecimentos: {
+        Row: {
+          created_at: string | null
+          data: string
+          fazenda_id: string | null
+          id: string
+          litros: number
+          maquina_id: string | null
+          responsavel: string | null
+          tenant_id: string | null
+          tipo_combustivel: string | null
+          valor_medidor: number | null
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          data?: string
+          fazenda_id?: string | null
+          id?: string
+          litros: number
+          maquina_id?: string | null
+          responsavel?: string | null
+          tenant_id?: string | null
+          tipo_combustivel?: string | null
+          valor_medidor?: number | null
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          data?: string
+          fazenda_id?: string | null
+          id?: string
+          litros?: number
+          maquina_id?: string | null
+          responsavel?: string | null
+          tenant_id?: string | null
+          tipo_combustivel?: string | null
+          valor_medidor?: number | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abastecimentos_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abastecimentos_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abastecimentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      animais: {
+        Row: {
+          brinco: string
+          brinco_eletronico: string | null
+          categoria: string | null
+          created_at: string | null
+          data_nascimento: string | null
+          fase_atual: string | null
+          fazenda_id: string | null
+          finalidade: string | null
+          id: string
+          lote_id: string | null
+          mae_brinco: string | null
+          origem: string | null
+          pai_brinco: string | null
+          pasto_id: string | null
+          pelagem: string | null
+          peso_atual: number | null
+          peso_inicial: number | null
+          peso_objetivo: number | null
+          raca: string | null
+          romaneio_id: string | null
+          sexo: string | null
+          status: string | null
+          tenant_id: string | null
+          valor_compra: number | null
+        }
+        Insert: {
+          brinco: string
+          brinco_eletronico?: string | null
+          categoria?: string | null
+          created_at?: string | null
+          data_nascimento?: string | null
+          fase_atual?: string | null
+          fazenda_id?: string | null
+          finalidade?: string | null
+          id?: string
+          lote_id?: string | null
+          mae_brinco?: string | null
+          origem?: string | null
+          pai_brinco?: string | null
+          pasto_id?: string | null
+          pelagem?: string | null
+          peso_atual?: number | null
+          peso_inicial?: number | null
+          peso_objetivo?: number | null
+          raca?: string | null
+          romaneio_id?: string | null
+          sexo?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          valor_compra?: number | null
+        }
+        Update: {
+          brinco?: string
+          brinco_eletronico?: string | null
+          categoria?: string | null
+          created_at?: string | null
+          data_nascimento?: string | null
+          fase_atual?: string | null
+          fazenda_id?: string | null
+          finalidade?: string | null
+          id?: string
+          lote_id?: string | null
+          mae_brinco?: string | null
+          origem?: string | null
+          pai_brinco?: string | null
+          pasto_id?: string | null
+          pelagem?: string | null
+          peso_atual?: number | null
+          peso_inicial?: number | null
+          peso_objetivo?: number | null
+          raca?: string | null
+          romaneio_id?: string | null
+          sexo?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          valor_compra?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "animais_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "animais_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "animais_pasto_id_fkey"
+            columns: ["pasto_id"]
+            isOneToOne: false
+            referencedRelation: "pastos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "animais_romaneio_id_fkey"
+            columns: ["romaneio_id"]
+            isOneToOne: false
+            referencedRelation: "romaneios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "animais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          description: string | null
+          entity: string | null
+          entity_id: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string | null
+          tenant_id: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          description?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          tenant_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          description?: string | null
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          tenant_id?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      auditorias_estoque: {
+        Row: {
+          accuracy: number | null
+          categoria: string | null
+          created_at: string | null
+          data: string | null
+          fazenda_id: string | null
+          id: string
+          items_count: number | null
+          responsavel: string | null
+          status: string | null
+          tenant_id: string | null
+          titulo: string
+        }
+        Insert: {
+          accuracy?: number | null
+          categoria?: string | null
+          created_at?: string | null
+          data?: string | null
+          fazenda_id?: string | null
+          id?: string
+          items_count?: number | null
+          responsavel?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          titulo: string
+        }
+        Update: {
+          accuracy?: number | null
+          categoria?: string | null
+          created_at?: string | null
+          data?: string | null
+          fazenda_id?: string | null
+          id?: string
+          items_count?: number | null
+          responsavel?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditorias_estoque_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditorias_estoque_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categorias_sistema: {
+        Row: {
+          categoria_financeira_id: string | null
+          cor: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_system: boolean | null
+          modulo: string
+          modulo_vinculado: string | null
+          nome: string
+          tenant_id: string
+          tipo_item: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          categoria_financeira_id?: string | null
+          cor?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          modulo: string
+          modulo_vinculado?: string | null
+          nome: string
+          tenant_id: string
+          tipo_item?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          categoria_financeira_id?: string | null
+          cor?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_system?: boolean | null
+          modulo?: string
+          modulo_vinculado?: string | null
+          nome?: string
+          tenant_id?: string
+          tipo_item?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categorias_sistema_categoria_financeira_id_fkey"
+            columns: ["categoria_financeira_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categorias_sistema_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certificados_digitais: {
+        Row: {
+          cnpj_cpf: string
+          company_id: string
+          created_at: string
+          data_vencimento: string
+          id: string
+          pfx_base64: string
+          senha: string
+          tenant_id: string
+          titular: string
+          updated_at: string
+        }
+        Insert: {
+          cnpj_cpf: string
+          company_id: string
+          created_at?: string
+          data_vencimento: string
+          id?: string
+          pfx_base64: string
+          senha: string
+          tenant_id: string
+          titular: string
+          updated_at?: string
+        }
+        Update: {
+          cnpj_cpf?: string
+          company_id?: string
+          created_at?: string
+          data_vencimento?: string
+          id?: string
+          pfx_base64?: string
+          senha?: string
+          tenant_id?: string
+          titular?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificados_digitais_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificados_digitais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conciliacoes: {
+        Row: {
+          conta_bancaria_id: string | null
+          created_at: string | null
+          data_importacao: string | null
+          fazenda_id: string | null
+          id: string
+          periodo_fim: string | null
+          periodo_inicio: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          conta_bancaria_id?: string | null
+          created_at?: string | null
+          data_importacao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          conta_bancaria_id?: string | null
+          created_at?: string | null
+          data_importacao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conciliacoes_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conciliacoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      confinamento: {
+        Row: {
+          capacidade_animais: number | null
+          created_at: string | null
+          data_inicio: string
+          dof_alvo: number | null
+          fazenda_id: string | null
+          id: string
+          lote_id: string | null
+          nome_curral: string
+          tenant_id: string | null
+        }
+        Insert: {
+          capacidade_animais?: number | null
+          created_at?: string | null
+          data_inicio?: string
+          dof_alvo?: number | null
+          fazenda_id?: string | null
+          id?: string
+          lote_id?: string | null
+          nome_curral: string
+          tenant_id?: string | null
+        }
+        Update: {
+          capacidade_animais?: number | null
+          created_at?: string | null
+          data_inicio?: string
+          dof_alvo?: number | null
+          fazenda_id?: string | null
+          id?: string
+          lote_id?: string | null
+          nome_curral?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confinamento_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "confinamento_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "confinamento_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_bancarias: {
+        Row: {
+          agencia: string | null
+          banco: string
+          conta: string | null
+          created_at: string | null
+          descricao: string | null
+          fazenda_id: string | null
+          id: string
+          is_global: boolean | null
+          saldo_atual: number | null
+          tenant_id: string | null
+          tipo: string | null
+          unidade_id: string | null
+        }
+        Insert: {
+          agencia?: string | null
+          banco: string
+          conta?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          is_global?: boolean | null
+          saldo_atual?: number | null
+          tenant_id?: string | null
+          tipo?: string | null
+          unidade_id?: string | null
+        }
+        Update: {
+          agencia?: string | null
+          banco?: string
+          conta?: string | null
+          created_at?: string | null
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          is_global?: boolean | null
+          saldo_atual?: number | null
+          tenant_id?: string | null
+          tipo?: string | null
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_bancarias_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_bancarias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contas_bancarias_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_pagar: {
+        Row: {
+          categoria_id: string | null
+          created_at: string | null
+          data_pagamento: string | null
+          data_vencimento: string
+          descricao: string | null
+          fazenda_id: string | null
+          fornecedor_id: string | null
+          id: string
+          metodo_pagamento: string | null
+          status: string | null
+          tenant_id: string | null
+          valor_total: number
+        }
+        Insert: {
+          categoria_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento: string
+          descricao?: string | null
+          fazenda_id?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          metodo_pagamento?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          valor_total: number
+        }
+        Update: {
+          categoria_id?: string | null
+          created_at?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string
+          descricao?: string | null
+          fazenda_id?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          metodo_pagamento?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_contas_pagar_fornecedor"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_receber: {
+        Row: {
+          categoria_id: string | null
+          cliente_id: string | null
+          created_at: string | null
+          data_recebimento: string | null
+          data_vencimento: string
+          descricao: string | null
+          fazenda_id: string | null
+          id: string
+          metodo_recebimento: string | null
+          status: string | null
+          tenant_id: string | null
+          valor_total: number
+        }
+        Insert: {
+          categoria_id?: string | null
+          cliente_id?: string | null
+          created_at?: string | null
+          data_recebimento?: string | null
+          data_vencimento: string
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          metodo_recebimento?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          valor_total: number
+        }
+        Update: {
+          categoria_id?: string | null
+          cliente_id?: string | null
+          created_at?: string | null
+          data_recebimento?: string | null
+          data_vencimento?: string
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          metodo_recebimento?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_receber_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_contas_receber_cliente"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contratos: {
+        Row: {
+          cliente_id: string | null
+          created_at: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          descricao: string | null
+          fazenda_id: string | null
+          fornecedor_id: string | null
+          id: string
+          numero_contrato: string
+          status: string | null
+          tenant_id: string | null
+          tipo: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          fazenda_id?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          numero_contrato: string
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          fazenda_id?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          numero_contrato?: string
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contratos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contratos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deposito_categorias_permitidas: {
+        Row: {
+          categoria_permitida: string
+          id: string
+          tenant_id: string
+          tipo_deposito: string
+        }
+        Insert: {
+          categoria_permitida: string
+          id?: string
+          tenant_id: string
+          tipo_deposito: string
+        }
+        Update: {
+          categoria_permitida?: string
+          id?: string
+          tenant_id?: string
+          tipo_deposito?: string
+        }
+        Relationships: []
+      }
+      depositos: {
+        Row: {
+          capacidade_maxima: number | null
+          created_at: string
+          descricao: string | null
+          fazenda_id: string
+          id: string
+          localizacao_tecnica: string | null
+          nome: string
+          status: string
+          tenant_id: string
+          tipo: string | null
+          unidade_capacidade: string | null
+        }
+        Insert: {
+          capacidade_maxima?: number | null
+          created_at?: string
+          descricao?: string | null
+          fazenda_id: string
+          id?: string
+          localizacao_tecnica?: string | null
+          nome: string
+          status?: string
+          tenant_id: string
+          tipo?: string | null
+          unidade_capacidade?: string | null
+        }
+        Update: {
+          capacidade_maxima?: number | null
+          created_at?: string
+          descricao?: string | null
+          fazenda_id?: string
+          id?: string
+          localizacao_tecnica?: string | null
+          nome?: string
+          status?: string
+          tenant_id?: string
+          tipo?: string | null
+          unidade_capacidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "depositos_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dietas: {
+        Row: {
+          created_at: string | null
+          custo_por_kg: number | null
+          data_registro: string | null
+          descricao: string | null
+          fazenda_id: string | null
+          id: string
+          ingredientes: Json | null
+          nome: string
+          status: string | null
+          tenant_id: string | null
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo_por_kg?: number | null
+          data_registro?: string | null
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          ingredientes?: Json | null
+          nome: string
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custo_por_kg?: number | null
+          data_registro?: string | null
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          ingredientes?: Json | null
+          nome?: string
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dietas_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dietas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estoque_ncms: {
+        Row: {
+          codigo: string
+          created_at: string | null
+          descricao: string
+          id: string
+          is_active: boolean | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          codigo: string
+          created_at?: string | null
+          descricao: string
+          id?: string
+          is_active?: boolean | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          codigo?: string
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          is_active?: boolean | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estoque_ncms_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      eventos_reprodutivos: {
+        Row: {
+          animal_id: string | null
+          created_at: string | null
+          data_evento: string
+          fazenda_id: string | null
+          id: string
+          observacoes: string | null
+          resultado: string | null
+          status: string | null
+          tenant_id: string | null
+          tipo_evento: string | null
+        }
+        Insert: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_evento?: string
+          fazenda_id?: string | null
+          id?: string
+          observacoes?: string | null
+          resultado?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo_evento?: string | null
+        }
+        Update: {
+          animal_id?: string | null
+          created_at?: string | null
+          data_evento?: string
+          fazenda_id?: string | null
+          id?: string
+          observacoes?: string | null
+          resultado?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo_evento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eventos_reprodutivos_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventos_reprodutivos_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eventos_reprodutivos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fazendas: {
+        Row: {
+          area_ha: number | null
+          area_total: number | null
+          created_at: string | null
+          id: string
+          ie_produtor: string | null
+          localizacao: string | null
+          municipio: string | null
+          nirf: string | null
+          nome: string
+          tenant_id: string | null
+          uf: string | null
+          unidade_id: string | null
+        }
+        Insert: {
+          area_ha?: number | null
+          area_total?: number | null
+          created_at?: string | null
+          id?: string
+          ie_produtor?: string | null
+          localizacao?: string | null
+          municipio?: string | null
+          nirf?: string | null
+          nome: string
+          tenant_id?: string | null
+          uf?: string | null
+          unidade_id?: string | null
+        }
+        Update: {
+          area_ha?: number | null
+          area_total?: number | null
+          created_at?: string | null
+          id?: string
+          ie_produtor?: string | null
+          localizacao?: string | null
+          municipio?: string | null
+          nirf?: string | null
+          nome?: string
+          tenant_id?: string | null
+          uf?: string | null
+          unidade_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fazendas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fazendas_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lcdpr_lancamentos: {
+        Row: {
+          ano_calendario: number
+          cod_conta_bancaria: string | null
+          cod_imovel: string
+          cod_natureza: string
+          cpf_cnpj_participante: string | null
+          created_at: string | null
+          data_lancamento: string
+          descricao: string | null
+          fazenda_id: string | null
+          id: string
+          nome_participante: string | null
+          num_documento: string | null
+          origem: string | null
+          origem_id: string | null
+          tenant_id: string | null
+          tipo: string
+          unidade_id: string | null
+          valor: number
+        }
+        Insert: {
+          ano_calendario: number
+          cod_conta_bancaria?: string | null
+          cod_imovel: string
+          cod_natureza: string
+          cpf_cnpj_participante?: string | null
+          created_at?: string | null
+          data_lancamento: string
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          nome_participante?: string | null
+          num_documento?: string | null
+          origem?: string | null
+          origem_id?: string | null
+          tenant_id?: string | null
+          tipo: string
+          unidade_id?: string | null
+          valor?: number
+        }
+        Update: {
+          ano_calendario?: number
+          cod_conta_bancaria?: string | null
+          cod_imovel?: string
+          cod_natureza?: string
+          cpf_cnpj_participante?: string | null
+          created_at?: string | null
+          data_lancamento?: string
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          nome_participante?: string | null
+          num_documento?: string | null
+          origem?: string | null
+          origem_id?: string | null
+          tenant_id?: string | null
+          tipo?: string
+          unidade_id?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lcdpr_lancamentos_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lcdpr_lancamentos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lcdpr_lancamentos_unidade_id_fkey"
+            columns: ["unidade_id"]
+            isOneToOne: false
+            referencedRelation: "unidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lotes: {
+        Row: {
+          capacidade: number | null
+          cor: string | null
+          created_at: string | null
+          custo_diario: number | null
+          data_fim_prevista: string | null
+          data_inicio: string | null
+          descricao: string | null
+          dias_ciclo: number | null
+          exige_rastreabilidade: boolean | null
+          fazenda_id: string | null
+          finalidade: string | null
+          gmd_alvo: number | null
+          id: string
+          meta_rendimento_carcaca: number | null
+          nome: string
+          pasto_id: string | null
+          peso_alvo: number | null
+          peso_carcaca_alvo: number | null
+          peso_entrada: number | null
+          programa_bonificacao: string | null
+          regime_alimentar: string | null
+          sexo_permitido: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          capacidade?: number | null
+          cor?: string | null
+          created_at?: string | null
+          custo_diario?: number | null
+          data_fim_prevista?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          dias_ciclo?: number | null
+          exige_rastreabilidade?: boolean | null
+          fazenda_id?: string | null
+          finalidade?: string | null
+          gmd_alvo?: number | null
+          id?: string
+          meta_rendimento_carcaca?: number | null
+          nome: string
+          pasto_id?: string | null
+          peso_alvo?: number | null
+          peso_carcaca_alvo?: number | null
+          peso_entrada?: number | null
+          programa_bonificacao?: string | null
+          regime_alimentar?: string | null
+          sexo_permitido?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          capacidade?: number | null
+          cor?: string | null
+          created_at?: string | null
+          custo_diario?: number | null
+          data_fim_prevista?: string | null
+          data_inicio?: string | null
+          descricao?: string | null
+          dias_ciclo?: number | null
+          exige_rastreabilidade?: boolean | null
+          fazenda_id?: string | null
+          finalidade?: string | null
+          gmd_alvo?: number | null
+          id?: string
+          meta_rendimento_carcaca?: number | null
+          nome?: string
+          pasto_id?: string | null
+          peso_alvo?: number | null
+          peso_carcaca_alvo?: number | null
+          peso_entrada?: number | null
+          programa_bonificacao?: string | null
+          regime_alimentar?: string | null
+          sexo_permitido?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lotes_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lotes_pasto_id_fkey"
+            columns: ["pasto_id"]
+            isOneToOne: false
+            referencedRelation: "pastos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lotes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manutencao_frota: {
+        Row: {
+          created_at: string | null
+          custo: number | null
+          data_inicio: string
+          descricao: string | null
+          fazenda_id: string | null
+          id: string
+          maquina_id: string | null
+          responsavel: string | null
+          status: string | null
+          tenant_id: string | null
+          tipo: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          custo?: number | null
+          data_inicio?: string
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          maquina_id?: string | null
+          responsavel?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          custo?: number | null
+          data_inicio?: string
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          maquina_id?: string | null
+          responsavel?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manutencao_frota_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutencao_frota_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manutencao_frota_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mapas_cotacao: {
+        Row: {
+          created_at: string | null
+          dados_fornecedores: Json | null
+          fazenda_id: string | null
+          id: string
+          produto_id: string | null
+          quantidade: number | null
+          status: string | null
+          tenant_id: string | null
+          unidade: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dados_fornecedores?: Json | null
+          fazenda_id?: string | null
+          id?: string
+          produto_id?: string | null
+          quantidade?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          unidade?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dados_fornecedores?: Json | null
+          fazenda_id?: string | null
+          id?: string
+          produto_id?: string | null
+          quantidade?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mapas_cotacao_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mapas_cotacao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mapas_cotacao_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maquinas: {
+        Row: {
+          ano: number | null
+          capacidade_tanque: number | null
+          chassi: string | null
+          combustivel: string | null
+          consumo_estimado: number | null
+          created_at: string | null
+          data_proxima_revisao: string | null
+          fazenda_id: string | null
+          horimetro_atual: number | null
+          id: string
+          intervalo_revisao: number | null
+          marca: string | null
+          modelo: string | null
+          nome: string
+          observacoes: string | null
+          patrimonio: string | null
+          peso_operacional: number | null
+          placa: string | null
+          potencia: number | null
+          quilometragem_atual: number | null
+          status: string | null
+          tenant_id: string | null
+          tipo: string | null
+          tipo_medidor: string | null
+          valor_compra: number | null
+        }
+        Insert: {
+          ano?: number | null
+          capacidade_tanque?: number | null
+          chassi?: string | null
+          combustivel?: string | null
+          consumo_estimado?: number | null
+          created_at?: string | null
+          data_proxima_revisao?: string | null
+          fazenda_id?: string | null
+          horimetro_atual?: number | null
+          id?: string
+          intervalo_revisao?: number | null
+          marca?: string | null
+          modelo?: string | null
+          nome: string
+          observacoes?: string | null
+          patrimonio?: string | null
+          peso_operacional?: number | null
+          placa?: string | null
+          potencia?: number | null
+          quilometragem_atual?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+          tipo_medidor?: string | null
+          valor_compra?: number | null
+        }
+        Update: {
+          ano?: number | null
+          capacidade_tanque?: number | null
+          chassi?: string | null
+          combustivel?: string | null
+          consumo_estimado?: number | null
+          created_at?: string | null
+          data_proxima_revisao?: string | null
+          fazenda_id?: string | null
+          horimetro_atual?: number | null
+          id?: string
+          intervalo_revisao?: number | null
+          marca?: string | null
+          modelo?: string | null
+          nome?: string
+          observacoes?: string | null
+          patrimonio?: string | null
+          peso_operacional?: number | null
+          placa?: string | null
+          potencia?: number | null
+          quilometragem_atual?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+          tipo_medidor?: string | null
+          valor_compra?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maquinas_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maquinas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_alerts: {
+        Row: {
+          created_at: string | null
+          direction: string
+          id: string
+          indicator: string
+          is_active: boolean | null
+          target_price: number
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          direction: string
+          id?: string
+          indicator: string
+          is_active?: boolean | null
+          target_price: number
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string
+          id?: string
+          indicator?: string
+          is_active?: boolean | null
+          target_price?: number
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      market_import_logs: {
+        Row: {
+          details: Json | null
+          error_message: string | null
+          executed_at: string | null
+          id: string
+          indicators_failed: number | null
+          indicators_ok: number | null
+          indicators_skipped: number | null
+          job_name: string
+          status: string
+        }
+        Insert: {
+          details?: Json | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          indicators_failed?: number | null
+          indicators_ok?: number | null
+          indicators_skipped?: number | null
+          job_name: string
+          status: string
+        }
+        Update: {
+          details?: Json | null
+          error_message?: string | null
+          executed_at?: string | null
+          id?: string
+          indicators_failed?: number | null
+          indicators_ok?: number | null
+          indicators_skipped?: number | null
+          job_name?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      market_quotes: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          indicator: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          indicator: string
+          value: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          indicator?: string
+          value?: number
+        }
+        Relationships: []
+      }
+      movimentacoes_estoque: {
+        Row: {
+          created_at: string | null
+          data_movimentacao: string
+          deposito_id: string | null
+          fazenda_id: string | null
+          id: string
+          origem_destino: string | null
+          produto_id: string | null
+          quantidade: number
+          responsavel: string | null
+          saldo_fifo: number | null
+          tenant_id: string | null
+          tipo: string | null
+          valor_unitario: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_movimentacao?: string
+          deposito_id?: string | null
+          fazenda_id?: string | null
+          id?: string
+          origem_destino?: string | null
+          produto_id?: string | null
+          quantidade: number
+          responsavel?: string | null
+          saldo_fifo?: number | null
+          tenant_id?: string | null
+          tipo?: string | null
+          valor_unitario?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          data_movimentacao?: string
+          deposito_id?: string | null
+          fazenda_id?: string | null
+          id?: string
+          origem_destino?: string | null
+          produto_id?: string | null
+          quantidade?: number
+          responsavel?: string | null
+          saldo_fifo?: number | null
+          tenant_id?: string | null
+          tipo?: string | null
+          valor_unitario?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_estoque_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nota_fiscal_itens: {
+        Row: {
+          created_at: string | null
+          deposito_id: string | null
+          id: string
+          ncm: string | null
+          nota_fiscal_id: string
+          preco_unitario: number
+          produto_id: string | null
+          quantidade: number
+          tenant_id: string
+          total: number
+        }
+        Insert: {
+          created_at?: string | null
+          deposito_id?: string | null
+          id?: string
+          ncm?: string | null
+          nota_fiscal_id: string
+          preco_unitario?: number
+          produto_id?: string | null
+          quantidade?: number
+          tenant_id: string
+          total?: number
+        }
+        Update: {
+          created_at?: string | null
+          deposito_id?: string | null
+          id?: string
+          ncm?: string | null
+          nota_fiscal_id?: string
+          preco_unitario?: number
+          produto_id?: string | null
+          quantidade?: number
+          tenant_id?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nota_fiscal_itens_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_fiscal_itens_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_fiscal_itens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nota_fiscal_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_entrada: {
+        Row: {
+          chave_xml: string | null
+          cofins_retido: number | null
+          created_at: string | null
+          csll_retido: number | null
+          data_emissao: string | null
+          data_entrada: string | null
+          fazenda_id: string | null
+          fornecedor_id: string | null
+          id: string
+          inss_retido: number | null
+          irrf_retido: number | null
+          iss_retido: number | null
+          modelo_fiscal: string | null
+          numero_nota: string
+          observacoes: string | null
+          pis_retido: number | null
+          serie: string | null
+          tenant_id: string | null
+          valor_liquido: number | null
+          valor_total: number | null
+        }
+        Insert: {
+          chave_xml?: string | null
+          cofins_retido?: number | null
+          created_at?: string | null
+          csll_retido?: number | null
+          data_emissao?: string | null
+          data_entrada?: string | null
+          fazenda_id?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          inss_retido?: number | null
+          irrf_retido?: number | null
+          iss_retido?: number | null
+          modelo_fiscal?: string | null
+          numero_nota: string
+          observacoes?: string | null
+          pis_retido?: number | null
+          serie?: string | null
+          tenant_id?: string | null
+          valor_liquido?: number | null
+          valor_total?: number | null
+        }
+        Update: {
+          chave_xml?: string | null
+          cofins_retido?: number | null
+          created_at?: string | null
+          csll_retido?: number | null
+          data_emissao?: string | null
+          data_entrada?: string | null
+          fazenda_id?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          inss_retido?: number | null
+          irrf_retido?: number | null
+          iss_retido?: number | null
+          modelo_fiscal?: string | null
+          numero_nota?: string
+          observacoes?: string | null
+          pis_retido?: number | null
+          serie?: string | null
+          tenant_id?: string | null
+          valor_liquido?: number | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_entrada_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_fiscais: {
+        Row: {
+          chave_acesso: string | null
+          company_id: string | null
+          created_at: string | null
+          data_emissao: string | null
+          data_entrada: string | null
+          id: string
+          numero_nota: string | null
+          parceiro_id: string | null
+          serie: string | null
+          status: string | null
+          tenant_id: string
+          tipo: string
+          updated_at: string | null
+          valor_total: number | null
+          xml_raw: string | null
+        }
+        Insert: {
+          chave_acesso?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_entrada?: string | null
+          id?: string
+          numero_nota?: string | null
+          parceiro_id?: string | null
+          serie?: string | null
+          status?: string | null
+          tenant_id: string
+          tipo: string
+          updated_at?: string | null
+          valor_total?: number | null
+          xml_raw?: string | null
+        }
+        Update: {
+          chave_acesso?: string | null
+          company_id?: string | null
+          created_at?: string | null
+          data_emissao?: string | null
+          data_entrada?: string | null
+          id?: string
+          numero_nota?: string | null
+          parceiro_id?: string | null
+          serie?: string | null
+          status?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string | null
+          valor_total?: number | null
+          xml_raw?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_fiscais_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_fiscais_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notas_saida: {
+        Row: {
+          cliente_id: string | null
+          cofins_retido: number | null
+          created_at: string | null
+          csll_retido: number | null
+          data_emissao: string | null
+          fazenda_id: string | null
+          id: string
+          inss_retido: number | null
+          irrf_retido: number | null
+          iss_retido: number | null
+          modelo_fiscal: string | null
+          natureza_operacao: string | null
+          numero_nota: string
+          observacoes: string | null
+          pis_retido: number | null
+          serie: string | null
+          status: string | null
+          tenant_id: string | null
+          transportadora: string | null
+          valor_liquido: number | null
+          valor_total: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          cofins_retido?: number | null
+          created_at?: string | null
+          csll_retido?: number | null
+          data_emissao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          inss_retido?: number | null
+          irrf_retido?: number | null
+          iss_retido?: number | null
+          modelo_fiscal?: string | null
+          natureza_operacao?: string | null
+          numero_nota: string
+          observacoes?: string | null
+          pis_retido?: number | null
+          serie?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          transportadora?: string | null
+          valor_liquido?: number | null
+          valor_total?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          cofins_retido?: number | null
+          created_at?: string | null
+          csll_retido?: number | null
+          data_emissao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          inss_retido?: number | null
+          irrf_retido?: number | null
+          iss_retido?: number | null
+          modelo_fiscal?: string | null
+          natureza_operacao?: string | null
+          numero_nota?: string
+          observacoes?: string | null
+          pis_retido?: number | null
+          serie?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          transportadora?: string | null
+          valor_liquido?: number | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_saida_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_saida_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_saida_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parceiros: {
+        Row: {
+          bairro: string | null
+          categoria_id: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj_cpf: string | null
+          complemento: string | null
+          contato: string | null
+          created_at: string | null
+          email: string | null
+          estado: string | null
+          fantasia: string | null
+          fazendas_vinculadas: string[] | null
+          id: string
+          inscricao_estadual: string | null
+          inscricao_municipal: string | null
+          is_customer: boolean | null
+          is_global: boolean | null
+          is_supplier: boolean | null
+          logradouro: string | null
+          nome: string
+          numero: string | null
+          pais: string | null
+          status: string | null
+          telefone: string | null
+          tenant_id: string | null
+          tipo_logradouro: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bairro?: string | null
+          categoria_id?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj_cpf?: string | null
+          complemento?: string | null
+          contato?: string | null
+          created_at?: string | null
+          email?: string | null
+          estado?: string | null
+          fantasia?: string | null
+          fazendas_vinculadas?: string[] | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          is_customer?: boolean | null
+          is_global?: boolean | null
+          is_supplier?: boolean | null
+          logradouro?: string | null
+          nome: string
+          numero?: string | null
+          pais?: string | null
+          status?: string | null
+          telefone?: string | null
+          tenant_id?: string | null
+          tipo_logradouro?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bairro?: string | null
+          categoria_id?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj_cpf?: string | null
+          complemento?: string | null
+          contato?: string | null
+          created_at?: string | null
+          email?: string | null
+          estado?: string | null
+          fantasia?: string | null
+          fazendas_vinculadas?: string[] | null
+          id?: string
+          inscricao_estadual?: string | null
+          inscricao_municipal?: string | null
+          is_customer?: boolean | null
+          is_global?: boolean | null
+          is_supplier?: boolean | null
+          logradouro?: string | null
+          nome?: string
+          numero?: string | null
+          pais?: string | null
+          status?: string | null
+          telefone?: string | null
+          tenant_id?: string | null
+          tipo_logradouro?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parceiros_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parceiros_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pastos: {
+        Row: {
+          agua: string | null
+          area: number | null
+          capacidade_ua: number | null
+          created_at: string | null
+          data_ultima_fertilizacao: string | null
+          estado_cerca: string | null
+          fazenda_id: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          plantas_daninhas: string | null
+          sombreamento: string | null
+          status: string | null
+          tenant_id: string | null
+          tipo_capim: string | null
+          tipo_solo: string | null
+          topografia: string | null
+        }
+        Insert: {
+          agua?: string | null
+          area?: number | null
+          capacidade_ua?: number | null
+          created_at?: string | null
+          data_ultima_fertilizacao?: string | null
+          estado_cerca?: string | null
+          fazenda_id?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          plantas_daninhas?: string | null
+          sombreamento?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo_capim?: string | null
+          tipo_solo?: string | null
+          topografia?: string | null
+        }
+        Update: {
+          agua?: string | null
+          area?: number | null
+          capacidade_ua?: number | null
+          created_at?: string | null
+          data_ultima_fertilizacao?: string | null
+          estado_cerca?: string | null
+          fazenda_id?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          plantas_daninhas?: string | null
+          sombreamento?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo_capim?: string | null
+          tipo_solo?: string | null
+          topografia?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pastos_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pastos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos_compra: {
+        Row: {
+          created_at: string | null
+          data_pedido: string
+          fazenda_id: string | null
+          forma_pagamento: string | null
+          fornecedor_id: string | null
+          id: string
+          numero_pedido: string
+          observacoes: string | null
+          previsao_entrega: string | null
+          status: string | null
+          tenant_id: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          data_pedido?: string
+          fazenda_id?: string | null
+          forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          numero_pedido: string
+          observacoes?: string | null
+          previsao_entrega?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          data_pedido?: string
+          fazenda_id?: string | null
+          forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          numero_pedido?: string
+          observacoes?: string | null
+          previsao_entrega?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_pedidos_compra_fornecedor"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos_venda: {
+        Row: {
+          cliente_id: string | null
+          created_at: string | null
+          data_pedido: string
+          fazenda_id: string | null
+          id: string
+          numero_pedido: string
+          produto_id: string | null
+          quantidade: number | null
+          status: string | null
+          tenant_id: string | null
+          unidade: string | null
+          valor_total: number | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data_pedido?: string
+          fazenda_id?: string | null
+          id?: string
+          numero_pedido: string
+          produto_id?: string | null
+          quantidade?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          unidade?: string | null
+          valor_total?: number | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string | null
+          data_pedido?: string
+          fazenda_id?: string | null
+          id?: string
+          numero_pedido?: string
+          produto_id?: string | null
+          quantidade?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          unidade?: string | null
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_venda_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_venda_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_venda_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      perfis_usuario: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          permissoes: Json | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          permissoes?: Json | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          permissoes?: Json | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "perfis_usuario_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      periodos_contabeis: {
+        Row: {
+          ano: number
+          created_at: string | null
+          data_bloqueio_automatico: string | null
+          fazenda_id: string | null
+          fechado_em: string | null
+          fechado_por: string | null
+          id: string
+          mes: number
+          status: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          ano: number
+          created_at?: string | null
+          data_bloqueio_automatico?: string | null
+          fazenda_id?: string | null
+          fechado_em?: string | null
+          fechado_por?: string | null
+          id?: string
+          mes: number
+          status: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          ano?: number
+          created_at?: string | null
+          data_bloqueio_automatico?: string | null
+          fazenda_id?: string | null
+          fechado_em?: string | null
+          fechado_por?: string | null
+          id?: string
+          mes?: number
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "periodos_contabeis_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "periodos_contabeis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pesagens: {
+        Row: {
+          animal_id: string | null
+          created_at: string | null
+          custo: number | null
+          data_pesagem: string
+          fazenda_id: string | null
+          id: string
+          observacao: string | null
+          peso: number
+          tenant_id: string | null
+        }
+        Insert: {
+          animal_id?: string | null
+          created_at?: string | null
+          custo?: number | null
+          data_pesagem?: string
+          fazenda_id?: string | null
+          id?: string
+          observacao?: string | null
+          peso: number
+          tenant_id?: string | null
+        }
+        Update: {
+          animal_id?: string | null
+          created_at?: string | null
+          custo?: number | null
+          data_pesagem?: string
+          fazenda_id?: string | null
+          id?: string
+          observacao?: string | null
+          peso?: number
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pesagens_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pesagens_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pesagens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_fornecedor_de_para: {
+        Row: {
+          created_at: string
+          id: string
+          internal_product_id: string
+          match_count: number
+          supplier_id: string | null
+          supplier_product_code: string | null
+          supplier_product_name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          internal_product_id: string
+          match_count?: number
+          supplier_id?: string | null
+          supplier_product_code?: string | null
+          supplier_product_name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          internal_product_id?: string
+          match_count?: number
+          supplier_id?: string | null
+          supplier_product_code?: string | null
+          supplier_product_name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_fornecedor_de_para_internal_product_id_fkey"
+            columns: ["internal_product_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_fornecedor_de_para_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_fornecedor_de_para_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          carencia_dias: number | null
+          categoria_id: string | null
+          cnae_associado: string | null
+          codigo_servico_lc116: string | null
+          codigo_tributacao_nacional: string | null
+          created_at: string | null
+          custo_medio: number | null
+          descricao: string | null
+          ean: string | null
+          estoque_atual: number | null
+          estoque_minimo: number | null
+          fazenda_id: string | null
+          id: string
+          is_active: boolean | null
+          is_purchasable: boolean | null
+          is_sellable: boolean | null
+          is_storable: boolean | null
+          localizacao: string | null
+          marca: string | null
+          ncm: string | null
+          nome: string
+          preco_custo: number | null
+          tenant_id: string | null
+          tipo: string | null
+          unidade: string | null
+          unidade_medida: string | null
+        }
+        Insert: {
+          carencia_dias?: number | null
+          categoria_id?: string | null
+          cnae_associado?: string | null
+          codigo_servico_lc116?: string | null
+          codigo_tributacao_nacional?: string | null
+          created_at?: string | null
+          custo_medio?: number | null
+          descricao?: string | null
+          ean?: string | null
+          estoque_atual?: number | null
+          estoque_minimo?: number | null
+          fazenda_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_purchasable?: boolean | null
+          is_sellable?: boolean | null
+          is_storable?: boolean | null
+          localizacao?: string | null
+          marca?: string | null
+          ncm?: string | null
+          nome: string
+          preco_custo?: number | null
+          tenant_id?: string | null
+          tipo?: string | null
+          unidade?: string | null
+          unidade_medida?: string | null
+        }
+        Update: {
+          carencia_dias?: number | null
+          categoria_id?: string | null
+          cnae_associado?: string | null
+          codigo_servico_lc116?: string | null
+          codigo_tributacao_nacional?: string | null
+          created_at?: string | null
+          custo_medio?: number | null
+          descricao?: string | null
+          ean?: string | null
+          estoque_atual?: number | null
+          estoque_minimo?: number | null
+          fazenda_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_purchasable?: boolean | null
+          is_sellable?: boolean | null
+          is_storable?: boolean | null
+          localizacao?: string | null
+          marca?: string | null
+          ncm?: string | null
+          nome?: string
+          preco_custo?: number | null
+          tenant_id?: string | null
+          tipo?: string | null
+          unidade?: string | null
+          unidade_medida?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias_sistema"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produtos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          perfil_id: string | null
+          role: string | null
+          settings: Json | null
+          tenant_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          perfil_id?: string | null
+          role?: string | null
+          settings?: Json | null
+          tenant_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          perfil_id?: string | null
+          role?: string | null
+          settings?: Json | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfis_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      protocolos: {
+        Row: {
+          categoria: string
+          created_at: string | null
+          fazenda_id: string | null
+          id: string
+          nome: string
+          passos: Json
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          categoria: string
+          created_at?: string | null
+          fazenda_id?: string | null
+          id?: string
+          nome: string
+          passos?: Json
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          categoria?: string
+          created_at?: string | null
+          fazenda_id?: string | null
+          id?: string
+          nome?: string
+          passos?: Json
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "protocolos_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      record_locks: {
+        Row: {
+          expires_at: string | null
+          id: string
+          locked_at: string | null
+          record_id: string | null
+          table_name: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          expires_at?: string | null
+          id?: string
+          locked_at?: string | null
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          expires_at?: string | null
+          id?: string
+          locked_at?: string | null
+          record_id?: string | null
+          table_name?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: []
+      }
+      reforma_etapas: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          custo_etapa: number | null
+          custo_hora: number | null
+          data_registro: string
+          horas_trabalhadas: number | null
+          id: string
+          itens_consumidos: Json | null
+          maquina_id: string | null
+          observacoes: string | null
+          reforma_id: string
+          tenant_id: string
+          tipo_etapa: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_etapa?: number | null
+          custo_hora?: number | null
+          data_registro: string
+          horas_trabalhadas?: number | null
+          id?: string
+          itens_consumidos?: Json | null
+          maquina_id?: string | null
+          observacoes?: string | null
+          reforma_id: string
+          tenant_id: string
+          tipo_etapa: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          custo_etapa?: number | null
+          custo_hora?: number | null
+          data_registro?: string
+          horas_trabalhadas?: number | null
+          id?: string
+          itens_consumidos?: Json | null
+          maquina_id?: string | null
+          observacoes?: string | null
+          reforma_id?: string
+          tenant_id?: string
+          tipo_etapa?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reforma_etapas_maquina_id_fkey"
+            columns: ["maquina_id"]
+            isOneToOne: false
+            referencedRelation: "maquinas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reforma_etapas_reforma_id_fkey"
+            columns: ["reforma_id"]
+            isOneToOne: false
+            referencedRelation: "reformas_pasto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reforma_etapas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reformas_pasto: {
+        Row: {
+          analise_ca_cmolc: number | null
+          analise_p_mgdm3: number | null
+          analise_v_percent: number | null
+          created_at: string | null
+          created_by: string | null
+          custo_insumos: number | null
+          custo_maquinario: number | null
+          custo_total: number | null
+          data_fim: string | null
+          data_inicio: string
+          fazenda_id: string
+          foto_antes_url: string | null
+          foto_depois_url: string | null
+          id: string
+          objetivo: string | null
+          observacoes: string | null
+          pasto_id: string
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          analise_ca_cmolc?: number | null
+          analise_p_mgdm3?: number | null
+          analise_v_percent?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_insumos?: number | null
+          custo_maquinario?: number | null
+          custo_total?: number | null
+          data_fim?: string | null
+          data_inicio: string
+          fazenda_id: string
+          foto_antes_url?: string | null
+          foto_depois_url?: string | null
+          id?: string
+          objetivo?: string | null
+          observacoes?: string | null
+          pasto_id: string
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          analise_ca_cmolc?: number | null
+          analise_p_mgdm3?: number | null
+          analise_v_percent?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          custo_insumos?: number | null
+          custo_maquinario?: number | null
+          custo_total?: number | null
+          data_fim?: string | null
+          data_inicio?: string
+          fazenda_id?: string
+          foto_antes_url?: string | null
+          foto_depois_url?: string | null
+          id?: string
+          objetivo?: string | null
+          observacoes?: string | null
+          pasto_id?: string
+          status?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reformas_pasto_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reformas_pasto_pasto_id_fkey"
+            columns: ["pasto_id"]
+            isOneToOne: false
+            referencedRelation: "pastos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reformas_pasto_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      romaneios: {
+        Row: {
+          animais_qtd: number
+          codigo: string
+          comprador: string
+          created_at: string | null
+          data: string
+          destino: string
+          fazenda_id: string
+          id: string
+          motorista: string | null
+          nfe: string | null
+          observacoes: string | null
+          placa: string | null
+          status: string
+          tenant_id: string
+          updated_at: string | null
+          valor_estimado: number
+        }
+        Insert: {
+          animais_qtd?: number
+          codigo?: string
+          comprador: string
+          created_at?: string | null
+          data?: string
+          destino: string
+          fazenda_id: string
+          id?: string
+          motorista?: string | null
+          nfe?: string | null
+          observacoes?: string | null
+          placa?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string | null
+          valor_estimado?: number
+        }
+        Update: {
+          animais_qtd?: number
+          codigo?: string
+          comprador?: string
+          created_at?: string | null
+          data?: string
+          destino?: string
+          fazenda_id?: string
+          id?: string
+          motorista?: string | null
+          nfe?: string | null
+          observacoes?: string | null
+          placa?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string | null
+          valor_estimado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "romaneios_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "romaneios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_audit_logs: {
+        Row: {
+          action_type: string
+          admin_id: string | null
+          created_at: string | null
+          details: Json | null
+          id: string
+          target_tenant_id: string | null
+        }
+        Insert: {
+          action_type: string
+          admin_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          target_tenant_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          id?: string
+          target_tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_audit_logs_target_tenant_id_fkey"
+            columns: ["target_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_campaigns: {
+        Row: {
+          created_at: string
+          discount_percentage: number
+          end_date: string
+          id: string
+          is_active: boolean | null
+          name: string
+          start_date: string
+          target_plan_ids: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          discount_percentage: number
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          start_date: string
+          target_plan_ids?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          discount_percentage?: number
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          start_date?: string
+          target_plan_ids?: string[] | null
+        }
+        Relationships: []
+      }
+      saas_gateway_settings: {
+        Row: {
+          api_key: string | null
+          encryption_key: string | null
+          environment: string | null
+          gateway_name: string
+          id: string
+          is_active: boolean | null
+          secret_key: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          encryption_key?: string | null
+          environment?: string | null
+          gateway_name: string
+          id?: string
+          is_active?: boolean | null
+          secret_key?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          encryption_key?: string | null
+          environment?: string | null
+          gateway_name?: string
+          id?: string
+          is_active?: boolean | null
+          secret_key?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      saas_invoices: {
+        Row: {
+          amount: number
+          created_at: string | null
+          due_date: string
+          id: string
+          paid_at: string | null
+          payment_link: string | null
+          plan_name: string
+          status: string
+          tenant_id: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          due_date: string
+          id?: string
+          paid_at?: string | null
+          payment_link?: string | null
+          plan_name: string
+          status: string
+          tenant_id?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          due_date?: string
+          id?: string
+          paid_at?: string | null
+          payment_link?: string | null
+          plan_name?: string
+          status?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saas_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saas_plans: {
+        Row: {
+          created_at: string | null
+          features: string[] | null
+          id: string
+          name: string
+          price: number
+          storage_gb: number
+          users_limit: number
+        }
+        Insert: {
+          created_at?: string | null
+          features?: string[] | null
+          id?: string
+          name: string
+          price: number
+          storage_gb: number
+          users_limit: number
+        }
+        Update: {
+          created_at?: string | null
+          features?: string[] | null
+          id?: string
+          name?: string
+          price?: number
+          storage_gb?: number
+          users_limit?: number
+        }
+        Relationships: []
+      }
+      saldos_estoque: {
+        Row: {
+          created_at: string | null
+          custo_medio: number
+          deposito_id: string
+          fazenda_id: string | null
+          id: string
+          produto_id: string
+          quantidade: number
+          tenant_id: string
+          updated_at: string | null
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string | null
+          custo_medio?: number
+          deposito_id: string
+          fazenda_id?: string | null
+          id?: string
+          produto_id: string
+          quantidade?: number
+          tenant_id: string
+          updated_at?: string | null
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string | null
+          custo_medio?: number
+          deposito_id?: string
+          fazenda_id?: string | null
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          tenant_id?: string
+          updated_at?: string | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saldos_estoque_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saldos_estoque_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saldos_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saldos_estoque_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sanidade: {
+        Row: {
+          animal_id: string | null
+          carencia_dias: number | null
+          created_at: string | null
+          custo: number | null
+          data_manejo: string
+          dose: string | null
+          fazenda_id: string | null
+          id: string
+          local_aplicacao: string | null
+          lote_id: string | null
+          observacao: string | null
+          produto: string | null
+          status: string | null
+          tenant_id: string | null
+          tipo: string | null
+          titulo: string | null
+          via_aplicacao: string | null
+        }
+        Insert: {
+          animal_id?: string | null
+          carencia_dias?: number | null
+          created_at?: string | null
+          custo?: number | null
+          data_manejo?: string
+          dose?: string | null
+          fazenda_id?: string | null
+          id?: string
+          local_aplicacao?: string | null
+          lote_id?: string | null
+          observacao?: string | null
+          produto?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+          titulo?: string | null
+          via_aplicacao?: string | null
+        }
+        Update: {
+          animal_id?: string | null
+          carencia_dias?: number | null
+          created_at?: string | null
+          custo?: number | null
+          data_manejo?: string
+          dose?: string | null
+          fazenda_id?: string | null
+          id?: string
+          local_aplicacao?: string | null
+          lote_id?: string | null
+          observacao?: string | null
+          produto?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+          titulo?: string | null
+          via_aplicacao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sanidade_animal_id_fkey"
+            columns: ["animal_id"]
+            isOneToOne: false
+            referencedRelation: "animais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanidade_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanidade_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "lotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sanidade_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solicitacoes_compra: {
+        Row: {
+          created_at: string | null
+          departamento: string | null
+          descricao: string | null
+          fazenda_id: string | null
+          id: string
+          prioridade: string | null
+          solicitante: string | null
+          status: string | null
+          tenant_id: string | null
+          titulo: string
+          valor_estimado: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          departamento?: string | null
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          prioridade?: string | null
+          solicitante?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          titulo: string
+          valor_estimado?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          departamento?: string | null
+          descricao?: string | null
+          fazenda_id?: string | null
+          id?: string
+          prioridade?: string | null
+          solicitante?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          titulo?: string
+          valor_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacoes_compra_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacoes_compra_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          created_at: string | null
+          document: string | null
+          email: string | null
+          id: string
+          is_demo: boolean | null
+          is_template: boolean | null
+          nome: string
+          plano: string | null
+          settings: Json | null
+          status: string | null
+          type: Database["public"]["Enums"]["tenantsType"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          document?: string | null
+          email?: string | null
+          id?: string
+          is_demo?: boolean | null
+          is_template?: boolean | null
+          nome: string
+          plano?: string | null
+          settings?: Json | null
+          status?: string | null
+          type?: Database["public"]["Enums"]["tenantsType"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          document?: string | null
+          email?: string | null
+          id?: string
+          is_demo?: boolean | null
+          is_template?: boolean | null
+          nome?: string
+          plano?: string | null
+          settings?: Json | null
+          status?: string | null
+          type?: Database["public"]["Enums"]["tenantsType"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      unidades: {
+        Row: {
+          ativo: boolean | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          complemento: string | null
+          contador_cpf: string | null
+          contador_crc: string | null
+          contador_nome: string | null
+          created_at: string | null
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          logradouro: string | null
+          nome: string
+          numero: string | null
+          pais: string | null
+          razao_social: string | null
+          socio_cpf: string | null
+          socio_ind_sit_esp: number | null
+          socio_nome: string | null
+          telefone: string | null
+          tenant_id: string | null
+          tipo: string | null
+          tipo_documento: string | null
+          tipo_logradouro: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          complemento?: string | null
+          contador_cpf?: string | null
+          contador_crc?: string | null
+          contador_nome?: string | null
+          created_at?: string | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          logradouro?: string | null
+          nome: string
+          numero?: string | null
+          pais?: string | null
+          razao_social?: string | null
+          socio_cpf?: string | null
+          socio_ind_sit_esp?: number | null
+          socio_nome?: string | null
+          telefone?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+          tipo_documento?: string | null
+          tipo_logradouro?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          complemento?: string | null
+          contador_cpf?: string | null
+          contador_crc?: string | null
+          contador_nome?: string | null
+          created_at?: string | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          logradouro?: string | null
+          nome?: string
+          numero?: string | null
+          pais?: string | null
+          razao_social?: string | null
+          socio_cpf?: string | null
+          socio_ind_sit_esp?: number | null
+          socio_nome?: string | null
+          telefone?: string | null
+          tenant_id?: string | null
+          tipo?: string | null
+          tipo_documento?: string | null
+          tipo_logradouro?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "unidades_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_drafts: {
+        Row: {
+          draft_key: string
+          id: string
+          payload: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          draft_key: string
+          id?: string
+          payload?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          draft_key?: string
+          id?: string
+          payload?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_views: {
+        Row: {
+          created_at: string | null
+          filters: Json
+          id: string
+          name: string
+          page_identifier: string
+          tenant_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          filters?: Json
+          id?: string
+          name: string
+          page_identifier: string
+          tenant_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          filters?: Json
+          id?: string
+          name?: string
+          page_identifier?: string
+          tenant_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_views_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      profiles_view: {
+        Row: {
+          base_role: string | null
+          created_at: string | null
+          email: string | null
+          id: string | null
+          name: string | null
+          perfil_id: string | null
+          profile_name: string | null
+          tenant_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_perfil_id_fkey"
+            columns: ["perfil_id"]
+            isOneToOne: false
+            referencedRelation: "perfis_usuario"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vw_estoque_deposito_saldo: {
+        Row: {
+          deposito_id: string | null
+          fazenda_id: string | null
+          produto_id: string | null
+          saldo: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacoes_estoque_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "depositos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacoes_estoque_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Functions: {
+      calculate_cash_flow_summary: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      calculate_ebitda: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: number
+      }
+      calculate_fleet_consumption: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      calculate_herd_gmd: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: number
+      }
+      check_deposito_compatibilidade: {
+        Args: { p_deposito_id: string; p_produto_id: string }
+        Returns: boolean
+      }
+      clone_tenant_from_template:
+        | { Args: { p_new_tenant_id: string }; Returns: undefined }
+        | {
+            Args: {
+              p_documento: string
+              p_is_demo?: boolean
+              p_new_tenant_id: string
+              p_nome: string
+            }
+            Returns: undefined
+          }
+      delete_demo_tenant: {
+        Args: { target_tenant_id: string }
+        Returns: undefined
+      }
+      get_animal_stats: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_auth_tenant: { Args: never; Returns: string }
+      get_banking_consolidated_balance: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_certificados_digitais: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          cnpj_cpf: string
+          company_id: string
+          created_at: string
+          data_vencimento: string
+          id: string
+          pfx_base64: string
+          senha: string
+          tenant_id: string
+          titular: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "certificados_digitais"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_default_tenant: { Args: never; Returns: string }
+      get_esg_carbon_balance: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_finance_summary:
+        | {
+            Args: {
+              p_fazenda_id?: string
+              p_table_name: string
+              p_tenant_id: string
+            }
+            Returns: {
+              record_count: number
+              status: string
+              total_value: number
+            }[]
+          }
+        | {
+            Args: { p_fazenda_id?: string; p_tenant_id: string }
+            Returns: Json
+          }
+      get_herd_total_weight: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: number
+      }
+      get_ia_monte_carlo_projection: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_inventory_health: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_manutencao_stats: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_my_tenant_id: { Args: never; Returns: string }
+      get_paddock_lotation_summary: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_paddock_support_capacity: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_purchase_summary: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_reproductive_stats: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_sales_performance: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      get_sanitary_coverage: {
+        Args: { p_fazenda_id?: string; p_tenant_id: string }
+        Returns: Json
+      }
+      is_admin_check: { Args: never; Returns: boolean }
+      process_fifo_movement: {
+        Args: {
+          p_deposito_id: string
+          p_fazenda_id: string
+          p_origem_destino: string
+          p_produto_id: string
+          p_quantidade: number
+          p_responsavel: string
+          p_tenant_id: string
+          p_tipo: string
+          p_valor_unitario: number
+        }
+        Returns: undefined
+      }
+      processar_entrada_nfe: { Args: { payload: Json }; Returns: string }
+      rebuild_kardex_fn: {
+        Args: {
+          p_deposito_id: string
+          p_produto_id: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
+      upsert_certificado_digital: {
+        Args: {
+          p_cnpj_cpf: string
+          p_company_id: string
+          p_data_vencimento: string
+          p_existing_id?: string
+          p_pfx_base64: string
+          p_senha: string
+          p_tenant_id: string
+          p_titular: string
+        }
+        Returns: string
+      }
+    }
+    Enums: {
+      tenantsType: "CPF" | "CNPJ"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      tenantsType: ["CPF", "CNPJ"],
+    },
+  },
+} as const

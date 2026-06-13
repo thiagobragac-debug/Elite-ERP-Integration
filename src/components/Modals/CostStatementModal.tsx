@@ -11,6 +11,8 @@ interface CostStatementModalProps {
   financialData: {
     costs: any[];
     health: any[];
+    reproduction: any[];
+    lotMovements: any[];
   } | null;
 }
 
@@ -26,25 +28,27 @@ export const CostStatementModal: React.FC<CostStatementModalProps> = ({
   const combinedData = React.useMemo(() => {
     if (!financialData) return [];
     
-    const costs = financialData.costs.map(c => ({
+    const costs = financialData.costs.map((c: any) => ({
       ...c,
       category: 'Nutrição / Trato',
       type: 'cost',
       icon: <Wheat size={16} color="#fbbf24" />,
       date: c.data_consumo || c.created_at,
-      productName: c.produtos?.nome || 'Dieta / Insumo'
+      productName: c.produtos?.nome || 'Dieta / Insumo',
+      cost: Number(c.valor_total_aplicado || 0)
     }));
 
-    const health = financialData.health.map(h => ({
+    const health = financialData.health.map((h: any) => ({
       ...h,
       category: 'Sanidade / Manejo',
       type: 'health',
       icon: <HeartPulse size={16} color="#f87171" />,
       date: h.data_aplicacao || h.created_at,
-      productName: h.produtos?.nome || 'Fármaco / Vacina'
+      productName: h.sanidade?.titulo || h.produtos?.nome || 'Fármaco / Vacina',
+      cost: Number(h.valor_total_aplicado || 0)
     }));
 
-    return [...costs, ...health].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return [...costs, ...health].sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [financialData]);
 
   const columns = [
@@ -78,11 +82,22 @@ export const CostStatementModal: React.FC<CostStatementModalProps> = ({
     },
     {
       header: 'Valor Cobrado',
-      accessor: (item: any) => (
-        <span style={{ fontWeight: 800, color: '#ef4444', fontSize: '14px' }}>
-          {formatCurrency(item.valor_total_aplicado || 0)}
-        </span>
-      ),
+      accessor: (item: any) => {
+        const value = item.cost;
+        if (value === 0 && item.type === 'health') {
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontWeight: 800, color: '#f59e0b', fontSize: '13px' }}>R$ 0,00</span>
+              <span style={{ fontSize: '10px', color: '#f59e0b', background: '#f59e0b20', padding: '2px 6px', borderRadius: '4px' }}>Estoque pendente</span>
+            </div>
+          );
+        }
+        return (
+          <span style={{ fontWeight: 800, color: '#ef4444', fontSize: '13px' }}>
+            {formatCurrency(value)}
+          </span>
+        );
+      },
       align: 'right' as const
     }
   ];
@@ -148,10 +163,14 @@ export const CostStatementModal: React.FC<CostStatementModalProps> = ({
                 </span>
               </div>
               <div style={{ background: '#fee2e2', padding: '16px', borderRadius: '16px' }}>
-                <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', marginBottom: '4px' }}>Sanidade Acumulada</span>
-                <span style={{ fontSize: '18px', fontWeight: 800, color: '#b91c1c' }}>
-                  {formatCurrency(financialData?.health.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)}
-                </span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>
+                    Total Sanidade
+                  </div>
+                  <div style={{ fontSize: '18px', fontWeight: 900, color: '#f87171' }}>
+                    {formatCurrency((financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0))}
+                  </div>
+                </div>
               </div>
             </div>
 

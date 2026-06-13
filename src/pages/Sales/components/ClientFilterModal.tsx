@@ -56,7 +56,7 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
             </div>
             <div>
               <h3>Filtros de Parceiros</h3>
-              <p>SegmentaÁ„o e an·lise de carteira.</p>
+              <p>Segmenta√ß√£o e an√°lise de carteira.</p>
             </div>
           </div>
           <button 
@@ -86,7 +86,7 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Rating de CrÈdito <Star size={14} /></label>
+            <label className="tauze-filter-label">Rating de Cr√©dito <Star size={14} /></label>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
               {ratings.map(r => (
                 <button 
@@ -111,7 +111,7 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">SegmentaÁ„o VIP <Star size={14} /></label>
+            <label className="tauze-filter-label">Segmenta√ß√£o VIP <Star size={14} /></label>
             <div className="tauze-tag-cloud">
               {segments.map(seg => (
                 <button 
@@ -131,7 +131,7 @@ export const ClientFilterModal: React.FC<ClientFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">ExposiÁ„o Financeira (LTV) <DollarSign size={14} /></label>
+            <label className="tauze-filter-label">Exposi√ß√£o Financeira (LTV) <DollarSign size={14} /></label>
             <div className="integrity-slider-container" style={{ padding: '20px', background: 'hsl(var(--bg-main))', borderRadius: '16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '16px' }}>
                 <span style={{ fontSize: '22px', fontWeight: 900, color: '#10b981' }}>{filters.maxLtv.toLocaleString('pt-BR')}</span>

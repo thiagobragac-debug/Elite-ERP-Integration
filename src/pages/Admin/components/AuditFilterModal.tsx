@@ -24,7 +24,7 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
 
   const severityOptions = [
     { id: 'low', label: 'Baixa (Insert)', color: '#10b981' },
-    { id: 'medium', label: 'MÈdia (Update)', color: '#3b82f6' },
+    { id: 'medium', label: 'M√©dia (Update)', color: '#3b82f6' },
     { id: 'high', label: 'Alta (Delete)', color: '#ef4444' }
   ];
 
@@ -109,14 +109,14 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">MÛdulo do Sistema <Layout size={14} /></label>
+            <label className="tauze-filter-label">M√≥dulo do Sistema <Layout size={14} /></label>
             <select 
               className="tauze-input" 
               value={filters.module}
               onChange={e => setFilters({ ...filters, module: e.target.value })}
               style={{ width: '100%', fontWeight: 700 }}
             >
-              <option value="ALL">Todos os MÛdulos</option>
+              <option value="ALL">Todos os M√≥dulos</option>
               {Object.entries(modules).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
               ))}
@@ -124,7 +124,7 @@ export const AuditFilterModal: React.FC<AuditFilterModalProps> = ({
           </div>
 
           <div className="tauze-filter-section">
-            <label className="tauze-filter-label">Usu·rio Respons·vel <User size={14} /></label>
+            <label className="tauze-filter-label">Usu√°rio Respons√°vel <User size={14} /></label>
             <div className="tauze-search-wrapper" style={{ margin: 0, width: '100%' }}>
               <input 
                 type="text" 

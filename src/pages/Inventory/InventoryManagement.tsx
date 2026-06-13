@@ -62,9 +62,11 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useViewMode } from '../../hooks/useViewMode';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 
 export const InventoryManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, applyTenantFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -283,7 +285,8 @@ export const InventoryManagement: React.FC = () => {
       const hasHistory = count ? count > 0 : false;
 
       if (!hasHistory) {
-        if (!confirm(`Tem certeza que deseja excluir permanentemente o item "${item.nome}"?`)) return { cancelled: true };
+        const isConfirmed = await confirm({ title: 'Atenção', description: `Tem certeza que deseja excluir permanentemente o item "${item.nome}"?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return { cancelled: true };
         const { error } = await supabase.from('produtos').delete().eq('id', item.id);
         if (error) throw error;
         return { type: 'hard' };
@@ -291,7 +294,8 @@ export const InventoryManagement: React.FC = () => {
         if (item.is_storable && Number(item.estoque_atual || 0) > 0) {
           throw new Error(`Não é possível inativar o item "${item.nome}" pois ele possui histórico e saldo em estoque. Zere o estoque antes de inativar.`);
         }
-        if (!confirm(`O item "${item.nome}" possui histórico no sistema e não pode ser excluído. Deseja inativá-lo para que não apareça mais nas rotinas?`)) return { cancelled: true };
+        const isConfirmed = await confirm({ title: 'Atenção', description: `O item "${item.nome}" possui histórico no sistema e não pode ser excluído. Deseja inativá-lo para que não apareça mais nas rotinas?`, confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return { cancelled: true };
         
         const { error } = await supabase.from('produtos').update({ is_active: false }).eq('id', item.id);
         if (error) throw error;

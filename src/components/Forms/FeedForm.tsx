@@ -65,36 +65,6 @@ export const FeedForm: React.FC<FeedFormProps> = ({ isOpen, onClose, onSubmit, a
     if (dietasData) setDietas(dietasData);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await onSubmit({ ...formData, insumos: cartItems });
-  ];
-
-  useEffect(() => {
-    if (isOpen && activeFarm) {
-      fetchData();
-    }
-  }, [isOpen, activeFarm]);
-
-  const fetchData = async () => {
-    // Buscar lotes
-    const { data: lotesData } = await supabase
-      .from('lotes')
-      .select('id, nome')
-      .eq('fazenda_id', activeFarm?.id || '')
-      .eq('status', 'ATIVO');
-    if (lotesData) setLotes(lotesData);
-
-    // Buscar dietas
-    const { data: dietasData } = await supabase
-      .from('dietas')
-      .select('id, nome')
-      .eq('fazenda_id', activeFarm?.id || '')
-      .eq('status', 'active');
-    if (dietasData) setDietas(dietasData);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

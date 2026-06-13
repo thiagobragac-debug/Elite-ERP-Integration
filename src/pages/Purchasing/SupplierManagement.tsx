@@ -59,8 +59,10 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import './SupplierManagement.css';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const SupplierManagement: React.FC = () => {
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
@@ -333,7 +335,8 @@ export const SupplierManagement: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este parceiro?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este parceiro?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteSupplierMutation.mutate(id);
   };
 

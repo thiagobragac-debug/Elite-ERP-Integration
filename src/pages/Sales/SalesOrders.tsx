@@ -57,9 +57,11 @@ import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const SalesOrders: React.FC = () => {
   const { isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
+  const { confirm } = useConfirm();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = usePersistentState('SalesOrders_isModalOpen', false);
   const [formActionId, setFormActionId] = useState<number>(0);
@@ -315,7 +317,8 @@ export const SalesOrders: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir este pedido?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este pedido?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteMutation.mutate(id);
   };
 

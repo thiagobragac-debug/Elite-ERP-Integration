@@ -61,9 +61,11 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { MaintenanceFilterModal } from './components/MaintenanceFilterModal';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
 import { useServerPagination } from '../../hooks/useServerPagination';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const MaintenanceManagement: React.FC = () => {
   const { page, pageSize, totalCount, setTotalCount, setPage, getRange } = useServerPagination(20);
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, activeTenantId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const [searchTerm, setSearchTerm] = useState('');
   const queryClient = useQueryClient();
@@ -357,7 +359,8 @@ export const MaintenanceManagement: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta ordem de serviço?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir esta ordem de serviço?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteMutation.mutate(id);
   };
 

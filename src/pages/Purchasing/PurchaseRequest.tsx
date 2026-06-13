@@ -55,9 +55,11 @@ import { EmptyState } from '../../components/Feedback/EmptyState';
 import { useDebounce } from '../../hooks/useDebounce';
 import toast from 'react-hot-toast';
 import { Breadcrumb } from '../../components/Navigation/Breadcrumb';
+import { useConfirm } from '../../contexts/ConfirmContext';
 
 export const PurchaseRequest: React.FC = () => {
   const { activeTenantId } = useTenant();
+  const { confirm } = useConfirm();
   const { activeFarm, isGlobalMode, activeFarmId, applyFarmFilter, canCreate, insertPayload } = useFarmFilter();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -208,7 +210,8 @@ export const PurchaseRequest: React.FC = () => {
   });
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Deseja excluir esta solicitação?')) return;
+    const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir esta solicitação?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
+    if (!isConfirmed) return;
     deleteRequestMutation.mutate(id);
   };
 

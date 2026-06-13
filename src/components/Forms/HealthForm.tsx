@@ -40,13 +40,14 @@ interface HealthFormProps {
 export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
   const { activeFarm, activeTenantId, isGlobalMode } = useTenant();
   const [activeEtapa, setActiveEtapa] = useState('contexto');
-  const [formData, setFormData] = usePersistentState('HealthForm_formData', {
+  const [formData, setFormData] = useState({
     tipo: 'vacina',
     titulo: '',
     animal_id: '',
     lote_id: '',
     data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
     produto: '',
+    produto_id: '',
     dose: '',
     via_aplicacao: 'IM',
     local_aplicacao: '',
@@ -70,7 +71,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
 
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
-  const [produtosAplicados, setProdutosAplicados] = usePersistentState<any[]>('HealthForm_produtosAplicados', []);
+  const [produtosAplicados, setProdutosAplicados] = useState<any[]>([]);
   
   // Temporary inputs for adding a product
   const [tempProduct, setTempProduct] = useState<any>(null);
@@ -129,33 +130,20 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
       const { data: loteData } = await loteQuery;
       if (loteData) setLots(loteData);
 
-      // 3. Fetch Categories & Products for Insumos selection
-      const { data: catData } = await supabase
-        .from('categorias_sistema')
-        .select('id, nome')
-        .eq('modulo', 'estoque');
+      // 3. Fetch Products from inventory (medicamento/vacina/insumo) including custo_medio from saldos_estoque
+      let productQuery = supabase
+        .from('produtos')
+        .select('id, nome, unidade, custo_medio, ean, marca, categoria_id')
+        .eq('tenant_id', activeTenantId)
+        .eq('is_storable', true);
 
-      const targetCatIds = catData
-        ? catData
-            .filter((c: any) => c.nome?.toLowerCase().includes('medicamento') || c.nome?.toLowerCase().includes('vacina'))
-            .map((c: any) => c.id)
-        : [];
+      if (!isGlobalMode && activeFarm?.id) {
+        productQuery = productQuery.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
+      }
 
-      if (targetCatIds.length > 0) {
-        let productQuery = supabase
-          .from('produtos')
-          .select('id, nome, categoria_id, ean, marca')
-          .eq('tenant_id', activeTenantId)
-          .in('categoria_id', targetCatIds);
-        
-        if (!isGlobalMode && activeFarm?.id) {
-          productQuery = productQuery.or(`fazenda_id.eq.${activeFarm.id},fazenda_id.is.null`);
-        }
-        
-        const { data: prodData } = await productQuery;
-        if (prodData) {
-          setAvailableProducts(prodData);
-        }
+      const { data: prodData } = await productQuery;
+      if (prodData) {
+        setAvailableProducts(prodData);
       }
       
     } catch (err) {
@@ -191,6 +179,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
         lote_id: initialData.lote_id || '',
         data_manejo: initialData.data_manejo || new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         produto: initialData.produto || '',
+        produto_id: initialData.produto_id || '',
         dose: initialData.dose || '',
         via_aplicacao: initialData.via_aplicacao || 'IM',
         local_aplicacao: initialData.local_aplicacao || '',
@@ -200,6 +189,20 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
         observacao: initialData.observacao || '',
         status: initialData.status || 'REALIZADO'
       });
+      if (initialData.produto) {
+        setProdutosAplicados([{
+          id: Date.now().toString(),
+          produto: initialData.produto,
+          nome: initialData.produto,
+          produto_id: initialData.produto_id || null,
+          dose: initialData.dose || '',
+          quantidade: initialData.dose ? Number(String(initialData.dose).replace(/[^0-9.]/g, '')) : '',
+          via_aplicacao: initialData.via_aplicacao || 'IM',
+          local_aplicacao: initialData.local_aplicacao || '',
+          carencia_dias: initialData.carencia_dias || 0,
+          custo_total: initialData.custo || 0
+        }]);
+      }
     } else {
       setFormData({
         tipo: 'vacina',
@@ -208,6 +211,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
         lote_id: '',
         data_manejo: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0],
         produto: '',
+        produto_id: '',
         dose: '',
         via_aplicacao: 'IM',
         local_aplicacao: '',
@@ -254,15 +258,26 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
   }, [produtosAplicados, initialData, formData.tipo]);
 
   const handleAddProduto = () => {
-    if (!tempProductName.trim()) return;
+    if (!tempProduct?.id) {
+      toast.error('⚠️ Selecione um produto cadastrado no estoque. Produtos avulsos não são permitidos.');
+      return;
+    }
+    const custoUnitario = Number(tempProduct?.custo_medio || 0);
+    const parsedDose = Number(String(tempDose).replace(/[^0-9.]/g, '')) || 1;
+    if (custoUnitario === 0) {
+      toast('⚠️ Custo médio do produto é R$0,00. Será atualizado automaticamente quando uma entrada for registrada no estoque.', { icon: '⚠️', duration: 4000 });
+    }
     setProdutosAplicados(prev => [
       ...prev,
       {
-        produto: tempProductName.trim(),
+        produto: tempProduct.nome,
+        produto_id: tempProduct.id,
         dose: tempDose.trim(),
         via_aplicacao: tempVia,
         local_aplicacao: tempLocal.trim(),
-        carencia_dias: tempCarencia.trim()
+        carencia_dias: tempCarencia.trim(),
+        custo_medio: custoUnitario,
+        custo_total: parsedDose * custoUnitario
       }
     ]);
     // Reset temp inputs
@@ -280,6 +295,21 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const isAplicacaoDone = initialData || formData.tipo === 'cirurgia' ? !!formData.produto : produtosAplicados.length > 0;
+    
+    if (!isAplicacaoDone) {
+      toast.error('⚠️ Por favor, adicione ao menos um fármaco ou insumo na etapa de Aplicação.');
+      setActiveEtapa('aplicacao');
+      return;
+    }
+
+    if (!formData.animal_id && !formData.lote_id) {
+      toast.error('⚠️ Selecione o animal ou lote alvo no Contexto.');
+      setActiveEtapa('contexto');
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -778,52 +808,75 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
           {(initialData || formData.tipo === 'cirurgia') ? (
             <div className="tauze-input-grid grid-col-2">
               <div className="tauze-field-group" style={{ gridColumn: formData.tipo === 'cirurgia' ? 'span 2' : 'span 1' }} ref={productSearchRef}>
-                <label className="tauze-label"><FlaskConical size={14} /> {formData.tipo === 'cirurgia' ? 'Descrição do Procedimento' : 'Fármaco / Insumo'}</label>
-                <div style={{ position: 'relative' }}>
-                  <input 
+                <label className="tauze-label"><FlaskConical size={14} /> {formData.tipo === 'cirurgia' ? 'Descrição do Procedimento' : 'Fármaco / Insumo (Estoque)'}</label>
+                {formData.tipo === 'cirurgia' ? (
+                  <input
                     className="tauze-input"
-                    type="text" 
-                    placeholder={formData.tipo === 'cirurgia' ? "Ex: Castração Inguinal" : "Ex: Aftovax 2ml"} 
+                    type="text"
+                    placeholder="Ex: Castração Inguinal"
                     value={formData.produto}
-                    onChange={(e) => {
-                      setFormData({...formData, produto: e.target.value});
-                      if (formData.tipo !== 'cirurgia') setShowProductDropdown(true);
-                    }}
-                    onFocus={() => {
-                      if (formData.tipo !== 'cirurgia') setShowProductDropdown(true);
-                    }}
+                    onChange={(e) => setFormData({...formData, produto: e.target.value})}
                   />
-                  {showProductDropdown && formData.tipo !== 'cirurgia' && (
-                    <div className="autocomplete-dropdown animate-fade-in" style={{
-                      position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%',
-                      maxHeight: '200px', overflowY: 'auto',
-                      background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))',
-                      borderRadius: '14px', zIndex: 999, boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
-                      display: 'flex', flexDirection: 'column'
-                    }}>
-                      {availableProducts.filter(p => p.nome?.toLowerCase().includes((formData.produto || '').toLowerCase())).length === 0 ? (
-                        <div style={{ padding: '12px', color: 'hsl(var(--text-muted))', fontSize: '12.5px', textAlign: 'center', fontWeight: 600 }}>
-                          Usar valor digitado (fármaco não cadastrado no estoque)
-                        </div>
-                      ) : (
-                        availableProducts.filter(p => p.nome?.toLowerCase().includes((formData.produto || '').toLowerCase())).map((p: any) => (
-                          <div
-                            key={p.id}
-                            onClick={() => {
-                              setFormData(prev => ({ ...prev, produto: p.nome }));
-                              setShowProductDropdown(false);
-                            }}
-                            className="autocomplete-option"
-                            style={{ padding: '12px 16px', cursor: 'pointer', borderBottom: '1px solid hsl(var(--border) / 0.5)', transition: 'background 0.15s' }}
-                          >
-                            <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))' }}>{p.nome}</div>
-                            {p.marca && <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginTop: '2px', fontWeight: 600 }}>Marca: {p.marca}</div>}
+                ) : (
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      className="tauze-input"
+                      type="text"
+                      placeholder="Buscar no estoque..."
+                      value={formData.produto}
+                      onChange={(e) => {
+                        setFormData({...formData, produto: e.target.value, produto_id: ''});
+                        setShowProductDropdown(true);
+                      }}
+                      onFocus={() => setShowProductDropdown(true)}
+                      style={{ borderColor: formData.produto && !formData.produto_id ? '#f59e0b' : undefined }}
+                    />
+                    {formData.produto_id && (
+                      <div style={{
+                        position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+                        background: '#10b981', color: '#fff', borderRadius: '6px',
+                        padding: '2px 8px', fontSize: '10px', fontWeight: 800
+                      }}>
+                        {`R$${Number(availableProducts.find(p => p.id === formData.produto_id)?.custo_medio || 0).toFixed(2)}/un`}
+                      </div>
+                    )}
+                    {showProductDropdown && (
+                      <div className="autocomplete-dropdown animate-fade-in" style={{
+                        position: 'absolute', top: 'calc(100% + 4px)', left: 0, width: '100%',
+                        maxHeight: '200px', overflowY: 'auto',
+                        background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))',
+                        borderRadius: '14px', zIndex: 999, boxShadow: '0 12px 40px rgba(0,0,0,0.25)',
+                        display: 'flex', flexDirection: 'column'
+                      }}>
+                        {availableProducts.filter(p => p.nome?.toLowerCase().includes((formData.produto || '').toLowerCase())).length === 0 ? (
+                          <div style={{ padding: '12px', color: '#f87171', fontSize: '12.5px', textAlign: 'center', fontWeight: 700 }}>
+                            ⚠️ Produto não encontrado no estoque. Cadastre-o em Insumos.
                           </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
+                        ) : (
+                          availableProducts.filter(p => p.nome?.toLowerCase().includes((formData.produto || '').toLowerCase())).map((p: any) => (
+                            <div
+                              key={p.id}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, produto: p.nome, produto_id: p.id }));
+                                setShowProductDropdown(false);
+                              }}
+                              className="autocomplete-option"
+                              style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid hsl(var(--border) / 0.5)', transition: 'background 0.15s', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            >
+                              <div>
+                                <div style={{ fontWeight: 800, fontSize: '13px', color: 'hsl(var(--text-main))' }}>{p.nome}</div>
+                                {p.marca && <div style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', marginTop: '2px', fontWeight: 600 }}>Marca: {p.marca}</div>}
+                              </div>
+                              <div style={{ textAlign: 'right', fontSize: '11px', fontWeight: 700, color: '#10b981', flexShrink: 0, marginLeft: '8px' }}>
+                                {`R$${Number(p.custo_medio || 0).toFixed(2)}/un`}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {formData.tipo !== 'cirurgia' && (
