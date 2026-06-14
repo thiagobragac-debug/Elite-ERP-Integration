@@ -436,7 +436,7 @@ export const ContractForm: React.FC<ContractFormProps> = ({isOpen, onClose, onSu
                   value={formData.payment_condition}
                   onChange={(val: any) => setFormData({...formData, payment_condition: val})}
                   options={[
-                    { value: 'vista', label: 'Pagamento Ãšnico' },
+                    { value: 'vista', label: 'Pagamento Único' },
                     { value: 'prazo', label: 'Parcelado / Fluxo Contínuo' },
                   ]}
                 />

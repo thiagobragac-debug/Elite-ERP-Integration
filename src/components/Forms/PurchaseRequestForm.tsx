@@ -118,7 +118,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
       submitLabel={initialData ? "Salvar Alterações" : "Enviar Solicitação"}
       size="large"
     >
-      {/* PASSO 01: CLASSIFICAÃ‡ÃƒO E JUSTIFICATIVA */}
+      {/* PASSO 01: CLASSIFICAÇÃO E JUSTIFICATIVA */}
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 01</div>
@@ -228,7 +228,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
             <label className="tauze-label">
               <FileText size={14} /> Justificativa do Pedido
               {(formData.priority === 'high' || formData.priority === 'urgent') && (
-                <span style={{color: '#ef4444', fontSize: '10px', marginLeft: '6px', fontWeight: 800}}>* OBRIGATÃ“RIO PARA ESTA PRIORIDADE</span>
+                <span style={{color: '#ef4444', fontSize: '10px', marginLeft: '6px', fontWeight: 800}}>* OBRIGATÓRIO PARA ESTA PRIORIDADE</span>
               )}
             </label>
             <textarea className="tauze-input tauze-textarea"
@@ -242,7 +242,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
         </div>
       </section>
 
-      {/* PASSO 02: ITENS DA SOLICITAÃ‡ÃƒO (CARRINHO) */}
+      {/* PASSO 02: ITENS DA SOLICITAÇÃO (CARRINHO) */}
       <section className="tauze-form-section">
         <div className="tauze-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -269,7 +269,7 @@ export const PurchaseRequestForm: React.FC<PurchaseRequestFormProps> = ({isOpen,
         </div>
       </section>
 
-      {/* PASSO 03: EVIDÃŠNCIAS E ANEXOS */}
+      {/* PASSO 03: EVIDÊNCIAS E ANEXOS */}
       <section className="tauze-form-section">
         <div className="tauze-section-header">
           <div className="tauze-section-badge">PASSO 03</div>

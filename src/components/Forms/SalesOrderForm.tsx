@@ -383,7 +383,7 @@ export const SalesOrderForm: React.FC<SalesOrderFormProps> = ({isOpen,
               value={formData.payment_condition}
               onChange={(val: any) => setFormData({...formData, payment_condition: val})}
               options={[
-                { value: 'vista', label: 'Ã€ Vista' },
+                { value: 'vista', label: 'À Vista' },
                 { value: 'prazo', label: 'Parcelado / A Prazo' },
               ]}
             />

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import {
   FileText,
@@ -29,7 +29,9 @@ interface RastreabilidadeModalProps {
     peso_atual?: number;
     data_nascimento?: string;
     valor_compra?: number;
+    created_at?: string;
   } | null;
+  events?: any[];
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -41,50 +43,17 @@ const ICON_MAP: Record<string, React.ElementType> = {
   Truck,
 };
 
-const mockTimeline = [
-  {
-    icon: 'FileText',
-    color: '#6366f1',
-    date: '2026-01-15',
-    title: 'Entrada via NF-e',
-    desc: 'NF-e 123456 | Fornecedor: Fazenda Santa Rita | 50 cabeças | R$ 75.000,00',
-  },
-  {
-    icon: 'Tag',
-    color: '#10b981',
-    date: '2026-01-18',
-    title: 'Identificação e Pesagem',
-    desc: 'Brinco #101 aplicado | Peso inicial: 320 kg | Lote: Recria 01',
-  },
-  {
-    icon: 'Heart',
-    color: '#ec4899',
-    date: '2026-02-05',
-    title: 'Vacinação â€” Aftosa',
-    desc: 'Vacina Bovicel | Dose: 2ml | Aplicada por: João Vaqueiro | Carência: 21 dias',
-  },
-  {
-    icon: 'Scale',
-    color: '#f59e0b',
-    date: '2026-03-01',
-    title: 'Pesagem Periódica',
-    desc: 'Peso: 380 kg (+60 kg) | GMD: 0.857 kg/dia | Lote: Recria 01',
-  },
-  {
-    icon: 'ArrowRightLeft',
-    color: '#3b82f6',
-    date: '2026-03-15',
-    title: 'Transferência de Lote',
-    desc: 'Origem: Recria 01 | Destino: Engorda A | Motivo: Atingiu peso alvo de recria',
-  },
-  {
-    icon: 'Scale',
-    color: '#f59e0b',
-    date: '2026-05-01',
-    title: 'Pesagem Periódica',
-    desc: 'Peso: 498 kg (+118 kg) | GMD: 0.905 kg/dia | Lote: Engorda A',
-  },
-];
+const getEventDisplayConfig = (category: string) => {
+  switch (category) {
+    case 'entrada': return { icon: 'FileText', color: '#6366f1' };
+    case 'weight': return { icon: 'Scale', color: '#f59e0b' };
+    case 'sanidade': return { icon: 'Heart', color: '#ec4899' };
+    case 'nutricao': return { icon: 'Tag', color: '#10b981' };
+    case 'reproducao': return { icon: 'Tag', color: '#8b5cf6' };
+    case 'lote': return { icon: 'ArrowRightLeft', color: '#3b82f6' };
+    default: return { icon: 'Tag', color: '#94a3b8' };
+  }
+};
 
 // Deterministic pseudo-QR code pattern from a seed string
 function generateQRPattern(seed: string, size: number): boolean[][] {
@@ -163,6 +132,7 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
   isOpen,
   onClose,
   animal,
+  events = [],
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -170,8 +140,23 @@ export const RastreabilidadeModal: React.FC<RastreabilidadeModalProps> = ({
 
   const isSold = animal.status === 'Vendido' || animal.status === 'Abatido';
 
+  const mappedEvents = events.map((e: any) => {
+    const config = getEventDisplayConfig(e.category);
+    let formattedDate = e.date || '';
+    if (formattedDate.includes('T')) {
+      formattedDate = formattedDate.split('T')[0];
+    }
+    return {
+      icon: config.icon,
+      color: config.color,
+      date: formattedDate,
+      title: e.type,
+      desc: e.desc + (e.custo > 0 ? ` | Custo: ${formatCurrency(e.custo)}` : ''),
+    };
+  });
+
   const timeline = [
-    ...mockTimeline,
+    ...mappedEvents,
     ...(isSold
       ? [
           {

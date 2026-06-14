@@ -45,6 +45,7 @@ export interface InsumoItem {
   match_score?: number;
   match_source?: 'de_para' | 'fuzzy';
   tipo?: 'produto' | 'servico';
+  is_storable?: boolean;
 }
 
 interface InsumoEntryTableProps {
@@ -54,11 +55,12 @@ interface InsumoEntryTableProps {
   companyId?: string;
   supplierId?: string;
   onPendingMatchesChange?: (count: number) => void;
+  operationType?: 'entry' | 'output';
 }
 
 export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({ 
   items, onChange, isReadOnly = false, companyId, supplierId,
-  onPendingMatchesChange
+  onPendingMatchesChange, operationType = 'entry'
 }) => {
   const { activeTenantId } = useTenant();
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
@@ -107,20 +109,33 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
   }, [items]);
 
   const fetchProducts = async () => {
-    const { data } = await supabase
+    let query = supabase
       .from('produtos')
-      .select('id, nome, unidade_medida, preco_custo, ean, ncm, tipo')
+      .select('id, nome, unidade_medida, preco_custo, ean, ncm, tipo, is_storable')
       .eq('tenant_id', activeTenantId)
-      .order('nome');
+      .eq('is_active', true);
+
+    if (operationType === 'entry') {
+      query = query.eq('is_purchasable', true);
+    } else if (operationType === 'output') {
+      query = query.eq('is_sellable', true);
+    }
+
+    const { data } = await query.order('nome');
     if (data) setAvailableProducts(data);
   };
 
   const fetchDepositos = async () => {
     let query = supabase
       .from('depositos')
-      .select('id, nome')
-      .eq('tenant_id', activeTenantId);
-    if (companyId) query = query.eq('fazenda_id', companyId);
+      .select(companyId ? 'id, nome, fazendas!inner(unidade_id)' : 'id, nome')
+      .eq('tenant_id', activeTenantId)
+      .eq('status', 'ativo');
+      
+    if (companyId) {
+      query = query.eq('fazendas.unidade_id', companyId);
+    }
+    
     const { data } = await query.order('nome');
     if (data) setDepositos(data);
   };
@@ -157,6 +172,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
             nome: internalProduct.nome,
             unidade: internalProduct.unidade_medida || updatedItems[itemIndex].unidade,
             tipo: internalProduct.tipo,
+            is_storable: internalProduct.is_storable,
             match_status: 'confirmed',
             match_score: 100,
             match_source: 'ncm' as any, // Cast temporário
@@ -184,6 +200,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
               nome: internalProduct.nome,
               unidade: internalProduct.unidade_medida || updatedItems[itemIndex].unidade,
               tipo: internalProduct.tipo,
+              is_storable: internalProduct.is_storable,
               match_status: 'confirmed',
               match_score: 100,
               match_source: 'de_para',
@@ -204,6 +221,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
             produto_id: status !== 'unmatched' ? best.product.id : '',
             nome: status !== 'unmatched' ? best.product.nome : updatedItems[itemIndex].nome,
             unidade: status !== 'unmatched' ? (best.product.unidade_medida || updatedItems[itemIndex].unidade) : updatedItems[itemIndex].unidade,
+            is_storable: status !== 'unmatched' ? best.product.is_storable : undefined,
             match_status: status,
             match_score: best.score,
             match_source: 'fuzzy',
@@ -309,6 +327,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
       unidade: product.unidade_medida || 'UN',
       preco_unitario: product.preco_custo || 0,
       tipo: product.tipo,
+      is_storable: product.is_storable,
       // Se era XML, marca como suggested aguardando confirmação
       match_status: item?.xml_product_name ? 'suggested' : 'manual',
       match_score: undefined,
@@ -594,10 +613,12 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                       value={item.deposito_id}
                       onChange={(val: any) => handleUpdateItem(item.id, { deposito_id: val })}
                       options={[
-                        { value: '', label: 'Depósito...' },
+                        { value: '', label: 'Sem Depósito' },
                         ...(depositos || []).map(d => ({ value: String(d.id), label: String(d.nome) })),
                       ]}
                       height="38px"
+                      placeholder="Buscar depósito..."
+                      icon={<Search size={14} />}
                     />
                   </td>
 

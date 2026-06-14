@@ -214,7 +214,7 @@ export const ReproductionManagement: React.FC = () => {
     const matchesResults = filterValues.results.length === 0 || filterValues.results.includes(e.resultado);
     
     const ecc = Number(e.ecc || 0);
-    const matchesECC = !e.ecc || (ecc >= filterValues.minECC && ecc <= filterValues.maxECC);
+    const matchesECC = filterValues.maxECC >= 5 || (!e.ecc || (ecc >= filterValues.minECC && ecc <= filterValues.maxECC));
     
     const matchesNearParto = !filterValues.nearParto || (e.progressoGestacao > 80 && e.progressoGestacao < 100);
 

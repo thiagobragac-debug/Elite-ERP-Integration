@@ -162,7 +162,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
 
   const isFinancialDisabledByOrder = useMemo(() => {
     if (!formData.sales_order_id) return false;
-    // Mock simples: PV-001 gerou financeiro, PV-002 NÃƒO gerou
+    // Mock simples: PV-001 gerou financeiro, PV-002 NÃO gerou
     const mockOrdersDB: any = {
       'PV-001': { generate_financial: true },
       'PV-002': { generate_financial: false }
@@ -287,7 +287,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
             deposito_id: '',
             total: 1000.00,
             xml_product_code: 'XML-OUT-001',
-            xml_product_name: 'PRODUTO IMPORTADO XML DESCRIÃ‡ÃƒO ORIGINAL',
+            xml_product_name: 'PRODUTO IMPORTADO XML DESCRIÇÃO ORIGINAL',
             match_status: 'unmatched',
           }];
           setItems(xmlItems);
@@ -327,7 +327,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
         deposito_id: '',
         total: 1500.00,
         xml_product_code: 'SEFAZ-OUT-002',
-        xml_product_name: 'PRODUTO BUSCADO SEFAZ DESCRIÃ‡ÃƒO ORIGINAL',
+        xml_product_name: 'PRODUTO BUSCADO SEFAZ DESCRIÇÃO ORIGINAL',
         match_status: 'unmatched',
       }];
       setItems(xmlItems);
@@ -644,6 +644,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
             onChange={(items) => setItems(items)}
             companyId={formData.company_id}
             onPendingMatchesChange={setPendingMatches}
+            operationType="output"
           />
           {pendingMatches > 0 && (
             <div style={{ margin: '12px 0 0', padding: '10px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -805,7 +806,7 @@ export const OutputInvoiceForm: React.FC<OutputInvoiceFormProps> = ({isOpen, onC
               value={formData.payment_condition}
               onChange={(val: any) => setFormData({...formData, payment_condition: val})}
               options={[
-                { value: 'vista', label: 'Ã€ Vista' },
+                { value: 'vista', label: 'À Vista' },
                 { value: 'prazo', label: 'Parcelado / A Prazo' },
               ]}
             />

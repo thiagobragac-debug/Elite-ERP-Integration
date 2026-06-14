@@ -96,7 +96,7 @@ export const WarehouseManagement: React.FC = () => {
               custo_medio
             )
           )
-        `).order('nome', { ascending: true });
+        `, { count: 'exact' }).order('nome', { ascending: true });
       query = applyFarmFilter(query);
       const range = getRange();
       const { data, count, error } = await query.range(range.from, range.to);
@@ -107,7 +107,8 @@ export const WarehouseManagement: React.FC = () => {
         let valorTotal = 0;
         const saldo = w.movimentacoes_estoque?.reduce((acc: number, curr: any) => {
           const qty = Number(curr.quantidade);
-          const isEntry = curr.tipo === 'IN' || curr.tipo === 'in';
+          const tipoUpper = (curr.tipo || '').toUpperCase();
+          const isEntry = tipoUpper === 'IN' || tipoUpper === 'ENTRADA';
           const prodValue = (curr.produtos?.custo_medio || 0) * qty;
           
           if (isEntry) {

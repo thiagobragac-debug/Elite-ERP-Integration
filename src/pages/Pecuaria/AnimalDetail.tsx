@@ -36,6 +36,37 @@ import './AnimalDetail.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePersistentState } from '../../hooks/usePersistentState';
 
+const AnimatedNumber = ({ value, isCurrency = false }: { value: number, isCurrency?: boolean }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let startTime: number;
+    const duration = 1200; // 1.2s para dar um efeito mais "premium"
+    
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      
+      const easeProgress = 1 - Math.pow(1 - progress, 4); // easeOutQuart
+      
+      setDisplayValue(value * easeProgress);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(value); // ensure exact final value
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [value]);
+
+  if (isCurrency) {
+    return <>{formatCurrency(displayValue)}</>;
+  }
+  return <>{new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(displayValue)}</>;
+};
+
 export const AnimalDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -82,10 +113,11 @@ export const AnimalDetail: React.FC = () => {
     queryFn: async () => {
       // 1) Nutrição
       const costsRes = await supabase
-        .from('custos_animal')
-        .select('valor_total_aplicado, produto_id, data_consumo, quantidade_consumida, produtos(nome)')
-        .eq('animal_id', id);
-      if (costsRes.error) console.error('custos_animal erro:', costsRes.error);
+        .from('nutricao_animais')
+        .select('valor_total_consumido, data_consumo, quantidade_kg, dietas(nome)')
+        .eq('animal_id', id)
+        .order('data_consumo', { ascending: false });
+      if (costsRes.error) console.error('nutricao_animais erro:', costsRes.error);
 
       // 2) Sanidade - busca sanidade_animais e depois sanidade separadamente para evitar falha no join
       const saRes = await supabase
@@ -193,8 +225,8 @@ export const AnimalDetail: React.FC = () => {
       date: c.data_consumo,
       type: 'NUTRIÇÃO',
       category: 'nutricao',
-      desc: `Trato: ${c.produtos?.nome || 'Insumo'} — ${c.quantidade_consumida || 0} un — ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(c.valor_total_aplicado || 0))}`,
-      custo: Number(c.valor_total_aplicado || 0)
+      desc: `Trato: ${c.dietas?.nome || 'Insumo'} — ${Number(c.quantidade_kg).toFixed(2)}kg — ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(c.valor_total_consumido || 0))}`,
+      custo: Number(c.valor_total_consumido || 0)
     }));
 
     // Reprodução
@@ -261,13 +293,65 @@ export const AnimalDetail: React.FC = () => {
 
   const isSubmitting = editAnimalMutation.isPending;;
 
+  const carenciaStatus = React.useMemo(() => {
+    if (!financialData?.health || financialData.health.length === 0) return { status: 'liberado', text: 'Pronto p/ Abate', color: '#10b981', bg: 'rgba(16, 185, 129, 0.1)' };
+    
+    const hoje = new Date();
+    let maxVencimento = new Date(0);
+    let temCarencia = false;
+
+    financialData.health.forEach((h: any) => {
+      if (h.sanidade?.carencia_dias > 0 && h.data_aplicacao) {
+        const dataApl = new Date(h.data_aplicacao);
+        const vencimento = new Date(dataApl.getTime() + h.sanidade.carencia_dias * 24 * 60 * 60 * 1000);
+        if (vencimento > hoje) {
+          temCarencia = true;
+          if (vencimento > maxVencimento) maxVencimento = vencimento;
+        }
+      }
+    });
+
+    if (temCarencia) {
+      return { 
+        status: 'carencia', 
+        text: `Em Carência (até ${maxVencimento.toLocaleDateString('pt-BR')})`,
+        color: '#f59e0b',
+        bg: 'rgba(245, 158, 11, 0.15)'
+      };
+    }
+    
+    return { 
+      status: 'liberado', 
+      text: 'Pronto p/ Abate',
+      color: '#10b981',
+      bg: 'rgba(16, 185, 129, 0.1)'
+    };
+  }, [financialData]);
+
   if (loading) {
     return (
-      <div className="animal-detail-page">
-        <div className="skeleton-grid">
-          <KPISkeleton />
-          <KPISkeleton />
-          <KPISkeleton />
+      <div className="animal-detail-page animate-slide-up" style={{ padding: '24px' }}>
+        <header className="page-header" style={{ marginBottom: '24px' }}>
+          <div style={{ width: '200px', height: '16px', background: 'var(--skeleton-base, #1e293b)', borderRadius: '4px', marginBottom: '16px' }} className="skeleton-pulse"></div>
+          <div style={{ width: '150px', height: '36px', background: 'var(--skeleton-base, #1e293b)', borderRadius: '8px' }} className="skeleton-pulse"></div>
+        </header>
+
+        <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+           <div className="kpi-card skeleton-pulse" style={{ height: '110px', borderRadius: '16px' }}></div>
+           <div className="kpi-card skeleton-pulse" style={{ height: '110px', borderRadius: '16px' }}></div>
+           <div className="kpi-card skeleton-pulse" style={{ height: '110px', borderRadius: '16px' }}></div>
+           <div className="kpi-card skeleton-pulse" style={{ height: '110px', borderRadius: '16px' }}></div>
+        </div>
+
+        <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '16px', marginTop: '16px' }}>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+             <div className="skeleton-pulse" style={{ height: '380px', borderRadius: '24px', background: 'var(--skeleton-base, #1e293b)' }}></div>
+             <div className="skeleton-pulse" style={{ height: '220px', borderRadius: '24px', background: 'var(--skeleton-base, #1e293b)' }}></div>
+           </div>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+             <div className="skeleton-pulse" style={{ height: '320px', borderRadius: '24px', background: 'var(--skeleton-base, #1e293b)' }}></div>
+             <div className="skeleton-pulse" style={{ height: '400px', borderRadius: '24px', background: 'var(--skeleton-base, #1e293b)' }}></div>
+           </div>
         </div>
       </div>
     );
@@ -580,25 +664,52 @@ export const AnimalDetail: React.FC = () => {
 
   return (
     <div className="animal-detail-page animate-slide-up">
-      <header className="page-header">
-        <div className="header-brand-group">
+      <header style={{ marginBottom: '24px' }}>
+        <div style={{ marginBottom: '8px' }}>
           <Breadcrumb paths={[{ label: 'Pecuária', href: '/pecuaria/dashboard' }, { label: 'Animais', href: '/pecuaria/animal' }, { label: 'Detalhes' }]} />
-          <button className="back-btn" onClick={() => navigate('/pecuaria/animal')}>
-            <ArrowLeft size={20} />
-            VOLTAR
-          </button>
-          <div className="title-row">
-            <h1 className="page-title">#{animal.brinco}</h1>
-            <div className="status-pill active">{animal.status}</div>
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
+            <h1 style={{ 
+              fontSize: '2.5rem', 
+              fontWeight: 900, 
+              color: 'hsl(var(--text-main))', 
+              margin: 0, 
+              lineHeight: 1.2,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              #{animal.brinco}
+            </h1>
+            <div className="status-pill active" style={{ flexShrink: 0 }}>{animal.status}</div>
+            <div className="status-pill" style={{ flexShrink: 0, background: carenciaStatus.bg, color: carenciaStatus.color, border: `1px solid ${carenciaStatus.color}40`, fontWeight: 700 }}>
+              {carenciaStatus.text}
+            </div>
           </div>
-          <p className="page-subtitle">{animal.raca} | {animal.sexo === 'M' ? 'Macho' : 'Fêmea'} | Lote: {animal.lotes?.nome || 'Sem Lote'}</p>
+
+          <div style={{ display: 'flex', gap: '12px', flexShrink: 0 }}>
+            <button className="glass-btn secondary" title="Editar Animal" onClick={() => setIsEditModalOpen(true)} style={{ padding: '8px 12px' }}>
+              <Edit3 size={18} />
+            </button>
+            <button className="glass-btn secondary" title="Visualizar Rastreabilidade e Genealogia" onClick={() => setShowRastreabilidade(true)} style={{ padding: '8px 12px' }}>
+              <QrCode size={18} />
+            </button>
+            <button className="glass-btn secondary" title="Exportar Relatório em PDF" onClick={handleRelatorio} style={{ padding: '8px 12px' }}>
+              <FileText size={18} />
+            </button>
+            <button className="primary-btn" onClick={() => setIsManejoModalOpen(true)}>
+              <Activity size={18} /> NOVO MANEJO
+            </button>
+          </div>
+
         </div>
-        <div className="page-actions">
-          <button className="glass-btn secondary" onClick={() => setIsEditModalOpen(true)}><Edit3 size={18} /> EDITAR</button>
-          <button className="glass-btn secondary" onClick={() => setShowRastreabilidade(true)}><QrCode size={18} /> RASTREABILIDADE</button>
-          <button className="glass-btn secondary" onClick={handleRelatorio}><FileText size={18} /> RELATÓRIO</button>
-          <button className="primary-btn" onClick={() => setIsManejoModalOpen(true)}><Activity size={18} /> NOVO MANEJO</button>
-        </div>
+
+        <p style={{ color: 'hsl(var(--text-muted))', fontSize: '1rem', margin: 0, fontWeight: 600, marginTop: '8px' }}>
+          {animal.raca} | {animal.sexo === 'M' ? 'Macho' : 'Fêmea'} | Lote: {animal.lotes?.nome || 'Sem Lote'}
+        </p>
       </header>
 
       <div className="next-gen-kpi-grid">
@@ -706,19 +817,19 @@ export const AnimalDetail: React.FC = () => {
               <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Aquisição</label>
                 <span style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>
-                  {formatCurrency(animal.valor_compra || 0)}
+                  <AnimatedNumber value={animal.valor_compra || 0} isCurrency={true} />
                 </span>
               </div>
               <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Nutrição</label>
                 <span style={{ color: '#fbbf24', fontSize: '15px', fontWeight: 700 }}>
-                  {formatCurrency(financialData?.costs?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)}
+                  <AnimatedNumber value={financialData?.costs?.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_consumido || 0), 0) || 0} isCurrency={true} />
                 </span>
               </div>
               <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Sanidade</label>
                 <span style={{ color: '#f87171', fontSize: '15px', fontWeight: 700 }}>
-                  {formatCurrency((financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0))}
+                  <AnimatedNumber value={(financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0)} isCurrency={true} />
                 </span>
                 {(financialData?.health || []).some((h: any) => Number(h.valor_total_aplicado || 0) === 0) && (
                   <div style={{ fontSize: '9px', color: '#f59e0b', marginTop: '2px', fontWeight: 700 }}>⚠️ Custeio pendente</div>
@@ -728,25 +839,25 @@ export const AnimalDetail: React.FC = () => {
               <div className="info-item" style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
                 <label style={{ color: '#fca5a5', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Custo Total (Saída)</label>
                 <span style={{ color: '#ef4444', fontSize: '16px', fontWeight: 900, textShadow: '0 2px 10px rgba(239,68,68,0.2)' }}>
-                  {formatCurrency((() => {
-                    const custoNutricao = (financialData?.costs || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
+                  <AnimatedNumber value={(() => {
+                    const custoNutricao = (financialData?.costs || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_consumido || 0), 0);
                     const custoSanidade = (financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
                     return (animal.valor_compra || 0) + custoNutricao + custoSanidade;
-                  })())}
+                  })()} isCurrency={true} />
                 </span>
               </div>
               
               <div className="info-item" style={{ background: 'rgba(59, 130, 246, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
                 <label style={{ color: '#93c5fd', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Receita / Venda</label>
                 <span style={{ color: '#60a5fa', fontSize: '16px', fontWeight: 900 }}>
-                  {formatCurrency(animal.valor_venda || 0)}
+                  <AnimatedNumber value={animal.valor_venda || 0} isCurrency={true} />
                 </span>
               </div>
 
               <div className="info-item" style={{ background: 'rgba(16, 185, 129, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.1)' }}>
                 <label style={{ color: '#6ee7b7', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Resultado (Lucro)</label>
                 {(() => {
-                  const custoNutricao = (financialData?.costs || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
+                  const custoNutricao = (financialData?.costs || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_consumido || 0), 0);
                   const custoSanidade = (financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
                   const custoTotal = (animal.valor_compra || 0) + custoNutricao + custoSanidade;
                   const receita = animal.valor_venda || 0;
@@ -759,7 +870,7 @@ export const AnimalDetail: React.FC = () => {
                       fontWeight: 900, 
                       textShadow: isLucro ? '0 2px 10px rgba(16,185,129,0.3)' : '0 2px 10px rgba(239,68,68,0.3)' 
                     }}>
-                      {isLucro ? '+' : ''}{formatCurrency(lucro)}
+                      {isLucro ? '+' : ''}<AnimatedNumber value={lucro} isCurrency={true} />
                     </span>
                   );
                 })()}
@@ -857,6 +968,7 @@ export const AnimalDetail: React.FC = () => {
         isOpen={showRastreabilidade}
         onClose={() => setShowRastreabilidade(false)}
         animal={animal}
+        events={events}
       />
       <AnimalForm 
         isOpen={isEditModalOpen}

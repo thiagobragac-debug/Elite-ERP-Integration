@@ -499,7 +499,7 @@ export const CompanyManagement: React.FC = () => {
   const filteredFarms = farms.filter(f => {
     const matchesSearch = (f.nome?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
-    const matchesArea = Number(f.area_total || 0) <= filterValues.maxArea;
+    const matchesArea = filterValues.maxArea >= 100000 || (Number(f.area_total || 0) <= filterValues.maxArea);
     const matchesState = filterValues.state === 'all' || f.localizacao?.includes(filterValues.state);
 
     return matchesSearch && matchesArea && matchesState;

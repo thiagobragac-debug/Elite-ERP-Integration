@@ -171,7 +171,7 @@ export const AccountsReceivable: React.FC = () => {
       const matchesTab = activeTab === 'TODAS' || i.status === activeTab;
       const matchesStatus = filterValues.status === 'all' || i.status === filterValues.status;
       const amount = Number(i.valor_total);
-      const matchesAmount = amount >= (filterValues.minAmount || 0) && amount <= (filterValues.maxAmount || 1000000);
+      const matchesAmount = filterValues.maxAmount >= 1000000 || (amount >= (filterValues.minAmount || 0) && amount <= (filterValues.maxAmount || 1000000));
       const matchesDate = (!filterValues.dateStart || new Date(i.data_vencimento) >= new Date(filterValues.dateStart)) &&
                          (!filterValues.dateEnd || new Date(i.data_vencimento) <= new Date(filterValues.dateEnd));
       return matchesSearch && matchesTab && matchesStatus && matchesAmount && matchesDate;

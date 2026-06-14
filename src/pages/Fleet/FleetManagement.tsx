@@ -320,7 +320,7 @@ export const FleetManagement: React.FC = () => {
       const matchesMarcas = filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
       
       const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
-      const matchesUsage = currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage;
+      const matchesUsage = filterValues.maxUsage >= 10000 || (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
       
       const machineYear = m.ano || 0;
       const matchesYear = (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
@@ -622,7 +622,7 @@ export const FleetManagement: React.FC = () => {
               const matchesMarcas = filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
               
               const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
-              const matchesUsage = currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage;
+              const matchesUsage = filterValues.maxUsage >= 10000 || (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
               
               const machineYear = m.ano || 0;
               const matchesYear = (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&
@@ -662,7 +662,7 @@ export const FleetManagement: React.FC = () => {
                 const matchesMarcas = filterValues.marcas.length === 0 || (m.marca && filterValues.marcas.includes(m.marca));
                 
                 const currentUsage = m.horimetro_atual || m.quilometragem_atual || 0;
-                const matchesUsage = currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage;
+                const matchesUsage = filterValues.maxUsage >= 10000 || (currentUsage >= filterValues.minUsage && currentUsage <= filterValues.maxUsage);
                 
                 const machineYear = m.ano || 0;
                 const matchesYear = (!filterValues.minYear || machineYear >= parseInt(filterValues.minYear)) &&

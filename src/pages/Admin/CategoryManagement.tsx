@@ -142,17 +142,17 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           ];
         } else if (modulo === 'estoque') {
           defaultCategories = [
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Combustíveis', cor: '#ef4444', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Defensivos', cor: '#f59e0b', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Fertilizantes', cor: '#10b981', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Peças', cor: '#64748b', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Medicamentos', cor: '#3b82f6', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Suplementos', cor: '#8b5cf6', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Sementes', cor: '#d97706', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Rações', cor: '#b45309', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Vacinas', cor: '#ec4899', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'EPIs', cor: '#0f172a', is_active: true, is_system: true },
-            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Geral', cor: '#94a3b8', is_active: true, is_system: false }
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Combustíveis', cor: '#ef4444', is_active: true, is_system: false, modulo_vinculado: 'maquinas_frota' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Defensivos', cor: '#f59e0b', is_active: true, is_system: false, modulo_vinculado: 'agricola' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Fertilizantes', cor: '#10b981', is_active: true, is_system: false, modulo_vinculado: 'agricola' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Peças', cor: '#64748b', is_active: true, is_system: false, modulo_vinculado: 'maquinas_frota' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Medicamentos', cor: '#3b82f6', is_active: true, is_system: false, modulo_vinculado: 'pecuaria_sanidade' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Suplementos', cor: '#8b5cf6', is_active: true, is_system: false, modulo_vinculado: 'pecuaria_nutricao' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Sementes', cor: '#d97706', is_active: true, is_system: false, modulo_vinculado: 'agricola' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Rações', cor: '#b45309', is_active: true, is_system: false, modulo_vinculado: 'pecuaria_nutricao' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Vacinas', cor: '#ec4899', is_active: true, is_system: false, modulo_vinculado: 'pecuaria_sanidade' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'EPIs', cor: '#0f172a', is_active: true, is_system: false, modulo_vinculado: 'geral' },
+            { tenant_id: tenant.id, modulo: 'estoque', nome: 'Geral', cor: '#94a3b8', is_active: true, is_system: false, modulo_vinculado: 'geral' }
           ];
         }
         
@@ -310,13 +310,26 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
       align: 'left' as const
     }] : []),
     {
-      header: modulo === 'estoque' ? 'Vínculo Financeiro' : 'Vínculo Operacional',
+      header: modulo === 'estoque' ? 'Módulo Vinculado' : 'Vínculo Operacional',
       accessor: (cat: Categoria) => {
         if (modulo === 'estoque') {
-          const finCat = categorias.find(c => c.id === cat.categoria_financeira_id);
+          const moduleLabels: Record<string, string> = {
+            geral: 'Geral (Todos Módulos)',
+            pecuaria_geral: 'Pecuária - Geral',
+            pecuaria_sanidade: 'Pecuária - Sanidade',
+            pecuaria_nutricao: 'Pecuária - Nutrição',
+            pecuaria_reproducao: 'Pecuária - Reprodução',
+            pecuaria_pasto: 'Pecuária - Pastagem',
+            frota_geral: 'Frota - Geral',
+            frota_abastecimento: 'Frota - Abastecimento',
+            frota_manutencao: 'Frota - Manutenção',
+            agricola: 'Agrícola / Safra'
+          };
+          const displayLabel = cat.modulo_vinculado ? (moduleLabels[cat.modulo_vinculado] || cat.modulo_vinculado.replace('_', ' ')) : 'USO GERAL';
+          
           return (
-            <span style={{ fontSize: '12px', fontWeight: 600, color: finCat ? '#8b5cf6' : '#94a3b8' }}>
-              {finCat ? finCat.nome.toUpperCase() : 'SEM VÍNCULO'}
+            <span style={{ fontSize: '12px', fontWeight: 600, color: cat.modulo_vinculado ? '#8b5cf6' : '#94a3b8' }}>
+              {displayLabel.toUpperCase()}
             </span>
           );
         }
@@ -400,10 +413,8 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
                 value={formData.nome}
                 onChange={e => setFormData({...formData, nome: e.target.value})}
                 placeholder="Ex: Combustível, Suplementos, etc..."
-                disabled={editItem?.is_system}
                 required
               />
-              {editItem?.is_system && <span style={{ fontSize: '11px', color: '#ef4444' }}>O nome desta categoria não pode ser alterado, pois é essencial para o sistema.</span>}
             </div>
 
             {modulo === 'financeiro' && (
@@ -439,20 +450,23 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
                 </div>
 
                 <div className="tauze-field-group">
-                  <label className="tauze-label">Categoria Financeira Padrão (Opcional)</label>
+                  <label className="tauze-label">Destino (Módulo Operacional)</label>
                   <select 
                     className="tauze-input"
-                    value={formData.categoria_financeira_id}
-                    onChange={e => setFormData({...formData, categoria_financeira_id: e.target.value})}
+                    value={formData.modulo_vinculado}
+                    onChange={e => setFormData({...formData, modulo_vinculado: e.target.value})}
                   >
-                    <option value="">-- Não vincular nenhuma --</option>
-                    {categorias.filter(c => c.modulo === 'financeiro').map(c => (
-                      <option key={c.id} value={c.id}>{c.nome}</option>
-                    ))}
+                    <option value="geral">Geral (Aparece em todos os módulos)</option>
+                    <option value="pecuaria_geral">Pecuária - Geral (Toda a Pecuária)</option>
+                    <option value="pecuaria_sanidade">Pecuária - Sanidade</option>
+                    <option value="pecuaria_nutricao">Pecuária - Nutrição</option>
+                    <option value="pecuaria_reproducao">Pecuária - Reprodução</option>
+                    <option value="pecuaria_pasto">Pecuária - Pastagem</option>
+                    <option value="frota_geral">Máquinas & Frota - Geral (Toda a Frota)</option>
+                    <option value="frota_abastecimento">Máquinas & Frota - Abastecimento</option>
+                    <option value="frota_manutencao">Máquinas & Frota - Manutenção</option>
+                    <option value="agricola">Agrícola / Safra</option>
                   </select>
-                  <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px' }}>
-                    Automatiza o lançamento no Contas a Pagar/Receber
-                  </span>
                 </div>
               </>
             )}

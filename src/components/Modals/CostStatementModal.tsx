@@ -34,8 +34,8 @@ export const CostStatementModal: React.FC<CostStatementModalProps> = ({
       type: 'cost',
       icon: <Wheat size={16} color="#fbbf24" />,
       date: c.data_consumo || c.created_at,
-      productName: c.produtos?.nome || 'Dieta / Insumo',
-      cost: Number(c.valor_total_aplicado || 0)
+      productName: c.dietas?.nome || 'Dieta / Insumo',
+      cost: Number(c.valor_total_consumido || 0)
     }));
 
     const health = financialData.health.map((h: any) => ({
@@ -159,7 +159,7 @@ export const CostStatementModal: React.FC<CostStatementModalProps> = ({
               <div style={{ background: '#fef3c7', padding: '16px', borderRadius: '16px' }}>
                 <span style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#d97706', textTransform: 'uppercase', marginBottom: '4px' }}>Nutrição Acumulada</span>
                 <span style={{ fontSize: '18px', fontWeight: 800, color: '#b45309' }}>
-                  {formatCurrency(financialData?.costs.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)}
+                  {formatCurrency(financialData?.costs.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_consumido || 0), 0) || 0)}
                 </span>
               </div>
               <div style={{ background: '#fee2e2', padding: '16px', borderRadius: '16px' }}>
@@ -195,7 +195,7 @@ export const CostStatementModal: React.FC<CostStatementModalProps> = ({
             <span style={{ fontSize: '28px', fontWeight: 900, color: '#10b981' }}>
               {formatCurrency(
                 (animal?.valor_compra || 0) + 
-                (financialData?.costs.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0) + 
+                (financialData?.costs.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_consumido || 0), 0) || 0) + 
                 (financialData?.health.reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0) || 0)
               )}
             </span>

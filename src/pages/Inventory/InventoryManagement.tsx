@@ -151,7 +151,7 @@ export const InventoryManagement: React.FC = () => {
     setIsModalOpen(true);
     
     // Asynchronously check for history to disable the is_storable toggle
-    const { count } = await supabase.from('estoque_movimentacao').select('*', { count: 'exact', head: true }).eq('produto_id', product.id);
+    const { count } = await supabase.from('movimentacoes_estoque').select('*', { count: 'exact', head: true }).eq('produto_id', product.id);
     setSelectedProduct((prev: any) => ({ ...prev, hasHistory: count ? count > 0 : false }));
   };
 
@@ -165,6 +165,7 @@ export const InventoryManagement: React.FC = () => {
         estoque_minimo: data.tipo === 'servico' ? 0 : Number(data.estoque_minimo),
         estoque_atual: data.tipo === 'servico' ? 0 : Number(data.estoque_atual),
         custo_medio: Number(data.custo_medio),
+        custo_padrao: Number(data.custo_padrao || data.custo_medio || 0),
         is_purchasable: data.is_purchasable,
         is_sellable: data.is_sellable,
         is_storable: data.tipo === 'servico' ? false : data.is_storable,
@@ -254,10 +255,10 @@ export const InventoryManagement: React.FC = () => {
                            (filterValues.status === 'critico' ? Number(p.estoque_atual) <= Number(p.estoque_minimo) : Number(p.estoque_atual) > Number(p.estoque_minimo));
       
       const stock = Number(p.estoque_atual || 0);
-      const matchesStock = stock >= filterValues.minStock && stock <= filterValues.maxStock;
+      const matchesStock = filterValues.maxStock >= 1000000 || (stock >= filterValues.minStock && stock <= filterValues.maxStock);
       
       const price = Number(p.custo_medio || 0);
-      const matchesPrice = price >= filterValues.minPrice && price <= filterValues.maxPrice;
+      const matchesPrice = filterValues.maxPrice >= 1000000 || (price >= filterValues.minPrice && price <= filterValues.maxPrice);
 
       return matchesSearch && matchesCategorias && matchesStatus && matchesStock && matchesPrice;
     });
@@ -1235,6 +1236,7 @@ export const InventoryManagement: React.FC = () => {
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleSubmit}
         initialData={selectedProduct}
+        hasHistory={selectedProduct?.hasHistory}
       />
 
       <MovementForm 

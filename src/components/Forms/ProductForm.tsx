@@ -39,6 +39,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
     estoque_minimo: '0',
     estoque_atual: '0',
     custo_medio: '0',
+    custo_padrao: '0',
     descricao: '',
     ean: '',
     ncm: '',
@@ -193,6 +194,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
         estoque_minimo: initialData.estoque_minimo?.toString() || '0',
         estoque_atual: initialData.estoque_atual?.toString() || '0',
         custo_medio: initialData.custo_medio?.toString() || '0',
+        custo_padrao: initialData.custo_padrao?.toString() || initialData.preco_custo?.toString() || '0',
         descricao: initialData.descricao || '',
         ean: initialData.ean || '',
         ncm: initialData.ncm || '',
@@ -216,6 +218,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
         estoque_minimo: '0',
         estoque_atual: '0',
         custo_medio: '0',
+        custo_padrao: '0',
         descricao: '',
         ean: '',
         ncm: '',
@@ -574,16 +577,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
 
             <div className={`tauze-input-grid ${formData.tipo === 'produto' ? 'grid-col-3' : 'grid-col-2'}`}>
               <div className="tauze-field-group">
-                <label className="tauze-label"><DollarSign size={14} /> {formData.tipo === 'servico' ? 'Valor / Custo do Serviço (R$)' : 'Preço de Custo (R$)'}</label>
+                <label className="tauze-label"><DollarSign size={14} /> {formData.tipo === 'servico' ? 'Custo Padrão do Serviço (R$)' : 'Custo Padrão (R$)'}</label>
                 <input 
                   className="tauze-input"
                   type="number" 
                   step="0.01"
                   placeholder="0.00" 
-                  value={formData.custo_medio}
-                  onChange={(e) => setFormData({...formData, custo_medio: e.target.value})}
-                  required
+                  value={formData.custo_padrao}
+                  onChange={(e) => setFormData({...formData, custo_padrao: e.target.value})}
                 />
+                <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))', marginTop: '4px', display: 'block' }}>
+                  Referência de custo quando não há compra via NF registrada
+                </span>
               </div>
 
               {formData.tipo === 'produto' && (
@@ -665,17 +670,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
               </label>
 
               {formData.tipo === 'produto' ? (
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: hasHistory ? 'not-allowed' : 'pointer', padding: '12px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '12px', border: '1px solid hsl(var(--border))', opacity: hasHistory ? 0.6 : 1 }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: hasHistory ? 'not-allowed' : 'pointer', padding: '12px', background: 'hsl(var(--bg-main)/0.5)', borderRadius: '12px', border: '1px solid hsl(var(--border))', opacity: hasHistory ? 0.7 : 1 }}>
                   <input 
                     type="checkbox" 
                     checked={formData.is_storable}
                     onChange={(e) => setFormData({...formData, is_storable: e.target.checked})}
                     disabled={hasHistory}
-                    style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: hasHistory ? 'not-allowed' : 'pointer' }}
+                    style={{ width: '16px', height: '16px', accentColor: 'hsl(var(--brand))', flexShrink: 0, cursor: hasHistory ? 'not-allowed' : 'pointer', marginTop: '2px' }}
                   />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))' }}>Estoque Físico</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: 'hsl(var(--text-main))', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      Estoque Físico
+                      {hasHistory && <Lock size={12} style={{ color: '#f59e0b' }} />}
+                    </span>
                     <span style={{ fontSize: '10px', color: 'hsl(var(--text-muted))', fontWeight: 400 }}>Gera Kardex</span>
+                    {hasHistory && (
+                      <span style={{ fontSize: '10px', color: '#f59e0b', fontWeight: 600, marginTop: '2px', display: 'flex', alignItems: 'flex-start', gap: '2px' }}>
+                        <Lock size={10} style={{ marginTop: '2px' }}/> Bloqueado. Item já possui movimentações. Para mudar, inative este e crie um novo.
+                      </span>
+                    )}
                   </div>
                 </label>
               ) : (

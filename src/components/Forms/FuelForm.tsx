@@ -170,7 +170,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
             />
             {selectedMachine && (
               <div className="tauze-field-hint" style={{ color: 'hsl(var(--brand))', fontSize: '11px', fontWeight: 600, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Activity size={12} /> Ãšltimo Reg: {selectedMachine.horimetro_atual}{selectedMachine.unidade_medida === 'horas' ? 'h' : 'km'} | Cap. Tanque: {selectedMachine.capacidade_tanque}L
+                <Activity size={12} /> Último Reg: {selectedMachine.horimetro_atual}{selectedMachine.unidade_medida === 'horas' ? 'h' : 'km'} | Cap. Tanque: {selectedMachine.capacidade_tanque}L
               </div>
             )}
           </div>
@@ -228,6 +228,7 @@ export const FuelForm: React.FC<FuelFormProps> = ({isOpen, onClose, onSubmit, in
           items={items}
           onChange={setItems}
           mode="consumption"
+          filterModule="frota_abastecimento"
         />
         
         {/* Termômetro de Consumo */}

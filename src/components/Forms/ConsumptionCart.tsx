@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTenant } from '../../contexts/TenantContext';
 import { supabase } from '../../lib/supabase';
 import { SearchableSelect } from './SearchableSelect';
-import { Plus, Trash2, Package, Layers, Activity } from 'lucide-react';
+import { Plus, Trash2, Package, Layers, Activity, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export interface ConsumptionItem {
@@ -12,6 +12,7 @@ export interface ConsumptionItem {
   quantidade: number;
   unidade: string;
   custo_medio: number;
+  custo_padrao?: number; // referência do cadastro do insumo
   deposito_id: string;
   
   // Specific for Health/Sanidade
@@ -33,7 +34,7 @@ interface ConsumptionCartProps {
   
   // Feature flags for specific modules
   showHealthFields?: boolean;
-  filterCategories?: string[]; // e.g. ['medicamento', 'vacina'] ou ['combustível']
+  filterModule?: string;
   mode?: 'consumption' | 'formulation' | 'movement';
   isEntry?: boolean; // For movement mode: is it an IN operation?
   hideDeposit?: boolean;
@@ -45,7 +46,7 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
   title = "Insumos Consumidos", 
   subtitle = "Informe os produtos, quantidades e depósitos de saída.",
   showHealthFields = false,
-  filterCategories = [],
+  filterModule,
   mode = 'consumption',
   isEntry = false,
   hideDeposit = false
@@ -78,27 +79,25 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
       let pQuery = supabase
         .from('produtos')
         .select(`
-          id, nome, unidade, custo_medio, categoria_id,
+          id, nome, unidade, custo_medio, custo_padrao, custo_ultima_compra, is_storable, categoria_id,
           categorias_sistema(nome)
         `)
         .eq('tenant_id', activeTenantId)
         .eq('is_active', true);
       
-      if (filterCategories.length > 0) {
-        // Simple logic to fetch categories based on partial matching name (e.g. 'medicamento')
+      if (filterModule) {
+        let allowedModules = ['geral', filterModule];
+        if (filterModule.startsWith('pecuaria_')) allowedModules.push('pecuaria_geral');
+        if (filterModule.startsWith('frota_')) allowedModules.push('frota_geral');
+
         const { data: catData } = await supabase
           .from('categorias_sistema')
-          .select('id, nome')
-          .eq('modulo', 'estoque');
+          .select('id')
+          .eq('modulo', 'estoque')
+          .in('modulo_vinculado', allowedModules);
           
-        if (catData) {
-          const matchedIds = catData
-            .filter((c: any) => filterCategories.some(fc => c.nome.toLowerCase().includes(fc.toLowerCase())))
-            .map((c: any) => c.id);
-            
-          if (matchedIds.length > 0) {
-            pQuery = pQuery.in('categoria_id', matchedIds);
-          }
+        if (catData && catData.length > 0) {
+          pQuery = pQuery.in('categoria_id', catData.map((c: any) => c.id));
         }
       }
 
@@ -142,11 +141,23 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
     const product = products.find(p => p.id === productId);
     if (!product) return;
     
+    // Hierarquia de custo:
+    // 1. is_storable=true  → custo_medio (calculado pelas NFs)
+    // 2. is_storable=false → custo_ultima_compra (último preço da NF)
+    // 3. Fallback          → custo_padrao (informado manualmente no cadastro)
+    let custoRef = 0;
+    if (product.is_storable) {
+      custoRef = product.custo_medio || product.custo_padrao || 0;
+    } else {
+      custoRef = product.custo_ultima_compra || product.custo_padrao || 0;
+    }
+    
     handleUpdateItem(itemId, {
       produto_id: product.id,
       nome: product.nome,
       unidade: product.unidade || 'UN',
-      custo_medio: product.custo_medio || 0
+      custo_medio: custoRef,
+      custo_padrao: product.custo_padrao || 0
     });
   };
 
@@ -318,8 +329,29 @@ export const ConsumptionCart: React.FC<ConsumptionCartProps> = ({
                 )}
 
                 {mode !== 'movement' && (
-                  <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)', textAlign: 'right', fontWeight: 700, fontSize: '12px', color: 'hsl(var(--text-main))' }}>
-                    {((item.custo_medio || 0) * (item.quantidade || 0)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: 1 }}>
+                        <span style={{ position: 'absolute', left: '8px', fontSize: '10px', color: 'hsl(var(--text-muted))', pointerEvents: 'none' }}>R$</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="tauze-input"
+                          style={{ padding: '0 8px 0 26px', height: '36px', textAlign: 'right', width: '100%', fontSize: '12px', fontWeight: 700 }}
+                          value={item.custo_medio || ''}
+                          onChange={(e) => handleUpdateItem(item.id, { custo_medio: parseFloat(e.target.value) || 0 })}
+                          placeholder="0.00"
+                        />
+                      </div>
+                      {item.custo_padrao && item.custo_padrao > 0 && Math.abs((item.custo_medio || 0) - item.custo_padrao) > 0.01 && (
+                        <span
+                          title={`Custo padrão cadastrado: R$ ${item.custo_padrao.toFixed(2)}`}
+                          style={{ color: '#f59e0b', cursor: 'help', flexShrink: 0 }}
+                        >
+                          <AlertTriangle size={14} />
+                        </span>
+                      )}
+                    </div>
                   </td>
                 )}
                 <td style={{ padding: '8px 8px', borderBottom: '1px solid hsl(var(--border) / 0.5)', textAlign: 'center' }}>

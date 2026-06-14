@@ -104,8 +104,8 @@ export const HealthManagement: React.FC = () => {
 
   const applyProtocolMutation = useMutation({
     mutationFn: async (insertions: any[]) => {
-      const { error } = await supabase.from('sanidade').insert(insertions);
-      if (error) throw error;
+      // Reutiliza a engine do saveHealthMutation para ganhar a cascata de Estoque e Dossiê (ignora pendentes)
+      await saveHealthMutation.mutateAsync(insertions);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['report'] });
@@ -256,13 +256,38 @@ export const HealthManagement: React.FC = () => {
         if (sanidadeData && sanidadeData.length > 0) {
           for (let i = 0; i < sanidadeData.length; i++) {
             const sanidade = sanidadeData[i];
+            if (sanidade.status !== 'REALIZADO') continue; // Só cascateia se a dose já foi aplicada!
+
             const originalPayload = insertions[i];
-            const prodId = originalPayload.produto_id;
-            // Obtem custo medio atual do produto, se houver
+            let prodId = originalPayload.produto_id;
+
+            // Compatibilidade com protocolos antigos que só têm o nome
+            if (!prodId && originalPayload.produto) {
+              const { data: foundProd } = await supabase.from('produtos')
+                .select('id')
+                .eq('nome', originalPayload.produto)
+                .eq('tenant_id', activeTenantId)
+                .limit(1)
+                .maybeSingle();
+              if (foundProd) prodId = foundProd.id;
+            }
+
+            // Obtem custo medio atual do produto e flag de controle de estoque
             let custoMedio = 0;
+            let controleEstoque = false;
+            let depositoId = null;
             if (prodId) {
-              const { data: prod } = await supabase.from('produtos').select('custo_medio').eq('id', prodId).maybeSingle();
-              if (prod) custoMedio = Number(prod.custo_medio || 0);
+              const { data: prod } = await supabase.from('produtos').select('custo_medio, is_storable').eq('id', prodId).maybeSingle();
+              if (prod) {
+                 custoMedio = Number(prod.custo_medio || 0);
+                 controleEstoque = prod.is_storable;
+              }
+              // Busca o primeiro deposito ativo da fazenda
+              const { data: dep } = await supabase.from('depositos')
+                .select('id').eq('tenant_id', activeTenantId)
+                .or(`fazenda_id.eq.${activeFarmId},fazenda_id.is.null`)
+                .limit(1).maybeSingle();
+              if (dep) depositoId = dep.id;
             }
 
             // Descobre animais alvo
@@ -303,7 +328,33 @@ export const HealthManagement: React.FC = () => {
                }));
 
                const { error: saError } = await supabase.from('sanidade_animais').insert(sanidadeAnimaisInserts);
-               if (saError) console.error('Erro na cascata sanidade_animais:', saError);
+               if (saError) {
+                 console.error('Erro na cascata sanidade_animais:', saError);
+                 toast.error('Erro ao gerar custo do animal. Verifique o console.');
+               }
+
+               // Integração com o Estoque: Baixa automática se o produto for controlável
+               if (controleEstoque && prodId) {
+                 const totalQuantityUsed = animaisAlvo.length * parsedDose;
+                 const { error: stockError } = await supabase.from('movimentacoes_estoque').insert({
+                   produto_id: prodId,
+                   tipo: 'SAIDA',
+                   quantidade: totalQuantityUsed,
+                   custo_unitario: custoMedio,
+                   data_movimentacao: sanidade.data_manejo,
+                   origem_destino: `Manejo Sanitário: ${sanidade.titulo || sanidade.produto || 'Aplicação'}`,
+                   responsavel: sanidade.veterinario || 'Sistema Pecuária',
+                   fazenda_id: activeFarmId,
+                   tenant_id: activeTenantId,
+                   deposito_id: depositoId
+                 });
+                 if (stockError) {
+                   console.error('Erro ao baixar estoque:', stockError);
+                   toast.error('Erro ao dar baixa no estoque: ' + stockError.message);
+                 } else {
+                   toast.success(`Baixa automática de ${totalQuantityUsed} no estoque do insumo.`);
+                 }
+               }
             }
           }
         }
@@ -559,6 +610,7 @@ export const HealthManagement: React.FC = () => {
               tipo: 'PROTOCOLO',
               data_manejo: manejoDate.toISOString().split('T')[0],
               produto: step.product,
+              produto_id: step.produto_id || null,
               dose: step.dose,
               status: step.day === 0 ? 'REALIZADO' : 'PENDENTE',
               animal_id: targetType === 'ANIMAL' ? targetId : null,

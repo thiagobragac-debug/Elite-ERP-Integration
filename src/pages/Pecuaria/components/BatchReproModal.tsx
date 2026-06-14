@@ -266,10 +266,10 @@ export const BatchReproModal: React.FC<BatchReproModalProps> = ({
                 )}
               </div>
 
-              {/* CARD DE SEGURANÃ‡A E PREDIÃ‡ÃƒO */}
+              {/* CARD DE SEGURANÇA E PREDIÇÃO */}
               <div style={{ marginTop: '24px', padding: '16px', background: 'hsl(38 92% 50% / 0.1)', border: '1.5px dashed hsl(38 92% 50% / 0.4)', borderRadius: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'hsl(38 92% 40%)', fontWeight: 800, fontSize: '13px', marginBottom: '8px' }}>
-                  <AlertTriangle size={18} /> CONFIRMAÃ‡ÃƒO DE IMPACTO EM MASSA
+                  <AlertTriangle size={18} /> CONFIRMAÇÃO DE IMPACTO EM MASSA
                 </div>
                 <div style={{ fontSize: '14px', color: 'hsl(var(--text-main))', lineHeight: '1.5' }}>
                   {batchStats.summary}

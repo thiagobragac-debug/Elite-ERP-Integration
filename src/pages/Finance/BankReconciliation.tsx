@@ -396,7 +396,7 @@ export const BankReconciliation: React.FC = () => {
           </button>
           <button className="glass-btn secondary" onClick={() => setIsManualBankRecordModalOpen(true)}>
             <Plus size={18} />
-            <span>LANÃ‡AMENTO MANUAL</span>
+            <span>LANÇAMENTO MANUAL</span>
           </button>
           <label className="glass-btn primary cursor-pointer">
             <Upload size={18} />
@@ -428,7 +428,7 @@ export const BankReconciliation: React.FC = () => {
               const filteredBankRecords = bankRecords.filter(rec => {
                 const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
                 
-                const matchesAmount = Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount;
+                const matchesAmount = filterValues.maxAmount >= 1000000 || (Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount);
                 const matchesDate = (!filterValues.dateStart || new Date(rec.date) >= new Date(filterValues.dateStart)) &&
                                    (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
                 
@@ -557,7 +557,7 @@ export const BankReconciliation: React.FC = () => {
             {(() => {
               const filteredInternalRecords = internalRecords.filter(rec => {
                 const matchesSearch = rec.description.toLowerCase().includes(searchTerm.toLowerCase());
-                const matchesAmount = Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount;
+                const matchesAmount = filterValues.maxAmount >= 1000000 || (Math.abs(rec.amount) >= filterValues.minAmount && Math.abs(rec.amount) <= filterValues.maxAmount);
                 const matchesDate = (!filterValues.dateStart || new Date(rec.date) >= new Date(filterValues.dateStart)) &&
                                    (!filterValues.dateEnd || new Date(rec.date) <= new Date(filterValues.dateEnd));
                 

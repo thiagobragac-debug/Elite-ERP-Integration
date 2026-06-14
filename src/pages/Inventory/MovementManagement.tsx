@@ -439,7 +439,7 @@ export const MovementManagement: React.FC = () => {
       
       const matchesType = filterValues.type === 'all' || m.tipo === filterValues.type;
       const amount = Number(m.quantidade) * Number(m.custo_unitario || 0);
-      const matchesAmount = amount >= filterValues.minAmount && amount <= filterValues.maxAmount;
+      const matchesAmount = filterValues.maxAmount >= 1000000 || (amount >= filterValues.minAmount && amount <= filterValues.maxAmount);
       const matchesDate = (!filterValues.dateStart || new Date(m.data_movimentacao) >= new Date(filterValues.dateStart)) &&
                          (!filterValues.dateEnd || new Date(m.data_movimentacao) <= new Date(filterValues.dateEnd));
 

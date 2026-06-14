@@ -236,7 +236,7 @@ export const PurchaseRequest: React.FC = () => {
       const matchesUrgency = showOnlyUrgent ? (r.prioridade === 'high' || r.prioridade === 'Urgente') : true;
       const matchesPriority = filterValues.priorities.length === 0 || filterValues.priorities.includes(r.prioridade?.toLowerCase());
       const matchesDept = filterValues.departments.length === 0 || filterValues.departments.includes(r.departamento);
-      const matchesAmount = Number(r.valor_estimado) <= filterValues.maxAmount;
+      const matchesAmount = filterValues.maxAmount >= 100000 || (Number(r.valor_estimado) <= filterValues.maxAmount);
       const matchesDate = (!filterValues.dateStart || new Date(r.created_at) >= new Date(filterValues.dateStart)) &&
                          (!filterValues.dateEnd || new Date(r.created_at) <= new Date(filterValues.dateEnd));
 
@@ -477,7 +477,7 @@ export const PurchaseRequest: React.FC = () => {
             
             const matchesPriority = filterValues.priorities.length === 0 || filterValues.priorities.includes(r.prioridade?.toLowerCase());
             const matchesDept = filterValues.departments.length === 0 || filterValues.departments.includes(r.departamento);
-            const matchesAmount = Number(r.valor_estimado) <= filterValues.maxAmount;
+            const matchesAmount = filterValues.maxAmount >= 100000 || (Number(r.valor_estimado) <= filterValues.maxAmount);
             const matchesDate = (!filterValues.dateStart || new Date(r.created_at) >= new Date(filterValues.dateStart)) &&
                                (!filterValues.dateEnd || new Date(r.created_at) <= new Date(filterValues.dateEnd));
 

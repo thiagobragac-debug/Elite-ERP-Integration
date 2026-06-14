@@ -48,7 +48,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
   onClose,
   onSubmit,
   initialData, actionId }) => {
-  const { activeTenantId, activeCompany, companies } = useTenant();
+  const { activeTenantId, activeCompany, activeFarm, companies } = useTenant();
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [items, setItems] = usePersistentState<InsumoItem[]>('EntryInvoice_items', initialData?.itens || []);
@@ -863,6 +863,7 @@ export const EntryInvoiceForm: React.FC<EntryInvoiceFormProps> = ({isOpen,
             companyId={formData.company_id}
             supplierId={formData.supplier_id || undefined}
             onPendingMatchesChange={setPendingMatches}
+            operationType="entry"
           />
           {pendingMatches > 0 && (
             <div style={{ margin: '12px 0 0', padding: '10px 16px', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>

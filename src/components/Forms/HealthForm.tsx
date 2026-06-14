@@ -943,7 +943,7 @@ export const HealthForm: React.FC<HealthFormProps> = ({isOpen, onClose, onSubmit
                 title="Fármacos / Insumos"
                 subtitle="Informe os medicamentos ou vacinas aplicados, com baixa automática de estoque."
                 showHealthFields={true}
-                filterCategories={['medicamento', 'vacina', 'insumo']}
+                filterModule="pecuaria_sanidade"
               />
             </div>
           )}

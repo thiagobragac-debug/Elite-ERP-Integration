@@ -197,7 +197,7 @@ export const AccountsPayable: React.FC = () => {
       const matchesTab = activeTab === 'TODAS' || b.status === activeTab;
       const matchesStatus = filterValues.status === 'all' || b.status === filterValues.status;
       const amount = Number(b.valor_total);
-      const matchesAmount = amount >= (filterValues.minAmount || 0) && amount <= (filterValues.maxAmount || 1000000);
+      const matchesAmount = filterValues.maxAmount >= 1000000 || (amount >= (filterValues.minAmount || 0) && amount <= (filterValues.maxAmount || 1000000));
       const matchesDate = (!filterValues.dateStart || new Date(b.data_vencimento) >= new Date(filterValues.dateStart)) &&
                          (!filterValues.dateEnd || new Date(b.data_vencimento) <= new Date(filterValues.dateEnd));
       return matchesSearch && matchesTab && matchesStatus && matchesAmount && matchesDate;

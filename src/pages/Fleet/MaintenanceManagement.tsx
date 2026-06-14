@@ -122,7 +122,7 @@ export const MaintenanceManagement: React.FC = () => {
                            (filterValues.status === 'completed' && isCompleted);
       const matchesTypes = filterValues.types.length === 0 || filterValues.types.includes(o.tipo);
       const totalCost = Number(o.custo_pecas || 0) + Number(o.custo_mao_obra || 0);
-      const matchesCost = totalCost <= filterValues.maxCost;
+      const matchesCost = filterValues.maxCost >= 1000000 || (totalCost <= filterValues.maxCost);
       const matchesDate = (!filterValues.dateStart || new Date(o.data_inicio) >= new Date(filterValues.dateStart)) &&
                          (!filterValues.dateEnd || new Date(o.data_inicio) <= new Date(filterValues.dateEnd));
 
@@ -831,7 +831,7 @@ export const MaintenanceManagement: React.FC = () => {
                 const matchesSearch = (o.maquinas?.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || (o.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
                 const matchesTypes = filterValues.types.length === 0 || filterValues.types.includes(o.tipo);
                 const totalCost = Number(o.custo_pecas || 0) + Number(o.custo_mao_obra || 0);
-                const matchesCost = totalCost <= filterValues.maxCost;
+                const matchesCost = filterValues.maxCost >= 1000000 || (totalCost <= filterValues.maxCost);
                 const matchesDate = (!filterValues.dateStart || new Date(o.data_inicio) >= new Date(filterValues.dateStart)) &&
                                    (!filterValues.dateEnd || new Date(o.data_inicio) <= new Date(filterValues.dateEnd));
 
@@ -1026,7 +1026,7 @@ export const MaintenanceManagement: React.FC = () => {
                                    (filterValues.status === 'completed' && isCompleted);
               const matchesTypes = filterValues.types.length === 0 || filterValues.types.includes(o.tipo);
               const totalCost = Number(o.custo_pecas || 0) + Number(o.custo_mao_obra || 0);
-              const matchesCost = totalCost <= filterValues.maxCost;
+              const matchesCost = filterValues.maxCost >= 1000000 || (totalCost <= filterValues.maxCost);
               const matchesDate = (!filterValues.dateStart || new Date(o.data_inicio) >= new Date(filterValues.dateStart)) &&
                                  (!filterValues.dateEnd || new Date(o.data_inicio) <= new Date(filterValues.dateEnd));
 

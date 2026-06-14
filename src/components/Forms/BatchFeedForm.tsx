@@ -4,7 +4,7 @@ import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { supabase } from '../../lib/supabase';
 import { useTenant } from '../../contexts/TenantContext';
-import { Wheat, Calendar, FileText, Plus, Trash2, CheckCircle, ChevronRight, LayoutList } from 'lucide-react';
+import { Wheat, Calendar, FileText, Plus, Trash2, CheckCircle, ChevronRight, LayoutList, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { DateInput } from '../../components/Form/DateInput';
 
@@ -22,21 +22,25 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
     new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
   );
   const [dietaId, setDietaId] = usePersistentState('BatchFeedForm_dieta', '');
+  const [depositoId, setDepositoId] = usePersistentState('BatchFeedForm_deposito', '');
   
   const [items, setItems] = usePersistentState<any[]>('BatchFeedForm_items', []);
 
   const [loading, setLoading] = useState(false);
   const [lotes, setLotes] = useState<any[]>([]);
+  const [animais, setAnimais] = useState<any[]>([]);
   const [dietas, setDietas] = useState<any[]>([]);
+  const [depositos, setDepositos] = useState<any[]>([]);
 
   const [activeEtapa, setActiveEtapa] = useState('dados');
+  const [mode, setMode] = useState<'LOTE' | 'ANIMAL'>('LOTE');
 
-  const isDadosDone = !!dataTrato && !!dietaId;
-  const isLotesDone = items.length > 0 && items.every(i => !!i.lote_id && !!i.quantidade_kg);
+  const isDadosDone = !!dataTrato && !!dietaId && !!depositoId;
+  const isLotesDone = items.length > 0 && items.every(i => (mode === 'LOTE' ? !!i.lote_id : !!i.animal_id) && !!i.quantidade_kg);
 
   const ETAPAS_CONFIG = [
     { id: 'dados', label: '1. Dados do Trato', icon: FileText, color: '#3b82f6' },
-    { id: 'lotes', label: '2. Lotes Tratados', icon: LayoutList, color: '#f59e0b' },
+    { id: 'lotes', label: '2. Seleção de Lotes', icon: LayoutList, color: '#f59e0b' },
   ];
 
   useEffect(() => {
@@ -49,12 +53,18 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
     const { data: lotesData } = await supabase.from('lotes').select('id, nome').eq('fazenda_id', activeFarm?.id || '').eq('status', 'ATIVO');
     if (lotesData) setLotes(lotesData);
 
-    const { data: dietasData } = await supabase.from('dietas').select('id, nome, composicao').eq('fazenda_id', activeFarm?.id || '').eq('status', 'active');
+    const { data: animaisData } = await supabase.from('animais').select('id, brinco, brinco_eletronico, raca, categoria').eq('fazenda_id', activeFarm?.id || '').eq('status', 'Ativo');
+    if (animaisData) setAnimais(animaisData);
+
+    const { data: dietasData } = await supabase.from('dietas').select('id, nome, ingredientes').eq('fazenda_id', activeFarm?.id || '').eq('status', 'active');
     if (dietasData) setDietas(dietasData);
+
+    const { data: depData } = await supabase.from('depositos').select('id, nome').eq('fazenda_id', activeFarm?.id || '').eq('status', 'ativo');
+    if (depData) setDepositos(depData);
   };
 
   const handleAddItem = () => {
-    setItems([...items, { id: Date.now().toString(), lote_id: '', quantidade_kg: '' }]);
+    setItems([...items, { id: Date.now().toString(), lote_id: '', animal_id: '', quantidade_kg: '' }]);
   };
 
   const handleRemoveItem = (id: string) => {
@@ -72,23 +82,25 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
       const selectedDiet = dietas.find(d => String(d.id) === String(dietaId));
       if (!selectedDiet) throw new Error('Dieta não encontrada.');
 
-      const payloads = items.filter(i => i.lote_id && i.quantidade_kg).map(item => {
+      const payloads = items.filter(i => (mode === 'LOTE' ? i.lote_id : i.animal_id) && i.quantidade_kg).map(item => {
         // Expand the diet composition based on total KG consumed
-        const insumos = selectedDiet.composicao.map((comp: any) => {
-          // comp.inclusao is percentage (0-100)
-          const qtdInsumo = (Number(item.quantidade_kg) * Number(comp.inclusao)) / 100;
+        const insumos = (selectedDiet.ingredientes || []).map((comp: any) => {
+          // comp.quantidade is percentage (0-100) or total kg
+          const qtdInsumo = (Number(item.quantidade_kg) * Number(comp.quantidade)) / 100;
           return {
             produto_id: comp.produto_id,
-            quantidade: qtdInsumo,
-            deposito_id: comp.deposito_id || null, // Assuming composicao might have deposito_id, if not backend handles it or we set default.
+            quantidade: isNaN(qtdInsumo) ? 0 : qtdInsumo,
+            deposito_id: depositoId || comp.deposito_id || null, 
             custo_medio: comp.custo_medio || 0
           };
         });
 
         return {
-          lote_id: item.lote_id,
+          lote_id: mode === 'LOTE' ? item.lote_id : null,
+          animal_id: mode === 'ANIMAL' ? item.animal_id : null,
           dieta_id: dietaId,
           data_trato: dataTrato,
+          deposito_id: depositoId,
           observacoes: 'Lançamento via Planilha de Trato',
           insumos: insumos
         };
@@ -107,12 +119,12 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
       isOpen={isOpen}
       onClose={onClose}
       onSubmit={handleSubmit}
-      title="Planilha de Trato (Lote)"
+      title="Planilha de Trato (Nutrição)"
       subtitle="Lance o consumo de trato para múltiplos lotes de uma vez."
       icon={Wheat}
       loading={loading}
-      submitLabel="Salvar Planilha"
-      hideSubmit={!isDadosDone || !isLotesDone}
+      submitLabel="Lançar Trato e Baixar Estoque"
+      submitDisabled={!isDadosDone || !isLotesDone}
     >
       <div style={{ display: 'flex', gap: '24px' }}>
         {/* Left Sidebar */}
@@ -163,7 +175,7 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
                 {ETAPAS_CONFIG.find(e => e.id === activeEtapa)?.label}
               </h3>
               <p style={{ margin: 0, fontSize: '13px', color: 'hsl(var(--text-muted))' }}>
-                {activeEtapa === 'dados' && "Informações sobre data e dieta fornecida."}
+                {activeEtapa === 'dados' && "Informações sobre data, dieta e local de retirada (Depósito) do estoque."}
                 {activeEtapa === 'lotes' && "Tabela de distribuição do trato para os lotes (baseado na dieta)."}
               </p>
             </div>
@@ -189,6 +201,16 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
                       placeholder="Selecione a Dieta..."
                     />
                   </div>
+                  <div className="tauze-field-group grid-span-2">
+                    <label className="tauze-label">Depósito de Origem (Baixa de Estoque)</label>
+                    <SearchableSelect 
+                      value={depositoId}
+                      onChange={(val: any) => setDepositoId(val)}
+                      options={depositos.map(d => ({ value: d.id, label: d.nome }))}
+                      placeholder="Buscar depósito..."
+                      icon={<Search size={14} />}
+                    />
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -196,7 +218,13 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
             {activeEtapa === 'lotes' && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h4 className="tauze-section-title" style={{ margin: 0 }}>Distribuição</h4>
+                  <div>
+                    <h4 className="tauze-section-title" style={{ margin: '0 0 8px 0' }}>Distribuição do Trato</h4>
+                    <div style={{ display: 'flex', gap: '8px', background: 'hsl(var(--bg-main))', padding: '4px', borderRadius: '8px', width: 'max-content' }}>
+                      <button type="button" onClick={() => { setMode('LOTE'); setItems([]); }} style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: 'none', background: mode === 'LOTE' ? '#fff' : 'transparent', color: mode === 'LOTE' ? '#000' : 'hsl(var(--text-muted))', fontWeight: mode === 'LOTE' ? 600 : 400, boxShadow: mode === 'LOTE' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', cursor: 'pointer' }}>Por Lote / Curral</button>
+                      <button type="button" onClick={() => { setMode('ANIMAL'); setItems([]); }} style={{ padding: '6px 12px', fontSize: '12px', borderRadius: '6px', border: 'none', background: mode === 'ANIMAL' ? '#fff' : 'transparent', color: mode === 'ANIMAL' ? '#000' : 'hsl(var(--text-muted))', fontWeight: mode === 'ANIMAL' ? 600 : 400, boxShadow: mode === 'ANIMAL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', cursor: 'pointer' }}>Por Animal Individual</button>
+                    </div>
+                  </div>
                   <button 
                     type="button" 
                     onClick={handleAddItem}
@@ -211,7 +239,7 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
                     <thead>
                       <tr style={{ background: 'hsl(var(--bg-main))' }}>
-                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>Lote / Curral</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', color: 'hsl(var(--text-muted))' }}>{mode === 'LOTE' ? 'Lote / Curral' : 'Animal'}</th>
                         <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', color: 'hsl(var(--text-muted))', width: '150px' }}>Total Tratado (KG)</th>
                         <th style={{ padding: '12px', width: '50px' }}></th>
                       </tr>
@@ -220,13 +248,26 @@ export const BatchFeedForm: React.FC<BatchFeedFormProps> = ({ isOpen, onClose, o
                       {items.map((item, idx) => (
                         <tr key={item.id} style={{ borderTop: '1px solid hsl(var(--border))' }}>
                           <td style={{ padding: '8px 12px' }}>
-                            <SearchableSelect 
-                              value={item.lote_id}
-                              onChange={(val: any) => updateItem(item.id, 'lote_id', val)}
-                              options={lotes.map(l => ({ value: l.id, label: l.nome }))}
-                              placeholder="Selecione o lote..."
-                              height="36px"
-                            />
+                            {mode === 'LOTE' ? (
+                              <SearchableSelect 
+                                value={item.lote_id}
+                                onChange={(val: any) => updateItem(item.id, 'lote_id', val)}
+                                options={lotes.map(l => ({ value: l.id, label: l.nome }))}
+                                placeholder="Selecione o lote..."
+                                height="36px"
+                              />
+                            ) : (
+                              <SearchableSelect 
+                                value={item.animal_id}
+                                onChange={(val: any) => updateItem(item.id, 'animal_id', val)}
+                                options={animais.map(a => ({ 
+                                  value: a.id, 
+                                  label: `Brinco: ${a.brinco} ${a.brinco_eletronico ? `(E: ${a.brinco_eletronico})` : ''} - ${a.raca || ''} ${a.categoria || ''}`.trim() 
+                                }))}
+                                placeholder="Busque por brinco, raça..."
+                                height="36px"
+                              />
+                            )}
                           </td>
                           <td style={{ padding: '8px 12px' }}>
                             <input 

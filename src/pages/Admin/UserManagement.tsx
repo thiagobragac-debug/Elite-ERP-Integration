@@ -154,7 +154,7 @@ export const UserManagement: React.FC = () => {
           
           if (act.includes('DELETE') || act.includes('ALERT') || act.includes('FAIL') || act.includes('SECURITY') || details.includes('BLOQUE') || details.includes('ERR')) {
             type = 'CRITICAL';
-          } else if (act.includes('UPDATE') || act.includes('WARN') || details.includes('SESSÃƒO') || details.includes('ALTERAÃ‡ÃƒO')) {
+          } else if (act.includes('UPDATE') || act.includes('WARN') || details.includes('SESSÃO') || details.includes('ALTERAÇÃO')) {
             type = 'WARN';
           }
           
@@ -475,7 +475,7 @@ export const UserManagement: React.FC = () => {
       Perfil: item.profile,
       Unidade: item.farm || '-',
       Membro_Desde: item.memberSince,
-      MFA: item.mfa_enabled ? 'SIM' : 'NÃƒO',
+      MFA: item.mfa_enabled ? 'SIM' : 'NÃO',
       Status: item.status
     })) : filteredData.map(item => ({
       Perfil: item.nome,
@@ -1256,7 +1256,7 @@ export const UserManagement: React.FC = () => {
                     onClick={handleToggleMaintenanceMode}
                   >
                     <ShieldAlert size={16} className={securitySettings.maintenanceMode ? 'animate-pulse text-white' : ''} />
-                    <span>{securitySettings.maintenanceMode ? 'DESATIVAR MANUTENÃ‡ÃƒO (ATIVO)' : 'MODO DE MANUTENÃ‡ÃƒO'}</span>
+                    <span>{securitySettings.maintenanceMode ? 'DESATIVAR MANUTENÇÃO (ATIVO)' : 'MODO DE MANUTENÇÃO'}</span>
                   </button>
                   {anomalies.length > 0 ? (
                     <div className="guard-status-alert alert-active" style={{ background: '#fef2f2', color: '#ef4444' }}>

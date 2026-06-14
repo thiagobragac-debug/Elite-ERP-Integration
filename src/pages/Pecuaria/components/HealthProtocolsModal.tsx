@@ -70,7 +70,7 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
 
       let query = supabase
         .from('produtos')
-        .select('nome')
+        .select('id, nome')
         .eq('tenant_id', tenantId)
         .eq('is_active', true);
 
@@ -85,8 +85,8 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
       const { data: prodData } = await query;
 
       if (prodData && prodData.length > 0) {
-        const uniqueNames = Array.from(new Set(prodData.map((p: any) => p.nome).filter(Boolean)));
-        const mapped = uniqueNames.map((name: any) => ({ value: name, label: name }));
+        // Usa map com ID como value e nome como label
+        const mapped = prodData.map((p: any) => ({ value: p.id, label: p.nome }));
 
         console.log('[HealthProtocolsModal] Insumos de Medicamentos carregados:', mapped);
         setAvailableProducts(mapped);
@@ -444,10 +444,11 @@ export const HealthProtocolsModal: React.FC<HealthProtocolsModalProps> = ({ isOp
                               </td>
                               <td style={{ padding: '8px', borderBottom: '1px solid hsl(var(--border)/0.5)' }}>
                                 <SearchableSelect
-                                  value={step.product}
+                                  value={step.produto_id || step.product}
                                   onChange={val => {
                                     const steps = [...newProtocol.steps];
-                                    steps[idx].product = val;
+                                    steps[idx].produto_id = val;
+                                    steps[idx].product = availableProducts.find(p => p.value === val)?.label || val;
                                     setNewProtocol({...newProtocol, steps});
                                   }}
                                   options={availableProducts}

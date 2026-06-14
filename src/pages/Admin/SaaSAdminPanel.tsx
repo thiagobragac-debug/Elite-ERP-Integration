@@ -1375,7 +1375,7 @@ export const SaaSAdminPanel: React.FC = () => {
         const matchesSearch = t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.id.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus = filterValues.status === 'all' || t.status === filterValues.status;
         const matchesPlan = filterValues.plan === 'all' || t.plan === filterValues.plan;
-        const matchesUsers = t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers;
+        const matchesUsers = filterValues.maxUsers >= 1000 || (t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers);
         return matchesSearch && matchesStatus && matchesPlan && matchesUsers;
       });
       fileName = 'gestao_inquilinos_saas';
@@ -2521,7 +2521,7 @@ export const SaaSAdminPanel: React.FC = () => {
                   const matchesPlan = filterValues.plan === 'all' || 
                     (t.plan || '').toLowerCase() === filterValues.plan.toLowerCase();
                   
-                  const matchesUsers = t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers;
+                  const matchesUsers = filterValues.maxUsers >= 1000 || (t.users >= filterValues.minUsers && t.users <= filterValues.maxUsers);
                   
                   const matchesDate = (!filterValues.dateStart || (t.created_at && new Date(t.created_at) >= new Date(filterValues.dateStart))) &&
                                      (!filterValues.dateEnd || (t.created_at && new Date(t.created_at) <= new Date(filterValues.dateEnd)));
@@ -2882,7 +2882,7 @@ export const SaaSAdminPanel: React.FC = () => {
               
               const matchesStatus = filterValues.status === 'all' || campStatus === filterValues.status.toLowerCase();
               const matchesMinDiscount = !filterValues.minDiscount || camp.discount_percentage >= filterValues.minDiscount;
-              const matchesMaxDiscount = filterValues.maxDiscount === undefined || camp.discount_percentage <= filterValues.maxDiscount;
+              const matchesMaxDiscount = filterValues.maxDiscount >= 100 || (filterValues.maxDiscount === undefined || camp.discount_percentage <= filterValues.maxDiscount);
               
               const matchesDateStart = !filterValues.dateStart || new Date(camp.start_date) >= new Date(filterValues.dateStart);
               const matchesDateEnd = !filterValues.dateEnd || new Date(camp.end_date) <= new Date(filterValues.dateEnd);

@@ -212,12 +212,99 @@ export const EntryInvoice: React.FC = () => {
         modelo_fiscal: data.modelo_fiscal,
       };
 
+      // Validate for duplicate invoice
+      const { data: existing } = await supabase
+        .from('notas_entrada')
+        .select('id')
+        .eq('tenant_id', activeFarm?.tenantId || activeTenantId)
+        .eq('fornecedor_id', payload.fornecedor_id)
+        .eq('numero_nota', payload.numero_nota)
+        .eq('serie', payload.serie || '')
+        .eq('modelo_fiscal', payload.modelo_fiscal || '');
+
+      if (existing && existing.length > 0) {
+        const isDuplicate = selectedInvoice 
+          ? existing.some(e => e.id !== selectedInvoice.id) 
+          : existing.length > 0;
+          
+        if (isDuplicate) {
+          throw new Error(`Já existe uma Nota Fiscal cadastrada com o Número ${payload.numero_nota}, Série ${payload.serie || 's/n'} e Modelo ${payload.modelo_fiscal} para este Fornecedor. Valores duplicados não são permitidos.`);
+        }
+      }
+
       if (selectedInvoice) {
         const { error } = await supabase.from('notas_entrada').update(payload).eq('id', selectedInvoice.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('notas_entrada').insert([{ ...payload, fazenda_id: activeFarm?.id || activeFarmId, tenant_id: activeFarm?.tenantId || activeTenantId }]);
         if (error) throw error;
+        
+        // Gerar Movimentações de Estoque
+        if (data.itens && data.itens.length > 0) {
+          const movimentacoes = data.itens.filter((item: any) => item.produto_id && item.quantidade > 0 && item.is_storable).map((item: any) => ({
+            tenant_id: activeFarm?.tenantId || activeTenantId,
+            fazenda_id: activeFarm?.id || activeFarmId,
+            produto_id: item.produto_id,
+            tipo: 'ENTRADA',
+            quantidade: item.quantidade,
+            data_movimentacao: payload.data_entrada || payload.data_emissao,
+            origem_destino: 'Nota Fiscal ' + payload.numero_nota,
+            responsavel: 'Sistema',
+            deposito_id: item.deposito_id || null,
+            custo_unitario: item.preco_unitario || 0,
+            origem: 'COMPRA'
+          }));
+          
+          if (movimentacoes.length > 0) {
+            const { error: movError } = await supabase.from('movimentacoes_estoque').insert(movimentacoes);
+            if (movError) throw movError;
+          }
+
+          // Atualizar custo_padrao e custo_ultima_compra em cada produto da NF
+          for (const item of data.itens.filter((i: any) => i.produto_id && i.preco_unitario > 0)) {
+            await supabase
+              .from('produtos')
+              .update({ 
+                custo_ultima_compra: item.preco_unitario,
+                custo_padrao: item.preco_unitario
+              })
+              .eq('id', item.produto_id);
+          }
+        }
+        
+        // Gerar Contas a Pagar
+        if (data.generate_financial) {
+          let contasPagar: any[] = [];
+          
+          if (data.payment_condition === 'vista') {
+            contasPagar.push({
+              tenant_id: activeFarm?.tenantId || activeTenantId,
+              fazenda_id: activeFarm?.id || activeFarmId,
+              fornecedor_id: payload.fornecedor_id,
+              descricao: `NF ${payload.numero_nota} - Parcela Única (À Vista)`,
+              valor_total: data.valor_liquido || payload.valor_total,
+              data_vencimento: payload.data_entrada || payload.data_emissao,
+              status: 'pendente',
+              metodo_pagamento: data.payment_method || 'Boleto'
+            });
+          } else if (data.installmentsList && data.installmentsList.length > 0) {
+            contasPagar = data.installmentsList.map((inst: any) => ({
+              tenant_id: activeFarm?.tenantId || activeTenantId,
+              fazenda_id: activeFarm?.id || activeFarmId,
+              fornecedor_id: payload.fornecedor_id,
+              descricao: `NF ${payload.numero_nota} - Parcela ${inst.id}`,
+              valor_total: inst.value,
+              data_vencimento: inst.dueDate,
+              status: 'pendente',
+              metodo_pagamento: data.payment_method || 'Boleto'
+            }));
+          }
+          
+          if (contasPagar.length > 0) {
+            const { error: finError } = await supabase.from('contas_pagar').insert(contasPagar);
+            if (finError) throw finError;
+          }
+        }
       }
     },
     onSuccess: () => {
@@ -237,6 +324,86 @@ export const EntryInvoice: React.FC = () => {
 
   const deleteInvoiceMutation = useMutation({
     mutationFn: async (id: string) => {
+      // 1. Fetch invoice details to find associated records
+      const { data: invoice } = await supabase
+        .from('notas_entrada')
+        .select('numero_nota, fornecedor_id')
+        .eq('id', id)
+        .single();
+        
+      if (!invoice) throw new Error('Nota fiscal não encontrada');
+
+      if (invoice.numero_nota) {
+        // 1.5. Check if any associated contas a pagar is already paid
+        const { data: financeRecords, error: fetchFinError } = await supabase
+          .from('contas_pagar')
+          .select('status')
+          .eq('fornecedor_id', invoice.fornecedor_id)
+          .ilike('descricao', `NF ${invoice.numero_nota} - Parcela%`);
+          
+        if (fetchFinError) throw fetchFinError;
+
+        if (financeRecords && financeRecords.some(r => r.status && r.status.toUpperCase() === 'PAGO')) {
+          throw new Error('Não é possível excluir a nota fiscal pois existem parcelas já pagas. Cancele o pagamento no financeiro primeiro.');
+        }
+
+        // 1.8. Check if deletion will result in negative stock
+        const { data: movements } = await supabase
+          .from('movimentacoes_estoque')
+          .select('produto_id, deposito_id, quantidade')
+          .eq('origem_destino', `Nota Fiscal ${invoice.numero_nota}`)
+          .eq('tipo', 'ENTRADA');
+
+        if (movements && movements.length > 0) {
+          const { data: tenantData } = await supabase
+            .from('tenants')
+            .select('settings')
+            .eq('id', activeTenantId)
+            .single();
+            
+          const allowNegativeStock = tenantData?.settings?.permitir_estoque_negativo !== false && tenantData?.settings?.allow_negative_stock !== false;
+          
+          if (!allowNegativeStock) {
+            for (const mov of movements) {
+              if (mov.produto_id && mov.deposito_id) {
+                const { data: saldoData } = await supabase
+                  .from('saldos_estoque')
+                  .select('quantidade')
+                  .eq('produto_id', mov.produto_id)
+                  .eq('deposito_id', mov.deposito_id)
+                  .maybeSingle();
+                  
+                const currentStock = saldoData ? Number(saldoData.quantidade) : 0;
+                const quantityToDelete = Number(mov.quantidade);
+                
+                if (currentStock - quantityToDelete < 0) {
+                  throw new Error(`Não é possível excluir a nota fiscal. A remoção geraria estoque negativo para um ou mais produtos (Estoque atual: ${currentStock}, Tentativa de remover: ${quantityToDelete}). Verifique as configurações da empresa ou o saldo atual.`);
+                }
+              }
+            }
+          }
+        }
+
+        // 2. Delete associated contas a pagar
+        const { error: finError } = await supabase
+          .from('contas_pagar')
+          .delete()
+          .eq('fornecedor_id', invoice.fornecedor_id)
+          .ilike('descricao', `NF ${invoice.numero_nota} - Parcela%`);
+          
+        if (finError) console.error('Erro ao excluir contas a pagar', finError);
+
+        // 3. Delete associated movimentacoes de estoque
+        const { error: movError } = await supabase
+          .from('movimentacoes_estoque')
+          .delete()
+          .eq('origem_destino', `Nota Fiscal ${invoice.numero_nota}`)
+          .eq('tipo', 'ENTRADA');
+          
+        if (movError) console.error('Erro ao excluir movimentacoes', movError);
+      }
+
+      // 4. Delete the invoice
       const { error } = await supabase.from('notas_entrada').delete().eq('id', id);
       if (error) throw error;
     },

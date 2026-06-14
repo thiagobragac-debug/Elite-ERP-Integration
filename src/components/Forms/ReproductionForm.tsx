@@ -478,7 +478,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
                   onChange={setProdutosAplicados}
                   title="Lista de Produtos"
                   subtitle="Itens serão deduzidos do estoque selecionado."
-                  filterCategories={['medicamento', 'vacina', 'insumo']}
+                  filterModule="pecuaria_sanidade"
                   hideDeposit={false}
                 />
               </motion.div>

@@ -582,7 +582,7 @@ export const WeightManagement: React.FC = () => {
     const matchesSearch = (w.animais?.brinco || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const weight = Number(w.peso || 0);
-    const matchesWeight = weight >= filterValues.minWeight && weight <= filterValues.maxWeight;
+    const matchesWeight = filterValues.maxWeight >= 1000 || (weight >= filterValues.minWeight && weight <= filterValues.maxWeight);
     
     const gmd = w.gmd || 0;
     const matchesPerformance = filterValues.performanceLevel === 'all' || 

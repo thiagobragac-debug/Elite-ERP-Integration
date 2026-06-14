@@ -58,8 +58,23 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         setIsOpen(false);
       }
     }
+    
+    function handleScroll(event: Event) {
+      // Don't close if they are scrolling the dropdown itself
+      const dropdown = document.getElementById('searchable-select-portal');
+      if (dropdown && dropdown.contains(event.target as Node)) {
+        return;
+      }
+      setIsOpen(false);
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
   }, []);
 
   useEffect(() => {
@@ -76,6 +91,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           bottom: window.innerHeight - rect.top + 4,
           left: rect.left,
           width: rect.width,
+          minWidth: Math.max(rect.width, 220),
           zIndex: 99999
         });
       } else {
@@ -85,6 +101,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           top: rect.bottom + 4,
           left: rect.left,
           width: rect.width,
+          minWidth: Math.max(rect.width, 220),
           zIndex: 99999
         });
       }
@@ -147,11 +164,13 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               background: 'transparent',
               outline: 'none',
               width: '100%',
+              minWidth: 0,
               padding: height ? '0' : '10px 0',
               height: height ? '100%' : 'auto',
               fontSize: '13px',
               color: 'inherit',
-              cursor: disabled ? 'not-allowed' : 'inherit'
+              cursor: disabled ? 'not-allowed' : 'inherit',
+              textOverflow: 'ellipsis'
             }}
           />
         </div>

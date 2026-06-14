@@ -470,10 +470,10 @@ const PastureManagement: React.FC = () => {
     const matchesCapim = filterValues.capins.length === 0 || filterValues.capins.includes(p.tipo_capim);
 
     // Area Filter
-    const matchesArea = areaVal >= filterValues.minArea && areaVal <= filterValues.maxArea;
+    const matchesArea = filterValues.maxArea >= 500 || (areaVal >= filterValues.minArea && areaVal <= filterValues.maxArea);
 
     // UA Filter
-    const matchesUA = lotacaoVal >= filterValues.minUA && lotacaoVal <= filterValues.maxUA;
+    const matchesUA = filterValues.maxUA >= 100 || (lotacaoVal >= filterValues.minUA && lotacaoVal <= filterValues.maxUA);
 
     // Fertilization Filter
     let matchesFertilization = true;

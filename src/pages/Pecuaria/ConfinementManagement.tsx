@@ -185,9 +185,9 @@ export const ConfinementManagement: React.FC = () => {
                          (filterValues.status === 'TERMINACAO' && p.progress > 90) ||
                          (filterValues.status === 'CHECKOUT' && p.progress >= 98);
     
-    const matchesDOF = p.dof >= filterValues.minDOF && p.dof <= filterValues.maxDOF;
-    const matchesWeight = (p.projectedWeight || 0) >= filterValues.minWeight && (p.projectedWeight || 0) <= filterValues.maxWeight;
-    const matchesCPD = (p.cpd || 0) <= filterValues.maxCPD;
+    const matchesDOF = filterValues.maxDOF >= 180 || (p.dof >= filterValues.minDOF && p.dof <= filterValues.maxDOF);
+    const matchesWeight = filterValues.maxWeight >= 800 || ((p.projectedWeight || 0) >= filterValues.minWeight && (p.projectedWeight || 0) <= filterValues.maxWeight);
+    const matchesCPD = filterValues.maxCPD >= 30 || ((p.cpd || 0) <= filterValues.maxCPD);
     const matchesActive = activeTab === 'HISTORICO' ? true : (!filterValues.onlyActive || p.status !== 'archived');
     
     const lote = (p.lotes?.nome || '').toLowerCase();

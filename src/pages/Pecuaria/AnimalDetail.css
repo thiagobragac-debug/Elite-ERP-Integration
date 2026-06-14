@@ -220,3 +220,14 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
+
+@keyframes skeleton-pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.2; }
+  100% { opacity: 0.6; }
+}
+
+.skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  background: var(--skeleton-base, rgba(255, 255, 255, 0.05));
+}

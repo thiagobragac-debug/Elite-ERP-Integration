@@ -134,7 +134,7 @@ export const NutritionFilterModal: React.FC<NutritionFilterModalProps> = ({
               <input 
                 type="range" 
                 min="0" 
-                max="5" 
+                max="100" 
                 step="0.10"
                 value={filters.maxCostMS}
                 onChange={e => setFilters({ ...filters, maxCostMS: parseFloat(e.target.value) })}

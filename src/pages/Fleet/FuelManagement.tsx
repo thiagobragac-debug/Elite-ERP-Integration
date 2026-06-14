@@ -215,7 +215,7 @@ export const FuelManagement: React.FC = () => {
                            (filterValues.status === 'high-consumption' && !isEfficient);
       
       const matchesFuel = filterValues.fuelTypes.length === 0 || filterValues.fuelTypes.includes(l.tipo_combustivel);
-      const matchesLiters = l.litros <= filterValues.maxLiters;
+      const matchesLiters = filterValues.maxLiters >= 1000 || (l.litros <= filterValues.maxLiters);
       const matchesDate = (!filterValues.dateStart || new Date(l.data) >= new Date(filterValues.dateStart)) &&
                          (!filterValues.dateEnd || new Date(l.data) <= new Date(filterValues.dateEnd));
 
@@ -528,7 +528,7 @@ export const FuelManagement: React.FC = () => {
                                  (filterValues.status === 'high-consumption' && !isEfficient);
             
             const matchesFuel = filterValues.fuelTypes.length === 0 || filterValues.fuelTypes.includes(l.tipo_combustivel);
-            const matchesLiters = l.litros <= filterValues.maxLiters;
+            const matchesLiters = filterValues.maxLiters >= 1000 || (l.litros <= filterValues.maxLiters);
             const matchesDate = (!filterValues.dateStart || new Date(l.data) >= new Date(filterValues.dateStart)) &&
                                (!filterValues.dateEnd || new Date(l.data) <= new Date(filterValues.dateEnd));
 

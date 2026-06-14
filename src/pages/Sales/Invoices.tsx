@@ -208,12 +208,88 @@ export const Invoices: React.FC = () => {
         modelo_fiscal: data.modelo_fiscal,
       };
 
+      // Validate for duplicate invoice
+      const { data: existing } = await supabase
+        .from('notas_saida')
+        .select('id')
+        .eq('tenant_id', activeFarmId ? activeTenantId : insertPayload.tenant_id)
+        .eq('cliente_id', payload.cliente_id)
+        .eq('numero_nota', payload.numero_nota)
+        .eq('serie', payload.serie || '')
+        .eq('modelo_fiscal', payload.modelo_fiscal || '');
+
+      if (existing && existing.length > 0) {
+        const isDuplicate = selectedInvoice 
+          ? existing.some(e => e.id !== selectedInvoice.id) 
+          : existing.length > 0;
+          
+        if (isDuplicate) {
+          throw new Error(`Já existe uma Nota Fiscal cadastrada com o Número ${payload.numero_nota}, Série ${payload.serie || 's/n'} e Modelo ${payload.modelo_fiscal} para este Cliente. Valores duplicados não são permitidos.`);
+        }
+      }
+
       if (selectedInvoice) {
         const { error } = await supabase.from('notas_saida').update(payload).eq('id', selectedInvoice.id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from('notas_saida').insert([{ ...payload, ...insertPayload }]);
         if (error) throw error;
+        
+        // Gerar Movimentações de Estoque (Saída)
+        if (data.itens && data.itens.length > 0) {
+          const movimentacoes = data.itens.filter((item: any) => item.produto_id && item.quantidade > 0 && item.is_storable).map((item: any) => ({
+            tenant_id: activeFarmId ? activeTenantId : insertPayload.tenant_id,
+            fazenda_id: activeFarmId ? activeFarmId : insertPayload.fazenda_id,
+            produto_id: item.produto_id,
+            tipo: 'SAIDA',
+            quantidade: item.quantidade,
+            data_movimentacao: payload.data_emissao,
+            origem_destino: 'Nota Fiscal Saída ' + payload.numero_nota,
+            responsavel: 'Sistema',
+            deposito_id: item.deposito_id || null,
+            custo_unitario: item.preco_unitario || 0,
+            origem: 'VENDA'
+          }));
+          
+          if (movimentacoes.length > 0) {
+            const { error: movError } = await supabase.from('movimentacoes_estoque').insert(movimentacoes);
+            if (movError) throw movError;
+          }
+        }
+        
+        // Gerar Contas a Receber
+        if (data.generate_financial) {
+          let contasReceber: any[] = [];
+          
+          if (data.payment_condition === 'vista') {
+            contasReceber.push({
+              tenant_id: activeFarmId ? activeTenantId : insertPayload.tenant_id,
+              fazenda_id: activeFarmId ? activeFarmId : insertPayload.fazenda_id,
+              cliente_id: payload.cliente_id,
+              descricao: `NF Saída ${payload.numero_nota} - Parcela Única (À Vista)`,
+              valor_total: data.valor_liquido || payload.valor_total,
+              data_vencimento: payload.data_emissao,
+              status: 'pendente',
+              metodo_recebimento: data.payment_method || 'Boleto'
+            });
+          } else if (data.installmentsList && data.installmentsList.length > 0) {
+            contasReceber = data.installmentsList.map((inst: any) => ({
+              tenant_id: activeFarmId ? activeTenantId : insertPayload.tenant_id,
+              fazenda_id: activeFarmId ? activeFarmId : insertPayload.fazenda_id,
+              cliente_id: payload.cliente_id,
+              descricao: `NF Saída ${payload.numero_nota} - Parcela ${inst.id}`,
+              valor_total: inst.value,
+              data_vencimento: inst.dueDate,
+              status: 'pendente',
+              metodo_recebimento: data.payment_method || 'Boleto'
+            }));
+          }
+          
+          if (contasReceber.length > 0) {
+            const { error: finError } = await supabase.from('contas_receber').insert(contasReceber);
+            if (finError) throw finError;
+          }
+        }
       }
     },
     onSuccess: () => {
@@ -236,6 +312,49 @@ export const Invoices: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      // 1. Fetch invoice details to find associated records
+      const { data: invoice } = await supabase
+        .from('notas_saida')
+        .select('numero_nota, cliente_id')
+        .eq('id', id)
+        .single();
+        
+      if (!invoice) throw new Error('Nota fiscal não encontrada');
+
+      if (invoice.numero_nota) {
+        // 1.5. Check if any associated contas a receber is already paid
+        const { data: financeRecords, error: fetchFinError } = await supabase
+          .from('contas_receber')
+          .select('status')
+          .eq('cliente_id', invoice.cliente_id)
+          .ilike('descricao', `NF Saída ${invoice.numero_nota} - Parcela%`);
+          
+        if (fetchFinError) throw fetchFinError;
+
+        if (financeRecords && financeRecords.some(r => r.status && (r.status.toUpperCase() === 'PAGO' || r.status.toUpperCase() === 'RECEBIDO'))) {
+          throw new Error('Não é possível excluir a nota fiscal pois existem parcelas já recebidas. Cancele o recebimento no financeiro primeiro.');
+        }
+
+        // 2. Delete associated contas a receber
+        const { error: finError } = await supabase
+          .from('contas_receber')
+          .delete()
+          .eq('cliente_id', invoice.cliente_id)
+          .ilike('descricao', `NF Saída ${invoice.numero_nota} - Parcela%`);
+          
+        if (finError) console.error('Erro ao excluir contas a receber', finError);
+
+        // 3. Delete associated movimentacoes de estoque
+        const { error: movError } = await supabase
+          .from('movimentacoes_estoque')
+          .delete()
+          .eq('origem_destino', `Nota Fiscal Saída ${invoice.numero_nota}`)
+          .eq('tipo', 'SAIDA');
+          
+        if (movError) console.error('Erro ao excluir movimentacoes', movError);
+      }
+
+      // 4. Delete the invoice
       const { error } = await supabase.from('notas_saida').delete().eq('id', id);
       if (error) throw error;
     },
@@ -268,7 +387,7 @@ export const Invoices: React.FC = () => {
       const matchesSearch = (inv.numero_nota || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                            (inv.parceiros?.nome || '').toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = filterValues.status === 'all' || inv.status === filterValues.status || (filterValues.status === 'pending' && inv.status !== 'authorized');
-      const matchesAmount = Number(inv.valor_total) <= filterValues.maxAmount;
+      const matchesAmount = filterValues.maxAmount >= 1000000 || (Number(inv.valor_total) <= filterValues.maxAmount);
       const matchesConciliation = filterValues.onlyConciliated ? inv.hasFinancialLink : true;
       const matchesDate = (!filterValues.dateStart || new Date(inv.data_emissao) >= new Date(filterValues.dateStart)) &&
                          (!filterValues.dateEnd || new Date(inv.data_emissao) <= new Date(filterValues.dateEnd));
@@ -498,7 +617,7 @@ export const Invoices: React.FC = () => {
             const matchesTab = activeTab === 'ISSUED' ? inv.status !== 'canceled' : inv.status === 'canceled';
 
             const matchesStatus = filterValues.status === 'all' || inv.status === filterValues.status || (filterValues.status === 'pending' && inv.status !== 'authorized');
-            const matchesAmount = Number(inv.valor_total) <= filterValues.maxAmount;
+            const matchesAmount = filterValues.maxAmount >= 1000000 || (Number(inv.valor_total) <= filterValues.maxAmount);
             const matchesConciliation = filterValues.onlyConciliated ? inv.hasFinancialLink : true;
             const matchesDate = (!filterValues.dateStart || new Date(inv.data_emissao) >= new Date(filterValues.dateStart)) &&
                                (!filterValues.dateEnd || new Date(inv.data_emissao) <= new Date(filterValues.dateEnd));

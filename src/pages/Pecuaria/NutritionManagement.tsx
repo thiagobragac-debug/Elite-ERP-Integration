@@ -24,12 +24,13 @@ import { exportToCSV, exportToExcel, exportToPDF } from '../../utils/export';
 import { HistoryModal } from '../../components/Modals/HistoryModal';
 import { supabase } from '../../lib/supabase';
 import { DietForm } from '../../components/Forms/DietForm';
+import { BatchFeedForm } from '../../components/Forms/BatchFeedForm';
 import { TauzeStatCard } from '../../components/Cards/TauzeStatCard';
 import { ModernTable } from '../../components/DataTable/ModernTable';
 import { NutritionSimulatorModal } from './components/NutritionSimulatorModal';
 import { useFarmFilter } from '../../hooks/useFarmFilter';
 import { useReportData } from '../../hooks/useReportData';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { NutritionFilterModal } from './components/NutritionFilterModal';
 import { KPISkeleton } from '../../components/Feedback/Skeleton';
 import { EmptyState } from '../../components/Feedback/EmptyState';
@@ -44,11 +45,12 @@ export const NutritionManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get('tab') as 'DIETAS' | 'INSUMOS') || 'DIETAS';
+  const activeTab = (searchParams.get('tab') as 'DIETAS' | 'INSUMOS' | 'TRATOS') || 'DIETAS';
   const setActiveTab = (tab: string) => {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.set('tab', tab); return n; }, { replace: true });
   };
   const [isModalOpen, setIsModalOpen] = usePersistentState('NutritionManagement_isModalOpen', false);
+  const [isFeedModalOpen, setIsFeedModalOpen] = usePersistentState('NutritionManagement_isFeedModalOpen', false);
   const [formActionId, setFormActionId] = useState<number>(0);
   const [selectedDiet, setSelectedDiet] = useState<any>(null);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = usePersistentState('NutritionManagement_isHistoryModalOpen', false);
@@ -60,7 +62,7 @@ export const NutritionManagement: React.FC = () => {
     status: 'all',
     tipo: 'all',
     ingredients: [],
-    maxCostMS: 5,
+    maxCostMS: 100,
     minMS: 0,
     onlyActive: true
   });
@@ -108,6 +110,89 @@ export const NutritionManagement: React.FC = () => {
     }
   });
 
+  const saveFeedMutation = useMutation({
+    mutationFn: async (payloads: any[]) => {
+      // 1. Process each lot in the payload
+      for (const p of payloads) {
+        let animais = [];
+        if (p.animal_id) {
+          animais = [{ id: p.animal_id }];
+        } else {
+          // Find animals in this lot
+          const { data: lotesAnimais } = await supabase.from('animais').select('id').eq('lote_id', p.lote_id).eq('status', 'Ativo');
+          if (lotesAnimais) animais = lotesAnimais;
+        }
+        
+        const numAnimals = animais && animais.length > 0 ? animais.length : 1;
+        
+        // Calculate per animal values (for the entire lot)
+        // Note: BatchFeedForm creates payloads per lot. We distribute `quantidade` from each payload item.
+        const qtyPerAnimal = p.insumos.reduce((acc: number, insumo: any) => acc + insumo.quantidade, 0) / numAnimals;
+        const valuePerAnimal = p.insumos.reduce((acc: number, insumo: any) => acc + (insumo.quantidade * insumo.custo_medio), 0) / numAnimals;
+
+        // Insert nutricao_animais for each animal
+        if (animais && animais.length > 0) {
+          const nutricaoInserts = animais.map(a => ({
+            tenant_id: activeTenantId,
+            fazenda_id: activeFarmId,
+            animal_id: a.id,
+            dieta_id: p.dieta_id,
+            lote_id: p.lote_id,
+            quantidade_kg: qtyPerAnimal,
+            valor_unitario_kg: qtyPerAnimal > 0 ? valuePerAnimal / qtyPerAnimal : 0,
+            valor_total_consumido: valuePerAnimal,
+            data_consumo: p.data_trato,
+            fase: 'CRIA' // You can fetch real fase or leave null
+          }));
+          const { error: nutError } = await supabase.from('nutricao_animais').insert(nutricaoInserts);
+          if (nutError) {
+            console.error('Erro ao salvar nutricao_animais', nutError);
+            toast.error('Erro na cascata nutricao_animais: ' + nutError.message);
+          }
+        }
+
+        // Deduct from stock
+        const stockInserts = p.insumos.map((ins: any) => ({
+          tenant_id: activeTenantId,
+          fazenda_id: activeFarmId,
+          produto_id: ins.produto_id,
+          deposito_id: p.deposito_id,
+          tipo: 'SAIDA',
+          quantidade: ins.quantidade,
+          custo_unitario: ins.custo_medio,
+          data_movimentacao: p.data_trato,
+          origem_destino: 'Trato Animal',
+          responsavel: 'Sistema Automático'
+        }));
+        
+        if (stockInserts.length > 0) {
+          const { error: stError } = await supabase.from('movimentacoes_estoque').insert(stockInserts);
+          if (stError) {
+             console.error('Erro ao deduzir estoque', stError);
+             toast.error('Erro na baixa de estoque: ' + stError.message);
+          } else {
+             toast.success('Baixa automática no estoque realizada!');
+          }
+        }
+      }
+    },
+    onSuccess: () => {
+      setIsFeedModalOpen(false);
+      toast.success('✅ Trato lançado com sucesso!');
+    },
+    onError: (err: any) => {
+      toast.error('❌ Erro ao lançar trato: ' + err.message);
+    }
+  });
+
+  const handleFeedSubmit = async (payloads: any[]) => {
+    if (!canCreate) {
+      toast.error('⚠️ Selecione uma unidade específica para lançar tratos.');
+      return;
+    }
+    saveFeedMutation.mutate(payloads);
+  };
+
   const handleSubmit = async (data: any) => {
     if (!canCreate && !selectedDiet) {
       toast.error('⚠️ Selecione uma unidade específica para formular uma nova dieta.');
@@ -147,17 +232,99 @@ export const NutritionManagement: React.FC = () => {
     deleteDietMutation.mutate(id);
   };
 
+  const { data: tratosHistory, isLoading: isLoadingTratos } = useQuery({
+    queryKey: ['tratosHistory', activeFarmId, activeTenantId],
+    queryFn: async () => {
+      let q = supabase
+        .from('nutricao_animais')
+        .select(`
+          id,
+          data_consumo,
+          quantidade_kg,
+          valor_total_consumido,
+          created_at,
+          dietas ( nome ),
+          lotes ( nome ),
+          animais ( brinco, raca )
+        `)
+        .order('created_at', { ascending: false });
+        
+      q = applyFarmFilter(q);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: activeTab === 'TRATOS'
+  });
+
+  const { data: insumosList, isLoading: isLoadingInsumos } = useQuery({
+    queryKey: ['insumosList', activeFarmId, activeTenantId],
+    queryFn: async () => {
+      let q = supabase
+        .from('produtos')
+        .select('*')
+        .order('nome');
+        
+      q = applyFarmFilter(q);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: activeTab === 'INSUMOS'
+  });
+
   const handleViewHistory = async (dietId: string) => {
     setIsHistoryModalOpen(true);
     setHistoryLoading(true);
-    setTimeout(() => {
-      setHistoryItems([
-        { id: '1', date: new Date().toISOString(), title: 'Trato Lote-A1', subtitle: 'Consumo: 450kg', value: 'R$ 832,50', status: 'success' },
-        { id: '2', date: new Date(Date.now() - 86400000).toISOString(), title: 'Trato Lote-A1', subtitle: 'Consumo: 445kg', value: 'R$ 823,25', status: 'success' },
-        { id: '3', date: new Date(Date.now() - 172800000).toISOString(), title: 'Trato Lote-B2', subtitle: 'Consumo: 120kg', value: 'R$ 222,00', status: 'success' },
-      ]);
+    try {
+      const { data, error } = await supabase
+        .from('nutricao_animais')
+        .select(`
+          id,
+          data_consumo,
+          quantidade_kg,
+          valor_total_consumido,
+          lotes:lote_id (nome)
+        `)
+        .eq('dieta_id', dietId)
+        .order('data_consumo', { ascending: false });
+
+      if (error) throw error;
+
+      // Group by data_consumo and lote_id
+      const grouped = data.reduce((acc: any, row: any) => {
+        const key = `${row.data_consumo}_${row.lotes?.nome || 'Sem Lote'}`;
+        if (!acc[key]) {
+          acc[key] = {
+            id: key,
+            date: row.data_consumo,
+            title: `Trato: ${row.lotes?.nome || 'Sem Lote'}`,
+            totalKg: 0,
+            totalValue: 0,
+            status: 'success'
+          };
+        }
+        acc[key].totalKg += Number(row.quantidade_kg);
+        acc[key].totalValue += Number(row.valor_total_consumido);
+        return acc;
+      }, {});
+
+      const formatted = Object.values(grouped).map((g: any) => ({
+        id: g.id,
+        date: g.date,
+        title: g.title,
+        subtitle: `Consumo Total: ${g.totalKg.toFixed(1)} kg`,
+        value: `R$ ${g.totalValue.toFixed(2)}`,
+        status: g.status
+      }));
+
+      setHistoryItems(formatted);
+    } catch (err: any) {
+      console.error('Erro ao buscar histórico:', err);
+      toast.error('Erro ao carregar histórico nutricional.');
+    } finally {
       setHistoryLoading(false);
-    }, 800);
+    }
   };
 
   const handleExport = (format: 'csv' | 'excel' | 'pdf') => {
@@ -189,7 +356,7 @@ export const NutritionManagement: React.FC = () => {
                                  return d.ingredientes.some((i: any) => (typeof i === 'string' ? i : i.nome) === ing);
                                });
     
-    const matchesCost = (d.custoMS || 0) <= filterValues.maxCostMS;
+    const matchesCost = filterValues.maxCostMS >= 100 || (d.custoMS || 0) <= filterValues.maxCostMS;
     const matchesMS = (d.percMS || 0) >= filterValues.minMS;
     const matchesActive = !filterValues.onlyActive || d.status === 'active';
 
@@ -279,6 +446,85 @@ export const NutritionManagement: React.FC = () => {
     }
   ];
 
+  const tratosColumns = [
+    {
+      header: 'Data do Lançamento',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+           <span style={{ fontWeight: 600, color: 'hsl(var(--text-main))' }}>
+             {new Date(item.data_consumo + 'T12:00:00Z').toLocaleDateString('pt-BR')}
+           </span>
+           <span style={{ fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
+             {new Date(item.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+           </span>
+        </div>
+      )
+    },
+    {
+      header: 'Dieta',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '32px', height: '32px', background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Wheat size={16} />
+          </div>
+          <span style={{ fontWeight: 600, color: 'hsl(var(--text-main))' }}>{item.dietas?.nome || '-'}</span>
+        </div>
+      )
+    },
+    {
+      header: 'Destino do Trato',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+           <span style={{ fontWeight: 600, color: 'hsl(var(--text-main))' }}>
+             {item.lotes ? `Lote: ${item.lotes.nome}` : item.animais ? `Animal: ${item.animais.brinco}` : 'Não especificado'}
+           </span>
+        </div>
+      )
+    },
+    {
+      header: 'Quantidade (KG)',
+      accessor: (item: any) => (
+        <span style={{ fontWeight: 700, color: '#059669' }}>{Number(item.quantidade_kg).toFixed(2)} kg</span>
+      ),
+      align: 'center' as const
+    },
+    {
+      header: 'Custo Gerado',
+      accessor: (item: any) => (
+        <span style={{ fontWeight: 700, color: 'hsl(var(--text-main))' }}>
+          {Number(item.valor_total_consumido).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+        </span>
+      ),
+      align: 'right' as const
+    }
+  ];
+
+  const insumosColumns = [
+    {
+      header: 'Insumo / Matéria Prima',
+      accessor: (item: any) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981', padding: '8px', borderRadius: '8px' }}>
+            <Package size={18} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontWeight: 600, color: 'hsl(var(--text-main))' }}>{item.nome}</span>
+            <span style={{ fontSize: '12px', color: 'hsl(var(--text-muted))' }}>Estoque: {item.estoque_atual || 0} {item.unidade_medida || 'kg'}</span>
+          </div>
+        </div>
+      )
+    },
+    {
+      header: 'Custo Médio',
+      accessor: (item: any) => (
+        <span style={{ fontWeight: 600, color: 'hsl(var(--text-main))' }}>
+          {Number(item.custo_medio || item.preco_custo || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} / {item.unidade_medida || 'kg'}
+        </span>
+      ),
+      align: 'right' as const
+    }
+  ];
+
   return (
     <div className="nutrition-page animate-slide-up">
       <header className="page-header">
@@ -291,6 +537,10 @@ export const NutritionManagement: React.FC = () => {
           <button className="glass-btn secondary" onClick={() => setIsSimulatorOpen(true)}>
             <Scale size={18} />
             SIMULADOR
+          </button>
+          <button className="primary-btn" onClick={() => setIsFeedModalOpen(true)} style={{ background: '#f59e0b', color: '#fff', border: 'none' }}>
+            <Wheat size={18} />
+            LANÇAR TRATO
           </button>
           <button className="primary-btn" onClick={handleOpenCreate}>
             <Plus size={18} />
@@ -323,6 +573,12 @@ export const NutritionManagement: React.FC = () => {
             onClick={() => setActiveTab('INSUMOS')}
           >
             Matérias Primas
+          </button>
+          <button 
+            className={`tauze-tab-item ${activeTab === 'TRATOS' ? 'active' : ''}`}
+            onClick={() => setActiveTab('TRATOS')}
+          >
+            Histórico de Tratos
           </button>
         </div>
 
@@ -373,15 +629,16 @@ export const NutritionManagement: React.FC = () => {
       />
 
       <div className="management-content">
-        <ModernTable 
-          emptyState={<EmptyState
-            title="Nenhuma dieta formulada"
-            description="Não há formulações registradas para esta unidade. Inicie o controle nutricional criando a primeira dieta de precisão."
-            actionLabel="Nova Dieta"
-            onAction={handleOpenCreate}
-            icon={Utensils}
-          />}
-          data={filteredDiets}
+        {activeTab === 'DIETAS' ? (
+          <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhuma dieta formulada"
+              description="Não há formulações registradas para esta unidade."
+              actionLabel="Nova Dieta"
+              onAction={handleOpenCreate}
+              icon={Utensils}
+            />}
+            data={filteredDiets}
             columns={tableColumns}
             loading={loading}
             hideHeader={true}
@@ -404,6 +661,35 @@ export const NutritionManagement: React.FC = () => {
               </div>
             )}
           />
+        ) : activeTab === 'INSUMOS' ? (
+          <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhum insumo cadastrado"
+              description="Não há matérias primas listadas no estoque."
+              actionLabel="Estoque Geral"
+              onAction={() => window.location.href = '/pecuaria/estoque'}
+              icon={Package}
+            />}
+            data={insumosList || []}
+            columns={insumosColumns}
+            loading={isLoadingInsumos}
+            hideHeader={true}
+          />
+        ) : (
+          <ModernTable 
+            emptyState={<EmptyState
+              title="Nenhum trato registrado"
+              description="Você ainda não possui histórico de tratos e consumos para esta unidade."
+              actionLabel="Lançar Trato"
+              onAction={() => setIsFeedModalOpen(true)}
+              icon={Wheat}
+            />}
+            data={tratosHistory || []}
+            columns={tratosColumns}
+            loading={isLoadingTratos}
+            hideHeader={true}
+          />
+        )}
       </div>
 
       <DietForm 
@@ -428,6 +714,12 @@ export const NutritionManagement: React.FC = () => {
         isOpen={isSimulatorOpen}
         onClose={() => setIsSimulatorOpen(false)}
         diets={diets}
+      />
+
+      <BatchFeedForm 
+        isOpen={isFeedModalOpen}
+        onClose={() => setIsFeedModalOpen(false)}
+        onSubmit={handleFeedSubmit}
       />
 
     </div>

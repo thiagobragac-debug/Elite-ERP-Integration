@@ -348,7 +348,7 @@ export const SupplierManagement: React.FC = () => {
       
       const matchesStatus = filterValues.status === 'all' || sup.status === filterValues.status;
       const matchesRating = (sup.rating || 0) >= filterValues.minRating;
-      const matchesSpend = (sup.totalSpend || 0) <= filterValues.maxSpend;
+      const matchesSpend = filterValues.maxSpend >= 1000000 || ((sup.totalSpend || 0) <= filterValues.maxSpend);
       const matchesCategories = filterValues.categories.length === 0 || filterValues.categories.includes(sup.categoria);
 
       return matchesSearch && matchesTab && matchesFarm && matchesStatus && matchesRating && matchesSpend && matchesCategories;

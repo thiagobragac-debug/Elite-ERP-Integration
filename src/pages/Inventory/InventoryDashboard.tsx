@@ -82,7 +82,7 @@ export const InventoryDashboard: React.FC = () => {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       let query = supabase.from('movimentacoes_estoque')
         .select('quantidade, valor_unitario, tipo, data_movimentacao')
-        .eq('tipo', 'out')
+        .in('tipo', ['out', 'SAIDA'])
         .gte('data_movimentacao', thirtyDaysAgo.toISOString());
       query = applyFarmFilter(query);
       const { data, error } = await query;
@@ -175,11 +175,11 @@ export const InventoryDashboard: React.FC = () => {
 
   const recentMovements = useMemo(() => {
     return movements.map((m: any) => ({
-      type: m?.tipo || 'in',
+      type: (m?.tipo === 'ENTRADA' || m?.tipo === 'in') ? 'in' : 'out',
       date: m?.data_movimentacao || new Date().toISOString(),
       title: m?.produtos?.nome || 'Item',
       subtitle: `${m?.quantidade || 0} ${m?.produtos?.unidade || ''} • ${m?.responsavel || 'N/A'}`,
-      value: m?.tipo === 'in' ? 'Entrada' : 'Saída'
+      value: (m?.tipo === 'ENTRADA' || m?.tipo === 'in') ? 'Entrada' : 'Saída'
     }));
   }, [movements]);
 

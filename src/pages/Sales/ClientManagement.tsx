@@ -330,7 +330,7 @@ export const ClientManagement: React.FC = () => {
       
       const matchesStatus = filterValues.status === 'all' || client.status === filterValues.status;
       const matchesRating = filterValues.rating === 'all' || client.rating === filterValues.rating;
-      const matchesLtv = (client.ltv || 0) <= filterValues.maxLtv;
+      const matchesLtv = filterValues.maxLtv >= 1000000 || ((client.ltv || 0) <= filterValues.maxLtv);
       const matchesChurn = filterValues.onlyChurnRisk ? client.churnRisk : true;
       const matchesSegments = filterValues.segments.length === 0 || filterValues.segments.includes(client.segmento);
 
@@ -618,7 +618,7 @@ export const ClientManagement: React.FC = () => {
               
               const matchesStatus = filterValues.status === 'all' || client.status === filterValues.status;
               const matchesRating = filterValues.rating === 'all' || client.rating === filterValues.rating;
-              const matchesLtv = (client.ltv || 0) <= filterValues.maxLtv;
+              const matchesLtv = filterValues.maxLtv >= 1000000 || ((client.ltv || 0) <= filterValues.maxLtv);
               const matchesChurn = filterValues.onlyChurnRisk ? client.churnRisk : true;
               const matchesSegments = filterValues.segments.length === 0 || filterValues.segments.includes(client.segmento);
 
@@ -649,7 +649,7 @@ export const ClientManagement: React.FC = () => {
             const matchesSegmentTab = selectedSegment === 'TODOS' ? true : client.segmento === selectedSegment;
             const matchesStatus = filterValues.status === 'all' || client.status === filterValues.status;
             const matchesRating = filterValues.rating === 'all' || client.rating === filterValues.rating;
-            const matchesLtv = (client.ltv || 0) <= filterValues.maxLtv;
+            const matchesLtv = filterValues.maxLtv >= 1000000 || ((client.ltv || 0) <= filterValues.maxLtv);
             const matchesChurn = filterValues.onlyChurnRisk ? client.churnRisk : true;
             const matchesSegments = filterValues.segments.length === 0 || filterValues.segments.includes(client.segmento);
             return matchesSearch && matchesTab && matchesFarm && matchesSegmentTab && matchesStatus && matchesRating && matchesLtv && matchesChurn && matchesSegments;
