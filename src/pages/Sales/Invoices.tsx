@@ -242,12 +242,12 @@ export const Invoices: React.FC = () => {
             fazenda_id: activeFarmId ? activeFarmId : insertPayload.fazenda_id,
             produto_id: item.produto_id,
             tipo: 'SAIDA',
-            quantidade: item.quantidade,
+            quantidade: item.embalagem_fator ? item.quantidade * item.embalagem_fator : item.quantidade,
             data_movimentacao: payload.data_emissao,
             origem_destino: 'Nota Fiscal Saída ' + payload.numero_nota,
             responsavel: 'Sistema',
             deposito_id: item.deposito_id || null,
-            custo_unitario: item.preco_unitario || 0,
+            custo_unitario: item.embalagem_fator ? item.preco_unitario / item.embalagem_fator : item.preco_unitario || 0,
             origem: 'VENDA'
           }));
           

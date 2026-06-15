@@ -246,12 +246,12 @@ export const EntryInvoice: React.FC = () => {
             fazenda_id: activeFarm?.id || activeFarmId,
             produto_id: item.produto_id,
             tipo: 'ENTRADA',
-            quantidade: item.quantidade,
+            quantidade: item.embalagem_fator ? item.quantidade * item.embalagem_fator : item.quantidade,
             data_movimentacao: payload.data_entrada || payload.data_emissao,
             origem_destino: 'Nota Fiscal ' + payload.numero_nota,
             responsavel: 'Sistema',
             deposito_id: item.deposito_id || null,
-            custo_unitario: item.preco_unitario || 0,
+            custo_unitario: item.embalagem_fator ? item.preco_unitario / item.embalagem_fator : item.preco_unitario || 0,
             origem: 'COMPRA'
           }));
           
@@ -262,11 +262,12 @@ export const EntryInvoice: React.FC = () => {
 
           // Atualizar custo_padrao e custo_ultima_compra em cada produto da NF
           for (const item of data.itens.filter((i: any) => i.produto_id && i.preco_unitario > 0)) {
+            const unitPrice = item.embalagem_fator ? item.preco_unitario / item.embalagem_fator : item.preco_unitario;
             await supabase
               .from('produtos')
               .update({ 
-                custo_ultima_compra: item.preco_unitario,
-                custo_padrao: item.preco_unitario
+                custo_ultima_compra: unitPrice,
+                custo_padrao: unitPrice
               })
               .eq('id', item.produto_id);
           }

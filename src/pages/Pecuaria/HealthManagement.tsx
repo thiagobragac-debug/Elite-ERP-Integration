@@ -90,6 +90,9 @@ export const HealthManagement: React.FC = () => {
 
   const deleteHealthMutation = useMutation({
     mutationFn: async (id: string) => {
+      // Apaga movimentações de estoque geradas
+      await supabase.from('movimentacoes_estoque').delete().like('origem_destino', `%[REF:${id}]%`);
+      // Apaga o evento
       const { error } = await supabase.from('sanidade').delete().eq('id', id);
       if (error) throw error;
     },
@@ -342,7 +345,7 @@ export const HealthManagement: React.FC = () => {
                    quantidade: totalQuantityUsed,
                    custo_unitario: custoMedio,
                    data_movimentacao: sanidade.data_manejo,
-                   origem_destino: `Manejo Sanitário: ${sanidade.titulo || sanidade.produto || 'Aplicação'}`,
+                    origem_destino: `Manejo Sanitário [REF:${sanidade.id}]: ${sanidade.titulo || sanidade.produto || 'Aplicação'}`,
                    responsavel: sanidade.veterinario || 'Sistema Pecuária',
                    fazenda_id: activeFarmId,
                    tenant_id: activeTenantId,

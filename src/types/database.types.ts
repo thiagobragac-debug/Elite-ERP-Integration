@@ -2590,6 +2590,58 @@ export type Database = {
           },
         ]
       }
+      produto_embalagens: {
+        Row: {
+          id: string
+          produto_id: string
+          descricao: string
+          fator: number
+          fazenda_id: string | null
+          tenant_id: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          produto_id: string
+          descricao: string
+          fator: number
+          fazenda_id?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          produto_id?: string
+          descricao?: string
+          fator?: number
+          fazenda_id?: string | null
+          tenant_id?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_embalagens_fazenda_id_fkey"
+            columns: ["fazenda_id"]
+            isOneToOne: false
+            referencedRelation: "fazendas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_embalagens_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_embalagens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

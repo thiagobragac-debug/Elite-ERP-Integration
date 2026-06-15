@@ -152,7 +152,8 @@ export const InventoryManagement: React.FC = () => {
     
     // Asynchronously check for history to disable the is_storable toggle
     const { count } = await supabase.from('movimentacoes_estoque').select('*', { count: 'exact', head: true }).eq('produto_id', product.id);
-    setSelectedProduct((prev: any) => ({ ...prev, hasHistory: count ? count > 0 : false }));
+    const { data: embalagens } = await supabase.from('produto_embalagens').select('*').eq('produto_id', product.id);
+    setSelectedProduct((prev: any) => ({ ...prev, hasHistory: count ? count > 0 : false, embalagens: embalagens || [] }));
   };
 
   // Mutations
@@ -182,6 +183,8 @@ export const InventoryManagement: React.FC = () => {
         ...insertPayload
       };
 
+      let productId = selectedProduct?.id;
+
       if (selectedProduct) {
         const { error } = await supabase
           .from('produtos')
@@ -189,10 +192,32 @@ export const InventoryManagement: React.FC = () => {
           .eq('id', selectedProduct.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { data: newProd, error } = await supabase
           .from('produtos')
-          .insert([payload]);
+          .insert([payload])
+          .select();
         if (error) throw error;
+        if (newProd && newProd[0]) {
+          productId = newProd[0].id;
+        }
+      }
+
+      // Salvar embalagens
+      if (productId && data.embalagens) {
+        await supabase.from('produto_embalagens').delete().eq('produto_id', productId);
+        
+        const embalagensToInsert = data.embalagens.map((emb: any) => ({
+          produto_id: productId,
+          descricao: emb.descricao,
+          fator: Number(emb.fator),
+          tenant_id: insertPayload.tenant_id,
+          fazenda_id: insertPayload.fazenda_id
+        }));
+
+        if (embalagensToInsert.length > 0) {
+          const { error: embErr } = await supabase.from('produto_embalagens').insert(embalagensToInsert);
+          if (embErr) throw embErr;
+        }
       }
     },
     onSuccess: () => {

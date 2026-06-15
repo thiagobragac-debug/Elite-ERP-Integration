@@ -24,6 +24,9 @@ import { SidePanel } from '../Layout/SidePanel';
 import { SearchableSelect } from './SearchableSelect';
 import { ConsumptionCart } from './ConsumptionCart';
 import { DateInput } from '../../components/Form/DateInput';
+import { supabase } from '../../lib/supabase';
+import { useTenant } from '../../contexts/TenantContext';
+import { useFarmFilter } from '../../hooks/useFarmFilter';
 
 interface ReproductionFormProps {
   isOpen: boolean;
@@ -34,7 +37,39 @@ interface ReproductionFormProps {
   actionId?: number;
 }
 
-export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClose, onSubmit, initialData, actionId }) => {
+export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClose, onSubmit, initialData, loading: propsLoading, actionId }) => {
+  const { activeFarm } = useTenant();
+  const { applyFarmFilter } = useFarmFilter();
+  const [animais, setAnimais] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && activeFarm) {
+      fetchAnimais();
+    }
+  }, [isOpen, activeFarm]);
+
+  const fetchAnimais = async () => {
+    try {
+      let query = supabase.from('animais').select('id, brinco, raca, sexo, categoria').neq('status', 'vendido').neq('status', 'morto');
+      query = applyFarmFilter(query);
+      const { data, error } = await query.limit(1000);
+      if (error) console.error('fetchAnimais error:', error);
+      if (data) {
+        // Filter females locally to avoid strict equality issues in DB just in case, but usually ilike works. 
+        // We will just do a local filter to be absolutely safe against any accent/case variation.
+        const females = data.filter(a => {
+          if (!a.sexo) return false; // Some DB rows might not have it
+          const s = a.sexo.toLowerCase();
+          return s.includes('femea') || s.includes('fêmea') || s === 'f' || s === 'misto' || a.categoria?.toLowerCase() === 'vaca' || a.categoria?.toLowerCase() === 'novilha';
+        });
+        setAnimais(females.map(a => ({ value: a.id, label: `${a.brinco} - ${a.raca || 'Sem Raça Especificada'}` })));
+      }
+    } catch (err) {
+      console.error('Error fetching animals:', err);
+    }
+  };
+
   const [formData, setFormData] = usePersistentState('ReproductionForm_formData', {
     animal_id: '',
     tipo_evento: 'IATF',
@@ -89,7 +124,6 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
     }
   }, [initialData, isOpen, actionId]);
 
-  const [loading, setLoading] = useState(false);
   const [activeEtapa, setActiveEtapa] = useState('dados');
 
   const ETAPAS_CONFIG = [
@@ -154,7 +188,7 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
       title={initialData ? "Editar Evento Reprodutivo" : "Novo Evento Reprodutivo"}
       subtitle={initialData ? "Atualize as informações do evento." : "Lance inseminações, toques ou partos."}
       icon={Heart}
-      loading={loading}
+      loading={propsLoading || loading}
       submitLabel={initialData ? "Atualizar Evento" : "Salvar Evento"}
     >
       {/* Dashboard Top */}
@@ -255,18 +289,12 @@ export const ReproductionForm: React.FC<ReproductionFormProps> = ({isOpen, onClo
               <div className="tauze-input-grid grid-col-2">
                 <div className="tauze-field-group" style={{ gridColumn: 'span 2' }}>
                   <label className="tauze-label"><Beef size={14} /> Animal / Matriz</label>
-                  <div style={{ position: 'relative' }}>
-                    <Hash size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input 
-                      className="tauze-input"
-                      type="text" 
-                      placeholder="Brinco ou ID da Matriz..." 
-                      style={{ paddingLeft: '32px' }}
-                      value={formData.animal_id}
-                      onChange={(e) => setFormData({...formData, animal_id: e.target.value})}
-                      required 
-                    />
-                  </div>
+                  <SearchableSelect 
+                    value={formData.animal_id}
+                    onChange={(val: any) => setFormData({...formData, animal_id: val})}
+                    options={animais}
+                    placeholder="Busque pelo brinco ou ID..."
+                  />
                 </div>
 
                 <div className="tauze-field-group">

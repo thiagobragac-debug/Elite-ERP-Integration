@@ -371,6 +371,8 @@ export const MovementManagement: React.FC = () => {
           responsavel: formData.responsavel,
           lote: item.lote || null,
           data_validade: item.data_validade || null,
+          animal_id: formData.apropriar_custo && formData.apropriar_tipo === 'animal' && formData.animal_id ? formData.animal_id : null,
+          lote_pecuario_id: formData.apropriar_custo && formData.apropriar_tipo === 'lote' && formData.lote_pecuario_id ? formData.lote_pecuario_id : null,
           fazenda_id: activeFarm.id,
           tenant_id: activeFarm.tenantId
         };
@@ -404,6 +406,8 @@ export const MovementManagement: React.FC = () => {
             responsavel: formData.responsavel,
             lote: item.lote || null,
             data_validade: item.data_validade || null,
+            animal_id: formData.apropriar_custo && formData.apropriar_tipo === 'animal' && formData.animal_id ? formData.animal_id : null,
+            lote_pecuario_id: formData.apropriar_custo && formData.apropriar_tipo === 'lote' && formData.lote_pecuario_id ? formData.lote_pecuario_id : null,
             fazenda_id: activeFarm.id,
             tenant_id: activeFarm.tenantId
           });
@@ -702,12 +706,16 @@ export const MovementManagement: React.FC = () => {
               <button className="action-dot info" onClick={() => handleViewDetails(item)} title="Detalhes">
                 <History size={18} />
               </button>
-              <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
-                <Edit3 size={18} />
-              </button>
-              <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
-                <Trash2 size={18} />
-              </button>
+              {(!item.origem_destino || (!item.origem_destino.includes('[REF:') && !item.origem_destino.includes('Nota Fiscal') && !item.origem_destino.includes('Manejo') && !item.origem_destino.includes('Trato'))) && (
+                <>
+                  <button className="action-dot edit" onClick={() => handleOpenEdit(item)} title="Editar">
+                    <Edit3 size={18} />
+                  </button>
+                  <button className="action-dot delete" onClick={() => handleDelete(item.id)} title="Excluir">
+                    <Trash2 size={18} />
+                  </button>
+                </>
+              )}
             </div>
           )}
         />

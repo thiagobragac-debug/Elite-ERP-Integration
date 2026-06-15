@@ -136,9 +136,15 @@ export const CategorySettingsTab: React.FC<{ modulo: string, searchTerm: string,
           defaultCategories = [
             { tenant_id: tenant.id, modulo: 'unidades', nome: 'un', cor: '#94a3b8', is_active: true },
             { tenant_id: tenant.id, modulo: 'unidades', nome: 'kg', cor: '#3b82f6', is_active: true },
-            { tenant_id: tenant.id, modulo: 'unidades', nome: 'ton', cor: '#ef4444', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'g', cor: '#60a5fa', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'mg', cor: '#93c5fd', is_active: true },
             { tenant_id: tenant.id, modulo: 'unidades', nome: 'L', cor: '#10b981', is_active: true },
-            { tenant_id: tenant.id, modulo: 'unidades', nome: 'm³', cor: '#f59e0b', is_active: true }
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'ml', cor: '#34d399', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'ton', cor: '#f59e0b', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'dose', cor: '#8b5cf6', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'saco', cor: '#ec4899', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'Caixa', cor: '#64748b', is_active: true },
+            { tenant_id: tenant.id, modulo: 'unidades', nome: 'Frasco', cor: '#0ea5e9', is_active: true }
           ];
         } else if (modulo === 'estoque') {
           defaultCategories = [

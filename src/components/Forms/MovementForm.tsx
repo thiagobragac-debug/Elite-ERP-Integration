@@ -57,7 +57,11 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
     numero_nfe: '',
     chave_nfe: '',
     despesas_acessorias: '',
-    sub_centro_custo: ''
+    sub_centro_custo: '',
+    apropriar_custo: false,
+    apropriar_tipo: 'animal' as 'animal' | 'lote',
+    animal_id: '',
+    lote_pecuario_id: ''
   });
 
   // Cart of Items
@@ -65,6 +69,8 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
 
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [animais, setAnimais] = useState<any[]>([]);
+  const [lotes, setLotes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -102,7 +108,11 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
         numero_nfe: '',
         chave_nfe: '',
         despesas_acessorias: '',
-        sub_centro_custo: ''
+        sub_centro_custo: '',
+        apropriar_custo: false,
+        apropriar_tipo: 'animal',
+        animal_id: '',
+        lote_pecuario_id: ''
       });
       setItems([]);
     }
@@ -112,6 +122,8 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
     if (isOpen && activeFarm) {
       fetchProducts();
       fetchWarehouses();
+      fetchAnimais();
+      fetchLotes();
     }
   }, [isOpen, activeFarm]);
 
@@ -147,6 +159,20 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
       
     if (error) console.error('fetchWarehouses ERROR:', error);
     if (data) setWarehouses(data);
+  };
+
+  const fetchAnimais = async () => {
+    let query = supabase.from('animais').select('id, brinco, nome, raca').neq('status', 'vendido').neq('status', 'morto');
+    query = applyFarmFilter(query);
+    const { data } = await query.limit(500);
+    if (data) setAnimais(data.map(a => ({ value: a.id, label: `${a.brinco} - ${a.nome || a.raca || 'Sem Nome'}` })));
+  };
+
+  const fetchLotes = async () => {
+    let query = supabase.from('lotes').select('id, nome').eq('status', 'ativo');
+    query = applyFarmFilter(query);
+    const { data } = await query;
+    if (data) setLotes(data.map(l => ({ value: l.id, label: l.nome })));
   };
 
   const isMedicament = (prodId: string) => {
@@ -357,16 +383,45 @@ export const MovementForm: React.FC<MovementFormProps> = ({isOpen, onClose, onSu
               )}
 
               {formData.centro_custo === 'pecuaria' && (
-                <div className="tauze-field-group" style={{ background: '#fffbeb', padding: '12px', borderRadius: '8px', border: '1px dashed #fde68a' }}>
-                  <label className="tauze-label" style={{ color: '#92400e' }}><Hash size={14} /> Lote de Animais / Pasto</label>
-                  <input 
-                    type="text" 
-                    className="tauze-input"
-                    placeholder="Ex: Lote Bezerros Nelore..."
-                    value={formData.sub_centro_custo}
-                    onChange={(e) => setFormData({...formData, sub_centro_custo: e.target.value})}
-                    required
+                <div className="tauze-field-group" style={{ background: '#fffbeb', padding: '16px', borderRadius: '8px', border: '1px dashed #fde68a', gridColumn: 'span 2' }}>
+                  <label className="tauze-label" style={{ color: '#92400e', marginBottom: '8px' }}><Hash size={14} /> Destinação na Pecuária (Busca Inteligente)</label>
+                  <SearchableSelect
+                    value={
+                      formData.apropriar_custo
+                        ? (formData.apropriar_tipo === 'lote' ? `LOTE_${formData.lote_pecuario_id}` : `ANIMAL_${formData.animal_id}`)
+                        : formData.sub_centro_custo
+                    }
+                    onChange={(val) => {
+                      const allOptions = [
+                        ...lotes.map(l => ({ value: `LOTE_${l.value}`, label: `Lote: ${l.label}` })),
+                        ...animais.map(a => ({ value: `ANIMAL_${a.value}`, label: `Animal: ${a.label}` }))
+                      ];
+                      
+                      if (val.startsWith('LOTE_')) {
+                        const id = val.replace('LOTE_', '');
+                        const label = allOptions.find(o => o.value === val)?.label || val;
+                        setFormData({...formData, apropriar_custo: true, apropriar_tipo: 'lote', lote_pecuario_id: id, animal_id: '', sub_centro_custo: label});
+                      } else if (val.startsWith('ANIMAL_')) {
+                        const id = val.replace('ANIMAL_', '');
+                        const label = allOptions.find(o => o.value === val)?.label || val;
+                        setFormData({...formData, apropriar_custo: true, apropriar_tipo: 'animal', animal_id: id, lote_pecuario_id: '', sub_centro_custo: label});
+                      } else {
+                        setFormData({...formData, apropriar_custo: false, animal_id: '', lote_pecuario_id: '', sub_centro_custo: val});
+                      }
+                    }}
+                    options={[
+                      ...lotes.map(l => ({ value: `LOTE_${l.value}`, label: `Lote: ${l.label}` })),
+                      ...animais.map(a => ({ value: `ANIMAL_${a.value}`, label: `Animal: ${a.label}` }))
+                    ]}
+                    placeholder="Digite um lote, animal, ou texto livre..."
+                    creatable={true}
                   />
+                  <div style={{ marginTop: '8px', fontSize: '12px', color: formData.apropriar_custo ? '#10b981' : '#64748b', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: formData.apropriar_custo ? '#10b981' : '#cbd5e1' }} />
+                    {formData.apropriar_custo 
+                      ? `Apropriação automática ativada para ${formData.apropriar_tipo === 'lote' ? 'Lote (Rateio)' : 'Animal (Direto)'}.` 
+                      : 'Texto livre. Custo não será rateado automaticamente.'}
+                  </div>
                 </div>
               )}
             </>

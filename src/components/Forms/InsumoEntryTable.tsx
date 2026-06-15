@@ -32,6 +32,9 @@ export interface InsumoItem {
   nome: string;
   quantidade: number;
   unidade: string;
+  embalagem_id?: string;
+  embalagem_fator?: number;
+  embalagem_nome?: string;
   preco_unitario: number;
   despesa_adicional: number;
   desconto: number;
@@ -64,6 +67,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
 }) => {
   const { activeTenantId } = useTenant();
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [availableEmbalagens, setAvailableEmbalagens] = useState<any[]>([]);
   const [depositos, setDepositos] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,7 +126,18 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
     }
 
     const { data } = await query.order('nome');
-    if (data) setAvailableProducts(data);
+    if (data) {
+      setAvailableProducts(data);
+      
+      const pIds = data.map(d => d.id);
+      if (pIds.length > 0) {
+        const { data: embData } = await supabase
+          .from('produto_embalagens')
+          .select('id, produto_id, descricao, fator')
+          .in('produto_id', pIds);
+        if (embData) setAvailableEmbalagens(embData);
+      }
+    }
   };
 
   const fetchDepositos = async () => {
@@ -400,6 +415,7 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
               {xmlItemCount > 0 && <th style={{ minWidth: '180px' }}>Nome Original (XML)</th>}
               <th style={{ width: '160px' }}>Depósito</th>
               <th style={{ width: '80px' }}>Qtd</th>
+              <th style={{ width: '120px' }}>Embalagem</th>
               <th style={{ width: '50px' }}>Unid</th>
               <th style={{ width: '120px' }}>Preço Unit.</th>
               <th style={{ width: '120px' }}>Desp. Adic.</th>
@@ -632,6 +648,32 @@ export const InsumoEntryTable: React.FC<InsumoEntryTableProps> = ({
                       disabled={isReadOnly}
                       placeholder="0"
                     />
+                  </td>
+
+                  {/* EMBALAGEM */}
+                  <td>
+                    <select 
+                      className="tauze-table-input"
+                      value={item.embalagem_id || ''}
+                      onChange={(e) => {
+                        const embId = e.target.value;
+                        if (!embId) {
+                          handleUpdateItem(item.id, { embalagem_id: undefined, embalagem_fator: 1, embalagem_nome: '' });
+                        } else {
+                          const emb = availableEmbalagens.find(eb => eb.id === embId);
+                          if (emb) {
+                            handleUpdateItem(item.id, { embalagem_id: emb.id, embalagem_fator: emb.fator, embalagem_nome: emb.descricao });
+                          }
+                        }
+                      }}
+                      disabled={isReadOnly || !item.produto_id || availableEmbalagens.filter(e => e.produto_id === item.produto_id).length === 0}
+                      style={{ padding: '0 8px' }}
+                    >
+                      <option value="">Unid. Base ({item.unidade})</option>
+                      {availableEmbalagens.filter(e => e.produto_id === item.produto_id).map(e => (
+                        <option key={e.id} value={e.id}>{e.descricao} (x{e.fator})</option>
+                      ))}
+                    </select>
                   </td>
 
                   {/* UNIDADE */}

@@ -148,7 +148,7 @@ export const AnimalDetail: React.FC = () => {
       // 3) Reprodução
       const reproRes = await supabase
         .from('eventos_reprodutivos')
-        .select('id, tipo_evento, data_evento, resultado, observacoes, status')
+        .select('id, tipo_evento, data_evento, resultado, observacoes, status, custo')
         .eq('animal_id', id)
         .order('data_evento', { ascending: false });
       if (reproRes.error) console.error('eventos_reprodutivos erro:', reproRes.error);
@@ -161,11 +161,69 @@ export const AnimalDetail: React.FC = () => {
         .order('data_movimentacao', { ascending: false });
       if (moveRes.error) console.error('historico_movimentacao erro:', moveRes.error);
 
+      // 5) Custos Diversos (Estoque)
+      const loteId = moveRes.data?.[0]?.lote_destino_id || ''; // Get current lot if possible, but actually we need all lotes the animal has been in, or just query if animal_id matches or lote_pecuario_id matches. Since Supabase might complain about complex ORs with relations, let's just query direct animal_ids for now, and lotes the animal currently belongs to (from animal fetch).
+      // Let's get the animal's current lote_id if any, or we can just fetch direct animal_id costs.
+      // We will do a generic OR: animal_id = id OR lote_pecuario_id in (list of all lotes the animal was in).
+      const lotesEnvolvidos = [
+        ...new Set(moveRes.data?.flatMap((m: any) => [m.lote_origem_id, m.lote_destino_id]).filter(Boolean))
+      ];
+      
+      let divRes: any = { data: [] };
+      if (lotesEnvolvidos.length > 0) {
+        divRes = await supabase
+          .from('movimentacoes_estoque')
+          .select('id, data_movimentacao, quantidade, custo_unitario, origem_destino, produtos(nome), animal_id, lote_pecuario_id')
+          .eq('tipo', 'SAIDA')
+          .or(`animal_id.eq.${id},lote_pecuario_id.in.(${lotesEnvolvidos.join(',')})`);
+      } else {
+        divRes = await supabase
+          .from('movimentacoes_estoque')
+          .select('id, data_movimentacao, quantidade, custo_unitario, origem_destino, produtos(nome), animal_id, lote_pecuario_id')
+          .eq('tipo', 'SAIDA')
+          .eq('animal_id', id);
+      }
+      if (divRes.error) console.error('movimentacoes_estoque erro:', divRes.error);
+
+      // Now we need the count of animals in each lot to divide the cost.
+      // We can fetch the current count of animals in these lotes
+      let loteCounts: Record<string, number> = {};
+      if (lotesEnvolvidos.length > 0) {
+        const { data: countData } = await supabase
+          .from('animais')
+          .select('lote_id')
+          .in('lote_id', lotesEnvolvidos)
+          .neq('status', 'morto')
+          .neq('status', 'vendido');
+        
+        if (countData) {
+          countData.forEach(row => {
+            if (row.lote_id) {
+              loteCounts[row.lote_id] = (loteCounts[row.lote_id] || 0) + 1;
+            }
+          });
+        }
+      }
+
+      const miscellaneous = (divRes.data || []).map((m: any) => {
+        let custoFinal = Number(m.quantidade) * Number(m.custo_unitario);
+        if (m.lote_pecuario_id && !m.animal_id) {
+          // It's a lot cost, divide by lot size
+          const heads = loteCounts[m.lote_pecuario_id] || 1;
+          custoFinal = custoFinal / heads;
+        }
+        return {
+          ...m,
+          custo_calculado: custoFinal
+        };
+      });
+
       return {
         costs: costsRes.data || [],
         health: healthData,
         reproduction: reproRes.data || [],
-        lotMovements: moveRes.data || []
+        lotMovements: moveRes.data || [],
+        miscellaneous: miscellaneous || []
       };
     },
     enabled: !!id
@@ -813,7 +871,7 @@ export const AnimalDetail: React.FC = () => {
               <h3 style={{ color: '#fff' }}>Extrato Financeiro (Custeio Diário)</h3>
               <DollarSign size={18} color="#10b981" />
             </div>
-            <div className="info-list" style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+            <div className="info-list" style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
               <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
                 <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Aquisição</label>
                 <span style={{ color: '#fff', fontSize: '15px', fontWeight: 700 }}>
@@ -835,6 +893,20 @@ export const AnimalDetail: React.FC = () => {
                   <div style={{ fontSize: '9px', color: '#f59e0b', marginTop: '2px', fontWeight: 700 }}>⚠️ Custeio pendente</div>
                 )}
               </div>
+
+              <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Reprodução</label>
+                <span style={{ color: '#c084fc', fontSize: '15px', fontWeight: 700 }}>
+                  <AnimatedNumber value={(financialData?.reproduction || []).reduce((acc: number, curr: any) => acc + Number(curr.custo || 0), 0)} isCurrency={true} />
+                </span>
+              </div>
+              
+              <div className="info-item" style={{ background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <label style={{ color: '#94a3b8', fontSize: '10px', display: 'block', marginBottom: '4px', textTransform: 'uppercase' }}>Custo Diversos</label>
+                <span style={{ color: '#06b6d4', fontSize: '15px', fontWeight: 700 }}>
+                  <AnimatedNumber value={(financialData?.miscellaneous || []).reduce((acc: number, curr: any) => acc + Number(curr.custo_calculado || 0), 0)} isCurrency={true} />
+                </span>
+              </div>
               
               <div className="info-item" style={{ background: 'rgba(239, 68, 68, 0.05)', padding: '12px', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.1)' }}>
                 <label style={{ color: '#fca5a5', fontWeight: 800, fontSize: '10px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Custo Total (Saída)</label>
@@ -842,7 +914,9 @@ export const AnimalDetail: React.FC = () => {
                   <AnimatedNumber value={(() => {
                     const custoNutricao = (financialData?.costs || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_consumido || 0), 0);
                     const custoSanidade = (financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
-                    return (animal.valor_compra || 0) + custoNutricao + custoSanidade;
+                    const custoReproducao = (financialData?.reproduction || []).reduce((acc: number, curr: any) => acc + Number(curr.custo || 0), 0);
+                    const custoDiversos = (financialData?.miscellaneous || []).reduce((acc: number, curr: any) => acc + Number(curr.custo_calculado || 0), 0);
+                    return (animal.valor_compra || 0) + custoNutricao + custoSanidade + custoReproducao + custoDiversos;
                   })()} isCurrency={true} />
                 </span>
               </div>
@@ -859,7 +933,9 @@ export const AnimalDetail: React.FC = () => {
                 {(() => {
                   const custoNutricao = (financialData?.costs || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_consumido || 0), 0);
                   const custoSanidade = (financialData?.health || []).reduce((acc: number, curr: any) => acc + Number(curr.valor_total_aplicado || 0), 0);
-                  const custoTotal = (animal.valor_compra || 0) + custoNutricao + custoSanidade;
+                  const custoReproducao = (financialData?.reproduction || []).reduce((acc: number, curr: any) => acc + Number(curr.custo || 0), 0);
+                  const custoDiversos = (financialData?.miscellaneous || []).reduce((acc: number, curr: any) => acc + Number(curr.custo_calculado || 0), 0);
+                  const custoTotal = (animal.valor_compra || 0) + custoNutricao + custoSanidade + custoReproducao + custoDiversos;
                   const receita = animal.valor_venda || 0;
                   const lucro = receita - custoTotal;
                   const isLucro = lucro >= 0;
@@ -876,7 +952,7 @@ export const AnimalDetail: React.FC = () => {
                 })()}
               </div>
               
-              <div style={{ gridColumn: 'span 3' }}>
+              <div style={{ gridColumn: 'span 4' }}>
                 <button 
                   className="glass-btn secondary" 
                   onClick={() => setIsExtratoModalOpen(true)} 

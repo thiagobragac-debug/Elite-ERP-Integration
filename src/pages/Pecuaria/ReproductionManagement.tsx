@@ -95,13 +95,104 @@ export const ReproductionManagement: React.FC = () => {
   };
 
   const saveReproMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async ({ reproPayload, animalId, resultado, produtos }: any) => {
+      // Calcula o custo total dos produtos para o Custo Reprodução
+      let totalCustoRepro = 0;
+      if (produtos && produtos.length > 0) {
+        produtos.forEach((p: any) => {
+          totalCustoRepro += Number(p.quantidade) * Number(p.custo_medio || p.valor_unitario || 0);
+        });
+      }
+
+      reproPayload.custo = totalCustoRepro;
+
+      let eventId = selectedEvent?.id || '';
+
       if (selectedEvent) {
-        const { error } = await supabase.from('eventos_reprodutivos').update(payload).eq('id', selectedEvent.id);
+        const { error } = await supabase.from('eventos_reprodutivos').update(reproPayload).eq('id', selectedEvent.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('eventos_reprodutivos').insert([{ ...payload, ...insertPayload }]);
+        const { data: insertedEvent, error } = await supabase.from('eventos_reprodutivos').insert([{ ...reproPayload, ...insertPayload }]).select();
         if (error) throw error;
+        if (insertedEvent && insertedEvent[0]) {
+          eventId = insertedEvent[0].id;
+        }
+      }
+
+      // Atualiza o dossiê reprodutivo do animal (fase atual)
+      if (resultado === 'Prenha') {
+        await supabase.from('animais').update({ fase_atual: 'Prenha' }).eq('id', animalId);
+      } else if (resultado === 'Vazia') {
+        await supabase.from('animais').update({ fase_atual: 'Vazia' }).eq('id', animalId);
+      } else if (reproPayload.tipo_evento === 'Parto') {
+        await supabase.from('animais').update({ fase_atual: 'Lactação' }).eq('id', animalId);
+      }
+
+      // Efeito Cascata: Salvar produtos no dossiê de sanidade e dar baixa no estoque
+      if (produtos && produtos.length > 0) {
+        for (const prod of produtos) {
+          const { data: pData } = await supabase.from('produtos').select('is_storable, nome').eq('id', prod.produto_id).maybeSingle();
+          
+          const custoCalculado = Number(prod.quantidade) * Number(prod.custo_medio || prod.valor_unitario || 0);
+
+          // 1. Inserir em sanidade
+          const { data: sanData, error: sanErr } = await supabase.from('sanidade').insert([{
+            produto: pData?.nome || 'Produto ID ' + prod.produto_id,
+            dose: prod.quantidade + ' un',
+            data_manejo: reproPayload.data_evento,
+            animal_id: animalId,
+            status: 'REALIZADO',
+            observacao: `Fármaco aplicado em manejo reprodutivo [REF:${eventId}]`,
+            ...insertPayload
+          }]).select();
+          if (sanErr) throw sanErr;
+
+          // 2. Inserir em sanidade_animais para o taxímetro
+          if (sanData && sanData[0]) {
+             await supabase.from('sanidade_animais').insert([{
+               sanidade_id: sanData[0].id,
+               animal_id: animalId,
+               data_aplicacao: reproPayload.data_evento,
+               valor_total_aplicado: custoCalculado,
+               status: 'REALIZADO',
+               ...insertPayload
+             }]);
+          }
+
+          // 3. Dar baixa no estoque se for controlável
+          if (pData?.is_storable && prod.deposito_id) {
+            const { error: stockErr } = await supabase.from('movimentacoes_estoque').insert([{
+              produto_id: prod.produto_id,
+              deposito_id: prod.deposito_id,
+              tipo: 'SAIDA',
+              origem_destino: `Manejo Reprodutivo [REF:${eventId}]`,
+              quantidade: Number(prod.quantidade),
+              valor_unitario: Number(prod.custo_medio || prod.valor_unitario || 0),
+              data_movimentacao: new Date().toISOString(),
+              ...insertPayload
+            }]);
+            
+            if (stockErr) {
+              console.error('Erro na movimentação de estoque:', stockErr);
+            }
+            
+            const { data: currentStock } = await supabase.from('saldos_estoque')
+              .select('quantidade, id').eq('produto_id', prod.produto_id).eq('deposito_id', prod.deposito_id).maybeSingle();
+
+            if (currentStock) {
+              await supabase.from('saldos_estoque').update({
+                quantidade: Number(currentStock.quantidade) - Number(prod.quantidade)
+              }).eq('id', currentStock.id);
+            } else {
+              await supabase.from('saldos_estoque').insert([{
+                produto_id: prod.produto_id,
+                deposito_id: prod.deposito_id,
+                quantidade: -Number(prod.quantidade),
+                ...insertPayload
+              }]);
+            }
+          }
+        }
       }
     },
     onSuccess: () => {
@@ -120,18 +211,30 @@ export const ReproductionManagement: React.FC = () => {
       return;
     }
 
+    let obsParts = [];
+    if (data.ecc) obsParts.push(`ECC: ${data.ecc}`);
+    if (data.touro) obsParts.push(`Touro/Sêmen: ${data.touro}`);
+    if (data.resultado_diagnostico) obsParts.push(`Diagnóstico: ${data.resultado_diagnostico}`);
+    if (data.dias_gestacao) obsParts.push(`Dias Gestação: ${data.dias_gestacao}`);
+    if (data.sexo_cria) obsParts.push(`Sexo da Cria: ${data.sexo_cria}`);
+    if (data.id_cria) obsParts.push(`ID da Cria: ${data.id_cria}`);
+    if (data.observacoes) obsParts.push(data.observacoes);
+
     const payload = {
       animal_id: data.animal_id,
       tipo_evento: data.tipo_evento,
       data_evento: data.data_evento,
-      resultado: data.resultado,
-      touro: data.touro,
-      ecc: data.ecc ? parseFloat(data.ecc) : null,
-      observacoes: data.observacoes,
+      resultado: data.resultado || data.resultado_diagnostico,
+      observacoes: obsParts.join(' | '),
       status: data.status
     };
 
-    saveReproMutation.mutate(payload);
+    saveReproMutation.mutate({
+      reproPayload: payload,
+      animalId: data.animal_id,
+      resultado: data.resultado || data.resultado_diagnostico,
+      produtos: data.produtos || []
+    });
   };
 
   const batchSaveReproMutation = useMutation({
@@ -155,6 +258,11 @@ export const ReproductionManagement: React.FC = () => {
 
   const deleteReproMutation = useMutation({
     mutationFn: async (id: string) => {
+      // 1. Apaga sanidades geradas
+      await supabase.from('sanidade').delete().like('observacao', `%[REF:${id}]%`);
+      // 2. Apaga movimentações de estoque geradas
+      await supabase.from('movimentacoes_estoque').delete().like('origem_destino', `%[REF:${id}]%`);
+      // 3. Por fim apaga o evento
       const { error } = await supabase.from('eventos_reprodutivos').delete().eq('id', id);
       if (error) throw error;
     },
@@ -169,7 +277,6 @@ export const ReproductionManagement: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     const isConfirmed = await confirm({ title: 'Atenção', description: 'Deseja excluir este evento?', confirmText: 'Confirmar', cancelText: 'Cancelar', variant: 'danger' });
-    if (!isConfirmed) return;
     deleteReproMutation.mutate(id);
   };
 
