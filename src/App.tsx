@@ -16,6 +16,7 @@ import { TenantRegistration } from './pages/Auth/TenantRegistration';
 import { RoleSelector } from './pages/Auth/RoleSelector';
 import { ErrorBoundary } from './components/Feedback/ErrorBoundary';
 import { LoadingSkeleton } from './components/Feedback/LoadingSkeleton';
+import { ModuleErrorBoundary } from './components/Feedback/ModuleErrorBoundary';
 
 import { MFAEnroll } from './pages/Auth/MFAEnroll';
 import { MFAGuard } from './components/Guards/MFAGuard';
@@ -212,7 +213,13 @@ function AppContent() {
           <Route index element={<RootIndex />} />
             
             <Route element={isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />}>
-              <Route path="admin" element={<PermissionGuard permission="admin"><Outlet/></PermissionGuard>}>
+              <Route path="admin" element={
+                <PermissionGuard permission="admin">
+                  <ModuleErrorBoundary moduleName="Administração">
+                    <Outlet/>
+                  </ModuleErrorBoundary>
+                </PermissionGuard>
+              }>
                 <Route path="usuarios" element={<UserManagement />} />
                 <Route path="perfil" element={<ProfilePage />} />
                 <Route path="config" element={<CompanyManagement />} />
@@ -223,14 +230,26 @@ function AppContent() {
                 <Route path="aprovacoes" element={<ApprovalCenter />} />
               </Route>
               
-              <Route path="mercado" element={<PermissionGuard permission="mercado"><Outlet/></PermissionGuard>}>
+              <Route path="mercado" element={
+                <PermissionGuard permission="mercado">
+                  <ModuleErrorBoundary moduleName="Mercado">
+                    <Outlet/>
+                  </ModuleErrorBoundary>
+                </PermissionGuard>
+              }>
                 <Route path="indicadores" element={<MarketIntelligenceDashboard />} />
                 <Route path="analise" element={<MarketAdvancedAnalytics />} />
                 <Route path="sazonalidade" element={<MarketSeasonality />} />
                 <Route path="b3" element={<MarketB3Calculator />} />
               </Route>
               
-              <Route path="pecuaria" element={<PermissionGuard permission="pecuaria"><Outlet/></PermissionGuard>}>
+              <Route path="pecuaria" element={
+                <PermissionGuard permission="pecuaria">
+                  <ModuleErrorBoundary moduleName="Pecuária">
+                    <Outlet/>
+                  </ModuleErrorBoundary>
+                </PermissionGuard>
+              }>
                 <Route path="dashboard" element={<PermissionGuard permission="pecuaria_dashboard"><LivestockDashboard /></PermissionGuard>} />
                 <Route path="animal" element={<PermissionGuard permission="pecuaria_animais"><AnimalManagement /></PermissionGuard>} />
                 <Route path="romaneios" element={<PermissionGuard permission="pecuaria_animais"><RomaneioManagement /></PermissionGuard>} />
@@ -244,7 +263,13 @@ function AppContent() {
                 <Route path="confinamento" element={<PermissionGuard permission="pecuaria_animais"><ConfinementManagement /></PermissionGuard>} />
               </Route>
 
-              <Route path="financeiro" element={<PermissionGuard permission="financeiro"><Outlet/></PermissionGuard>}>
+              <Route path="financeiro" element={
+                <PermissionGuard permission="financeiro">
+                  <ModuleErrorBoundary moduleName="Financeiro">
+                    <Outlet/>
+                  </ModuleErrorBoundary>
+                </PermissionGuard>
+              }>
                 <Route path="intelligence" element={<PermissionGuard permission="financeiro_dashboard"><FinanceIntelligenceHub /></PermissionGuard>} />
                 <Route path="contas" element={<PermissionGuard permission="financeiro_bancos"><BankAccounts /></PermissionGuard>} />
                 <Route path="fluxo" element={<CashFlow />} />
@@ -254,14 +279,26 @@ function AppContent() {
                 <Route path="lcdpr" element={<LCDPRPage />} />
               </Route>
               
-              <Route path="frota" element={<PermissionGuard permission="frota"><Outlet/></PermissionGuard>}>
+              <Route path="frota" element={
+                <PermissionGuard permission="frota">
+                  <ModuleErrorBoundary moduleName="Frota">
+                    <Outlet/>
+                  </ModuleErrorBoundary>
+                </PermissionGuard>
+              }>
                 <Route path="dashboard" element={<FleetDashboard />} />
                 <Route path="maquina" element={<FleetManagement />} />
                 <Route path="abastecimento" element={<PermissionGuard permission="frota_abastecimento"><FuelManagement /></PermissionGuard>} />
                 <Route path="manutencao" element={<PermissionGuard permission="frota_manutencao"><MaintenanceManagement /></PermissionGuard>} />
               </Route>
 
-              <Route path="estoque" element={<PermissionGuard permission="logistica"><Outlet/></PermissionGuard>}>
+              <Route path="estoque" element={
+                <PermissionGuard permission="logistica">
+                  <ModuleErrorBoundary moduleName="Estoque">
+                    <Outlet/>
+                  </ModuleErrorBoundary>
+                </PermissionGuard>
+              }>
                 <Route path="dashboard" element={<InventoryDashboard />} />
                 <Route path="insumo" element={<PermissionGuard permission="logistica_armazens"><InventoryManagement /></PermissionGuard>} />
                 <Route path="deposito" element={<PermissionGuard permission="logistica_armazens"><WarehouseManagement /></PermissionGuard>} />
@@ -270,7 +307,13 @@ function AppContent() {
                 <Route path="inventario" element={<AuditManagement />} />
               </Route>
               
-              <Route path="compras" element={<PermissionGuard permission="compras"><Outlet/></PermissionGuard>}>
+              <Route path="compras" element={
+                <PermissionGuard permission="compras">
+                  <ModuleErrorBoundary moduleName="Compras">
+                    <Outlet/>
+                  </ModuleErrorBoundary>
+                </PermissionGuard>
+              }>
                 <Route path="dashboard" element={<PurchasingDashboard />} />
                 <Route path="solicitacao" element={<PermissionGuard permission="compras_pedidos"><PurchaseRequest /></PermissionGuard>} />
                 <Route path="cotacao" element={<PermissionGuard permission="compras_pedidos"><QuotationMap /></PermissionGuard>} />
@@ -279,7 +322,13 @@ function AppContent() {
                 <Route path="fornecedores" element={<PermissionGuard permission="compras_fornecedores"><SupplierManagement /></PermissionGuard>} />
               </Route>
               
-              <Route path="vendas" element={<PermissionGuard permission="comercial"><Outlet/></PermissionGuard>}>
+              <Route path="vendas" element={
+                <PermissionGuard permission="comercial">
+                  <ModuleErrorBoundary moduleName="Vendas">
+                    <Outlet/>
+                  </ModuleErrorBoundary>
+                </PermissionGuard>
+              }>
                 <Route path="dashboard" element={<SalesDashboard />} />
                 <Route path="parceiros" element={<PermissionGuard permission="comercial_clientes"><ClientManagement /></PermissionGuard>} />
                 <Route path="pedido" element={<PermissionGuard permission="comercial_pedidos"><SalesOrders /></PermissionGuard>} />
