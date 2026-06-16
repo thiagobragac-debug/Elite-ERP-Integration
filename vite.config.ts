@@ -87,6 +87,6 @@ export default defineConfig({
   },
   // Remove console.log em produção
   esbuild: {
-    drop: import.meta.env.PROD ? ['console', 'debugger'] : [],
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
   },
 })
