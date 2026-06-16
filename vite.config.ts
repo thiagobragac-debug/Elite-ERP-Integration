@@ -10,11 +10,37 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Configuração de cache otimizada
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-api',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 5 * 60, // 5 minutos
+              },
+              networkTimeoutSeconds: 10,
+            },
+          },
+          {
+            urlPattern: /^https:\/\/.*\.(png|jpg|jpeg|svg|gif|webp)$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 dias
+              },
+            },
+          },
+        ],
       },
       manifest: {
-        name: "Elite ERP Agropecuário",
-        short_name: "Elite ERP",
+        name: "Tauze ERP - Sistema de Gestão Agropecuária",
+        short_name: "Tauze ERP",
         description: "Sistema de Gestão SaaS Agropecuária com suporte offline",
         start_url: "/",
         display: "standalone",
@@ -31,8 +57,36 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    // Otimizações de build
+    target: 'es2020',
+    minify: 'esbuild',
+    cssMinify: true,
+    sourcemap: false, // Desabilitar em produção
+    rollupOptions: {
+      output: {
+        // Manual chunks para melhor caching
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['lucide-react', 'framer-motion'],
+          'vendor-data': ['@tanstack/react-query', '@supabase/supabase-js'],
+          'vendor-charts': ['recharts'],
+          'vendor-maps': ['leaflet', 'react-leaflet'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 600, // Avisar se chunks > 600KB
+  },
   server: {
     host: true,
-    port: 5173
-  }
+    port: 5173,
+    // Hot reload otimizado
+    hmr: {
+      overlay: true,
+    },
+  },
+  // Remove console.log em produção
+  esbuild: {
+    drop: import.meta.env.PROD ? ['console', 'debugger'] : [],
+  },
 })

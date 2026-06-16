@@ -2,23 +2,24 @@ import React, { createContext, useContext } from 'react';
 import { QueryClient, QueryClientProvider as TanstackQueryProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
-// Configure a global QueryClient
+// Configuração otimizada do QueryClient
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // 5 minutes stale time. Data won't be refetched in background during this window
-      // unless specifically invalidated (e.g., by Live Sync)
-      staleTime: 1000 * 60 * 5, 
-      // Cache remains in memory for 24 hours if unused
-      gcTime: 1000 * 60 * 60 * 24,
-      // In case of network errors, retry up to 3 times before failing
-      retry: 3,
-      // Refetch when the window regains focus (excellent for dashboard/SaaS apps)
-      refetchOnWindowFocus: true,
-      // Keep fetching even if offline, let the Offline Mode queue handle the actual persistence later
+      // 5 minutos de stale time - dados não serão refetchados nesse período
+      staleTime: 1000 * 60 * 5,
+      // Cache permanece na memória por 30 minutos (otimizado de 24h)
+      gcTime: 1000 * 60 * 30,
+      // Reduzido para 1 retry (mais rápido em caso de erro)
+      retry: 1,
+      retryDelay: 1000,
+      // Desabilitado em produção para evitar refetches excessivos
+      refetchOnWindowFocus: import.meta.env.DEV,
+      // Offline-first para áreas rurais
       networkMode: 'offlineFirst',
     },
     mutations: {
+      retry: 0, // Mutations não devem ser retentadas automaticamente
       networkMode: 'offlineFirst',
     }
   },
@@ -28,11 +29,16 @@ export const QueryProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <TanstackQueryProvider client={queryClient}>
       {children}
-      {/* Devtools are automatically excluded in production builds */}
-      {/* <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" /> */}
+      {/* DevTools apenas em desenvolvimento */}
+      {import.meta.env.DEV && (
+        <ReactQueryDevtools 
+          initialIsOpen={false} 
+          position="bottom-right"
+        />
+      )}
     </TanstackQueryProvider>
   );
 };
 
-// Export the queryClient instance so we can manually invalidate caches from anywhere
+// Export do queryClient para invalidações manuais
 export { queryClient };

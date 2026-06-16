@@ -1,0 +1,28 @@
+# Build outputs
+dist
+dist-ssr
+build
+coverage
+
+# Dependencies
+node_modules
+
+# Generated files
+*.min.js
+*.map
+package-lock.json
+
+# Version control
+.git
+
+# Environment
+.env
+.env.*
+
+# Cache
+.cache
+.vscode
+.idea
+
+# Scratch files
+scratch/

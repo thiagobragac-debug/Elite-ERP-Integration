@@ -15,6 +15,7 @@ import { Login } from './pages/Auth/Login';
 import { TenantRegistration } from './pages/Auth/TenantRegistration';
 import { RoleSelector } from './pages/Auth/RoleSelector';
 import { ErrorBoundary } from './components/Feedback/ErrorBoundary';
+import { LoadingSkeleton } from './components/Feedback/LoadingSkeleton';
 
 import { MFAEnroll } from './pages/Auth/MFAEnroll';
 import { MFAGuard } from './components/Guards/MFAGuard';
@@ -180,8 +181,8 @@ function AppContent() {
   return (
     <Router>
       <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
-      <React.Suspense fallback={<div style={{padding: '2rem'}}>Carregando módulo Tauze...</div>}>
-        <React.Suspense fallback={<div className="loading-overlay" style={{display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--primary)"}}>Carregando módulo...</div>}><React.Suspense fallback={<div className="loading-overlay" style={{display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "var(--primary)"}}>Carregando módulo...</div>}><Routes>
+      <React.Suspense fallback={<LoadingSkeleton />}>
+        <Routes>
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" replace />} />
           <Route path="/cadastro" element={!isAuthenticated ? <TenantRegistration /> : <Navigate to="/" replace />} />
           <Route path="/mfa-enroll" element={isAuthenticated ? <MFAEnroll /> : <Navigate to="/login" replace />} />
@@ -198,7 +199,7 @@ function AppContent() {
               <MFAGuard>
                 <SuperAdminGuard>
                   <SaaSLayout>
-                    <React.Suspense fallback={<div>Carregando SaaS...</div>}>
+                    <React.Suspense fallback={<LoadingSkeleton message="Carregando painel SaaS..." />}>
                       <SaaSAdminPanel />
                     </React.Suspense>
                   </SaaSLayout>
@@ -296,7 +297,7 @@ function AppContent() {
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes></React.Suspense></React.Suspense>
+        </Routes>
       </React.Suspense>
     </Router>
   );
