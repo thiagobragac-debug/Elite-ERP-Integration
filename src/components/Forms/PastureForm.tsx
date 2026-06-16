@@ -176,7 +176,7 @@ export const PastureForm: React.FC<PastureFormProps> = ({isOpen, onClose, onSubm
               type="text" 
               placeholder="Ex: P-01 (Maternidade), Piquete 05..." 
               value={formData.nome}
-              onChange={(e) => setFormData({...formData, nome: e.target.value})}
+              onChange={(e) => setFormData({...formData, nome: e.target.value.toUpperCase()})}
               required 
             />
           </div>

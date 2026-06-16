@@ -241,7 +241,7 @@ export const LotForm: React.FC<LotFormProps> = ({isOpen, onClose, onSubmit, init
               type="text" 
               placeholder="Ex: LOTE-ENGORDA-01" 
               value={formData.nome}
-              onChange={(e) => setFormData({...formData, nome: e.target.value})}
+              onChange={(e) => setFormData({...formData, nome: e.target.value.toUpperCase()})}
               required 
             />
           </div>

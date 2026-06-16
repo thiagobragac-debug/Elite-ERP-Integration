@@ -288,7 +288,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({isOpen, onClose, onSubm
                   type="text" 
                   placeholder="Ex: Trator 01..." 
                   value={formData.nome}
-                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                  onChange={(e) => setFormData({...formData, nome: e.target.value.toUpperCase()})}
                   required 
                 />
               </div>
@@ -532,7 +532,7 @@ export const MachineForm: React.FC<MachineFormProps> = ({isOpen, onClose, onSubm
                   type="text" 
                   placeholder="ABC-1234" 
                   value={formData.placa}
-                  onChange={(e) => setFormData({...formData, placa: e.target.value})}
+                  onChange={(e) => setFormData({...formData, placa: e.target.value.toUpperCase()})}
                 />
               </div>
 

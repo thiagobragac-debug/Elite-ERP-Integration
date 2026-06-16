@@ -289,7 +289,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({isOpen, onClose, onSubm
               type="text" 
               placeholder={formData.tipo === 'servico' ? "Ex: Mão de Obra, Consultoria, Frete..." : "Ex: Milho, NPK, Ivermectina..."}
               value={formData.nome}
-              onChange={(e) => setFormData({...formData, nome: e.target.value})}
+              onChange={(e) => setFormData({...formData, nome: e.target.value.toUpperCase()})}
               required 
             />
           </div>

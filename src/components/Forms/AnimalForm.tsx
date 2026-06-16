@@ -346,7 +346,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
               type="text" 
               placeholder="Ex: 1234-A" 
               value={formData.brinco}
-              onChange={(e) => setFormData({...formData, brinco: e.target.value})}
+              onChange={(e) => setFormData({...formData, brinco: e.target.value.toUpperCase()})}
               required 
             />
           </div>
@@ -527,8 +527,8 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
           <div className="tauze-section-badge">PASSO 03</div>
           <h4 className="tauze-section-title">Origem e Genealogia</h4>
         </div>
-        <div className="tauze-input-grid grid-col-3">
-          <div className="tauze-field-group" style={{ gridColumn: 'span 3' }}>
+        <div className="tauze-input-grid grid-col-4">
+          <div className="tauze-field-group" style={{ gridColumn: 'span 4' }}>
             <label className="tauze-label"><Users size={14} /> Origem do Animal</label>
             <div className="tauze-form-radio-group" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div 
@@ -559,7 +559,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
               type="text" 
               placeholder="Brinco da Matriz" 
               value={formData.mae_brinco}
-              onChange={(e) => setFormData({...formData, mae_brinco: e.target.value})}
+              onChange={(e) => setFormData({...formData, mae_brinco: e.target.value.toUpperCase()})}
             />
           </div>
 
@@ -570,7 +570,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
               type="text" 
               placeholder="Brinco do Reprodutor" 
               value={formData.pai_brinco}
-              onChange={(e) => setFormData({...formData, pai_brinco: e.target.value})}
+              onChange={(e) => setFormData({...formData, pai_brinco: e.target.value.toUpperCase()})}
             />
           </div>
 
@@ -596,7 +596,7 @@ export const AnimalForm: React.FC<AnimalFormProps> = ({ isOpen, onClose, onSubmi
 
           <div className="tauze-field-group">
             <label className="tauze-label">
-              <DollarSign size={14} /> Valor de Venda Planejada/Real (R$)
+              <DollarSign size={14} /> Valor de Venda (R$)
             </label>
             <input 
               className="tauze-input"
