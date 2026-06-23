@@ -1569,9 +1569,9 @@ select {
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   width: 100%;
-  margin-bottom: 24px; /* Reduzido de 64px para 24px */
+  margin-bottom: 12px; /* Adjusted to 12px to compensate for 12px padding, making visual gap exactly 24px */
   position: relative;
-  padding-bottom: 12px; /* Reduzido de 32px para 12px */
+  padding-bottom: 12px;
 }
 
 .next-gen-kpi-grid::after {
