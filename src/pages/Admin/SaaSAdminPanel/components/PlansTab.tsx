@@ -16,7 +16,10 @@ import {
   Zap,
   Trash2,
   DollarSign,
-  Star
+  Star,
+  Map,
+  Building2,
+  Activity
 } from 'lucide-react';
 import { EmptyState } from '../../../../components/Feedback/EmptyState';
 import { ModernTable } from '../../../../components/DataTable/ModernTable';
@@ -321,6 +324,39 @@ export const PlansTab: React.FC<PlansTabProps> = ({
                   <Users size={14} style={{ color: 'hsl(var(--muted-foreground))' }} />
                   <span style={{ color: 'hsl(var(--foreground))', fontWeight: '500' }}>
                     {p.users_limit || 'Ilimitados'}
+                  </span>
+                </div>
+              ),
+            },
+            {
+              header: 'Limite Animais',
+              accessor: (p: any) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Activity size={14} style={{ color: 'hsl(var(--muted-foreground))' }} />
+                  <span style={{ color: 'hsl(var(--foreground))', fontWeight: '500' }}>
+                    {p.animals_limit || 'Ilimitados'}
+                  </span>
+                </div>
+              ),
+            },
+            {
+              header: 'Limite Fazendas',
+              accessor: (p: any) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Map size={14} style={{ color: 'hsl(var(--muted-foreground))' }} />
+                  <span style={{ color: 'hsl(var(--foreground))', fontWeight: '500' }}>
+                    {p.farms_limit || 'Ilimitadas'}
+                  </span>
+                </div>
+              ),
+            },
+            {
+              header: 'Limite Empresa',
+              accessor: (p: any) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Building2 size={14} style={{ color: 'hsl(var(--muted-foreground))' }} />
+                  <span style={{ color: 'hsl(var(--foreground))', fontWeight: '500' }}>
+                    {p.companies_limit || 'Ilimitadas'}
                   </span>
                 </div>
               ),

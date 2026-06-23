@@ -15,6 +15,7 @@ import {
   Star,
   PiggyBank,
   DollarSign,
+  Map,
 } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 import { SidePanel } from '../Layout/SidePanel';
@@ -49,6 +50,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
     storageLimit: '',
     animalsLimit: '',
     companiesLimit: '',
+    farmsLimit: '',
     pricePerUserExtra: '',
     pricePerAnimalExtra: '',
     modules: ['Dashboard', 'Administração'] as string[],
@@ -74,6 +76,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
         storageLimit: initialData.storage_gb || '',
         animalsLimit: initialData.animals_limit || '',
         companiesLimit: initialData.companies_limit || '',
+        farmsLimit: initialData.farms_limit || '',
         pricePerUserExtra: initialData.price_per_user_extra || '',
         pricePerAnimalExtra: initialData.price_per_animal_extra || '',
         modules: initialData.modules || ['Dashboard', 'Administração'],
@@ -97,6 +100,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
         storageLimit: '',
         animalsLimit: '',
         companiesLimit: '',
+        farmsLimit: '',
         pricePerUserExtra: '',
         pricePerAnimalExtra: '',
         modules: ['Dashboard', 'Administração'],
@@ -291,10 +295,10 @@ export const PlanForm: React.FC<PlanFormProps> = ({
             <h4 className="tauze-section-title">Regras de Operação</h4>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
             <div className="tauze-field-group">
               <label className="tauze-label">
-                <Users size={14} /> Qtd. de Usuários (Mensal)
+                <Users size={14} /> Qtd. de Usuários
               </label>
               <input
                 className="tauze-input"
@@ -330,6 +334,18 @@ export const PlanForm: React.FC<PlanFormProps> = ({
             </div>
             <div className="tauze-field-group">
               <label className="tauze-label">
+                <Map size={14} /> Qtd. de Fazendas
+              </label>
+              <input
+                className="tauze-input"
+                type="number"
+                value={formData.farmsLimit}
+                onChange={(e) => setFormData({ ...formData, farmsLimit: e.target.value })}
+                placeholder="Ex: 5"
+              />
+            </div>
+            <div className="tauze-field-group">
+              <label className="tauze-label">
                 <HardDrive size={14} /> Storage Base (GB)
               </label>
               <input
@@ -342,41 +358,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
             </div>
           </div>
 
-          {/* Preços de Excedente */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
-            <div className="tauze-field-group">
-              <label className="tauze-label">
-                <Users size={14} /> R$/Usuário Extra (Excedente)
-              </label>
-              <input
-                className="tauze-input"
-                type="number"
-                step="0.01"
-                value={formData.pricePerUserExtra}
-                onChange={(e) => setFormData({ ...formData, pricePerUserExtra: e.target.value })}
-                placeholder="Ex: 15.00"
-              />
-              <span style={{ fontSize: 11, color: 'hsl(var(--text-muted))', marginTop: 4, display: 'block' }}>
-                Cobrado por usuário ativo acima do limite
-              </span>
-            </div>
-            <div className="tauze-field-group">
-              <label className="tauze-label">
-                <Activity size={14} /> R$/Animal Extra (Excedente)
-              </label>
-              <input
-                className="tauze-input"
-                type="number"
-                step="0.01"
-                value={formData.pricePerAnimalExtra}
-                onChange={(e) => setFormData({ ...formData, pricePerAnimalExtra: e.target.value })}
-                placeholder="Ex: 2.50"
-              />
-              <span style={{ fontSize: 11, color: 'hsl(var(--text-muted))', marginTop: 4, display: 'block' }}>
-                Cobrado por animal acima do limite do banco
-              </span>
-            </div>
-          </div>
+
         </section>
 
         {/* FINANCEIRO E GATEWAY */}
@@ -386,7 +368,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
             <h4 className="tauze-section-title">Regras de Cobrança & Integrações</h4>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
             <div className="tauze-field-group">
               <label className="tauze-label">ID do Plano (Stripe)</label>
               <input
