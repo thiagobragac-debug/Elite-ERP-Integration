@@ -92,6 +92,15 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
       setEditingAddon(addon);
       
       let initialType = addon.type;
+      // Normalização de legados no banco de dados
+      if (initialType === 'Módulo') initialType = 'module';
+      if (initialType === 'Serviço/Consultoria') initialType = 'service';
+      if (initialType === 'Armazenamento') initialType = 'storage_gb';
+      if (initialType === 'Recurso/Usuários') {
+        if (addon.metadata?.animals) initialType = 'animals';
+        else initialType = 'users';
+      }
+
       let initialValue = '';
       if (addon.metadata) {
         if ('module_id' in addon.metadata) {
@@ -483,16 +492,6 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
               required
             />
           </div>
-          <div className="tauze-field-group">
-            <label style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>DESCRIÇÃO</label>
-            <textarea 
-              className="tauze-input" 
-              value={formData.description} 
-              onChange={e => setFormData({ ...formData, description: e.target.value })} 
-              placeholder="Descreva o que o cliente ganha ao assinar..."
-              style={{ minHeight: '80px' }}
-            />
-          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
             <div className="tauze-field-group">
               <label style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>TIPO DE MÓDULO</label>
@@ -632,6 +631,17 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
                 })
               )}
             </div>
+          </div>
+
+          <div className="tauze-field-group">
+            <label style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>DESCRIÇÃO</label>
+            <textarea 
+              className="tauze-input" 
+              value={formData.description} 
+              onChange={e => setFormData({ ...formData, description: e.target.value })} 
+              placeholder="Descreva o que o cliente ganha ao assinar..."
+              style={{ minHeight: '80px' }}
+            />
           </div>
         </div>
       </SidePanel>

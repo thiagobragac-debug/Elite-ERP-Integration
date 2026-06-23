@@ -912,17 +912,30 @@ export const TenantBilling: React.FC = () => {
                     }
 
                     // 2. Ocultar Módulos que já estão inclusos no plano do cliente
-                    if (addon.type === 'module' && addon.metadata?.module_id) {
+                    const typeLower = (addon.type || '').toLowerCase();
+                    if (typeLower === 'module' || typeLower === 'módulo') {
                       const planModules = tenant?.plan_details?.modules;
                       if (planModules === null) {
                         // Plano irrestrito/legado -> Tem acesso a tudo. Não vende módulo extra.
                         return false;
                       } else if (Array.isArray(planModules)) {
-                        const moduleId = addon.metadata.module_id;
-                        const parentModule = moduleId.includes(':') ? moduleId.split(':')[0] : null;
-                        const isAlreadyInPlan = planModules.includes(moduleId) || (parentModule ? planModules.includes(parentModule) : false);
-                        if (isAlreadyInPlan) {
-                          return false; // Esconde se já possui
+                        // Se tiver module_id
+                        if (addon.metadata?.module_id) {
+                          const moduleId = addon.metadata.module_id;
+                          const parentModule = moduleId.includes(':') ? moduleId.split(':')[0] : null;
+                          const isAlreadyInPlan = planModules.includes(moduleId) || (parentModule ? planModules.includes(parentModule) : false);
+                          if (isAlreadyInPlan) {
+                            return false; // Esconde se já possui
+                          }
+                        } else {
+                          // Fallback heurístico pelo nome do addon
+                          const nameLower = addon.name.toLowerCase();
+                          if (nameLower.includes('b.i') || nameLower.includes('analytics') || nameLower.includes('bi ')) {
+                            // Assumimos que 'Dashboard' ou 'Intelligence Hub' cobre BI
+                            if (planModules.includes('Dashboard') || planModules.includes('Intelligence Hub')) {
+                              return false;
+                            }
+                          }
                         }
                       }
                     }
