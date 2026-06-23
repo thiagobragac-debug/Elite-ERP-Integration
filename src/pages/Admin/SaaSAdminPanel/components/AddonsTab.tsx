@@ -35,16 +35,20 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
     description: string;
     type: string;
     price: string;
+    original_price: string;
     billing_cycle: string;
     addition_value: string;
+    combo_modules: string[];
     eligible_plans: string[];
   }>({
     name: '',
     description: '',
     type: 'module',
     price: '',
+    original_price: '',
     billing_cycle: 'monthly',
     addition_value: '',
+    combo_modules: [],
     eligible_plans: [],
   });
 
@@ -101,11 +105,16 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
         else initialType = 'users';
       }
 
-      let initialValue = '';
+      let initialComboModules: string[] = [];
+      let initialOriginalPrice = '';
+
       if (addon.metadata) {
         if ('module_id' in addon.metadata) {
           initialType = 'module';
           initialValue = addon.metadata.module_id;
+        } else if ('combo_modules' in addon.metadata) {
+          initialType = 'combo';
+          initialComboModules = addon.metadata.combo_modules || [];
         } else if ('users' in addon.metadata) {
           initialType = 'users';
           initialValue = addon.metadata.users?.toString() || '';
@@ -118,6 +127,10 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
         } else if (addon.metadata.addition_value) {
           initialValue = addon.metadata.addition_value?.toString() || '';
         }
+
+        if (addon.metadata.original_price) {
+          initialOriginalPrice = addon.metadata.original_price.toString();
+        }
       }
 
       setFormData({
@@ -125,8 +138,10 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
         description: addon.description || '',
         type: initialType,
         price: addon.price.toString(),
+        original_price: initialOriginalPrice,
         billing_cycle: addon.billing_cycle,
         addition_value: initialValue,
+        combo_modules: initialComboModules,
         eligible_plans: addon.metadata?.eligible_plans || [],
       });
     } else {
@@ -136,8 +151,10 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
         description: '',
         type: 'module',
         price: '',
+        original_price: '',
         billing_cycle: 'monthly',
         addition_value: '',
+        combo_modules: [],
         eligible_plans: [],
       });
     }
@@ -157,6 +174,12 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
         metadata = { [formData.type]: parseInt(formData.addition_value, 10) };
       } else if (formData.type === 'module' && formData.addition_value) {
         metadata = { module_id: formData.addition_value };
+      } else if (formData.type === 'combo' && formData.combo_modules.length > 0) {
+        metadata = { combo_modules: formData.combo_modules };
+      }
+
+      if (formData.original_price && parseFloat(formData.original_price) > 0) {
+        metadata.original_price = parseFloat(formData.original_price);
       }
 
       if (formData.eligible_plans.length > 0) {
@@ -497,6 +520,7 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
               <label style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>TIPO DE MÓDULO</label>
               <select className="tauze-input" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
                 <option value="module">Módulo Adicional do Sistema</option>
+                <option value="combo">Combo de Módulos</option>
                 <option value="users">Pacote de Usuários Extras</option>
                 <option value="animals">Pacote de Animais Extras</option>
                 <option value="storage_gb">Pacote de Armazenamento (GB)</option>
@@ -511,8 +535,22 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
                 <option value="one_time">Taxa Única</option>
               </select>
             </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="tauze-field-group">
-              <label style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>PREÇO (R$)</label>
+              <label style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>PREÇO ORIGINAL (DE) <span style={{fontWeight: 400}}>(Opcional)</span></label>
+              <input 
+                className="tauze-input" 
+                type="number" 
+                step="0.01" 
+                value={formData.original_price} 
+                onChange={e => setFormData({ ...formData, original_price: e.target.value })} 
+                placeholder="0.00" 
+              />
+            </div>
+            <div className="tauze-field-group">
+              <label style={{ fontSize: '11px', fontWeight: 800, color: 'hsl(var(--text-muted))' }}>PREÇO FINAL (POR)</label>
               <input 
                 className="tauze-input" 
                 type="number" 
