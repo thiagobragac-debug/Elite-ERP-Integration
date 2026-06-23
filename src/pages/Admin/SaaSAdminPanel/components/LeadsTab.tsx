@@ -242,7 +242,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '24px' }}
+      style={{ width: '100%', display: 'flex', flexDirection: 'column' }}
     >
       {/* Cards de Métricas de Leads */}
       <div className="next-gen-kpi-grid">
