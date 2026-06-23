@@ -94,12 +94,11 @@ export const useSaaSAdminTenants = (
   const handleSaveTenant = async (data: any) => {
     try {
       const tenantData: any = {
-        ativo: data.status === 'Ativo',
         status: data.status,
         email: data.email,
-        documento: data.cnpj,
         nome: data.name,
         plano: data.plan,
+        settings: data.settings,
       };
 
       // Atualiza gateway_ids apenas se algum Customer ID foi informado manualmente
