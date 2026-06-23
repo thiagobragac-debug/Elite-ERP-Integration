@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, Save, AlertTriangle, Eye, Plus, Trash2 } from 'lucide-react';
+import { LogIn, Save, BarChart2, Eye, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../../../../lib/supabase';
 import { useSystemSettings } from '../../../../contexts/SystemSettingsContext';
 import toast from 'react-hot-toast';
@@ -195,7 +195,7 @@ export const LoginSettingsPage: React.FC = () => {
             <div style={{ padding: '20px 24px', borderBottom: '1px solid hsl(var(--border))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(0,184,101,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: 16 }}>📊</span>
+                  <BarChart2 size={16} color="#00b865" />
                 </div>
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'hsl(var(--text-primary))' }}>KPIs Ilustrativos</div>
@@ -217,7 +217,7 @@ export const LoginSettingsPage: React.FC = () => {
         {/* ── PREVIEW ── */}
         <div style={{ position: 'sticky', top: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'hsl(var(--text-muted))', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Eye size={11} /> PREVIEW AO VIVO
+            <Eye size={11} /> PRÉVIA AO VIVO
           </div>
           <LoginPreview title={loginHeroTitle} subtitle={loginHeroSubtitle} kpis={loginKpis} />
           <p style={{ fontSize: 11, color: 'hsl(var(--text-muted))', marginTop: 12, lineHeight: 1.5, textAlign: 'center' }}>

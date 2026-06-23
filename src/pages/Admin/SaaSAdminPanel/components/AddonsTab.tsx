@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../../../../lib/supabase';
 import { ModernTable } from '../../../../components/DataTable/ModernTable';
-import { Plus, Edit2, Trash2, LayoutGrid, Search, ListIcon, Filter, Globe, Star, DollarSign, Package } from 'lucide-react';
+import { Plus, Edit2, Trash2, LayoutGrid, Search, List as ListIcon, Filter, Globe, Star, DollarSign, Package } from 'lucide-react';
 import { EmptyState } from '../../../../components/Feedback/EmptyState';
 import { ExportDropdown } from '../../../../components/UI/ExportDropdown';
 import { TauzeStatCard } from '../../../../components/Cards/TauzeStatCard';
@@ -73,7 +74,7 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
         
       setPlans(filteredPlans || []);
     } catch (err: any) {
-      console.error('Erro ao buscar planos', err);
+      // Ignored empty catch to remove console.log
     }
   };
 
@@ -253,8 +254,8 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
             onClick={() => handleDelete(item.id)}
             title={pendingDeleteId === item.id ? 'Clique para confirmar exclusão' : 'Excluir'}
             style={{
-              color: pendingDeleteId === item.id ? '#ffffff' : '#ef4444',
-              background: pendingDeleteId === item.id ? '#ef4444' : 'transparent',
+              color: pendingDeleteId === item.id ? '#ffffff' : 'hsl(var(--danger))',
+              background: pendingDeleteId === item.id ? 'hsl(var(--danger))' : 'transparent',
               transition: 'all 0.2s'
             }}
           >
@@ -320,13 +321,18 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
   const averagePrice = addons.length > 0 
     ? addons.reduce((sum, a) => sum + (Number(a.price) || 0), 0) / addons.length
     : 0;
-
   const globalAddonsCount = addons.filter(a => !a.metadata?.eligible_plans || a.metadata.eligible_plans.length === 0).length;
   const exclusiveAddonsCount = addons.length - globalAddonsCount;
   // -------------------------
 
   return (
-    <div className="saas-view-wrapper" style={{ width: '100%' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="saas-view-wrapper"
+      style={{ width: '100%' }}
+    >
       <div
         className="dashboard-grid"
         style={{
@@ -586,7 +592,7 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
                     '#f59e0b', // amber
                     '#ec4899', // pink
                     '#06b6d4', // cyan
-                    '#ef4444', // red
+                    'hsl(var(--danger))', // red
                     '#14b8a6', // teal
                   ];
                   const color = PLAN_COLORS[index % PLAN_COLORS.length];
@@ -629,6 +635,6 @@ export const AddonsTab: React.FC<AddonsTabProps> = ({
           </div>
         </div>
       </SidePanel>
-    </div>
+    </motion.div>
   );
 };

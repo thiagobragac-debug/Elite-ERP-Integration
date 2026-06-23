@@ -14,14 +14,15 @@ import {
   HardDrive,
   Edit2,
   Zap,
-  Trash2
+  Trash2,
+  DollarSign,
+  Star
 } from 'lucide-react';
 import { EmptyState } from '../../../../components/Feedback/EmptyState';
 import { ModernTable } from '../../../../components/DataTable/ModernTable';
 import { filterPlans } from '../utils/saasFilters';
 import { ExportDropdown } from '../../../../components/UI/ExportDropdown';
 import { TauzeStatCard } from '../../../../components/Cards/TauzeStatCard';
-import { DollarSign, Star, TrendingUp } from 'lucide-react';
 
 interface PlansTabProps {
   plansList: any[];
@@ -401,7 +402,7 @@ export const PlansTab: React.FC<PlansTabProps> = ({
 
             return (
               <motion.div
-                key={plan.name}
+                key={plan.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={`tenant-card-premium ${getPlanBadgeClass(plan.name)}`}
@@ -457,7 +458,7 @@ export const PlansTab: React.FC<PlansTabProps> = ({
                         className="tenant-meta-icon"
                         style={{ color: '#f59e0b', marginRight: '8px' }}
                       />
-                      <span>Limite: {plan.users_limit || '∞'} Users</span>
+                      <span>Limite: {plan.users_limit || '∞'} Usuários</span>
                     </div>
                     <div className="tenant-meta-item">
                       <HardDrive
@@ -465,7 +466,7 @@ export const PlansTab: React.FC<PlansTabProps> = ({
                         className="tenant-meta-icon"
                         style={{ color: '#f59e0b', marginRight: '8px' }}
                       />
-                      <span>Storage: {plan.storage_gb || '0'} GB</span>
+                      <span>Armazenamento: {plan.storage_gb || '0'} GB</span>
                     </div>
                     <div className="tenant-meta-item">
                       <CheckCircle

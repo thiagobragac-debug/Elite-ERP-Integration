@@ -26,6 +26,7 @@ import {
   Cell
 } from 'recharts';
 import { TauzeStatCard } from '../../../../components/Cards/TauzeStatCard';
+import { LoadingSkeleton } from '../../../../components/Feedback/LoadingSkeleton';
 
 interface AnalyticsTabProps {
   kpis: {
@@ -36,46 +37,80 @@ interface AnalyticsTabProps {
   };
   tenantsList: any[];
   invoicesList: any[];
+  loading?: boolean;
 }
 
 export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
   kpis,
   tenantsList,
   invoicesList,
+  loading = false,
 }) => {
-  // Estado para simular loading de carregamento dos gráficos (requisito de ter Skeletons)
-  const [isLoading, setIsLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 800);
-    return () => clearTimeout(timer);
+  const pastMonths = React.useMemo(() => {
+    const months = [];
+    const date = new Date();
+    for (let i = 5; i >= 0; i--) {
+      months.push(new Date(date.getFullYear(), date.getMonth() - i, 1));
+    }
+    return months;
   }, []);
 
-  // 1. Dados para Evolução de MRR (últimos 6 meses baseados no MRR atual)
+  const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+  // 1. Dados para Evolução de MRR (últimos 6 meses baseados no histórico de faturas pagas)
   const mrrData = React.useMemo(() => {
-    const currentMRR = kpis.mrr || 150000;
-    const months = ['Dez', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai'];
-    const factors = [0.72, 0.78, 0.83, 0.89, 0.94, 1.0];
-    
-    return months.map((month, idx) => ({
-      name: month,
-      mrr: Math.round(currentMRR * factors[idx]),
-      projetado: Math.round(currentMRR * factors[idx] * 1.08),
-    }));
-  }, [kpis.mrr]);
+    return pastMonths.map((monthDate) => {
+      const year = monthDate.getFullYear();
+      const monthIndex = monthDate.getMonth();
+      
+      const mrrDoMes = invoicesList
+        .filter((inv) => {
+          if (inv.status !== 'pago') return false;
+          if (!inv.created_at) return false;
+          const d = new Date(inv.created_at);
+          return d.getFullYear() === year && d.getMonth() === monthIndex;
+        })
+        .reduce((acc, inv) => acc + (Number(inv.amount) || 0), 0);
+
+      // Projetado: MRR do mês + 8% (exemplo de projeção de funil)
+      const projetado = Math.round(mrrDoMes * 1.08);
+
+      return {
+        name: monthNames[monthIndex],
+        mrr: mrrDoMes,
+        projetado: projetado,
+      };
+    });
+  }, [invoicesList, pastMonths]);
 
   // 2. Dados para Novos Tenants vs Churn
   const growthData = React.useMemo(() => {
-    const total = tenantsList.length || 120;
-    return [
-      { name: 'Dez', novos: Math.round(total * 0.08), churn: Math.round(total * 0.015) },
-      { name: 'Jan', novos: Math.round(total * 0.1), churn: Math.round(total * 0.02) },
-      { name: 'Fev', novos: Math.round(total * 0.09), churn: Math.round(total * 0.01) },
-      { name: 'Mar', novos: Math.round(total * 0.12), churn: Math.round(total * 0.022) },
-      { name: 'Abr', novos: Math.round(total * 0.14), churn: Math.round(total * 0.018) },
-      { name: 'Mai', novos: Math.round(total * 0.15), churn: Math.round(total * 0.025) },
-    ];
-  }, [tenantsList.length]);
+    return pastMonths.map((monthDate) => {
+      const year = monthDate.getFullYear();
+      const monthIndex = monthDate.getMonth();
+
+      const novos = tenantsList.filter((t) => {
+        if (!t.created_at) return false;
+        const d = new Date(t.created_at);
+        return d.getFullYear() === year && d.getMonth() === monthIndex;
+      }).length;
+
+      // Simplificação de churn: tenants que estão "Suspenso" ou "Inativo" e foram alterados neste mês
+      const churn = tenantsList.filter((t) => {
+        if (t.status === 'Ativo' || t.status === 'Aguardando Pagamento') return false;
+        if (!t.updated_at) return false;
+        const d = new Date(t.updated_at);
+        return d.getFullYear() === year && d.getMonth() === monthIndex;
+      }).length;
+
+      return {
+        name: monthNames[monthIndex],
+        novos,
+        churn,
+      };
+    });
+  }, [tenantsList, pastMonths]);
 
   // 3. Distribuição por Plano
   const planData = React.useMemo(() => {
@@ -95,17 +130,23 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
 
   // KPI Adicionais calculados
   const additionalKPIs = React.useMemo(() => {
-    const activeTenants = tenantsList.filter(t => t.status?.toLowerCase() === 'ativo').length || 1;
-    const ticketMedio = kpis.mrr / activeTenants;
-    const churnEstimado = 1.8; // % ao mês
-    const ltv = ticketMedio / (churnEstimado / 100);
+    const activeTenantsCount = tenantsList.filter(t => t.status?.toLowerCase() === 'ativo').length || 1;
+    const ticketMedio = kpis.mrr / activeTenantsCount;
+    
+    // Churn Estimado Baseado no último mês cheio (ou simplificado)
+    const currentMonthData = growthData[growthData.length - 1];
+    const churnEstimado = currentMonthData && activeTenantsCount > 0 
+      ? (currentMonthData.churn / activeTenantsCount) * 100 
+      : 1.8; // Fallback para 1.8%
+
+    const ltv = churnEstimado > 0 ? ticketMedio / (churnEstimado / 100) : ticketMedio * 12;
 
     return {
       ticketMedio,
       ltv,
       churnEstimado
     };
-  }, [kpis.mrr, tenantsList]);
+  }, [kpis.mrr, tenantsList, growthData]);
 
   // Render Tooltip personalizada
   const renderCustomTooltip = ({ active, payload, label }: any) => {
@@ -124,7 +165,7 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
           </p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ margin: '4px 0', fontSize: '13px', fontWeight: 800, color: entry.color || '#fff' }}>
-              {entry.name}: {entry.value.toLocaleString('pt-BR', { style: entry.name.includes('MRR') ? 'currency' : 'decimal', currency: 'BRL', minimumFractionDigits: 0 })}
+              {entry.name}: {entry.value.toLocaleString('pt-BR', { style: entry.name?.includes('MRR') ? 'currency' : 'decimal', currency: 'BRL', minimumFractionDigits: 0 })}
             </p>
           ))}
         </div>
@@ -133,23 +174,24 @@ export const AnalyticsTab: React.FC<AnalyticsTabProps> = ({
     return null;
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="saas-view" style={{ width: '100%' }}>
         {/* Loading Skeletons */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="glassmorphism-card animate-pulse" style={{ height: '115px', borderRadius: '16px', background: 'hsl(var(--bg-card) / 0.4)' }}>
-              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ width: '80px', height: '12px', background: 'hsl(var(--border))', borderRadius: '4px' }} />
-                <div style={{ width: '120px', height: '24px', background: 'hsl(var(--border))', borderRadius: '6px', marginTop: '8px' }} />
-              </div>
+            <div key={i} style={{ height: '115px' }}>
+              <LoadingSkeleton variant="card" />
             </div>
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-          <div className="glassmorphism-card" style={{ height: '360px', borderRadius: '16px', background: 'hsl(var(--bg-card) / 0.4)' }} />
-          <div className="glassmorphism-card" style={{ height: '360px', borderRadius: '16px', background: 'hsl(var(--bg-card) / 0.4)' }} />
+          <div style={{ height: '360px' }}>
+            <LoadingSkeleton variant="card" />
+          </div>
+          <div style={{ height: '360px' }}>
+            <LoadingSkeleton variant="card" />
+          </div>
         </div>
       </div>
     );

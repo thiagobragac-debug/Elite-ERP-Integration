@@ -69,7 +69,7 @@ const PreviewFaq: React.FC<{ items: any[] }> = ({ items }) => (
   </div>
 );
 
-const PreviewFooter: React.FC<{ whatsapp: string }> = ({ whatsapp }) => (
+const PreviewFooter: React.FC<{ whatsapp: string; systemName: string }> = ({ whatsapp, systemName }) => (
   <div style={{ padding: '40px 20px', background: '#05080f', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
       <div style={{ width: 80, height: 24, background: 'rgba(255,255,255,0.1)', borderRadius: 4 }} />
@@ -78,7 +78,7 @@ const PreviewFooter: React.FC<{ whatsapp: string }> = ({ whatsapp }) => (
         <div style={{ width: 24, height: 24, background: 'rgba(255,255,255,0.1)', borderRadius: 4 }} />
       </div>
     </div>
-    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>© 2026 Tauze ERP. Todos os direitos reservados.</div>
+    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>© {new Date().getFullYear()} {systemName || 'Tauze ERP'}. Todos os direitos reservados.</div>
   </div>
 );
 
@@ -162,9 +162,11 @@ export const LandingPageSettings: React.FC = () => {
         updated_at: new Date().toISOString(),
       };
       if (existing) {
-        await supabase.from('system_settings').update(payload).eq('id', existing.id);
+        const { error } = await supabase.from('system_settings').update(payload).eq('id', existing.id);
+        if (error) throw error;
       } else {
-        await supabase.from('system_settings').insert(payload);
+        const { error } = await supabase.from('system_settings').insert(payload);
+        if (error) throw error;
       }
       toast.success('Landing Page atualizada com sucesso!');
       await refreshSettings();
@@ -359,7 +361,7 @@ export const LandingPageSettings: React.FC = () => {
         {/* ── LEFT NAV (BUILDER MENU) ── */}
         <div style={{ background: 'hsl(var(--bg-card))', border: '1px solid hsl(var(--border))', borderRadius: 16, overflow: 'hidden', position: 'sticky', top: 20 }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid hsl(var(--border))' }}>
-            <h4 style={{ fontSize: 12, fontWeight: 800, color: 'hsl(var(--text-muted))', letterSpacing: '0.08em', margin: 0 }}>SITE BUILDER</h4>
+            <h4 style={{ fontSize: 12, fontWeight: 800, color: 'hsl(var(--text-muted))', letterSpacing: '0.08em', margin: 0 }}>CONSTRUTOR DE SITE</h4>
           </div>
           <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {navItems.map(item => {
@@ -424,7 +426,7 @@ export const LandingPageSettings: React.FC = () => {
                   {activeSection === 'features' && <PreviewFeatures />}
                   {activeSection === 'testimonials' && <PreviewTestimonials items={testimonials} />}
                   {activeSection === 'faq' && <PreviewFaq items={faqItems} />}
-                  {activeSection === 'seo' && <PreviewFooter whatsapp={whatsapp} />}
+                  {activeSection === 'seo' && <PreviewFooter whatsapp={whatsapp} systemName={settings.system_name || 'Tauze ERP'} />}
                 </motion.div>
               </AnimatePresence>
             </div>

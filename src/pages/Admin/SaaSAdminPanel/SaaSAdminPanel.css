@@ -986,8 +986,12 @@
 
         .health-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr 1fr !important;
+          grid-template-columns: 1fr 1fr 1fr 1fr;
           gap: 20px;
+        }
+
+        .health-grid.health-grid--two-cols {
+          grid-template-columns: 1fr 1fr;
         }
 
         .health-panel {

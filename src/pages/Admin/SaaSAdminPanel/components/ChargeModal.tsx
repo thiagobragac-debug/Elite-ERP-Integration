@@ -148,7 +148,7 @@ export const ChargeModal: React.FC<ChargeModalProps> = ({
                   width: '44px', height: '44px', borderRadius: '12px',
                   background: 'linear-gradient(135deg, #10b981, #059669)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 4px 12px rgba(16,185,129,0.3)',
+                  boxShadow: '0 4px 12px hsl(var(--success) / 0.3)',
                 }}>
                   <DollarSign size={22} color="white" />
                 </div>
@@ -191,7 +191,7 @@ export const ChargeModal: React.FC<ChargeModalProps> = ({
                   >
                     <option value="">Selecionar parceiro...</option>
                     {tenantsList
-                      .filter(t => t.status === 'Ativo' || t.status === 'Trial')
+                      .filter(t => t.status?.toLowerCase() === 'ativo' || t.status?.toLowerCase() === 'trial')
                       .map(t => (
                         <option key={t.id} value={t.id}>
                           {t.name} — {t.plan || t.plano || 'Starter'}
@@ -294,13 +294,13 @@ export const ChargeModal: React.FC<ChargeModalProps> = ({
                     style={{
                       padding: '12px 16px',
                       borderRadius: '12px',
-                      background: 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(16,185,129,0.03))',
-                      border: '1px solid rgba(16,185,129,0.2)',
+                      background: 'linear-gradient(135deg, hsl(var(--success) / 0.08), hsl(var(--success) / 0.03))',
+                      border: '1px solid hsl(var(--success) / 0.2)',
                       display: 'flex', alignItems: 'center', gap: '10px',
                     }}
                   >
-                    <CheckCircle size={16} color="#10b981" />
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: '#10b981' }}>
+                    <CheckCircle size={16} color="hsl(var(--success))" />
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: 'hsl(var(--success))' }}>
                       Fatura de R$ {Number(form.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} para {selectedTenantName}
                     </span>
                   </motion.div>
@@ -327,18 +327,18 @@ export const ChargeModal: React.FC<ChargeModalProps> = ({
                     style={{
                       flex: 2, padding: '12px', borderRadius: '12px',
                       background: isSaving
-                        ? 'rgba(16,185,129,0.5)'
-                        : 'linear-gradient(135deg, #10b981, #059669)',
+                        ? 'hsl(var(--success) / 0.5)'
+                        : 'hsl(var(--success))',
                       border: 'none',
                       color: 'white',
                       fontSize: '13px', fontWeight: '800', cursor: isSaving ? 'not-allowed' : 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                      boxShadow: isSaving ? 'none' : '0 4px 14px rgba(16,185,129,0.4)',
+                      boxShadow: isSaving ? 'none' : '0 4px 14px hsl(var(--success) / 0.4)',
                       transition: 'all 0.2s',
                     }}
                   >
                     {isSaving ? (
-                      <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Salvando...</>
+                      <><Loader2 size={16} className="animate-spin" /> Salvando...</>
                     ) : (
                       <><DollarSign size={16} /> Criar Fatura</>
                     )}

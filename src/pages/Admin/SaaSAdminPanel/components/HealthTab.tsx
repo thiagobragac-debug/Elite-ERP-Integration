@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Server, RefreshCw, AlertCircle, HardDrive, Database, Zap, ArrowRight } from 'lucide-react';
+import { Activity, Server, RefreshCw, AlertCircle, HardDrive, Database, Zap, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { EmptyState } from '../../../../components/Feedback/EmptyState';
 
 interface HealthTabProps {
   nodesList: any[];
@@ -36,8 +37,6 @@ export const HealthTab: React.FC<HealthTabProps> = ({
   apiQuotaData,
   dbLoadData,
 }) => {
-  const [isRestarting, setIsRestarting] = React.useState(false);
-  const [isClearingCache, setIsClearingCache] = React.useState(false);
   const navigate = useNavigate();
 
   return (
@@ -68,7 +67,7 @@ export const HealthTab: React.FC<HealthTabProps> = ({
               <div className="resource-quotas-grid">
                 {[
                   {
-                    label: 'Database Storage',
+                    label: 'Armazenamento do Banco',
                     used: dbQuotaData.used,
                     total: '10GB',
                     percentage: dbQuotaData.percentage,
@@ -77,7 +76,7 @@ export const HealthTab: React.FC<HealthTabProps> = ({
                     details: `${dbQuotaData.used} usados de 10GB contratados`,
                   },
                   {
-                    label: 'Cloud Attachments',
+                    label: 'Anexos na Nuvem',
                     used: s3QuotaData.used,
                     total: '50GB',
                     percentage: s3QuotaData.percentage,
@@ -205,7 +204,14 @@ export const HealthTab: React.FC<HealthTabProps> = ({
                   </div>
 
                   <div className="node-list-premium">
-                    {nodesList.map((node) => {
+                    {nodesList.length === 0 ? (
+                      <EmptyState
+                        title="Nenhuma instância encontrada"
+                        description="Não há application nodes ativos no momento."
+                        icon={Server}
+                      />
+                    ) : (
+                      nodesList.map((node) => {
                       const isRestarting = node.status === 'restarting';
                       const isClearingCache = node.cacheStatus === 'Limpando...';
                       const isOffline = node.status === 'offline';
@@ -264,7 +270,8 @@ export const HealthTab: React.FC<HealthTabProps> = ({
                           </div>
                         </div>
                       );
-                    })}
+                    })
+                    )}
                   </div>
                 </section>
               </div>

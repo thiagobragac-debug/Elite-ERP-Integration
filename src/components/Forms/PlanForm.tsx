@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { SearchableSelect } from './SearchableSelect';
 import { SidePanel } from '../Layout/SidePanel';
+import { ToggleSwitch } from '../UI/ToggleSwitch';
 import { SAAS_MODULES } from '../../config/saasModules';
 
 interface PlanFormProps {
@@ -181,15 +182,8 @@ export const PlanForm: React.FC<PlanFormProps> = ({
             <h4 className="tauze-section-title">Regras de Venda & Excedente</h4>
           </div>
 
-          <div className="tauze-input-grid grid-col-2" style={{ marginBottom: '24px' }}>
-            <div
-              style={{
-                padding: '16px',
-                borderRadius: '12px',
-                border: '1px solid hsl(var(--border))',
-                background: 'hsl(var(--bg-main))',
-              }}
-            >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))' }}>
               <div
                 style={{
                   display: 'flex',
@@ -210,28 +204,18 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                 >
                   <Globe size={14} color="hsl(var(--brand))" /> Publicar no Site
                 </h5>
-                <label className="tauze-switch">
-                  <input
-                    type="checkbox"
-                    checked={formData.isPublic}
-                    onChange={(e) => setFormData({ ...formData, isPublic: e.target.checked })}
-                  />
-                  <span className="slider round" />
-                </label>
+                <ToggleSwitch
+                  checked={formData.isPublic}
+                  onChange={(val) => setFormData({ ...formData, isPublic: val })}
+                  showStatus={false}
+                />
               </div>
               <p style={{ margin: 0, fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
                 Se ativo, o plano fica visível publicamente na página de Pricing.
               </p>
             </div>
 
-            <div
-              style={{
-                padding: '16px',
-                borderRadius: '12px',
-                border: '1px solid hsl(var(--border))',
-                background: 'hsl(var(--bg-main))',
-              }}
-            >
+            <div style={{ padding: '16px', borderRadius: '12px', border: '1px solid hsl(var(--border))', background: 'hsl(var(--bg-main))' }}>
               <div
                 style={{
                   display: 'flex',
@@ -252,14 +236,11 @@ export const PlanForm: React.FC<PlanFormProps> = ({
                 >
                   <Star size={14} color="hsl(var(--warning))" /> Plano Recomendado
                 </h5>
-                <label className="tauze-switch">
-                  <input
-                    type="checkbox"
-                    checked={formData.isRecommended}
-                    onChange={(e) => setFormData({ ...formData, isRecommended: e.target.checked })}
-                  />
-                  <span className="slider round" />
-                </label>
+                <ToggleSwitch
+                  checked={formData.isRecommended}
+                  onChange={(val) => setFormData({ ...formData, isRecommended: val })}
+                  showStatus={false}
+                />
               </div>
               <p style={{ margin: 0, fontSize: '11px', color: 'hsl(var(--text-muted))' }}>
                 Destaca este plano com o selo "Mais Popular" nas ofertas.
@@ -267,7 +248,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
             </div>
           </div>
 
-          <div className="tauze-input-grid grid-col-2">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="tauze-field-group">
               <label className="tauze-label">
                 <ShieldAlert size={14} /> Política de Excedente (Overage)
@@ -310,7 +291,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
             <h4 className="tauze-section-title">Regras de Operação</h4>
           </div>
 
-          <div className="tauze-input-grid grid-col-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="tauze-field-group">
               <label className="tauze-label">
                 <Users size={14} /> Qtd. de Usuários (Mensal)
@@ -362,7 +343,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
           </div>
 
           {/* Preços de Excedente */}
-          <div className="tauze-input-grid grid-col-2" style={{ marginTop: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
             <div className="tauze-field-group">
               <label className="tauze-label">
                 <Users size={14} /> R$/Usuário Extra (Excedente)
@@ -405,8 +386,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
             <h4 className="tauze-section-title">Regras de Cobrança & Integrações</h4>
           </div>
 
-
-          <div className="tauze-input-grid grid-col-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="tauze-field-group">
               <label className="tauze-label">ID do Plano (Stripe)</label>
               <input
@@ -581,7 +561,7 @@ export const PlanForm: React.FC<PlanFormProps> = ({
             <div className="tauze-section-badge">EXTRAS</div>
             <h4 className="tauze-section-title">Notas Comerciais</h4>
           </div>
-          <div className="tauze-input-grid grid-col-1">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
             <div className="tauze-field-group">
               <label className="tauze-label">
                 <Check size={14} /> Funcionalidades Inclusas (Linha por linha)

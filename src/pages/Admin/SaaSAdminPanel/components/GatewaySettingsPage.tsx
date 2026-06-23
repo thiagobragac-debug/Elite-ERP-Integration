@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CreditCard, ShieldCheck, Edit2, Zap, Eye, EyeOff, Save, RefreshCw, AlertTriangle } from 'lucide-react';
+import { CreditCard, ShieldCheck, Edit2, Zap, Eye, EyeOff, Save, RefreshCw, AlertTriangle, QrCode, ScanLine } from 'lucide-react';
 import { ToggleSwitch } from '../../../../components/UI/ToggleSwitch';
 
 interface GatewaySettingsPageProps {
@@ -20,7 +20,7 @@ export const GatewaySettingsPage: React.FC<GatewaySettingsPageProps> = ({
   const [showAsaasKey, setShowAsaasKey] = useState(false);
   const [showPagarmeKey, setShowPagarmeKey] = useState(false);
 
-  // Check if any gateway is active
+  // Verifica se pelo menos um gateway está ativo
   const hasActiveGateway = gatewaySettings?.stripe?.is_active || gatewaySettings?.asaas?.is_active || gatewaySettings?.pagarme?.is_active;
 
   return (
@@ -83,7 +83,7 @@ export const GatewaySettingsPage: React.FC<GatewaySettingsPageProps> = ({
             {/* Rota: PIX */}
             <div style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: 12, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <div style={{ width: 16, height: 16, background: '#32bcad', mask: 'url(#pix-icon)', maskSize: 'cover', borderRadius: 2 }} />
+                <QrCode size={16} color="#32bcad" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--text-primary))' }}>PIX Instantâneo</span>
               </div>
               <select 
@@ -101,7 +101,7 @@ export const GatewaySettingsPage: React.FC<GatewaySettingsPageProps> = ({
             {/* Rota: Boleto */}
             <div style={{ background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: 12, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect><line x1="7" y1="8" x2="7" y2="16"></line><line x1="11" y1="8" x2="11" y2="16"></line><line x1="15" y1="8" x2="15" y2="16"></line></svg>
+                <ScanLine size={16} color="hsl(var(--text-primary))" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'hsl(var(--text-primary))' }}>Boleto Bancário</span>
               </div>
               <select 
@@ -148,11 +148,11 @@ export const GatewaySettingsPage: React.FC<GatewaySettingsPageProps> = ({
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                       <div className="tauze-field-group">
-                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 8, letterSpacing: '0.05em' }}>PUBLISHABLE KEY</label>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 8, letterSpacing: '0.05em' }}>CHAVE PÚBLICA</label>
                         <input type="text" value={gatewaySettings?.stripe?.api_key || ''} onChange={(e) => updateGatewayField('stripe', 'api_key', e.target.value)} placeholder="pk_live_..." className="tauze-input" style={{ fontFamily: 'monospace', fontSize: 12 }} />
                       </div>
                       <div className="tauze-field-group">
-                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 8, letterSpacing: '0.05em' }}>SECRET KEY</label>
+                        <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 8, letterSpacing: '0.05em' }}>CHAVE SECRETA</label>
                         <div style={{ display: 'flex', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: 8, paddingRight: 8 }}>
                           <input type={showStripeKey ? 'text' : 'password'} value={gatewaySettings?.stripe?.secret_key || ''} onChange={(e) => updateGatewayField('stripe', 'secret_key', e.target.value)} placeholder="sk_live_..." style={{ flex: 1, background: 'transparent', border: 'none', padding: '10px 14px', color: 'hsl(var(--text-primary))', fontFamily: 'monospace', fontSize: 12, outline: 'none' }} />
                           <button type="button" onClick={() => setShowStripeKey(!showStripeKey)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}>
@@ -195,7 +195,7 @@ export const GatewaySettingsPage: React.FC<GatewaySettingsPageProps> = ({
                       </select>
                     </div>
                     <div className="tauze-field-group">
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 8, letterSpacing: '0.05em' }}>API ACCESS TOKEN</label>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 8, letterSpacing: '0.05em' }}>TOKEN DE ACESSO DA API</label>
                       <div style={{ display: 'flex', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: 8, paddingRight: 8 }}>
                         <input type={showAsaasKey ? 'text' : 'password'} value={gatewaySettings?.asaas?.api_key || ''} onChange={(e) => updateGatewayField('asaas', 'api_key', e.target.value)} placeholder="$asaas_..." style={{ flex: 1, background: 'transparent', border: 'none', padding: '10px 14px', color: 'hsl(var(--text-primary))', fontFamily: 'monospace', fontSize: 12, outline: 'none' }} />
                         <button type="button" onClick={() => setShowAsaasKey(!showAsaasKey)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}>
@@ -251,7 +251,7 @@ export const GatewaySettingsPage: React.FC<GatewaySettingsPageProps> = ({
                       </select>
                     </div>
                     <div className="tauze-field-group">
-                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 8, letterSpacing: '0.05em' }}>ENCRYPTION KEY</label>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'hsl(var(--text-muted))', marginBottom: 8, letterSpacing: '0.05em' }}>CHAVE DE CRIPTOGRAFIA</label>
                       <div style={{ display: 'flex', background: 'hsl(var(--bg-main))', border: '1px solid hsl(var(--border))', borderRadius: 8, paddingRight: 8 }}>
                         <input type={showPagarmeKey ? 'text' : 'password'} value={gatewaySettings?.pagarme?.encryption_key || ''} onChange={(e) => updateGatewayField('pagarme', 'encryption_key', e.target.value)} placeholder="ek_live_..." style={{ flex: 1, background: 'transparent', border: 'none', padding: '10px 14px', color: 'hsl(var(--text-primary))', fontFamily: 'monospace', fontSize: 12, outline: 'none' }} />
                         <button type="button" onClick={() => setShowPagarmeKey(!showPagarmeKey)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'hsl(var(--text-muted))' }}>

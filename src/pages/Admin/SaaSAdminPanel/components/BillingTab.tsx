@@ -128,7 +128,7 @@ export const BillingTab: React.FC<BillingTabProps> = ({
                 lineHeight: '1',
               }}
             >
-              {item.tenants?.name || 'Inquilino Desconhecido'}
+              {item.tenants?.name || 'Parceiro Desconhecido'}
             </span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
               <span
@@ -336,7 +336,7 @@ export const BillingTab: React.FC<BillingTabProps> = ({
         className="health-grid"
         style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr 1fr 1fr',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
           gap: '20px',
           marginBottom: '48px',
           marginTop: '10px',

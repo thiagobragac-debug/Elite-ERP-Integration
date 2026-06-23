@@ -4,22 +4,21 @@ import {
   Search,
   LayoutGrid,
   List as ListIcon,
-  Plus,
   CheckCircle,
   Tag,
-  XCircle,
   Filter,
-  FileText,
   Edit3,
   Edit2,
-  Calendar
+  Calendar,
+  Megaphone,
+  Percent,
+  Ticket,
 } from 'lucide-react';
 import { EmptyState } from '../../../../components/Feedback/EmptyState';
 import { ModernTable } from '../../../../components/DataTable/ModernTable';
 import { filterCampaigns } from '../utils/saasFilters';
 import { ExportDropdown } from '../../../../components/UI/ExportDropdown';
 import { TauzeStatCard } from '../../../../components/Cards/TauzeStatCard';
-import { Megaphone, Percent, Ticket } from 'lucide-react';
 
 interface CampaignsTabProps {
   campaignsList: any[];
@@ -91,7 +90,8 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
       });
     }
     return list;
-  }, [campaignsList, searchQuery, filterValues, localStatusFilter]);
+    // Dependência em filteredCampaigns garante que filtros externos + localStatusFilter são aplicados
+  }, [filteredCampaigns, localStatusFilter]);
 
   const campaignColumns = [
     {
@@ -135,7 +135,7 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
       header: 'Início',
       accessor: (item: any) => (
         <span style={{ color: 'hsl(var(--text-main))', fontWeight: 600 }}>
-          {new Date(item.start_date).toLocaleDateString()}
+          {new Date(item.start_date).toLocaleDateString('pt-BR')}
         </span>
       ),
       align: 'center' as const,
@@ -144,7 +144,7 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
       header: 'Fim',
       accessor: (item: any) => (
         <span style={{ color: 'hsl(var(--text-main))', fontWeight: 600 }}>
-          {new Date(item.end_date).toLocaleDateString()}
+          {new Date(item.end_date).toLocaleDateString('pt-BR')}
         </span>
       ),
       align: 'center' as const,
@@ -272,7 +272,7 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
       <div className="management-content">
         {campaignsViewMode === 'list' ? (
           <ModernTable
-            data={filteredCampaigns}
+            data={filteredCampaignsFinal}
             totalCount={totalCount}
             currentPage={page}
             onPageChange={setPage}
@@ -308,7 +308,7 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
           />
         ) : (
           <div className="user-cards-grid">
-            {filteredCampaigns.map((camp) => {
+            {filteredCampaignsFinal.map((camp) => {
               const isExpired = new Date(camp.end_date) < new Date();
               const isActive = camp.is_active && !isExpired;
 
@@ -400,7 +400,7 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
                         }}
                       >
                         <Calendar size={14} style={{ color: 'hsl(var(--text-muted))' }} />
-                        Início: {new Date(camp.start_date).toLocaleDateString()}
+                        Início: {new Date(camp.start_date).toLocaleDateString('pt-BR')}
                       </div>
                       <div
                         className="tenant-meta-item"
@@ -414,7 +414,7 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
                         }}
                       >
                         <Calendar size={14} style={{ color: 'hsl(var(--text-muted))' }} />
-                        Fim: {new Date(camp.end_date).toLocaleDateString()}
+                        Fim: {new Date(camp.end_date).toLocaleDateString('pt-BR')}
                       </div>
                     </div>
                   </div>
@@ -424,8 +424,7 @@ export const CampaignsTab: React.FC<CampaignsTabProps> = ({
           </div>
         )}
       </div>
-      {/* ✅ Bug 4 corrigido: EmptyState padronizado usando o componente correto */}
-      {filteredCampaigns.length === 0 && campaignsViewMode === 'grid' && (
+      {filteredCampaignsFinal.length === 0 && campaignsViewMode === 'grid' && (
         <EmptyState
           title="Nenhuma campanha encontrada"
           description="Não há campanhas que correspondam aos filtros atuais."

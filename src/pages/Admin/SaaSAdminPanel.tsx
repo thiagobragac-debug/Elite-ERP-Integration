@@ -40,6 +40,12 @@ import { BroadcastPage } from './SaaSAdminPanel/components/BroadcastPage';
 import './SaaSAdminPanel/SaaSAdminPanel.css';
 
 export const SaaSAdminPanel: React.FC = () => {
+  React.useEffect(() => {
+    // Força o tema dark no painel admin SaaS para manter a consistência do Glassmorphism
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.body.classList.add('dark');
+  }, []);
+
   const saasState = useSaaSAdminState();
   const {
     activeTab,
@@ -223,7 +229,7 @@ export const SaaSAdminPanel: React.FC = () => {
           {activeTab === 'login-settings' && <LoginSettingsPage key="login-settings" />}
           {activeTab === 'broadcast' && <BroadcastPage key="broadcast" />}
           {activeTab === 'health' && <HealthTab key="health" {...saasState} />}
-          {activeTab === 'leads' && <LeadsTab key="leads" {...saasState} />}
+          {activeTab === 'leads' && <LeadsTab key="leads" {...saasState} viewMode={saasState.leadsViewMode} setViewMode={saasState.setLeadsViewMode} />}
           {activeTab === 'analytics' && <AnalyticsTab key="analytics" {...saasState} />}
         </AnimatePresence>
 

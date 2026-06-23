@@ -17,6 +17,9 @@ import {
   List,
   LayoutGrid,
   GripVertical,
+  MessageCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { ModernTable } from '../../../../components/DataTable/ModernTable';
 import { EmptyState } from '../../../../components/Feedback/EmptyState';
@@ -60,24 +63,25 @@ const formatWhatsAppLink = (phone: string, name: string, company: string) => {
 interface LeadsTabProps {
   leadsList: any[];
   leadsLoading: boolean;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  handleUpdateLeadStatus: (leadId: string, newStatus: string) => Promise<void>;
-  handleDeleteLead: (leadId: string) => Promise<void>;
+  handleDeleteLead: (id: string) => Promise<void>;
+  handleUpdateLeadStatus: (id: string, newStatus: string) => Promise<void>;
   handleExport: (format: 'csv' | 'excel' | 'pdf') => void;
+  viewMode: 'table' | 'kanban';
+  setViewMode: (mode: 'table' | 'kanban') => void;
 }
 
 export const LeadsTab: React.FC<LeadsTabProps> = ({
   leadsList,
   leadsLoading,
-  handleUpdateLeadStatus,
   handleDeleteLead,
+  handleUpdateLeadStatus,
   handleExport,
+  viewMode,
+  setViewMode,
 }) => {
   const { confirm } = useConfirm();
   const [localSearch, setLocalSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'Pendente' | 'Contatado' | 'Convertido' | 'Arquivado'>('all');
-  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('table');
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -418,7 +422,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                                 handleDeleteLead(lead.id);
                               }
                             }}
-                            style={{ background: 'transparent', border: 'none', color: '#ef4444', opacity: 0.5, cursor: 'pointer', padding: 0 }}
+                            style={{ background: 'transparent', border: 'none', color: 'hsl(var(--danger))', opacity: 0.5, cursor: 'pointer', padding: 0 }}
                             onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
                             onMouseLeave={(e) => e.currentTarget.style.opacity = '0.5'}
                             title="Excluir Lead"
@@ -482,7 +486,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                                 }}
                                 title="Falar no WhatsApp"
                               >
-                                <WhatsAppIcon size={12} />
+                                <MessageCircle size={12} />
                               </a>
                             )}
                             {status !== 'Pendente' && (
@@ -491,7 +495,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                                 style={{ background: 'hsl(var(--bg-main) / 0.1)', border: 'none', borderRadius: '6px', color: 'hsl(var(--text-main))', padding: '2px 6px', fontSize: '9px', cursor: 'pointer' }}
                                 title="Mover para coluna anterior"
                               >
-                                ◀
+                                <ChevronLeft size={10} />
                               </button>
                             )}
                             {status !== 'Arquivado' && (
@@ -500,7 +504,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                                 style={{ background: 'hsl(var(--bg-main) / 0.1)', border: 'none', borderRadius: '6px', color: 'hsl(var(--text-main))', padding: '2px 6px', fontSize: '9px', cursor: 'pointer' }}
                                 title="Mover para próxima coluna"
                               >
-                                ▶
+                                <ChevronRight size={10} />
                               </button>
                             )}
                           </div>
@@ -612,19 +616,19 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
                     }
                   }}
                   style={{
-                    color: '#ef4444',
-                    background: '#ef44441a',
-                    border: '1px solid #ef444433',
+                    color: 'hsl(var(--danger))',
+                    background: 'hsl(var(--danger) / 0.1)',
+                    border: '1px solid hsl(var(--danger) / 0.2)',
                     padding: '6px',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     transition: '0.2s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#ef444433';
+                    e.currentTarget.style.background = 'hsl(var(--danger) / 0.2)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#ef44441a';
+                    e.currentTarget.style.background = 'hsl(var(--danger) / 0.1)';
                   }}
                 >
                   <Trash2 size={16} />

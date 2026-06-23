@@ -124,7 +124,28 @@ export const BrandingPage: React.FC = () => {
         const { error } = await supabase.from('system_settings').insert(payload);
         if (error) throw error;
       }
-      document.documentElement.style.setProperty('--brand', brandColor);
+      // Converte cor hex para HSL sem unidade para ser compatível com hsl(var(--brand))
+      const hexToHslComponents = (hex: string): string => {
+        const r = parseInt(hex.slice(1, 3), 16) / 255;
+        const g = parseInt(hex.slice(3, 5), 16) / 255;
+        const b = parseInt(hex.slice(5, 7), 16) / 255;
+        const max = Math.max(r, g, b), min = Math.min(r, g, b);
+        let h = 0, s = 0;
+        const l = (max + min) / 2;
+        if (max !== min) {
+          const d = max - min;
+          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+          switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+          }
+        }
+        return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+      };
+      if (brandColor.startsWith('#') && brandColor.length === 7) {
+        document.documentElement.style.setProperty('--brand', hexToHslComponents(brandColor));
+      }
       toast.success('Identidade visual salva com sucesso!');
       await refreshSettings();
     } catch (err: any) {
@@ -134,10 +155,13 @@ export const BrandingPage: React.FC = () => {
     }
   };
 
-  const isDirty = systemName !== settings.system_name
-    || brandColor !== settings.brand_color
+  const isDirty =
+    systemName !== (settings.system_name || 'Tauze ERP')
+    || brandColor !== (settings.brand_color || '#00b865')
     || logoBase64 !== settings.logo_base64
-    || sidebarBgColor !== (settings.sidebar_bg_color || '');
+    || faviconBase64 !== settings.favicon_base64
+    || sidebarBgColor !== (settings.sidebar_bg_color || '')
+    || sidebarFontColor !== (settings.sidebar_font_color || '');
 
   return (
     <motion.div
@@ -303,7 +327,7 @@ export const BrandingPage: React.FC = () => {
         {/* ── PREVIEW COLUMN ── */}
         <div style={{ position: 'sticky', top: 20 }}>
           <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', color: 'hsl(var(--text-muted))', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Eye size={11} /> PREVIEW AO VIVO
+            <Eye size={11} /> PRÉVIA AO VIVO
           </div>
           <SidebarPreview
             name={systemName}

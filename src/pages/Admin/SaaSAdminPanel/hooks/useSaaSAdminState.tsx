@@ -109,6 +109,7 @@ export const useSaaSAdminState = () => {
   const [tenantsViewMode, setTenantsViewMode] = useViewMode('saas-admin-tenants', 'grid');
   const [plansViewMode, setPlansViewMode] = useViewMode('saas-admin-plans', 'grid');
   const [campaignsViewMode, setCampaignsViewMode] = useViewMode('saas-admin-campaigns', 'grid');
+  const [leadsViewMode, setLeadsViewMode] = useState<'table' | 'kanban'>('table');
 
   const [showAdvancedFilters, setShowAdvancedFilters] = usePersistentState(
     'SaaSAdminPanel_showAdvancedFilters',
@@ -1187,6 +1188,8 @@ export const useSaaSAdminState = () => {
     setPlansViewMode,
     campaignsViewMode,
     setCampaignsViewMode,
+    leadsViewMode,
+    setLeadsViewMode,
     showAdvancedFilters,
     setShowAdvancedFilters,
     filterValues,

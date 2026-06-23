@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Server, Activity, Users, Globe, RefreshCw, ShieldCheck, Database, Shield, DollarSign } from 'lucide-react';
+import { Zap, Server, Activity, Users, Globe, RefreshCw, ShieldCheck, Database, Shield, DollarSign, AlertTriangle } from 'lucide-react';
 import { TauzeStatCard } from '../../../../components/Cards/TauzeStatCard';
+import { EmptyState } from '../../../../components/Feedback/EmptyState';
 
 interface OverviewTabProps {
   kpis: {
@@ -125,7 +126,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 </div>
                 <div className="system-status-indicator">
                   <div className="pulse-dot active" />
-                  <span>SISTEMA NOMINAL</span>
+                <span>
+                  {kpis.health >= 90 ? 'SISTEMA NOMINAL' : kpis.health >= 60 ? 'ATENÇÃO' : 'ESTADO CRÍTICO'}
+                </span>
                 </div>
               </div>
 
@@ -142,15 +145,23 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                   Alertas Críticos do Ecossistema
                 </h4>
                 <div className="executive-alerts-grid-premium">
-                  {alertsFeed.map((alertItem) => (
-                    <div key={alertItem.id} className={`alert-card-premium ${alertItem.type}`}>
-                      <div className="alert-card-header">
-                        <span className="alert-title">{alertItem.title}</span>
-                        <span className="alert-time">{alertItem.time}</span>
+                  {alertsFeed.length === 0 ? (
+                    <EmptyState
+                      title="Nenhum alerta crítico"
+                      description="O ecossistema está operando normalmente. Nenhum alerta registrado no momento."
+                      icon={ShieldCheck}
+                    />
+                  ) : (
+                    alertsFeed.map((alertItem) => (
+                      <div key={alertItem.id} className={`alert-card-premium ${alertItem.type}`}>
+                        <div className="alert-card-header">
+                          <span className="alert-title">{alertItem.title}</span>
+                          <span className="alert-time">{alertItem.time}</span>
+                        </div>
+                        <p className="alert-desc">{alertItem.desc}</p>
                       </div>
-                      <p className="alert-desc">{alertItem.desc}</p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -278,7 +289,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               </div>
 
               {/* Standard Health Progress Widgets */}
-              <div className="health-grid" style={{ gridTemplateColumns: '1fr 1fr !important' }}>
+              <div className="health-grid health-grid--two-cols">
                 <div className="health-panel">
                   <div className="panel-header">
                     <Database size={18} />

@@ -18,13 +18,15 @@ import {
   Users,
   HardDrive,
   Edit2,
-  Shield
+  Shield,
+  Activity,
+  ShieldCheck,
+  UserX
 } from 'lucide-react';
 import { ToggleSwitch } from '../../../../components/UI/ToggleSwitch';
 import { EmptyState } from '../../../../components/Feedback/EmptyState';
 import { ModernTable } from '../../../../components/DataTable/ModernTable';
 import { TauzeStatCard } from '../../../../components/Cards/TauzeStatCard';
-import { Activity, ShieldCheck, UserX } from 'lucide-react';
 import { filterTenants } from '../utils/saasFilters';
 import { ExportDropdown } from '../../../../components/UI/ExportDropdown';
 import { useConfirm } from '../../../../contexts/ConfirmContext';
@@ -256,7 +258,6 @@ export const TenantsTab: React.FC<TenantsTabProps> = ({
                 setIsDeleteDemoModalOpen(true);
               }}
               title="Excluir Base Demo"
-              style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fee2e2' }}
             >
               <Trash2 size={18} />
             </button>
@@ -349,7 +350,7 @@ export const TenantsTab: React.FC<TenantsTabProps> = ({
           label="Clientes Inativos"
           value={tenantsList.filter((t) => t.status?.toLowerCase() !== 'ativo').length.toString()}
           icon={UserX}
-          color="#ef4444"
+          color="hsl(var(--danger))"
         />
       </div>
 
@@ -526,7 +527,7 @@ export const TenantsTab: React.FC<TenantsTabProps> = ({
                             setIsDeleteDemoModalOpen(true);
                           }}
                           title="Excluir Base Demo"
-                          style={{ color: '#ef4444' }}
+                          style={{ color: 'hsl(var(--danger))' }}
                         >
                           <Trash2 size={16} />
                         </button>
