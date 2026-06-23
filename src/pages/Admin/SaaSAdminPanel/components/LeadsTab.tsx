@@ -242,7 +242,7 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      style={{ width: '100%', display: 'flex', flexDirection: 'column' }}
+      style={{ flex: 1, width: '100%' }}
     >
       {/* Cards de Métricas de Leads */}
       <div className="next-gen-kpi-grid">
@@ -323,7 +323,8 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
       </div>
 
       {/* Lista de Leads */}
-      {viewMode === 'kanban' ? (
+      <div className="management-content">
+        {viewMode === 'kanban' ? (
         <div
           style={{
             display: 'grid',
@@ -518,126 +519,125 @@ export const LeadsTab: React.FC<LeadsTabProps> = ({
           })}
         </div>
       ) : (
-        <div className="management-content">
-          <ModernTable
-            data={filteredLeads}
-            columns={columns}
-            loading={leadsLoading}
-            itemsPerPage={10}
-            actions={(item: any) => (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                {item.status === 'Pendente' && (
-                  <button
-                    className="action-btn"
-                    title="Marcar como Contatado"
-                    onClick={() => handleUpdateLeadStatus(item.id, 'Contatado')}
-                    style={{
-                      color: '#3b82f6',
-                      background: '#3b82f61a',
-                      border: '1px solid #3b82f633',
-                      padding: '6px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: '0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#3b82f633';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '#3b82f61a';
-                    }}
-                  >
-                    <MessageSquare size={16} />
-                  </button>
-                )}
-
-                {(item.status === 'Pendente' || item.status === 'Contatado') && (
-                  <button
-                    className="action-btn"
-                    title="Marcar como Convertido"
-                    onClick={() => handleUpdateLeadStatus(item.id, 'Convertido')}
-                    style={{
-                      color: '#10b981',
-                      background: '#10b9811a',
-                      border: '1px solid #10b98133',
-                      padding: '6px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: '0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#10b98133';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = '#10b9811a';
-                    }}
-                  >
-                    <CheckCircle size={16} />
-                  </button>
-                )}
-
-                {item.status !== 'Arquivado' && (
-                  <button
-                    className="action-btn"
-                    title="Arquivar Lead"
-                    onClick={() => handleUpdateLeadStatus(item.id, 'Arquivado')}
-                    style={{
-                      color: 'hsl(var(--text-muted))',
-                      background: 'hsl(var(--bg-main) / 0.1)',
-                      border: '1px solid hsl(var(--border))',
-                      padding: '6px',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: '0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'hsl(var(--bg-main) / 0.2)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'hsl(var(--bg-main) / 0.1)';
-                    }}
-                  >
-                    <Archive size={16} />
-                  </button>
-                )}
-
+        <ModernTable
+          data={filteredLeads}
+          columns={columns}
+          loading={leadsLoading}
+          itemsPerPage={10}
+          actions={(item: any) => (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+              {item.status === 'Pendente' && (
                 <button
-                  className="action-btn danger"
-                  title="Excluir Lead"
-                  onClick={async () => {
-                    const isConfirmed = await confirm({
-                      title: 'Excluir Lead',
-                      description: 'Tem certeza que deseja excluir permanentemente este lead?',
-                      confirmText: 'Excluir',
-                      variant: 'danger',
-                    });
-                    if (isConfirmed) {
-                      handleDeleteLead(item.id);
-                    }
-                  }}
+                  className="action-btn"
+                  title="Marcar como Contatado"
+                  onClick={() => handleUpdateLeadStatus(item.id, 'Contatado')}
                   style={{
-                    color: 'hsl(var(--danger))',
-                    background: 'hsl(var(--danger) / 0.1)',
-                    border: '1px solid hsl(var(--danger) / 0.2)',
+                    color: '#3b82f6',
+                    background: '#3b82f61a',
+                    border: '1px solid #3b82f633',
                     padding: '6px',
                     borderRadius: '8px',
                     cursor: 'pointer',
                     transition: '0.2s',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'hsl(var(--danger) / 0.2)';
+                    e.currentTarget.style.background = '#3b82f633';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'hsl(var(--danger) / 0.1)';
+                    e.currentTarget.style.background = '#3b82f61a';
                   }}
                 >
-                  <Trash2 size={16} />
+                  <MessageSquare size={16} />
                 </button>
-              </div>
-            )}
-          />
-        </div>
+              )}
+
+              {(item.status === 'Pendente' || item.status === 'Contatado') && (
+                <button
+                  className="action-btn"
+                  title="Marcar como Convertido"
+                  onClick={() => handleUpdateLeadStatus(item.id, 'Convertido')}
+                  style={{
+                    color: '#10b981',
+                    background: '#10b9811a',
+                    border: '1px solid #10b98133',
+                    padding: '6px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: '0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#10b98133';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#10b9811a';
+                  }}
+                >
+                  <CheckCircle size={16} />
+                </button>
+              )}
+
+              {item.status !== 'Arquivado' && (
+                <button
+                  className="action-btn"
+                  title="Arquivar Lead"
+                  onClick={() => handleUpdateLeadStatus(item.id, 'Arquivado')}
+                  style={{
+                    color: 'hsl(var(--text-muted))',
+                    background: 'hsl(var(--bg-main) / 0.1)',
+                    border: '1px solid hsl(var(--border))',
+                    padding: '6px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: '0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'hsl(var(--bg-main) / 0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'hsl(var(--bg-main) / 0.1)';
+                  }}
+                >
+                  <Archive size={16} />
+                </button>
+              )}
+
+              <button
+                className="action-btn danger"
+                title="Excluir Lead"
+                onClick={async () => {
+                  const isConfirmed = await confirm({
+                    title: 'Excluir Lead',
+                    description: 'Tem certeza que deseja excluir permanentemente este lead?',
+                    confirmText: 'Excluir',
+                    variant: 'danger',
+                  });
+                  if (isConfirmed) {
+                    handleDeleteLead(item.id);
+                  }
+                }}
+                style={{
+                  color: 'hsl(var(--danger))',
+                  background: 'hsl(var(--danger) / 0.1)',
+                  border: '1px solid hsl(var(--danger) / 0.2)',
+                  padding: '6px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: '0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'hsl(var(--danger) / 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'hsl(var(--danger) / 0.1)';
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          )}
+        />
       )}
+      </div>
     </motion.div>
   );
 };
